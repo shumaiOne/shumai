@@ -1,0 +1,710 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  binaryTargets   = ["native", "linux-musl-openssl-3.0.x"]
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+generator json {
+  provider = "prisma-json-types-generator"
+  allowAny = false
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [vector]
+}
+
+// ----------------------------------------------------------------------
+// Enums
+// ----------------------------------------------------------------------
+
+enum UserType {
+  human
+  agent
+}
+
+enum AssetType {
+  folder
+  file
+  share
+  root
+  attachment
+  version_stack
+  share_root
+  symlink
+}
+
+enum AssetStatus {
+  uploading
+  uploaded
+  processing
+  processed
+  trashed
+  removed
+}
+
+enum InviteRole {
+  editor
+  reviewer
+}
+
+enum MetadataFieldScope {
+  SYSTEM
+  TEAM
+  PROJECT
+}
+
+enum NotificationType {
+  comment_created
+  reply_created
+  mention
+  successful_file_uploaded
+  metadata_field_updated_status
+  new_user_join_team
+  new_user_join_project
+}
+
+enum ProjectMemberRole {
+  owner
+  editor
+  reviewer
+}
+
+enum TaskType {
+  upload
+}
+
+enum TaskStatus {
+  pending
+  uploading
+  completed
+  failed
+}
+
+enum TeamMemberRole {
+  owner
+  editor
+  reviewer
+}
+
+enum TeamMemberScope {
+  team
+  project
+}
+
+enum WorkflowTaskType {
+  transcode
+  ai_metadata_autofill
+  ai_transcription
+  chat
+  ai_embedding
+}
+
+enum WorkflowTaskStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+// ----------------------------------------------------------------------
+// Models
+// ----------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(ulid())
+  type          UserType  @default(human)
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false) @map("email_verified")
+  image         String?
+  password      String?
+  /// [AgentSettings]
+  agentSettings Json?     @map("agent_settings")
+  guestEmail    String?   @map("guest_email")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  assets               Asset[]          @relation("UserToAsset")
+  authTokens           AuthToken[]      @relation("UserToAuthToken")
+  tasks                Task[]           @relation("UserToTask")
+  teamMembers          TeamMember[]     @relation("UserToTeamMember")
+  comments             AssetComment[]   @relation("UserToAssetComment")
+  createdInvites       Invite[]         @relation("UserToInvite")
+  createdNotifications Notification[]   @relation("UserToCreatedNotification")
+  notifications        Notification[]   @relation("UserToNotification")
+  sessions             Session[]
+  accounts             Account[]
+  agent                Agent?
+  agentSessions        AgentSession[]
+  userMetadata         UserMetadata[]   @relation("UserToUserMetadata")
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(ulid())
+  expiresAt DateTime @map("expires_at")
+  token     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Account {
+  id                    String    @id @default(ulid())
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  userId                String    @map("user_id")
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  @@map("accounts")
+}
+
+model Verification {
+  id         String    @id @default(ulid())
+  identifier String
+  value      String
+  expiresAt  DateTime  @map("expires_at")
+  createdAt  DateTime? @default(now()) @map("created_at")
+  updatedAt  DateTime? @updatedAt @map("updated_at")
+
+  @@map("verifications")
+}
+
+model AuthToken {
+  id                    String   @id @default(ulid())
+  accessToken           String   @unique @map("access_token")
+  refreshToken          String   @unique @map("refresh_token")
+  accessTokenExpiresAt  DateTime @map("access_token_expires_at")
+  refreshTokenExpiresAt DateTime @map("refresh_token_expires_at")
+
+  userId                String   @map("user_id")
+  user                  User     @relation("UserToAuthToken", fields: [userId], references: [id])
+
+  @@map("auth_tokens")
+}
+
+model Team {
+  id         String   @id @default(ulid())
+  name       String
+  /// [Settings]
+  settings   Json?    @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  rootFolderId String? @unique @map("root_folder_id")
+  rootFolder   Asset?  @relation("TeamToRootFolder", fields: [rootFolderId], references: [id])
+
+  members        TeamMember[]    @relation("TeamToTeamMember")
+  projects       Project[]       @relation("TeamToProject")
+  metadataFields MetadataField[] @relation("TeamToMetadataField")
+  invites        Invite[]        @relation("TeamToInvite")
+  notifications  Notification[]  @relation("TeamToNotification")
+  userMetadata   UserMetadata[]  @relation("TeamToUserMetadata")
+  providers      Provider[]      @relation("TeamToProvider")
+  skills         Skill[]         @relation("TeamToSkill")
+
+  @@map("teams")
+}
+
+model Skill {
+  id          String   @id @default(ulid())
+  name        String
+  description String?
+  /// [SkillConfig]
+  config      Json?    @default("{}")
+  assetId     String   @map("asset_id")
+  hash        String   @map("hash")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  teamId      String   @map("team_id")
+  team        Team     @relation("TeamToSkill", fields: [teamId], references: [id], onDelete: Cascade)
+
+  agentSkills AgentSkill[]
+
+  @@unique([teamId, name])
+  @@map("skills")
+}
+
+model TeamMember {
+  id        String          @id @default(ulid())
+  role      TeamMemberRole
+  scope     TeamMemberScope @default(team)
+
+  teamId    String          @map("team_id")
+  team      Team            @relation("TeamToTeamMember", fields: [teamId], references: [id])
+
+  userId    String          @map("user_id")
+  user      User            @relation("UserToTeamMember", fields: [userId], references: [id], onDelete: Cascade)
+
+  projectMembers ProjectMember[] @relation("TeamMemberToProjectMember")
+  lastReadNotificationId String? @unique @map("last_read_notification_id")
+  lastReadNotification Notification? @relation("TeamMemberToLastReadNotification", fields: [lastReadNotificationId], references: [id])
+
+  @@map("team_members")
+  @@unique([teamId, userId], name: "teamIdUserId")
+}
+
+model Project {
+  id                     String   @id @default(ulid())
+  name                   String
+  coverImageKey          String?  @map("cover_image_key")
+  /// [MetadataOverrides]
+  metadataOverrides      Json?    @map("metadata_overrides")
+  enableNotification     Boolean  @default(true) @map("enable_notification")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  teamId                 String   @map("team_id")
+  team                   Team     @relation("TeamToProject", fields: [teamId], references: [id])
+
+  rootFolderId           String?  @unique @map("root_folder_id")
+  rootFolder             Asset?   @relation("ProjectToRootFolder", fields: [rootFolderId], references: [id])
+
+  shareRootId            String?  @unique @map("share_root_id")
+  shareRoot              Asset?   @relation("ProjectToShareRoot", fields: [shareRootId], references: [id])
+
+  members                ProjectMember[]    @relation("ProjectToProjectMember")
+  assets                 Asset[]            @relation("ProjectToAsset")
+  metadataFields         MetadataField[]    @relation("ProjectToMetadataField")
+  invites                Invite[]           @relation("ProjectToInvite")
+  notifications          Notification[]     @relation("ProjectToNotification")
+  shareLinks             ShareLink[]        @relation("ProjectToShareLink")
+
+  @@map("projects")
+  @@index([createdAt])
+  @@index([updatedAt])
+}
+
+model ProjectMember {
+  id             String            @id @default(ulid())
+  role           ProjectMemberRole
+
+  projectId      String            @map("project_id")
+  project        Project           @relation("ProjectToProjectMember", fields: [projectId], references: [id])
+
+  teamMemberId   String            @map("team_member_id")
+  teamMember     TeamMember        @relation("TeamMemberToProjectMember", fields: [teamMemberId], references: [id])
+
+  @@map("project_members")
+  @@unique([projectId, teamMemberId], name: "projectIdTeamMemberId")
+}
+
+model ShareLink {
+  id               String    @id @default(ulid())
+  name             String
+  expireAt         DateTime? @map("expire_at")
+  password         String?
+  isDisabled       Boolean   @default(false) @map("is_disabled")
+  defaultSortOrder String?   @map("default_sort_order")
+  /// [ShareLinkFieldVisibility]
+  fieldVisibility  Json?     @map("field_visibility")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  projectId        String    @map("project_id")
+  project          Project   @relation("ProjectToShareLink", fields: [projectId], references: [id])
+
+  rootFolderId     String    @unique @map("root_folder_id")
+  rootFolder       Asset     @relation("ShareLinkToRootFolder", fields: [rootFolderId], references: [id])
+
+  @@map("share_links")
+}
+
+model Asset {
+  id                String       @id @default(ulid())
+  name              String       @default("")
+  nameNgram         String[]     @default([]) @map("name_ngram")
+  key               String?
+  type              AssetType
+  mediaType         String?      @map("media_type")
+  fileCount         Int          @default(0) @map("file_count")
+  sizeByte          Int          @default(0) @map("size_byte")
+  status            AssetStatus
+  transcodeTaskId   String?      @map("transcode_task_id")
+  /// [MediaInfo]
+  media             Json?
+  removed           Boolean      @default(false)
+  deletedAt         DateTime?    @map("deleted_at")
+  sortIndex         String?      @map("sort_index")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+
+  parentId          String?      @map("parent_id")
+  parent            Asset?       @relation("AssetChildren", fields: [parentId], references: [id])
+  children          Asset[]      @relation("AssetChildren")
+
+  targetId          String?      @map("target_id")
+  target            Asset?       @relation("SymlinkTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  symlinks          Asset[]      @relation("SymlinkTarget")
+
+  metadataValues    AssetMetadataValue[] @relation("AssetToMetadataValues")
+
+  creatorId         String?      @map("creator_id")
+  creator           User?        @relation("UserToAsset", fields: [creatorId], references: [id])
+
+  taskId            String?      @map("task_id")
+  task              Task?        @relation("TaskToAsset", fields: [taskId], references: [id])
+
+  projectId         String?      @map("project_id")
+  project           Project?     @relation("ProjectToAsset", fields: [projectId], references: [id])
+
+  comments          AssetComment[]           @relation("AssetToComment")
+  commentAttachments AssetCommentAttachment[] @relation("AssetToCommentAttachment")
+  notifications     Notification[]           @relation("AssetToNotification")
+  embeddings        AssetEmbedding[]         @relation("AssetToEmbedding")
+
+  teamRootFolder       Team?        @relation("TeamToRootFolder")
+  projectRootFolder    Project?     @relation("ProjectToRootFolder")
+  projectShareRoot     Project?     @relation("ProjectToShareRoot")
+  shareLinkRootFolder  ShareLink?   @relation("ShareLinkToRootFolder")
+
+  @@map("assets")
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([sortIndex])
+  @@index([removed])
+  @@index([deletedAt])
+  @@index([nameNgram], type: Gin)
+  @@unique([parentId, targetId], name: "parentIdTargetId")
+}
+
+model AssetMetadataValue {
+  id           String   @id @default(ulid())
+  assetId      String   @map("asset_id")
+  fieldId      String   @map("field_id") // key from MetadataField
+
+  stringValue  String?  @map("string_value")
+  numberValue  Float?   @map("number_value")
+  booleanValue Boolean? @map("boolean_value")
+  jsonValue    Json?    @map("json_value")
+  dateValue    DateTime? @map("date_value")
+
+  asset        Asset    @relation("AssetToMetadataValues", fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@unique([assetId, fieldId])
+  @@index([numberValue])
+  @@index([stringValue])
+  @@index([booleanValue])
+  @@index([dateValue])
+  @@index([jsonValue], type: Gin)
+  @@map("asset_metadata_values")
+}
+
+model AssetComment {
+  id          String   @id @default(ulid())
+  message     String?
+  /// [AnnotationList]
+  annotation  Json?
+  second      Float?
+  isAi        Boolean  @default(false) @map("is_ai")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  assetId     String   @map("asset_id")
+  asset       Asset    @relation("AssetToComment", fields: [assetId], references: [id])
+
+  creatorId   String?  @map("creator_id")
+  creator     User?    @relation("UserToAssetComment", fields: [creatorId], references: [id])
+
+  replyToId   String?  @map("reply_to_id")
+  replyTo     AssetComment? @relation("CommentReplies", fields: [replyToId], references: [id])
+  replies     AssetComment[] @relation("CommentReplies")
+
+  attachments AssetCommentAttachment[] @relation("CommentToAttachment")
+
+  @@map("asset_comments")
+}
+
+model AssetCommentAttachment {
+  id          String   @id @default(ulid())
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  commentId   String   @map("comment_id")
+  comment     AssetComment @relation("CommentToAttachment", fields: [commentId], references: [id])
+
+  assetId     String   @map("asset_id")
+  asset       Asset        @relation("AssetToCommentAttachment", fields: [assetId], references: [id])
+
+  @@map("asset_comment_attachments")
+}
+
+model AssetEmbedding {
+  id          String   @id @default(ulid())
+  embedding   Unsupported("vector(1536)")?
+  startTime   Float?   @map("start_time")
+  endTime     Float?   @map("end_time")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  assetId     String   @map("asset_id")
+  asset       Asset    @relation("AssetToEmbedding", fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@map("asset_embeddings")
+}
+
+model Invite {
+  id          String     @id @default(ulid())
+  code        String     @unique
+  role        InviteRole?
+  used        Boolean    @default(false)
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  teamId      String     @map("team_id")
+  team        Team       @relation("TeamToInvite", fields: [teamId], references: [id])
+
+  projectId   String?    @map("project_id")
+  project     Project?   @relation("ProjectToInvite", fields: [projectId], references: [id])
+
+  inviterId   String     @map("inviter_id")
+  inviter     User       @relation("UserToInvite", fields: [inviterId], references: [id])
+
+  @@map("invites")
+}
+
+model MetadataField {
+  id          String             @id @default(ulid())
+  key         String             @unique
+  scope       MetadataFieldScope?
+  /// [FieldConfig]
+  config      Json?
+  readOnly    Boolean            @default(false) @map("read_only")
+  aiAutofill  Boolean            @default(false) @map("ai_autofill")
+  description String             @default("")
+
+  teamId      String?            @map("team_id")
+  team        Team?              @relation("TeamToMetadataField", fields: [teamId], references: [id])
+
+  projectId   String?            @map("project_id")
+  project     Project?           @relation("ProjectToMetadataField", fields: [projectId], references: [id])
+
+  @@map("metadata_fields")
+}
+
+model Notification {
+  id          String           @id @default(ulid())
+  type        NotificationType?
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  teamId      String           @map("team_id")
+  team        Team             @relation("TeamToNotification", fields: [teamId], references: [id])
+
+  projectId   String?          @map("project_id")
+  project     Project?         @relation("ProjectToNotification", fields: [projectId], references: [id])
+
+  creatorId   String?          @map("creator_id")
+  creator     User?            @relation("UserToCreatedNotification", fields: [creatorId], references: [id])
+
+  assetId     String?          @map("asset_id")
+  asset       Asset?           @relation("AssetToNotification", fields: [assetId], references: [id])
+
+  taskId      String?          @map("task_id")
+  task        Task?            @relation("TaskToNotification", fields: [taskId], references: [id])
+
+  userId      String?          @map("user_id")
+  user        User?            @relation("UserToNotification", fields: [userId], references: [id])
+
+  readByMembers TeamMember?    @relation("TeamMemberToLastReadNotification")
+
+  @@map("notifications")
+}
+
+model SystemSettings {
+  id          String   @id @default(ulid())
+  key         String   @unique
+  /// [SystemSettingsValue]
+  value       Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+  @@index([key])
+}
+
+model Task {
+  id          String     @id @default(ulid())
+  type        TaskType?
+  status      TaskStatus @default(pending)
+  name        String?
+  total       Int?
+  uploaded    Int        @default(0)
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  creatorId   String?    @map("creator_id")
+  creator     User?      @relation("UserToTask", fields: [creatorId], references: [id])
+
+  assets        Asset[]        @relation("TaskToAsset")
+  notifications Notification[] @relation("TaskToNotification")
+
+  @@map("tasks")
+}
+
+model WorkflowTask {
+  id            String             @id @default(ulid())
+  uid           String             @default(uuid()) @db.Uuid
+  teamId        String?            @map("team_id")
+  projectId     String?            @map("project_id")
+  assetId       String             @map("asset_id")
+  type          WorkflowTaskType?
+  status        WorkflowTaskStatus?
+  /// [WorkflowTaskPayload]
+  payload       Json?
+  /// [WorkflowTaskOutput]
+  output        Json?
+  heartbeat     DateTime?
+  inputTokens   Int                @default(0) @map("input_tokens")
+  outputTokens  Int                @default(0) @map("output_tokens")
+  model         String?
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+
+  @@map("workflow_tasks")
+  @@index([status, heartbeat])
+  @@index([assetId, type])
+  @@index([teamId])
+  @@index([projectId])
+  @@index([type])
+}
+enum AgentType {
+  chat
+  autofill
+  embedding
+  transcription
+}
+
+model Agent {
+  id         String    @id
+  user       User      @relation(fields: [id], references: [id], onDelete: Cascade)
+  type       AgentType
+  enabled    Boolean   @default(true)
+  soul       String?   @db.Text
+  providerId String?   @map("provider_id")
+  provider   Provider? @relation("ProviderToAgent", fields: [providerId], references: [id], onDelete: SetNull)
+  modelId    String?   @map("model_id")
+  modelRef   Model?    @relation("ModelToAgent", fields: [modelId], references: [id], onDelete: SetNull)
+  /// [AgentConfig]
+  config        Json
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  agentSessions AgentSession[]
+  skills        AgentSkill[]
+
+  @@map("agents")
+}
+
+model AgentSkill {
+  id        String   @id @default(ulid())
+  agentId   String   @map("agent_id")
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  skillId   String   @map("skill_id")
+  skill     Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([agentId, skillId])
+  @@map("agent_skills")
+}
+
+model AgentSession {
+  id        String   @id @default(ulid())
+  agentId   String   @map("agent_id")
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  userId    String?  @map("user_id")
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  cwd       String
+  leafId    String?  @map("leaf_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  entries   AgentSessionEntry[]
+
+  @@map("agent_sessions")
+}
+
+model AgentSessionEntry {
+  id        String   @id // Uses ULID generated by pi-coding-agent
+  sessionId String   @map("session_id")
+  session   AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  /// [PiSessionEntry]
+  entry     Json
+
+  @@map("agent_session_entries")
+  @@index([sessionId])
+}
+
+model UserMetadata {
+  id        String   @id @default(ulid())
+  key       String
+  /// [UserMetadataValue]
+  value     Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  userId String @map("user_id")
+  user   User   @relation("UserToUserMetadata", fields: [userId], references: [id], onDelete: Cascade)
+
+  teamId String @map("team_id")
+  team   Team   @relation("TeamToUserMetadata", fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, teamId, key], name: "userIdTeamIdKey")
+  @@map("user_metadata")
+}
+
+model Model {
+  id         String   @id @default(ulid())
+  modelId    String   @map("model_id")
+  name       String   @default("")
+  /// [ModelConfig]
+  config     Json
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  providerId String   @map("provider_id")
+  provider   Provider @relation("ProviderToModel", fields: [providerId], references: [id], onDelete: Cascade)
+
+  agents Agent[] @relation("ModelToAgent")
+
+  @@unique([providerId, modelId])
+  @@map("models")
+}
+
+model Provider {
+  id        String   @id @default(ulid())
+  name      String
+  isBuiltin Boolean  @default(false) @map("is_builtin")
+  /// [ProviderConfig]
+  config    Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  teamId    String   @map("team_id")
+  team      Team     @relation("TeamToProvider", fields: [teamId], references: [id], onDelete: Cascade)
+
+  models    Model[]  @relation("ProviderToModel")
+  agents    Agent[]  @relation("ProviderToAgent")
+
+  @@unique([teamId, name])
+  @@map("providers")
+}

@@ -1,0 +1,5 @@
+node_modules
+dist
+.bun
+src/generated
+src/ui/components/ui

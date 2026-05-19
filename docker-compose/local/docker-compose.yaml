@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg18
+    container_name: shumai_postgres
+    environment:
+      POSTGRES_USER: shumai
+      POSTGRES_PASSWORD: shumai_password
+      POSTGRES_DB: shumai_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/18/docker
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U shumai -d shumai_db']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  shumai:
+    image: shumaione/shumai:main
+    container_name: shumai_app
+    ports:
+      - '3000:3000'
+    volumes:
+      - ../../data:/app/data
+    environment:
+      # Database Configuration
+      DATABASE_URL: postgres://shumai:shumai_password@shumai_postgres:5432/shumai_db?search_path=public&sslmode=disable
+
+      # S3 Configuration
+      STORAGE_BACKEND: local
+
+      # Better Auth
+      BETTER_AUTH_SECRET: qSxs9DxzHDZBbeeTNPEwBuspYwipBqz5Gk5XdBjNhWw=
+      BETTER_AUTH_URL: https://staging.shumai.one/
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

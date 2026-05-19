@@ -1,0 +1,194 @@
+import type { AssetInfo } from '@/dtos/asset'
+import { useScreenSize } from '@/ui/hooks/useScreenSize'
+import { getBestTranscode } from '@/ui/lib/media'
+import { Minus, Plus } from 'lucide-react'
+import type { RefObject } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type Player from 'video.js/dist/types/player'
+import DrawingCanvas from './drawing-canvas'
+import VideoPlayer from './viewers/video-player'
+
+import type { Annotation } from '@/ui/types'
+import { useAnnotationStore } from '@/ui/stores/annotation-store'
+
+type FileViewerProps = {
+  file: AssetInfo
+  videoRef?: RefObject<Player | null>
+  onPlay?: () => void
+  onPause?: () => void
+  annotations?: Annotation[]
+}
+
+export function FileViewer({ file, videoRef, onPlay, onPause, annotations }: FileViewerProps) {
+  const { width: screenWidth } = useScreenSize()
+  const isImage = file.mediaType?.startsWith('image/')
+  const isVideo = file.mediaType?.startsWith('video/')
+
+  // Annotation Store
+  const {
+    isDrawing,
+    currentTool,
+    currentColor,
+    addAnnotation,
+    annotations: draftAnnotations,
+    reset: resetAnnotations,
+  } = useAnnotationStore()
+
+  // Reset annotations when file changes
+  useEffect(() => {
+    resetAnnotations()
+  }, [file.id, resetAnnotations])
+
+  // State for Image Viewer
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [zoom, setZoom] = useState(1)
+  const [pan, setPan] = useState({ x: 0, y: 0 })
+
+  const imgW = file.media?.metadata?.originalWidth ?? 1920
+  const imgH = file.media?.metadata?.originalHeight ?? 1080
+  const conW = containerSize.width
+  const conH = containerSize.height
+
+  let baseScale = 1
+
+  if (conW > 0 && conH > 0) {
+    baseScale = Math.min(conW / imgW, conH / imgH)
+  }
+
+  // Reset/Fit logic
+  useEffect(() => {
+    if (conW > 0 && conH > 0 && isImage) {
+      setZoom(baseScale)
+      // Center
+      const x = (conW - imgW * baseScale) / 2
+      const y = (conH - imgH * baseScale) / 2
+      setPan({ x, y })
+    }
+  }, [file.id, conW, conH, isImage, baseScale, imgW, imgH])
+
+  // Resize Observer
+  useEffect(() => {
+    if (!containerRef.current) return
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (entry) {
+        setContainerSize({
+          width: entry.contentRect.width,
+          height: entry.contentRect.height,
+        })
+      }
+    })
+    observer.observe(containerRef.current)
+    return () => observer.disconnect()
+  }, [])
+
+  const handleZoom = (factor: number) => {
+    const cx = conW / 2
+    const cy = conH / 2
+
+    // Limit min/max zoom if needed?
+    const newZoom = zoom * factor
+    if (newZoom < 0.01 || newZoom > 50) return
+
+    const newPanX = cx - (cx - pan.x) * (newZoom / zoom)
+    const newPanY = cy - (cy - pan.y) * (newZoom / zoom)
+
+    setZoom(newZoom)
+    setPan({ x: newPanX, y: newPanY })
+  }
+
+  const handleFit = () => {
+    setZoom(baseScale)
+    const x = (conW - imgW * baseScale) / 2
+    const y = (conH - imgH * baseScale) / 2
+    setPan({ x, y })
+  }
+
+  let bestUrl = file.media?.original?.downloadUrl
+
+  if (isImage) {
+    const bestTranscode = getBestTranscode(file.media?.imageTranscodes, screenWidth)
+    if (bestTranscode?.url) {
+      bestUrl = bestTranscode.url
+    }
+  }
+
+  if (!bestUrl) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <p className="text-muted-foreground">Preview unavailable</p>
+      </div>
+    )
+  }
+
+  // Combine saved annotations and draft annotations
+  const displayAnnotations = [...(annotations || []), ...draftAnnotations]
+
+  return (
+    <div className="flex flex-col flex-1 h-full overflow-hidden bg-gray-100 dark:bg-gray-950 relative">
+      {isImage && (
+        <>
+          <div ref={containerRef} className="flex-1 relative overflow-hidden">
+            <DrawingCanvas
+              width={conW}
+              height={conH}
+              mediaDimensions={{
+                width: imgW,
+                height: imgH,
+              }}
+              imageUrl={bestUrl}
+              annotations={displayAnnotations}
+              scale={zoom}
+              offset={pan}
+              onPan={setPan}
+              className="absolute inset-0 z-0"
+              // Drawing Props
+              isDrawing={isDrawing}
+              currentTool={currentTool}
+              currentColor={currentColor}
+              onAddAnnotation={addAnnotation}
+            />
+          </div>
+          {/* Zoom Toolbar */}
+          <div className="relative px-4 py-3 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-10 flex items-center justify-end gap-2 transition-colors duration-200">
+            <div className="flex items-center gap-1 bg-gray-200/50 dark:bg-white/10 rounded-md p-0.5">
+              <button
+                onClick={() => handleZoom(0.8)}
+                className="p-1.5 rounded hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors"
+                title="Zoom Out"
+              >
+                <Minus size={16} />
+              </button>
+              <span className="w-12 text-center text-xs font-mono font-medium text-gray-900 dark:text-gray-100 select-none">
+                {Math.round(zoom * 100)}%
+              </span>
+              <button
+                onClick={() => handleZoom(1.2)}
+                className="p-1.5 rounded hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors"
+                title="Zoom In"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+            <button
+              onClick={handleFit}
+              className="text-xs font-medium px-3 py-1.5 rounded bg-gray-200/50 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors border border-transparent"
+            >
+              Fit
+            </button>
+          </div>
+        </>
+      )}
+      {isVideo && (
+        <VideoPlayer
+          data={file}
+          playerRef={videoRef}
+          onPlay={onPlay}
+          onPause={onPause}
+          annotations={displayAnnotations}
+        />
+      )}
+    </div>
+  )
+}

@@ -1,0 +1,1085 @@
+import { prisma } from '@/db'
+import {
+  AncestorFolder,
+  AssetInfo,
+  AttachmentInfo,
+  ChildPreview,
+  CommentInfo,
+  CreateAssetRequest,
+  CreateCommentRequest,
+  FieldValueInfo,
+  GetAssetRequest,
+  ListChildrenRequest,
+  PreviewInfo,
+  ReparentAssetsRequest,
+  UpdateAssetNameRequest,
+  UpdateAssetOrderRequest,
+  UserInfo,
+} from '@/dtos/asset'
+import { Asset, AssetType, Prisma } from '@/generated/prisma/client.ts'
+import { PaginatedData, paginateQuery, PaginationParams } from '@/services/pagination'
+import { s3Service } from '@/services/s3/s3'
+import { generateKeyBetween } from 'jittered-fractional-indexing'
+
+type AssetWithIncludes = Prisma.AssetGetPayload<{
+  include: {
+    creator: true
+    metadataValues: true
+    target: {
+      include: {
+        creator: true
+        metadataValues: true
+        children: {
+          include: { creator: true; metadataValues: true }
+        }
+      }
+    }
+    children: {
+      include: { creator: true; metadataValues: true }
+    }
+  }
+}>
+
+type CommentWithIncludes = Prisma.AssetCommentGetPayload<{
+  include: {
+    creator: true
+    attachments: { include: { asset: true } }
+    replies: {
+      include: {
+        creator: true
+        attachments: { include: { asset: true } }
+      }
+    }
+  }
+}>
+
+type AssetWithProjectTeam = Prisma.AssetGetPayload<{
+  include: { project: { include: { team: true } } }
+}>
+
+function generateSortIndex(previous?: string | null): string {
+  if (!previous) return generateKeyBetween(null, null)
+  return generateKeyBetween(null, previous)
+}
+
+export class AssetService {
+  constructor(private readonly prismaClient: typeof prisma = prisma) {}
+
+  async getDescendantFolderIds(folderId: string): Promise<string[]> {
+    const rows = await this.prismaClient.$queryRaw<{ id: string }[]>`
+      WITH RECURSIVE descendant AS (
+        SELECT id, parent_id FROM assets WHERE parent_id = ${folderId}
+        UNION ALL
+        SELECT a.id, a.parent_id FROM assets a
+        INNER JOIN descendant d ON a.parent_id = d.id
+      )
+      SELECT id FROM descendant;
+    `
+    const ids = rows.map((r) => r.id)
+    return [folderId, ...ids]
+  }
+
+  async listAssetsByIds(ids: string[]): Promise<AssetInfo[]> {
+    if (ids.length === 0) return []
+
+    const assets = await this.prismaClient.asset.findMany({
+      where: { id: { in: ids } },
+      include: {
+        creator: true,
+        metadataValues: true,
+        target: {
+          include: {
+            creator: true,
+            metadataValues: true,
+            children: {
+              include: { creator: true, metadataValues: true },
+              take: 3,
+              orderBy: { sortIndex: 'asc' },
+            },
+          },
+        },
+        children: {
+          include: { creator: true, metadataValues: true },
+          take: 3,
+          orderBy: { sortIndex: 'asc' },
+        },
+      },
+    })
+
+    const assetMap = new Map(assets.map((a) => [a.id, a]))
+    const orderedInfos: AssetInfo[] = []
+
+    for (const id of ids) {
+      const a = assetMap.get(id)
+      if (a) {
+        orderedInfos.push(await this.toAssetInfo(a))
+      }
+    }
+
+    return orderedInfos
+  }
+
+  async updateAncestorsSize(tx: Prisma.TransactionClient, startNodeId: string, sizeDelta: number) {
+    if (sizeDelta === 0) return
+
+    const rows = await tx.$queryRaw<{ id: string }[]>`
+      WITH RECURSIVE ancestor AS (
+        SELECT id, parent_id FROM assets WHERE id = ${startNodeId}
+        UNION ALL
+        SELECT a.id, a.parent_id FROM assets a
+        INNER JOIN ancestor d ON a.id = d.parent_id
+      )
+      SELECT id FROM ancestor;
+    `
+    const ancestorIds = rows.map((r) => r.id)
+
+    if (ancestorIds.length > 0) {
+      await tx.asset.updateMany({
+        where: { id: { in: ancestorIds } },
+        data: { sizeByte: { increment: sizeDelta } },
+      })
+    }
+  }
+
+  async dissolveStackIfEmpty(tx: Prisma.TransactionClient, stack: Asset) {
+    if (stack.type !== AssetType.version_stack) return
+
+    const count = await tx.asset.count({ where: { parentId: stack.id } })
+
+    if (count === 0) {
+      if (stack.parentId) {
+        await tx.asset.update({
+          where: { id: stack.parentId },
+          data: { fileCount: { decrement: 1 } },
+        })
+      }
+      await tx.asset.delete({ where: { id: stack.id } })
+    } else if (count === 1) {
+      const lastChild = await tx.asset.findFirst({
+        where: { parentId: stack.id },
+      })
+      if (!lastChild) return
+      if (!stack.parentId) throw new Error('Stack has no parent')
+
+      await tx.asset.update({
+        where: { id: lastChild.id },
+        data: { parentId: stack.parentId, sortIndex: null },
+      })
+      await tx.asset.delete({ where: { id: stack.id } })
+    }
+  }
+
+  async reparentAssets(req: ReparentAssetsRequest): Promise<void> {
+    await this.prismaClient.$transaction(async (tx) => {
+      const newParent = await tx.asset.findUnique({
+        where: { id: req.newParentId },
+        include: { project: { include: { team: true } } },
+      })
+      if (!newParent) throw new Error('New parent not found')
+      if (!newParent.project) throw new Error('New parent folder is not associated with a project')
+
+      if (newParent.type === AssetType.file) {
+        return this.reparentFileToFile(tx, newParent, req.assetIds, req.creatorId)
+      }
+
+      const assetsToMove = await tx.asset.findMany({
+        where: { id: { in: req.assetIds } },
+        include: { project: { include: { team: true } } },
+      })
+
+      if (assetsToMove.length !== req.assetIds.length) {
+        throw new Error('Not all assets to be moved were found')
+      }
+
+      if (assetsToMove.length === 0) return
+
+      let totalSize = 0
+      const oldParentId = assetsToMove[0].parentId
+      if (!oldParentId) {
+        throw new Error(`Asset ${assetsToMove[0].id} has no parent`)
+      }
+
+      for (const a of assetsToMove) {
+        if (!a.project || !a.project.team) {
+          throw new Error(`Asset ${a.id} is not associated with a team`)
+        }
+        if (!newParent.project.team) {
+          throw new Error('New parent folder is not associated with a team')
+        }
+        if (a.project.team.id !== newParent.project.team.id) {
+          throw new Error(`Cannot move asset ${a.id} to a different team`)
+        }
+        if (a.parentId !== oldParentId) {
+          throw new Error('All assets must be moved from the same parent folder')
+        }
+        totalSize += a.sizeByte
+      }
+
+      const totalCount = assetsToMove.length
+
+      // Sibling folder move
+      if (newParent.parentId && oldParentId === newParent.parentId) {
+        await tx.asset.update({
+          where: { id: oldParentId },
+          data: { fileCount: { decrement: totalCount } },
+        })
+        await tx.asset.update({
+          where: { id: newParent.id },
+          data: {
+            fileCount: { increment: totalCount },
+            sizeByte: { increment: totalSize },
+          },
+        })
+      } else {
+        await tx.asset.update({
+          where: { id: oldParentId },
+          data: { fileCount: { decrement: totalCount } },
+        })
+        await this.updateAncestorsSize(tx, oldParentId, -totalSize)
+
+        await tx.asset.update({
+          where: { id: newParent.id },
+          data: { fileCount: { increment: totalCount } },
+        })
+        await this.updateAncestorsSize(tx, newParent.id, totalSize)
+      }
+
+      const firstFile = await tx.asset.findFirst({
+        where: { parentId: newParent.id },
+        orderBy: { sortIndex: 'asc' },
+      })
+      let firstSortIndex = firstFile?.sortIndex || null
+
+      for (let i = req.assetIds.length - 1; i >= 0; i--) {
+        const assetId = req.assetIds[i]
+        const newSortIndex = generateSortIndex(firstSortIndex)
+        await tx.asset.update({
+          where: { id: assetId },
+          data: { parentId: newParent.id, sortIndex: newSortIndex },
+        })
+        firstSortIndex = newSortIndex
+      }
+
+      const oldParent = await tx.asset.findUnique({
+        where: { id: oldParentId },
+      })
+      if (oldParent) {
+        await this.dissolveStackIfEmpty(tx, oldParent)
+      }
+    })
+  }
+
+  private async reparentFileToFile(
+    tx: Prisma.TransactionClient,
+    destFile: AssetWithProjectTeam,
+    assetIds: string[],
+    creatorId?: string,
+  ) {
+    if (assetIds.length !== 1) {
+      throw new Error('Can only reparent one file to another file')
+    }
+    const sourceId = assetIds[0]
+    if (sourceId === destFile.id) {
+      throw new Error('Cannot reparent a file to itself')
+    }
+
+    const sourceAsset = await tx.asset.findUnique({
+      where: { id: sourceId },
+      include: { project: { include: { team: true } } },
+    })
+
+    if (!sourceAsset) throw new Error('Source asset not found')
+
+    if (!sourceAsset.project || !sourceAsset.project.team) {
+      throw new Error(`Asset ${sourceAsset.id} is not associated with a team`)
+    }
+    if (!destFile.project || !destFile.project.team) {
+      throw new Error('Destination file is not associated with a team')
+    }
+    if (sourceAsset.project.team.id !== destFile.project.team.id) {
+      throw new Error(`Cannot move asset ${sourceAsset.id} to a different team`)
+    }
+
+    const oldParentId = sourceAsset.parentId
+    if (!oldParentId) {
+      throw new Error(`Asset ${sourceAsset.id} has no parent`)
+    }
+
+    const stackParentId = destFile.parentId
+    if (!stackParentId) {
+      throw new Error(`Destination file ${destFile.id} has no parent`)
+    }
+
+    const stack = await tx.asset.create({
+      data: {
+        type: AssetType.version_stack,
+        status: 'uploaded',
+        projectId: destFile.project.id,
+        parentId: stackParentId,
+        creatorId: creatorId,
+        name: '',
+      },
+    })
+
+    await tx.asset.update({
+      where: { id: oldParentId },
+      data: { fileCount: { decrement: 1 } },
+    })
+    await this.updateAncestorsSize(tx, oldParentId, -sourceAsset.sizeByte)
+    await this.updateAncestorsSize(tx, stackParentId, sourceAsset.sizeByte)
+
+    await tx.asset.update({
+      where: { id: destFile.id },
+      data: { parentId: stack.id, sortIndex: 'b' },
+    })
+
+    await tx.asset.update({
+      where: { id: sourceAsset.id },
+      data: { parentId: stack.id, sortIndex: 'a' },
+    })
+
+    await tx.asset.update({
+      where: { id: stack.id },
+      data: {
+        fileCount: 2,
+        sizeByte: destFile.sizeByte + sourceAsset.sizeByte,
+      },
+    })
+
+    const oldParent = await tx.asset.findUnique({ where: { id: oldParentId } })
+    if (oldParent) {
+      await this.dissolveStackIfEmpty(tx, oldParent)
+    }
+  }
+
+  async listChildren(req: ListChildrenRequest): Promise<PaginatedData<AssetInfo[]>> {
+    const typesToQuery: AssetType[] = [req.assetType as AssetType]
+    if (req.assetType === AssetType.file) {
+      typesToQuery.push(AssetType.version_stack)
+    }
+
+    let where: Prisma.AssetWhereInput = {}
+
+    if (req.showRemoved) {
+      if (!req.projectId) {
+        throw new Error('ProjectID is required when ShowRemoved is true')
+      }
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+      where = {
+        projectId: req.projectId,
+        removed: true,
+        deletedAt: { gte: thirtyDaysAgo },
+        OR: [
+          { type: { in: typesToQuery } },
+          { type: AssetType.symlink, target: { type: { in: typesToQuery } } },
+        ],
+      }
+    } else {
+      if (!req.assetId) {
+        throw new Error('AssetId is required when ShowRemoved is false')
+      }
+      let parentId = req.assetId
+      const asset = await this.prismaClient.asset.findUnique({
+        where: { id: parentId },
+      })
+      if (asset?.type === AssetType.symlink && asset.targetId) {
+        parentId = asset.targetId
+      }
+
+      where = {
+        parentId,
+        removed: false,
+        OR: [
+          { type: { in: typesToQuery } },
+          { type: AssetType.symlink, target: { type: { in: typesToQuery } } },
+        ],
+      }
+    }
+
+    if (req.prefix) {
+      where.name = { startsWith: req.prefix }
+    }
+
+    let orderBy: Prisma.AssetOrderByWithRelationInput = {}
+    const dir = req.order === 'desc' ? 'desc' : 'asc'
+
+    switch (req.sort) {
+      case 'createdAt':
+        orderBy = { id: dir }
+        break
+      case 'name':
+        orderBy = { name: dir }
+        break
+      case 'size':
+        orderBy = { sizeByte: dir }
+        break
+      case 'index':
+      default:
+        orderBy = { sortIndex: 'asc' }
+        break
+    }
+
+    const { data: assets, pageInfo } = await paginateQuery(
+      async (skip, take) => {
+        return this.prismaClient.asset.findMany({
+          where,
+          include: {
+            creator: true,
+            metadataValues: true,
+            target: {
+              include: {
+                creator: true,
+                metadataValues: true,
+                children: {
+                  include: { creator: true, metadataValues: true },
+                  take: 3,
+                  orderBy: { sortIndex: 'asc' },
+                },
+              },
+            },
+            children: {
+              include: { creator: true, metadataValues: true },
+              take: 3,
+              orderBy: { sortIndex: 'asc' },
+            },
+          },
+          orderBy,
+          skip,
+          take,
+        })
+      },
+      async () => this.prismaClient.asset.count({ where }),
+      req,
+    )
+
+    const infos = await Promise.all(assets.map((a) => this.toAssetInfo(a)))
+
+    return { data: infos, pageInfo }
+  }
+
+  async createAsset(req: CreateAssetRequest): Promise<AssetInfo> {
+    let projectId = req.projectId
+    let parent: Prisma.AssetGetPayload<{ include: { project: true } }> | null = null
+
+    if (req.parentId) {
+      parent = await this.prismaClient.asset.findUnique({
+        where: { id: req.parentId },
+        include: { project: true },
+      })
+      if (!parent) throw new Error('Parent not found')
+      projectId = parent.projectId ?? undefined
+    }
+
+    if (!projectId) throw new Error('projectId is empty')
+
+    let sortIndex: string | null = null
+    if (parent) {
+      const firstFile = await this.prismaClient.asset.findFirst({
+        where: { parentId: parent.id },
+        orderBy: { sortIndex: 'asc' },
+      })
+      sortIndex = generateSortIndex(firstFile?.sortIndex)
+    }
+
+    const data: Prisma.AssetCreateInput = {
+      name: req.name,
+      type: req.type as AssetType,
+      status: 'uploaded',
+      project: { connect: { id: projectId } },
+    }
+
+    if (parent) data.parent = { connect: { id: parent.id } }
+    if (sortIndex) data.sortIndex = sortIndex
+    if (req.key) data.key = req.key
+    if (req.sizeByte) data.sizeByte = req.sizeByte
+    if (req.contentType) data.mediaType = req.contentType
+    if (req.creatorId) data.creator = { connect: { id: req.creatorId } }
+
+    const asset = await this.prismaClient.asset.create({
+      data,
+      include: {
+        creator: true,
+        metadataValues: true,
+        target: {
+          include: {
+            creator: true,
+            metadataValues: true,
+            children: {
+              include: { creator: true, metadataValues: true },
+              take: 3,
+              orderBy: { sortIndex: 'asc' },
+            },
+          },
+        },
+        children: {
+          include: { creator: true, metadataValues: true },
+          take: 3,
+          orderBy: { sortIndex: 'asc' },
+        },
+      },
+    })
+
+    return this.toAssetInfo(asset)
+  }
+
+  async findAsset(parentId: string, name: string): Promise<AssetInfo | null> {
+    const asset = await this.prismaClient.asset.findFirst({
+      where: { parentId, name },
+    })
+    if (!asset) return null
+    return this.getAsset({ assetId: asset.id })
+  }
+
+  async getAsset(req: GetAssetRequest): Promise<AssetInfo> {
+    const a = await this.prismaClient.asset.findUnique({
+      where: { id: req.assetId },
+      include: {
+        creator: true,
+        metadataValues: true,
+        target: {
+          include: {
+            creator: true,
+            metadataValues: true,
+            children: {
+              include: { creator: true, metadataValues: true },
+              take: 3,
+              orderBy: { sortIndex: 'asc' },
+            },
+          },
+        },
+        children: {
+          include: { creator: true, metadataValues: true },
+          take: 3,
+          orderBy: { sortIndex: 'asc' },
+        },
+      },
+    })
+    if (!a) throw new Error('Asset not found')
+
+    const rows = await this.prismaClient.$queryRaw<{ id: string; name: string; type: string }[]>`
+      WITH RECURSIVE ancestor AS (
+        SELECT id, parent_id, name, type::text FROM assets WHERE id = ${a.id}
+        UNION ALL
+        SELECT a.id, a.parent_id, a.name, a.type::text FROM assets a
+        INNER JOIN ancestor d ON d.parent_id = a.id
+      )
+      SELECT id, name, type FROM ancestor;
+    `
+
+    const afs: AncestorFolder[] = []
+    for (const row of rows) {
+      if (row.id === a.id || row.type === 'root') continue
+      afs.push({ id: row.id, name: row.name })
+    }
+
+    const info = await this.toAssetInfo(a)
+    info.ancestorFolders = afs
+
+    if (info.media) {
+      if (info.media.imageTranscodes) {
+        for (const t of info.media.imageTranscodes) {
+          t.url = await s3Service.presign(process.env.S3_BUCKET || 'shumai', t.key, 'GET')
+        }
+      }
+      if (info.media.videoTranscodes) {
+        for (const t of info.media.videoTranscodes) {
+          t.url = await s3Service.presign(process.env.S3_BUCKET || 'shumai', t.key, 'GET')
+        }
+      }
+      if (info.media.original?.key) {
+        info.media.original.downloadUrl = await s3Service.presign(
+          process.env.S3_BUCKET || 'shumai',
+          info.media.original.key,
+          'GET',
+        )
+      }
+    }
+
+    return info
+  }
+
+  async resolveTargetAssetId(assetId: string): Promise<string> {
+    const asset = await this.prismaClient.asset.findUnique({
+      where: { id: assetId },
+      select: { type: true, targetId: true },
+    })
+
+    if (asset?.type === AssetType.symlink && asset.targetId) {
+      return asset.targetId
+    }
+
+    return assetId
+  }
+
+  async updateAssetName(req: UpdateAssetNameRequest): Promise<AssetInfo> {
+    const asset = await this.prismaClient.asset.update({
+      where: { id: req.id },
+      data: { name: req.name },
+      include: {
+        creator: true,
+        metadataValues: true,
+        target: {
+          include: {
+            creator: true,
+            metadataValues: true,
+            children: {
+              include: { creator: true, metadataValues: true },
+              take: 3,
+              orderBy: { sortIndex: 'asc' },
+            },
+          },
+        },
+        children: {
+          include: { creator: true, metadataValues: true },
+          take: 3,
+          orderBy: { sortIndex: 'asc' },
+        },
+      },
+    })
+    return this.toAssetInfo(asset)
+  }
+
+  async updateAssetOrder(id: string, req: UpdateAssetOrderRequest): Promise<AssetInfo> {
+    const asset = await this.prismaClient.asset.findUnique({
+      where: { id },
+    })
+    if (!asset) throw new Error('Asset not found')
+
+    let afterSortIndex: string | null = null
+    let beforeSortIndex: string | null = null
+
+    if (req.beforeIndex) {
+      beforeSortIndex = req.beforeIndex
+      const prevAsset = await this.prismaClient.asset.findFirst({
+        where: {
+          parentId: asset.parentId,
+          sortIndex: { lt: req.beforeIndex },
+          id: { not: id },
+        },
+        orderBy: { sortIndex: 'desc' },
+      })
+      afterSortIndex = prevAsset?.sortIndex || null
+    } else if (req.afterIndex) {
+      afterSortIndex = req.afterIndex
+      beforeSortIndex = null
+    }
+
+    const newSortIndex = generateKeyBetween(afterSortIndex, beforeSortIndex)
+
+    await this.prismaClient.asset.update({
+      where: { id },
+      data: { sortIndex: newSortIndex },
+    })
+
+    return this.getAsset({ assetId: id })
+  }
+
+  async deleteAssets(ids: string[]): Promise<void> {
+    for (const id of ids) {
+      await this.prismaClient.$transaction(async (tx) => {
+        const a = await tx.asset.findUnique({
+          where: { id },
+          include: { project: { include: { team: true } } },
+        })
+        if (!a) throw new Error('Asset not found')
+        if (!a.parentId) throw new Error('Asset has no parent')
+
+        await tx.asset.update({
+          where: { id: a.parentId },
+          data: { fileCount: { decrement: 1 } },
+        })
+
+        const rows = await tx.$queryRaw<{ id: string }[]>`
+          WITH RECURSIVE descendant AS (
+            SELECT id, parent_id FROM assets WHERE parent_id = ${a.id}
+            UNION ALL
+            SELECT a.id, a.parent_id FROM assets a
+            INNER JOIN descendant d ON a.parent_id = d.id
+          )
+          SELECT id FROM descendant;
+        `
+        const descendantIds = rows.map((r) => r.id)
+
+        if (descendantIds.length > 0) {
+          await tx.asset.updateMany({
+            where: { id: { in: descendantIds } },
+            data: { removed: true },
+          })
+        }
+
+        await tx.asset.update({
+          where: { id: a.id },
+          data: { removed: true, deletedAt: new Date() },
+        })
+
+        await this.updateAncestorsSize(tx, a.parentId, -a.sizeByte)
+      })
+    }
+  }
+
+  async restoreAssets(ids: string[]): Promise<void> {
+    for (const id of ids) {
+      await this.prismaClient.$transaction(async (tx) => {
+        const a = await tx.asset.findUnique({
+          where: { id },
+          include: { project: { include: { team: true } } },
+        })
+        if (!a) throw new Error('Asset not found')
+        if (!a.parentId) throw new Error('Asset has no parent')
+
+        await tx.asset.update({
+          where: { id: a.parentId },
+          data: { fileCount: { increment: 1 } },
+        })
+
+        const rows = await tx.$queryRaw<{ id: string }[]>`
+          WITH RECURSIVE descendant AS (
+            SELECT id, parent_id FROM assets WHERE parent_id = ${a.id}
+            UNION ALL
+            SELECT a.id, a.parent_id FROM assets a
+            INNER JOIN descendant d ON a.parent_id = d.id
+          )
+          SELECT id FROM descendant;
+        `
+        const descendantIds = rows.map((r) => r.id)
+
+        if (descendantIds.length > 0) {
+          await tx.asset.updateMany({
+            where: { id: { in: descendantIds } },
+            data: { removed: false },
+          })
+        }
+
+        await tx.asset.update({
+          where: { id: a.id },
+          data: { removed: false, deletedAt: null },
+        })
+
+        await this.updateAncestorsSize(tx, a.parentId, a.sizeByte)
+      })
+    }
+  }
+
+  async createComment(req: CreateCommentRequest): Promise<CommentInfo> {
+    let commentId = ''
+    await this.prismaClient.$transaction(async (tx) => {
+      const a = await tx.asset.findUnique({
+        where: { id: req.assetId },
+        include: { project: { include: { team: true } } },
+      })
+      if (!a) throw new Error('Asset not found')
+
+      const comment = await tx.assetComment.create({
+        data: {
+          assetId: a.id,
+          creatorId: req.userId,
+          message: req.message,
+          annotation: req.annotations,
+          second: req.second,
+          replyToId: req.replyToId,
+        },
+      })
+      commentId = comment.id
+
+      for (const attachmentId of req.attachmentIds) {
+        const attachmentAsset = await tx.asset.findUnique({
+          where: { id: attachmentId },
+        })
+        if (attachmentAsset) {
+          await tx.assetCommentAttachment.create({
+            data: {
+              assetId: attachmentAsset.id,
+              commentId: comment.id,
+            },
+          })
+        }
+      }
+
+      // Detect bot mentions
+      const botMentionMatches = req.message.matchAll(/<@([^>]+)>/g)
+      for (const match of botMentionMatches) {
+        const agentId = match[1]
+        let foundAgent = false
+
+        if (agentId === 'default') {
+          foundAgent = true
+        } else {
+          const agent = await tx.agent.findUnique({ where: { id: agentId } })
+          if (agent) foundAgent = true
+        }
+
+        if (foundAgent && a.project) {
+          await tx.workflowTask.create({
+            data: {
+              assetId: a.id,
+              type: 'chat',
+              status: 'pending',
+              teamId: a.project.team.id,
+              projectId: a.project.id,
+              payload: {
+                userCommentId: comment.id,
+                agentId: agentId,
+                projectId: a.project.id,
+              },
+            },
+          })
+        }
+      }
+    })
+
+    return this.getComment(commentId)
+  }
+
+  async getComment(commentId: string): Promise<CommentInfo> {
+    const c = await this.prismaClient.assetComment.findUnique({
+      where: { id: commentId },
+      include: {
+        creator: true,
+        asset: true,
+        attachments: { include: { asset: true } },
+        replies: {
+          include: {
+            creator: true,
+            attachments: { include: { asset: true } },
+          },
+          orderBy: { id: 'asc' },
+        },
+      },
+    })
+    if (!c) throw new Error('Comment not found')
+    return this.toCommentInfo(c)
+  }
+
+  async listComments(
+    assetId: string,
+    params: PaginationParams,
+  ): Promise<PaginatedData<CommentInfo[]>> {
+    const { data: comments, pageInfo } = await paginateQuery(
+      async (skip, take) => {
+        return this.prismaClient.assetComment.findMany({
+          where: { assetId, replyToId: null },
+          include: {
+            creator: true,
+            asset: true,
+            attachments: { include: { asset: true } },
+            replies: {
+              include: {
+                creator: true,
+                attachments: { include: { asset: true } },
+              },
+              orderBy: { id: 'asc' },
+            },
+          },
+          skip,
+          take,
+          orderBy: { id: 'asc' },
+        })
+      },
+      async () => this.prismaClient.assetComment.count({ where: { assetId, replyToId: null } }),
+      params,
+    )
+
+    const infos = await Promise.all(comments.map((c) => this.toCommentInfo(c)))
+
+    return { data: infos, pageInfo }
+  }
+
+  private async toAssetInfo(a: AssetWithIncludes): Promise<AssetInfo> {
+    let latestVersion:
+      | AssetWithIncludes
+      | AssetWithIncludes['children'][0]
+      | NonNullable<AssetWithIncludes['target']> = a
+
+    if (a.type === AssetType.version_stack) {
+      if (a.children && a.children.length > 0) {
+        latestVersion = a.children[0]
+      }
+    } else if (a.type === AssetType.symlink) {
+      if (a.target) {
+        latestVersion = a.target
+        if (latestVersion.type === AssetType.version_stack) {
+          if (
+            'children' in latestVersion &&
+            latestVersion.children &&
+            latestVersion.children.length > 0
+          ) {
+            latestVersion = latestVersion.children[0]
+          }
+        }
+      }
+    }
+
+    const latestChildren: ChildPreview[] = []
+    const folderForPreview =
+      a.type === AssetType.symlink && a.target?.type === AssetType.folder ? a.target : a
+    if (
+      (folderForPreview.type === AssetType.folder ||
+        folderForPreview.type === AssetType.share_root ||
+        folderForPreview.type === AssetType.share) &&
+      'children' in folderForPreview &&
+      folderForPreview.children
+    ) {
+      for (const child of folderForPreview.children) {
+        latestChildren.push({
+          type: child.mediaType,
+          preview: await this.toPreviewInfo(child as Asset),
+        })
+      }
+    }
+
+    const preview = await this.toPreviewInfo(latestVersion as Asset)
+
+    const creator = latestVersion.creator
+      ? { id: latestVersion.creator.id, name: latestVersion.creator.name }
+      : null
+
+    const fieldValues: FieldValueInfo[] = []
+    if ('metadataValues' in latestVersion && latestVersion.metadataValues) {
+      for (const mv of latestVersion.metadataValues) {
+        let value: unknown = null
+        if (mv.jsonValue !== null) {
+          value = mv.jsonValue
+        } else if (mv.dateValue !== null) {
+          value = mv.dateValue.toISOString()
+        } else if (mv.stringValue !== null) {
+          value = mv.stringValue
+        } else if (mv.numberValue !== null) {
+          value = mv.numberValue
+        } else if (mv.booleanValue !== null) {
+          value = mv.booleanValue
+        }
+        fieldValues.push({ fieldId: mv.fieldId, value })
+      }
+    }
+
+    const media = latestVersion.media
+    if (media && media.videoPreview?.key) {
+      media.videoPreview.url = await s3Service.presign(
+        process.env.S3_BUCKET || 'shumai',
+        media.videoPreview.key,
+        'GET',
+      )
+    }
+
+    return {
+      id: a.id,
+      name: a.name,
+      sizeByte: latestVersion.sizeByte,
+      fileCount: latestVersion.fileCount,
+      type: a.type,
+      targetType: a.type === AssetType.symlink ? a.target?.type : null,
+      status: a.status,
+      mediaType: latestVersion.mediaType,
+      latestChildren,
+      preview,
+      createdAt: a.createdAt.toISOString(),
+      updatedAt: a.updatedAt.toISOString(),
+      deletedAt: a.deletedAt ? a.deletedAt.toISOString() : null,
+      creator,
+      fieldValues,
+      sortIndex: a.sortIndex,
+      media: media as unknown as AssetInfo['media'],
+    }
+  }
+
+  private async toPreviewInfo(asset: Asset | AssetWithIncludes): Promise<PreviewInfo | null> {
+    if (!asset.media) return null
+
+    let thumbnailUrl = undefined
+    if (asset.mediaType?.startsWith('image/') && asset.media.thumbnail?.key) {
+      thumbnailUrl = await s3Service.presign(
+        process.env.S3_BUCKET || 'shumai',
+        asset.media.thumbnail.key,
+        'GET',
+      )
+    } else if (asset.mediaType?.startsWith('video/') && asset.media.poster?.key) {
+      thumbnailUrl = await s3Service.presign(
+        process.env.S3_BUCKET || 'shumai',
+        asset.media.poster.key,
+        'GET',
+      )
+    }
+
+    let spriteUrl = undefined
+    if (asset.media.sprite?.key) {
+      spriteUrl = await s3Service.presign(
+        process.env.S3_BUCKET || 'shumai',
+        asset.media.sprite.key,
+        'GET',
+      )
+    }
+
+    return {
+      mediaType: asset.mediaType,
+      thumbnailUrl,
+      originalHeight: asset.media.metadata?.originalHeight,
+      originalWidth: asset.media.metadata?.originalWidth,
+      spriteUrl,
+    }
+  }
+
+  private async toCommentInfo(
+    c: CommentWithIncludes | CommentWithIncludes['replies'][0],
+  ): Promise<CommentInfo> {
+    const replies: CommentInfo[] = []
+    if ('replies' in c && c.replies) {
+      for (const r of c.replies) {
+        replies.push(await this.toCommentInfo(r))
+      }
+    }
+
+    const attachments: AttachmentInfo[] = []
+    if (c.attachments) {
+      for (const a of c.attachments) {
+        if (a.asset?.key) {
+          const url = await s3Service.presign(process.env.S3_BUCKET || 'shumai', a.asset.key, 'GET')
+          attachments.push({
+            id: a.id,
+            assetId: a.asset.id,
+            url,
+            mediaType: a.asset.mediaType,
+          })
+        }
+      }
+    }
+
+    const mentions: UserInfo[] = []
+    const botMentionMatch = (c.message || '').match(/<@([^>]+)>/g)
+    if (botMentionMatch) {
+      const userIds = botMentionMatch.map((m: string) => m.replace('<@', '').replace('>', ''))
+      const users = await this.prismaClient.user.findMany({
+        where: { id: { in: userIds } },
+      })
+      for (const u of users) {
+        mentions.push({ id: u.id, name: u.name })
+      }
+    }
+
+    const creator: UserInfo = { id: '', name: '' }
+    if (c.isAi) {
+      creator.id = c.creatorId || ''
+      creator.name = c.creator?.name || 'Ai Bot'
+    } else if (c.creator) {
+      creator.id = c.creator.id
+      creator.name = c.creator.name
+    }
+
+    return {
+      id: c.id,
+      assetId: c.assetId,
+      message: c.message,
+      annotations: c.annotation,
+      creator,
+      replies,
+      attachments,
+      mentions,
+      createdAt: c.createdAt.toISOString(),
+      updatedAt: c.updatedAt.toISOString(),
+      isAi: c.isAi,
+    }
+  }
+}
+
+export const assetService = new AssetService()

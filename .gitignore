@@ -1,0 +1,13 @@
+node_modules
+.bun
+dist
+out
+.DS_Store
+*.log
+.env
+.env.*
+.pi/agents/
+data/
+*.db
+*.diff
+*.orig

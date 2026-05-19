@@ -1,0 +1,113 @@
+services:
+  # --- Shumai Application Services ---
+  postgres:
+    image: pgvector/pgvector:pg18
+    container_name: shumai_postgres
+    environment:
+      POSTGRES_USER: shumai
+      POSTGRES_PASSWORD: shumai_password
+      POSTGRES_DB: shumai_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U shumai -d shumai_db']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  shumai:
+    image: shumaione/shumai:latest
+    build: ../../
+    container_name: shumai_app
+    ports:
+      - '3000:3000'
+    volumes:
+      - shumai_data:/app/data
+    environment:
+      DATABASE_URL: postgres://shumai:shumai_password@postgres:5432/shumai_db?search_path=public&sslmode=disable
+      STORAGE_BACKEND: local
+      BETTER_AUTH_SECRET: qSxs9DxzHDZBbeeTNPEwBuspYwipBqz5Gk5XdBjNhWw=
+      BETTER_AUTH_URL: http://localhost:3000
+      WORKFLOW_EXECUTOR: temporal
+      TEMPORAL_ADDRESS: temporal:7233
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+
+  shumai-agent:
+    image: shumaione/shumai:latest
+    build: ../../
+    container_name: shumai_agent_worker
+    command: ['bun', 'index.js', 'worker', 'agent']
+    volumes:
+      - shumai_data:/app/data
+    environment:
+      DATABASE_URL: postgres://shumai:shumai_password@postgres:5432/shumai_db?search_path=public&sslmode=disable
+      STORAGE_BACKEND: local
+      WORKFLOW_EXECUTOR: temporal
+      TEMPORAL_ADDRESS: temporal:7233
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+
+  shumai-transcode:
+    image: shumaione/shumai:latest
+    build: ../../
+    container_name: shumai_transcode_worker
+    command: ['bun', 'index.js', 'worker', 'transcode']
+    volumes:
+      - shumai_data:/app/data
+    environment:
+      DATABASE_URL: postgres://shumai:shumai_password@postgres:5432/shumai_db?search_path=public&sslmode=disable
+      STORAGE_BACKEND: local
+      WORKFLOW_EXECUTOR: temporal
+      TEMPORAL_ADDRESS: temporal:7233
+    depends_on:
+      postgres:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+
+  # --- Temporal Services ---
+  temporal:
+    image: temporalio/auto-setup:latest
+    container_name: temporal_server
+    environment:
+      - DB=postgres12
+      - DB_PORT=5432
+      - POSTGRES_USER=shumai
+      - POSTGRES_PWD=shumai_password
+      - POSTGRES_SEEDS=postgres
+      - BIND_ON_IP=0.0.0.0
+    ports:
+      - '7233:7233'
+    healthcheck:
+      test: ["CMD-SHELL", "temporal operator cluster health --address localhost:7233 || temporal operator cluster health --address $$(hostname -i):7233"]
+      interval: 5s
+      timeout: 5s
+      start_period: 30s
+      retries: 10
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  temporal-ui:
+    image: temporalio/ui:latest
+    container_name: temporal_ui
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+    ports:
+      - '8080:8080'
+    depends_on:
+      temporal:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  shumai_data:

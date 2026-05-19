@@ -1,0 +1,685 @@
+'use client'
+import { client } from '@/ui/api/client'
+import type { InferRequestType, InferResponseType } from 'hono/client'
+
+import type { AssetInfo } from '@/dtos/asset'
+import type { SearchCondition, SearchSort } from '@/dtos/search'
+import type { CreateUploadTaskRequest } from '@/dtos/upload'
+import { useFieldStore } from '@/ui/stores/fields'
+import { useUploadStore } from '@/ui/stores/upload'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Download } from 'lucide-react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useInView } from 'react-intersection-observer'
+import { toast } from 'sonner'
+import type { DragState } from '../dnd-types'
+import { FileBrowserContextMenu } from './context-menu'
+
+import { FileBrowserGridView } from './grid-view'
+import { FileBrowserListView } from './list-view'
+import { FileBrowserToolbar } from './toolbar'
+import { FileCard } from './file-card'
+import { FileListItem } from './file-list-item'
+import { FolderCard } from './folder-card'
+import { Button } from '../ui/button'
+import { ContextMenu, ContextMenuTrigger } from '../ui/context-menu'
+import { useFileActions } from './use-file-actions'
+
+interface FileBrowserProps {
+  teamId: string
+  projectId: string
+  assetId: string
+  folders: AssetInfo[]
+  files: AssetInfo[]
+  totalFolders?: number
+  totalFiles?: number
+  selectedItem: AssetInfo | null
+  selectedIds: Set<string>
+  onItemSelect: (item: AssetInfo, event: React.MouseEvent) => void
+  onItemDoubleClick: (item: AssetInfo) => void
+  onSaveField: (fileId: string, fieldId: string, value: unknown) => void
+  displayStyle: 'card' | 'list'
+  onClearSelection: () => void
+  fetchNextFoldersPage: () => void
+  hasNextFoldersPage: boolean
+  isFetchingNextFoldersPage: boolean
+  fetchNextFilesPage: () => void
+  hasNextFilesPage: boolean
+  isFetchingNextFilesPage: boolean
+  isRecentlyDeleted?: boolean
+  filterConditions?: SearchCondition[]
+  onFilterChange?: (conditions: SearchCondition[]) => void
+  sort?: SearchSort
+  onSortChange?: (sort?: SearchSort) => void
+  dragState?: DragState
+  isShareView?: boolean
+  isPublic?: boolean
+  onRemoveFromShare?: (items: AssetInfo[]) => void
+  fieldVisibility?: Record<string, boolean>
+}
+
+type FileWithId = {
+  file: File
+  id: string
+}
+
+let filesToUpload: FileWithId[] = []
+
+export function FileBrowser({
+  teamId,
+  projectId,
+  assetId,
+  folders,
+  files,
+  totalFolders,
+  totalFiles,
+  selectedItem,
+  selectedIds,
+  onItemSelect,
+  onItemDoubleClick,
+  onSaveField,
+  displayStyle,
+  onClearSelection,
+  fetchNextFoldersPage,
+  hasNextFoldersPage,
+  isFetchingNextFoldersPage,
+  fetchNextFilesPage,
+  hasNextFilesPage,
+  isFetchingNextFilesPage,
+  isRecentlyDeleted,
+  filterConditions,
+  onFilterChange,
+  sort,
+  onSortChange,
+  dragState,
+  isShareView,
+  isPublic,
+  onRemoveFromShare,
+  fieldVisibility,
+}: FileBrowserProps) {
+  const [contextMenuItem, setContextMenuItem] = useState<AssetInfo | null>(null)
+  const queryClient = useQueryClient()
+
+  const {
+    editingItemId,
+    setEditingItemId,
+    handleNewFolder,
+    handleDelete,
+    handleRename,
+    handleRestore,
+    handleDownload,
+    handleAction,
+    onRenameSubmit,
+  } = useFileActions({
+    teamId,
+    projectId,
+    assetId,
+    folders,
+    files,
+    selectedIds,
+  })
+
+  const $confirmUpload = client.api.teams[':teamId'].upload.tasks[':taskId'].$patch
+  const { mutateAsync: confirmUpload } = useMutation<
+    InferResponseType<typeof $confirmUpload>,
+    Error,
+    InferRequestType<typeof $confirmUpload>
+  >({
+    mutationFn: async (request) => {
+      const res = await $confirmUpload(request)
+      if (!res.ok) throw new Error('Failed to confirm upload')
+      return (await res.json()) as InferResponseType<typeof $confirmUpload>
+    },
+  })
+
+  const $createUploadTask = client.api.teams[':teamId'].upload.tasks.$post
+  const { mutate: createUploadTaskMutation } = useMutation<
+    InferResponseType<typeof $createUploadTask>,
+    Error,
+    InferRequestType<typeof $createUploadTask>
+  >({
+    mutationFn: async (request) => {
+      const res = await $createUploadTask(request)
+      if (!res.ok) throw new Error('Failed to create upload task')
+      return (await res.json()) as InferResponseType<typeof $createUploadTask>
+    },
+    onSuccess: async (data) => {
+      // The RPC client returns an object that we cast to the expected type
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await uploadFiles(filesToUpload, data.presignedUrls as any, data.taskId!)
+      queryClient.invalidateQueries({
+        queryKey: ['search', teamId, assetId],
+      })
+    },
+  })
+
+  const incrementUploading = useUploadStore((state) => state.increment)
+  const decrementUploading = useUploadStore((state) => state.decrement)
+  const { fields } = useFieldStore()
+  const displayedFields = useMemo(() => {
+    if (!isShareView) return fields.filter((f) => f.visible)
+    return fields.filter((f) => fieldVisibility?.[f.id!])
+  }, [fields, isShareView, fieldVisibility])
+
+  const [foldersExpanded, setFoldersExpanded] = React.useState(true)
+  const [filesExpanded, setFilesExpanded] = React.useState(true)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const folderInputRef = useRef<HTMLInputElement>(null)
+  const fileContextMenu = useRef(false)
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  const { ref: foldersRef, inView: foldersInView } = useInView()
+  const { ref: filesRef, inView: filesInView } = useInView()
+
+  useEffect(() => {
+    if (foldersInView && hasNextFoldersPage && !isFetchingNextFoldersPage) {
+      fetchNextFoldersPage()
+    }
+  }, [foldersInView, hasNextFoldersPage, isFetchingNextFoldersPage, fetchNextFoldersPage])
+
+  useEffect(() => {
+    if (filesInView && hasNextFilesPage && !isFetchingNextFilesPage) {
+      fetchNextFilesPage()
+    }
+  }, [filesInView, hasNextFilesPage, isFetchingNextFilesPage, fetchNextFilesPage])
+
+  const foldersSize = folders.reduce((acc, f) => acc + (f.sizeByte || 0), 0)
+  const filesSize = files.reduce((acc, f) => acc + (f.sizeByte || 0), 0)
+
+  const formatCount = (count: number, isFile: boolean) => {
+    const isNameFilter = filterConditions?.some(
+      (c) => c.field === 'name' && c.operator === 'contains',
+    )
+    if (isNameFilter && count === 10001) {
+      return `10000+ ${isFile ? 'Asset' : 'Folder'}s`
+    }
+    return `${count} ${isFile ? 'Asset' : 'Folder'}${count !== 1 ? 's' : ''}`
+  }
+
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(0)} MB`
+  }
+
+  const handleEmptyAreaClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement
+    // Clear selection if we didn't click on a card/row, button, or other interactive element
+    // Also ignore clicks on context menu items (which might bubble via React portals)
+    if (target.closest('[role="menuitem"]') || target.closest('[data-radix-menu-content]')) {
+      return
+    }
+
+    if (
+      target === e.currentTarget ||
+      target.closest('.empty-area') ||
+      (!target.closest('.group') &&
+        !target.closest('button') &&
+        !target.closest('a') &&
+        !target.closest('input'))
+    ) {
+      onClearSelection()
+      setEditingItemId(null)
+    }
+  }
+
+  const onContextMenu = (_e: React.MouseEvent, item?: AssetInfo) => {
+    if (item === undefined) {
+      // Two possibilities when item is undefined:
+      // 1. User right-clicked on empty space → fileContextMenu should be false.
+      // 2. A right-click on a file/folder was already handled above → fileContextMenu is true.
+      //    In that case, toggle it off; otherwise clear the selected item.
+      if (fileContextMenu.current) {
+        fileContextMenu.current = false
+      } else {
+        setContextMenuItem(null)
+      }
+    } else {
+      // User right-clicked a file or folder.
+      // Mark that this click is for a file context menu, store the item,
+      // and let the event bubble so the empty-area handler manages positioning.
+      fileContextMenu.current = true
+      setContextMenuItem(item ?? null)
+      return
+    }
+  }
+
+  const renderItem = (item: AssetInfo, columnSizing?: Record<string, number>) => {
+    const effectiveType = item.type === 'symlink' ? item.targetType || 'file' : item.type
+    const props = {
+      teamId,
+      item: item,
+      isSelected: selectedItem?.id === item.id,
+      isChecked: selectedIds.has(item.id!),
+      isEditing: editingItemId === item.id,
+      onSelect: onItemSelect,
+      onDoubleClick: onItemDoubleClick,
+      onContextMenu: onContextMenu,
+      onDragStart: () => {}, // Handled by dnd-kit
+      onDrop: () => {}, // Handled by dnd-kit
+      onRename: (newName: string) => onRenameSubmit(item, newName),
+      onFinishEditing: () => setEditingItemId(null),
+      onSaveField: (fieldId: string, value: unknown) => {
+        onSaveField(item.id!, fieldId, value)
+      },
+      dragState,
+      onAction: (action: string, item: AssetInfo) => {
+        if (isShareView) {
+          if (action === 'remove-from-share') {
+            const isSelected = selectedIds.has(item.id!)
+            const targetItems = isSelected
+              ? [...folders, ...files].filter((i) => selectedIds.has(i.id!))
+              : [item]
+            onRemoveFromShare?.(targetItems)
+          }
+          return
+        }
+        handleAction(action as 'rename' | 'delete' | 'download' | 'restore', item)
+      },
+      isRecentlyDeleted,
+      selectedCount: selectedIds.size,
+      isShareView,
+      fields: displayedFields,
+    }
+    if (displayStyle === 'card') {
+      if (effectiveType === 'folder') return <FolderCard key={item.id} {...props} />
+      if (effectiveType === 'file' || effectiveType === 'version_stack')
+        return <FileCard key={item.id} {...props} />
+    }
+    return <FileListItem key={item.id} {...props} columnSizing={columnSizing} />
+  }
+
+  const selectedCount = selectedIds.size
+  const selectedFolders = Array.from(selectedIds).filter((id) =>
+    folders.find((item) => item.id === id),
+  ).length
+  const selectedFiles = Array.from(selectedIds).filter((id) =>
+    files.find((item) => item.id === id),
+  ).length
+
+  const handleUploadFilesClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleUploadFolderClick = () => {
+    folderInputRef.current?.click()
+  }
+
+  const uploadFiles = async (
+    files: FileWithId[],
+    presignedUrls: { id?: string; url?: string; fileId?: string }[],
+    taskId: string,
+  ) => {
+    const uploadUrlMap = presignedUrls?.reduce(
+      (
+        acc: Record<string, { url: string; fileId: string }>,
+        item: { id?: string; url?: string; fileId?: string },
+      ) => {
+        if (item.id) {
+          acc[item.id] = {
+            url: item.url || '',
+            fileId: item.fileId || '',
+          }
+        }
+        return acc
+      },
+      {},
+    )
+    if (!uploadUrlMap) return
+
+    const concurrencyLimit = 5
+    const filesToUpload = [...files]
+
+    const uploadNext = async () => {
+      while (filesToUpload.length > 0) {
+        const file = filesToUpload.shift()
+        if (file) {
+          const uploadInfo = uploadUrlMap[file.id]
+          if (uploadInfo && uploadInfo.url) {
+            incrementUploading()
+            try {
+              try {
+                const resp = await fetch(uploadInfo.url, {
+                  method: 'PUT',
+                  body: file.file,
+                  headers: {
+                    'Content-Type': file.file.type,
+                  },
+                })
+
+                if (resp.ok) {
+                  await confirmUpload({
+                    param: { teamId: teamId, taskId: taskId },
+                    json: {
+                      fileId: uploadInfo.fileId,
+                    },
+                  })
+                } else {
+                  toast.error(`Failed to upload file: ${file.file.name}`)
+                  await confirmUpload({
+                    param: { teamId: teamId, taskId: taskId },
+                    json: {
+                      fileId: uploadInfo.fileId,
+                      errorMessage: `upload failed with status: ${resp.status}`,
+                    },
+                  })
+                  queryClient.invalidateQueries({
+                    queryKey: ['search', teamId, assetId],
+                  })
+                  return
+                }
+              } catch (error) {
+                toast.error(`Failed to upload file: ${file.file.name}`)
+                await confirmUpload({
+                  param: { teamId: teamId, taskId: taskId },
+                  json: {
+                    fileId: uploadInfo.fileId,
+                    errorMessage: `upload failed with error: ${error instanceof Error ? error.message : String(error)}`,
+                  },
+                })
+                queryClient.invalidateQueries({
+                  queryKey: ['search', teamId, assetId],
+                })
+                return
+              }
+            } finally {
+              decrementUploading()
+            }
+          }
+        }
+      }
+    }
+
+    const activeUploaders = Array(concurrencyLimit)
+      .fill(null)
+      .map(() => uploadNext())
+    await Promise.all(activeUploaders)
+  }
+
+  const processAndUploadFiles = useCallback(
+    (files: FileList | File[]) => {
+      if (!files || files.length === 0) return
+
+      const fileWithIds: FileWithId[] = []
+      const root: CreateUploadTaskRequest['files'] = []
+      const directories = new Map<string, CreateUploadTaskRequest['files']>()
+
+      for (const file of files) {
+        const path = (file.webkitRelativePath || file.name).split('/')
+        if (path.some((part) => part.startsWith('.'))) {
+          continue
+        }
+        const fileName = path.pop()!
+        let currentLevel = root
+        let currentPath = ''
+        for (const dir of path) {
+          currentPath = `${currentPath}/${dir}`
+          if (!directories.has(currentPath)) {
+            const newDir: CreateUploadTaskRequest['files'] = []
+            const parentDir = {
+              name: dir,
+              type: 'folder' as const,
+              id: crypto.randomUUID(),
+              children: newDir,
+              size: 0,
+            }
+            currentLevel.push(parentDir)
+            directories.set(currentPath, newDir)
+            currentLevel = newDir
+          } else {
+            currentLevel = directories.get(currentPath)!
+          }
+        }
+        const fileWithId = { file, id: crypto.randomUUID() }
+        fileWithIds.push(fileWithId)
+        currentLevel.push({
+          name: fileName,
+          size: file.size,
+          type: 'file',
+          id: fileWithId.id,
+          children: [],
+          mediaType: file.type,
+        })
+      }
+      filesToUpload = fileWithIds
+      createUploadTaskMutation({
+        param: { teamId: teamId },
+        json: {
+          parentId: assetId,
+          files: root,
+        },
+      })
+    },
+    [assetId, createUploadTaskMutation, teamId],
+  )
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    processAndUploadFiles(event.target.files!)
+  }
+
+  const handlePaste = useCallback(
+    (e: React.ClipboardEvent | ClipboardEvent) => {
+      if (isShareView) return
+      if (!e.clipboardData) return
+      const items = e.clipboardData.items
+      const files: File[] = []
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i]
+        if (item.kind === 'file') {
+          const file = item.getAsFile()
+          if (file) {
+            // If it's a raw image without a real name (e.g. "image.png" from clipboard image)
+            if (file.name === 'image.png' && file.type.startsWith('image/')) {
+              const timestamp = new Date()
+                .toISOString()
+                .replace(/[:.]/g, '')
+                .replace('T', '_')
+                .substring(0, 15)
+              const ext = file.type.split('/')[1] || 'png'
+              const newFile = new File([file], `pasted_image_${timestamp}.${ext}`, {
+                type: file.type,
+              })
+              files.push(newFile)
+            } else {
+              files.push(file)
+            }
+          }
+        }
+      }
+
+      if (files.length > 0) {
+        processAndUploadFiles(files)
+      }
+    },
+    [processAndUploadFiles],
+  )
+
+  // Add global paste listener if browser is active
+  useEffect(() => {
+    const onGlobalPaste = (e: ClipboardEvent) => {
+      if (isShareView) return
+      // Don't intercept if user is typing in an input
+      if (
+        document.activeElement &&
+        (document.activeElement.tagName === 'INPUT' ||
+          document.activeElement.tagName === 'TEXTAREA' ||
+          (document.activeElement as HTMLElement).isContentEditable)
+      ) {
+        return
+      }
+      handlePaste(e)
+    }
+
+    window.addEventListener('paste', onGlobalPaste)
+    return () => {
+      window.removeEventListener('paste', onGlobalPaste)
+    }
+  }, [handlePaste, isShareView])
+
+  const renderContent = () => {
+    return (
+      <ContextMenu>
+        <ContextMenuTrigger asChild disabled={isShareView || isPublic}>
+          <div
+            ref={scrollContainerRef}
+            className="flex-1 overflow-y-auto bg-background relative flex flex-col"
+            onContextMenu={(e) => onContextMenu(e)}
+          >
+            {!isShareView && !isPublic && onFilterChange && onSortChange && (
+              <FileBrowserToolbar
+                projectId={projectId}
+                fields={fields || []}
+                filterConditions={filterConditions || []}
+                onFilterChange={onFilterChange}
+                sort={sort}
+                onSortChange={onSortChange}
+                isRecentlyDeleted={isRecentlyDeleted}
+              />
+            )}
+            {displayStyle === 'list' ? (
+              <FileBrowserListView
+                folders={folders}
+                files={files}
+                totalFolders={totalFolders}
+                totalFiles={totalFiles}
+                selectedItem={selectedItem}
+                selectedIds={selectedIds}
+                displayedFields={displayedFields}
+                onItemSelect={onItemSelect}
+                onItemDoubleClick={onItemDoubleClick}
+                renderItem={renderItem}
+                foldersExpanded={foldersExpanded}
+                setFoldersExpanded={setFoldersExpanded}
+                filesExpanded={filesExpanded}
+                setFilesExpanded={setFilesExpanded}
+                foldersRef={foldersRef}
+                filesRef={filesRef}
+                hasNextFoldersPage={hasNextFoldersPage}
+                hasNextFilesPage={hasNextFilesPage}
+                formatCount={formatCount}
+                formatSize={formatSize}
+                foldersSize={foldersSize}
+                filesSize={filesSize}
+                handleEmptyAreaClick={handleEmptyAreaClick}
+                dragState={dragState}
+                sort={sort}
+              />
+            ) : (
+              <FileBrowserGridView
+                folders={folders}
+                files={files}
+                totalFolders={totalFolders}
+                totalFiles={totalFiles}
+                renderItem={renderItem}
+                foldersExpanded={foldersExpanded}
+                setFoldersExpanded={setFoldersExpanded}
+                filesExpanded={filesExpanded}
+                setFilesExpanded={setFilesExpanded}
+                foldersRef={foldersRef}
+                filesRef={filesRef}
+                hasNextFoldersPage={hasNextFoldersPage}
+                hasNextFilesPage={hasNextFilesPage}
+                formatCount={formatCount}
+                formatSize={formatSize}
+                foldersSize={foldersSize}
+                filesSize={filesSize}
+                handleEmptyAreaClick={handleEmptyAreaClick}
+                dragState={dragState}
+                sort={sort}
+              />
+            )}
+
+            {(isFetchingNextFoldersPage || isFetchingNextFilesPage) && (
+              <div className="flex justify-center items-center p-4">
+                <p>Loading more...</p>
+              </div>
+            )}
+
+            {folders.length === 0 &&
+              files.length === 0 &&
+              !isFetchingNextFoldersPage &&
+              !isFetchingNextFilesPage && (
+                <div className="empty-area flex h-full items-center justify-center text-sm text-muted-foreground">
+                  This folder is empty
+                </div>
+              )}
+
+            {selectedCount > 0 && (
+              <div className="border-t border-border bg-card px-4 py-3 flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  {selectedFolders > 0 && selectedFiles > 0 && (
+                    <span>
+                      {selectedFolders} folder
+                      {selectedFolders !== 1 ? 's' : ''}, {selectedFiles} file
+                      {selectedFiles !== 1 ? 's' : ''} selected
+                    </span>
+                  )}
+                  {selectedFolders > 0 && selectedFiles === 0 && (
+                    <span>
+                      {selectedFolders} folder
+                      {selectedFolders !== 1 ? 's' : ''} selected
+                    </span>
+                  )}
+                  {selectedFolders === 0 && selectedFiles > 0 && (
+                    <span>
+                      {selectedFiles} file{selectedFiles !== 1 ? 's' : ''} selected
+                    </span>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    handleDownload([...folders, ...files].filter((i) => selectedIds.has(i.id!)))
+                  }
+                  className="gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Download
+                </Button>
+              </div>
+            )}
+          </div>
+        </ContextMenuTrigger>
+        <FileBrowserContextMenu
+          item={contextMenuItem}
+          selectedIds={selectedIds}
+          folders={folders}
+          files={files}
+          onRename={handleRename}
+          onDelete={handleDelete}
+          onDownload={handleDownload}
+          onNewFolder={handleNewFolder}
+          onUploadFile={handleUploadFilesClick}
+          onUploadFolder={handleUploadFolderClick}
+          onRestore={handleRestore}
+          isRecentlyDeleted={isRecentlyDeleted}
+        />
+      </ContextMenu>
+    )
+  }
+
+  return (
+    <>
+      <input
+        type="file"
+        ref={fileInputRef}
+        multiple
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+      />
+      <input
+        type="file"
+        ref={folderInputRef}
+        multiple
+        /* @ts-expect-error - webkitdirectory is not in the type definition */
+        webkitdirectory="true"
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+      />
+      {renderContent()}
+    </>
+  )
+}

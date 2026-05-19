@@ -1,0 +1,311 @@
+import type { ProjectInfo } from '@/dtos/project'
+import { client } from '@/ui/api/client'
+import { useMutation } from '@tanstack/react-query'
+import type { InferRequestType, InferResponseType } from 'hono/client'
+import { MembersDialog } from '@/ui/components/members-dialog'
+import { ProjectDialog } from '@/ui/components/project-dialog'
+import { SortDropdown } from '@/ui/components/sort-dropdown'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/ui/components/ui/alert-dialog'
+import { Avatar, AvatarFallback } from '@/ui/components/ui/avatar'
+import { Button } from '@/ui/components/ui/button'
+import { Card } from '@/ui/components/ui/card'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/ui/components/ui/dropdown-menu'
+import { ShumaiLogo } from '@/ui/components/ui/icons'
+import { formatDateAgo } from '@/ui/lib/time'
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { MoreHorizontal, PlusIcon } from 'lucide-react'
+import { useState } from 'react'
+
+function TeamPage() {
+  const { teamId } = Route.useParams()
+  const navigate = useNavigate()
+
+  // State for Project Dialog
+  const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false)
+  const [projectDialogMode, setProjectDialogMode] = useState<'create' | 'edit'>('create')
+  const [selectedProject, setSelectedProject] = useState<ProjectInfo | undefined>(undefined)
+
+  // State for Delete Alert
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [projectToDelete, setProjectToDelete] = useState<ProjectInfo | undefined>(undefined)
+
+  // State for Members Dialog
+  const [isMembersDialogOpen, setIsMembersDialogOpen] = useState(false)
+
+  // Sort State
+  const [sortBy, setSortBy] = useState<string>('name')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+
+  const $getProjects = client.api.teams[':teamId'].projects.$get
+  const { data: projects } = useSuspenseQuery({
+    queryKey: ['teams', teamId, 'projects', sortBy, sortDirection],
+    queryFn: async () => {
+      const res = await $getProjects({
+        param: { teamId: teamId },
+        query: { sortBy, sortDirection },
+      })
+      if (!res.ok) throw new Error('Failed to fetch projects')
+      return await res.json()
+    },
+  })
+
+  const { data: members } = useQuery({
+    queryKey: ['teams', teamId, 'members'],
+    queryFn: async () => {
+      const res = await client.api.teams[':teamId'].members.$get({
+        param: { teamId: teamId },
+        query: {},
+      })
+      if (!res.ok) throw new Error('Failed to fetch members')
+      return await res.json()
+    },
+  })
+
+  const { data: me } = useQuery({
+    queryKey: ['teams', teamId, 'me'],
+    queryFn: async () => {
+      const res = await client.api.teams[':teamId'].me.$get({
+        param: { teamId: teamId },
+      })
+      if (!res.ok) throw new Error('Failed to fetch me')
+      return await res.json()
+    },
+  })
+
+  const $inviteTeam = client.api.teams[':teamId'].invite.$post
+  const inviteMutation = useMutation<
+    InferResponseType<typeof $inviteTeam>,
+    Error,
+    InferRequestType<typeof $inviteTeam>
+  >({
+    mutationFn: async (args) => {
+      const res = await $inviteTeam(args)
+      if (!res.ok) {
+        throw new Error('Failed to invite')
+      }
+      return await res.json()
+    },
+  })
+
+  const handleCreateProjectClick = () => {
+    setProjectDialogMode('create')
+    setSelectedProject(undefined)
+    setIsProjectDialogOpen(true)
+  }
+
+  const handleEditProjectClick = (project: ProjectInfo) => {
+    setProjectDialogMode('edit')
+    setSelectedProject(project)
+    setIsProjectDialogOpen(true)
+  }
+
+  const handleDeleteProjectClick = (project: ProjectInfo) => {
+    setProjectToDelete(project)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const handleConfirmDelete = () => {
+    if (projectToDelete) {
+      console.log('Delete project', projectToDelete.id)
+    }
+    setIsDeleteDialogOpen(false)
+  }
+
+  const handleCardClick = (projectId: string) => {
+    navigate({
+      to: '/projects/$projectId',
+      params: { projectId },
+    })
+  }
+
+  const handleInvite = async (role: 'editor' | 'reviewer') => {
+    const res = await inviteMutation.mutateAsync({
+      param: { teamId: teamId },
+      json: { role },
+    })
+    return res.code
+  }
+
+  const getInitials = (name?: string) => {
+    if (!name) return '??'
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase()
+  }
+
+  const handleSortChange = (newSortBy: string, newSortDirection: 'asc' | 'desc') => {
+    setSortBy(newSortBy)
+    setSortDirection(newSortDirection)
+  }
+
+  const safeMembers = Array.isArray(members) ? members : []
+
+  return (
+    <div>
+      <div className="flex h-14 flex-wrap items-center justify-center gap-2 border-b border-border bg-card px-4 py-2">
+        <ShumaiLogo className="w-10 h-10 text-orange-600" />
+      </div>
+      <div className="p-4">
+        <div className="flex flex-wrap items-center justify-between mb-4 gap-4">
+          <h1 className="text-2xl font-bold">Projects</h1>
+          <div className="flex flex-wrap items-center gap-4">
+            <div
+              className="flex items-center -space-x-2 cursor-pointer hover:opacity-90"
+              onClick={() => setIsMembersDialogOpen(true)}
+            >
+              {safeMembers.slice(0, 3).map((member) => (
+                <Avatar key={member.id} className="border-2 border-background w-8 h-8">
+                  <AvatarFallback className="text-[10px]">
+                    {getInitials(member.name)}
+                  </AvatarFallback>
+                </Avatar>
+              ))}
+              {safeMembers.length > 3 && (
+                <div className="flex items-center justify-center w-8 h-8 rounded-full border-2 border-background bg-muted text-[10px] font-medium">
+                  +{safeMembers.length - 3}
+                </div>
+              )}
+            </div>
+            <SortDropdown
+              sortBy={sortBy}
+              sortDirection={sortDirection}
+              onSortChange={handleSortChange}
+            />
+            <Button
+              className="bg-orange-600 hover:bg-orange-700 text-white gap-2"
+              onClick={handleCreateProjectClick}
+            >
+              <PlusIcon className="w-4 h-4" />
+              Create Project
+            </Button>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-4">
+          {projects.data?.map((project: ProjectInfo) => (
+            <div key={project.id} className="shadow-md relative border rounded-xl overflow-hidden">
+              <div
+                className="cursor-pointer flex flex-col"
+                onClick={() => handleCardClick(project.id!)}
+              >
+                <div className="relative w-full h-full aspect-square flex items-center justify-center bg-zinc-400/20">
+                  {project.coverImage ? (
+                    <img
+                      src={project.coverImage}
+                      alt={project.name}
+                      className="w-full h-full object-cover rounded"
+                    />
+                  ) : (
+                    <div className="text-center text-muted-foreground font-bold tracking-wider z-10">
+                      <ShumaiLogo className="w-8 h-8 text-zinc-400" />
+                    </div>
+                  )}
+                  <div className="absolute bottom-0 left-0 w-full h-[65%] bg-linear-to-t from-black/35 to-black/0" />
+                  <p className="absolute left-1 bottom-2 text-white">{project.name}</p>
+                </div>
+                <div className="px-2 h-10 flex justify-between items-center">
+                  <p className="truncate pr-1 text-xs text-muted-foreground">
+                    Updated {formatDateAgo((project.updatedAt as string) ?? '')}
+                  </p>
+                  <div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="hover:bg-muted outline-none flex px-1">
+                          <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleEditProjectClick(project)
+                          }}
+                        >
+                          Project Settings
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => handleDeleteProjectClick(project)}
+                        >
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+          <Card
+            className="flex items-center justify-center hover:shadow-lg transition-shadow cursor-pointer"
+            onClick={handleCreateProjectClick}
+          >
+            <div className="text-center">
+              <PlusIcon className="w-8 h-8 mx-auto text-muted-foreground" />
+              <p className="mt-2 text-sm text-muted-foreground">Create Project</p>
+            </div>
+          </Card>
+        </div>
+
+        <ProjectDialog
+          open={isProjectDialogOpen}
+          onOpenChange={setIsProjectDialogOpen}
+          mode={projectDialogMode}
+          teamId={teamId}
+          project={selectedProject}
+        />
+
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the project &quot;
+                {projectToDelete?.name}&quot;.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleConfirmDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <MembersDialog
+          open={isMembersDialogOpen}
+          onOpenChange={setIsMembersDialogOpen}
+          title="Team Members"
+          members={safeMembers}
+          isOwner={me?.role === 'owner'}
+          onInvite={handleInvite}
+        />
+      </div>
+    </div>
+  )
+}
+
+export const Route = createFileRoute('/teams/$teamId/')({
+  component: TeamPage,
+})
