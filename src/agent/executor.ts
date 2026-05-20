@@ -179,6 +179,26 @@ export class AgentExecutor {
       'raw.githubusercontent.com',
     ]
 
+    const piDir = path.join(process.cwd(), '.pi')
+    if (!fs.existsSync(piDir)) fs.mkdirSync(piDir, { recursive: true })
+
+    const allowWrite = [piDir, '/tmp']
+    const allowRead = [
+      piDir,
+      '/tmp',
+      '/usr/bin', // Allow common binaries
+      '/bin',
+      '/usr/lib',
+      '/lib',
+      '/usr/share/zoneinfo', // Essential for time
+    ]
+
+    // On macOS, /tmp is a symlink to /private/tmp, and other system paths might need expansion
+    if (process.platform === 'darwin') {
+      allowWrite.push('/private/tmp')
+      allowRead.push('/private/tmp', '/private/var/folders')
+    }
+
     // Initialize SandboxManager for this session
     await SandboxManager.initialize({
       network: {
@@ -186,10 +206,10 @@ export class AgentExecutor {
         deniedDomains: [],
       },
       filesystem: {
-        allowWrite: ['.pi', '/tmp'],
-        denyRead: ['*'], // Deny everything else
-        denyWrite: [],
-        allowRead: ['.pi', '/tmp'],
+        allowWrite,
+        denyRead: ['/', '~'], // Deny all roots
+        denyWrite: ['/', '~'],
+        allowRead,
       },
     })
 
