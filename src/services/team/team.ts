@@ -26,6 +26,7 @@ export class TeamService {
             enablePublicSignup: true,
             transcode: { videoStrategy: 'disable', imageStrategy: 'disable' },
           },
+          sandbox: { create: {} },
         },
       })
       await providerService.initBuiltinProviders(team.id)
@@ -42,6 +43,7 @@ export class TeamService {
           name: req.name,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           settings: {} as any,
+          sandbox: { create: {} },
         },
       })
 
@@ -208,11 +210,7 @@ export class TeamService {
       where: { teamId },
     })
     return {
-      allowedDomains: sandbox?.allowedDomains || [
-        'github.com',
-        'api.github.com',
-        'raw.githubusercontent.com',
-      ],
+      allowedDomains: sandbox?.allowedDomains || [],
     }
   }
 

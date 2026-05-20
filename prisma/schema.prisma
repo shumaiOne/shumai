@@ -226,7 +226,7 @@ model Team {
 
 model Sandbox {
   id             String   @id @default(ulid())
-  allowedDomains String[] @default(["github.com", "api.github.com", "raw.githubusercontent.com"])
+  allowedDomains String[] @default(["npmjs.org", "*.npmjs.org", "registry.npmjs.org", "registry.yarnpkg.com", "pypi.org", "*.pypi.org", "github.com", "*.github.com", "api.github.com", "raw.githubusercontent.com"])
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 

@@ -172,11 +172,7 @@ export class AgentExecutor {
     })
 
     const sandbox = await this.getSandbox(teamId)
-    const allowedDomains = sandbox?.allowedDomains || [
-      'github.com',
-      'api.github.com',
-      'raw.githubusercontent.com',
-    ]
+    const allowedDomains = sandbox?.allowedDomains || []
 
     const piDir = path.join(process.cwd(), '.pi')
     if (!fs.existsSync(piDir)) fs.mkdirSync(piDir, { recursive: true })
