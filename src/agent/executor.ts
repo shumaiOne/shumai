@@ -10,7 +10,6 @@ import {
   SessionManager,
   SettingsManager,
   defineTool,
-  createBashTool,
 } from '@mariozechner/pi-coding-agent'
 import { Type, type TSchema } from '@sinclair/typebox'
 import * as fs from 'fs'
@@ -18,9 +17,9 @@ import * as path from 'path'
 import { DatabaseSessionManager } from './database-session-manager'
 import { analyzeAssetMediaTool } from './tools/analyze-asset-media'
 import { createReadSkillTool } from './tools/read-skill'
+import { createSandboxedBashTool } from './tools/sandboxed-bash'
 import { Usage } from '@/services/ai/provider/provider'
 import { SandboxManager } from '@anthropic-ai/sandbox-runtime'
-import { spawn } from 'node:child_process'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Tool = any
@@ -217,72 +216,7 @@ export class AgentExecutor {
       },
     })
 
-    const sandboxedBash = createBashTool(process.cwd(), {
-      operations: {
-        async exec(command, cwd, { onData, signal, timeout }) {
-          const wrappedCommand = await SandboxManager.wrapWithSandbox(command)
-          return new Promise((resolve, reject) => {
-            const child = spawn('bash', ['-c', wrappedCommand], {
-              cwd,
-              detached: true,
-              stdio: ['ignore', 'pipe', 'pipe'],
-              env: {
-                ...sessionManager.getSkillEnvs(),
-              },
-            })
-
-            let timedOut = false
-            let timeoutHandle: NodeJS.Timeout | undefined
-
-            if (timeout !== undefined && timeout > 0) {
-              timeoutHandle = setTimeout(() => {
-                timedOut = true
-                if (child.pid) {
-                  try {
-                    process.kill(-child.pid, 'SIGKILL')
-                  } catch {
-                    child.kill('SIGKILL')
-                  }
-                }
-              }, timeout * 1000)
-            }
-
-            child.stdout?.on('data', onData)
-            child.stderr?.on('data', onData)
-
-            child.on('error', (err) => {
-              if (timeoutHandle) clearTimeout(timeoutHandle)
-              reject(err)
-            })
-
-            const onAbort = () => {
-              if (child.pid) {
-                try {
-                  process.kill(-child.pid, 'SIGKILL')
-                } catch {
-                  child.kill('SIGKILL')
-                }
-              }
-            }
-
-            signal?.addEventListener('abort', onAbort, { once: true })
-
-            child.on('close', (code) => {
-              if (timeoutHandle) clearTimeout(timeoutHandle)
-              signal?.removeEventListener('abort', onAbort)
-
-              if (signal?.aborted) {
-                reject(new Error('aborted'))
-              } else if (timedOut) {
-                reject(new Error(`timeout:${timeout}`))
-              } else {
-                resolve({ exitCode: code })
-              }
-            })
-          })
-        },
-      },
-    })
+    const sandboxedBash = createSandboxedBashTool(process.cwd(), sessionManager)
 
     const { session } = await createAgentSession({
       cwd: process.cwd(),
