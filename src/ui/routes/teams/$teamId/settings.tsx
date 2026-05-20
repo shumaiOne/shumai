@@ -11,7 +11,7 @@ import { ProvidersSettings } from '@/ui/components/settings/ProvidersSettings'
 import { SkillsConfigCard } from '@/ui/components/settings/SkillsConfigCard'
 import { AgentsSettings } from '@/ui/components/settings/AgentsSettings'
 import { SandboxSettings } from '@/ui/components/settings/SandboxSettings'
-import { Bot, ShieldCheck } from 'lucide-react'
+import { Bot, Shield } from 'lucide-react'
 
 type SettingsTab = 'general' | 'transcode' | 'skills' | 'providers' | 'agents' | 'sandbox'
 
@@ -207,7 +207,7 @@ function TeamSettingsPage() {
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white',
               )}
             >
-              <ShieldCheck className="w-5 h-5" />
+              <Shield className="w-5 h-5" />
               Sandbox
               {activeTab === 'sandbox' && (
                 <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
@@ -237,8 +237,7 @@ function TeamSettingsPage() {
                   {activeTab === 'providers' &&
                     'Configure AI providers and their models for this team.'}
                   {activeTab === 'agents' && 'Manage AI agents and their personalities.'}
-                  {activeTab === 'sandbox' &&
-                    'Configure security and network restrictions for the AI agent.'}
+                  {activeTab === 'sandbox' && 'Configure security and network restrictions for the AI agent.'}
                 </p>
               </div>
             </div>
