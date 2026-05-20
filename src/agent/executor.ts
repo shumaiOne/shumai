@@ -5,14 +5,14 @@ import { s3Service } from '@/services/s3/s3'
 import { SandboxManager } from '@anthropic-ai/sandbox-runtime'
 import { getModel, type ImageContent, type TextContent } from '@mariozechner/pi-ai'
 import {
-    AuthStorage,
-    createAgentSession,
-    DefaultResourceLoader,
-    defineTool,
-    ModelRegistry,
-    SessionManager,
-    SettingsManager,
-    type ToolDefinition,
+  AuthStorage,
+  createAgentSession,
+  DefaultResourceLoader,
+  defineTool,
+  ModelRegistry,
+  SessionManager,
+  SettingsManager,
+  type ToolDefinition,
 } from '@mariozechner/pi-coding-agent'
 import { Type, type TSchema } from '@sinclair/typebox'
 import * as fs from 'fs'

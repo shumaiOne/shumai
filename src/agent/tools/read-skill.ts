@@ -35,7 +35,10 @@ export const createReadSkillTool = (sessionManager: DatabaseSessionManager) =>
         if (config?.environmentVariables && Array.isArray(config.environmentVariables)) {
           const envs: Record<string, string> = {}
           for (const envVar of config.environmentVariables) {
-            const value = process.env[envVar.name] || envVar.default
+            const value =
+              envVar.default !== undefined && envVar.default !== null && envVar.default !== ''
+                ? envVar.default
+                : process.env[envVar.name]
             if (value !== undefined) {
               envs[envVar.name] = value
             }
