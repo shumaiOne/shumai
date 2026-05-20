@@ -1,5 +1,5 @@
-import { createBashTool } from '@mariozechner/pi-coding-agent'
 import { SandboxManager } from '@anthropic-ai/sandbox-runtime'
+import { createBashTool } from '@mariozechner/pi-coding-agent'
 import { spawn } from 'node:child_process'
 import type { DatabaseSessionManager } from '../database-session-manager'
 

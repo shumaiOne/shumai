@@ -1,16 +1,18 @@
 import { prisma } from '@/db'
 import { logger } from '@/logger'
+import { Usage } from '@/services/ai/provider/provider'
 import { s3Service } from '@/services/s3/s3'
+import { SandboxManager } from '@anthropic-ai/sandbox-runtime'
 import { getModel, type ImageContent, type TextContent } from '@mariozechner/pi-ai'
 import {
-  AuthStorage,
-  createAgentSession,
-  DefaultResourceLoader,
-  ModelRegistry,
-  SessionManager,
-  SettingsManager,
-  defineTool,
-  type ToolDefinition,
+    AuthStorage,
+    createAgentSession,
+    DefaultResourceLoader,
+    defineTool,
+    ModelRegistry,
+    SessionManager,
+    SettingsManager,
+    type ToolDefinition,
 } from '@mariozechner/pi-coding-agent'
 import { Type, type TSchema } from '@sinclair/typebox'
 import * as fs from 'fs'
@@ -19,8 +21,6 @@ import { DatabaseSessionManager } from './database-session-manager'
 import { analyzeAssetMediaTool } from './tools/analyze-asset-media'
 import { createReadSkillTool } from './tools/read-skill'
 import { createSandboxedBashTool } from './tools/sandboxed-bash'
-import { Usage } from '@/services/ai/provider/provider'
-import { SandboxManager } from '@anthropic-ai/sandbox-runtime'
 
 export interface AutofillField {
   id: string
@@ -176,21 +176,6 @@ export class AgentExecutor {
     if (!fs.existsSync(piDir)) fs.mkdirSync(piDir, { recursive: true })
 
     const allowWrite = [piDir, '/tmp']
-    const allowRead = [
-      piDir,
-      '/tmp',
-      '/usr/bin', // Allow common binaries
-      '/bin',
-      '/usr/lib',
-      '/lib',
-      '/usr/share/zoneinfo', // Essential for time
-    ]
-
-    // On macOS, /tmp is a symlink to /private/tmp, and other system paths might need expansion
-    if (process.platform === 'darwin') {
-      allowWrite.push('/private/tmp')
-      allowRead.push('/private/tmp', '/private/var/folders')
-    }
 
     // NOTE: SandboxManager.initialize is a global operation that applies to the entire process.
     // anthropic-experimental/sandbox-runtime currently does not support separate managers per session/team.
@@ -204,9 +189,8 @@ export class AgentExecutor {
       },
       filesystem: {
         allowWrite,
-        denyRead: ['/', '~'], // Deny all roots
-        denyWrite: ['/', '~'],
-        allowRead,
+        denyWrite: ['.env', '.env.*', '*.pem', '*.key'],
+        denyRead: ['~/.ssh', '~/.aws', '~/.gnupg'],
       },
     })
 

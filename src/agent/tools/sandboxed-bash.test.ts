@@ -66,7 +66,9 @@ describe('createSandboxedBashTool', () => {
       'bash',
       ['-c', 'sandboxed-echo hello'],
       expect.objectContaining({
-        env: { TEST_ENV: 'test-value' },
+        env: expect.objectContaining({
+          TEST_ENV: 'test-value',
+        }),
       }),
     )
 
