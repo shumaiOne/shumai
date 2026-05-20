@@ -25,6 +25,9 @@ WORKDIR /app
 COPY --from=mwader/static-ffmpeg:8.1 /ffmpeg /usr/local/bin/
 COPY --from=mwader/static-ffmpeg:8.1 /ffprobe /usr/local/bin/
 
+# Install system dependencies for sandbox runtime
+RUN apt-get update && apt-get install -y ripgrep bubblewrap socat && rm -rf /var/lib/apt/lists/*
+
 # Copy sharp/img from builder (they are native and already installed)
 COPY --from=builder /app/node_modules/sharp ./node_modules/sharp
 COPY --from=builder /app/node_modules/@img ./node_modules/@img
