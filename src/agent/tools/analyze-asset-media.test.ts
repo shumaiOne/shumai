@@ -36,7 +36,10 @@ describe('analyzeAssetMediaTool', () => {
     const buffer = Buffer.from([
       0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d,
     ])
-    vi.mocked(s3Service.getObject).mockResolvedValue({ buffer, contentType: 'application/octet-stream' })
+    vi.mocked(s3Service.getObject).mockResolvedValue({
+      buffer,
+      contentType: 'application/octet-stream',
+    })
 
     const result = await analyzeAssetMediaTool.execute(
       '1',

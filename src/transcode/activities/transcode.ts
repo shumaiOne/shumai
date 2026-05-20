@@ -11,9 +11,11 @@ export interface GetMediaInfoActivityParams {
   mediaType: string
 }
 
-export async function getMediaInfoActivity(
-  params: { filePath: string; assetId: string; mediaType: string },
-): Promise<PrismaJson.MediaInfo> {
+export async function getMediaInfoActivity(params: {
+  filePath: string
+  assetId: string
+  mediaType: string
+}): Promise<PrismaJson.MediaInfo> {
   const isVideo = params.mediaType.startsWith('video/')
   const isImage = params.mediaType.startsWith('image/')
 

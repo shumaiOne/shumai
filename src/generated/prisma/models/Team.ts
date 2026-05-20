@@ -197,6 +197,7 @@ export type TeamWhereInput = {
   userMetadata?: Prisma.UserMetadataListRelationFilter
   providers?: Prisma.ProviderListRelationFilter
   skills?: Prisma.SkillListRelationFilter
+  sandbox?: Prisma.XOR<Prisma.SandboxNullableScalarRelationFilter, Prisma.SandboxWhereInput> | null
 }
 
 export type TeamOrderByWithRelationInput = {
@@ -215,6 +216,7 @@ export type TeamOrderByWithRelationInput = {
   userMetadata?: Prisma.UserMetadataOrderByRelationAggregateInput
   providers?: Prisma.ProviderOrderByRelationAggregateInput
   skills?: Prisma.SkillOrderByRelationAggregateInput
+  sandbox?: Prisma.SandboxOrderByWithRelationInput
 }
 
 export type TeamWhereUniqueInput = Prisma.AtLeast<{
@@ -236,6 +238,7 @@ export type TeamWhereUniqueInput = Prisma.AtLeast<{
   userMetadata?: Prisma.UserMetadataListRelationFilter
   providers?: Prisma.ProviderListRelationFilter
   skills?: Prisma.SkillListRelationFilter
+  sandbox?: Prisma.XOR<Prisma.SandboxNullableScalarRelationFilter, Prisma.SandboxWhereInput> | null
 }, "id" | "rootFolderId">
 
 export type TeamOrderByWithAggregationInput = {
@@ -277,6 +280,7 @@ export type TeamCreateInput = {
   userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutTeamInput
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
+  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
 }
 
 export type TeamUncheckedCreateInput = {
@@ -294,6 +298,7 @@ export type TeamUncheckedCreateInput = {
   userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutTeamInput
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
+  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
 }
 
 export type TeamUpdateInput = {
@@ -311,6 +316,7 @@ export type TeamUpdateInput = {
   userMetadata?: Prisma.UserMetadataUpdateManyWithoutTeamNestedInput
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
+  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateInput = {
@@ -328,6 +334,7 @@ export type TeamUncheckedUpdateInput = {
   userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutTeamNestedInput
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
+  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
 }
 
 export type TeamCreateManyInput = {
@@ -389,6 +396,20 @@ export type TeamScalarRelationFilter = {
 export type TeamNullableScalarRelationFilter = {
   is?: Prisma.TeamWhereInput | null
   isNot?: Prisma.TeamWhereInput | null
+}
+
+export type TeamCreateNestedOneWithoutSandboxInput = {
+  create?: Prisma.XOR<Prisma.TeamCreateWithoutSandboxInput, Prisma.TeamUncheckedCreateWithoutSandboxInput>
+  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutSandboxInput
+  connect?: Prisma.TeamWhereUniqueInput
+}
+
+export type TeamUpdateOneRequiredWithoutSandboxNestedInput = {
+  create?: Prisma.XOR<Prisma.TeamCreateWithoutSandboxInput, Prisma.TeamUncheckedCreateWithoutSandboxInput>
+  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutSandboxInput
+  upsert?: Prisma.TeamUpsertWithoutSandboxInput
+  connect?: Prisma.TeamWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.TeamUpdateToOneWithWhereWithoutSandboxInput, Prisma.TeamUpdateWithoutSandboxInput>, Prisma.TeamUncheckedUpdateWithoutSandboxInput>
 }
 
 export type TeamCreateNestedOneWithoutSkillsInput = {
@@ -537,6 +558,90 @@ export type TeamUpdateOneRequiredWithoutProvidersNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.TeamUpdateToOneWithWhereWithoutProvidersInput, Prisma.TeamUpdateWithoutProvidersInput>, Prisma.TeamUncheckedUpdateWithoutProvidersInput>
 }
 
+export type TeamCreateWithoutSandboxInput = {
+  id?: string
+  name: string
+  settings?:PrismaJson.Settings | Prisma.NullableJsonNullValueInput
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  rootFolder?: Prisma.AssetCreateNestedOneWithoutTeamRootFolderInput
+  members?: Prisma.TeamMemberCreateNestedManyWithoutTeamInput
+  projects?: Prisma.ProjectCreateNestedManyWithoutTeamInput
+  metadataFields?: Prisma.MetadataFieldCreateNestedManyWithoutTeamInput
+  invites?: Prisma.InviteCreateNestedManyWithoutTeamInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
+  userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutTeamInput
+  providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
+  skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
+}
+
+export type TeamUncheckedCreateWithoutSandboxInput = {
+  id?: string
+  name: string
+  settings?:PrismaJson.Settings | Prisma.NullableJsonNullValueInput
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  rootFolderId?: string | null
+  members?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutTeamInput
+  projects?: Prisma.ProjectUncheckedCreateNestedManyWithoutTeamInput
+  metadataFields?: Prisma.MetadataFieldUncheckedCreateNestedManyWithoutTeamInput
+  invites?: Prisma.InviteUncheckedCreateNestedManyWithoutTeamInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
+  userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutTeamInput
+  providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
+  skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
+}
+
+export type TeamCreateOrConnectWithoutSandboxInput = {
+  where: Prisma.TeamWhereUniqueInput
+  create: Prisma.XOR<Prisma.TeamCreateWithoutSandboxInput, Prisma.TeamUncheckedCreateWithoutSandboxInput>
+}
+
+export type TeamUpsertWithoutSandboxInput = {
+  update: Prisma.XOR<Prisma.TeamUpdateWithoutSandboxInput, Prisma.TeamUncheckedUpdateWithoutSandboxInput>
+  create: Prisma.XOR<Prisma.TeamCreateWithoutSandboxInput, Prisma.TeamUncheckedCreateWithoutSandboxInput>
+  where?: Prisma.TeamWhereInput
+}
+
+export type TeamUpdateToOneWithWhereWithoutSandboxInput = {
+  where?: Prisma.TeamWhereInput
+  data: Prisma.XOR<Prisma.TeamUpdateWithoutSandboxInput, Prisma.TeamUncheckedUpdateWithoutSandboxInput>
+}
+
+export type TeamUpdateWithoutSandboxInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  settings?:PrismaJson.Settings | Prisma.NullableJsonNullValueInput
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  rootFolder?: Prisma.AssetUpdateOneWithoutTeamRootFolderNestedInput
+  members?: Prisma.TeamMemberUpdateManyWithoutTeamNestedInput
+  projects?: Prisma.ProjectUpdateManyWithoutTeamNestedInput
+  metadataFields?: Prisma.MetadataFieldUpdateManyWithoutTeamNestedInput
+  invites?: Prisma.InviteUpdateManyWithoutTeamNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
+  userMetadata?: Prisma.UserMetadataUpdateManyWithoutTeamNestedInput
+  providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
+  skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
+}
+
+export type TeamUncheckedUpdateWithoutSandboxInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  settings?:PrismaJson.Settings | Prisma.NullableJsonNullValueInput
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  rootFolderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  members?: Prisma.TeamMemberUncheckedUpdateManyWithoutTeamNestedInput
+  projects?: Prisma.ProjectUncheckedUpdateManyWithoutTeamNestedInput
+  metadataFields?: Prisma.MetadataFieldUncheckedUpdateManyWithoutTeamNestedInput
+  invites?: Prisma.InviteUncheckedUpdateManyWithoutTeamNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
+  userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutTeamNestedInput
+  providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
+  skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
+}
+
 export type TeamCreateWithoutSkillsInput = {
   id?: string
   name: string
@@ -551,6 +656,7 @@ export type TeamCreateWithoutSkillsInput = {
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutTeamInput
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
+  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutSkillsInput = {
@@ -567,6 +673,7 @@ export type TeamUncheckedCreateWithoutSkillsInput = {
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutTeamInput
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
+  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutSkillsInput = {
@@ -599,6 +706,7 @@ export type TeamUpdateWithoutSkillsInput = {
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   userMetadata?: Prisma.UserMetadataUpdateManyWithoutTeamNestedInput
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
+  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutSkillsInput = {
@@ -615,6 +723,7 @@ export type TeamUncheckedUpdateWithoutSkillsInput = {
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutTeamNestedInput
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
+  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutMembersInput = {
@@ -631,6 +740,7 @@ export type TeamCreateWithoutMembersInput = {
   userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutTeamInput
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
+  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutMembersInput = {
@@ -647,6 +757,7 @@ export type TeamUncheckedCreateWithoutMembersInput = {
   userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutTeamInput
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
+  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutMembersInput = {
@@ -679,6 +790,7 @@ export type TeamUpdateWithoutMembersInput = {
   userMetadata?: Prisma.UserMetadataUpdateManyWithoutTeamNestedInput
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
+  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutMembersInput = {
@@ -695,6 +807,7 @@ export type TeamUncheckedUpdateWithoutMembersInput = {
   userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutTeamNestedInput
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
+  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutProjectsInput = {
@@ -711,6 +824,7 @@ export type TeamCreateWithoutProjectsInput = {
   userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutTeamInput
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
+  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutProjectsInput = {
@@ -727,6 +841,7 @@ export type TeamUncheckedCreateWithoutProjectsInput = {
   userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutTeamInput
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
+  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutProjectsInput = {
@@ -759,6 +874,7 @@ export type TeamUpdateWithoutProjectsInput = {
   userMetadata?: Prisma.UserMetadataUpdateManyWithoutTeamNestedInput
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
+  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutProjectsInput = {
@@ -775,6 +891,7 @@ export type TeamUncheckedUpdateWithoutProjectsInput = {
   userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutTeamNestedInput
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
+  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutRootFolderInput = {
@@ -791,6 +908,7 @@ export type TeamCreateWithoutRootFolderInput = {
   userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutTeamInput
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
+  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutRootFolderInput = {
@@ -807,6 +925,7 @@ export type TeamUncheckedCreateWithoutRootFolderInput = {
   userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutTeamInput
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
+  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutRootFolderInput = {
@@ -839,6 +958,7 @@ export type TeamUpdateWithoutRootFolderInput = {
   userMetadata?: Prisma.UserMetadataUpdateManyWithoutTeamNestedInput
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
+  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutRootFolderInput = {
@@ -855,6 +975,7 @@ export type TeamUncheckedUpdateWithoutRootFolderInput = {
   userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutTeamNestedInput
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
+  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutInvitesInput = {
@@ -871,6 +992,7 @@ export type TeamCreateWithoutInvitesInput = {
   userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutTeamInput
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
+  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutInvitesInput = {
@@ -887,6 +1009,7 @@ export type TeamUncheckedCreateWithoutInvitesInput = {
   userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutTeamInput
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
+  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutInvitesInput = {
@@ -919,6 +1042,7 @@ export type TeamUpdateWithoutInvitesInput = {
   userMetadata?: Prisma.UserMetadataUpdateManyWithoutTeamNestedInput
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
+  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutInvitesInput = {
@@ -935,6 +1059,7 @@ export type TeamUncheckedUpdateWithoutInvitesInput = {
   userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutTeamNestedInput
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
+  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutMetadataFieldsInput = {
@@ -951,6 +1076,7 @@ export type TeamCreateWithoutMetadataFieldsInput = {
   userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutTeamInput
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
+  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutMetadataFieldsInput = {
@@ -967,6 +1093,7 @@ export type TeamUncheckedCreateWithoutMetadataFieldsInput = {
   userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutTeamInput
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
+  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutMetadataFieldsInput = {
@@ -999,6 +1126,7 @@ export type TeamUpdateWithoutMetadataFieldsInput = {
   userMetadata?: Prisma.UserMetadataUpdateManyWithoutTeamNestedInput
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
+  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutMetadataFieldsInput = {
@@ -1015,6 +1143,7 @@ export type TeamUncheckedUpdateWithoutMetadataFieldsInput = {
   userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutTeamNestedInput
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
+  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutNotificationsInput = {
@@ -1031,6 +1160,7 @@ export type TeamCreateWithoutNotificationsInput = {
   userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutTeamInput
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
+  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutNotificationsInput = {
@@ -1047,6 +1177,7 @@ export type TeamUncheckedCreateWithoutNotificationsInput = {
   userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutTeamInput
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
+  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutNotificationsInput = {
@@ -1079,6 +1210,7 @@ export type TeamUpdateWithoutNotificationsInput = {
   userMetadata?: Prisma.UserMetadataUpdateManyWithoutTeamNestedInput
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
+  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutNotificationsInput = {
@@ -1095,6 +1227,7 @@ export type TeamUncheckedUpdateWithoutNotificationsInput = {
   userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutTeamNestedInput
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
+  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutUserMetadataInput = {
@@ -1111,6 +1244,7 @@ export type TeamCreateWithoutUserMetadataInput = {
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   providers?: Prisma.ProviderCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
+  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutUserMetadataInput = {
@@ -1127,6 +1261,7 @@ export type TeamUncheckedCreateWithoutUserMetadataInput = {
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   providers?: Prisma.ProviderUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
+  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutUserMetadataInput = {
@@ -1159,6 +1294,7 @@ export type TeamUpdateWithoutUserMetadataInput = {
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   providers?: Prisma.ProviderUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
+  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutUserMetadataInput = {
@@ -1175,6 +1311,7 @@ export type TeamUncheckedUpdateWithoutUserMetadataInput = {
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   providers?: Prisma.ProviderUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
+  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutProvidersInput = {
@@ -1191,6 +1328,7 @@ export type TeamCreateWithoutProvidersInput = {
   notifications?: Prisma.NotificationCreateNestedManyWithoutTeamInput
   userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillCreateNestedManyWithoutTeamInput
+  sandbox?: Prisma.SandboxCreateNestedOneWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutProvidersInput = {
@@ -1207,6 +1345,7 @@ export type TeamUncheckedCreateWithoutProvidersInput = {
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutTeamInput
   userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutTeamInput
   skills?: Prisma.SkillUncheckedCreateNestedManyWithoutTeamInput
+  sandbox?: Prisma.SandboxUncheckedCreateNestedOneWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutProvidersInput = {
@@ -1239,6 +1378,7 @@ export type TeamUpdateWithoutProvidersInput = {
   notifications?: Prisma.NotificationUpdateManyWithoutTeamNestedInput
   userMetadata?: Prisma.UserMetadataUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUpdateManyWithoutTeamNestedInput
+  sandbox?: Prisma.SandboxUpdateOneWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutProvidersInput = {
@@ -1255,6 +1395,7 @@ export type TeamUncheckedUpdateWithoutProvidersInput = {
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutTeamNestedInput
   userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutTeamNestedInput
   skills?: Prisma.SkillUncheckedUpdateManyWithoutTeamNestedInput
+  sandbox?: Prisma.SandboxUncheckedUpdateOneWithoutTeamNestedInput
 }
 
 
@@ -1367,6 +1508,7 @@ export type TeamSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   userMetadata?: boolean | Prisma.Team$userMetadataArgs<ExtArgs>
   providers?: boolean | Prisma.Team$providersArgs<ExtArgs>
   skills?: boolean | Prisma.Team$skillsArgs<ExtArgs>
+  sandbox?: boolean | Prisma.Team$sandboxArgs<ExtArgs>
   _count?: boolean | Prisma.TeamCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["team"]>
 
@@ -1410,6 +1552,7 @@ export type TeamInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   userMetadata?: boolean | Prisma.Team$userMetadataArgs<ExtArgs>
   providers?: boolean | Prisma.Team$providersArgs<ExtArgs>
   skills?: boolean | Prisma.Team$skillsArgs<ExtArgs>
+  sandbox?: boolean | Prisma.Team$sandboxArgs<ExtArgs>
   _count?: boolean | Prisma.TeamCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type TeamIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1431,6 +1574,7 @@ export type $TeamPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     userMetadata: Prisma.$UserMetadataPayload<ExtArgs>[]
     providers: Prisma.$ProviderPayload<ExtArgs>[]
     skills: Prisma.$SkillPayload<ExtArgs>[]
+    sandbox: Prisma.$SandboxPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1845,6 +1989,7 @@ export interface Prisma__TeamClient<T, Null = never, ExtArgs extends runtime.Typ
   userMetadata<T extends Prisma.Team$userMetadataArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$userMetadataArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserMetadataPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   providers<T extends Prisma.Team$providersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$providersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ProviderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   skills<T extends Prisma.Team$skillsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$skillsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SkillPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  sandbox<T extends Prisma.Team$sandboxArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$sandboxArgs<ExtArgs>>): Prisma.Prisma__SandboxClient<runtime.Types.Result.GetResult<Prisma.$SandboxPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2489,6 +2634,25 @@ export type Team$skillsArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
   take?: number
   skip?: number
   distinct?: Prisma.SkillScalarFieldEnum | Prisma.SkillScalarFieldEnum[]
+}
+
+/**
+ * Team.sandbox
+ */
+export type Team$sandboxArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Sandbox
+   */
+  select?: Prisma.SandboxSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Sandbox
+   */
+  omit?: Prisma.SandboxOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SandboxInclude<ExtArgs> | null
+  where?: Prisma.SandboxWhereInput
 }
 
 /**

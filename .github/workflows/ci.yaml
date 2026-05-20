@@ -29,6 +29,11 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep bubblewrap socat
+
       - name: Lint
         run: bun run lint
 

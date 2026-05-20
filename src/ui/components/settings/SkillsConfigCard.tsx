@@ -31,8 +31,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/ui/components/ui/alert-dialog'
-// @ts-ignore - Import browser distribution to avoid Node.js built-ins in the bundle
-import JSZip from 'jszip/dist/jszip.min.js'
 import { SkillInfo } from '@/dtos/skill'
 
 interface SkillsConfigCardProps {
@@ -305,31 +303,17 @@ const AddSkillDialog = ({
       return
     }
 
+    const fileToUpload = files[0]
+    if (!fileToUpload.name.toLowerCase().endsWith('.zip')) {
+      alert('Only .zip files are supported.')
+      return
+    }
+
     setIsProcessing(true)
 
     try {
-      let fileToUpload: File | Blob
-      let fileName: string
-      let contentType = 'application/zip'
-
-      // Check if it's a ZIP file or a collection of files (folder)
-      const isZip = files.length === 1 && files[0].name.toLowerCase().endsWith('.zip')
-
-      if (isZip) {
-        fileToUpload = files[0]
-        fileName = files[0].name
-        contentType = files[0].type || 'application/zip'
-      } else {
-        const zip = new JSZip()
-        for (let i = 0; i < files.length; i++) {
-          const f = files[i]
-          // Use relative path for folder structure if available
-          const path = f.webkitRelativePath || f.name
-          zip.file(path, f)
-        }
-        fileToUpload = await zip.generateAsync({ type: 'blob' })
-        fileName = 'skill_package.zip'
-      }
+      const fileName = fileToUpload.name
+      const contentType = fileToUpload.type || 'application/zip'
 
       // 1. Get Presigned URL and Asset ID
       const attachRes = await client.api.projects[':projectId'].attachments.$post({
@@ -373,12 +357,12 @@ const AddSkillDialog = ({
         <DialogHeader>
           <DialogTitle>Add New Skill</DialogTitle>
           <DialogDescription>
-            Import a skill from a local ZIP/folder or a GitHub repository.
+            Import a skill from a local ZIP archive or a GitHub repository.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 pt-4">
-          {/* File/Folder Upload Section */}
+          {/* File Upload Section */}
           <div className="space-y-3">
             <Label>Package Upload</Label>
             <div
@@ -395,10 +379,6 @@ const AddSkillDialog = ({
                 ref={fileInputRef}
                 className="hidden"
                 accept=".zip"
-                // @ts-ignore
-                webkitdirectory=""
-                directory=""
-                multiple
                 onChange={(e) => handleFileUpload(e.target.files)}
               />
               <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-full group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 transition-colors">
@@ -406,7 +386,7 @@ const AddSkillDialog = ({
               </div>
               <div className="mt-3 text-center">
                 <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Select ZIP file or folder
+                  Select ZIP file
                 </p>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider font-semibold">
                   Packages must contain a SKILL.md

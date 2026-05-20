@@ -1,26 +1,26 @@
 import { prisma } from '@/db'
 import { logger } from '@/logger'
+import { Usage } from '@/services/ai/provider/provider'
 import { s3Service } from '@/services/s3/s3'
+import { SandboxManager } from '@anthropic-ai/sandbox-runtime'
 import { getModel, type ImageContent, type TextContent } from '@mariozechner/pi-ai'
 import {
   AuthStorage,
   createAgentSession,
   DefaultResourceLoader,
+  defineTool,
   ModelRegistry,
   SessionManager,
   SettingsManager,
-  defineTool,
+  type ToolDefinition,
 } from '@mariozechner/pi-coding-agent'
 import { Type, type TSchema } from '@sinclair/typebox'
 import * as fs from 'fs'
 import * as path from 'path'
 import { DatabaseSessionManager } from './database-session-manager'
 import { analyzeAssetMediaTool } from './tools/analyze-asset-media'
-import { readSkillTool } from './tools/read-skill'
-import { Usage } from '@/services/ai/provider/provider'
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type Tool = any
+import { createReadSkillTool } from './tools/read-skill'
+import { createSandboxedBashTool } from './tools/sandboxed-bash'
 
 export interface AutofillField {
   id: string
@@ -34,6 +34,12 @@ export class AgentExecutor {
   private async getTeam(teamId: string) {
     return this.prismaClient.team.findUnique({
       where: { id: teamId },
+    })
+  }
+
+  private async getSandbox(teamId: string) {
+    return this.prismaClient.sandbox.findUnique({
+      where: { teamId },
     })
   }
 
@@ -64,7 +70,7 @@ export class AgentExecutor {
     agentsInstruction: string,
     sessionId?: string,
     userId?: string,
-    tools: Tool[] = [],
+    tools: ToolDefinition[] = [],
   ): Promise<{ text: string; usage: Usage; sessionId: string }> {
     const t = await this.getTeam(teamId)
     if (!t) throw new Error('failed to get team')
@@ -163,6 +169,33 @@ export class AgentExecutor {
       cwd: process.cwd(),
     })
 
+    const sandbox = await this.getSandbox(teamId)
+    const allowedDomains = sandbox?.allowedDomains || []
+
+    const piDir = path.join(process.cwd(), '.pi')
+    if (!fs.existsSync(piDir)) fs.mkdirSync(piDir, { recursive: true })
+
+    const allowWrite = [piDir, '/tmp']
+
+    // NOTE: SandboxManager.initialize is a global operation that applies to the entire process.
+    // anthropic-experimental/sandbox-runtime currently does not support separate managers per session/team.
+    // Since this application is not designed for multi-tenancy at the process level (i.e. only one
+    // team's chat happens at a time per worker instance), re-initializing here with current team's
+    // settings is acceptable.
+    await SandboxManager.initialize({
+      network: {
+        allowedDomains,
+        deniedDomains: [],
+      },
+      filesystem: {
+        allowWrite,
+        denyWrite: ['.env', '.env.*', '*.pem', '*.key'],
+        denyRead: ['~/.ssh', '~/.aws', '~/.gnupg'],
+      },
+    })
+
+    const sandboxedBash = createSandboxedBashTool(process.cwd(), sessionManager)
+
     const { session } = await createAgentSession({
       cwd: process.cwd(),
       agentDir,
@@ -172,7 +205,12 @@ export class AgentExecutor {
       resourceLoader,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       sessionManager: sessionManager as any as SessionManager,
-      customTools: [analyzeAssetMediaTool, readSkillTool, ...tools],
+      customTools: [
+        analyzeAssetMediaTool,
+        createReadSkillTool(sessionManager),
+        sandboxedBash,
+        ...tools,
+      ],
     })
     const content: (TextContent | ImageContent)[] = []
 

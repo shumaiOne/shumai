@@ -11,6 +11,7 @@ import {
   TeamInfo,
   GetMeResponse,
   UserInfo,
+  SandboxSettings,
 } from '@/dtos/team'
 
 export class TeamService {
@@ -25,6 +26,7 @@ export class TeamService {
             enablePublicSignup: true,
             transcode: { videoStrategy: 'disable', imageStrategy: 'disable' },
           },
+          sandbox: { create: {} },
         },
       })
       await providerService.initBuiltinProviders(team.id)
@@ -41,6 +43,7 @@ export class TeamService {
           name: req.name,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           settings: {} as any,
+          sandbox: { create: {} },
         },
       })
 
@@ -200,6 +203,31 @@ export class TeamService {
     })
 
     return updated.settings || {}
+  }
+
+  async getSandboxSettings(teamId: string): Promise<SandboxSettings> {
+    const sandbox = await prisma.sandbox.findUnique({
+      where: { teamId },
+    })
+    return {
+      allowedDomains: sandbox?.allowedDomains || [],
+    }
+  }
+
+  async updateSandboxSettings(teamId: string, settings: SandboxSettings): Promise<SandboxSettings> {
+    const sandbox = await prisma.sandbox.upsert({
+      where: { teamId },
+      create: {
+        teamId,
+        allowedDomains: settings.allowedDomains,
+      },
+      update: {
+        allowedDomains: settings.allowedDomains,
+      },
+    })
+    return {
+      allowedDomains: sandbox.allowedDomains,
+    }
   }
 
   async getSignupInfo() {

@@ -219,8 +219,21 @@ model Team {
   userMetadata   UserMetadata[]  @relation("TeamToUserMetadata")
   providers      Provider[]      @relation("TeamToProvider")
   skills         Skill[]         @relation("TeamToSkill")
+  sandbox        Sandbox?        @relation("TeamToSandbox")
 
   @@map("teams")
+}
+
+model Sandbox {
+  id             String   @id @default(ulid())
+  allowedDomains String[] @default(["npmjs.org", "*.npmjs.org", "registry.npmjs.org", "registry.yarnpkg.com", "pypi.org", "*.pypi.org", "github.com", "*.github.com", "api.github.com", "raw.githubusercontent.com"])
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  teamId String @unique @map("team_id")
+  team   Team   @relation("TeamToSandbox", fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@map("sandboxes")
 }
 
 model Skill {

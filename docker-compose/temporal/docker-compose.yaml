@@ -88,7 +88,11 @@ services:
     ports:
       - '7233:7233'
     healthcheck:
-      test: ["CMD-SHELL", "temporal operator cluster health --address localhost:7233 || temporal operator cluster health --address $$(hostname -i):7233"]
+      test:
+        [
+          'CMD-SHELL',
+          'temporal operator cluster health --address localhost:7233 || temporal operator cluster health --address $$(hostname -i):7233',
+        ]
       interval: 5s
       timeout: 5s
       start_period: 30s
