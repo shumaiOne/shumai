@@ -5,12 +5,21 @@ import { SessionEntry, SessionManager } from '@mariozechner/pi-coding-agent'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export class DatabaseSessionManager extends (SessionManager as any) {
   private dbSessionId: string
+  private skillEnvs: Record<string, string> = {}
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private writeQueue: Promise<any> = Promise.resolve()
 
   private constructor(sessionId: string, cwd: string) {
     super(cwd, '', undefined, false) // persist = false, we handle it manually
     this.dbSessionId = sessionId
+  }
+
+  addSkillEnvs(envs: Record<string, string>) {
+    this.skillEnvs = { ...this.skillEnvs, ...envs }
+  }
+
+  getSkillEnvs() {
+    return this.skillEnvs
   }
 
   static async create(params: {
@@ -46,7 +55,10 @@ export class DatabaseSessionManager extends (SessionManager as any) {
               if (item.type === 'image' && item.data === '__S3_DATA__' && sourceKeys[keyIdx]) {
                 const key = sourceKeys[keyIdx]
                 try {
-                  const { buffer } = await s3Service.getObject(process.env.S3_BUCKET || 'shumai', key)
+                  const { buffer } = await s3Service.getObject(
+                    process.env.S3_BUCKET || 'shumai',
+                    key,
+                  )
                   item.data = buffer.toString('base64')
                 } catch (err) {
                   console.error(`Failed to re-inject image data for key ${key}:`, err)

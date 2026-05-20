@@ -37,6 +37,8 @@ describe('team api', () => {
   let mockListUserMetadata: any // eslint-disable-line @typescript-eslint/no-explicit-any
   let mockUpsertUserMetadata: any // eslint-disable-line @typescript-eslint/no-explicit-any
   let mockCreateNotification: any // eslint-disable-line @typescript-eslint/no-explicit-any
+  let mockGetSandboxSettings: any // eslint-disable-line @typescript-eslint/no-explicit-any
+  let mockUpdateSandboxSettings: any // eslint-disable-line @typescript-eslint/no-explicit-any
 
   beforeEach(() => {
     mockCreateTeam = vi.spyOn(teamService, 'createTeam')
@@ -49,6 +51,8 @@ describe('team api', () => {
     mockListUserMetadata = vi.spyOn(userMetadataService, 'listMetadata')
     mockUpsertUserMetadata = vi.spyOn(userMetadataService, 'upsertMetadata')
     mockCreateNotification = vi.spyOn(notificationService, 'create').mockResolvedValue()
+    mockGetSandboxSettings = vi.spyOn(teamService, 'getSandboxSettings')
+    mockUpdateSandboxSettings = vi.spyOn(teamService, 'updateSandboxSettings')
   })
 
   afterEach(() => {
@@ -183,5 +187,31 @@ describe('team api', () => {
     expect(data.key).toBe('key1')
     expect(data.value).toBe('value1')
     expect(mockUpsertUserMetadata).toHaveBeenCalledWith('user1', 't1', 'key1', 'value1')
+  })
+
+  it('GET /teams/:teamId/sandbox returns sandbox settings', async () => {
+    mockGetSandboxSettings.mockResolvedValue({ allowedDomains: ['example.com'] })
+
+    const res = await app.request('/teams/t1/sandbox')
+
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.allowedDomains).toEqual(['example.com'])
+    expect(mockGetSandboxSettings).toHaveBeenCalledWith('t1')
+  })
+
+  it('PUT /teams/:teamId/sandbox updates sandbox settings', async () => {
+    mockUpdateSandboxSettings.mockResolvedValue({ allowedDomains: ['new.com'] })
+
+    const res = await app.request('/teams/t1/sandbox', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ allowedDomains: ['new.com'] }),
+    })
+
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.allowedDomains).toEqual(['new.com'])
+    expect(mockUpdateSandboxSettings).toHaveBeenCalledWith('t1', { allowedDomains: ['new.com'] })
   })
 })

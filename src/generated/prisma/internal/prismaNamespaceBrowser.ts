@@ -57,6 +57,7 @@ export const ModelName = {
   Verification: 'Verification',
   AuthToken: 'AuthToken',
   Team: 'Team',
+  Sandbox: 'Sandbox',
   Skill: 'Skill',
   TeamMember: 'TeamMember',
   Project: 'Project',
@@ -182,6 +183,17 @@ export const TeamScalarFieldEnum = {
 } as const
 
 export type TeamScalarFieldEnum = (typeof TeamScalarFieldEnum)[keyof typeof TeamScalarFieldEnum]
+
+
+export const SandboxScalarFieldEnum = {
+  id: 'id',
+  allowedDomains: 'allowedDomains',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  teamId: 'teamId'
+} as const
+
+export type SandboxScalarFieldEnum = (typeof SandboxScalarFieldEnum)[keyof typeof SandboxScalarFieldEnum]
 
 
 export const SkillScalarFieldEnum = {

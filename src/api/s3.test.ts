@@ -18,7 +18,9 @@ describe('S3 API', () => {
       contentType: 'image/webp',
       eTag: '"test"',
     })
-    const mockGet = vi.spyOn(s3Service, 'getObject').mockResolvedValue({ buffer: Buffer.from('test'), contentType: 'image/webp' })
+    const mockGet = vi
+      .spyOn(s3Service, 'getObject')
+      .mockResolvedValue({ buffer: Buffer.from('test'), contentType: 'image/webp' })
 
     const res = await app.request('/files/b1/test.webp')
 
@@ -36,7 +38,10 @@ describe('S3 API', () => {
       contentType: 'application/octet-stream',
       eTag: '"test"',
     })
-    vi.spyOn(s3Service, 'getObject').mockResolvedValue({ buffer: Buffer.from('test'), contentType: 'application/octet-stream' })
+    vi.spyOn(s3Service, 'getObject').mockResolvedValue({
+      buffer: Buffer.from('test'),
+      contentType: 'application/octet-stream',
+    })
 
     const res = await app.request('/files/b1/test')
 

@@ -390,6 +390,7 @@ export const ModelName = {
   Verification: 'Verification',
   AuthToken: 'AuthToken',
   Team: 'Team',
+  Sandbox: 'Sandbox',
   Skill: 'Skill',
   TeamMember: 'TeamMember',
   Project: 'Project',
@@ -428,7 +429,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "asset" | "assetMetadataValue" | "assetComment" | "assetCommentAttachment" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "agentSession" | "agentSessionEntry" | "userMetadata" | "model" | "provider"
+    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "sandbox" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "asset" | "assetMetadataValue" | "assetComment" | "assetCommentAttachment" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "agentSession" | "agentSessionEntry" | "userMetadata" | "model" | "provider"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -873,6 +874,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.TeamCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.TeamCountAggregateOutputType> | number
+        }
+      }
+    }
+    Sandbox: {
+      payload: Prisma.$SandboxPayload<ExtArgs>
+      fields: Prisma.SandboxFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SandboxFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SandboxPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SandboxFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SandboxPayload>
+        }
+        findFirst: {
+          args: Prisma.SandboxFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SandboxPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SandboxFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SandboxPayload>
+        }
+        findMany: {
+          args: Prisma.SandboxFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SandboxPayload>[]
+        }
+        create: {
+          args: Prisma.SandboxCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SandboxPayload>
+        }
+        createMany: {
+          args: Prisma.SandboxCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SandboxCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SandboxPayload>[]
+        }
+        delete: {
+          args: Prisma.SandboxDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SandboxPayload>
+        }
+        update: {
+          args: Prisma.SandboxUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SandboxPayload>
+        }
+        deleteMany: {
+          args: Prisma.SandboxDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SandboxUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SandboxUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SandboxPayload>[]
+        }
+        upsert: {
+          args: Prisma.SandboxUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SandboxPayload>
+        }
+        aggregate: {
+          args: Prisma.SandboxAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSandbox>
+        }
+        groupBy: {
+          args: Prisma.SandboxGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SandboxGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SandboxCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SandboxCountAggregateOutputType> | number
         }
       }
     }
@@ -2703,6 +2778,17 @@ export const TeamScalarFieldEnum = {
 export type TeamScalarFieldEnum = (typeof TeamScalarFieldEnum)[keyof typeof TeamScalarFieldEnum]
 
 
+export const SandboxScalarFieldEnum = {
+  id: 'id',
+  allowedDomains: 'allowedDomains',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  teamId: 'teamId'
+} as const
+
+export type SandboxScalarFieldEnum = (typeof SandboxScalarFieldEnum)[keyof typeof SandboxScalarFieldEnum]
+
+
 export const SkillScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -3460,6 +3546,7 @@ export type GlobalOmitConfig = {
   verification?: Prisma.VerificationOmit
   authToken?: Prisma.AuthTokenOmit
   team?: Prisma.TeamOmit
+  sandbox?: Prisma.SandboxOmit
   skill?: Prisma.SkillOmit
   teamMember?: Prisma.TeamMemberOmit
   project?: Prisma.ProjectOmit

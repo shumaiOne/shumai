@@ -11,6 +11,7 @@ import {
   TeamInfo,
   GetMeResponse,
   UserInfo,
+  SandboxSettings,
 } from '@/dtos/team'
 
 export class TeamService {
@@ -200,6 +201,35 @@ export class TeamService {
     })
 
     return updated.settings || {}
+  }
+
+  async getSandboxSettings(teamId: string): Promise<SandboxSettings> {
+    const sandbox = await prisma.sandbox.findUnique({
+      where: { teamId },
+    })
+    return {
+      allowedDomains: sandbox?.allowedDomains || [
+        'github.com',
+        'api.github.com',
+        'raw.githubusercontent.com',
+      ],
+    }
+  }
+
+  async updateSandboxSettings(teamId: string, settings: SandboxSettings): Promise<SandboxSettings> {
+    const sandbox = await prisma.sandbox.upsert({
+      where: { teamId },
+      create: {
+        teamId,
+        allowedDomains: settings.allowedDomains,
+      },
+      update: {
+        allowedDomains: settings.allowedDomains,
+      },
+    })
+    return {
+      allowedDomains: sandbox.allowedDomains,
+    }
   }
 
   async getSignupInfo() {

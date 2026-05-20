@@ -75,6 +75,14 @@ export const ImageTranscodeStrategy = {
 export type ImageTranscodeStrategy =
   (typeof ImageTranscodeStrategy)[keyof typeof ImageTranscodeStrategy]
 
+export const sandboxSettingsSchema = z.object({
+  allowedDomains: z.array(z.string()),
+})
+export type SandboxSettings = z.infer<typeof sandboxSettingsSchema>
+
+export const updateSandboxSettingsRequestSchema = sandboxSettingsSchema
+export type UpdateSandboxSettingsRequest = z.infer<typeof updateSandboxSettingsRequestSchema>
+
 // Service Layer Interfaces
 export interface ServiceCreateTeamRequest {
   name: string

@@ -45,9 +45,12 @@ describe('SkillService', () => {
       },
     })
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking s3Service return value
-    const getObjectSpy = vi.spyOn(s3Service, 'getObject').mockResolvedValue({ buffer: zipBuffer, contentType: 'application/zip' } as any)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking s3Service return value
+    const getObjectSpy = vi.spyOn(s3Service, 'getObject').mockResolvedValue({
+      buffer: zipBuffer,
+      contentType: 'application/zip',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const putObjectSpy = vi.spyOn(s3Service, 'putObject').mockResolvedValue(undefined as any)
 
     const skill = await skillService.upsertSkill(team.id, {

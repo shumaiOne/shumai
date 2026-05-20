@@ -42,7 +42,10 @@ describe('WorkflowService', () => {
   })
 
   it('should process ai_transcription task locally', async () => {
-    vi.mocked(s3Service.getObject).mockResolvedValue({ buffer: Buffer.from('fake data'), contentType: 'audio/mpeg' })
+    vi.mocked(s3Service.getObject).mockResolvedValue({
+      buffer: Buffer.from('fake data'),
+      contentType: 'audio/mpeg',
+    })
 
     const asset = await prisma.asset.create({
       data: {

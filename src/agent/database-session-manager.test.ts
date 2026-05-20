@@ -85,9 +85,7 @@ describe('DatabaseSessionManager', () => {
       type: 'message',
       message: {
         role: 'toolResult',
-        content: [
-          { type: 'image', data: '__S3_DATA__' },
-        ],
+        content: [{ type: 'image', data: '__S3_DATA__' }],
         details: { sourceKeys: ['key1'] },
       },
     }
@@ -110,8 +108,10 @@ describe('DatabaseSessionManager', () => {
     const context = manager.buildSessionContext()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const reInjectedMessage = context.messages[0] as any
-    
-    expect(reInjectedMessage.content[0].data).toBe(Buffer.from('fake-image-data').toString('base64'))
+
+    expect(reInjectedMessage.content[0].data).toBe(
+      Buffer.from('fake-image-data').toString('base64'),
+    )
     expect(s3Service.getObject).toHaveBeenCalledWith(expect.any(String), 'key1')
   })
 
@@ -142,5 +142,20 @@ describe('DatabaseSessionManager', () => {
     expect(context.messages).toHaveLength(2)
     expect(context.messages[0].content).toBe('M1')
     expect(context.messages[1].content).toBe('M2')
+  })
+
+  it('handles skill environment variables', async () => {
+    const manager = await DatabaseSessionManager.create({ agentId })
+    const envs = { TEST_VAR: 'test_value', OTHER_VAR: 'other_value' }
+
+    manager.addSkillEnvs(envs)
+    expect(manager.getSkillEnvs()).toEqual(envs)
+
+    manager.addSkillEnvs({ TEST_VAR: 'new_value', NEW_VAR: 'new' })
+    expect(manager.getSkillEnvs()).toEqual({
+      TEST_VAR: 'new_value',
+      OTHER_VAR: 'other_value',
+      NEW_VAR: 'new',
+    })
   })
 })

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prisma } from '@/db'
 import { setupTestDbHooks } from '@/db-test-hooks'
-import { readSkillTool } from './read-skill'
+import { createReadSkillTool } from './read-skill'
 import { s3Service } from '@/services/s3/s3'
 import * as fs from 'fs'
 
@@ -18,11 +18,17 @@ vi.mock('adm-zip', () => {
 describe('readSkillTool', () => {
   setupTestDbHooks()
 
+  const mockSessionManager = {
+    addSkillEnvs: vi.fn(),
+  }
+
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
   it('should return error if skill not found', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const readSkillTool = createReadSkillTool(mockSessionManager as any)
     const result = await readSkillTool.execute(
       '1',
       { skillId: 'non-existent' },
@@ -54,6 +60,8 @@ describe('readSkillTool', () => {
       return ''
     })
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const readSkillTool = createReadSkillTool(mockSessionManager as any)
     const result = await readSkillTool.execute(
       '1',
       { skillId: skill.id },
@@ -102,8 +110,13 @@ describe('readSkillTool', () => {
     })
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking s3Service return
-    ;(s3Service.getObject as any).mockResolvedValue({ buffer: Buffer.from('zipdata'), contentType: 'application/zip' })
+    ;(s3Service.getObject as any).mockResolvedValue({
+      buffer: Buffer.from('zipdata'),
+      contentType: 'application/zip',
+    })
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const readSkillTool = createReadSkillTool(mockSessionManager as any)
     const result = await readSkillTool.execute(
       '1',
       { skillId: skill.id },

@@ -10,6 +10,7 @@ import {
   getUserTeamsRequestSchema,
   updateTeamSettingsRequestSchema,
   listMembersQuerySchema,
+  updateSandboxSettingsRequestSchema,
 } from '@/dtos/team'
 import { updateUserMetadataRequestSchema } from '@/dtos/user-metadata'
 import type { Prisma } from '@/generated/prisma/client'
@@ -122,6 +123,37 @@ const route = new Hono<{ Variables: { user: User } }>()
 
       const settings = await teamService.updateSettings(teamId, req.key, req.value)
       return c.json(settings)
+    },
+  )
+  .get('/teams/:teamId/sandbox', async (c) => {
+    const user = c.get('user')
+    const teamId = c.req.param('teamId')
+
+    await authzService.hasPermission({
+      teamId,
+      user,
+      permission: Permission.Read,
+    })
+
+    const sandbox = await teamService.getSandboxSettings(teamId)
+    return c.json(sandbox)
+  })
+  .put(
+    '/teams/:teamId/sandbox',
+    zValidator('json', updateSandboxSettingsRequestSchema),
+    async (c) => {
+      const user = c.get('user')
+      const teamId = c.req.param('teamId')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        teamId,
+        user,
+        permission: Permission.Admin,
+      })
+
+      const sandbox = await teamService.updateSandboxSettings(teamId, req)
+      return c.json(sandbox)
     },
   )
   .get('/teams/:teamId/user-metadata', async (c) => {

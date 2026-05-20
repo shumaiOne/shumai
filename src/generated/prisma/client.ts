@@ -72,6 +72,11 @@ export type AuthToken = Prisma.AuthTokenModel
  */
 export type Team = Prisma.TeamModel
 /**
+ * Model Sandbox
+ * 
+ */
+export type Sandbox = Prisma.SandboxModel
+/**
  * Model Skill
  * 
  */

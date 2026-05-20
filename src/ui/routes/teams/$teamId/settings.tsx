@@ -10,9 +10,10 @@ import { useState } from 'react'
 import { ProvidersSettings } from '@/ui/components/settings/ProvidersSettings'
 import { SkillsConfigCard } from '@/ui/components/settings/SkillsConfigCard'
 import { AgentsSettings } from '@/ui/components/settings/AgentsSettings'
-import { Bot } from 'lucide-react'
+import { SandboxSettings } from '@/ui/components/settings/SandboxSettings'
+import { Bot, ShieldCheck } from 'lucide-react'
 
-type SettingsTab = 'general' | 'transcode' | 'skills' | 'providers' | 'agents'
+type SettingsTab = 'general' | 'transcode' | 'skills' | 'providers' | 'agents' | 'sandbox'
 
 function TeamSettingsPage() {
   const { teamId } = Route.useParams()
@@ -196,6 +197,22 @@ function TeamSettingsPage() {
                 <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
               )}
             </button>
+
+            <button
+              onClick={() => setActiveTab('sandbox')}
+              className={cn(
+                'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
+                activeTab === 'sandbox'
+                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 ring-1 ring-blue-200 dark:ring-blue-800'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white',
+              )}
+            >
+              <ShieldCheck className="w-5 h-5" />
+              Sandbox
+              {activeTab === 'sandbox' && (
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+              )}
+            </button>
           </nav>
         </aside>
 
@@ -210,6 +227,7 @@ function TeamSettingsPage() {
                   {activeTab === 'skills' && 'Skills Management'}
                   {activeTab === 'providers' && 'AI Providers'}
                   {activeTab === 'agents' && 'AI Agents'}
+                  {activeTab === 'sandbox' && 'AI Sandbox Settings'}
                 </h2>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                   {activeTab === 'general' && 'View your personal information and team role.'}
@@ -219,6 +237,8 @@ function TeamSettingsPage() {
                   {activeTab === 'providers' &&
                     'Configure AI providers and their models for this team.'}
                   {activeTab === 'agents' && 'Manage AI agents and their personalities.'}
+                  {activeTab === 'sandbox' &&
+                    'Configure security and network restrictions for the AI agent.'}
                 </p>
               </div>
             </div>
@@ -395,6 +415,12 @@ function TeamSettingsPage() {
               {activeTab === 'agents' && (
                 <div className="h-full overflow-y-auto pr-1">
                   <AgentsSettings teamId={teamId} />
+                </div>
+              )}
+
+              {activeTab === 'sandbox' && (
+                <div className="h-full overflow-y-auto pr-1">
+                  <SandboxSettings teamId={teamId} />
                 </div>
               )}
             </div>
