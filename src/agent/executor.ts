@@ -10,6 +10,7 @@ import {
   SessionManager,
   SettingsManager,
   defineTool,
+  type ToolDefinition,
 } from '@mariozechner/pi-coding-agent'
 import { Type, type TSchema } from '@sinclair/typebox'
 import * as fs from 'fs'
@@ -20,9 +21,6 @@ import { createReadSkillTool } from './tools/read-skill'
 import { createSandboxedBashTool } from './tools/sandboxed-bash'
 import { Usage } from '@/services/ai/provider/provider'
 import { SandboxManager } from '@anthropic-ai/sandbox-runtime'
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type Tool = any
 
 export interface AutofillField {
   id: string
@@ -72,7 +70,7 @@ export class AgentExecutor {
     agentsInstruction: string,
     sessionId?: string,
     userId?: string,
-    tools: Tool[] = [],
+    tools: ToolDefinition[] = [],
   ): Promise<{ text: string; usage: Usage; sessionId: string }> {
     const t = await this.getTeam(teamId)
     if (!t) throw new Error('failed to get team')
