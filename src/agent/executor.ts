@@ -203,7 +203,6 @@ export class AgentExecutor {
               detached: true,
               stdio: ['ignore', 'pipe', 'pipe'],
               env: {
-                ...process.env,
                 ...sessionManager.getSkillEnvs(),
               },
             })
