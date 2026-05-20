@@ -179,4 +179,53 @@ describe('TeamService', () => {
     const newSettings = await teamService.getSettings(team.id)
     expect(newSettings).toEqual({ theme: 'dark' })
   })
+
+  it('should create sandbox when team is created', async () => {
+    const user = await prisma.user.create({
+      data: { name: 'Test User', email: `test-sandbox-${Date.now()}@example.com`, password: 'pw' },
+    })
+
+    const team = await teamService.createTeam(user, {
+      name: 'Sandbox Team',
+    })
+
+    const sandbox = await prisma.sandbox.findUnique({
+      where: { teamId: team.id },
+    })
+
+    expect(sandbox).toBeDefined()
+    expect(sandbox?.allowedDomains).toContain('github.com')
+  })
+
+  it('should get and update sandbox settings', async () => {
+    const user = await prisma.user.create({
+      data: { name: 'Test User', email: `test-settings-${Date.now()}@example.com`, password: 'pw' },
+    })
+    const team = await teamService.createTeam(user, {
+      name: 'Settings Team',
+    })
+
+    // Should have default settings
+    const settings = await teamService.getSandboxSettings(team.id)
+    expect(settings.allowedDomains).toContain('github.com')
+
+    // Should update settings
+    const updated = await teamService.updateSandboxSettings(team.id, {
+      allowedDomains: ['example.com'],
+    })
+    expect(updated.allowedDomains).toEqual(['example.com'])
+
+    // Should persist to DB
+    const persisted = await teamService.getSandboxSettings(team.id)
+    expect(persisted.allowedDomains).toEqual(['example.com'])
+  })
+
+  it('should return empty allowedDomains if sandbox is missing for old team', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'Old Team' },
+    })
+
+    const settings = await teamService.getSandboxSettings(team.id)
+    expect(settings.allowedDomains).toEqual([])
+  })
 })
