@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setupTestDbHooks } from '@/db-test-hooks'
 import { aiChatActivity } from './agent'
-import { agentExecutor } from '../executor'
+import { agentService } from '@/services/agent/agent'
 
-vi.mock('../executor', () => ({
-  agentExecutor: {
+vi.mock('@/services/agent/agent', () => ({
+  agentService: {
     chatWithAgent: vi.fn(),
   },
 }))
@@ -17,7 +17,7 @@ describe('Agent Activities', () => {
   })
 
   it('should call aiChatActivity', async () => {
-    vi.mocked(agentExecutor.chatWithAgent).mockResolvedValue({
+    vi.mocked(agentService.chatWithAgent).mockResolvedValue({
       text: 'AI response',
       usage: { inputTokens: 1, outputTokens: 1, model: 'gpt-4' },
       sessionId: 'mock-session-id',
@@ -32,7 +32,7 @@ describe('Agent Activities', () => {
       folderId: 'f1',
     })
 
-    expect(agentExecutor.chatWithAgent).toHaveBeenCalledWith(
+    expect(agentService.chatWithAgent).toHaveBeenCalledWith(
       't1',
       'b1',
       'Hi',

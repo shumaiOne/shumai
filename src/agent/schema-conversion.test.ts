@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { fieldsToTypeBoxSchema, type AutofillField } from './executor'
+import { fieldsToTypeBoxSchema, type AutofillField } from './index'
 
 describe('fieldsToTypeBoxSchema', () => {
   it('converts text fields', () => {

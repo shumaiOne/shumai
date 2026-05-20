@@ -1,4 +1,5 @@
-import { agentExecutor, AutofillField } from '../executor'
+import { agentService } from '@/services/agent/agent'
+import type { AutofillField } from '@/agent'
 import { prisma } from '@/db'
 
 export interface AutofillAiParams {
@@ -9,7 +10,7 @@ export interface AutofillAiParams {
 
 export async function autofillAiActivity(params: AutofillAiParams) {
   const prompt = 'Analyze the provided images and extract metadata.'
-  return agentExecutor.autofill(params.teamId, prompt, params.images, params.fields)
+  return agentService.autofill(params.teamId, prompt, params.images, params.fields)
 }
 
 export interface AiChatParams {
@@ -26,7 +27,7 @@ export interface AiChatParams {
 
 export async function aiChatActivity(params: AiChatParams) {
   const cleanMessage = params.message.replace(/<@[A-Z0-9]+>/g, '').trim()
-  return agentExecutor.chatWithAgent(
+  return agentService.chatWithAgent(
     params.teamId,
     params.agentId,
     cleanMessage,

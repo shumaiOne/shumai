@@ -1,5 +1,5 @@
 export * from './ai-transcription'
 export * from './ai-embedding'
-export * from '@/agent/workflows/ai-autofill'
-export * from '@/agent/workflows/ai-chat'
+export * from './ai-autofill'
+export * from './ai-chat'
 export * from '@/transcode/workflows/transcode'

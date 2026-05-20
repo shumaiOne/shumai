@@ -6,6 +6,13 @@ import {
   UpdateAgentParams,
 } from '@/dtos/agent'
 import '@/prisma-json-types'
+import { createAgentSession, fieldsToTypeBoxSchema, type AutofillField } from '@/agent'
+import { DatabaseSessionManager } from '@/agent/database-session-manager'
+import { logger } from '@/logger'
+import { Usage } from '@/services/ai/provider/provider'
+import { s3Service } from '@/services/s3/s3'
+import { defineTool, type ToolDefinition } from '@mariozechner/pi-coding-agent'
+import { type TextContent, type ImageContent } from '@mariozechner/pi-ai'
 
 export class AgentService {
   constructor(private readonly prismaClient: typeof prisma = prisma) {}
@@ -246,6 +253,243 @@ export class AgentService {
         },
       },
     })
+  }
+
+  private async getTeam(teamId: string) {
+    return this.prismaClient.team.findUnique({
+      where: { id: teamId },
+    })
+  }
+
+  private async getSandbox(teamId: string) {
+    return this.prismaClient.sandbox.findUnique({
+      where: { teamId },
+    })
+  }
+
+  async chat(teamId: string, prompt: string): Promise<{ text: string; usage: Usage }> {
+    const agent = await this.prismaClient.agent.findFirst({
+      where: {
+        type: 'chat',
+        enabled: true,
+        user: {
+          teamMembers: {
+            some: { teamId },
+          },
+        },
+      },
+    })
+    if (!agent) {
+      throw new Error('no chat agent found for team')
+    }
+    const { text, usage } = await this.chatWithAgent(teamId, agent.id, prompt, [], '')
+    return { text, usage }
+  }
+
+  async chatWithAgent(
+    teamId: string,
+    agentId: string,
+    prompt: string,
+    images: string[],
+    agentsInstruction: string,
+    sessionId?: string,
+    userId?: string,
+    tools: ToolDefinition[] = [],
+  ): Promise<{ text: string; usage: Usage; sessionId: string }> {
+    const t = await this.getTeam(teamId)
+    if (!t) throw new Error('failed to get team')
+
+    const agent = await this.prismaClient.agent.findUnique({
+      where: { id: agentId },
+      include: {
+        provider: true,
+        modelRef: true,
+      },
+    })
+
+    if (!agent) {
+      throw new Error(`agent ${agentId} not found`)
+    }
+
+    if (!agent.provider) throw new Error('agent has no provider configured')
+    if (!agent.modelRef) throw new Error('agent has no model configured')
+
+    const providerName = agent.provider.name
+    const modelId = agent.modelRef.modelId
+
+    // Fetch the required provider configuration from database
+    const dbProviders = await this.prismaClient.provider.findMany({
+      where: { teamId, name: providerName },
+      include: { models: true },
+    })
+
+    // Setup credentials
+    const dbProvider = dbProviders[0]
+    const apiKey = dbProvider?.config.apiKey as string | undefined
+
+    // Fetch team skills
+    const teamSkills = await this.prismaClient.skill.findMany({
+      where: { teamId },
+    })
+
+    const sandbox = await this.getSandbox(teamId)
+    const allowedDomains = sandbox?.allowedDomains || []
+
+    const sessionManager = await DatabaseSessionManager.create({
+      agentId,
+      userId,
+      sessionId,
+      cwd: process.cwd(),
+    })
+
+    let systemPrompt = '你是shumai小助手。'
+    if (agentsInstruction) {
+      systemPrompt = `${systemPrompt}\n\nContext and Instructions:\n${agentsInstruction}`
+    }
+
+    const modelConfig = agent.modelRef?.config as unknown as PrismaJson.ModelConfig
+    if (modelConfig?.input) {
+      systemPrompt += `\n\nYour current model supports the following input types: ${modelConfig.input.join(', ')}.`
+    }
+
+    const session = await createAgentSession({
+      agentId,
+      providerName,
+      modelId,
+      apiKey,
+      systemPrompt,
+      teamSkills: teamSkills.map((s) => ({
+        id: s.id,
+        name: s.name,
+        description: s.description,
+      })),
+      allowedDomains,
+      sessionManager,
+      customTools: tools,
+      providers: dbProviders.map((p) => ({
+        name: p.name,
+        config: p.config,
+        models: p.models.map((m) => ({
+          modelId: m.modelId,
+          name: m.name,
+          config: m.config,
+        })),
+      })),
+    })
+
+    const content: (TextContent | ImageContent)[] = []
+
+    if (agentsInstruction) {
+      session.state.systemPrompt = `${session.state.systemPrompt}\n\nContext and Instructions:\n${agentsInstruction}`
+    }
+    content.push({ type: 'text', text: prompt })
+
+    if (images && images.length > 0) {
+      for (const key of images) {
+        const { buffer, contentType } = await s3Service.getObject(
+          process.env.S3_BUCKET || 'shumai',
+          key,
+        )
+        content.push({
+          type: 'image',
+          data: buffer.toString('base64'),
+          mimeType: contentType,
+        })
+      }
+    }
+
+    try {
+      await session.sendUserMessage(content)
+
+      session.state.messages.forEach((msg) => {
+        if (msg.role === 'toolResult') {
+          const logMsg = { ...msg, content: undefined }
+          logger.debug(logMsg, 'agent message')
+        } else {
+          logger.debug(msg, 'agent message')
+        }
+      })
+
+      const stats = session.getSessionStats()
+      const text = session.getLastAssistantText() || ''
+
+      if (!text) {
+        const lastMessage = session.messages[session.messages.length - 1]
+        if (lastMessage && lastMessage.role === 'assistant' && lastMessage.errorMessage) {
+          throw new Error(`AI error: ${lastMessage.errorMessage}`)
+        }
+      }
+
+      const usage: Usage = {
+        model: modelId,
+        inputTokens: stats.tokens.input || 0,
+        outputTokens: stats.tokens.output || 0,
+      }
+
+      await sessionManager.waitForSync()
+
+      return { text, usage, sessionId: sessionManager.getDbSessionId() }
+    } finally {
+      // Cleanup handled by agent session if needed
+    }
+  }
+
+  async autofill(
+    teamId: string,
+    prompt: string,
+    images: string[],
+    fields: AutofillField[],
+  ): Promise<{ text: string; usage: Usage }> {
+    const agent = await this.prismaClient.agent.findFirst({
+      where: {
+        type: 'autofill',
+        enabled: true,
+        user: {
+          teamMembers: {
+            some: { teamId },
+          },
+        },
+      },
+    })
+    if (!agent) {
+      throw new Error('no autofill agent found for team')
+    }
+
+    const toolSchema = fieldsToTypeBoxSchema(fields)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let capturedData: any = null
+
+    const autofillTool = defineTool({
+      name: 'autofill_metadata',
+      label: 'Autofill Metadata',
+      description: 'Extract metadata from the images.',
+      parameters: toolSchema,
+      execute: async (_toolCallId, params) => {
+        capturedData = params
+        return {
+          content: [{ type: 'text', text: 'Metadata captured successfully.' }],
+          details: {},
+        }
+      },
+    })
+
+    const fullPrompt = `${prompt}\n\nPlease use the "autofill_metadata" tool to provide the extracted metadata.`
+
+    const { usage } = await this.chatWithAgent(
+      teamId,
+      agent.id,
+      fullPrompt,
+      images,
+      '',
+      undefined,
+      undefined,
+      [autofillTool],
+    )
+
+    return {
+      text: capturedData ? JSON.stringify(capturedData) : '{}',
+      usage,
+    }
   }
 }
 
