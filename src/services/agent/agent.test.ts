@@ -323,10 +323,14 @@ describe('AgentService', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         customTools: [] as any[],
       }
+      const mockSessionManager = {
+        waitForSync: vi.fn().mockResolvedValue(undefined),
+        getDbSessionId: vi.fn().mockReturnValue('mock-session-id'),
+      }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ;(piAgent.createAgentSession as any).mockImplementation(async (config: any) => {
         mockSession.customTools = config.customTools
-        return { session: mockSession }
+        return { session: mockSession, sessionManager: mockSessionManager }
       })
 
       const fields: AutofillField[] = [{ id: 'f1', config: { name: 'Field 1', type: 'text' } }]
@@ -394,8 +398,15 @@ describe('AgentService', () => {
         getLastAssistantText: vi.fn().mockReturnValue('mock text'),
         state: { tools: [], systemPrompt: '', messages: [] },
       }
+      const mockSessionManager = {
+        waitForSync: vi.fn().mockResolvedValue(undefined),
+        getDbSessionId: vi.fn().mockReturnValue('mock-session-id'),
+      }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ;(piAgent.createAgentSession as any).mockResolvedValue({ session: mockSession })
+      ;(piAgent.createAgentSession as any).mockResolvedValue({
+        session: mockSession,
+        sessionManager: mockSessionManager,
+      })
 
       const resp = await svc.chat(team.id, 'hello')
       expect(resp.text).toBe('mock text')
@@ -457,8 +468,15 @@ describe('AgentService', () => {
         getLastAssistantText: vi.fn().mockReturnValue('Arr matey!'),
         state: { tools: [], systemPrompt: '', messages: [] },
       }
+      const mockSessionManager = {
+        waitForSync: vi.fn().mockResolvedValue(undefined),
+        getDbSessionId: vi.fn().mockReturnValue('mock-session-id'),
+      }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ;(piAgent.createAgentSession as any).mockResolvedValue({ session: mockSession })
+      ;(piAgent.createAgentSession as any).mockResolvedValue({
+        session: mockSession,
+        sessionManager: mockSessionManager,
+      })
 
       const resp = await svc.chatWithAgent(team.id, agent.id, 'hello', [], 'Talk like a pirate')
       expect(resp.text).toBe('Arr matey!')

@@ -12,7 +12,7 @@ import {
 import { Type, type TSchema } from '@sinclair/typebox'
 import * as fs from 'fs'
 import * as path from 'path'
-import type { DatabaseSessionManager } from './database-session-manager'
+import { DatabaseSessionManager } from './database-session-manager'
 import { analyzeAssetMediaTool } from './tools/analyze-asset-media'
 import { createReadSkillTool } from './tools/read-skill'
 import { createSandboxedBashTool } from './tools/sandboxed-bash'
@@ -25,7 +25,8 @@ export interface CreateAgentSessionParams {
   systemPrompt: string
   teamSkills: Array<{ id: string; name: string; description?: string | null }>
   allowedDomains: string[]
-  sessionManager: DatabaseSessionManager
+  sessionId?: string
+  userId?: string
   customTools?: ToolDefinition[]
   providers: Array<{
     name: string
@@ -47,10 +48,18 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     systemPrompt,
     teamSkills,
     allowedDomains,
-    sessionManager,
+    sessionId,
+    userId,
     customTools = [],
     providers,
   } = params
+
+  const sessionManager = await DatabaseSessionManager.create({
+    agentId,
+    userId,
+    sessionId,
+    cwd: process.cwd(),
+  })
 
   const agentDir = path.join(process.cwd(), '.pi', 'agents', agentId)
   if (!fs.existsSync(agentDir)) fs.mkdirSync(agentDir, { recursive: true })
@@ -141,7 +150,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     ],
   })
 
-  return session
+  return { session, sessionManager }
 }
 
 export interface AutofillField {

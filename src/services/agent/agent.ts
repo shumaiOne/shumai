@@ -7,7 +7,6 @@ import {
 } from '@/dtos/agent'
 import '@/prisma-json-types'
 import { createAgentSession, fieldsToTypeBoxSchema, type AutofillField } from '@/agent'
-import { DatabaseSessionManager } from '@/agent/database-session-manager'
 import { logger } from '@/logger'
 import { Usage } from '@/services/ai/provider/provider'
 import { s3Service } from '@/services/s3/s3'
@@ -335,13 +334,6 @@ export class AgentService {
     const sandbox = await this.getSandbox(teamId)
     const allowedDomains = sandbox?.allowedDomains || []
 
-    const sessionManager = await DatabaseSessionManager.create({
-      agentId,
-      userId,
-      sessionId,
-      cwd: process.cwd(),
-    })
-
     let systemPrompt = '你是shumai小助手。'
     if (agentsInstruction) {
       systemPrompt = `${systemPrompt}\n\nContext and Instructions:\n${agentsInstruction}`
@@ -352,7 +344,7 @@ export class AgentService {
       systemPrompt += `\n\nYour current model supports the following input types: ${modelConfig.input.join(', ')}.`
     }
 
-    const session = await createAgentSession({
+    const { session, sessionManager } = await createAgentSession({
       agentId,
       providerName,
       modelId,
@@ -364,7 +356,8 @@ export class AgentService {
         description: s.description,
       })),
       allowedDomains,
-      sessionManager,
+      sessionId,
+      userId,
       customTools: tools,
       providers: dbProviders.map((p) => ({
         name: p.name,
