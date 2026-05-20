@@ -199,7 +199,11 @@ export class AgentExecutor {
       allowRead.push('/private/tmp', '/private/var/folders')
     }
 
-    // Initialize SandboxManager for this session
+    // NOTE: SandboxManager.initialize is a global operation that applies to the entire process.
+    // anthropic-experimental/sandbox-runtime currently does not support separate managers per session/team.
+    // Since this application is not designed for multi-tenancy at the process level (i.e. only one
+    // team's chat happens at a time per worker instance), re-initializing here with current team's
+    // settings is acceptable.
     await SandboxManager.initialize({
       network: {
         allowedDomains,
