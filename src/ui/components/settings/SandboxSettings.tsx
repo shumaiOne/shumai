@@ -130,20 +130,6 @@ export function SandboxSettings({ teamId }: { teamId: string }) {
             <code>/tmp</code> folders. These settings are currently hardcoded for security.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-              <span>
-                Allow Write: <code>.pi</code>, <code>/tmp</code>
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-              <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-              <span>Deny Read: All other paths</span>
-            </div>
-          </div>
-        </CardContent>
       </Card>
     </div>
   )

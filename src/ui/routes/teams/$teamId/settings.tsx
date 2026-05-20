@@ -208,7 +208,7 @@ function TeamSettingsPage() {
               )}
             >
               <Shield className="w-5 h-5" />
-              Sandbox
+              Agent Sandbox
               {activeTab === 'sandbox' && (
                 <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
               )}
@@ -227,7 +227,7 @@ function TeamSettingsPage() {
                   {activeTab === 'skills' && 'Skills Management'}
                   {activeTab === 'providers' && 'AI Providers'}
                   {activeTab === 'agents' && 'AI Agents'}
-                  {activeTab === 'sandbox' && 'AI Sandbox Settings'}
+                  {activeTab === 'sandbox' && 'Agent Sandbox Settings'}
                 </h2>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                   {activeTab === 'general' && 'View your personal information and team role.'}
@@ -237,7 +237,8 @@ function TeamSettingsPage() {
                   {activeTab === 'providers' &&
                     'Configure AI providers and their models for this team.'}
                   {activeTab === 'agents' && 'Manage AI agents and their personalities.'}
-                  {activeTab === 'sandbox' && 'Configure security and network restrictions for the AI agent.'}
+                  {activeTab === 'sandbox' &&
+                    'Configure security and network restrictions for the AI agent.'}
                 </p>
               </div>
             </div>
