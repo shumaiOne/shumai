@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/ui/components/ui/dialog'
+import { Button } from '@/ui/components/ui/button'
 
 interface MessageCardProps {
   teamId?: string
@@ -236,19 +237,17 @@ export const MessageCard: React.FC<MessageCardProps> = ({
         {message.sessionId && (
           <div className="mt-3 pt-2 border-t border-foreground/5 flex items-center justify-between text-xs text-muted-foreground/60">
             <span className="flex items-center gap-1.5 font-medium text-muted-foreground/80">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-violet-500"></span>
-              </span>
               Created by Agent
             </span>
             {isAdmin && (
-              <button
+              <Button
+                variant="outline"
+                size="xs"
                 onClick={() => setIsLogsOpen(true)}
-                className="px-2.5 py-1 rounded bg-violet-500/10 text-violet-600 dark:text-violet-400 hover:bg-violet-500/20 transition-all font-semibold flex items-center gap-1 shadow-xs border border-violet-500/10 cursor-pointer"
+                className="cursor-pointer border-violet-500/20 text-violet-600 dark:text-violet-400 hover:bg-violet-500/10 hover:text-violet-700 hover:border-violet-500/30 font-semibold"
               >
                 Logs
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -376,7 +375,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                             </div>
 
                             {textContent && (
-                              <div className="text-xs text-foreground/80 dark:text-foreground/95 leading-relaxed font-mono whitespace-pre-wrap overflow-x-auto max-h-48 scrollbar-thin">
+                              <div className="text-xs text-foreground/80 dark:text-foreground/95 leading-relaxed font-mono whitespace-pre-wrap break-words">
                                 {textContent}
                               </div>
                             )}
@@ -393,7 +392,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                       <div className="absolute left-0 top-1.5 h-5 w-5 rounded-full border-4 border-background bg-gray-400" />
                       <div className="bg-muted/30 p-3 rounded-lg border border-foreground/5">
                         <div className="text-[10px] text-muted-foreground/60">{timestamp}</div>
-                        <pre className="text-xs text-foreground/80 font-mono overflow-x-auto max-h-48 scrollbar-thin">
+                        <pre className="text-xs text-foreground/80 font-mono whitespace-pre-wrap break-words">
                           {JSON.stringify(entry.entry, null, 2)}
                         </pre>
                       </div>
