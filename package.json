@@ -92,7 +92,6 @@
     "input-otp": "1.4.1",
     "install": "^0.13.0",
     "jittered-fractional-indexing": "^1.0.1",
-    "jszip": "^3.10.1",
     "konva": "^10.0.12",
     "lexical": "^0.42.0",
     "loader-utils": "^3.3.1",
