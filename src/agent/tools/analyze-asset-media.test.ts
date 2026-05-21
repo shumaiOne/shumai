@@ -21,7 +21,6 @@ describe('analyzeAssetMediaTool', () => {
       { key: 'assets/test.webp' },
       undefined,
       undefined,
-      {} as any, // eslint-disable-line @typescript-eslint/no-explicit-any
     )
 
     expect(result.content[0].type).toBe('image')
@@ -46,7 +45,6 @@ describe('analyzeAssetMediaTool', () => {
       { key: 'assets/no-extension-but-mp4' },
       undefined,
       undefined,
-      {} as any, // eslint-disable-line @typescript-eslint/no-explicit-any
     )
 
     expect(result.content[0].type).toBe('image') // Wrapped as image type for base64
@@ -63,7 +61,6 @@ describe('analyzeAssetMediaTool', () => {
       { key: 'assets/non-existent' },
       undefined,
       undefined,
-      {} as any, // eslint-disable-line @typescript-eslint/no-explicit-any
     )
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

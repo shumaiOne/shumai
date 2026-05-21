@@ -1,18 +1,11 @@
 import { SandboxManager } from '@anthropic-ai/sandbox-runtime'
-import { getModel } from '@mariozechner/pi-ai'
-import {
-  AuthStorage,
-  createAgentSession as piCreateAgentSession,
-  DefaultResourceLoader,
-  ModelRegistry,
-  SessionManager,
-  SettingsManager,
-  type ToolDefinition,
-} from '@mariozechner/pi-coding-agent'
+import { AgentHarness, Session, type AgentTool } from '@earendil-works/pi-agent-core'
+import { NodeExecutionEnv } from '@earendil-works/pi-agent-core/node'
+import { getModel } from '@earendil-works/pi-ai'
 import { Type, type TSchema } from '@sinclair/typebox'
 import * as fs from 'fs'
 import * as path from 'path'
-import { DatabaseSessionManager } from './database-session-manager'
+import { DatabaseSessionStorage } from './database-session-storage'
 import { analyzeAssetMediaTool } from './tools/analyze-asset-media'
 import { createReadSkillTool } from './tools/read-skill'
 import { createSandboxedBashTool } from './tools/sandboxed-bash'
@@ -21,20 +14,19 @@ export interface CreateAgentSessionParams {
   agentId: string
   providerName: string
   modelId: string
-  apiKey?: string
   systemPrompt: string
   teamSkills: Array<{ id: string; name: string; description?: string | null }>
   allowedDomains: string[]
   sessionId?: string
   userId?: string
-  customTools?: ToolDefinition[]
+  customTools?: AgentTool[]
   providers: Array<{
     name: string
-    config: Record<string, unknown>
+    config: PrismaJson.ProviderConfig
     models: Array<{
       modelId: string
       name: string | null
-      config: Record<string, unknown>
+      config: PrismaJson.ModelConfig
     }>
   }>
 }
@@ -44,74 +36,71 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     agentId,
     providerName,
     modelId,
-    apiKey,
     systemPrompt,
     teamSkills,
     allowedDomains,
     sessionId,
     userId,
     customTools = [],
-    providers,
   } = params
 
-  const sessionManager = await DatabaseSessionManager.create({
+  const storage = await DatabaseSessionStorage.create({
     agentId,
     userId,
     sessionId,
     cwd: process.cwd(),
   })
+  const session = new Session(storage)
 
   const agentDir = path.join(process.cwd(), '.pi', 'agents', agentId)
   if (!fs.existsSync(agentDir)) fs.mkdirSync(agentDir, { recursive: true })
 
-  const authStorage = AuthStorage.create(path.join(agentDir, 'auth.json'))
-  const modelRegistry = ModelRegistry.create(authStorage)
-  modelRegistry.getAll()
+  // Helper to construct a Model object from database providers list
+  const getModelFromDb = (pName: string, mId: string) => {
+    const dbProvider = params.providers.find((p) => p.name === pName)
+    const dbModel = dbProvider?.models.find((m) => m.modelId === mId)
 
-  for (const p of providers) {
-    // Ensure each model has a name (fallback to ID) to satisfy registerProvider's strict requirement
-    const config = {
-      ...p.config,
-      models: p.models.map((m) => ({
-        ...m.config,
-        id: m.modelId,
-        name: m.name || m.modelId,
-      })),
-    }
-    // We cast to any because the third-party library's ProviderConfigInput type expects highly specific properties
-    // like reasoning, input, and cost on each model config, which are stored dynamically in the database
-    // and loaded as arbitrary Record<string, unknown> JSON values.
+    if (!dbProvider || !dbModel) return undefined
+
+    // Model contains complex internal types from pi-ai
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    modelRegistry.registerProvider(p.name, config as any)
-  }
+    let m: any
+    try {
+      // Try to get built-in model as template
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      m = { ...(getModel as any)(pName, mId) }
+    } catch {
+      // Not a built-in model
+      m = {
+        id: mId,
+        name: dbModel.name || mId,
+        provider: pName,
+        api: 'openai-responses',
+        baseUrl: '',
+        reasoning: false,
+        input: ['text'],
+        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+        contextWindow: 4096,
+        maxTokens: 4096,
+      }
+    }
 
-  if (apiKey) {
-    authStorage.set(providerName, { type: 'api_key', key: apiKey })
+    // Override with database config
+    if (dbProvider.config.baseUrl) {
+      m.baseUrl = dbProvider.config.baseUrl
+    }
+    if (dbProvider.config.api) {
+      m.api = dbProvider.config.api
+    }
+    Object.assign(m, dbModel.config)
+    if (dbModel.name) {
+      m.name = dbModel.name
+    }
+    return m
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const model = (getModel as any)(providerName, modelId)
-
-  const settingsManager = SettingsManager.create(process.cwd(), agentDir)
-  const resourceLoader = new DefaultResourceLoader({
-    cwd: process.cwd(),
-    agentDir,
-    settingsManager,
-    systemPromptOverride: () => {
-      let prompt = systemPrompt
-      if (teamSkills.length > 0) {
-        prompt += '\n\nAvailable Skills:\n'
-        for (const s of teamSkills) {
-          prompt += `- ${s.name} (ID: ${s.id}): ${s.description || 'No description'}\n`
-        }
-        prompt +=
-          '\nTo use a skill, first use the "read_skill" tool with the skill ID to read its instructions.'
-      }
-      return prompt
-    },
-    noContextFiles: true,
-  })
-  await resourceLoader.reload()
+  const model = getModelFromDb(providerName, modelId) || (getModel as any)(providerName, modelId)
 
   const piDir = path.join(process.cwd(), '.pi')
   if (!fs.existsSync(piDir)) fs.mkdirSync(piDir, { recursive: true })
@@ -131,26 +120,47 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     },
   })
 
-  const sandboxedBash = createSandboxedBashTool(process.cwd(), sessionManager)
+  const skillEnvs: Record<string, string> = {}
+  const onEnvsAdded = (envs: Record<string, string>) => {
+    Object.assign(skillEnvs, envs)
+  }
 
-  const { session } = await piCreateAgentSession({
-    cwd: process.cwd(),
-    agentDir,
-    authStorage,
-    modelRegistry,
+  const sandboxedBash = createSandboxedBashTool(process.cwd(), skillEnvs)
+  const readSkill = createReadSkillTool(onEnvsAdded)
+
+  const harness = new AgentHarness({
+    env: new NodeExecutionEnv({ cwd: process.cwd() }),
+    session,
     model,
-    resourceLoader,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    sessionManager: sessionManager as any as SessionManager,
-    customTools: [
-      analyzeAssetMediaTool,
-      createReadSkillTool(sessionManager),
-      sandboxedBash,
-      ...customTools,
-    ],
+    systemPrompt: async () => {
+      let prompt = systemPrompt
+      if (teamSkills.length > 0) {
+        prompt += '\n\nAvailable Skills:\n'
+        for (const s of teamSkills) {
+          prompt += `- ${s.name} (ID: ${s.id}): ${s.description || 'No description'}\n`
+        }
+        prompt +=
+          '\nTo use a skill, first use the "read_skill" tool with the skill ID to read its instructions.'
+      }
+      return prompt
+    },
+    getApiKeyAndHeaders: async (targetModel) => {
+      // Helper to resolve key from ENV if it matches an ENV var name
+      const resolveKey = (key: string | undefined) => (key ? process.env[key] || key : undefined)
+
+      // Look up the provider in our providers list
+      const dbProvider = params.providers.find((p) => p.name === targetModel.provider)
+      const providerApiKey = dbProvider?.config?.apiKey
+      if (providerApiKey) {
+        return { apiKey: resolveKey(providerApiKey)! }
+      }
+
+      return undefined
+    },
+    tools: [analyzeAssetMediaTool, readSkill, sandboxedBash, ...customTools],
   })
 
-  return { session, sessionManager }
+  return { session, harness }
 }
 
 export interface AutofillField {

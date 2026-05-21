@@ -2,11 +2,11 @@ import { describe, expect, test, vi, beforeEach } from 'vitest'
 import { AgentService } from './agent'
 import { prisma } from '@/db'
 import { setupTestDbHooks } from '@/db-test-hooks'
-import * as piAgent from '@mariozechner/pi-coding-agent'
+import * as piAgent from '@/agent'
 import { type AutofillField } from '@/agent'
 
-vi.mock('@mariozechner/pi-coding-agent', async () => {
-  const actual = await vi.importActual('@mariozechner/pi-coding-agent')
+vi.mock('@/agent', async () => {
+  const actual = await vi.importActual('@/agent')
   return {
     ...actual,
     createAgentSession: vi.fn(),
@@ -231,9 +231,7 @@ describe('AgentService', () => {
   })
 
   describe('agent execution', () => {
-    const mockProviderConfig: PrismaJson.ProviderConfig = {
-      api: 'openai-completions',
-      baseUrl: 'http://localhost:11434/v1',
+    const mockProviderConfig: PrismaJson.AiProviderSettings = {
       apiKey: 'test-key',
     }
 
@@ -254,7 +252,7 @@ describe('AgentService', () => {
       vi.clearAllMocks()
     })
 
-    test('autofills with agent', async () => {
+    test('autofill extracts metadata', async () => {
       const db = prisma
       const svc = new AgentService()
 
@@ -266,18 +264,22 @@ describe('AgentService', () => {
 
       const provider = await db.provider.create({
         data: {
-          name: 'openai',
+          name: 'google',
           teamId: team.id,
-          config: mockProviderConfig,
+          // Config is generic Json in Prisma
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          config: mockProviderConfig as any,
         },
       })
 
       const model = await db.model.create({
         data: {
-          modelId: 'gpt-4',
-          name: 'GPT-4',
+          modelId: 'gemini',
+          name: 'Gemini',
           providerId: provider.id,
-          config: mockModelConfig,
+          // Config is generic Json in Prisma
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          config: mockModelConfig as any,
         },
       })
 
@@ -293,8 +295,8 @@ describe('AgentService', () => {
               providerId: provider.id,
               modelId: model.id,
               config: {
-                provider: 'openai',
-                model: 'gpt-4',
+                provider: 'google',
+                model: 'gemini',
               },
             },
           },
@@ -307,35 +309,34 @@ describe('AgentService', () => {
         },
       })
 
-      const mockSession = {
-        sendUserMessage: vi.fn().mockImplementation(async () => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const tool = (mockSession as any).customTools.find(
-            (t: unknown) => (t as { name: string }).name === 'autofill_metadata',
-          )
-          if (tool) {
-            await tool.execute('call_1', { data: 1 })
-          }
+      const mockHarness = {
+        prompt: vi.fn().mockResolvedValue({
+          content: [{ type: 'text', text: 'Metadata captured successfully.' }],
+          usage: { input: 5, output: 5 },
         }),
-        getSessionStats: vi.fn().mockReturnValue({ tokens: { input: 5, output: 5 } }),
-        getLastAssistantText: vi.fn().mockReturnValue('{"data": 1}'),
-        state: { tools: [], systemPrompt: '', messages: [] },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        customTools: [] as any[],
       }
-      const mockSessionManager = {
-        waitForSync: vi.fn().mockResolvedValue(undefined),
-        getDbSessionId: vi.fn().mockReturnValue('mock-session-id'),
+      const mockSession = {
+        getEntries: vi.fn().mockResolvedValue([]),
+        getStorage: vi.fn().mockReturnValue({ sessionId: 'mock-session-id' }),
       }
+
+      // Mocking createAgentSession which has complex internal types
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ;(piAgent.createAgentSession as any).mockImplementation(async (config: any) => {
-        mockSession.customTools = config.customTools
-        return { session: mockSession, sessionManager: mockSessionManager }
+      ;(piAgent.createAgentSession as any).mockImplementation(async (config: unknown) => {
+        const tool = (
+          config as {
+            customTools: Array<{ name: string; execute: (...args: unknown[]) => Promise<unknown> }>
+          }
+        ).customTools.find((t) => t.name === 'autofill_metadata')
+        if (tool) {
+          await tool.execute('1', { f1: 'data-val' }, undefined)
+        }
+        return { session: mockSession, harness: mockHarness }
       })
 
       const fields: AutofillField[] = [{ id: 'f1', config: { name: 'Field 1', type: 'text' } }]
       const resp = await svc.autofill(team.id, 'extract data', [], fields)
-      expect(resp.text).toBe('{"data":1}')
+      expect(resp.text).toBe('{"f1":"data-val"}')
       expect(resp.usage.inputTokens).toBe(5)
     })
 
@@ -353,7 +354,9 @@ describe('AgentService', () => {
         data: {
           name: 'google',
           teamId: team.id,
-          config: mockProviderConfig,
+          // Config is generic Json in Prisma
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          config: mockProviderConfig as any,
         },
       })
 
@@ -362,7 +365,9 @@ describe('AgentService', () => {
           modelId: 'gemini',
           name: 'Gemini',
           providerId: provider.id,
-          config: mockModelConfig,
+          // Config is generic Json in Prisma
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          config: mockModelConfig as any,
         },
       })
 
@@ -392,20 +397,21 @@ describe('AgentService', () => {
         },
       })
 
+      const mockHarness = {
+        prompt: vi.fn().mockResolvedValue({
+          content: [{ type: 'text', text: 'mock text' }],
+          usage: { input: 5, output: 5 },
+        }),
+      }
       const mockSession = {
-        sendUserMessage: vi.fn().mockResolvedValue(undefined),
-        getSessionStats: vi.fn().mockReturnValue({ tokens: { input: 5, output: 5 } }),
-        getLastAssistantText: vi.fn().mockReturnValue('mock text'),
-        state: { tools: [], systemPrompt: '', messages: [] },
+        getEntries: vi.fn().mockResolvedValue([]),
+        getStorage: vi.fn().mockReturnValue({ sessionId: 'mock-session-id' }),
       }
-      const mockSessionManager = {
-        waitForSync: vi.fn().mockResolvedValue(undefined),
-        getDbSessionId: vi.fn().mockReturnValue('mock-session-id'),
-      }
+      // Mocking createAgentSession
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ;(piAgent.createAgentSession as any).mockResolvedValue({
         session: mockSession,
-        sessionManager: mockSessionManager,
+        harness: mockHarness,
       })
 
       const resp = await svc.chat(team.id, 'hello')
@@ -426,7 +432,9 @@ describe('AgentService', () => {
         data: {
           name: 'google',
           teamId: team.id,
-          config: mockProviderConfig,
+          // Config is generic Json in Prisma
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          config: mockProviderConfig as any,
         },
       })
 
@@ -435,7 +443,9 @@ describe('AgentService', () => {
           modelId: 'gemini-pro',
           name: 'Gemini Pro',
           providerId: provider.id,
-          config: mockModelConfig,
+          // Config is generic Json in Prisma
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          config: mockModelConfig as any,
         },
       })
 
@@ -462,20 +472,21 @@ describe('AgentService', () => {
         data: { teamId: team.id, userId: botUser.id, role: 'reviewer' },
       })
 
+      const mockHarness = {
+        prompt: vi.fn().mockResolvedValue({
+          content: [{ type: 'text', text: 'Arr matey!' }],
+          usage: { input: 10, output: 20 },
+        }),
+      }
       const mockSession = {
-        sendUserMessage: vi.fn().mockResolvedValue(undefined),
-        getSessionStats: vi.fn().mockReturnValue({ tokens: { input: 10, output: 20 } }),
-        getLastAssistantText: vi.fn().mockReturnValue('Arr matey!'),
-        state: { tools: [], systemPrompt: '', messages: [] },
+        getEntries: vi.fn().mockResolvedValue([]),
+        getStorage: vi.fn().mockReturnValue({ sessionId: 'mock-session-id' }),
       }
-      const mockSessionManager = {
-        waitForSync: vi.fn().mockResolvedValue(undefined),
-        getDbSessionId: vi.fn().mockReturnValue('mock-session-id'),
-      }
+      // Mocking createAgentSession
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ;(piAgent.createAgentSession as any).mockResolvedValue({
         session: mockSession,
-        sessionManager: mockSessionManager,
+        harness: mockHarness,
       })
 
       const resp = await svc.chatWithAgent(team.id, agent.id, 'hello', [], 'Talk like a pirate')

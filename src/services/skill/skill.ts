@@ -1,10 +1,15 @@
 import { prisma } from '@/db'
 import { SkillInfo, UpsertSkillRequest } from '@/dtos/skill'
 import { s3Service } from '@/services/s3/s3'
-import { parseFrontmatter, SkillFrontmatter } from '@mariozechner/pi-coding-agent'
 import AdmZip from 'adm-zip'
 import * as crypto from 'crypto'
 import { ulid } from 'ulid'
+import { parse } from 'yaml'
+
+interface SkillFrontmatter {
+  name?: string
+  description?: string
+}
 
 export class SkillService {
   constructor(private readonly prismaClient: typeof prisma = prisma) {}
@@ -253,7 +258,15 @@ export class SkillService {
   }
 
   private parseSkillMd(content: string): { name: string; description: string } {
-    const { frontmatter } = parseFrontmatter<SkillFrontmatter>(content)
+    const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n([\s\S]*))?$/)
+    let frontmatter: SkillFrontmatter = {}
+    if (match) {
+      try {
+        frontmatter = parse(match[1])
+      } catch (e) {
+        console.error('Failed to parse skill frontmatter', e)
+      }
+    }
     const name = frontmatter.name || 'Unnamed Skill'
     const description = frontmatter.description || ''
 

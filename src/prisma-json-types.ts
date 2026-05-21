@@ -1,6 +1,6 @@
 export {}
 
-import { SessionEntry } from '@mariozechner/pi-coding-agent'
+import { SessionTreeEntry } from '@earendil-works/pi-agent-core'
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -8,7 +8,7 @@ declare global {
     // ----------------------------------------------------------------------
     // Agent Session Entry
     // ----------------------------------------------------------------------
-    export type PiSessionEntry = SessionEntry
+    export type PiSessionEntry = SessionTreeEntry
 
     // ----------------------------------------------------------------------
     // User Agent Settings

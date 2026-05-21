@@ -18,24 +18,17 @@ vi.mock('adm-zip', () => {
 describe('readSkillTool', () => {
   setupTestDbHooks()
 
-  const mockSessionManager = {
-    addSkillEnvs: vi.fn(),
-  }
-
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
   it('should return error if skill not found', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const readSkillTool = createReadSkillTool(mockSessionManager as any)
+    const readSkillTool = createReadSkillTool(() => {})
     const result = await readSkillTool.execute(
       '1',
       { skillId: 'non-existent' },
       undefined,
       undefined,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking AgentSession is too complex for this test
-      {} as unknown as any,
     )
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((result.content[0] as any).text).toContain('not found')
@@ -60,16 +53,9 @@ describe('readSkillTool', () => {
       return ''
     })
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const readSkillTool = createReadSkillTool(mockSessionManager as any)
-    const result = await readSkillTool.execute(
-      '1',
-      { skillId: skill.id },
-      undefined,
-      undefined,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking AgentSession is too complex for this test
-      {} as unknown as any,
-    )
+    const readSkillTool = createReadSkillTool(() => {})
+    const result = await readSkillTool.execute('1', { skillId: skill.id }, undefined, undefined)
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((result.content[0] as any).text).toBe('# Test Skill Content')
     expect(s3Service.getObject).not.toHaveBeenCalled()
@@ -115,16 +101,8 @@ describe('readSkillTool', () => {
       contentType: 'application/zip',
     })
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const readSkillTool = createReadSkillTool(mockSessionManager as any)
-    const result = await readSkillTool.execute(
-      '1',
-      { skillId: skill.id },
-      undefined,
-      undefined,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking AgentSession is too complex for this test
-      {} as unknown as any,
-    )
+    const readSkillTool = createReadSkillTool(() => {})
+    const result = await readSkillTool.execute('1', { skillId: skill.id }, undefined, undefined)
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((result.content[0] as any).text).toBe('# Extracted Content')
@@ -167,18 +145,13 @@ describe('readSkillTool', () => {
         return ''
       })
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const readSkillTool = createReadSkillTool(mockSessionManager as any)
-      await readSkillTool.execute(
-        '1',
-        { skillId: skill.id },
-        undefined,
-        undefined,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        {} as unknown as any,
-      )
+      let capturedEnvs: Record<string, string> = {}
+      const readSkillTool = createReadSkillTool((envs) => {
+        capturedEnvs = { ...capturedEnvs, ...envs }
+      })
+      await readSkillTool.execute('1', { skillId: skill.id }, undefined, undefined)
 
-      expect(mockSessionManager.addSkillEnvs).toHaveBeenCalledWith({
+      expect(capturedEnvs).toEqual({
         CONFIGURED_VAR: 'user-val',
       })
     })
@@ -207,18 +180,13 @@ describe('readSkillTool', () => {
         return ''
       })
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const readSkillTool = createReadSkillTool(mockSessionManager as any)
-      await readSkillTool.execute(
-        '1',
-        { skillId: skill.id },
-        undefined,
-        undefined,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        {} as unknown as any,
-      )
+      let capturedEnvs: Record<string, string> = {}
+      const readSkillTool = createReadSkillTool((envs) => {
+        capturedEnvs = { ...capturedEnvs, ...envs }
+      })
+      await readSkillTool.execute('1', { skillId: skill.id }, undefined, undefined)
 
-      expect(mockSessionManager.addSkillEnvs).toHaveBeenCalledWith({
+      expect(capturedEnvs).toEqual({
         OVERRIDDEN_VAR: 'user-val',
       })
     })
@@ -247,18 +215,13 @@ describe('readSkillTool', () => {
         return ''
       })
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const readSkillTool = createReadSkillTool(mockSessionManager as any)
-      await readSkillTool.execute(
-        '1',
-        { skillId: skill.id },
-        undefined,
-        undefined,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        {} as unknown as any,
-      )
+      let capturedEnvs: Record<string, string> = {}
+      const readSkillTool = createReadSkillTool((envs) => {
+        capturedEnvs = { ...capturedEnvs, ...envs }
+      })
+      await readSkillTool.execute('1', { skillId: skill.id }, undefined, undefined)
 
-      expect(mockSessionManager.addSkillEnvs).toHaveBeenCalledWith({
+      expect(capturedEnvs).toEqual({
         FALLBACK_VAR: 'host-val',
       })
     })
@@ -287,18 +250,13 @@ describe('readSkillTool', () => {
         return ''
       })
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const readSkillTool = createReadSkillTool(mockSessionManager as any)
-      await readSkillTool.execute(
-        '1',
-        { skillId: skill.id },
-        undefined,
-        undefined,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        {} as unknown as any,
-      )
+      let capturedEnvs: Record<string, string> = {}
+      const readSkillTool = createReadSkillTool((envs) => {
+        capturedEnvs = { ...capturedEnvs, ...envs }
+      })
+      await readSkillTool.execute('1', { skillId: skill.id }, undefined, undefined)
 
-      expect(mockSessionManager.addSkillEnvs).toHaveBeenCalledWith({
+      expect(capturedEnvs).toEqual({
         FALLBACK_VAR_UNDEF: 'host-val2',
       })
     })

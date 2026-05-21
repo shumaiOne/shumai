@@ -1,7 +1,7 @@
 import { s3Service } from '@/services/s3/s3'
 import { Type } from '@sinclair/typebox'
-import { defineTool } from '@mariozechner/pi-coding-agent'
-import { ImageContent, TextContent } from '@mariozechner/pi-ai'
+import { type AgentTool } from '@earendil-works/pi-agent-core'
+import { type ImageContent, type TextContent } from '@earendil-works/pi-ai'
 import { detectSupportedMimeType } from '@/utils/mime'
 
 const analyzeAssetMediaSchema = Type.Object({
@@ -15,10 +15,10 @@ export interface MediaAnalysisDetails {
   sourceKey: string
 }
 
-export const analyzeAssetMediaTool = defineTool<
+export const analyzeAssetMediaTool: AgentTool<
   typeof analyzeAssetMediaSchema,
   MediaAnalysisDetails
->({
+> = {
   name: 'analyze_asset_media',
   label: 'Analyze Asset Media',
   description:
@@ -71,4 +71,4 @@ export const analyzeAssetMediaTool = defineTool<
       }
     }
   },
-})
+}
