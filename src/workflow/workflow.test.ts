@@ -47,12 +47,19 @@ describe('WorkflowService', () => {
       contentType: 'audio/mpeg',
     })
 
+    const team = await prisma.team.create({
+      data: { name: 'Transcription Team' },
+    })
+    const project = await prisma.project.create({
+      data: { name: 'Transcription Project', teamId: team.id },
+    })
     const asset = await prisma.asset.create({
       data: {
         name: 'test.mp3',
         key: 'test/test.mp3',
         status: 'uploaded',
         type: 'file',
+        projectId: project.id,
       },
     })
 
@@ -84,6 +91,12 @@ describe('WorkflowService', () => {
   }, 15000)
 
   it('should process ai_embedding task locally', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'Embedding Team' },
+    })
+    const project = await prisma.project.create({
+      data: { name: 'Embedding Project', teamId: team.id },
+    })
     const asset = await prisma.asset.create({
       data: {
         name: 'test.png',
@@ -91,6 +104,7 @@ describe('WorkflowService', () => {
         status: 'uploaded',
         type: 'file',
         mediaType: 'image/png',
+        projectId: project.id,
       },
     })
 
@@ -99,7 +113,7 @@ describe('WorkflowService', () => {
         assetId: asset.id,
         type: WorkflowTaskType.ai_embedding,
         status: WorkflowTaskStatus.pending,
-        teamId: 'test-team', // Needs a teamId for embeddings
+        teamId: team.id,
       },
     })
 

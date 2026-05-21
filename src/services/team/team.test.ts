@@ -120,6 +120,11 @@ describe('TeamService', () => {
     const user = await prisma.user.create({
       data: { name: 'Human', email: `human-${Date.now()}@example.com`, password: 'pw' },
     })
+
+    const team = await teamService.createTeam(user, {
+      name: 'Test Team',
+    })
+
     const bot = await prisma.user.create({
       data: {
         name: 'Bot',
@@ -128,6 +133,7 @@ describe('TeamService', () => {
         type: 'agent',
         agent: {
           create: {
+            teamId: team.id,
             type: 'chat',
             enabled: true,
             config: {
@@ -137,10 +143,6 @@ describe('TeamService', () => {
           },
         },
       },
-    })
-
-    const team = await teamService.createTeam(user, {
-      name: 'Test Team',
     })
 
     await teamService.joinTeam({

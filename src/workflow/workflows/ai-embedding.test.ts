@@ -78,7 +78,7 @@ describe('AIEmbedding Workflow', () => {
     expect(mockActivities.createCommentActivity).toHaveBeenCalledWith({
       assetId: 'asset-1',
       message: '__EMBEDDING__',
-      isAi: true,
+      sessionId: 'task-1',
       agentId: 'default',
     })
 
@@ -136,7 +136,7 @@ describe('AIEmbedding Workflow', () => {
     expect(mockActivities.createCommentActivity).toHaveBeenCalledWith({
       assetId: 'asset-1',
       message: '__EMBEDDING__',
-      isAi: true,
+      sessionId: 'task-1',
       agentId: 'real-agent-id',
     })
   })

@@ -220,6 +220,7 @@ model Team {
   providers      Provider[]      @relation("TeamToProvider")
   skills         Skill[]         @relation("TeamToSkill")
   sandbox        Sandbox?        @relation("TeamToSandbox")
+  agents         Agent[]         @relation("TeamToAgent")
 
   @@map("teams")
 }
@@ -429,7 +430,8 @@ model AssetComment {
   /// [AnnotationList]
   annotation  Json?
   second      Float?
-  isAi        Boolean  @default(false) @map("is_ai")
+  sessionId   String?       @unique @map("session_id")
+  session     AgentSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
@@ -618,6 +620,10 @@ model Agent {
   provider   Provider? @relation("ProviderToAgent", fields: [providerId], references: [id], onDelete: SetNull)
   modelId    String?   @map("model_id")
   modelRef   Model?    @relation("ModelToAgent", fields: [modelId], references: [id], onDelete: SetNull)
+
+  teamId String @map("team_id")
+  team   Team   @relation("TeamToAgent", fields: [teamId], references: [id], onDelete: Cascade)
+
   /// [AgentConfig]
   config        Json
   createdAt     DateTime       @default(now()) @map("created_at")
@@ -652,6 +658,7 @@ model AgentSession {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   entries   AgentSessionEntry[]
+  comment   AssetComment?
 
   @@map("agent_sessions")
 }

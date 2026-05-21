@@ -40,7 +40,7 @@ export async function aiChat(task: WorkflowTask): Promise<void> {
     const placeholder = await executeActivity(TaskQueueDb, createCommentActivity, {
       assetId: task.assetId,
       message: '__CHAT__',
-      isAi: true,
+      sessionId: payload?.session_id || 'pending',
       agentId: payload?.agentId,
       replyToId: userComment.replyToId ?? userComment.id,
     })
@@ -100,6 +100,7 @@ export async function aiChat(task: WorkflowTask): Promise<void> {
       await executeActivity(TaskQueueDb, updateCommentActivity, {
         commentId: placeholderCommentId,
         message: aiResult.text,
+        sessionId: aiResult.sessionId,
       })
 
       // Also store sessionId in comment's metadata if we had such a field,

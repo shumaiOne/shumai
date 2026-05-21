@@ -173,7 +173,7 @@ export type CommentInfo = {
   mentions: UserInfo[]
   createdAt: string
   updatedAt: string
-  isAi: boolean
+  sessionId: string | null
 }
 
 export const commentInfoSchema: z.ZodType<CommentInfo> = z.object({
@@ -188,7 +188,7 @@ export const commentInfoSchema: z.ZodType<CommentInfo> = z.object({
   mentions: z.array(userInfoSchema),
   createdAt: z.string(),
   updatedAt: z.string(),
-  isAi: z.boolean(),
+  sessionId: z.string().nullable(),
 })
 
 export const reparentAssetsRequestSchema = z.object({

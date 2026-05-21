@@ -40,6 +40,7 @@ describe('DatabaseSessionStorage', () => {
     const agent = await prisma.agent.create({
       data: {
         id: user.id,
+        teamId: team.id,
         type: 'chat',
         providerId: provider.id,
         modelId: model.id,

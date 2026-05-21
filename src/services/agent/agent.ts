@@ -35,11 +35,7 @@ export class AgentService {
       const existing = await this.prismaClient.agent.findFirst({
         where: {
           type,
-          user: {
-            teamMembers: {
-              some: { teamId },
-            },
-          },
+          teamId,
         },
       })
       if (existing) {
@@ -85,6 +81,7 @@ export class AgentService {
       const agent = await tx.agent.create({
         data: {
           id: user.id,
+          teamId,
           type,
           enabled: enabled ?? true,
           providerId: providerId || null,
@@ -139,22 +136,15 @@ export class AgentService {
     if (!agent) throw new Error('agent not found')
 
     if (type === 'embedding' || type === 'transcription' || type === 'autofill') {
-      const teamId = agent.user.teamMembers[0]?.teamId
-      if (teamId) {
-        const existing = await this.prismaClient.agent.findFirst({
-          where: {
-            type,
-            id: { not: agentId },
-            user: {
-              teamMembers: {
-                some: { teamId },
-              },
-            },
-          },
-        })
-        if (existing) {
-          throw new Error(`Agent of type ${type} already exists for this team`)
-        }
+      const existing = await this.prismaClient.agent.findFirst({
+        where: {
+          type,
+          id: { not: agentId },
+          teamId: agent.teamId,
+        },
+      })
+      if (existing) {
+        throw new Error(`Agent of type ${type} already exists for this team`)
       }
     }
 
@@ -232,11 +222,7 @@ export class AgentService {
   async listAgents(params: ListAgentsParams) {
     return this.prismaClient.agent.findMany({
       where: {
-        user: {
-          teamMembers: {
-            some: { teamId: params.teamId },
-          },
-        },
+        teamId: params.teamId,
       },
       orderBy: {
         id: 'desc',
@@ -271,11 +257,7 @@ export class AgentService {
       where: {
         type: 'chat',
         enabled: true,
-        user: {
-          teamMembers: {
-            some: { teamId },
-          },
-        },
+        teamId,
       },
     })
     if (!agent) {
@@ -421,16 +403,12 @@ export class AgentService {
     prompt: string,
     images: string[],
     fields: AutofillField[],
-  ): Promise<{ text: string; usage: Usage }> {
+  ): Promise<{ text: string; usage: Usage; sessionId: string }> {
     const agent = await this.prismaClient.agent.findFirst({
       where: {
         type: 'autofill',
         enabled: true,
-        user: {
-          teamMembers: {
-            some: { teamId },
-          },
-        },
+        teamId,
       },
     })
     if (!agent) {
@@ -457,7 +435,7 @@ export class AgentService {
 
     const fullPrompt = `${prompt}\n\nPlease use the "autofill_metadata" tool to provide the extracted metadata.`
 
-    const { usage } = await this.chatWithAgent(
+    const { usage, sessionId } = await this.chatWithAgent(
       teamId,
       agent.id,
       fullPrompt,
@@ -471,7 +449,15 @@ export class AgentService {
     return {
       text: capturedData ? JSON.stringify(capturedData) : '{}',
       usage,
+      sessionId,
     }
+  }
+
+  async getSessionEntries(params: { sessionId: string }) {
+    return this.prismaClient.agentSessionEntry.findMany({
+      where: { sessionId: params.sessionId },
+      orderBy: { id: 'asc' },
+    })
   }
 }
 

@@ -157,7 +157,7 @@ describe('file api', () => {
       mentions: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      isAi: false,
+      sessionId: null,
     })
 
     const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
@@ -200,7 +200,7 @@ describe('file api', () => {
           mentions: [],
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          isAi: false,
+          sessionId: null,
         },
       ],
       pageInfo: { cursor: 'cursor', total: 1 },

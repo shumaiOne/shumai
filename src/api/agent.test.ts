@@ -141,4 +141,43 @@ describe('Agent API', () => {
       expect(agentService.deleteAgent).toHaveBeenCalledWith({ agentId: 'agent1' })
     })
   })
+
+  describe('GET /teams/:teamId/agent-sessions/:sessionId/entries', () => {
+    it('returns entries of agent session if user is admin', async () => {
+      const mockEntries = [
+        {
+          id: 'entry1',
+          sessionId: 'session1',
+          entry: { step: 1, message: 'Step 1' },
+        },
+      ]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.mocked(agentService.getSessionEntries).mockResolvedValue(mockEntries as any)
+
+      const res = await app.request('/teams/team1/agent-sessions/session1/entries', {
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data).toHaveLength(1)
+      expect(data[0].id).toBe('entry1')
+      expect(data[0].entry.step).toBe(1)
+      expect(authzService.hasPermission).toHaveBeenCalledWith({
+        teamId: 'team1',
+        user: undefined,
+        permission: 'Admin',
+      })
+    })
+
+    it('denies access if user is not admin', async () => {
+      vi.mocked(authzService.hasPermission).mockRejectedValue(new Error('Forbidden'))
+
+      const res = await app.request('/teams/team1/agent-sessions/session1/entries', {
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      expect(res.status).toBe(500)
+    })
+  })
 })
