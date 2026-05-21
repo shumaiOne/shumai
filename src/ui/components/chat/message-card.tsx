@@ -13,6 +13,7 @@ import { Separator } from '@/ui/components/ui/separator'
 import { useQuery } from '@tanstack/react-query'
 import { Download, File, Terminal } from 'lucide-react'
 import React from 'react'
+import { formatTimeAgo } from '@/ui/lib/time'
 import Markdown from 'react-markdown'
 import { Avatar, AvatarFallback } from '../ui/avatar'
 import { Skeleton } from '../ui/skeleton'
@@ -281,10 +282,13 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                   const piEntry = entry.entry as Record<string, unknown> | null
                   const timestampStr =
                     piEntry?.timestamp || (entry as Record<string, unknown>).timestamp
-                  const timestamp =
-                    typeof timestampStr === 'string' || typeof timestampStr === 'number'
-                      ? new Date(timestampStr).toLocaleTimeString()
-                      : ''
+                  let timestamp = ''
+                  if (typeof timestampStr === 'string' || typeof timestampStr === 'number') {
+                    const dateObj = new Date(timestampStr)
+                    if (!isNaN(dateObj.getTime())) {
+                      timestamp = formatTimeAgo(dateObj.toISOString())
+                    }
+                  }
 
                   if (piEntry && typeof piEntry === 'object') {
                     if (piEntry.type === 'message' && piEntry.message) {
@@ -329,7 +333,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                         ) {
                           const obj = parsedArgs as Record<string, unknown>
                           return (
-                            <div className="mt-1 space-y-1.5 pl-3 border-l-2 border-violet-500/20">
+                            <div className="mt-1 space-y-1.5 pt-3">
                               {Object.entries(obj).map(([key, value]) => {
                                 let valueStr = ''
                                 if (value && typeof value === 'object') {
@@ -416,14 +420,13 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                                 renderedBlocks.push(
                                   <div key={`tool-${idx}`} className="text-xs space-y-2 py-1">
                                     <div className="font-semibold text-violet-600 dark:text-violet-400 flex items-center gap-1.5">
-                                      <Terminal className="w-3.5 h-3.5" />
                                       Calling Tool:{' '}
                                       <span className="font-mono bg-violet-500/10 px-1 py-0.5 rounded text-[11px]">
                                         {toolName}
                                       </span>
                                     </div>
                                     {!!toolArgs && (
-                                      <div className="space-y-1">
+                                      <div className="space-y-1 pt-3">
                                         <div className="text-[10px] text-muted-foreground/60 uppercase font-bold tracking-wider">
                                           Arguments
                                         </div>
