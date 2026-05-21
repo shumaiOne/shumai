@@ -1,5 +1,6 @@
 import { prisma } from '@/db'
 import { s3Service } from '@/services/s3/s3'
+import { ulid } from 'ulid'
 import {
   type AgentMessage,
   type SessionMetadata,
@@ -47,15 +48,11 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
   }
 
   async createEntryId(): Promise<string> {
-    // We can use ULID from prisma or crypto.randomUUID() if needed,
-    // but the harness expects a string.
-    // The previous implementation used the entry's own ID.
-    // Let's use crypto.randomUUID for now or a ULID generator if available.
-    return crypto.randomUUID()
+    return ulid()
   }
 
   async appendEntry(entry: SessionTreeEntry): Promise<void> {
-    const strippedEntry = JSON.parse(JSON.stringify(entry))
+    const strippedEntry = structuredClone(entry)
 
     // Strip image data before saving to DB
     if (strippedEntry.type === 'message') {
@@ -79,9 +76,7 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
       data: {
         id: entry.id,
         sessionId: this.sessionId,
-        // Entry is stored as Json in Prisma and bound to PiSessionEntry via prisma-json-types
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        entry: strippedEntry as any,
+        entry: strippedEntry,
       },
     })
 

@@ -245,4 +245,40 @@ describe('DatabaseSessionStorage', () => {
     const label = await storage.getLabel('label-1')
     expect(label).toBe('Test Label')
   })
+
+  it('should retrieve entries in order', async () => {
+    const { agent } = await setupTestData()
+    const storage = await DatabaseSessionStorage.create({ agentId: agent.id })
+
+    // Insert entries out of order (by insertion time) but with ordered IDs
+    await storage.appendEntry({
+      type: 'message',
+      id: '01B',
+      parentId: null,
+      timestamp: new Date().toISOString(),
+      message: { role: 'user', content: [], timestamp: Date.now() },
+    })
+
+    await storage.appendEntry({
+      type: 'message',
+      id: '01A',
+      parentId: null,
+      timestamp: new Date().toISOString(),
+      message: { role: 'user', content: [], timestamp: Date.now() },
+    })
+
+    await storage.appendEntry({
+      type: 'message',
+      id: '01C',
+      parentId: null,
+      timestamp: new Date().toISOString(),
+      message: { role: 'user', content: [], timestamp: Date.now() },
+    })
+
+    const entries = await storage.getEntries()
+    expect(entries).toHaveLength(3)
+    expect(entries[0].id).toBe('01A')
+    expect(entries[1].id).toBe('01B')
+    expect(entries[2].id).toBe('01C')
+  })
 })
