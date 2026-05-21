@@ -1,12 +1,7 @@
-import { client } from '@/ui/api/client'
 import type { AttachmentInfo, CommentInfo } from '@/dtos/asset'
 import type { UserInfo } from '@/dtos/team'
-import { useQuery } from '@tanstack/react-query'
-import { Download, File, Terminal } from 'lucide-react'
-import React from 'react'
-import { Avatar, AvatarFallback } from '../ui/avatar'
-import { Skeleton } from '../ui/skeleton'
-import Markdown from 'react-markdown'
+import { client } from '@/ui/api/client'
+import { Button } from '@/ui/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -14,7 +9,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/ui/components/ui/dialog'
-import { Button } from '@/ui/components/ui/button'
+import { useQuery } from '@tanstack/react-query'
+import { Download, File, Terminal } from 'lucide-react'
+import React from 'react'
+import Markdown from 'react-markdown'
+import { Avatar, AvatarFallback } from '../ui/avatar'
+import { Skeleton } from '../ui/skeleton'
 
 interface MessageCardProps {
   teamId?: string
@@ -35,38 +35,6 @@ const AI_PLACEHOLDERS: Record<string, string> = {
   __EMBEDDING__: 'Generating embeddings...',
   __TRANSCRIPTION__: 'Transcribing...',
   __RUNNING__: 'Generating...',
-}
-/* eslint-enable @typescript-eslint/naming-convention */
-
-interface AgentLogEntry {
-  id: string
-  sessionId: string
-  timestamp?: string
-  entry: {
-    type: string
-    timestamp?: string
-    message?: {
-      role: string
-      content?:
-        | string
-        | Array<
-            | {
-                type: string
-                text?: string
-                data?: string
-                mimeType?: string
-                name?: string
-                toolName?: string
-                arguments?: unknown
-                args?: unknown
-              }
-            | string
-          >
-      toolName?: string
-      toolCallId?: string
-      isError?: boolean
-    }
-  }
 }
 
 export const MessageCard: React.FC<MessageCardProps> = ({
@@ -308,16 +276,21 @@ export const MessageCard: React.FC<MessageCardProps> = ({
               </div>
             ) : logs && logs.length > 0 ? (
               <div className="flex flex-col">
-                {(logs as unknown as AgentLogEntry[]).map((entry) => {
-                  const timestampStr = entry.entry?.timestamp || entry.timestamp
-                  const timestamp = timestampStr ? new Date(timestampStr).toLocaleTimeString() : ''
-                  if (entry.entry && typeof entry.entry === 'object') {
-                    const piEntry = entry.entry
+                {logs.map((entry) => {
+                  const piEntry = entry.entry as Record<string, unknown> | null
+                  const timestampStr =
+                    piEntry?.timestamp || (entry as Record<string, unknown>).timestamp
+                  const timestamp =
+                    typeof timestampStr === 'string' || typeof timestampStr === 'number'
+                      ? new Date(timestampStr).toLocaleTimeString()
+                      : ''
+
+                  if (piEntry && typeof piEntry === 'object') {
                     if (piEntry.type === 'message' && piEntry.message) {
-                      const msg = piEntry.message
+                      const msg = piEntry.message as Record<string, unknown>
                       let badgeColor =
                         'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
-                      let roleName = msg.role
+                      let roleName: string = String(msg.role || '')
 
                       if (msg.role === 'user') {
                         badgeColor =
@@ -331,7 +304,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                         badgeColor = msg.isError
                           ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
                           : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
-                        roleName = `Tool Result: ${msg.toolName || 'Unknown'}`
+                        roleName = `Tool Result: ${String(msg.toolName || 'Unknown')}`
                       } else if (msg.role === 'thought') {
                         badgeColor =
                           'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
@@ -417,22 +390,26 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                                 }
 
                                 if (typeof item === 'object') {
-                                  const type = item.type
+                                  const itemObj = item as Record<string, unknown>
+                                  const type = itemObj.type
                                   if (type === 'text') {
-                                    if (!item.text || !item.text.trim()) return null
+                                    const text = itemObj.text
+                                    if (typeof text !== 'string' || !text.trim()) return null
                                     return (
                                       <div
                                         key={idx}
                                         className="text-xs text-foreground/80 dark:text-foreground/95 leading-relaxed prose prose-sm dark:prose-invert max-w-none break-words"
                                       >
-                                        <Markdown>{item.text}</Markdown>
+                                        <Markdown>{text}</Markdown>
                                       </div>
                                     )
                                   }
 
                                   if (type === 'toolCall') {
-                                    const toolName = item.name || item.toolName || 'Unknown'
-                                    const toolArgs = item.arguments || item.args
+                                    const toolName = String(
+                                      itemObj.name || itemObj.toolName || 'Unknown',
+                                    )
+                                    const toolArgs = itemObj.arguments || itemObj.args
                                     return (
                                       <div
                                         key={idx}
