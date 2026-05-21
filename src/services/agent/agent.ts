@@ -10,8 +10,8 @@ import { createAgentSession, fieldsToTypeBoxSchema, type AutofillField } from '@
 import { logger } from '@/logger'
 import { Usage } from '@/services/ai/provider/provider'
 import { s3Service } from '@/services/s3/s3'
-import { defineTool, type ToolDefinition } from '@mariozechner/pi-coding-agent'
-import { type TextContent, type ImageContent } from '@mariozechner/pi-ai'
+import { type AgentTool } from '@earendil-works/pi-agent-core'
+import { type ImageContent } from '@earendil-works/pi-ai'
 
 export class AgentService {
   constructor(private readonly prismaClient: typeof prisma = prisma) {}
@@ -293,7 +293,7 @@ export class AgentService {
     agentsInstruction: string,
     sessionId?: string,
     userId?: string,
-    tools: ToolDefinition[] = [],
+    tools: AgentTool[] = [],
   ): Promise<{ text: string; usage: Usage; sessionId: string }> {
     const t = await this.getTeam(teamId)
     if (!t) throw new Error('failed to get team')
@@ -322,10 +322,6 @@ export class AgentService {
       include: { models: true },
     })
 
-    // Setup credentials
-    const dbProvider = dbProviders[0]
-    const apiKey = dbProvider?.config.apiKey as string | undefined
-
     // Fetch team skills
     const teamSkills = await this.prismaClient.skill.findMany({
       where: { teamId },
@@ -344,11 +340,10 @@ export class AgentService {
       systemPrompt += `\n\nYour current model supports the following input types: ${modelConfig.input.join(', ')}.`
     }
 
-    const { session, sessionManager } = await createAgentSession({
+    const { session, harness } = await createAgentSession({
       agentId,
       providerName,
       modelId,
-      apiKey,
       systemPrompt,
       teamSkills: teamSkills.map((s) => ({
         id: s.id,
@@ -370,12 +365,7 @@ export class AgentService {
       })),
     })
 
-    const content: (TextContent | ImageContent)[] = []
-
-    if (agentsInstruction) {
-      session.state.systemPrompt = `${session.state.systemPrompt}\n\nContext and Instructions:\n${agentsInstruction}`
-    }
-    content.push({ type: 'text', text: prompt })
+    const imagesToPass: ImageContent[] = []
 
     if (images && images.length > 0) {
       for (const key of images) {
@@ -383,7 +373,7 @@ export class AgentService {
           process.env.S3_BUCKET || 'shumai',
           key,
         )
-        content.push({
+        imagesToPass.push({
           type: 'image',
           data: buffer.toString('base64'),
           mimeType: contentType,
@@ -392,36 +382,35 @@ export class AgentService {
     }
 
     try {
-      await session.sendUserMessage(content)
+      const assistantMessage = await harness.prompt(prompt, { images: imagesToPass })
 
-      session.state.messages.forEach((msg) => {
-        if (msg.role === 'toolResult') {
-          const logMsg = { ...msg, content: undefined }
-          logger.debug(logMsg, 'agent message')
-        } else {
-          logger.debug(msg, 'agent message')
+      const sessionEntries = await session.getEntries()
+      sessionEntries.forEach((entry) => {
+        if (entry.type === 'message') {
+          const msg = entry.message
+          if (msg.role === 'toolResult') {
+            const logMsg = { ...msg, content: undefined }
+            logger.debug(logMsg, 'agent message')
+          } else {
+            logger.debug(msg, 'agent message')
+          }
         }
       })
 
-      const stats = session.getSessionStats()
-      const text = session.getLastAssistantText() || ''
-
-      if (!text) {
-        const lastMessage = session.messages[session.messages.length - 1]
-        if (lastMessage && lastMessage.role === 'assistant' && lastMessage.errorMessage) {
-          throw new Error(`AI error: ${lastMessage.errorMessage}`)
-        }
-      }
+      const text = assistantMessage.content
+        .filter((c) => c.type === 'text')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- text property exists on text content items
+        .map((c) => (c as any).text)
+        .join('\n')
 
       const usage: Usage = {
         model: modelId,
-        inputTokens: stats.tokens.input || 0,
-        outputTokens: stats.tokens.output || 0,
+        inputTokens: assistantMessage.usage?.input || 0,
+        outputTokens: assistantMessage.usage?.output || 0,
       }
 
-      await sessionManager.waitForSync()
-
-      return { text, usage, sessionId: sessionManager.getDbSessionId() }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- sessionId property added to DatabaseSessionStorage
+      return { text, usage, sessionId: (session.getStorage() as any).sessionId }
     } finally {
       // Cleanup handled by agent session if needed
     }
@@ -452,7 +441,7 @@ export class AgentService {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let capturedData: any = null
 
-    const autofillTool = defineTool({
+    const autofillTool: AgentTool = {
       name: 'autofill_metadata',
       label: 'Autofill Metadata',
       description: 'Extract metadata from the images.',
@@ -464,7 +453,7 @@ export class AgentService {
           details: {},
         }
       },
-    })
+    }
 
     const fullPrompt = `${prompt}\n\nPlease use the "autofill_metadata" tool to provide the extracted metadata.`
 

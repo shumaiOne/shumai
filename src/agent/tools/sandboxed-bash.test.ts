@@ -38,8 +38,7 @@ describe('createSandboxedBashTool', () => {
   const createMockOnUpdate = () => vi.fn()
 
   it('should execute a command in the sandbox with injected env vars', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mockSessionManager is a partial mock of DatabaseSessionManager
-    const tool = createSandboxedBashTool(mockCwd, mockSessionManager as any)
+    const tool = createSandboxedBashTool(mockCwd, mockSessionManager.getSkillEnvs())
 
     const mockStdout = new EventEmitter()
     const mockStderr = new EventEmitter()
@@ -82,8 +81,7 @@ describe('createSandboxedBashTool', () => {
   })
 
   it('should handle process errors', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mockSessionManager is a partial mock
-    const tool = createSandboxedBashTool(mockCwd, mockSessionManager as any)
+    const tool = createSandboxedBashTool(mockCwd, mockSessionManager.getSkillEnvs())
     const mockChild = new EventEmitter()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- spawn returns mocked ChildProcess
     ;(spawn as any).mockReturnValue(mockChild)
@@ -98,8 +96,7 @@ describe('createSandboxedBashTool', () => {
   })
 
   it('should handle non-zero exit codes', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mockSessionManager is a partial mock
-    const tool = createSandboxedBashTool(mockCwd, mockSessionManager as any)
+    const tool = createSandboxedBashTool(mockCwd, mockSessionManager.getSkillEnvs())
     const mockChild = Object.assign(new EventEmitter(), {
       stdout: new EventEmitter(),
       stderr: new EventEmitter(),
@@ -119,8 +116,8 @@ describe('createSandboxedBashTool', () => {
 
   it('should handle timeouts', async () => {
     vi.useFakeTimers()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mockSessionManager is a partial mock
-    const tool = createSandboxedBashTool(mockCwd, mockSessionManager as any)
+
+    const tool = createSandboxedBashTool(mockCwd, mockSessionManager.getSkillEnvs())
     const mockChild = Object.assign(new EventEmitter(), {
       stdout: new EventEmitter(),
       stderr: new EventEmitter(),
@@ -154,8 +151,7 @@ describe('createSandboxedBashTool', () => {
   })
 
   it('should handle abort signals', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mockSessionManager is a partial mock
-    const tool = createSandboxedBashTool(mockCwd, mockSessionManager as any)
+    const tool = createSandboxedBashTool(mockCwd, mockSessionManager.getSkillEnvs())
     const mockChild = Object.assign(new EventEmitter(), {
       stdout: new EventEmitter(),
       stderr: new EventEmitter(),

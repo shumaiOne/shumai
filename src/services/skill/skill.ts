@@ -1,10 +1,15 @@
 import { prisma } from '@/db'
 import { SkillInfo, UpsertSkillRequest } from '@/dtos/skill'
 import { s3Service } from '@/services/s3/s3'
-import { parseFrontmatter, SkillFrontmatter } from '@mariozechner/pi-coding-agent'
 import AdmZip from 'adm-zip'
 import * as crypto from 'crypto'
 import { ulid } from 'ulid'
+import { parseFrontmatter } from '@/utils/frontmatter'
+
+interface SkillFrontmatter extends Record<string, unknown> {
+  name?: string
+  description?: string
+}
 
 export class SkillService {
   constructor(private readonly prismaClient: typeof prisma = prisma) {}
