@@ -49,7 +49,19 @@ interface AgentLogEntry {
       role: string
       content?:
         | string
-        | Array<{ type: string; text?: string; data?: string; mimeType?: string } | string>
+        | Array<
+            | {
+                type: string
+                text?: string
+                data?: string
+                mimeType?: string
+                name?: string
+                toolName?: string
+                arguments?: unknown
+                args?: unknown
+              }
+            | string
+          >
       toolName?: string
       toolCallId?: string
       isError?: boolean
@@ -319,27 +331,163 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                         badgeColor = msg.isError
                           ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
                           : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
-                        roleName = `Tool: ${msg.toolName || 'Unknown'}`
+                        roleName = `Tool Result: ${msg.toolName || 'Unknown'}`
                       } else if (msg.role === 'thought') {
                         badgeColor =
                           'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
                         roleName = 'Thinking'
                       }
 
-                      // Extract text content
-                      let textContent = ''
-                      if (typeof msg.content === 'string') {
-                        textContent = msg.content
-                      } else if (Array.isArray(msg.content)) {
-                        textContent = msg.content
-                          .map((item) => {
-                            if (typeof item === 'string') return item
-                            const obj = item as { type?: string; text?: string }
-                            if (obj?.type === 'text') return obj.text || ''
-                            if (obj?.type === 'image') return '[Image Object]'
-                            return JSON.stringify(item)
-                          })
-                          .join('\n')
+                      const renderToolCallArguments = (args: unknown) => {
+                        let parsedArgs: unknown = args
+                        if (typeof args === 'string') {
+                          try {
+                            parsedArgs = JSON.parse(args)
+                          } catch {
+                            // ignore
+                          }
+                        }
+
+                        if (
+                          parsedArgs &&
+                          typeof parsedArgs === 'object' &&
+                          !Array.isArray(parsedArgs)
+                        ) {
+                          const obj = parsedArgs as Record<string, unknown>
+                          return (
+                            <div className="mt-1 space-y-1.5 pl-3 border-l-2 border-violet-500/20">
+                              {Object.entries(obj).map(([key, value]) => {
+                                let valueStr = ''
+                                if (value && typeof value === 'object') {
+                                  valueStr = JSON.stringify(value, null, 2)
+                                } else {
+                                  valueStr = String(value)
+                                }
+                                return (
+                                  <div key={key} className="text-xs leading-relaxed break-words">
+                                    <span className="font-semibold text-violet-600 dark:text-violet-400">
+                                      {key}:
+                                    </span>{' '}
+                                    <span className="text-foreground/90 font-mono whitespace-pre-wrap">
+                                      {valueStr}
+                                    </span>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )
+                        }
+
+                        return (
+                          <div className="text-xs font-mono whitespace-pre-wrap">
+                            {String(args)}
+                          </div>
+                        )
+                      }
+
+                      const renderMessageContent = () => {
+                        const content = msg.content
+                        if (!content) return null
+
+                        if (typeof content === 'string') {
+                          if (!content.trim()) return null
+                          return (
+                            <div className="text-xs text-foreground/80 dark:text-foreground/95 leading-relaxed prose prose-sm dark:prose-invert max-w-none break-words">
+                              <Markdown>{content}</Markdown>
+                            </div>
+                          )
+                        }
+
+                        if (Array.isArray(content)) {
+                          return (
+                            <div className="space-y-3 w-full">
+                              {content.map((item, idx) => {
+                                if (!item) return null
+
+                                if (typeof item === 'string') {
+                                  if (!item.trim()) return null
+                                  return (
+                                    <div
+                                      key={idx}
+                                      className="text-xs text-foreground/80 dark:text-foreground/95 leading-relaxed prose prose-sm dark:prose-invert max-w-none break-words"
+                                    >
+                                      <Markdown>{item}</Markdown>
+                                    </div>
+                                  )
+                                }
+
+                                if (typeof item === 'object') {
+                                  const type = item.type
+                                  if (type === 'text') {
+                                    if (!item.text || !item.text.trim()) return null
+                                    return (
+                                      <div
+                                        key={idx}
+                                        className="text-xs text-foreground/80 dark:text-foreground/95 leading-relaxed prose prose-sm dark:prose-invert max-w-none break-words"
+                                      >
+                                        <Markdown>{item.text}</Markdown>
+                                      </div>
+                                    )
+                                  }
+
+                                  if (type === 'toolCall') {
+                                    const toolName = item.name || item.toolName || 'Unknown'
+                                    const toolArgs = item.arguments || item.args
+                                    return (
+                                      <div
+                                        key={idx}
+                                        className="text-xs bg-muted/40 dark:bg-muted/20 p-2.5 rounded border border-foreground/5 space-y-2"
+                                      >
+                                        <div className="font-semibold text-violet-600 dark:text-violet-400 flex items-center gap-1.5">
+                                          <Terminal className="w-3.5 h-3.5" />
+                                          Calling Tool:{' '}
+                                          <span className="font-mono bg-violet-500/10 px-1 py-0.5 rounded text-[11px]">
+                                            {toolName}
+                                          </span>
+                                        </div>
+                                        {!!toolArgs && (
+                                          <div className="space-y-1">
+                                            <div className="text-[10px] text-muted-foreground/60 uppercase font-bold tracking-wider">
+                                              Arguments
+                                            </div>
+                                            {renderToolCallArguments(toolArgs)}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )
+                                  }
+
+                                  if (type === 'image') {
+                                    return (
+                                      <div
+                                        key={idx}
+                                        className="text-xs text-muted-foreground italic flex items-center gap-1.5"
+                                      >
+                                        [Image Object]
+                                      </div>
+                                    )
+                                  }
+
+                                  // Fallback for other object types
+                                  const stringified = JSON.stringify(item, null, 2)
+                                  if (stringified === '{}') return null
+                                  return (
+                                    <pre
+                                      key={idx}
+                                      className="text-xs text-foreground/80 font-mono whitespace-pre-wrap break-words bg-muted/20 p-2 rounded"
+                                    >
+                                      {stringified}
+                                    </pre>
+                                  )
+                                }
+
+                                return null
+                              })}
+                            </div>
+                          )
+                        }
+
+                        return null
                       }
 
                       return (
@@ -362,7 +510,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                             }`}
                           />
 
-                          <div className="flex flex-col gap-1.5 bg-muted/30 dark:bg-muted/10 p-3 rounded-lg border border-foreground/5 backdrop-blur-xs">
+                          <div className="flex flex-col gap-1.5 bg-muted/30 dark:bg-muted/10 p-3 rounded-lg border border-foreground/5 backdrop-blur-xs w-full">
                             <div className="flex items-center justify-between gap-2">
                               <span
                                 className={`text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider ${badgeColor}`}
@@ -374,11 +522,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                               </span>
                             </div>
 
-                            {textContent && (
-                              <div className="text-xs text-foreground/80 dark:text-foreground/95 leading-relaxed font-mono whitespace-pre-wrap break-words">
-                                {textContent}
-                              </div>
-                            )}
+                            {renderMessageContent()}
                           </div>
                         </div>
                       )
