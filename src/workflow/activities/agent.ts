@@ -50,6 +50,14 @@ export async function createCommentActivity(params: CreateCommentParams) {
   if (params.sessionId) {
     const agentId = params.agentId && params.agentId !== 'default' ? params.agentId : 'default'
 
+    // Fetch teamId from asset
+    const asset = await prisma.asset.findUnique({
+      where: { id: params.assetId },
+      include: { project: true },
+    })
+    if (!asset || !asset.project) throw new Error('asset or project not found')
+    const teamId = asset.project.teamId
+
     // Ensure user exists for agent
     const userExists = await prisma.user.findUnique({ where: { id: agentId } })
     if (!userExists) {
@@ -69,6 +77,7 @@ export async function createCommentActivity(params: CreateCommentParams) {
       await prisma.agent.create({
         data: {
           id: agentId,
+          teamId,
           type: 'chat',
           config: {
             provider: 'openai',

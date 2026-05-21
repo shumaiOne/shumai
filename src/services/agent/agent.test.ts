@@ -63,6 +63,7 @@ describe('AgentService', () => {
     const agent = await db.agent.create({
       data: {
         id: user.id,
+        teamId: team.id,
         type: 'chat',
         providerId: provider.id,
         modelId: model.id,
@@ -290,6 +291,7 @@ describe('AgentService', () => {
           type: 'agent',
           agent: {
             create: {
+              teamId: team.id,
               type: 'autofill',
               enabled: true,
               providerId: provider.id,
@@ -378,6 +380,7 @@ describe('AgentService', () => {
           type: 'agent',
           agent: {
             create: {
+              teamId: team.id,
               type: 'chat',
               enabled: true,
               providerId: provider.id,
@@ -456,6 +459,7 @@ describe('AgentService', () => {
       const agent = await db.agent.create({
         data: {
           id: botUser.id,
+          teamId: team.id,
           type: 'chat',
           enabled: true,
           providerId: provider.id,

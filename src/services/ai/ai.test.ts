@@ -70,6 +70,7 @@ describe('AiService', () => {
         type: 'agent',
         agent: {
           create: {
+            teamId: team.id,
             type: 'transcription',
             enabled: true,
             providerId: provider.id,

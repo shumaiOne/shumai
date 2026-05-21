@@ -152,6 +152,7 @@ describe('ProjectService', () => {
           type: 'agent',
           agent: {
             create: {
+              teamId: team.id,
               type: 'chat',
               enabled: true,
               config: {

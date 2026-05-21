@@ -483,7 +483,7 @@ describe('AssetService', () => {
   })
 
   it('correctly handles AI comments with agent identity', async () => {
-    const { assets } = await setupBasicAssets()
+    const { assets, project } = await setupBasicAssets()
 
     // Create an agent user
     const agentUser = await prisma.user.create({
@@ -499,6 +499,7 @@ describe('AssetService', () => {
     await prisma.agent.create({
       data: {
         id: agentUser.id,
+        teamId: project.teamId,
         type: 'autofill',
         config: {
           provider: 'test',
@@ -617,6 +618,7 @@ describe('AssetService', () => {
     const agent = await prisma.agent.create({
       data: {
         id: botUser.id,
+        teamId: project.teamId,
         type: 'chat',
         config: {
           provider: 'google',
