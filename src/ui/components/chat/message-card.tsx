@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/ui/components/ui/dialog'
+import { Separator } from '@/ui/components/ui/separator'
 import { useQuery } from '@tanstack/react-query'
 import { Download, File, Terminal } from 'lucide-react'
 import React from 'react'
@@ -372,94 +373,104 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                         }
 
                         if (Array.isArray(content)) {
+                          const renderedBlocks: React.ReactNode[] = []
+
+                          content.forEach((item, idx) => {
+                            if (!item) return
+
+                            if (typeof item === 'string') {
+                              if (!item.trim()) return
+                              renderedBlocks.push(
+                                <div
+                                  key={`str-${idx}`}
+                                  className="text-xs text-foreground/80 dark:text-foreground/95 leading-relaxed prose prose-sm dark:prose-invert max-w-none break-words"
+                                >
+                                  <Markdown>{item}</Markdown>
+                                </div>,
+                              )
+                              return
+                            }
+
+                            if (typeof item === 'object') {
+                              const itemObj = item as Record<string, unknown>
+                              const type = itemObj.type
+                              if (type === 'text') {
+                                const text = itemObj.text
+                                if (typeof text !== 'string' || !text.trim()) return
+                                renderedBlocks.push(
+                                  <div
+                                    key={`txt-${idx}`}
+                                    className="text-xs text-foreground/80 dark:text-foreground/95 leading-relaxed prose prose-sm dark:prose-invert max-w-none break-words"
+                                  >
+                                    <Markdown>{text}</Markdown>
+                                  </div>,
+                                )
+                                return
+                              }
+
+                              if (type === 'toolCall') {
+                                const toolName = String(
+                                  itemObj.name || itemObj.toolName || 'Unknown',
+                                )
+                                const toolArgs = itemObj.arguments || itemObj.args
+                                renderedBlocks.push(
+                                  <div key={`tool-${idx}`} className="text-xs space-y-2 py-1">
+                                    <div className="font-semibold text-violet-600 dark:text-violet-400 flex items-center gap-1.5">
+                                      <Terminal className="w-3.5 h-3.5" />
+                                      Calling Tool:{' '}
+                                      <span className="font-mono bg-violet-500/10 px-1 py-0.5 rounded text-[11px]">
+                                        {toolName}
+                                      </span>
+                                    </div>
+                                    {!!toolArgs && (
+                                      <div className="space-y-1">
+                                        <div className="text-[10px] text-muted-foreground/60 uppercase font-bold tracking-wider">
+                                          Arguments
+                                        </div>
+                                        {renderToolCallArguments(toolArgs)}
+                                      </div>
+                                    )}
+                                  </div>,
+                                )
+                                return
+                              }
+
+                              if (type === 'image') {
+                                renderedBlocks.push(
+                                  <div
+                                    key={`img-${idx}`}
+                                    className="text-xs text-muted-foreground italic flex items-center gap-1.5 py-1"
+                                  >
+                                    [Image Object]
+                                  </div>,
+                                )
+                                return
+                              }
+
+                              // Fallback for other object types
+                              const stringified = JSON.stringify(item, null, 2)
+                              if (stringified === '{}') return
+                              renderedBlocks.push(
+                                <pre
+                                  key={`other-${idx}`}
+                                  className="text-xs text-foreground/80 font-mono whitespace-pre-wrap break-words bg-muted/20 p-2 rounded"
+                                >
+                                  {stringified}
+                                </pre>,
+                              )
+                            }
+                          })
+
+                          if (renderedBlocks.length === 0) return null
+
                           return (
                             <div className="space-y-3 w-full">
-                              {content.map((item, idx) => {
-                                if (!item) return null
-
-                                if (typeof item === 'string') {
-                                  if (!item.trim()) return null
-                                  return (
-                                    <div
-                                      key={idx}
-                                      className="text-xs text-foreground/80 dark:text-foreground/95 leading-relaxed prose prose-sm dark:prose-invert max-w-none break-words"
-                                    >
-                                      <Markdown>{item}</Markdown>
-                                    </div>
-                                  )
-                                }
-
-                                if (typeof item === 'object') {
-                                  const itemObj = item as Record<string, unknown>
-                                  const type = itemObj.type
-                                  if (type === 'text') {
-                                    const text = itemObj.text
-                                    if (typeof text !== 'string' || !text.trim()) return null
-                                    return (
-                                      <div
-                                        key={idx}
-                                        className="text-xs text-foreground/80 dark:text-foreground/95 leading-relaxed prose prose-sm dark:prose-invert max-w-none break-words"
-                                      >
-                                        <Markdown>{text}</Markdown>
-                                      </div>
-                                    )
-                                  }
-
-                                  if (type === 'toolCall') {
-                                    const toolName = String(
-                                      itemObj.name || itemObj.toolName || 'Unknown',
-                                    )
-                                    const toolArgs = itemObj.arguments || itemObj.args
-                                    return (
-                                      <div
-                                        key={idx}
-                                        className="text-xs bg-muted/40 dark:bg-muted/20 p-2.5 rounded border border-foreground/5 space-y-2"
-                                      >
-                                        <div className="font-semibold text-violet-600 dark:text-violet-400 flex items-center gap-1.5">
-                                          <Terminal className="w-3.5 h-3.5" />
-                                          Calling Tool:{' '}
-                                          <span className="font-mono bg-violet-500/10 px-1 py-0.5 rounded text-[11px]">
-                                            {toolName}
-                                          </span>
-                                        </div>
-                                        {!!toolArgs && (
-                                          <div className="space-y-1">
-                                            <div className="text-[10px] text-muted-foreground/60 uppercase font-bold tracking-wider">
-                                              Arguments
-                                            </div>
-                                            {renderToolCallArguments(toolArgs)}
-                                          </div>
-                                        )}
-                                      </div>
-                                    )
-                                  }
-
-                                  if (type === 'image') {
-                                    return (
-                                      <div
-                                        key={idx}
-                                        className="text-xs text-muted-foreground italic flex items-center gap-1.5"
-                                      >
-                                        [Image Object]
-                                      </div>
-                                    )
-                                  }
-
-                                  // Fallback for other object types
-                                  const stringified = JSON.stringify(item, null, 2)
-                                  if (stringified === '{}') return null
-                                  return (
-                                    <pre
-                                      key={idx}
-                                      className="text-xs text-foreground/80 font-mono whitespace-pre-wrap break-words bg-muted/20 p-2 rounded"
-                                    >
-                                      {stringified}
-                                    </pre>
-                                  )
-                                }
-
-                                return null
-                              })}
+                              {renderedBlocks.map((block, index) => (
+                                <React.Fragment key={index}>
+                                  {index > 0 && <Separator className="my-3 opacity-50" />}
+                                  {block}
+                                </React.Fragment>
+                              ))}
                             </div>
                           )
                         }
