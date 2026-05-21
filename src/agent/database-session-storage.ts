@@ -133,21 +133,34 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
 
   async getPathToRoot(leafId: string | null): Promise<SessionTreeEntry[]> {
     if (!leafId) return []
-    const entries: SessionTreeEntry[] = []
+
+    // Fetch all entries for this session in a single query to avoid N+1 problem
+    const records = await prisma.agentSessionEntry.findMany({
+      where: { sessionId: this.sessionId },
+    })
+
+    // Build a map for fast lookup
+    const entryMap = new Map<string, SessionTreeEntry>()
+    for (const record of records) {
+      entryMap.set(record.id, record.entry as unknown as SessionTreeEntry)
+    }
+
+    const pathEntries: SessionTreeEntry[] = []
     let currentId: string | null = leafId
 
     while (currentId) {
-      const record = await prisma.agentSessionEntry.findUnique({
-        where: { id: currentId },
-      })
-      if (!record) break
-      const entry = record.entry as unknown as SessionTreeEntry
-      await this.reinjectImageDataAsync(entry)
-      entries.unshift(entry)
+      const entry = entryMap.get(currentId)
+      if (!entry) break
+      pathEntries.unshift(entry)
       currentId = (entry as SessionTreeEntryBase).parentId
     }
 
-    return entries
+    // Only reinject image data (which may involve S3 calls) for the entries in the path
+    for (const entry of pathEntries) {
+      await this.reinjectImageDataAsync(entry)
+    }
+
+    return pathEntries
   }
 
   async getEntries(): Promise<SessionTreeEntry[]> {
