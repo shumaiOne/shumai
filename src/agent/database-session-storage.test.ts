@@ -154,7 +154,6 @@ describe('DatabaseSessionStorage', () => {
       id: 'msg-2',
       parentId: 'msg-1',
       timestamp: new Date().toISOString(),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       message: {
         role: 'assistant',
         content: [],
@@ -163,6 +162,8 @@ describe('DatabaseSessionStorage', () => {
         model: 'm',
         api: 'api',
         usage: { input: 0, output: 0 },
+        // AssistantMessage has many internal fields from pi-ai
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any,
     })
 
