@@ -31,6 +31,7 @@ describe('AIChat Workflow', () => {
     getAgentWorkerQueueActivity: Object.assign(vi.fn(), {
       _activityName: 'getAgentWorkerQueueActivity',
     }),
+    deleteCommentActivity: Object.assign(vi.fn(), { _activityName: 'deleteCommentActivity' }),
   }
 
   beforeEach(() => {
@@ -218,5 +219,105 @@ describe('AIChat Workflow', () => {
       status: WorkflowTaskStatus.failed,
       output: { error: 'DB Down' },
     })
+  })
+
+  it('should pass explicitMention payload parameter and format instruction when true', async () => {
+    const task: WorkflowTask = {
+      id: 'task-explicit',
+      assetId: 'asset-1',
+      type: WorkflowTaskType.chat,
+      status: WorkflowTaskStatus.pending,
+      output: null,
+      payload: {
+        userCommentId: 'comment-1',
+        agentId: 'bot-1',
+        explicitMention: true,
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      heartbeat: null,
+      teamId: 'team-1',
+      projectId: 'proj-1',
+      uid: 'task-uid-explicit',
+      model: null,
+      inputTokens: 0,
+      outputTokens: 0,
+    }
+
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'asset-1',
+      project: { teamId: 'team-1', id: 'proj-1' },
+    })
+
+    mockActivities.getCommentActivity.mockResolvedValue({
+      id: 'comment-1',
+      message: 'Hello AI',
+    })
+
+    mockActivities.createCommentActivity.mockResolvedValue({
+      id: 'placeholder-1',
+    })
+
+    mockActivities.aiChatActivity.mockResolvedValue({
+      text: 'Hello Human',
+      usage: { inputTokens: 5, outputTokens: 5, model: 'gpt-4' },
+    })
+
+    await aiChat(task)
+
+    expect(mockActivities.aiChatActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        explicitMention: true,
+        agentsInstruction: expect.stringContaining('MUST reply to this message'),
+      }),
+    )
+  })
+
+  it('should delete placeholder comment when AI response is __NO_REPLY__', async () => {
+    const task: WorkflowTask = {
+      id: 'task-no-reply',
+      assetId: 'asset-1',
+      type: WorkflowTaskType.chat,
+      status: WorkflowTaskStatus.pending,
+      output: null,
+      payload: {
+        userCommentId: 'comment-1',
+        agentId: 'bot-1',
+        explicitMention: false,
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      heartbeat: null,
+      teamId: 'team-1',
+      projectId: 'proj-1',
+      uid: 'task-uid-no-reply',
+      model: null,
+      inputTokens: 0,
+      outputTokens: 0,
+    }
+
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'asset-1',
+      project: { teamId: 'team-1', id: 'proj-1' },
+    })
+
+    mockActivities.getCommentActivity.mockResolvedValue({
+      id: 'comment-1',
+      message: 'Hello AI',
+    })
+
+    mockActivities.createCommentActivity.mockResolvedValue({
+      id: 'placeholder-delete-me',
+    })
+
+    mockActivities.aiChatActivity.mockResolvedValue({
+      text: ' __NO_REPLY__ ',
+      usage: { inputTokens: 5, outputTokens: 5, model: 'gpt-4' },
+    })
+
+    await aiChat(task)
+
+    expect(mockActivities.deleteCommentActivity).toHaveBeenCalledWith('placeholder-delete-me')
+    expect(mockActivities.updateCommentActivity).not.toHaveBeenCalled()
   })
 })

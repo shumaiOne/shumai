@@ -658,6 +658,132 @@ describe('AssetService', () => {
     expect(tasks.some((t) => (t.payload as any).agentId === 'default')).toBe(true)
   })
 
+  it('implements agent comment interaction rules (Rule 1, 2, 3)', async () => {
+    const { user, project } = await setupBasicAssets()
+    const file = await prisma.asset.create({
+      data: {
+        name: 'rules-file',
+        type: AssetType.file,
+        projectId: project.id,
+        creatorId: user.id,
+        status: 'uploaded',
+      },
+    })
+
+    const botUser = await prisma.user.create({
+      data: {
+        name: 'Bot Agent',
+        type: 'agent',
+        email: 'rule-bot@shumai.ai',
+      },
+    })
+    const agent = await prisma.agent.create({
+      data: {
+        id: botUser.id,
+        teamId: project.teamId,
+        type: 'chat',
+        config: {
+          provider: 'google',
+          model: 'gemini-pro',
+        },
+      },
+    })
+
+    // Rule 1: user mentions agent in chat, and it's not in a reply
+    const c1 = await assetService.createComment({
+      assetId: file.id,
+      userId: user.id,
+      message: `Rule 1 test: Hello <@${agent.id}>`,
+      attachmentIds: [],
+    })
+
+    const tasksRule1 = await prisma.workflowTask.findMany({
+      where: { assetId: file.id, payload: { path: ['userCommentId'], equals: c1.id } },
+    })
+    expect(tasksRule1.length).toBe(1)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const p1 = tasksRule1[0].payload as any
+    expect(p1.agentId).toBe(agent.id)
+    expect(p1.sessionId).toBeUndefined()
+    expect(p1.explicitMention).toBe(true)
+
+    // Rule 2: user mentions agent in reply, and root is not an agent comment
+    const reply1 = await assetService.createComment({
+      assetId: file.id,
+      userId: user.id,
+      message: `Rule 2 reply: <@${agent.id}>`,
+      replyToId: c1.id,
+      attachmentIds: [],
+    })
+
+    const tasksRule2 = await prisma.workflowTask.findMany({
+      where: { assetId: file.id, payload: { path: ['userCommentId'], equals: reply1.id } },
+    })
+    expect(tasksRule2.length).toBe(1)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const p2 = tasksRule2[0].payload as any
+    expect(p2.agentId).toBe(agent.id)
+    expect(p2.sessionId).toBeUndefined()
+    expect(p2.explicitMention).toBe(true)
+
+    // Create an agent session first for the foreign key constraint
+    await prisma.agentSession.create({
+      data: {
+        id: 'test-session-rule3',
+        agentId: botUser.id,
+        cwd: process.cwd(),
+      },
+    })
+
+    // Create an agent root comment with sessionId
+    const agentRoot = await prisma.assetComment.create({
+      data: {
+        assetId: file.id,
+        creatorId: botUser.id,
+        message: 'Agent root comment',
+        sessionId: 'test-session-rule3',
+      },
+    })
+
+    // Rule 3a: any user creates a reply, root is agent comment, no explicit mention
+    const reply3a = await assetService.createComment({
+      assetId: file.id,
+      userId: user.id,
+      message: 'Rule 3a: reply without mention',
+      replyToId: agentRoot.id,
+      attachmentIds: [],
+    })
+
+    const tasksRule3a = await prisma.workflowTask.findMany({
+      where: { assetId: file.id, payload: { path: ['userCommentId'], equals: reply3a.id } },
+    })
+    expect(tasksRule3a.length).toBe(1)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const p3a = tasksRule3a[0].payload as any
+    expect(p3a.agentId).toBe(botUser.id)
+    expect(p3a.sessionId).toBe('test-session-rule3')
+    expect(p3a.explicitMention).toBe(false)
+
+    // Rule 3b: any user creates a reply, root is agent comment, explicitly mentions agent
+    const reply3b = await assetService.createComment({
+      assetId: file.id,
+      userId: user.id,
+      message: `Rule 3b: reply with mention <@${botUser.id}>`,
+      replyToId: agentRoot.id,
+      attachmentIds: [],
+    })
+
+    const tasksRule3b = await prisma.workflowTask.findMany({
+      where: { assetId: file.id, payload: { path: ['userCommentId'], equals: reply3b.id } },
+    })
+    expect(tasksRule3b.length).toBe(1)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const p3b = tasksRule3b[0].payload as any
+    expect(p3b.agentId).toBe(botUser.id)
+    expect(p3b.sessionId).toBe('test-session-rule3')
+    expect(p3b.explicitMention).toBe(true)
+  })
+
   it('updates asset order correctly', async () => {
     const { user, project } = await setupBasicAssets()
 

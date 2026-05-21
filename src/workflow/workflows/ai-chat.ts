@@ -16,6 +16,7 @@ export async function aiChat(task: WorkflowTask): Promise<void> {
     updateCommentActivity,
     updateTaskUsageActivity,
     getAgentWorkerQueueActivity,
+    deleteCommentActivity,
   } = getActivities()
 
   let placeholderCommentId: string | undefined
@@ -30,6 +31,8 @@ export async function aiChat(task: WorkflowTask): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const payload = task.payload as any
 
+    const sessionId = payload?.sessionId || payload?.session_id
+
     // 1. Get User Comment
     const userCommentId = payload?.userCommentId
     if (!userCommentId) throw new Error('userCommentId missing in payload')
@@ -40,7 +43,7 @@ export async function aiChat(task: WorkflowTask): Promise<void> {
     const placeholder = await executeActivity(TaskQueueDb, createCommentActivity, {
       assetId: task.assetId,
       message: '__CHAT__',
-      sessionId: payload?.session_id || 'pending',
+      sessionId: sessionId || 'pending',
       agentId: payload?.agentId,
       replyToId: userComment.replyToId ?? userComment.id,
     })
@@ -73,6 +76,12 @@ export async function aiChat(task: WorkflowTask): Promise<void> {
 
     instruction += `\n\nIf you need to view the asset's media content (frames/images/video), call the 'analyze_asset_media' tool by passing the appropriate 'key' from the Asset Media Info above. Choose the most suitable format based on your capabilities and the user's request (e.g., use a poster or sprite for quick visual checks, or a transcode/raw file for detailed analysis).`
 
+    if (payload?.explicitMention) {
+      instruction += `\n\nThe user explicitly mentioned you in their message. You MUST reply to this message.`
+    } else {
+      instruction += `\n\nThe user did not explicitly mention you, but is replying in a thread where you are the participant. Let's decide if you should reply or not. If the user is not directly addressing you or doesn't need a response from you, you may choose to not reply. To choose not to reply, respond with exactly and only the text: __NO_REPLY__.`
+    }
+
     // 5. Call AI Chat
     let folderId = ''
     if (asset.type === 'folder') {
@@ -91,20 +100,23 @@ export async function aiChat(task: WorkflowTask): Promise<void> {
       projectId: payload.projectId,
       folderId,
       agentsInstruction: instruction,
-      sessionId: payload.session_id,
+      sessionId,
       userId: payload.userId,
+      userCommentId,
+      explicitMention: payload?.explicitMention,
     })
 
     // 6. Update Placeholder Comment
     if (placeholderCommentId) {
-      await executeActivity(TaskQueueDb, updateCommentActivity, {
-        commentId: placeholderCommentId,
-        message: aiResult.text,
-        sessionId: aiResult.sessionId,
-      })
-
-      // Also store sessionId in comment's metadata if we had such a field,
-      // but for now we just return it in task status.
+      if (aiResult.text.trim() === '__NO_REPLY__') {
+        await executeActivity(TaskQueueDb, deleteCommentActivity, placeholderCommentId)
+      } else {
+        await executeActivity(TaskQueueDb, updateCommentActivity, {
+          commentId: placeholderCommentId,
+          message: aiResult.text,
+          sessionId: aiResult.sessionId,
+        })
+      }
     }
 
     // 7. Update Usage

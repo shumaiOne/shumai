@@ -797,12 +797,48 @@ export class AssetService {
         }
       }
 
-      // Detect bot mentions
-      const botMentionMatches = req.message.matchAll(/<@([^>]+)>/g)
-      for (const match of botMentionMatches) {
-        const agentId = match[1]
-        let foundAgent = false
+      // Parse bot mentions
+      const botMentionMatches = [...req.message.matchAll(/<@([^>]+)>/g)]
+      const mentionedAgentIds = new Set(botMentionMatches.map((match) => match[1]))
+      const handledAgentIds = new Set<string>()
 
+      if (req.replyToId && a.project) {
+        const rootComment = await tx.assetComment.findUnique({
+          where: { id: req.replyToId },
+          include: { creator: true },
+        })
+        const rootSessionId = rootComment?.sessionId
+        const isRootAgent =
+          !!rootComment && (!!rootSessionId || rootComment.creator?.type === 'agent')
+        const rootAgentId = rootComment?.creatorId
+
+        if (isRootAgent && rootAgentId) {
+          const explicitMention = mentionedAgentIds.has(rootAgentId)
+          await tx.workflowTask.create({
+            data: {
+              assetId: a.id,
+              type: 'chat',
+              status: 'pending',
+              teamId: a.project.team.id,
+              projectId: a.project.id,
+              payload: {
+                userCommentId: comment.id,
+                agentId: rootAgentId,
+                projectId: a.project.id,
+                sessionId: rootSessionId || undefined,
+                explicitMention,
+              },
+            },
+          })
+          handledAgentIds.add(rootAgentId)
+        }
+      }
+
+      // Handle any other explicitly mentioned agents
+      for (const agentId of mentionedAgentIds) {
+        if (handledAgentIds.has(agentId)) continue
+
+        let foundAgent = false
         if (agentId === 'default') {
           foundAgent = true
         } else {
@@ -822,9 +858,11 @@ export class AssetService {
                 userCommentId: comment.id,
                 agentId: agentId,
                 projectId: a.project.id,
+                explicitMention: true,
               },
             },
           })
+          handledAgentIds.add(agentId)
         }
       }
     })
