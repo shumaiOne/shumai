@@ -40,7 +40,7 @@ export async function aiAutofillMedia(task: WorkflowTask): Promise<void> {
     const placeholder = await executeActivity(TaskQueueDb, createCommentActivity, {
       assetId: task.assetId,
       message: '__AUTOFILL__',
-      isAi: true,
+      sessionId: (payload?.session_id as string) || task.id,
       agentId: (payload?.agentId as string) || 'default',
     })
     placeholderCommentId = placeholder.id
@@ -148,6 +148,7 @@ export async function aiAutofillMedia(task: WorkflowTask): Promise<void> {
       await executeActivity(TaskQueueDb, updateCommentActivity, {
         commentId: placeholderCommentId,
         message: 'Autofill completed successfully.',
+        sessionId: aiResult.sessionId,
       })
     }
 

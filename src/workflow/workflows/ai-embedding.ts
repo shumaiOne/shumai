@@ -25,7 +25,7 @@ export async function aiEmbeddingMedia(task: WorkflowTask): Promise<void> {
     const placeholder = await executeActivity(TaskQueueDb, createCommentActivity, {
       assetId: task.assetId,
       message: '__EMBEDDING__',
-      isAi: true,
+      sessionId: (payload?.session_id as string) || task.id,
       agentId: (payload?.agentId as string) || 'default',
     })
     placeholderCommentId = placeholder.id

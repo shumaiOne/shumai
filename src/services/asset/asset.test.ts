@@ -507,12 +507,21 @@ describe('AssetService', () => {
       },
     })
 
+    // Create a real agent session
+    const session = await prisma.agentSession.create({
+      data: {
+        id: 'session-id-123',
+        agentId: agentUser.id,
+        cwd: process.cwd(),
+      },
+    })
+
     // Create an AI comment manually using the activity-like logic
     await prisma.assetComment.create({
       data: {
         assetId: assets.fileA1.id,
         message: 'I am an AI',
-        isAi: true,
+        sessionId: session.id,
         creatorId: agentUser.id,
       },
     })
@@ -521,7 +530,7 @@ describe('AssetService', () => {
       first: 10,
     })
 
-    const aiComment = list.data.find((c) => c.isAi)
+    const aiComment = list.data.find((c) => !!c.sessionId)
     expect(aiComment).toBeDefined()
     expect(aiComment?.creator.id).toBe(agentUser.id)
     expect(aiComment?.creator.name).toBe('Smart Agent')
@@ -632,7 +641,7 @@ describe('AssetService', () => {
 
     // Check if AI placeholder comments were NOT created here (moved to workflow)
     const comments = await prisma.assetComment.findMany({
-      where: { assetId: file.id, isAi: true },
+      where: { assetId: file.id, sessionId: { not: null } },
     })
     expect(comments.length).toBe(0)
 

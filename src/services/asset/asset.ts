@@ -1058,7 +1058,7 @@ export class AssetService {
     }
 
     const creator: UserInfo = { id: '', name: '' }
-    if (c.isAi) {
+    if (c.sessionId) {
       creator.id = c.creatorId || ''
       creator.name = c.creator?.name || 'Ai Bot'
     } else if (c.creator) {
@@ -1077,7 +1077,7 @@ export class AssetService {
       mentions,
       createdAt: c.createdAt.toISOString(),
       updatedAt: c.updatedAt.toISOString(),
-      isAi: c.isAi,
+      sessionId: c.sessionId,
     }
   }
 }

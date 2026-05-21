@@ -147,5 +147,25 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     return new Response(null, { status: 204 })
   })
+  .get('/teams/:teamId/agent-sessions/:sessionId/entries', async (c) => {
+    const teamId = c.req.param('teamId')
+    const sessionId = c.req.param('sessionId')
+    const userReq = c.get('user')
+
+    await authzService.hasPermission({
+      teamId,
+      user: userReq,
+      permission: Permission.Admin,
+    })
+
+    const entries = await agentService.getSessionEntries({ sessionId })
+    const infos = entries.map((entry) => ({
+      id: entry.id,
+      sessionId: entry.sessionId,
+      entry: entry.entry,
+    }))
+
+    return c.json(infos, 200)
+  })
 
 export default route

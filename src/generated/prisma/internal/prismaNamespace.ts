@@ -2905,7 +2905,7 @@ export const AssetCommentScalarFieldEnum = {
   message: 'message',
   annotation: 'annotation',
   second: 'second',
-  isAi: 'isAi',
+  sessionId: 'sessionId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   assetId: 'assetId',

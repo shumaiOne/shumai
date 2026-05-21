@@ -104,7 +104,7 @@ describe('AIChat Workflow', () => {
     expect(mockActivities.createCommentActivity).toHaveBeenCalledWith({
       assetId: 'asset-1',
       message: '__CHAT__',
-      isAi: true,
+      sessionId: 'pending',
       agentId: 'bot-1',
       replyToId: 'comment-1',
     })
@@ -172,7 +172,7 @@ describe('AIChat Workflow', () => {
     expect(mockActivities.createCommentActivity).toHaveBeenCalledWith({
       assetId: 'asset-1',
       message: '__CHAT__',
-      isAi: true,
+      sessionId: 'pending',
       agentId: 'bot-1',
       replyToId: 'root-comment-id', // MUST be root, not reply-1
     })

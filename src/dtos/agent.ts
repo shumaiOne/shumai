@@ -98,3 +98,10 @@ export interface DeleteAgentParams {
 export interface ListAgentsParams {
   teamId: string
 }
+
+export const agentSessionEntrySchema = z.object({
+  id: z.string(),
+  sessionId: z.string(),
+  entry: z.unknown(),
+})
+export type AgentSessionEntryInfo = z.infer<typeof agentSessionEntrySchema>

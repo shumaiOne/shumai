@@ -203,6 +203,7 @@ export type AgentSessionWhereInput = {
   agent?: Prisma.XOR<Prisma.AgentScalarRelationFilter, Prisma.AgentWhereInput>
   user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   entries?: Prisma.AgentSessionEntryListRelationFilter
+  comments?: Prisma.AssetCommentListRelationFilter
 }
 
 export type AgentSessionOrderByWithRelationInput = {
@@ -216,6 +217,7 @@ export type AgentSessionOrderByWithRelationInput = {
   agent?: Prisma.AgentOrderByWithRelationInput
   user?: Prisma.UserOrderByWithRelationInput
   entries?: Prisma.AgentSessionEntryOrderByRelationAggregateInput
+  comments?: Prisma.AssetCommentOrderByRelationAggregateInput
 }
 
 export type AgentSessionWhereUniqueInput = Prisma.AtLeast<{
@@ -232,6 +234,7 @@ export type AgentSessionWhereUniqueInput = Prisma.AtLeast<{
   agent?: Prisma.XOR<Prisma.AgentScalarRelationFilter, Prisma.AgentWhereInput>
   user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   entries?: Prisma.AgentSessionEntryListRelationFilter
+  comments?: Prisma.AssetCommentListRelationFilter
 }, "id">
 
 export type AgentSessionOrderByWithAggregationInput = {
@@ -269,6 +272,7 @@ export type AgentSessionCreateInput = {
   agent: Prisma.AgentCreateNestedOneWithoutAgentSessionsInput
   user?: Prisma.UserCreateNestedOneWithoutAgentSessionsInput
   entries?: Prisma.AgentSessionEntryCreateNestedManyWithoutSessionInput
+  comments?: Prisma.AssetCommentCreateNestedManyWithoutSessionInput
 }
 
 export type AgentSessionUncheckedCreateInput = {
@@ -280,6 +284,7 @@ export type AgentSessionUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   entries?: Prisma.AgentSessionEntryUncheckedCreateNestedManyWithoutSessionInput
+  comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutSessionInput
 }
 
 export type AgentSessionUpdateInput = {
@@ -291,6 +296,7 @@ export type AgentSessionUpdateInput = {
   agent?: Prisma.AgentUpdateOneRequiredWithoutAgentSessionsNestedInput
   user?: Prisma.UserUpdateOneWithoutAgentSessionsNestedInput
   entries?: Prisma.AgentSessionEntryUpdateManyWithoutSessionNestedInput
+  comments?: Prisma.AssetCommentUpdateManyWithoutSessionNestedInput
 }
 
 export type AgentSessionUncheckedUpdateInput = {
@@ -302,6 +308,7 @@ export type AgentSessionUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   entries?: Prisma.AgentSessionEntryUncheckedUpdateManyWithoutSessionNestedInput
+  comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutSessionNestedInput
 }
 
 export type AgentSessionCreateManyInput = {
@@ -340,6 +347,11 @@ export type AgentSessionListRelationFilter = {
 
 export type AgentSessionOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
+}
+
+export type AgentSessionNullableScalarRelationFilter = {
+  is?: Prisma.AgentSessionWhereInput | null
+  isNot?: Prisma.AgentSessionWhereInput | null
 }
 
 export type AgentSessionCountOrderByAggregateInput = {
@@ -419,6 +431,22 @@ export type AgentSessionUncheckedUpdateManyWithoutUserNestedInput = {
   deleteMany?: Prisma.AgentSessionScalarWhereInput | Prisma.AgentSessionScalarWhereInput[]
 }
 
+export type AgentSessionCreateNestedOneWithoutCommentsInput = {
+  create?: Prisma.XOR<Prisma.AgentSessionCreateWithoutCommentsInput, Prisma.AgentSessionUncheckedCreateWithoutCommentsInput>
+  connectOrCreate?: Prisma.AgentSessionCreateOrConnectWithoutCommentsInput
+  connect?: Prisma.AgentSessionWhereUniqueInput
+}
+
+export type AgentSessionUpdateOneWithoutCommentsNestedInput = {
+  create?: Prisma.XOR<Prisma.AgentSessionCreateWithoutCommentsInput, Prisma.AgentSessionUncheckedCreateWithoutCommentsInput>
+  connectOrCreate?: Prisma.AgentSessionCreateOrConnectWithoutCommentsInput
+  upsert?: Prisma.AgentSessionUpsertWithoutCommentsInput
+  disconnect?: Prisma.AgentSessionWhereInput | boolean
+  delete?: Prisma.AgentSessionWhereInput | boolean
+  connect?: Prisma.AgentSessionWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.AgentSessionUpdateToOneWithWhereWithoutCommentsInput, Prisma.AgentSessionUpdateWithoutCommentsInput>, Prisma.AgentSessionUncheckedUpdateWithoutCommentsInput>
+}
+
 export type AgentSessionCreateNestedManyWithoutAgentInput = {
   create?: Prisma.XOR<Prisma.AgentSessionCreateWithoutAgentInput, Prisma.AgentSessionUncheckedCreateWithoutAgentInput> | Prisma.AgentSessionCreateWithoutAgentInput[] | Prisma.AgentSessionUncheckedCreateWithoutAgentInput[]
   connectOrCreate?: Prisma.AgentSessionCreateOrConnectWithoutAgentInput | Prisma.AgentSessionCreateOrConnectWithoutAgentInput[]
@@ -483,6 +511,7 @@ export type AgentSessionCreateWithoutUserInput = {
   updatedAt?: Date | string
   agent: Prisma.AgentCreateNestedOneWithoutAgentSessionsInput
   entries?: Prisma.AgentSessionEntryCreateNestedManyWithoutSessionInput
+  comments?: Prisma.AssetCommentCreateNestedManyWithoutSessionInput
 }
 
 export type AgentSessionUncheckedCreateWithoutUserInput = {
@@ -493,6 +522,7 @@ export type AgentSessionUncheckedCreateWithoutUserInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   entries?: Prisma.AgentSessionEntryUncheckedCreateNestedManyWithoutSessionInput
+  comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutSessionInput
 }
 
 export type AgentSessionCreateOrConnectWithoutUserInput = {
@@ -534,6 +564,66 @@ export type AgentSessionScalarWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"AgentSession"> | Date | string
 }
 
+export type AgentSessionCreateWithoutCommentsInput = {
+  id?: string
+  cwd: string
+  leafId?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  agent: Prisma.AgentCreateNestedOneWithoutAgentSessionsInput
+  user?: Prisma.UserCreateNestedOneWithoutAgentSessionsInput
+  entries?: Prisma.AgentSessionEntryCreateNestedManyWithoutSessionInput
+}
+
+export type AgentSessionUncheckedCreateWithoutCommentsInput = {
+  id?: string
+  agentId: string
+  userId?: string | null
+  cwd: string
+  leafId?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  entries?: Prisma.AgentSessionEntryUncheckedCreateNestedManyWithoutSessionInput
+}
+
+export type AgentSessionCreateOrConnectWithoutCommentsInput = {
+  where: Prisma.AgentSessionWhereUniqueInput
+  create: Prisma.XOR<Prisma.AgentSessionCreateWithoutCommentsInput, Prisma.AgentSessionUncheckedCreateWithoutCommentsInput>
+}
+
+export type AgentSessionUpsertWithoutCommentsInput = {
+  update: Prisma.XOR<Prisma.AgentSessionUpdateWithoutCommentsInput, Prisma.AgentSessionUncheckedUpdateWithoutCommentsInput>
+  create: Prisma.XOR<Prisma.AgentSessionCreateWithoutCommentsInput, Prisma.AgentSessionUncheckedCreateWithoutCommentsInput>
+  where?: Prisma.AgentSessionWhereInput
+}
+
+export type AgentSessionUpdateToOneWithWhereWithoutCommentsInput = {
+  where?: Prisma.AgentSessionWhereInput
+  data: Prisma.XOR<Prisma.AgentSessionUpdateWithoutCommentsInput, Prisma.AgentSessionUncheckedUpdateWithoutCommentsInput>
+}
+
+export type AgentSessionUpdateWithoutCommentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  cwd?: Prisma.StringFieldUpdateOperationsInput | string
+  leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  agent?: Prisma.AgentUpdateOneRequiredWithoutAgentSessionsNestedInput
+  user?: Prisma.UserUpdateOneWithoutAgentSessionsNestedInput
+  entries?: Prisma.AgentSessionEntryUpdateManyWithoutSessionNestedInput
+}
+
+export type AgentSessionUncheckedUpdateWithoutCommentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  agentId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cwd?: Prisma.StringFieldUpdateOperationsInput | string
+  leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  entries?: Prisma.AgentSessionEntryUncheckedUpdateManyWithoutSessionNestedInput
+}
+
 export type AgentSessionCreateWithoutAgentInput = {
   id?: string
   cwd: string
@@ -542,6 +632,7 @@ export type AgentSessionCreateWithoutAgentInput = {
   updatedAt?: Date | string
   user?: Prisma.UserCreateNestedOneWithoutAgentSessionsInput
   entries?: Prisma.AgentSessionEntryCreateNestedManyWithoutSessionInput
+  comments?: Prisma.AssetCommentCreateNestedManyWithoutSessionInput
 }
 
 export type AgentSessionUncheckedCreateWithoutAgentInput = {
@@ -552,6 +643,7 @@ export type AgentSessionUncheckedCreateWithoutAgentInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   entries?: Prisma.AgentSessionEntryUncheckedCreateNestedManyWithoutSessionInput
+  comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutSessionInput
 }
 
 export type AgentSessionCreateOrConnectWithoutAgentInput = {
@@ -588,6 +680,7 @@ export type AgentSessionCreateWithoutEntriesInput = {
   updatedAt?: Date | string
   agent: Prisma.AgentCreateNestedOneWithoutAgentSessionsInput
   user?: Prisma.UserCreateNestedOneWithoutAgentSessionsInput
+  comments?: Prisma.AssetCommentCreateNestedManyWithoutSessionInput
 }
 
 export type AgentSessionUncheckedCreateWithoutEntriesInput = {
@@ -598,6 +691,7 @@ export type AgentSessionUncheckedCreateWithoutEntriesInput = {
   leafId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutSessionInput
 }
 
 export type AgentSessionCreateOrConnectWithoutEntriesInput = {
@@ -624,6 +718,7 @@ export type AgentSessionUpdateWithoutEntriesInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   agent?: Prisma.AgentUpdateOneRequiredWithoutAgentSessionsNestedInput
   user?: Prisma.UserUpdateOneWithoutAgentSessionsNestedInput
+  comments?: Prisma.AssetCommentUpdateManyWithoutSessionNestedInput
 }
 
 export type AgentSessionUncheckedUpdateWithoutEntriesInput = {
@@ -634,6 +729,7 @@ export type AgentSessionUncheckedUpdateWithoutEntriesInput = {
   leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutSessionNestedInput
 }
 
 export type AgentSessionCreateManyUserInput = {
@@ -653,6 +749,7 @@ export type AgentSessionUpdateWithoutUserInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   agent?: Prisma.AgentUpdateOneRequiredWithoutAgentSessionsNestedInput
   entries?: Prisma.AgentSessionEntryUpdateManyWithoutSessionNestedInput
+  comments?: Prisma.AssetCommentUpdateManyWithoutSessionNestedInput
 }
 
 export type AgentSessionUncheckedUpdateWithoutUserInput = {
@@ -663,6 +760,7 @@ export type AgentSessionUncheckedUpdateWithoutUserInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   entries?: Prisma.AgentSessionEntryUncheckedUpdateManyWithoutSessionNestedInput
+  comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutSessionNestedInput
 }
 
 export type AgentSessionUncheckedUpdateManyWithoutUserInput = {
@@ -691,6 +789,7 @@ export type AgentSessionUpdateWithoutAgentInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneWithoutAgentSessionsNestedInput
   entries?: Prisma.AgentSessionEntryUpdateManyWithoutSessionNestedInput
+  comments?: Prisma.AssetCommentUpdateManyWithoutSessionNestedInput
 }
 
 export type AgentSessionUncheckedUpdateWithoutAgentInput = {
@@ -701,6 +800,7 @@ export type AgentSessionUncheckedUpdateWithoutAgentInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   entries?: Prisma.AgentSessionEntryUncheckedUpdateManyWithoutSessionNestedInput
+  comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutSessionNestedInput
 }
 
 export type AgentSessionUncheckedUpdateManyWithoutAgentInput = {
@@ -719,10 +819,12 @@ export type AgentSessionUncheckedUpdateManyWithoutAgentInput = {
 
 export type AgentSessionCountOutputType = {
   entries: number
+  comments: number
 }
 
 export type AgentSessionCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   entries?: boolean | AgentSessionCountOutputTypeCountEntriesArgs
+  comments?: boolean | AgentSessionCountOutputTypeCountCommentsArgs
 }
 
 /**
@@ -742,6 +844,13 @@ export type AgentSessionCountOutputTypeCountEntriesArgs<ExtArgs extends runtime.
   where?: Prisma.AgentSessionEntryWhereInput
 }
 
+/**
+ * AgentSessionCountOutputType without action
+ */
+export type AgentSessionCountOutputTypeCountCommentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AssetCommentWhereInput
+}
+
 
 export type AgentSessionSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -754,6 +863,7 @@ export type AgentSessionSelect<ExtArgs extends runtime.Types.Extensions.Internal
   agent?: boolean | Prisma.AgentDefaultArgs<ExtArgs>
   user?: boolean | Prisma.AgentSession$userArgs<ExtArgs>
   entries?: boolean | Prisma.AgentSession$entriesArgs<ExtArgs>
+  comments?: boolean | Prisma.AgentSession$commentsArgs<ExtArgs>
   _count?: boolean | Prisma.AgentSessionCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["agentSession"]>
 
@@ -796,6 +906,7 @@ export type AgentSessionInclude<ExtArgs extends runtime.Types.Extensions.Interna
   agent?: boolean | Prisma.AgentDefaultArgs<ExtArgs>
   user?: boolean | Prisma.AgentSession$userArgs<ExtArgs>
   entries?: boolean | Prisma.AgentSession$entriesArgs<ExtArgs>
+  comments?: boolean | Prisma.AgentSession$commentsArgs<ExtArgs>
   _count?: boolean | Prisma.AgentSessionCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type AgentSessionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -813,6 +924,7 @@ export type $AgentSessionPayload<ExtArgs extends runtime.Types.Extensions.Intern
     agent: Prisma.$AgentPayload<ExtArgs>
     user: Prisma.$UserPayload<ExtArgs> | null
     entries: Prisma.$AgentSessionEntryPayload<ExtArgs>[]
+    comments: Prisma.$AssetCommentPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1219,6 +1331,7 @@ export interface Prisma__AgentSessionClient<T, Null = never, ExtArgs extends run
   agent<T extends Prisma.AgentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AgentDefaultArgs<ExtArgs>>): Prisma.Prisma__AgentClient<runtime.Types.Result.GetResult<Prisma.$AgentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   user<T extends Prisma.AgentSession$userArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AgentSession$userArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   entries<T extends Prisma.AgentSession$entriesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AgentSession$entriesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AgentSessionEntryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  comments<T extends Prisma.AgentSession$commentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AgentSession$commentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssetCommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1696,6 +1809,30 @@ export type AgentSession$entriesArgs<ExtArgs extends runtime.Types.Extensions.In
   take?: number
   skip?: number
   distinct?: Prisma.AgentSessionEntryScalarFieldEnum | Prisma.AgentSessionEntryScalarFieldEnum[]
+}
+
+/**
+ * AgentSession.comments
+ */
+export type AgentSession$commentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AssetComment
+   */
+  select?: Prisma.AssetCommentSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AssetComment
+   */
+  omit?: Prisma.AssetCommentOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AssetCommentInclude<ExtArgs> | null
+  where?: Prisma.AssetCommentWhereInput
+  orderBy?: Prisma.AssetCommentOrderByWithRelationInput | Prisma.AssetCommentOrderByWithRelationInput[]
+  cursor?: Prisma.AssetCommentWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AssetCommentScalarFieldEnum | Prisma.AssetCommentScalarFieldEnum[]
 }
 
 /**

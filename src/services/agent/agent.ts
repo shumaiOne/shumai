@@ -421,7 +421,7 @@ export class AgentService {
     prompt: string,
     images: string[],
     fields: AutofillField[],
-  ): Promise<{ text: string; usage: Usage }> {
+  ): Promise<{ text: string; usage: Usage; sessionId: string }> {
     const agent = await this.prismaClient.agent.findFirst({
       where: {
         type: 'autofill',
@@ -457,7 +457,7 @@ export class AgentService {
 
     const fullPrompt = `${prompt}\n\nPlease use the "autofill_metadata" tool to provide the extracted metadata.`
 
-    const { usage } = await this.chatWithAgent(
+    const { usage, sessionId } = await this.chatWithAgent(
       teamId,
       agent.id,
       fullPrompt,
@@ -471,7 +471,15 @@ export class AgentService {
     return {
       text: capturedData ? JSON.stringify(capturedData) : '{}',
       usage,
+      sessionId,
     }
+  }
+
+  async getSessionEntries(params: { sessionId: string }) {
+    return this.prismaClient.agentSessionEntry.findMany({
+      where: { sessionId: params.sessionId },
+      orderBy: { id: 'asc' },
+    })
   }
 }
 

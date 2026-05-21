@@ -109,7 +109,7 @@ describe('AIAutofill Workflow', () => {
     expect(mockActivities.createCommentActivity).toHaveBeenCalledWith({
       assetId: 'asset-1',
       message: '__AUTOFILL__',
-      isAi: true,
+      sessionId: 'task-1',
       agentId: 'default',
     })
 
@@ -160,7 +160,7 @@ describe('AIAutofill Workflow', () => {
     expect(mockActivities.createCommentActivity).toHaveBeenCalledWith({
       assetId: 'asset-1',
       message: '__AUTOFILL__',
-      isAi: true,
+      sessionId: 'task-1',
       agentId: 'real-agent-id',
     })
   })
