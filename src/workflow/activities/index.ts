@@ -1,7 +1,7 @@
 import * as taskActivities from './task'
 import * as aiActivities from './ai'
 import * as transcodeActivities from '@/transcode/activities/transcode'
-import * as agentActivities from '@/agent/activities/agent'
+import * as agentActivities from './agent'
 
 export const activities = {
   ...taskActivities,
