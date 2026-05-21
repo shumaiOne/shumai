@@ -299,7 +299,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
 
                       if (msg.role === 'user') {
                         badgeColor =
-                          'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                          'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-300'
                         roleName = 'User'
                       } else if (msg.role === 'assistant') {
                         badgeColor =
@@ -490,7 +490,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                           <div
                             className={`absolute left-0 top-1.5 h-5 w-5 rounded-full border-4 border-background flex items-center justify-center ${
                               msg.role === 'user'
-                                ? 'bg-blue-500'
+                                ? 'bg-slate-500'
                                 : msg.role === 'assistant'
                                   ? 'bg-violet-500'
                                   : msg.role === 'toolResult'
