@@ -726,6 +726,15 @@ describe('AssetService', () => {
     expect(p2.sessionId).toBeUndefined()
     expect(p2.explicitMention).toBe(true)
 
+    // Create a root user comment
+    const userRoot = await prisma.assetComment.create({
+      data: {
+        assetId: file.id,
+        creatorId: user.id,
+        message: 'User root comment',
+      },
+    })
+
     // Create an agent session first for the foreign key constraint
     await prisma.agentSession.create({
       data: {
@@ -735,24 +744,31 @@ describe('AssetService', () => {
       },
     })
 
-    // Create an agent root comment with sessionId
-    const agentRoot = await prisma.assetComment.create({
+    // Create an agent comment as a reply to userRoot with sessionId
+    const agentReply = await prisma.assetComment.create({
       data: {
         assetId: file.id,
         creatorId: botUser.id,
-        message: 'Agent root comment',
+        message: 'Agent reply comment',
+        replyToId: userRoot.id,
         sessionId: 'test-session-rule3',
       },
     })
 
-    // Rule 3a: any user creates a reply, root is agent comment, no explicit mention
+    // Rule 3a: any user creates a reply directly to the agent comment, no explicit mention
     const reply3a = await assetService.createComment({
       assetId: file.id,
       userId: user.id,
       message: 'Rule 3a: reply without mention',
-      replyToId: agentRoot.id,
+      replyToId: agentReply.id,
       attachmentIds: [],
     })
+
+    // Verify replyToId of reply3a was normalized to the root comment userRoot.id
+    const dbReply3a = await prisma.assetComment.findUnique({
+      where: { id: reply3a.id },
+    })
+    expect(dbReply3a?.replyToId).toBe(userRoot.id)
 
     const tasksRule3a = await prisma.workflowTask.findMany({
       where: { assetId: file.id, payload: { path: ['userCommentId'], equals: reply3a.id } },
@@ -764,14 +780,20 @@ describe('AssetService', () => {
     expect(p3a.sessionId).toBe('test-session-rule3')
     expect(p3a.explicitMention).toBe(false)
 
-    // Rule 3b: any user creates a reply, root is agent comment, explicitly mentions agent
+    // Rule 3b: any user creates a reply directly to the agent comment, explicitly mentions agent
     const reply3b = await assetService.createComment({
       assetId: file.id,
       userId: user.id,
       message: `Rule 3b: reply with mention <@${botUser.id}>`,
-      replyToId: agentRoot.id,
+      replyToId: agentReply.id,
       attachmentIds: [],
     })
+
+    // Verify replyToId of reply3b was normalized to the root comment userRoot.id
+    const dbReply3b = await prisma.assetComment.findUnique({
+      where: { id: reply3b.id },
+    })
+    expect(dbReply3b?.replyToId).toBe(userRoot.id)
 
     const tasksRule3b = await prisma.workflowTask.findMany({
       where: { assetId: file.id, payload: { path: ['userCommentId'], equals: reply3b.id } },

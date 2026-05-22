@@ -35,7 +35,12 @@ type UploadingFile = {
 
 interface ChatInputProps {
   projectId: string
-  onSendMessage: (text: string, attachmentIds: string[], annotations?: Annotation[]) => void
+  onSendMessage: (
+    text: string,
+    attachmentIds: string[],
+    annotations?: Annotation[],
+    replyToId?: string | null,
+  ) => void
   replyingTo?: CommentInfo | null
   onCancelReply?: () => void
   users?: UserInfo[]
@@ -376,7 +381,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
       // Allow sending if annotations exist, even if text is empty
       if (!processedText && successfulAttachmentIds.length === 0 && annotations.length === 0) return
 
-      onSendMessage(processedText, successfulAttachmentIds, annotations)
+      onSendMessage(processedText, successfulAttachmentIds, annotations, replyingTo?.id)
 
       // Reset editor
       editorRef.current.innerHTML = ''

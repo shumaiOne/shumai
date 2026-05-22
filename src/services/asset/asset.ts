@@ -771,6 +771,18 @@ export class AssetService {
       })
       if (!a) throw new Error('Asset not found')
 
+      let actualReplyToId = req.replyToId
+      let parentComment = null
+      if (req.replyToId) {
+        parentComment = await tx.assetComment.findUnique({
+          where: { id: req.replyToId },
+          include: { creator: true },
+        })
+        if (parentComment?.replyToId) {
+          actualReplyToId = parentComment.replyToId
+        }
+      }
+
       const comment = await tx.assetComment.create({
         data: {
           assetId: a.id,
@@ -778,7 +790,7 @@ export class AssetService {
           message: req.message,
           annotation: req.annotations,
           second: req.second,
-          replyToId: req.replyToId,
+          replyToId: actualReplyToId,
         },
       })
       commentId = comment.id
@@ -802,15 +814,10 @@ export class AssetService {
       const mentionedAgentIds = new Set(botMentionMatches.map((match) => match[1]))
       const handledAgentIds = new Set<string>()
 
-      if (req.replyToId && a.project) {
-        const rootComment = await tx.assetComment.findUnique({
-          where: { id: req.replyToId },
-          include: { creator: true },
-        })
-        const rootSessionId = rootComment?.sessionId
-        const isRootAgent =
-          !!rootComment && (!!rootSessionId || rootComment.creator?.type === 'agent')
-        const rootAgentId = rootComment?.creatorId
+      if (parentComment && a.project) {
+        const rootSessionId = parentComment.sessionId
+        const isRootAgent = !!rootSessionId || parentComment.creator?.type === 'agent'
+        const rootAgentId = parentComment.creatorId
 
         if (isRootAgent && rootAgentId) {
           const explicitMention = mentionedAgentIds.has(rootAgentId)
