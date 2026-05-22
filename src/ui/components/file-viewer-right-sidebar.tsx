@@ -127,6 +127,7 @@ export function FileViewerRightSidebar({
     },
     enabled: !!file?.id && (!isPublic || !!shareId),
     initialPageParam: '',
+    refetchInterval: 2000,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     getNextPageParam: (lastPage: any) => lastPage.pageInfo?.cursor || undefined,
   })
