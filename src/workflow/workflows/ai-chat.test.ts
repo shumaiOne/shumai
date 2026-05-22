@@ -32,6 +32,9 @@ describe('AIChat Workflow', () => {
       _activityName: 'getAgentWorkerQueueActivity',
     }),
     deleteCommentActivity: Object.assign(vi.fn(), { _activityName: 'deleteCommentActivity' }),
+    initializeAgentSessionActivity: Object.assign(vi.fn(), {
+      _activityName: 'initializeAgentSessionActivity',
+    }),
   }
 
   beforeEach(() => {
@@ -49,6 +52,7 @@ describe('AIChat Workflow', () => {
       },
     )
     mockActivities.getAgentWorkerQueueActivity.mockResolvedValue('agent_worker_queue')
+    mockActivities.initializeAgentSessionActivity.mockResolvedValue('mock-session-id')
   })
 
   it('should process AI chat successfully', async () => {
