@@ -430,7 +430,7 @@ model AssetComment {
   /// [AnnotationList]
   annotation  Json?
   second      Float?
-  sessionId   String?       @unique @map("session_id")
+  sessionId   String?       @map("session_id")
   session     AgentSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -658,7 +658,7 @@ model AgentSession {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   entries   AgentSessionEntry[]
-  comment   AssetComment?
+  comments  AssetComment[]
 
   @@map("agent_sessions")
 }

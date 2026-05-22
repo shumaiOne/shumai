@@ -53,6 +53,47 @@ describe('Database Activities', () => {
     expect(found).toBeNull()
   })
 
+  it('should support multiple comments in the same session without violating unique session_id constraint', async () => {
+    const team = await prisma.team.create({ data: { name: 't2' } })
+    const user = await prisma.user.create({
+      data: { name: 'User Two', email: 'user2@example.com' },
+    })
+    const project = await prisma.project.create({
+      data: { name: 'p2', teamId: team.id },
+    })
+    const file = await prisma.asset.create({
+      data: {
+        name: 'test-file-2',
+        type: 'file',
+        projectId: project.id,
+        creatorId: user.id,
+        status: 'uploaded',
+      },
+    })
+
+    const sessionId = 'test-multi-comment-session'
+
+    // 1. Create first agent comment in the session
+    const c1 = await createCommentActivity({
+      assetId: file.id,
+      message: 'Agent comment 1',
+      sessionId,
+      agentId: 'default',
+    })
+    expect(c1.id).toBeDefined()
+    expect(c1.sessionId).toBe(sessionId)
+
+    // 2. Create second agent comment in the SAME session
+    const c2 = await createCommentActivity({
+      assetId: file.id,
+      message: 'Agent comment 2',
+      sessionId,
+      agentId: 'default',
+    })
+    expect(c2.id).toBeDefined()
+    expect(c2.sessionId).toBe(sessionId)
+  })
+
   it('should initialize a new session with chronological context, prefixed usernames, and resolved user mentions', async () => {
     const team = await prisma.team.create({ data: { name: 't1' } })
     const user1 = await prisma.user.create({
