@@ -3,6 +3,7 @@ import { setupTestDbHooks } from '@/db-test-hooks'
 import { prisma } from '@/db'
 import { aiChatActivity } from './agent'
 import { agentService } from '@/services/agent/agent'
+import type { SessionTreeEntry } from '@earendil-works/pi-agent-core'
 
 vi.mock('@/services/agent/agent', () => ({
   agentService: {
@@ -111,11 +112,16 @@ describe('Agent Activities', () => {
     })
 
     expect(entries.length).toBe(1)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const entryData = entries[0].entry as any
-    expect(entryData.id).toBe(comment1.id)
-    expect(entryData.message.content[0].text).toBe('[User One]: First comment message')
-    expect(entryData.message.role).toBe('user')
+    const entryData = entries[0].entry as unknown as SessionTreeEntry
+    expect(entryData.id).toBeDefined()
+    expect(entryData.id).not.toBe(comment1.id)
+    if (entryData.type === 'message') {
+      const msg = entryData.message as { role: 'user'; content: { type: 'text'; text: string }[] }
+      expect(msg.content[0].text).toBe('[User One]: First comment message')
+      expect(msg.role).toBe('user')
+    } else {
+      throw new Error('Expected entry to be a message')
+    }
   })
 
   it('should support deleteCommentActivity', async () => {

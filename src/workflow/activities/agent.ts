@@ -1,6 +1,8 @@
 import { agentService } from '@/services/agent/agent'
 import type { AutofillField } from '@/agent'
 import { prisma } from '@/db'
+import { ulid } from 'ulid'
+import type { AgentMessage, SessionTreeEntry } from '@earendil-works/pi-agent-core'
 
 export interface AutofillAiParams {
   teamId: string
@@ -125,7 +127,7 @@ export async function aiChatActivity(params: AiChatParams) {
     let prevId: string | null = null
     for (const c of existingComments) {
       const isAgent = c.creator?.type === 'agent' || c.sessionId !== null
-      const role = isAgent ? 'assistant' : 'user'
+      const role = isAgent ? ('assistant' as const) : ('user' as const)
       let messageContent = c.message || ''
 
       // Prepend user name to user messages to ensure agent knows who sent what
@@ -133,25 +135,53 @@ export async function aiChatActivity(params: AiChatParams) {
         messageContent = `[${c.creator.name}]: ${messageContent}`
       }
 
-      const entryId = c.id
-      const entryJson = {
+      const entryId = ulid()
+      let message: AgentMessage
+      if (role === 'user') {
+        message = {
+          role: 'user',
+          content: [{ type: 'text', text: messageContent }],
+          timestamp: c.createdAt.getTime(),
+        }
+      } else {
+        message = {
+          role: 'assistant',
+          content: [{ type: 'text', text: messageContent }],
+          api: 'openai-completions',
+          provider: 'openai',
+          model: 'gpt-4',
+          usage: {
+            input: 0,
+            output: 0,
+            cacheRead: 0,
+            cacheWrite: 0,
+            totalTokens: 0,
+            cost: {
+              input: 0,
+              output: 0,
+              cacheRead: 0,
+              cacheWrite: 0,
+              total: 0,
+            },
+          },
+          stopReason: 'stop',
+          timestamp: c.createdAt.getTime(),
+        }
+      }
+
+      const entryJson: SessionTreeEntry = {
         type: 'message',
         id: entryId,
         parentId: prevId,
         timestamp: c.createdAt.toISOString(),
-        message: {
-          role,
-          content: [{ type: 'text', text: messageContent }],
-          timestamp: c.createdAt.getTime(),
-        },
+        message,
       }
 
       await prisma.agentSessionEntry.create({
         data: {
           id: entryId,
           sessionId,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- entryJson conforms to the internal PiSessionEntry/SessionTreeEntry JSON schema which uses generic json types
-          entry: entryJson as any,
+          entry: entryJson,
         },
       })
       prevId = entryId
