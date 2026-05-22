@@ -1010,12 +1010,12 @@ export class AssetService {
 
     return {
       id: a.id,
-      name: a.name,
+      name: a.type === AssetType.version_stack ? a.name || latestVersion.name : a.name,
       sizeByte: latestVersion.sizeByte,
       fileCount: latestVersion.fileCount,
       type: a.type,
       targetType: a.type === AssetType.symlink ? a.target?.type : null,
-      status: a.status,
+      status: a.type === AssetType.version_stack ? latestVersion.status : a.status,
       mediaType: latestVersion.mediaType,
       latestChildren,
       preview,

@@ -402,6 +402,43 @@ describe('AssetService', () => {
     })
   })
 
+  it('reparent file onto another file - creates version stack and keeps it visible', async () => {
+    const { user, assets } = await setupBasicAssets()
+
+    // Initially fileA1 is processed, fileA2 is processed
+    await prisma.asset.update({
+      where: { id: assets.fileA1.id },
+      data: { status: 'processed' },
+    })
+    await prisma.asset.update({
+      where: { id: assets.fileA2.id },
+      data: { status: 'processed' },
+    })
+
+    // Reparent fileA1 onto fileA2
+    await assetService.reparentAssets({
+      assetIds: [assets.fileA1.id],
+      newParentId: assets.fileA2.id,
+      creatorId: user.id,
+    })
+
+    // Get children of folderA (where fileA2 originally was)
+    const children = await assetService.listChildren({
+      assetId: assets.folderA.id,
+      assetType: 'file',
+      first: 10,
+    })
+
+    // There should be exactly 1 child in folderA, which is the version stack
+    expect(children.data.length).toBe(1)
+    const stackInfo = children.data[0]
+    expect(stackInfo.type).toBe(AssetType.version_stack)
+    // The name of the stack should be fileA1 (since it is the latest version / source asset)
+    expect(stackInfo.name).toBe('fileA1')
+    // The status of the stack should be 'processed' (inherited from the latest version)
+    expect(stackInfo.status).toBe('processed')
+  })
+
   it('handles soft deleting and restoring assets recursively', async () => {
     const { assets } = await setupBasicAssets()
 
