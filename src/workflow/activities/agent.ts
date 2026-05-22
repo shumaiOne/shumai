@@ -127,46 +127,20 @@ export async function aiChatActivity(params: AiChatParams) {
     let prevId: string | null = null
     for (const c of existingComments) {
       const isAgent = c.creator?.type === 'agent' || c.sessionId !== null
-      const role = isAgent ? ('assistant' as const) : ('user' as const)
       let messageContent = c.message || ''
 
-      // Prepend user name to user messages to ensure agent knows who sent what
-      if (!isAgent && c.creator?.name) {
+      if (isAgent) {
+        const agentName = c.creator?.name || 'Ai Agent'
+        messageContent = `[Agent Message][${agentName}]: ${messageContent}`
+      } else if (c.creator?.name) {
         messageContent = `[${c.creator.name}]: ${messageContent}`
       }
 
       const entryId = ulid()
-      let message: AgentMessage
-      if (role === 'user') {
-        message = {
-          role: 'user',
-          content: [{ type: 'text', text: messageContent }],
-          timestamp: c.createdAt.getTime(),
-        }
-      } else {
-        message = {
-          role: 'assistant',
-          content: [{ type: 'text', text: messageContent }],
-          api: 'openai-completions',
-          provider: 'openai',
-          model: 'gpt-4',
-          usage: {
-            input: 0,
-            output: 0,
-            cacheRead: 0,
-            cacheWrite: 0,
-            totalTokens: 0,
-            cost: {
-              input: 0,
-              output: 0,
-              cacheRead: 0,
-              cacheWrite: 0,
-              total: 0,
-            },
-          },
-          stopReason: 'stop',
-          timestamp: c.createdAt.getTime(),
-        }
+      const message: AgentMessage = {
+        role: 'user',
+        content: [{ type: 'text', text: messageContent }],
+        timestamp: c.createdAt.getTime(),
       }
 
       const entryJson: SessionTreeEntry = {

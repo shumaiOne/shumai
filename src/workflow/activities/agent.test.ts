@@ -51,6 +51,9 @@ describe('Agent Activities', () => {
     const user1 = await prisma.user.create({
       data: { name: 'User One', email: 'user1@example.com' },
     })
+    const agentUser = await prisma.user.create({
+      data: { id: 'agent-user-id', name: 'Smart Agent', email: 'agent@example.com', type: 'agent' },
+    })
     const project = await prisma.project.create({
       data: { name: 'p1', teamId: team.id },
     })
@@ -64,12 +67,21 @@ describe('Agent Activities', () => {
       },
     })
 
-    // Create existing comment 1
+    // Create existing comment 1 (User)
     const comment1 = await prisma.assetComment.create({
       data: {
         assetId: file.id,
         creatorId: user1.id,
         message: 'First comment message',
+      },
+    })
+
+    // Create existing comment 1.5 (Agent)
+    const commentAgent = await prisma.assetComment.create({
+      data: {
+        assetId: file.id,
+        creatorId: agentUser.id,
+        message: 'I am helping',
       },
     })
 
@@ -105,19 +117,33 @@ describe('Agent Activities', () => {
     expect(createdSessionId).toBeDefined()
     expect(createdSessionId).not.toBe('generated-session-id')
 
-    // Verify session entries were populated with comment1 as context
+    // Verify session entries were populated with comment1 and commentAgent as context
     const entries = await prisma.agentSessionEntry.findMany({
       where: { sessionId: createdSessionId },
       orderBy: { id: 'asc' },
     })
 
-    expect(entries.length).toBe(1)
-    const entryData = entries[0].entry as unknown as SessionTreeEntry
-    expect(entryData.id).toBeDefined()
-    expect(entryData.id).not.toBe(comment1.id)
-    if (entryData.type === 'message') {
-      const msg = entryData.message as { role: 'user'; content: { type: 'text'; text: string }[] }
+    expect(entries.length).toBe(2)
+
+    // Verify User Comment Entry
+    const entryData1 = entries[0].entry as unknown as SessionTreeEntry
+    expect(entryData1.id).toBeDefined()
+    expect(entryData1.id).not.toBe(comment1.id)
+    if (entryData1.type === 'message') {
+      const msg = entryData1.message as { role: 'user'; content: { type: 'text'; text: string }[] }
       expect(msg.content[0].text).toBe('[User One]: First comment message')
+      expect(msg.role).toBe('user')
+    } else {
+      throw new Error('Expected entry to be a message')
+    }
+
+    // Verify Agent Comment Entry
+    const entryData2 = entries[1].entry as unknown as SessionTreeEntry
+    expect(entryData2.id).toBeDefined()
+    expect(entryData2.id).not.toBe(commentAgent.id)
+    if (entryData2.type === 'message') {
+      const msg = entryData2.message as { role: 'user'; content: { type: 'text'; text: string }[] }
+      expect(msg.content[0].text).toBe('[Agent Message][Smart Agent]: I am helping')
       expect(msg.role).toBe('user')
     } else {
       throw new Error('Expected entry to be a message')
