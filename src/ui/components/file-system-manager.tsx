@@ -257,7 +257,7 @@ export default function FileSystemManager({
     } else {
       navigate({
         to: '/projects/$projectId/files/$fileId',
-        params: { projectId, fileId: item.id },
+        params: { projectId, fileId: item.versionStack ? item.versionStack.id : item.id },
       })
     }
   }

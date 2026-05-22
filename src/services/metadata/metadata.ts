@@ -9,6 +9,7 @@ import {
   UpdateAssetMetadataRequest,
 } from '@/dtos/metadata'
 import '@/prisma-json-types'
+import { assetService } from '../asset/asset'
 
 export class MetadataService {
   constructor(private client: typeof prisma = prisma) {}
@@ -251,6 +252,8 @@ export class MetadataService {
   }
 
   async updateAssetMetadata(assetId: string, reqs: UpdateAssetMetadataRequest[]): Promise<void> {
+    const resolvedAssetId = await assetService.resolveLatestVersionId(assetId)
+
     await this.client.$transaction(async (tx) => {
       for (const req of reqs) {
         const value = req.value
@@ -289,12 +292,12 @@ export class MetadataService {
           where: {
             // eslint-disable-next-line @typescript-eslint/naming-convention
             assetId_fieldId: {
-              assetId,
+              assetId: resolvedAssetId,
               fieldId: req.key,
             },
           },
           create: {
-            assetId,
+            assetId: resolvedAssetId,
             fieldId: req.key,
             stringValue,
             numberValue,
@@ -314,7 +317,7 @@ export class MetadataService {
 
       // Touch asset
       await tx.asset.update({
-        where: { id: assetId },
+        where: { id: resolvedAssetId },
         data: {
           updatedAt: new Date(),
         },

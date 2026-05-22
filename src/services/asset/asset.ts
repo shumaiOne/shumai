@@ -107,14 +107,10 @@ export class AssetService {
     })
 
     const assetMap = new Map(assets.map((a) => [a.id, a]))
-    const orderedInfos: AssetInfo[] = []
-
-    for (const id of ids) {
-      const a = assetMap.get(id)
-      if (a) {
-        orderedInfos.push(await this.toAssetInfo(a))
-      }
-    }
+    const orderedAssets = ids
+      .map((id) => assetMap.get(id))
+      .filter((a): a is AssetWithIncludes => !!a)
+    const orderedInfos = await this.toAssetInfos(orderedAssets)
 
     return orderedInfos
   }
@@ -328,14 +324,17 @@ export class AssetService {
     await this.updateAncestorsSize(tx, oldParentId, -sourceAsset.sizeByte)
     await this.updateAncestorsSize(tx, stackParentId, sourceAsset.sizeByte)
 
+    const firstIndex = generateKeyBetween(null, null)
+    const secondIndex = generateKeyBetween(firstIndex, null)
+
     await tx.asset.update({
       where: { id: destFile.id },
-      data: { parentId: stack.id, sortIndex: 'b' },
+      data: { parentId: stack.id, sortIndex: secondIndex },
     })
 
     await tx.asset.update({
       where: { id: sourceAsset.id },
-      data: { parentId: stack.id, sortIndex: 'a' },
+      data: { parentId: stack.id, sortIndex: firstIndex },
     })
 
     await tx.asset.update({
@@ -454,7 +453,7 @@ export class AssetService {
       req,
     )
 
-    const infos = await Promise.all(assets.map((a) => this.toAssetInfo(a)))
+    const infos = await this.toAssetInfos(assets)
 
     return { data: infos, pageInfo }
   }
@@ -521,7 +520,8 @@ export class AssetService {
       },
     })
 
-    return this.toAssetInfo(asset)
+    const infos = await this.toAssetInfos([asset])
+    return infos[0]
   }
 
   async findAsset(parentId: string, name: string): Promise<AssetInfo | null> {
@@ -574,7 +574,8 @@ export class AssetService {
       afs.push({ id: row.id, name: row.name })
     }
 
-    const info = await this.toAssetInfo(a)
+    const infos = await this.toAssetInfos([a])
+    const info = infos[0]
     info.ancestorFolders = afs
 
     if (info.media) {
@@ -613,6 +614,41 @@ export class AssetService {
     return assetId
   }
 
+  async resolveLatestVersionId(assetId: string): Promise<string> {
+    const asset = await this.prismaClient.asset.findUnique({
+      where: { id: assetId },
+      select: { id: true, type: true, targetId: true },
+    })
+    if (!asset) return assetId
+
+    let currentId = asset.id
+    let currentType = asset.type
+
+    if (asset.type === AssetType.symlink && asset.targetId) {
+      const target = await this.prismaClient.asset.findUnique({
+        where: { id: asset.targetId },
+        select: { id: true, type: true },
+      })
+      if (target) {
+        currentId = target.id
+        currentType = target.type
+      }
+    }
+
+    if (currentType === AssetType.version_stack) {
+      const latestChild = await this.prismaClient.asset.findFirst({
+        where: { parentId: currentId, removed: false },
+        orderBy: { sortIndex: 'desc' },
+        select: { id: true },
+      })
+      if (latestChild) {
+        return latestChild.id
+      }
+    }
+
+    return currentId
+  }
+
   async updateAssetName(req: UpdateAssetNameRequest): Promise<AssetInfo> {
     const asset = await this.prismaClient.asset.update({
       where: { id: req.id },
@@ -638,7 +674,8 @@ export class AssetService {
         },
       },
     })
-    return this.toAssetInfo(asset)
+    const infos = await this.toAssetInfos([asset])
+    return infos[0]
   }
 
   async updateAssetOrder(id: string, req: UpdateAssetOrderRequest): Promise<AssetInfo> {
@@ -764,9 +801,11 @@ export class AssetService {
 
   async createComment(req: CreateCommentRequest): Promise<CommentInfo> {
     let commentId = ''
+    const resolvedAssetId = await this.resolveLatestVersionId(req.assetId)
+
     await this.prismaClient.$transaction(async (tx) => {
       const a = await tx.asset.findUnique({
-        where: { id: req.assetId },
+        where: { id: resolvedAssetId },
         include: { project: { include: { team: true } } },
       })
       if (!a) throw new Error('Asset not found')
@@ -901,10 +940,12 @@ export class AssetService {
     assetId: string,
     params: PaginationParams,
   ): Promise<PaginatedData<CommentInfo[]>> {
+    const resolvedAssetId = await this.resolveLatestVersionId(assetId)
+
     const { data: comments, pageInfo } = await paginateQuery(
       async (skip, take) => {
         return this.prismaClient.assetComment.findMany({
-          where: { assetId, replyToId: null },
+          where: { assetId: resolvedAssetId, replyToId: null },
           include: {
             creator: true,
             asset: true,
@@ -931,102 +972,169 @@ export class AssetService {
     return { data: infos, pageInfo }
   }
 
-  private async toAssetInfo(a: AssetWithIncludes): Promise<AssetInfo> {
-    let latestVersion:
-      | AssetWithIncludes
-      | AssetWithIncludes['children'][0]
-      | NonNullable<AssetWithIncludes['target']> = a
+  private async toAssetInfos(assets: AssetWithIncludes[]): Promise<AssetInfo[]> {
+    const stackIds = new Set<string>()
 
-    if (a.type === AssetType.version_stack) {
-      if (a.children && a.children.length > 0) {
-        latestVersion = a.children[0]
+    for (const a of assets) {
+      if (
+        a.type === AssetType.version_stack ||
+        (a.type === AssetType.symlink && a.target?.type === AssetType.version_stack)
+      ) {
+        stackIds.add(a.type === AssetType.symlink ? a.targetId! : a.id)
       }
-    } else if (a.type === AssetType.symlink) {
-      if (a.target) {
-        latestVersion = a.target
-        if (latestVersion.type === AssetType.version_stack) {
-          if (
-            'children' in latestVersion &&
-            latestVersion.children &&
-            latestVersion.children.length > 0
-          ) {
-            latestVersion = latestVersion.children[0]
+
+      const folderForPreview =
+        a.type === AssetType.symlink && a.target?.type === AssetType.folder ? a.target : a
+      if (
+        (folderForPreview.type === AssetType.folder ||
+          folderForPreview.type === AssetType.share_root ||
+          folderForPreview.type === AssetType.share) &&
+        'children' in folderForPreview &&
+        folderForPreview.children
+      ) {
+        for (const child of folderForPreview.children) {
+          if (child.type === AssetType.version_stack) {
+            stackIds.add(child.id)
           }
         }
       }
     }
 
-    const latestChildren: ChildPreview[] = []
-    const folderForPreview =
-      a.type === AssetType.symlink && a.target?.type === AssetType.folder ? a.target : a
-    if (
-      (folderForPreview.type === AssetType.folder ||
-        folderForPreview.type === AssetType.share_root ||
-        folderForPreview.type === AssetType.share) &&
-      'children' in folderForPreview &&
-      folderForPreview.children
-    ) {
-      for (const child of folderForPreview.children) {
-        latestChildren.push({
-          type: child.mediaType,
-          preview: await this.toPreviewInfo(child as Asset),
-        })
+    const versionsMap = new Map<string, AssetWithIncludes['children'][0][]>()
+    if (stackIds.size > 0) {
+      const allVersions = await this.prismaClient.asset.findMany({
+        where: { parentId: { in: Array.from(stackIds) }, removed: false },
+        orderBy: { sortIndex: 'desc' },
+        include: { creator: true, metadataValues: true },
+      })
+      for (const v of allVersions) {
+        const list = versionsMap.get(v.parentId!) || []
+        list.push(v)
+        versionsMap.set(v.parentId!, list)
       }
     }
 
-    const preview = await this.toPreviewInfo(latestVersion as Asset)
+    const result: AssetInfo[] = []
+    for (const a of assets) {
+      let latestVersion:
+        | AssetWithIncludes
+        | AssetWithIncludes['children'][0]
+        | NonNullable<AssetWithIncludes['target']> = a
 
-    const creator = latestVersion.creator
-      ? { id: latestVersion.creator.id, name: latestVersion.creator.name }
-      : null
+      let versionStack: AssetInfo['versionStack'] = null
 
-    const fieldValues: FieldValueInfo[] = []
-    if ('metadataValues' in latestVersion && latestVersion.metadataValues) {
-      for (const mv of latestVersion.metadataValues) {
-        let value: unknown = null
-        if (mv.jsonValue !== null) {
-          value = mv.jsonValue
-        } else if (mv.dateValue !== null) {
-          value = mv.dateValue.toISOString()
-        } else if (mv.stringValue !== null) {
-          value = mv.stringValue
-        } else if (mv.numberValue !== null) {
-          value = mv.numberValue
-        } else if (mv.booleanValue !== null) {
-          value = mv.booleanValue
+      if (
+        a.type === AssetType.version_stack ||
+        (a.type === AssetType.symlink && a.target?.type === AssetType.version_stack)
+      ) {
+        const stackId = a.type === AssetType.symlink ? a.targetId! : a.id
+        const versions = versionsMap.get(stackId) || []
+        if (versions.length > 0) {
+          latestVersion = versions[versions.length - 1]
+          versionStack = {
+            id: stackId,
+            versions: versions.map((v, i) => ({
+              version: i + 1,
+              current: i === versions.length - 1,
+              id: v.id,
+            })),
+          }
         }
-        fieldValues.push({ fieldId: mv.fieldId, value })
+      } else if (a.type === AssetType.symlink) {
+        if (a.target) {
+          latestVersion = a.target
+        }
       }
-    }
 
-    const media = latestVersion.media
-    if (media && media.videoPreview?.key) {
-      media.videoPreview.url = await s3Service.presign(
-        process.env.S3_BUCKET || 'shumai',
-        media.videoPreview.key,
-        'GET',
-      )
-    }
+      const latestChildren: ChildPreview[] = []
+      const folderForPreview =
+        a.type === AssetType.symlink && a.target?.type === AssetType.folder ? a.target : a
+      if (
+        (folderForPreview.type === AssetType.folder ||
+          folderForPreview.type === AssetType.share_root ||
+          folderForPreview.type === AssetType.share) &&
+        'children' in folderForPreview &&
+        folderForPreview.children
+      ) {
+        for (const child of folderForPreview.children) {
+          let previewAsset = child as Asset
+          let mediaType = child.mediaType
 
-    return {
-      id: a.id,
-      name: a.name,
-      sizeByte: latestVersion.sizeByte,
-      fileCount: latestVersion.fileCount,
-      type: a.type,
-      targetType: a.type === AssetType.symlink ? a.target?.type : null,
-      status: a.status,
-      mediaType: latestVersion.mediaType,
-      latestChildren,
-      preview,
-      createdAt: a.createdAt.toISOString(),
-      updatedAt: a.updatedAt.toISOString(),
-      deletedAt: a.deletedAt ? a.deletedAt.toISOString() : null,
-      creator,
-      fieldValues,
-      sortIndex: a.sortIndex,
-      media: media as unknown as AssetInfo['media'],
+          if (child.type === AssetType.version_stack) {
+            const versions = versionsMap.get(child.id) || []
+            if (versions.length > 0) {
+              const latestChild = versions[versions.length - 1]
+              previewAsset = latestChild as Asset
+              mediaType = latestChild.mediaType
+            }
+          }
+
+          latestChildren.push({
+            type: mediaType,
+            preview: await this.toPreviewInfo(previewAsset),
+          })
+        }
+      }
+
+      const preview = await this.toPreviewInfo(latestVersion as Asset)
+
+      const creator = latestVersion.creator
+        ? { id: latestVersion.creator.id, name: latestVersion.creator.name }
+        : null
+
+      const fieldValues: FieldValueInfo[] = []
+      if ('metadataValues' in latestVersion && latestVersion.metadataValues) {
+        for (const mv of latestVersion.metadataValues) {
+          let value: unknown = null
+          if (mv.jsonValue !== null) {
+            value = mv.jsonValue
+          } else if (mv.dateValue !== null) {
+            value = mv.dateValue.toISOString()
+          } else if (mv.stringValue !== null) {
+            value = mv.stringValue
+          } else if (mv.numberValue !== null) {
+            value = mv.numberValue
+          } else if (mv.booleanValue !== null) {
+            value = mv.booleanValue
+          }
+          fieldValues.push({ fieldId: mv.fieldId, value })
+        }
+      }
+
+      const media = latestVersion.media as PrismaJson.MediaInfo | null
+      if (media && media.videoPreview?.key) {
+        media.videoPreview.url = await s3Service.presign(
+          process.env.S3_BUCKET || 'shumai',
+          media.videoPreview.key,
+          'GET',
+        )
+      }
+
+      result.push({
+        id: a.id,
+        name:
+          a.type === AssetType.version_stack && (a.name === '' || !a.name)
+            ? latestVersion.name
+            : a.name,
+        sizeByte: latestVersion.sizeByte,
+        fileCount: latestVersion.fileCount,
+        type: a.type,
+        targetType: a.type === AssetType.symlink ? a.target?.type : null,
+        status: latestVersion.status,
+        mediaType: latestVersion.mediaType,
+        latestChildren,
+        preview,
+        createdAt: a.createdAt.toISOString(),
+        updatedAt: a.updatedAt.toISOString(),
+        deletedAt: a.deletedAt ? a.deletedAt.toISOString() : null,
+        creator,
+        fieldValues,
+        sortIndex: a.sortIndex,
+        media: media as unknown as AssetInfo['media'],
+        versionStack,
+      })
     }
+    return result
   }
 
   private async toPreviewInfo(asset: Asset | AssetWithIncludes): Promise<PreviewInfo | null> {

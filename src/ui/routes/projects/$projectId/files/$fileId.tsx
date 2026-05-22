@@ -136,7 +136,10 @@ function FileViewPage() {
         currentAsset={{
           name: fileData.name,
           type: 'file',
-          version: fileData.type === 'version_stack' ? fileData.fileCount : undefined,
+          version: fileData.versionStack
+            ? (fileData.versionStack.versions.find((v) => v.id === fileData.id)?.version ??
+              fileData.versionStack.versions.length)
+            : undefined,
         }}
         isRootFolder={false}
         isLeftSidebarCollapsed={isLeftSidebarCollapsed}

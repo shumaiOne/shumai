@@ -217,12 +217,7 @@ export function PublicShareManager({
     localStorage.setItem(`share_pwd_${shareInfo.id}`, passwordInput)
   }
 
-  const handleItemDoubleClick = (item: {
-    type: string
-    targetType?: string | null
-    id?: string
-    name?: string
-  }) => {
+  const handleItemDoubleClick = (item: AssetInfo) => {
     if (item.type === 'folder' || item.targetType === 'folder') {
       navigate({
         to: '/share/$shareId/folders/$folderId',
@@ -231,7 +226,10 @@ export function PublicShareManager({
     } else {
       navigate({
         to: '/share/$shareId/files/$fileId',
-        params: { shareId: shareInfo.id, fileId: item.id! },
+        params: {
+          shareId: shareInfo.id,
+          fileId: item.versionStack ? item.versionStack.id : item.id!,
+        },
       })
     }
     setSelectedIds(new Set())
@@ -334,8 +332,10 @@ export function PublicShareManager({
         currentAsset={{
           name: viewingFileData?.name || currentFolderName,
           type: viewingFileId ? 'file' : 'folder',
-          version:
-            viewingFileData?.type === 'version_stack' ? viewingFileData.fileCount : undefined,
+          version: viewingFileData?.versionStack
+            ? (viewingFileData.versionStack.versions.find((v) => v.id === viewingFileData.id)
+                ?.version ?? viewingFileData.versionStack.versions.length)
+            : undefined,
         }}
         isRootFolder={currentFolderId === shareInfo.rootFolderId && !viewingFileId}
         displayStyle="card"
