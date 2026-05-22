@@ -6,7 +6,7 @@ out
 *.log
 .env
 .env.*
-.pi/agents/
+.pi/
 data/
 *.db
 *.diff

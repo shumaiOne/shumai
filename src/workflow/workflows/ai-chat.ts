@@ -1,9 +1,9 @@
 import type { WorkflowTask } from '@/generated/prisma/client'
 import {
-  getActivities,
   executeActivity,
-  TaskQueueDb,
+  getActivities,
   TaskQueueAgent,
+  TaskQueueDb,
 } from '@/workflow/workflow-utils'
 
 export async function aiChat(task: WorkflowTask): Promise<void> {

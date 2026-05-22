@@ -124,6 +124,10 @@ export const MessageCard: React.FC<MessageCardProps> = ({
     })
   }
 
+  const preprocessMarkdown = (text: string): string => {
+    return text.replace(/<@([a-zA-Z0-9_-]+)>/g, '@$1').replace(/^\[([^\]]+)\]:/gm, '\\[$1\\]:')
+  }
+
   const handleReply = () => {
     onReply(message)
   }
@@ -165,7 +169,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
           </div>
         ) : message.sessionId ? (
           <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none break-words">
-            <Markdown>{message.message!}</Markdown>
+            <Markdown>{preprocessMarkdown(message.message!)}</Markdown>
           </div>
         ) : (
           <div className="text-sm leading-relaxed whitespace-pre-wrap break-words text-wrap break-all">
@@ -371,7 +375,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                           if (!content.trim()) return null
                           return (
                             <div className="text-xs text-foreground/80 dark:text-foreground/95 leading-relaxed prose prose-sm dark:prose-invert max-w-none break-words">
-                              <Markdown>{content}</Markdown>
+                              <Markdown>{preprocessMarkdown(content)}</Markdown>
                             </div>
                           )
                         }
@@ -389,7 +393,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                                   key={`str-${idx}`}
                                   className="text-xs text-foreground/80 dark:text-foreground/95 leading-relaxed prose prose-sm dark:prose-invert max-w-none break-words"
                                 >
-                                  <Markdown>{item}</Markdown>
+                                  <Markdown>{preprocessMarkdown(item)}</Markdown>
                                 </div>,
                               )
                               return
@@ -406,7 +410,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                                     key={`txt-${idx}`}
                                     className="text-xs text-foreground/80 dark:text-foreground/95 leading-relaxed prose prose-sm dark:prose-invert max-w-none break-words"
                                   >
-                                    <Markdown>{text}</Markdown>
+                                    <Markdown>{preprocessMarkdown(text)}</Markdown>
                                   </div>,
                                 )
                                 return
