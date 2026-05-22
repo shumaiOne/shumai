@@ -1,5 +1,4 @@
 import { prisma } from '@/db'
-import { Prisma } from '@/generated/prisma/client'
 import { ulid } from 'ulid'
 import type { AgentMessage, SessionTreeEntry } from '@earendil-works/pi-agent-core'
 
@@ -168,7 +167,7 @@ export async function initializeAgentSessionActivity(
       data: {
         id: entryId,
         sessionId,
-        entry: entryJson as unknown as Prisma.InputJsonValue,
+        entry: entryJson,
       },
     })
     prevId = entryId
