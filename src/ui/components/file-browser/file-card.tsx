@@ -227,8 +227,12 @@ export function FileCard({
         />
       </div>
 
-      {displayItem.type === 'version_stack' && (
-        <Badge className="absolute right-2 top-2 z-10">v{displayItem.fileCount}</Badge>
+      {displayItem.versionStack && (
+        <Badge className="absolute right-2 top-2 z-10">
+          v
+          {displayItem.versionStack.versions.find((v) => v.id === displayItem.id)?.version ??
+            displayItem.versionStack.versions.length}
+        </Badge>
       )}
 
       <div className="relative aspect-square overflow-hidden bg-muted/30">

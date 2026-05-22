@@ -216,9 +216,11 @@ export function FileListItem({
             disabled={!isEditing}
             className="h-auto p-0 text-sm font-medium text-foreground truncate"
           />
-          {displayItem.type === 'version_stack' && (
+          {displayItem.versionStack && (
             <Badge variant="outline" className="px-1 py-0 text-xs shrink-0">
-              v{displayItem.fileCount}
+              v
+              {displayItem.versionStack.versions.find((v) => v.id === displayItem.id)?.version ??
+                displayItem.versionStack.versions.length}
             </Badge>
           )}
         </div>

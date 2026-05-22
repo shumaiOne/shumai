@@ -29,18 +29,19 @@ export class SearchService {
       where.parentId = { in: targetFolderIds }
     }
 
-    const targetType = req.assetType === 'folder' ? AssetType.folder : AssetType.file
+    const targetTypes =
+      req.assetType === 'folder' ? [AssetType.folder] : [AssetType.file, AssetType.version_stack]
     const typeCondition: Prisma.AssetWhereInput = req.showSymlink
       ? {
           OR: [
-            { type: targetType },
+            { type: { in: targetTypes } },
             {
               type: AssetType.symlink,
-              target: { type: targetType },
+              target: { type: { in: targetTypes } },
             },
           ],
         }
-      : { type: targetType }
+      : { type: { in: targetTypes } }
 
     if (req.conditions && req.conditions.length > 0) {
       const conditionPredicates: Prisma.AssetWhereInput[] = req.conditions.map((cond) => {

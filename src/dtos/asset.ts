@@ -102,6 +102,19 @@ export const assetInfoSchema = z.object({
     })
     .optional(),
   ancestorFolders: z.array(ancestorFolderSchema).optional(),
+  versionStack: z
+    .object({
+      id: z.string(),
+      versions: z.array(
+        z.object({
+          version: z.number(),
+          current: z.boolean(),
+          id: z.string(),
+        }),
+      ),
+    })
+    .optional()
+    .nullable(),
 })
 export type AssetInfo = z.infer<typeof assetInfoSchema>
 
