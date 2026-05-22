@@ -51,6 +51,9 @@ describe('Agent Activities', () => {
     const user1 = await prisma.user.create({
       data: { name: 'User One', email: 'user1@example.com' },
     })
+    const user2 = await prisma.user.create({
+      data: { name: 'Matt', email: 'matt@example.com' },
+    })
     const agentUser = await prisma.user.create({
       data: { id: 'agent-user-id', name: 'Smart Agent', email: 'agent@example.com', type: 'agent' },
     })
@@ -72,7 +75,7 @@ describe('Agent Activities', () => {
       data: {
         assetId: file.id,
         creatorId: user1.id,
-        message: 'First comment message',
+        message: `First comment message for <@${user2.id}>`,
       },
     })
 
@@ -131,7 +134,7 @@ describe('Agent Activities', () => {
     expect(entryData1.id).not.toBe(comment1.id)
     if (entryData1.type === 'message') {
       const msg = entryData1.message as { role: 'user'; content: { type: 'text'; text: string }[] }
-      expect(msg.content[0].text).toBe('[User One]: First comment message')
+      expect(msg.content[0].text).toBe('[User One]: First comment message for <@Matt>')
       expect(msg.role).toBe('user')
     } else {
       throw new Error('Expected entry to be a message')

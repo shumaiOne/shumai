@@ -123,11 +123,47 @@ export async function aiChatActivity(params: AiChatParams) {
       }
     }
 
+    // Resolve user mentions from IDs to names
+    const mentionRegex = /<@([^>]+)>/g
+    const mentionedUserIds = new Set<string>()
+    for (const c of existingComments) {
+      if (c.message) {
+        const matches = [...c.message.matchAll(mentionRegex)]
+        for (const match of matches) {
+          mentionedUserIds.add(match[1])
+        }
+      }
+    }
+
+    const userIdToNameMap = new Map<string, string>()
+    if (mentionedUserIds.size > 0) {
+      const resolvedUsers = await prisma.user.findMany({
+        where: {
+          id: { in: Array.from(mentionedUserIds) },
+        },
+        select: {
+          id: true,
+          name: true,
+        },
+      })
+      for (const u of resolvedUsers) {
+        if (u.name) {
+          userIdToNameMap.set(u.id, u.name)
+        }
+      }
+    }
+
     // Save context as AgentSessionEntry records
     let prevId: string | null = null
     for (const c of existingComments) {
       const isAgent = c.creator?.type === 'agent' || c.sessionId !== null
       let messageContent = c.message || ''
+
+      // Replace <@USER_ID> with <@USER_NAME>
+      messageContent = messageContent.replace(mentionRegex, (match, userId) => {
+        const resolvedName = userIdToNameMap.get(userId)
+        return resolvedName ? `<@${resolvedName}>` : match
+      })
 
       if (isAgent) {
         const agentName = c.creator?.name || 'Ai Agent'
