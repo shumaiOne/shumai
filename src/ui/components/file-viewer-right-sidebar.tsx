@@ -52,6 +52,7 @@ export function FileViewerRightSidebar({
     text: string
     attachmentIds: string[]
     annotations?: Annotation[]
+    replyToId?: string | null
   } | null>(null)
 
   const { data: apiFields } = useQuery({
@@ -126,6 +127,7 @@ export function FileViewerRightSidebar({
     },
     enabled: !!file?.id && (!isPublic || !!shareId),
     initialPageParam: '',
+    refetchInterval: 2000,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     getNextPageParam: (lastPage: any) => lastPage.pageInfo?.cursor || undefined,
   })
@@ -135,11 +137,13 @@ export function FileViewerRightSidebar({
       text,
       attachmentIds,
       annotations,
+      replyToId,
       guestUserId,
     }: {
       text: string
       attachmentIds: string[]
       annotations?: Annotation[]
+      replyToId?: string | null
       guestUserId?: string
     }) => {
       if (isPublic) {
@@ -150,7 +154,7 @@ export function FileViewerRightSidebar({
             json: {
               message: text,
               attachmentIds: attachmentIds,
-              replyToId: replyingTo?.id,
+              replyToId: replyToId ?? undefined,
               annotations: annotations,
             },
           },
@@ -169,7 +173,7 @@ export function FileViewerRightSidebar({
           json: {
             message: text,
             attachmentIds: attachmentIds,
-            replyToId: replyingTo?.id,
+            replyToId: replyToId ?? undefined,
             annotations: annotations,
           },
         })
@@ -220,6 +224,7 @@ export function FileViewerRightSidebar({
     text: string,
     attachmentIds: string[],
     annotations?: Annotation[],
+    replyToId?: string | null,
   ) => {
     if (!file?.id) return
 
@@ -235,16 +240,16 @@ export function FileViewerRightSidebar({
         console.log('[handleSendMessage] guestUserId from storage:', guestUserId)
         if (!guestUserId) {
           console.log('[handleSendMessage] no guest ID, opening popup')
-          setPendingComment({ text, attachmentIds, annotations })
+          setPendingComment({ text, attachmentIds, annotations, replyToId })
           setIsGuestPopupOpen(true)
           return
         }
-        createComment({ text, attachmentIds, annotations, guestUserId })
+        createComment({ text, attachmentIds, annotations, replyToId, guestUserId })
       } else {
-        createComment({ text, attachmentIds, annotations })
+        createComment({ text, attachmentIds, annotations, replyToId })
       }
     } else {
-      createComment({ text, attachmentIds, annotations })
+      createComment({ text, attachmentIds, annotations, replyToId })
     }
     setReplyingTo(null)
   }

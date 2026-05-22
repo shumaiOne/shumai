@@ -771,6 +771,18 @@ export class AssetService {
       })
       if (!a) throw new Error('Asset not found')
 
+      let actualReplyToId = req.replyToId
+      let parentComment = null
+      if (req.replyToId) {
+        parentComment = await tx.assetComment.findUnique({
+          where: { id: req.replyToId },
+          include: { creator: true },
+        })
+        if (parentComment?.replyToId) {
+          actualReplyToId = parentComment.replyToId
+        }
+      }
+
       const comment = await tx.assetComment.create({
         data: {
           assetId: a.id,
@@ -778,7 +790,7 @@ export class AssetService {
           message: req.message,
           annotation: req.annotations,
           second: req.second,
-          replyToId: req.replyToId,
+          replyToId: actualReplyToId,
         },
       })
       commentId = comment.id
@@ -797,12 +809,43 @@ export class AssetService {
         }
       }
 
-      // Detect bot mentions
-      const botMentionMatches = req.message.matchAll(/<@([^>]+)>/g)
-      for (const match of botMentionMatches) {
-        const agentId = match[1]
-        let foundAgent = false
+      // Parse bot mentions
+      const botMentionMatches = [...req.message.matchAll(/<@([^>]+)>/g)]
+      const mentionedAgentIds = new Set(botMentionMatches.map((match) => match[1]))
+      const handledAgentIds = new Set<string>()
 
+      if (parentComment && a.project) {
+        const rootSessionId = parentComment.sessionId
+        const isRootAgent = !!rootSessionId || parentComment.creator?.type === 'agent'
+        const rootAgentId = parentComment.creatorId
+
+        if (isRootAgent && rootAgentId) {
+          const explicitMention = mentionedAgentIds.has(rootAgentId)
+          await tx.workflowTask.create({
+            data: {
+              assetId: a.id,
+              type: 'chat',
+              status: 'pending',
+              teamId: a.project.team.id,
+              projectId: a.project.id,
+              payload: {
+                userCommentId: comment.id,
+                agentId: rootAgentId,
+                projectId: a.project.id,
+                sessionId: rootSessionId || undefined,
+                explicitMention,
+              },
+            },
+          })
+          handledAgentIds.add(rootAgentId)
+        }
+      }
+
+      // Handle any other explicitly mentioned agents
+      for (const agentId of mentionedAgentIds) {
+        if (handledAgentIds.has(agentId)) continue
+
+        let foundAgent = false
         if (agentId === 'default') {
           foundAgent = true
         } else {
@@ -822,9 +865,11 @@ export class AssetService {
                 userCommentId: comment.id,
                 agentId: agentId,
                 projectId: a.project.id,
+                explicitMention: true,
               },
             },
           })
+          handledAgentIds.add(agentId)
         }
       }
     })

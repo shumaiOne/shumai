@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { setupTestDbHooks } from '@/db-test-hooks'
 import { aiChatActivity } from './agent'
 import { agentService } from '@/services/agent/agent'
 
@@ -10,13 +9,11 @@ vi.mock('@/services/agent/agent', () => ({
 }))
 
 describe('Agent Activities', () => {
-  setupTestDbHooks()
-
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('should call aiChatActivity', async () => {
+  it('should call aiChatActivity and delegate to agentService', async () => {
     vi.mocked(agentService.chatWithAgent).mockResolvedValue({
       text: 'AI response',
       usage: { inputTokens: 1, outputTokens: 1, model: 'gpt-4' },
@@ -30,6 +27,7 @@ describe('Agent Activities', () => {
       imageUrls: [],
       projectId: 'p1',
       folderId: 'f1',
+      sessionId: 'mock-session-id',
     })
 
     expect(agentService.chatWithAgent).toHaveBeenCalledWith(
@@ -38,7 +36,7 @@ describe('Agent Activities', () => {
       'Hi',
       [],
       '',
-      undefined,
+      'mock-session-id',
       undefined,
     )
   })

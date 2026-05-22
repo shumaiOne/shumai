@@ -35,7 +35,12 @@ type UploadingFile = {
 
 interface ChatInputProps {
   projectId: string
-  onSendMessage: (text: string, attachmentIds: string[], annotations?: Annotation[]) => void
+  onSendMessage: (
+    text: string,
+    attachmentIds: string[],
+    annotations?: Annotation[],
+    replyToId?: string | null,
+  ) => void
   replyingTo?: CommentInfo | null
   onCancelReply?: () => void
   users?: UserInfo[]
@@ -134,6 +139,20 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
         sel?.addRange(range)
       }
     }, [initialText])
+
+    // Focus editor when replyingTo becomes truthy
+    useEffect(() => {
+      if (replyingTo && editorRef.current) {
+        editorRef.current.focus()
+        // Focus and move cursor to end
+        const range = document.createRange()
+        const sel = window.getSelection()
+        range.selectNodeContents(editorRef.current)
+        range.collapse(false)
+        sel?.removeAllRanges()
+        sel?.addRange(range)
+      }
+    }, [replyingTo])
 
     // Clean up drawing mode on unmount
     useEffect(() => {
@@ -376,7 +395,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
       // Allow sending if annotations exist, even if text is empty
       if (!processedText && successfulAttachmentIds.length === 0 && annotations.length === 0) return
 
-      onSendMessage(processedText, successfulAttachmentIds, annotations)
+      onSendMessage(processedText, successfulAttachmentIds, annotations, replyingTo?.id)
 
       // Reset editor
       editorRef.current.innerHTML = ''

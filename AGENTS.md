@@ -297,6 +297,7 @@ We use a custom workflow engine that supports both **Local** (polling-based) and
 - **Location**: Defined in `src/services/workflow/activities/<domain>.ts`.
 - **Export**: Export individual activity functions and re-export them in `src/services/workflow/activities/index.ts`.
 - **Implementation**: Activities _can_ and _should_ call other services (e.g., `aiService`, `transcodeService`) or interact with the database.
+- **Database Access Restriction**: **Agent activities (or other non-database activities) are strictly prohibited from calling the database directly.** All database queries or updates must be isolated within dedicated database activities defined in `src/workflow/activities/db.ts` (running on `db_queue` / `TaskQueueDb`). Workflow functions coordinate execution by first invoking the database activity to resolve and store state, then passing the resolved data to the agent/non-database activity.
 
 ## Import conventions
 
