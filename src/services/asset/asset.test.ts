@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { prisma } from '@/db'
 import { setupTestDbHooks } from '@/db-test-hooks'
 
-import { AssetType } from '@/generated/prisma/client.ts'
+import { AssetType, AssetStatus } from '@/generated/prisma/client.ts'
 import { AssetService } from './asset'
 
 vi.mock('@/services/s3/s3', () => ({
@@ -1197,7 +1197,7 @@ describe('AssetService', () => {
       const childData = Array.from({ length: childCount }).map((_, i) => ({
         name: `File ${i}`,
         type: AssetType.file,
-        status: 'pending_purge',
+        status: AssetStatus.pending_purge,
         isDeleted: true,
         projectId: project.id,
         parentId: folderA.id,
