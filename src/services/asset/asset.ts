@@ -756,6 +756,60 @@ export class AssetService {
     }
   }
 
+  startCleanupJob() {
+    // Run cleanup every 1 second
+    setInterval(async () => {
+      try {
+        await this.cleanupOldAssets()
+      } catch (e: unknown) {
+        console.error('Error in asset cleanup job:', e)
+      }
+    }, 1000)
+  }
+
+  private async cleanupOldAssets() {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+
+    // 1. Lock 100 assets using raw SQL FOR UPDATE SKIP LOCKED and mark them as 'removed'
+    // This immediately releases the DB lock as soon as the status is updated.
+    const lockedAssets = await this.prismaClient.$queryRaw<{ id: string; key: string | null }[]>`
+      WITH to_delete AS (
+        SELECT id FROM assets
+        WHERE removed = true
+          AND deleted_at < ${thirtyDaysAgo}
+          AND status != 'removed'
+        LIMIT 100
+        FOR UPDATE SKIP LOCKED
+      )
+      UPDATE assets SET status = 'removed', updated_at = NOW()
+      WHERE id IN (SELECT id FROM to_delete)
+      RETURNING id, key;
+    `
+
+    if (lockedAssets.length === 0) return
+
+    // 2. Physical file deletion from storage
+    const bucket = process.env.S3_BUCKET || 'shumai'
+    await Promise.allSettled(
+      lockedAssets.map(async (a) => {
+        if (a.key) {
+          try {
+            await s3Service.deleteObject(bucket, a.key)
+          } catch (e: unknown) {
+            console.error(`Failed to delete storage object ${a.key}:`, e)
+          }
+        }
+      }),
+    )
+
+    // 3. Hard delete from database
+    // Cascade FKs will handle related comments, metadata, etc.
+    const ids = lockedAssets.map((a) => a.id)
+    await this.prismaClient.asset.deleteMany({
+      where: { id: { in: ids } },
+    })
+  }
+
   async restoreAssets(ids: string[]): Promise<void> {
     for (const id of ids) {
       await this.prismaClient.$transaction(async (tx) => {

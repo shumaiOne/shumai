@@ -312,7 +312,7 @@ model ProjectMember {
   role           ProjectMemberRole
 
   projectId      String            @map("project_id")
-  project        Project           @relation("ProjectToProjectMember", fields: [projectId], references: [id])
+  project        Project           @relation("ProjectToProjectMember", fields: [projectId], references: [id], onDelete: Cascade)
 
   teamMemberId   String            @map("team_member_id")
   teamMember     TeamMember        @relation("TeamMemberToProjectMember", fields: [teamMemberId], references: [id])
@@ -334,7 +334,7 @@ model ShareLink {
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
   projectId        String    @map("project_id")
-  project          Project   @relation("ProjectToShareLink", fields: [projectId], references: [id])
+  project          Project   @relation("ProjectToShareLink", fields: [projectId], references: [id], onDelete: Cascade)
 
   rootFolderId     String    @unique @map("root_folder_id")
   rootFolder       Asset     @relation("ShareLinkToRootFolder", fields: [rootFolderId], references: [id])
@@ -362,7 +362,7 @@ model Asset {
   updatedAt         DateTime     @updatedAt @map("updated_at")
 
   parentId          String?      @map("parent_id")
-  parent            Asset?       @relation("AssetChildren", fields: [parentId], references: [id])
+  parent            Asset?       @relation("AssetChildren", fields: [parentId], references: [id], onDelete: Cascade)
   children          Asset[]      @relation("AssetChildren")
 
   targetId          String?      @map("target_id")
@@ -378,7 +378,7 @@ model Asset {
   task              Task?        @relation("TaskToAsset", fields: [taskId], references: [id])
 
   projectId         String?      @map("project_id")
-  project           Project?     @relation("ProjectToAsset", fields: [projectId], references: [id])
+  project           Project?     @relation("ProjectToAsset", fields: [projectId], references: [id], onDelete: Cascade)
 
   comments          AssetComment[]           @relation("AssetToComment")
   commentAttachments AssetCommentAttachment[] @relation("AssetToCommentAttachment")
@@ -436,13 +436,13 @@ model AssetComment {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   assetId     String   @map("asset_id")
-  asset       Asset    @relation("AssetToComment", fields: [assetId], references: [id])
+  asset       Asset    @relation("AssetToComment", fields: [assetId], references: [id], onDelete: Cascade)
 
   creatorId   String?  @map("creator_id")
   creator     User?    @relation("UserToAssetComment", fields: [creatorId], references: [id])
 
   replyToId   String?  @map("reply_to_id")
-  replyTo     AssetComment? @relation("CommentReplies", fields: [replyToId], references: [id])
+  replyTo     AssetComment? @relation("CommentReplies", fields: [replyToId], references: [id], onDelete: Cascade)
   replies     AssetComment[] @relation("CommentReplies")
 
   attachments AssetCommentAttachment[] @relation("CommentToAttachment")
@@ -456,10 +456,10 @@ model AssetCommentAttachment {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   commentId   String   @map("comment_id")
-  comment     AssetComment @relation("CommentToAttachment", fields: [commentId], references: [id])
+  comment     AssetComment @relation("CommentToAttachment", fields: [commentId], references: [id], onDelete: Cascade)
 
   assetId     String   @map("asset_id")
-  asset       Asset        @relation("AssetToCommentAttachment", fields: [assetId], references: [id])
+  asset       Asset        @relation("AssetToCommentAttachment", fields: [assetId], references: [id], onDelete: Cascade)
 
   @@map("asset_comment_attachments")
 }
@@ -490,7 +490,7 @@ model Invite {
   team        Team       @relation("TeamToInvite", fields: [teamId], references: [id])
 
   projectId   String?    @map("project_id")
-  project     Project?   @relation("ProjectToInvite", fields: [projectId], references: [id])
+  project     Project?   @relation("ProjectToInvite", fields: [projectId], references: [id], onDelete: Cascade)
 
   inviterId   String     @map("inviter_id")
   inviter     User       @relation("UserToInvite", fields: [inviterId], references: [id])
@@ -512,7 +512,7 @@ model MetadataField {
   team        Team?              @relation("TeamToMetadataField", fields: [teamId], references: [id])
 
   projectId   String?            @map("project_id")
-  project     Project?           @relation("ProjectToMetadataField", fields: [projectId], references: [id])
+  project     Project?           @relation("ProjectToMetadataField", fields: [projectId], references: [id], onDelete: Cascade)
 
   @@map("metadata_fields")
 }
@@ -527,13 +527,13 @@ model Notification {
   team        Team             @relation("TeamToNotification", fields: [teamId], references: [id])
 
   projectId   String?          @map("project_id")
-  project     Project?         @relation("ProjectToNotification", fields: [projectId], references: [id])
+  project     Project?         @relation("ProjectToNotification", fields: [projectId], references: [id], onDelete: Cascade)
 
   creatorId   String?          @map("creator_id")
   creator     User?            @relation("UserToCreatedNotification", fields: [creatorId], references: [id])
 
   assetId     String?          @map("asset_id")
-  asset       Asset?           @relation("AssetToNotification", fields: [assetId], references: [id])
+  asset       Asset?           @relation("AssetToNotification", fields: [assetId], references: [id], onDelete: Cascade)
 
   taskId      String?          @map("task_id")
   task        Task?            @relation("TaskToNotification", fields: [taskId], references: [id])

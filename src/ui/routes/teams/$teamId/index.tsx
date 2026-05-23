@@ -26,14 +26,16 @@ import {
 import { ShumaiLogo } from '@/ui/components/ui/icons'
 import { formatDateAgo } from '@/ui/lib/time'
 import { cn } from '@/ui/lib/utils'
-import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
+import { useQuery, useSuspenseQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { MoreHorizontal, PlusIcon } from 'lucide-react'
 import { useState } from 'react'
+import { Input } from '@/ui/components/ui/input'
 
 function TeamPage() {
   const { teamId } = Route.useParams()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   // State for clicked project for animation
   const [clickedProjectId, setClickedProjectId] = useState<string | null>(null)
@@ -46,6 +48,7 @@ function TeamPage() {
   // State for Delete Alert
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [projectToDelete, setProjectToDelete] = useState<ProjectInfo | undefined>(undefined)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
 
   // State for Members Dialog
   const [isMembersDialogOpen, setIsMembersDialogOpen] = useState(false)
@@ -105,6 +108,18 @@ function TeamPage() {
     },
   })
 
+  const deleteProjectMutation = useMutation({
+    mutationFn: async (projectId: string) => {
+      const res = await client.api.projects[':projectId'].$delete({
+        param: { projectId },
+      })
+      if (!res.ok) throw new Error('Failed to delete project')
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'projects'] })
+    },
+  })
+
   const handleCreateProjectClick = () => {
     setProjectDialogMode('create')
     setSelectedProject(undefined)
@@ -130,14 +145,19 @@ function TeamPage() {
 
   const handleDeleteProjectClick = (project: ProjectInfo) => {
     setProjectToDelete(project)
+    setDeleteConfirmText('')
     setIsDeleteDialogOpen(true)
   }
 
-  const handleConfirmDelete = () => {
-    if (projectToDelete) {
-      console.log('Delete project', projectToDelete.id)
+  const handleConfirmDelete = async () => {
+    if (projectToDelete && deleteConfirmText === 'delete') {
+      try {
+        await deleteProjectMutation.mutateAsync(projectToDelete.id!)
+        setIsDeleteDialogOpen(false)
+      } catch (error) {
+        console.error(error)
+      }
     }
-    setIsDeleteDialogOpen(false)
   }
 
   const handleCardClick = (projectId: string, e: React.MouseEvent) => {
@@ -317,16 +337,34 @@ function TeamPage() {
               <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
               <AlertDialogDescription>
                 This action cannot be undone. This will permanently delete the project &quot;
-                {projectToDelete?.name}&quot;.
+                {projectToDelete?.name}&quot; and all its assets.
+                <div className="mt-4 flex flex-col gap-2 text-foreground">
+                  <span className="text-sm font-medium">
+                    Type <strong>delete</strong> to confirm:
+                  </span>
+                  <Input
+                    value={deleteConfirmText}
+                    onChange={(e) => setDeleteConfirmText(e.target.value)}
+                    placeholder="delete"
+                    className="h-9"
+                    autoFocus
+                  />
+                </div>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel disabled={deleteProjectMutation.isPending}>
+                Cancel
+              </AlertDialogCancel>
               <AlertDialogAction
-                onClick={handleConfirmDelete}
+                onClick={(e) => {
+                  e.preventDefault()
+                  handleConfirmDelete()
+                }}
+                disabled={deleteConfirmText !== 'delete' || deleteProjectMutation.isPending}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                Delete
+                {deleteProjectMutation.isPending ? 'Deleting...' : 'Delete'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

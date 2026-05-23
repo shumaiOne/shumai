@@ -113,6 +113,19 @@ const route = new Hono<{ Variables: { user: User } }>()
     const p = await projectService.getProject(projectId)
     return c.json(p)
   })
+  .delete('/projects/:projectId', async (c) => {
+    const projectId = c.req.param('projectId')
+    const user = c.get('user')
+
+    await authzService.hasPermission({
+      projectId,
+      user,
+      permission: Permission.Admin,
+    })
+
+    await projectService.deleteProject(projectId)
+    return c.json({ success: true })
+  })
   .get('/projects/:projectId/team', async (c) => {
     const projectId = c.req.param('projectId')
     const user = c.get('user')

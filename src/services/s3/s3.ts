@@ -4,6 +4,7 @@ import {
   HeadObjectCommand,
   ListObjectsV2Command,
   PutObjectCommand,
+  DeleteObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
@@ -49,6 +50,7 @@ export interface S3Service {
   ): Promise<void>
   getObject(bucket: string, key: string): Promise<S3Object>
   downloadToFile(bucket: string, key: string, filePath: string): Promise<void>
+  deleteObject(bucket: string, key: string): Promise<void>
   headObject(bucket: string, key: string): Promise<ObjectInfo>
   listObjects(bucket: string, prefix: string): Promise<string[]>
   uploadFile(filePath: string, contentType: string): Promise<string>
@@ -155,6 +157,14 @@ export class S3StorageService implements S3Service {
           resolve(null)
         })
     })
+  }
+
+  async deleteObject(bucket: string, key: string): Promise<void> {
+    const command = new DeleteObjectCommand({
+      Bucket: bucket,
+      Key: key,
+    })
+    await this.client.send(command)
   }
 
   async headObject(bucket: string, key: string): Promise<ObjectInfo> {
@@ -309,6 +319,19 @@ export class LocalStorageService implements S3Service {
   async downloadToFile(bucket: string, key: string, filePath: string): Promise<void> {
     const srcPath = this.getFilePath(bucket, key)
     await fs.promises.copyFile(srcPath, filePath)
+  }
+
+  async deleteObject(bucket: string, key: string): Promise<void> {
+    const filePath = this.getFilePath(bucket, key)
+    try {
+      await fs.promises.unlink(filePath)
+    } catch (e: unknown) {
+      if (e instanceof Error && (e as NodeJS.ErrnoException).code === 'ENOENT') {
+        // Ignore if file doesn't exist
+        return
+      }
+      throw e
+    }
   }
 
   async headObject(bucket: string, key: string): Promise<ObjectInfo> {

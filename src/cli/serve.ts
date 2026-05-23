@@ -22,6 +22,7 @@ import teamRoute from '@/api/team'
 import uploadRoute from '@/api/upload'
 import versionStackRoute from '@/api/versionStack'
 import { metadataService } from '@/services/metadata/metadata'
+import { assetService } from '@/services/asset/asset'
 import { workflowService } from '@/workflow/workflow'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
@@ -61,6 +62,7 @@ export type AppType = typeof apiAppRoute
 export async function run() {
   // Start services
   await metadataService.syncSystemFields().catch(console.error)
+  assetService.startCleanupJob()
   workflowService.start()
   if (process.env.WORKFLOW_EXECUTOR === 'temporal') {
     const args = process.argv.slice(2)

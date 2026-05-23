@@ -130,7 +130,7 @@ export class ProjectService {
     const direction = req.sortDirection === 'desc' ? 'desc' : 'asc'
     if (req.sortBy) {
       if (req.sortBy === 'created_at') {
-        orderBy.id = direction
+        orderBy.createdAt = direction
       } else if (req.sortBy === 'updated_at') {
         orderBy.updatedAt = direction
       } else {
@@ -222,6 +222,53 @@ export class ProjectService {
         name: pm.teamMember.user.name,
         role: pm.role,
       }))
+  }
+
+  async deleteProject(projectId: string): Promise<void> {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    })
+    if (!project) throw new Error('Project not found')
+
+    const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Unlink root folders from project to avoid cycle during deletion
+      await tx.project.update({
+        where: { id: projectId },
+        data: { rootFolderId: null, shareRootId: null },
+      })
+
+      // 2. Detach ALL assets (files and folders) from project and soft-delete them
+      // This queues them for the background cleanup job.
+      await tx.asset.updateMany({
+        where: { projectId },
+        data: {
+          projectId: null,
+          parentId: null,
+          targetId: null,
+          removed: true,
+          deletedAt: sixtyDaysAgo,
+          status: 'trashed',
+        },
+      })
+
+      // 3. Delete the project itself
+      // Thanks to cascade deletes, project members, invites, etc. will be cleaned up.
+      await tx.project.delete({
+        where: { id: projectId },
+      })
+    })
+
+    // Synchronously delete the project's cover image if it exists
+    if (project.coverImageKey) {
+      const bucket = process.env.S3_BUCKET || 'shumai'
+      try {
+        await s3Service.deleteObject(bucket, project.coverImageKey)
+      } catch (e: unknown) {
+        console.error(`Failed to delete project cover image ${project.coverImageKey}:`, e)
+      }
+    }
   }
 
   async getProjectRootFolder(projectId: string): Promise<string> {
