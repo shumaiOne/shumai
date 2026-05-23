@@ -17,7 +17,6 @@ import {
 } from '@/ui/components/ui/alert-dialog'
 import { Avatar, AvatarFallback } from '@/ui/components/ui/avatar'
 import { Button } from '@/ui/components/ui/button'
-import { Card } from '@/ui/components/ui/card'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +25,7 @@ import {
 } from '@/ui/components/ui/dropdown-menu'
 import { ShumaiLogo } from '@/ui/components/ui/icons'
 import { formatDateAgo } from '@/ui/lib/time'
+import { cn } from '@/ui/lib/utils'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { MoreHorizontal, PlusIcon } from 'lucide-react'
@@ -34,6 +34,9 @@ import { useState } from 'react'
 function TeamPage() {
   const { teamId } = Route.useParams()
   const navigate = useNavigate()
+
+  // State for clicked project for animation
+  const [clickedProjectId, setClickedProjectId] = useState<string | null>(null)
 
   // State for Project Dialog
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false)
@@ -108,6 +111,17 @@ function TeamPage() {
     setIsProjectDialogOpen(true)
   }
 
+  const handleCreateCardClick = () => {
+    setClickedProjectId('create')
+    setTimeout(() => {
+      setClickedProjectId(null)
+    }, 100)
+
+    setTimeout(() => {
+      handleCreateProjectClick()
+    }, 200)
+  }
+
   const handleEditProjectClick = (project: ProjectInfo) => {
     setProjectDialogMode('edit')
     setSelectedProject(project)
@@ -126,11 +140,23 @@ function TeamPage() {
     setIsDeleteDialogOpen(false)
   }
 
-  const handleCardClick = (projectId: string) => {
-    navigate({
-      to: '/projects/$projectId',
-      params: { projectId },
-    })
+  const handleCardClick = (projectId: string, e: React.MouseEvent) => {
+    if (e.detail > 1) return
+
+    setClickedProjectId(projectId)
+
+    // Restore scale after 100ms for "shrink and restore" effect
+    setTimeout(() => {
+      setClickedProjectId(null)
+    }, 100)
+
+    // Navigate after 200ms
+    setTimeout(() => {
+      navigate({
+        to: '/projects/$projectId',
+        params: { projectId },
+      })
+    }, 200)
   }
 
   const handleInvite = async (role: 'editor' | 'reviewer') => {
@@ -200,11 +226,15 @@ function TeamPage() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-4">
           {projects.data?.map((project: ProjectInfo) => (
-            <div key={project.id} className="shadow-md relative border rounded-xl overflow-hidden">
-              <div
-                className="cursor-pointer flex flex-col"
-                onClick={() => handleCardClick(project.id!)}
-              >
+            <div
+              key={project.id}
+              className={cn(
+                'shadow-md relative border rounded-xl overflow-hidden cursor-pointer transition-transform duration-100 ease-in-out',
+                clickedProjectId === project.id ? 'scale-95' : 'scale-100',
+              )}
+              onClick={(e) => handleCardClick(project.id!, e)}
+            >
+              <div className="flex flex-col">
                 <div className="relative w-full h-full aspect-square flex items-center justify-center bg-zinc-400/20">
                   {project.coverImage ? (
                     <img
@@ -224,7 +254,7 @@ function TeamPage() {
                   <p className="truncate pr-1 text-xs text-muted-foreground">
                     Updated {formatDateAgo((project.updatedAt as string) ?? '')}
                   </p>
-                  <div>
+                  <div onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button className="hover:bg-muted outline-none flex px-1">
@@ -253,15 +283,24 @@ function TeamPage() {
               </div>
             </div>
           ))}
-          <Card
-            className="flex items-center justify-center hover:shadow-lg transition-shadow cursor-pointer"
-            onClick={handleCreateProjectClick}
+          <div
+            className={cn(
+              'shadow-md relative border rounded-xl overflow-hidden cursor-pointer transition-transform duration-100 ease-in-out border-dashed hover:border-orange-600/50 group',
+              clickedProjectId === 'create' ? 'scale-95' : 'scale-100',
+            )}
+            onClick={handleCreateCardClick}
           >
-            <div className="text-center">
-              <PlusIcon className="w-8 h-8 mx-auto text-muted-foreground" />
-              <p className="mt-2 text-sm text-muted-foreground">Create Project</p>
+            <div className="flex flex-col">
+              <div className="relative w-full aspect-square flex items-center justify-center bg-zinc-400/5 group-hover:bg-orange-600/5 transition-colors">
+                <PlusIcon className="w-8 h-8 text-zinc-400 group-hover:text-orange-600 transition-colors" />
+              </div>
+              <div className="px-2 h-10 flex items-center justify-center bg-zinc-400/10 border-t group-hover:bg-orange-600/10 transition-colors">
+                <p className="text-sm text-muted-foreground group-hover:text-orange-600 transition-colors">
+                  Create Project
+                </p>
+              </div>
             </div>
-          </Card>
+          </div>
         </div>
 
         <ProjectDialog
