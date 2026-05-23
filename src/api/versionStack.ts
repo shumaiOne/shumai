@@ -15,10 +15,10 @@ const app = new Hono<{ Variables: { user: User } }>()
 
 const route = app
   .post(
-    '/projects/:projectID/version_stacks',
+    '/projects/:projectId/version_stacks',
     zValidator('json', createVersionStackRequestSchema),
     async (c) => {
-      const projectId = c.req.param('projectID')
+      const projectId = c.req.param('projectId')
       const user = c.get('user')
       const req = c.req.valid('json')
 
@@ -40,11 +40,11 @@ const route = app
     },
   )
   .post(
-    '/projects/:projectID/version_stacks/:stackID/order',
+    '/projects/:projectId/version_stacks/:stackId/order',
     zValidator('json', changeStackFileVersionRequestSchema),
     async (c) => {
-      const projectId = c.req.param('projectID')
-      const stackId = c.req.param('stackID')
+      const projectId = c.req.param('projectId')
+      const stackId = c.req.param('stackId')
       const user = c.get('user')
       const req = c.req.valid('json')
 
@@ -63,5 +63,19 @@ const route = app
       return new Response(null, { status: 200 })
     },
   )
+  .get('/projects/:projectId/version_stacks/:stackId/versions', async (c) => {
+    const projectId = c.req.param('projectId')
+    const stackId = c.req.param('stackId')
+    const user = c.get('user')
+
+    await authzService.hasPermission({
+      projectId,
+      user,
+      permission: Permission.Read,
+    })
+
+    const versions = await assetService.getStackVersions(stackId)
+    return c.json(versions)
+  })
 
 export default route

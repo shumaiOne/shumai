@@ -28,11 +28,13 @@ describe('versionStack api', () => {
   let mockCreateVersionStack: any // eslint-disable-line @typescript-eslint/no-explicit-any
   let mockChangeStackFileVersion: any // eslint-disable-line @typescript-eslint/no-explicit-any
   let mockGetAsset: any // eslint-disable-line @typescript-eslint/no-explicit-any
+  let mockGetStackVersions: any // eslint-disable-line @typescript-eslint/no-explicit-any
 
   beforeEach(() => {
     mockCreateVersionStack = vi.spyOn(versionStackService, 'createVersionStack')
     mockChangeStackFileVersion = vi.spyOn(versionStackService, 'changeStackFileVersion')
     mockGetAsset = vi.spyOn(assetService, 'getAsset')
+    mockGetStackVersions = vi.spyOn(assetService, 'getStackVersions')
   })
 
   afterEach(() => {
@@ -113,6 +115,34 @@ describe('versionStack api', () => {
 
       expect(res.status).toBe(400)
       expect(mockChangeStackFileVersion).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('GET /projects/:projectID/version_stacks/:stackID/versions', () => {
+    it('should return stack versions', async () => {
+      const mockVersions = [
+        {
+          id: 'v1',
+          version: 1,
+          name: 'version1.png',
+          previewUrl: 'http://preview1',
+          creator: { id: 'u1', name: 'User 1' },
+        },
+      ]
+
+      mockGetStackVersions.mockResolvedValue(mockVersions)
+
+      const app = new Hono().use('*', authMiddleware).route('/', versionStackRoute)
+
+      const res = await app.request('/projects/p1/version_stacks/stack1/versions', {
+        method: 'GET',
+      })
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data).toEqual(mockVersions)
+
+      expect(mockGetStackVersions).toHaveBeenCalledWith('stack1')
     })
   })
 })

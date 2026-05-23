@@ -972,5 +972,205 @@ describe('AssetService', () => {
       expect(res.data[0].type).toBe(AssetType.symlink)
       expect(res.data[0].name).toBe('symlink.txt')
     })
+
+    it('populates versionStack and latestVersion correctly when files are reparented', async () => {
+      const team = await prisma.team.create({ data: { name: 'Test Team' } })
+      const project = await prisma.project.create({
+        data: { name: 'Test Project', teamId: team.id },
+      })
+      const user = await prisma.user.create({
+        data: { name: 'Test User', email: `test-${Date.now()}@example.com` },
+      })
+
+      const parentFolder = await prisma.asset.create({
+        data: {
+          name: 'Parent Folder',
+          type: AssetType.folder,
+          projectId: project.id,
+          creatorId: user.id,
+          status: 'uploaded',
+        },
+      })
+
+      const fileA = await prisma.asset.create({
+        data: {
+          name: 'fileA.txt',
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: parentFolder.id,
+          creatorId: user.id,
+          status: 'uploaded',
+          sizeByte: 100,
+        },
+      })
+
+      const fileB = await prisma.asset.create({
+        data: {
+          name: 'fileB.txt',
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: parentFolder.id,
+          creatorId: user.id,
+          status: 'uploaded',
+          sizeByte: 200,
+        },
+      })
+
+      // Reparent fileB onto fileA to create a version stack
+      await assetService.reparentAssets({
+        creatorId: user.id,
+        assetIds: [fileB.id],
+        newParentId: fileA.id,
+      })
+
+      // Now list children of the parentFolder
+      const res = await assetService.listChildren({
+        assetId: parentFolder.id,
+        assetType: 'file',
+      })
+
+      expect(res.data).toHaveLength(1)
+      const stackAsset = res.data[0]
+      expect(stackAsset.type).toBe(AssetType.version_stack)
+      expect(stackAsset.versionStack).toBeDefined()
+      expect(stackAsset.versionStack?.versions).toHaveLength(2)
+      const versions = stackAsset.versionStack!.versions
+      // Index 0 must be fileB (latest version) since it has lower sortIndex
+      expect(versions[0].id).toBe(fileB.id)
+      expect(versions[0].version).toBe(2)
+      expect(versions[0].current).toBe(true)
+
+      // Index 1 must be fileA (older version) since it has higher sortIndex
+      expect(versions[1].id).toBe(fileA.id)
+      expect(versions[1].version).toBe(1)
+      expect(versions[1].current).toBe(false)
+    })
+  })
+
+  describe('getAsset', () => {
+    it('does not include version_stack in ancestorFolders', async () => {
+      const team = await prisma.team.create({ data: { name: 'Test Team' } })
+      const project = await prisma.project.create({
+        data: { name: 'Test Project', teamId: team.id },
+      })
+      const user = await prisma.user.create({
+        data: { name: 'Test User', email: `test-${Date.now()}@example.com` },
+      })
+
+      const parentFolder = await prisma.asset.create({
+        data: {
+          name: 'Parent Folder',
+          type: AssetType.folder,
+          projectId: project.id,
+          creatorId: user.id,
+          status: 'uploaded',
+        },
+      })
+
+      const fileA = await prisma.asset.create({
+        data: {
+          name: 'fileA.txt',
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: parentFolder.id,
+          creatorId: user.id,
+          status: 'uploaded',
+          sizeByte: 100,
+        },
+      })
+
+      const fileB = await prisma.asset.create({
+        data: {
+          name: 'fileB.txt',
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: parentFolder.id,
+          creatorId: user.id,
+          status: 'uploaded',
+          sizeByte: 200,
+        },
+      })
+
+      // Reparent fileB onto fileA to create a version stack
+      await assetService.reparentAssets({
+        creatorId: user.id,
+        assetIds: [fileB.id],
+        newParentId: fileA.id,
+      })
+
+      // Now get stack info
+      const stack = await prisma.asset.findFirst({
+        where: { parentId: parentFolder.id, type: AssetType.version_stack },
+      })
+      expect(stack).toBeDefined()
+
+      // Fetch details of version fileB
+      const info = await assetService.getAsset({ assetId: fileB.id })
+
+      // Verify that ancestorFolders contains the parent folder but NOT the version stack
+      expect(info.ancestorFolders).toBeDefined()
+      const containsStack = info.ancestorFolders?.some((f) => f.id === stack!.id)
+      expect(containsStack).toBe(false)
+      expect(info.ancestorFolders?.find((f) => f.id === parentFolder.id)).toBeDefined()
+    })
+  })
+
+  describe('getStackVersions', () => {
+    it('returns all versions in a stack ordered by sortIndex asc', async () => {
+      const team = await prisma.team.create({ data: { name: 'Test Team' } })
+      const project = await prisma.project.create({
+        data: { name: 'Test Project', teamId: team.id },
+      })
+      const user = await prisma.user.create({
+        data: { name: 'Test User', email: `test-${Date.now()}@example.com` },
+      })
+
+      const stack = await prisma.asset.create({
+        data: {
+          name: 'stack',
+          type: AssetType.version_stack,
+          projectId: project.id,
+          creatorId: user.id,
+          status: 'uploaded',
+        },
+      })
+
+      const file1 = await prisma.asset.create({
+        data: {
+          name: 'version1.txt',
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: stack.id,
+          creatorId: user.id,
+          status: 'uploaded',
+          sortIndex: 'a1', // older version has higher sortIndex
+        },
+      })
+
+      const file2 = await prisma.asset.create({
+        data: {
+          name: 'version2.txt',
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: stack.id,
+          creatorId: user.id,
+          status: 'uploaded',
+          sortIndex: 'a0', // newer/latest version has lower sortIndex
+        },
+      })
+
+      const versions = await assetService.getStackVersions(stack.id)
+
+      expect(versions).toHaveLength(2)
+      expect(versions[0].id).toBe(file2.id) // newer version must be first
+      expect(versions[0].version).toBe(2)
+      expect(versions[0].name).toBe('version2.txt')
+      expect(versions[0].creator?.id).toBe(user.id)
+      expect(versions[0].creator?.name).toBe('Test User')
+
+      expect(versions[1].id).toBe(file1.id) // older version must be second
+      expect(versions[1].version).toBe(1)
+      expect(versions[1].name).toBe('version1.txt')
+    })
   })
 })

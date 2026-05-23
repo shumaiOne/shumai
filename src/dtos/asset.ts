@@ -110,6 +110,15 @@ export const assetInfoSchema = z.object({
           version: z.number(),
           current: z.boolean(),
           id: z.string(),
+          name: z.string().optional().nullable(),
+          previewUrl: z.string().optional().nullable(),
+          creator: z
+            .object({
+              id: z.string(),
+              name: z.string().nullable(),
+            })
+            .nullable()
+            .optional(),
         }),
       ),
     })

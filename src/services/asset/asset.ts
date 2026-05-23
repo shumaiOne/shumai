@@ -570,7 +570,7 @@ export class AssetService {
 
     const afs: AncestorFolder[] = []
     for (const row of rows) {
-      if (row.id === a.id || row.type === 'root') continue
+      if (row.id === a.id || row.type === 'root' || row.type === 'version_stack') continue
       afs.push({ id: row.id, name: row.name })
     }
 
@@ -1004,13 +1004,18 @@ export class AssetService {
     if (stackIds.size > 0) {
       const allVersions = await this.prismaClient.asset.findMany({
         where: { parentId: { in: Array.from(stackIds) }, removed: false },
-        orderBy: { sortIndex: 'desc' },
         include: { creator: true, metadataValues: true },
       })
       for (const v of allVersions) {
         const list = versionsMap.get(v.parentId!) || []
         list.push(v)
         versionsMap.set(v.parentId!, list)
+      }
+      for (const list of versionsMap.values()) {
+        list.sort((x, y) => {
+          if (!x.sortIndex || !y.sortIndex) return 0
+          return x.sortIndex < y.sortIndex ? -1 : x.sortIndex > y.sortIndex ? 1 : 0
+        })
       }
     }
 
@@ -1030,14 +1035,22 @@ export class AssetService {
         const stackId = a.type === AssetType.symlink ? a.targetId! : a.id
         const versions = versionsMap.get(stackId) || []
         if (versions.length > 0) {
-          latestVersion = versions[versions.length - 1]
+          latestVersion = versions[0]
           versionStack = {
             id: stackId,
-            versions: versions.map((v, i) => ({
-              version: i + 1,
-              current: i === versions.length - 1,
-              id: v.id,
-            })),
+            versions: await Promise.all(
+              versions.map(async (v, i) => {
+                const preview = await this.toPreviewInfo(v as Asset)
+                return {
+                  version: versions.length - i,
+                  current: i === 0,
+                  id: v.id,
+                  name: v.name,
+                  previewUrl: preview?.thumbnailUrl || null,
+                  creator: v.creator ? { id: v.creator.id, name: v.creator.name } : null,
+                }
+              }),
+            ),
           }
         }
       } else if (a.type === AssetType.symlink) {
@@ -1063,7 +1076,7 @@ export class AssetService {
           if (child.type === AssetType.version_stack) {
             const versions = versionsMap.get(child.id) || []
             if (versions.length > 0) {
-              const latestChild = versions[versions.length - 1]
+              const latestChild = versions[0]
               previewAsset = latestChild as Asset
               mediaType = latestChild.mediaType
             }
@@ -1135,6 +1148,39 @@ export class AssetService {
       })
     }
     return result
+  }
+
+  async getStackVersions(stackId: string): Promise<
+    Array<{
+      id: string
+      version: number
+      name: string
+      previewUrl: string | null
+      creator: { id: string; name: string | null } | null
+    }>
+  > {
+    const versions = await this.prismaClient.asset.findMany({
+      where: { parentId: stackId, removed: false },
+      include: { creator: true },
+    })
+
+    versions.sort((x, y) => {
+      if (!x.sortIndex || !y.sortIndex) return 0
+      return x.sortIndex < y.sortIndex ? -1 : x.sortIndex > y.sortIndex ? 1 : 0
+    })
+
+    return await Promise.all(
+      versions.map(async (v, i) => {
+        const preview = await this.toPreviewInfo(v)
+        return {
+          id: v.id,
+          version: versions.length - i,
+          name: v.name,
+          previewUrl: preview?.thumbnailUrl || null,
+          creator: v.creator ? { id: v.creator.id, name: v.creator.name } : null,
+        }
+      }),
+    )
   }
 
   private async toPreviewInfo(asset: Asset | AssetWithIncludes): Promise<PreviewInfo | null> {
