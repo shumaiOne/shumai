@@ -105,4 +105,14 @@ export async function run() {
   })
 
   console.log(`🚀 Server running at ${server.url}`)
+
+  const shutdown = () => {
+    console.log('\nShutting down gracefully...')
+    assetService.stopCleanupJob()
+    server.stop(true)
+    process.exit(0)
+  }
+
+  process.on('SIGINT', shutdown)
+  process.on('SIGTERM', shutdown)
 }
