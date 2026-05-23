@@ -760,9 +760,14 @@ export class AssetService {
     }
   }
 
+  private cleanupJobsRunning = false
+
   startCleanupJob() {
+    this.cleanupJobsRunning = true
+
     // Stage 1: Expiration Job - Move expired trashed roots to pending_purge
     const runExpiration = async () => {
+      if (!this.cleanupJobsRunning) return
       try {
         await this.expireTrashedAssets()
       } catch (e: unknown) {
@@ -773,6 +778,7 @@ export class AssetService {
 
     // Stage 2: Physical Purge Job - Delete files from S3 and wipe from DB
     const runPurge = async () => {
+      if (!this.cleanupJobsRunning) return
       try {
         await this.purgePendingAssets()
       } catch (e: unknown) {
@@ -785,6 +791,10 @@ export class AssetService {
     runPurge()
   }
 
+  stopCleanupJob() {
+    this.cleanupJobsRunning = false
+  }
+
   /**
    * Stage 1: Find root assets that have been in the trash for > 30 days.
    * Cascade the 'pending_purge' status to all their descendants.
@@ -792,13 +802,14 @@ export class AssetService {
   private async expireTrashedAssets() {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
 
-    // Find up to 100 expired roots
+    // Find up to 100 expired roots, ordered by oldest first to avoid starvation
     const expiredRoots = await this.prismaClient.asset.findMany({
       where: {
         status: 'trashed',
         deletedAt: { lt: thirtyDaysAgo },
         isDeleted: true,
       },
+      orderBy: { deletedAt: 'asc' },
       select: { id: true },
       take: 100,
     })
