@@ -258,6 +258,7 @@ export default function FileSystemManager({
       navigate({
         to: '/projects/$projectId/files/$fileId',
         params: { projectId, fileId: item.versionStack ? item.versionStack.id : item.id },
+        search: { version: undefined },
       })
     }
   }

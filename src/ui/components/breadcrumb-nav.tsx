@@ -5,6 +5,11 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
+  DropdownMenuSeparator,
 } from '@/ui/components/ui/dropdown-menu'
 import {
   DockToLeft,
@@ -12,8 +17,8 @@ import {
   DockToRight,
   DockToRightFilled,
 } from '@/ui/components/ui/icons'
-import { Link } from '@tanstack/react-router'
-import { ChevronDown, LayoutGrid, List } from 'lucide-react'
+import { Link, useNavigate } from '@tanstack/react-router'
+import { ChevronDown, LayoutGrid, List, History, Check, FileIcon } from 'lucide-react'
 import { cn } from '@/ui/lib/utils'
 
 interface BreadcrumbNavProps {
@@ -36,6 +41,14 @@ interface BreadcrumbNavProps {
   isPublic?: boolean
   shareId?: string
   onFolderClick?: (folderId: string) => void
+  fileId?: string
+  versions?: Array<{
+    id: string
+    version: number
+    name?: string | null
+    previewUrl?: string | null
+    creator?: { id: string; name: string | null } | null
+  }>
 }
 
 export function BreadcrumbNav({
@@ -53,7 +66,20 @@ export function BreadcrumbNav({
   onRightSidebarToggle,
   isPublic = false,
   onFolderClick,
+  fileId,
+  versions,
 }: BreadcrumbNavProps) {
+  const navigate = useNavigate()
+
+  const handleVersionClick = (versionId: string) => {
+    if (!projectId || !fileId) return
+    navigate({
+      to: '/projects/$projectId/files/$fileId',
+      params: { projectId, fileId },
+      search: (prev: Record<string, unknown>) => ({ ...prev, version: versionId }),
+    })
+  }
+
   const breadcrumbs: { name: string; path?: string; id?: string; isMuted?: boolean }[] = isPublic
     ? [
         {
@@ -125,12 +151,78 @@ export function BreadcrumbNav({
                   )}
                   <ChevronDown className="h-4 w-4" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent>
+                <DropdownMenuContent className="w-56">
                   <DropdownMenuItem onClick={() => console.log('Download')}>
                     Download
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => console.log('Rename')}>Rename</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => console.log('Delete')}>Delete</DropdownMenuItem>
+
+                  {versions && versions.length > 0 && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger className="flex items-center gap-2">
+                          <History className="h-4 w-4" />
+                          <span>Versions</span>
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuPortal>
+                          <DropdownMenuSubContent className="w-80 p-1">
+                            <div className="flex flex-col gap-1 max-h-96 overflow-y-auto">
+                              {versions.map((v) => {
+                                const isActive = currentAsset.version === v.version
+                                return (
+                                  <DropdownMenuItem
+                                    key={v.id}
+                                    onClick={() => handleVersionClick(v.id)}
+                                    className="flex items-center gap-3 py-2 px-3 rounded-md cursor-pointer focus:bg-accent focus:text-accent-foreground"
+                                  >
+                                    <div className="flex-shrink-0 flex items-center justify-center bg-muted dark:bg-muted-foreground/20 text-muted-foreground dark:text-muted-foreground rounded-full px-2 py-0.5 text-xs font-semibold select-none min-w-[2rem]">
+                                      v{v.version}
+                                    </div>
+
+                                    <div className="h-10 w-16 flex-shrink-0 overflow-hidden rounded-md border border-border bg-muted flex items-center justify-center">
+                                      {v.previewUrl ? (
+                                        <img
+                                          src={v.previewUrl}
+                                          alt={v.name || undefined}
+                                          className="h-full w-full object-cover"
+                                        />
+                                      ) : (
+                                        <FileIcon className="h-4 w-4 text-muted-foreground" />
+                                      )}
+                                    </div>
+
+                                    <div className="flex flex-col flex-1 min-w-0 text-left">
+                                      <span className="truncate text-sm font-semibold text-foreground">
+                                        {v.name}
+                                      </span>
+                                      <span className="truncate text-xs text-muted-foreground">
+                                        {v.creator?.name || 'Unknown'}
+                                      </span>
+                                    </div>
+
+                                    {isActive && (
+                                      <Check className="h-4 w-4 text-primary ml-auto flex-shrink-0" />
+                                    )}
+                                  </DropdownMenuItem>
+                                )
+                              })}
+                            </div>
+                            <DropdownMenuSeparator />
+                            <div className="p-1">
+                              <button
+                                className="w-full text-center text-xs font-medium py-2 px-3 rounded-md bg-muted/80 hover:bg-muted text-foreground transition-colors"
+                                onClick={() => console.log('Manage versions')}
+                              >
+                                Manage versions...
+                              </button>
+                            </div>
+                          </DropdownMenuSubContent>
+                        </DropdownMenuPortal>
+                      </DropdownMenuSub>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             )}

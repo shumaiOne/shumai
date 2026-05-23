@@ -20,6 +20,10 @@ import type Player from 'video.js/dist/types/player'
 
 function FileViewPage() {
   const { projectId, fileId } = Route.useParams()
+  const search = Route.useSearch()
+  const versionAssetId = (search as { version?: string }).version
+  const activeFileId = versionAssetId || fileId
+
   const videoRef = useRef<Player | null>(null)
   const {
     fileViewRightSidebarCollapsed: isRightSidebarCollapsed,
@@ -57,21 +61,51 @@ function FileViewPage() {
   }, [teamId, fetchMembers])
 
   const {
-    data: fileData,
-    isLoading,
-    isError,
-    isFetching,
+    data: stackData,
+    isLoading: isStackLoading,
+    isError: isStackError,
+    isFetching: isStackFetching,
   } = useQuery({
     queryKey: ['teams', teamId, 'files', fileId],
     queryFn: async () => {
       const res = await client.api.teams[':teamId'].files[':fileId'].$get({
         param: { teamId: teamId!, fileId: fileId },
       })
-      if (!res.ok) throw new Error('Failed to fetch file')
+      if (!res.ok) throw new Error('Failed to fetch stack')
       return await res.json()
     },
     enabled: !!teamId,
     placeholderData: keepPreviousData,
+  })
+
+  const {
+    data: versionData,
+    isLoading: isVersionLoading,
+    isError: isVersionError,
+    isFetching: isVersionFetching,
+  } = useQuery({
+    queryKey: ['teams', teamId, 'files', versionAssetId],
+    queryFn: async () => {
+      const res = await client.api.teams[':teamId'].files[':fileId'].$get({
+        param: { teamId: teamId!, fileId: versionAssetId! },
+      })
+      if (!res.ok) throw new Error('Failed to fetch version')
+      return await res.json()
+    },
+    enabled: !!teamId && !!versionAssetId,
+    placeholderData: keepPreviousData,
+  })
+
+  const { data: versionsList } = useQuery({
+    queryKey: ['projects', projectId, 'version_stacks', fileId, 'versions'],
+    queryFn: async () => {
+      const res = await client.api.projects[':projectId'].version_stacks[':stackId'].versions.$get({
+        param: { projectId: projectId, stackId: fileId },
+      })
+      if (!res.ok) throw new Error('Failed to fetch versions')
+      return await res.json()
+    },
+    enabled: !!projectId && !!fileId && !!versionAssetId,
   })
 
   const { data: projectInfo } = useQuery({
@@ -85,6 +119,12 @@ function FileViewPage() {
     },
   })
 
+  const isLoading = isStackLoading || (!!versionAssetId && isVersionLoading)
+  const isError = isStackError || (!!versionAssetId && isVersionError)
+  const isFetching = isStackFetching || (!!versionAssetId && isVersionFetching)
+  const fileData = versionData || stackData
+  const versionsDataList = versionAssetId ? versionsList : stackData?.versionStack?.versions
+
   if (isLoading && !fileData) {
     return <div>Loading...</div>
   }
@@ -97,13 +137,13 @@ function FileViewPage() {
     if (!teamId) return
     patchMetadata(
       {
-        param: { teamId: teamId, fileId: fileId },
+        param: { teamId: teamId, fileId: activeFileId },
         json: [{ key: fieldId, value }] as InferRequestType<typeof $patchMetadata>['json'],
       },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({
-            queryKey: ['teams', teamId, 'files', fileId],
+            queryKey: ['teams', teamId, 'files', activeFileId],
           })
         },
       },
@@ -136,9 +176,9 @@ function FileViewPage() {
         currentAsset={{
           name: fileData.name,
           type: 'file',
-          version: fileData.versionStack
-            ? (fileData.versionStack.versions.find((v) => v.id === fileData.id)?.version ??
-              fileData.versionStack.versions.length)
+          version: versionsDataList
+            ? (versionsDataList.find((v) => v.id === activeFileId)?.version ??
+              versionsDataList.length)
             : undefined,
         }}
         isRootFolder={false}
@@ -146,6 +186,8 @@ function FileViewPage() {
         onLeftSidebarToggle={() => setIsLeftSidebarCollapsed(!isLeftSidebarCollapsed)}
         isRightSidebarCollapsed={isRightSidebarCollapsed}
         onRightSidebarToggle={() => setIsRightSidebarCollapsed(!isRightSidebarCollapsed)}
+        fileId={fileId}
+        versions={versionsDataList}
       />
       <div className="flex flex-1 overflow-hidden">
         {!isLeftSidebarCollapsed && (
@@ -154,7 +196,7 @@ function FileViewPage() {
               <FileViewerLeftSidebar
                 teamId={teamId!}
                 projectId={projectId}
-                currentAssetId={fileId}
+                currentAssetId={activeFileId}
                 parentFolderId={
                   fileData.ancestorFolders?.[fileData.ancestorFolders.length - 1]?.id ??
                   projectInfo.rootFolder ??
@@ -211,4 +253,9 @@ function FileViewPage() {
 
 export const Route = createFileRoute('/projects/$projectId/files/$fileId')({
   component: FileViewPage,
+  validateSearch: (search: Record<string, unknown>) => {
+    return {
+      version: (search.version as string) || undefined,
+    }
+  },
 })
