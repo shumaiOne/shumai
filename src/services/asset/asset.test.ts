@@ -9,6 +9,7 @@ vi.mock('@/services/s3/s3', () => ({
   s3Service: {
     presign: vi.fn().mockResolvedValue('http://mock-s3-url'),
     putObject: vi.fn().mockResolvedValue(undefined),
+    deleteObject: vi.fn().mockResolvedValue(undefined),
   },
 }))
 
@@ -1171,6 +1172,61 @@ describe('AssetService', () => {
       expect(versions[1].id).toBe(file1.id) // older version must be second
       expect(versions[1].version).toBe(1)
       expect(versions[1].name).toBe('version1.txt')
+    })
+  })
+
+  describe('Asset Cascade Bug (Reproduction)', () => {
+    it('should NOT cascade delete children from DB before their S3 files are deleted', async () => {
+      const { project } = await setupBasicAssets()
+      const { s3Service } = await import('@/services/s3/s3')
+
+      // 1. Create Folder A
+      const folderA = await prisma.asset.create({
+        data: {
+          name: 'Folder A',
+          type: AssetType.folder,
+          status: 'pending_purge',
+          isDeleted: true,
+          projectId: project.id,
+        },
+      })
+
+      // 2. Create 101 children files for Folder A
+      // Each has an S3 key.
+      const childCount = 101
+      const childData = Array.from({ length: childCount }).map((_, i) => ({
+        name: `File ${i}`,
+        type: AssetType.file,
+        status: 'pending_purge',
+        isDeleted: true,
+        projectId: project.id,
+        parentId: folderA.id,
+        key: `key-${i}`,
+      }))
+
+      await prisma.asset.createMany({ data: childData })
+
+      // 3. Trigger the purge job for the FIRST batch (100 items)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (assetService as any).purgePendingAssets()
+
+      // 4. Verify some items were processed in S3
+      // We don't know the order, but if Folder A was in the first 100,
+      // then its synchronous cascade will have wiped the remaining children.
+      
+      // 5. Trigger the purge job for the SECOND batch
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (assetService as any).purgePendingAssets()
+
+      // 6. Verify S3 deletion was called for EVERY child
+      for (let i = 0; i < childCount; i++) {
+        expect(s3Service.deleteObject).toHaveBeenCalledWith(expect.any(String), `key-${i}`)
+      }
+
+      // Verify folder and all children are gone from DB
+      expect(await prisma.asset.findUnique({ where: { id: folderA.id } })).toBeNull()
+      const remainingChildren = await prisma.asset.count({ where: { parentId: folderA.id } })
+      expect(remainingChildren).toBe(0)
     })
   })
 })

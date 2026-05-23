@@ -363,11 +363,11 @@ model Asset {
   updatedAt         DateTime     @updatedAt @map("updated_at")
 
   parentId          String?      @map("parent_id")
-  parent            Asset?       @relation("AssetChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  parent            Asset?       @relation("AssetChildren", fields: [parentId], references: [id])
   children          Asset[]      @relation("AssetChildren")
 
   targetId          String?      @map("target_id")
-  target            Asset?       @relation("SymlinkTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  target            Asset?       @relation("SymlinkTarget", fields: [targetId], references: [id])
   symlinks          Asset[]      @relation("SymlinkTarget")
 
   metadataValues    AssetMetadataValue[] @relation("AssetToMetadataValues")
@@ -379,7 +379,7 @@ model Asset {
   task              Task?        @relation("TaskToAsset", fields: [taskId], references: [id])
 
   projectId         String?      @map("project_id")
-  project           Project?     @relation("ProjectToAsset", fields: [projectId], references: [id], onDelete: Cascade)
+  project           Project?     @relation("ProjectToAsset", fields: [projectId], references: [id])
 
   comments          AssetComment[]           @relation("AssetToComment")
   commentAttachments AssetCommentAttachment[] @relation("AssetToCommentAttachment")
