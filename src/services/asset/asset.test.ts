@@ -412,12 +412,12 @@ describe('AssetService', () => {
     const folderA = await prisma.asset.findUnique({
       where: { id: assets.folderA.id },
     })
-    expect(folderA?.removed).toBe(true)
+    expect(folderA?.isDeleted).toBe(true)
 
     const fileA1 = await prisma.asset.findUnique({
       where: { id: assets.fileA1.id },
     })
-    expect(fileA1?.removed).toBe(true)
+    expect(fileA1?.isDeleted).toBe(true)
 
     // Verify root size decreased by folderA's size
     await verifyAsset(assets.root.id, {
@@ -432,14 +432,14 @@ describe('AssetService', () => {
     const folderRestoredA = await prisma.asset.findUnique({
       where: { id: assets.folderA.id },
     })
-    expect(folderRestoredA?.removed).toBe(false)
+    expect(folderRestoredA?.isDeleted).toBe(false)
 
     expect(folderRestoredA?.deletedAt).toBeNull()
 
     const fileA1Restored = await prisma.asset.findUnique({
       where: { id: assets.fileA1.id },
     })
-    expect(fileA1Restored?.removed).toBe(false)
+    expect(fileA1Restored?.isDeleted).toBe(false)
 
     // Verify root restored properly
     await verifyAsset(assets.root.id, {

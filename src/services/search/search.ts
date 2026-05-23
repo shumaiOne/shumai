@@ -22,7 +22,7 @@ export class SearchService {
     }
 
     const where: Prisma.AssetWhereInput = {
-      removed: false,
+      isDeleted: false,
     }
 
     if (targetFolderIds.length > 0) {

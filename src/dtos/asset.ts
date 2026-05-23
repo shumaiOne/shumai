@@ -154,7 +154,7 @@ export const listChildrenRequestSchema = z.object({
   assetId: z.string().optional(),
   assetType: z.string(),
   projectId: z.string().optional(),
-  showRemoved: z.boolean().optional(),
+  showDeleted: z.boolean().optional(),
   prefix: z.string().optional(),
   sort: z.string().optional(),
   order: z.string().optional(),

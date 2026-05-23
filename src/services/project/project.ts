@@ -233,28 +233,38 @@ export class ProjectService {
     const immediateCleanupDate = new Date(0)
 
     await prisma.$transaction(async (tx) => {
-      // 1. Unlink root folders from project to avoid cycle during deletion
+      // 1. Mark ALL project assets as isDeleted and detach projectId
+      // We keep parentId intact so the folder structure remains for Stage 1 cleanup.
+      await tx.asset.updateMany({
+        where: { projectId },
+        data: {
+          isDeleted: true,
+          projectId: null,
+        },
+      })
+
+      // 2. Mark root folders as 'trashed' with deletedAt = 0 to trigger immediate background purge
+      const rootIds = [project.rootFolderId, project.shareRootId].filter(
+        (id): id is string => id !== null,
+      )
+      if (rootIds.length > 0) {
+        await tx.asset.updateMany({
+          where: { id: { in: rootIds } },
+          data: {
+            status: 'trashed',
+            deletedAt: immediateCleanupDate,
+          },
+        })
+      }
+
+      // 3. Unlink root folders from project record to avoid FK cycles during project deletion
       await tx.project.update({
         where: { id: projectId },
         data: { rootFolderId: null, shareRootId: null },
       })
 
-      // 2. Detach ALL assets (files and folders) from project and soft-delete them
-      // This queues them for the background cleanup job.
-      await tx.asset.updateMany({
-        where: { projectId },
-        data: {
-          projectId: null,
-          parentId: null,
-          targetId: null,
-          removed: true,
-          deletedAt: immediateCleanupDate,
-          status: 'trashed',
-        },
-      })
-
-      // 3. Delete the project itself
-      // Thanks to cascade deletes, project members, invites, etc. will be cleaned up.
+      // 4. Delete the project itself
+      // Cascade deletes will handle project members, invites, notifications, etc.
       await tx.project.delete({
         where: { id: projectId },
       })

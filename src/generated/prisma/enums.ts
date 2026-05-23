@@ -37,7 +37,8 @@ export const AssetStatus = {
   processing: 'processing',
   processed: 'processed',
   trashed: 'trashed',
-  removed: 'removed'
+  pending_purge: 'pending_purge',
+  purging: 'purging'
 } as const
 
 export type AssetStatus = (typeof AssetStatus)[keyof typeof AssetStatus]

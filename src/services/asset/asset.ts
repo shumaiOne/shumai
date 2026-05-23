@@ -359,16 +359,16 @@ export class AssetService {
 
     let where: Prisma.AssetWhereInput = {}
 
-    if (req.showRemoved) {
+    if (req.showDeleted) {
       if (!req.projectId) {
-        throw new Error('ProjectID is required when ShowRemoved is true')
+        throw new Error('ProjectID is required when ShowDeleted is true')
       }
       const thirtyDaysAgo = new Date()
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
       where = {
         projectId: req.projectId,
-        removed: true,
+        isDeleted: true,
         deletedAt: { gte: thirtyDaysAgo },
         OR: [
           { type: { in: typesToQuery } },
@@ -377,7 +377,7 @@ export class AssetService {
       }
     } else {
       if (!req.assetId) {
-        throw new Error('AssetId is required when ShowRemoved is false')
+        throw new Error('AssetId is required when ShowDeleted is false')
       }
       let parentId = req.assetId
       const asset = await this.prismaClient.asset.findUnique({
@@ -389,7 +389,7 @@ export class AssetService {
 
       where = {
         parentId,
-        removed: false,
+        isDeleted: false,
         OR: [
           { type: { in: typesToQuery } },
           { type: AssetType.symlink, target: { type: { in: typesToQuery } } },
@@ -637,7 +637,7 @@ export class AssetService {
 
     if (currentType === AssetType.version_stack) {
       const latestChild = await this.prismaClient.asset.findFirst({
-        where: { parentId: currentId, removed: false },
+        where: { parentId: currentId, isDeleted: false },
         orderBy: { sortIndex: 'desc' },
         select: { id: true },
       })
@@ -742,13 +742,17 @@ export class AssetService {
         if (descendantIds.length > 0) {
           await tx.asset.updateMany({
             where: { id: { in: descendantIds } },
-            data: { removed: true },
+            data: { isDeleted: true },
           })
         }
 
         await tx.asset.update({
           where: { id: a.id },
-          data: { removed: true, deletedAt: new Date() },
+          data: {
+            isDeleted: true,
+            status: 'trashed',
+            deletedAt: new Date(),
+          },
         })
 
         await this.updateAncestorsSize(tx, a.parentId, -a.sizeByte)
@@ -757,34 +761,81 @@ export class AssetService {
   }
 
   startCleanupJob() {
-    // Run cleanup every 1 second using recursive setTimeout to prevent overlapping
-    const run = async () => {
+    // Stage 1: Expiration Job - Move expired trashed roots to pending_purge
+    const runExpiration = async () => {
       try {
-        await this.cleanupOldAssets()
+        await this.expireTrashedAssets()
       } catch (e: unknown) {
-        console.error('Error in asset cleanup job:', e)
+        console.error('Error in asset expiration job:', e)
       }
-      setTimeout(run, 1000)
+      setTimeout(runExpiration, 5000) // Run every 5 seconds, less frequent
     }
-    run()
+
+    // Stage 2: Physical Purge Job - Delete files from S3 and wipe from DB
+    const runPurge = async () => {
+      try {
+        await this.purgePendingAssets()
+      } catch (e: unknown) {
+        console.error('Error in asset purge job:', e)
+      }
+      setTimeout(runPurge, 1000) // Run every 1 second
+    }
+
+    runExpiration()
+    runPurge()
   }
 
-  private async cleanupOldAssets() {
+  /**
+   * Stage 1: Find root assets that have been in the trash for > 30 days.
+   * Cascade the 'pending_purge' status to all their descendants.
+   */
+  private async expireTrashedAssets() {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
 
-    // 1. Lock 100 assets using raw SQL FOR UPDATE SKIP LOCKED and mark them as 'removed'
-    // We include a timeout check (1 hour) to allow picking up stalled tasks if a server crashed.
+    // Find up to 100 expired roots
+    const expiredRoots = await this.prismaClient.asset.findMany({
+      where: {
+        status: 'trashed',
+        deletedAt: { lt: thirtyDaysAgo },
+        isDeleted: true,
+      },
+      select: { id: true },
+      take: 100,
+    })
+
+    for (const root of expiredRoots) {
+      await this.prismaClient.$transaction(async (tx) => {
+        // Use recursive CTE to find all descendants and mark them all as pending_purge
+        await tx.$executeRaw`
+          WITH RECURSIVE descendant AS (
+            SELECT id FROM assets WHERE id = ${root.id}
+            UNION ALL
+            SELECT a.id FROM assets a
+            INNER JOIN descendant d ON a.parent_id = d.id
+          )
+          UPDATE assets SET status = 'pending_purge', updated_at = NOW()
+          WHERE id IN (SELECT id FROM descendant);
+        `
+      })
+    }
+  }
+
+  /**
+   * Stage 2: Physically delete files and DB records for assets marked as 'pending_purge'.
+   */
+  private async purgePendingAssets() {
+    // 1. Lock 100 assets using raw SQL FOR UPDATE SKIP LOCKED and mark them as 'purging'
+    // We include a timeout check (1 hour) to allow picking up stalled tasks.
     const lockedAssets = await this.prismaClient.$queryRaw<{ id: string; key: string | null }[]>`
-      WITH to_delete AS (
+      WITH to_purge AS (
         SELECT id FROM assets
-        WHERE removed = true
-          AND deleted_at < ${thirtyDaysAgo}
-          AND (status != 'removed' OR updated_at < NOW() - INTERVAL '1 hour')
+        WHERE status = 'pending_purge'
+           OR (status = 'purging' AND updated_at < NOW() - INTERVAL '1 hour')
         LIMIT 100
         FOR UPDATE SKIP LOCKED
       )
-      UPDATE assets SET status = 'removed', updated_at = NOW()
-      WHERE id IN (SELECT id FROM to_delete)
+      UPDATE assets SET status = 'purging', updated_at = NOW()
+      WHERE id IN (SELECT id FROM to_purge)
       RETURNING id, key;
     `
 
@@ -803,13 +854,12 @@ export class AssetService {
             return null
           }
         }
-        // Folders or assets without keys are considered processed
+        // Assets without keys (folders, etc.) are considered processed
         return a.id
       }),
     )
 
     // 3. Hard delete from database ONLY for assets successfully removed from storage
-    // This prevents orphaning files if S3 deletion fails.
     const successfulIds = results.filter((id): id is string => id !== null)
     if (successfulIds.length > 0) {
       await this.prismaClient.asset.deleteMany({
@@ -847,13 +897,17 @@ export class AssetService {
         if (descendantIds.length > 0) {
           await tx.asset.updateMany({
             where: { id: { in: descendantIds } },
-            data: { removed: false },
+            data: { isDeleted: false },
           })
         }
 
         await tx.asset.update({
           where: { id: a.id },
-          data: { removed: false, deletedAt: null },
+          data: {
+            isDeleted: false,
+            status: 'processed',
+            deletedAt: null,
+          },
         })
 
         await this.updateAncestorsSize(tx, a.parentId, a.sizeByte)
@@ -1065,7 +1119,7 @@ export class AssetService {
     const versionsMap = new Map<string, AssetWithIncludes['children'][0][]>()
     if (stackIds.size > 0) {
       const allVersions = await this.prismaClient.asset.findMany({
-        where: { parentId: { in: Array.from(stackIds) }, removed: false },
+        where: { parentId: { in: Array.from(stackIds) }, isDeleted: false },
         include: { creator: true, metadataValues: true },
       })
       for (const v of allVersions) {
@@ -1222,7 +1276,7 @@ export class AssetService {
     }>
   > {
     const versions = await this.prismaClient.asset.findMany({
-      where: { parentId: stackId, removed: false },
+      where: { parentId: stackId, isDeleted: false },
       include: { creator: true },
     })
 

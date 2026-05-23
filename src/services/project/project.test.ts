@@ -261,7 +261,7 @@ describe('ProjectService', () => {
       // Verify asset is soft-deleted and detached
       const a = await prisma.asset.findUnique({ where: { id: asset.id } })
       expect(a).toBeDefined()
-      expect(a?.removed).toBe(true)
+      expect(a?.isDeleted).toBe(true)
       expect(a?.projectId).toBeNull()
       expect(a?.parentId).toBeNull()
 
@@ -333,9 +333,11 @@ describe('ProjectService', () => {
       // Delete project
       await projectService.deleteProject(project.id)
 
-      // Manually trigger the private cleanup method for testing
+      // Manually trigger the private cleanup methods for testing
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (assetService as any).cleanupOldAssets()
+      await (assetService as any).expireTrashedAssets()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (assetService as any).purgePendingAssets()
 
       // Verify everything is wiped from DB
       expect(await prisma.project.findUnique({ where: { id: project.id } })).toBeNull()

@@ -41,7 +41,8 @@ enum AssetStatus {
   processing
   processed
   trashed
-  removed
+  pending_purge
+  purging
 }
 
 enum InviteRole {
@@ -355,7 +356,7 @@ model Asset {
   transcodeTaskId   String?      @map("transcode_task_id")
   /// [MediaInfo]
   media             Json?
-  removed           Boolean      @default(false)
+  isDeleted         Boolean      @default(false) @map("is_deleted")
   deletedAt         DateTime?    @map("deleted_at")
   sortIndex         String?      @map("sort_index")
   createdAt         DateTime     @default(now()) @map("created_at")
@@ -396,7 +397,7 @@ model Asset {
   @@index([createdAt])
   @@index([updatedAt])
   @@index([sortIndex])
-  @@index([removed])
+  @@index([isDeleted])
   @@index([deletedAt])
   @@index([nameNgram], type: Gin)
   @@unique([parentId, targetId], name: "parentIdTargetId")
