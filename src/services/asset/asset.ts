@@ -757,27 +757,29 @@ export class AssetService {
   }
 
   startCleanupJob() {
-    // Run cleanup every 1 second
-    setInterval(async () => {
+    // Run cleanup every 1 second using recursive setTimeout to prevent overlapping
+    const run = async () => {
       try {
         await this.cleanupOldAssets()
       } catch (e: unknown) {
         console.error('Error in asset cleanup job:', e)
       }
-    }, 1000)
+      setTimeout(run, 1000)
+    }
+    run()
   }
 
   private async cleanupOldAssets() {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
 
     // 1. Lock 100 assets using raw SQL FOR UPDATE SKIP LOCKED and mark them as 'removed'
-    // This immediately releases the DB lock as soon as the status is updated.
+    // We include a timeout check (1 hour) to allow picking up stalled tasks if a server crashed.
     const lockedAssets = await this.prismaClient.$queryRaw<{ id: string; key: string | null }[]>`
       WITH to_delete AS (
         SELECT id FROM assets
         WHERE removed = true
           AND deleted_at < ${thirtyDaysAgo}
-          AND status != 'removed'
+          AND (status != 'removed' OR updated_at < NOW() - INTERVAL '1 hour')
         LIMIT 100
         FOR UPDATE SKIP LOCKED
       )
@@ -790,24 +792,30 @@ export class AssetService {
 
     // 2. Physical file deletion from storage
     const bucket = process.env.S3_BUCKET || 'shumai'
-    await Promise.allSettled(
+    const results = await Promise.all(
       lockedAssets.map(async (a) => {
         if (a.key) {
           try {
             await s3Service.deleteObject(bucket, a.key)
+            return a.id
           } catch (e: unknown) {
             console.error(`Failed to delete storage object ${a.key}:`, e)
+            return null
           }
         }
+        // Folders or assets without keys are considered processed
+        return a.id
       }),
     )
 
-    // 3. Hard delete from database
-    // Cascade FKs will handle related comments, metadata, etc.
-    const ids = lockedAssets.map((a) => a.id)
-    await this.prismaClient.asset.deleteMany({
-      where: { id: { in: ids } },
-    })
+    // 3. Hard delete from database ONLY for assets successfully removed from storage
+    // This prevents orphaning files if S3 deletion fails.
+    const successfulIds = results.filter((id): id is string => id !== null)
+    if (successfulIds.length > 0) {
+      await this.prismaClient.asset.deleteMany({
+        where: { id: { in: successfulIds } },
+      })
+    }
   }
 
   async restoreAssets(ids: string[]): Promise<void> {

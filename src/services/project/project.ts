@@ -230,7 +230,7 @@ export class ProjectService {
     })
     if (!project) throw new Error('Project not found')
 
-    const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
+    const immediateCleanupDate = new Date(0)
 
     await prisma.$transaction(async (tx) => {
       // 1. Unlink root folders from project to avoid cycle during deletion
@@ -248,7 +248,7 @@ export class ProjectService {
           parentId: null,
           targetId: null,
           removed: true,
-          deletedAt: sixtyDaysAgo,
+          deletedAt: immediateCleanupDate,
           status: 'trashed',
         },
       })
