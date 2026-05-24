@@ -90,7 +90,7 @@ describe('Transcode Workflow', () => {
 
     mockActivities.getAssetActivity.mockResolvedValue({
       id: 'asset-1',
-      key: 'video.mp4',
+      storageKey: { key: 'video.mp4' },
       mediaType: 'video/mp4',
     })
 

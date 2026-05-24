@@ -64,6 +64,7 @@ export const ModelName = {
   ProjectMember: 'ProjectMember',
   ShareLink: 'ShareLink',
   Asset: 'Asset',
+  StorageKey: 'StorageKey',
   AssetMetadataValue: 'AssetMetadataValue',
   AssetComment: 'AssetComment',
   AssetCommentAttachment: 'AssetCommentAttachment',
@@ -270,7 +271,6 @@ export const AssetScalarFieldEnum = {
   id: 'id',
   name: 'name',
   nameNgram: 'nameNgram',
-  key: 'key',
   type: 'type',
   mediaType: 'mediaType',
   fileCount: 'fileCount',
@@ -285,12 +285,23 @@ export const AssetScalarFieldEnum = {
   updatedAt: 'updatedAt',
   parentId: 'parentId',
   targetId: 'targetId',
+  storageKeyId: 'storageKeyId',
   creatorId: 'creatorId',
   taskId: 'taskId',
   projectId: 'projectId'
 } as const
 
 export type AssetScalarFieldEnum = (typeof AssetScalarFieldEnum)[keyof typeof AssetScalarFieldEnum]
+
+
+export const StorageKeyScalarFieldEnum = {
+  id: 'id',
+  key: 'key',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type StorageKeyScalarFieldEnum = (typeof StorageKeyScalarFieldEnum)[keyof typeof StorageKeyScalarFieldEnum]
 
 
 export const AssetMetadataValueScalarFieldEnum = {

@@ -107,6 +107,11 @@ export type ShareLink = Prisma.ShareLinkModel
  */
 export type Asset = Prisma.AssetModel
 /**
+ * Model StorageKey
+ * 
+ */
+export type StorageKey = Prisma.StorageKeyModel
+/**
  * Model AssetMetadataValue
  * 
  */

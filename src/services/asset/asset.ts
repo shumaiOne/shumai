@@ -18,7 +18,7 @@ import {
   UpdateAssetOrderRequest,
   UserInfo,
 } from '@/dtos/asset'
-import { Asset, AssetType, Prisma } from '@/generated/prisma/client.ts'
+import { Asset, AssetType, Prisma, StorageKey } from '@/generated/prisma/client.ts'
 import { PaginatedData, paginateQuery, PaginationParams } from '@/services/pagination'
 import { s3Service } from '@/services/s3/s3'
 import { generateKeyBetween } from 'jittered-fractional-indexing'
@@ -29,17 +29,19 @@ type AssetWithIncludes = Prisma.AssetGetPayload<{
   include: {
     creator: true
     metadataValues: true
+    storageKey: true
     target: {
       include: {
         creator: true
         metadataValues: true
+        storageKey: true
         children: {
-          include: { creator: true; metadataValues: true }
+          include: { creator: true; metadataValues: true; storageKey: true }
         }
       }
     }
     children: {
-      include: { creator: true; metadataValues: true }
+      include: { creator: true; metadataValues: true; storageKey: true }
     }
   }
 }>
@@ -47,11 +49,11 @@ type AssetWithIncludes = Prisma.AssetGetPayload<{
 type CommentWithIncludes = Prisma.AssetCommentGetPayload<{
   include: {
     creator: true
-    attachments: { include: { asset: true } }
+    attachments: { include: { asset: { include: { storageKey: true } } } }
     replies: {
       include: {
         creator: true
-        attachments: { include: { asset: true } }
+        attachments: { include: { asset: { include: { storageKey: true } } } }
       }
     }
   }
@@ -91,19 +93,21 @@ export class AssetService {
       include: {
         creator: true,
         metadataValues: true,
+        storageKey: true,
         target: {
           include: {
             creator: true,
             metadataValues: true,
+            storageKey: true,
             children: {
-              include: { creator: true, metadataValues: true },
+              include: { creator: true, metadataValues: true, storageKey: true },
               take: 3,
               orderBy: { sortIndex: 'asc' },
             },
           },
         },
         children: {
-          include: { creator: true, metadataValues: true },
+          include: { creator: true, metadataValues: true, storageKey: true },
           take: 3,
           orderBy: { sortIndex: 'asc' },
         },
@@ -335,27 +339,17 @@ export class AssetService {
 
   private async copyAssetRecursive(
     tx: Prisma.TransactionClient,
-    asset: Asset,
+    asset: Asset & { storageKey?: StorageKey | null },
     newParentId: string | null,
     projectId: string | null,
     sortIndex: string | null,
     creatorId?: string,
     withComments: boolean = false,
   ): Promise<Asset> {
-    let newKey = asset.key
-    if (asset.type === AssetType.file && asset.key) {
-      // Duplicate S3 object
-      const bucket = process.env.S3_BUCKET || 'shumai'
-      const ext = path.extname(asset.key)
-      newKey = ulid() + ext
-      await s3Service.copyObject(bucket, asset.key, bucket, newKey)
-    }
-
     const newAsset = await tx.asset.create({
       data: {
         name: asset.name,
         nameNgram: asset.nameNgram,
-        key: newKey,
         type: asset.type,
         mediaType: asset.mediaType,
         fileCount: asset.fileCount,
@@ -372,6 +366,7 @@ export class AssetService {
         taskId: asset.taskId,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         targetId: asset.targetId as any,
+        storageKeyId: asset.storageKeyId,
       },
     })
 
@@ -635,19 +630,21 @@ export class AssetService {
           include: {
             creator: true,
             metadataValues: true,
+            storageKey: true,
             target: {
               include: {
                 creator: true,
                 metadataValues: true,
+                storageKey: true,
                 children: {
-                  include: { creator: true, metadataValues: true },
+                  include: { creator: true, metadataValues: true, storageKey: true },
                   take: 3,
                   orderBy: { sortIndex: 'asc' },
                 },
               },
             },
             children: {
-              include: { creator: true, metadataValues: true },
+              include: { creator: true, metadataValues: true, storageKey: true },
               take: 3,
               orderBy: { sortIndex: 'asc' },
             },
@@ -699,7 +696,14 @@ export class AssetService {
 
     if (parent) data.parent = { connect: { id: parent.id } }
     if (sortIndex) data.sortIndex = sortIndex
-    if (req.key) data.key = req.key
+    if (req.key) {
+      ;(data as any).storageKey = {
+        connectOrCreate: {
+          where: { key: req.key },
+          create: { key: req.key },
+        },
+      }
+    }
     if (req.sizeByte) data.sizeByte = req.sizeByte
     if (req.contentType) data.mediaType = req.contentType
     if (req.creatorId) data.creator = { connect: { id: req.creatorId } }
@@ -709,19 +713,21 @@ export class AssetService {
       include: {
         creator: true,
         metadataValues: true,
+        storageKey: true,
         target: {
           include: {
             creator: true,
             metadataValues: true,
+            storageKey: true,
             children: {
-              include: { creator: true, metadataValues: true },
+              include: { creator: true, metadataValues: true, storageKey: true },
               take: 3,
               orderBy: { sortIndex: 'asc' },
             },
           },
         },
         children: {
-          include: { creator: true, metadataValues: true },
+          include: { creator: true, metadataValues: true, storageKey: true },
           take: 3,
           orderBy: { sortIndex: 'asc' },
         },
@@ -746,19 +752,21 @@ export class AssetService {
       include: {
         creator: true,
         metadataValues: true,
+        storageKey: true,
         target: {
           include: {
             creator: true,
             metadataValues: true,
+            storageKey: true,
             children: {
-              include: { creator: true, metadataValues: true },
+              include: { creator: true, metadataValues: true, storageKey: true },
               take: 3,
               orderBy: { sortIndex: 'asc' },
             },
           },
         },
         children: {
-          include: { creator: true, metadataValues: true },
+          include: { creator: true, metadataValues: true, storageKey: true },
           take: 3,
           orderBy: { sortIndex: 'asc' },
         },
@@ -868,21 +876,23 @@ export class AssetService {
           include: {
             creator: true,
             metadataValues: true,
+            storageKey: true,
             children: {
-              include: { creator: true, metadataValues: true },
+              include: { creator: true, metadataValues: true, storageKey: true },
               take: 3,
               orderBy: { sortIndex: 'asc' },
             },
           },
         },
         children: {
-          include: { creator: true, metadataValues: true },
+          include: { creator: true, metadataValues: true, storageKey: true },
           take: 3,
           orderBy: { sortIndex: 'asc' },
         },
+        storageKey: true,
       },
     })
-    const infos = await this.toAssetInfos([asset])
+    const infos = await this.toAssetInfos([asset as any])
     return infos[0]
   }
 
@@ -995,8 +1005,20 @@ export class AssetService {
       setTimeout(runPurge, 1000) // Run every 1 second
     }
 
+    // Stage 3: Garbage Collection Job - Purge unreferenced StorageKeys and physical files
+    const runGc = async () => {
+      if (!this.cleanupJobsRunning) return
+      try {
+        await this.purgeUnreferencedStorageKeys()
+      } catch (e: unknown) {
+        console.error('Error in asset GC job:', e)
+      }
+      setTimeout(runGc, 10000) // Run every 10 seconds
+    }
+
     runExpiration()
     runPurge()
+    runGc()
   }
 
   stopCleanupJob() {
@@ -1045,7 +1067,7 @@ export class AssetService {
   private async purgePendingAssets() {
     // 1. Lock 100 assets using raw SQL FOR UPDATE SKIP LOCKED and mark them as 'purging'
     // We include a timeout check (1 hour) to allow picking up stalled tasks.
-    const lockedAssets = await this.prismaClient.$queryRaw<{ id: string; key: string | null }[]>`
+    const lockedAssets = await this.prismaClient.$queryRaw<{ id: string }[]>`
       WITH to_purge AS (
         SELECT id FROM assets
         WHERE status = 'pending_purge'
@@ -1055,46 +1077,14 @@ export class AssetService {
       )
       UPDATE assets SET status = 'purging', updated_at = NOW()
       WHERE id IN (SELECT id FROM to_purge)
-      RETURNING id, key;
+      RETURNING id;
     `
 
     if (lockedAssets.length === 0) return
 
-    let physicalFilesDeleted = 0
-    let physicalFoldersDeleted = 0
+    const successfulIds = lockedAssets.map((a) => a.id)
 
-    // 2. Physical file deletion from storage
-    const bucket = process.env.S3_BUCKET || 'shumai'
-    const results = await Promise.all(
-      lockedAssets.map(async (a) => {
-        if (a.key) {
-          try {
-            // Check if this asset has a dedicated directory (e.g., file/ULID/raw)
-            // If it has more than one slash, we delete the entire containing directory
-            // to ensure transcodes/thumbnails are also removed.
-            const parts = a.key.split('/')
-            if (parts.length > 2) {
-              const prefix = parts.slice(0, parts.length - 1).join('/') + '/'
-              const count = await s3Service.deletePrefix(bucket, prefix)
-              physicalFilesDeleted += count
-              physicalFoldersDeleted += 1
-            } else {
-              const count = await s3Service.deleteObject(bucket, a.key)
-              physicalFilesDeleted += count
-            }
-            return a.id
-          } catch (e: unknown) {
-            console.error(`Failed to delete storage object(s) for ${a.key}:`, e)
-            return null
-          }
-        }
-        // Assets without keys (folders, etc.) are considered processed
-        return a.id
-      }),
-    )
-
-    // 3. Hard delete from database ONLY for assets successfully removed from storage
-    const successfulIds = results.filter((id): id is string => id !== null)
+    // 3. Hard delete from database
     if (successfulIds.length > 0) {
       await this.prismaClient.asset.deleteMany({
         where: { id: { in: successfulIds } },
@@ -1103,10 +1093,64 @@ export class AssetService {
       logger.info(
         {
           purgedCount: successfulIds.length,
-          physicalFilesDeleted,
-          physicalFoldersDeleted,
         },
-        `${successfulIds.length} assets purged, deleted ${physicalFilesDeleted} files in ${physicalFoldersDeleted} folders`,
+        `${successfulIds.length} assets purged from database`,
+      )
+    }
+  }
+
+  /**
+   * Stage 3: Garbage Collection - Physically delete files and StorageKey records
+   * that have no associated logical assets.
+   */
+  private async purgeUnreferencedStorageKeys() {
+    const bucket = process.env.S3_BUCKET || 'shumai'
+    let purgedCount = 0
+    let physicalFilesDeleted = 0
+
+    // 1. Find storage keys with no associated assets and older than 24 hours
+    // We use 24 hours to avoid race conditions with ongoing uploads or copies.
+    const twentyFourHoursAgo = new Date()
+    twentyFourHoursAgo.setDate(twentyFourHoursAgo.getDate() - 1)
+
+    const unreferencedKeys = await this.prismaClient.storageKey.findMany({
+      where: {
+        assets: { none: {} },
+        createdAt: { lt: twentyFourHoursAgo },
+      },
+      take: 100,
+    })
+
+    for (const sk of unreferencedKeys) {
+      try {
+        // Physically delete from S3
+        const parts = sk.key.split('/')
+        if (parts.length > 2) {
+          const prefix = parts.slice(0, parts.length - 1).join('/') + '/'
+          const count = await s3Service.deletePrefix(bucket, prefix)
+          physicalFilesDeleted += count
+        } else {
+          const count = await s3Service.deleteObject(bucket, sk.key)
+          physicalFilesDeleted += count
+        }
+
+        // Delete from database
+        await this.prismaClient.storageKey.delete({
+          where: { id: sk.id },
+        })
+        purgedCount++
+      } catch (e: unknown) {
+        logger.error(
+          { key: sk.key, error: e instanceof Error ? e.message : String(e) },
+          'Failed to purge unreferenced storage key',
+        )
+      }
+    }
+
+    if (purgedCount > 0) {
+      logger.info(
+        { purgedCount, physicalFilesDeleted },
+        `Garbage collection: purged ${purgedCount} storage keys and ${physicalFilesDeleted} physical files`,
       )
     }
   }
@@ -1280,12 +1324,12 @@ export class AssetService {
       where: { id: commentId },
       include: {
         creator: true,
-        asset: true,
-        attachments: { include: { asset: true } },
+        asset: { include: { storageKey: true } },
+        attachments: { include: { asset: { include: { storageKey: true } } } },
         replies: {
           include: {
             creator: true,
-            attachments: { include: { asset: true } },
+            attachments: { include: { asset: { include: { storageKey: true } } } },
           },
           orderBy: { id: 'asc' },
         },
@@ -1307,12 +1351,12 @@ export class AssetService {
           where: { assetId: resolvedAssetId, replyToId: null },
           include: {
             creator: true,
-            asset: true,
-            attachments: { include: { asset: true } },
+            asset: { include: { storageKey: true } },
+            attachments: { include: { asset: { include: { storageKey: true } } } },
             replies: {
               include: {
                 creator: true,
-                attachments: { include: { asset: true } },
+                attachments: { include: { asset: { include: { storageKey: true } } } },
               },
               orderBy: { id: 'asc' },
             },
@@ -1363,7 +1407,7 @@ export class AssetService {
     if (stackIds.size > 0) {
       const allVersions = await this.prismaClient.asset.findMany({
         where: { parentId: { in: Array.from(stackIds) }, isDeleted: false },
-        include: { creator: true, metadataValues: true },
+        include: { creator: true, metadataValues: true, storageKey: true },
       })
       for (const v of allVersions) {
         const list = versionsMap.get(v.parentId!) || []
@@ -1482,6 +1526,16 @@ export class AssetService {
         )
       }
 
+      const key = latestVersion.storageKey?.key
+      if (media && key) {
+        media.original = {
+          key,
+          downloadUrl: await s3Service.presign(process.env.S3_BUCKET || 'shumai', key, 'GET'),
+          filesizeInBytes: latestVersion.sizeByte,
+          codec: '', // TODO: extract from metadata if needed
+        }
+      }
+
       result.push({
         id: a.id,
         name:
@@ -1591,8 +1645,12 @@ export class AssetService {
     const attachments: AttachmentInfo[] = []
     if (c.attachments) {
       for (const a of c.attachments) {
-        if (a.asset?.key) {
-          const url = await s3Service.presign(process.env.S3_BUCKET || 'shumai', a.asset.key, 'GET')
+        if (a.asset?.storageKey?.key) {
+          const url = await s3Service.presign(
+            process.env.S3_BUCKET || 'shumai',
+            a.asset.storageKey.key,
+            'GET',
+          )
           attachments.push({
             id: a.id,
             assetId: a.asset.id,

@@ -56,10 +56,10 @@ describe('WorkflowService', () => {
     const asset = await prisma.asset.create({
       data: {
         name: 'test.mp3',
-        key: 'test/test.mp3',
+        storageKey: { create: { key: 'test/test.mp3' } },
         status: 'uploaded',
         type: 'file',
-        projectId: project.id,
+        project: { connect: { id: project.id } },
       },
     })
 
@@ -100,11 +100,11 @@ describe('WorkflowService', () => {
     const asset = await prisma.asset.create({
       data: {
         name: 'test.png',
-        key: 'test/test.png',
+        storageKey: { create: { key: 'test/test.png' } },
         status: 'uploaded',
         type: 'file',
         mediaType: 'image/png',
-        projectId: project.id,
+        project: { connect: { id: project.id } },
       },
     })
 

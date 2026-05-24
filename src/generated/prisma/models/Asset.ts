@@ -41,7 +41,6 @@ export type AssetSumAggregateOutputType = {
 export type AssetMinAggregateOutputType = {
   id: string | null
   name: string | null
-  key: string | null
   type: $Enums.AssetType | null
   mediaType: string | null
   fileCount: number | null
@@ -55,6 +54,7 @@ export type AssetMinAggregateOutputType = {
   updatedAt: Date | null
   parentId: string | null
   targetId: string | null
+  storageKeyId: string | null
   creatorId: string | null
   taskId: string | null
   projectId: string | null
@@ -63,7 +63,6 @@ export type AssetMinAggregateOutputType = {
 export type AssetMaxAggregateOutputType = {
   id: string | null
   name: string | null
-  key: string | null
   type: $Enums.AssetType | null
   mediaType: string | null
   fileCount: number | null
@@ -77,6 +76,7 @@ export type AssetMaxAggregateOutputType = {
   updatedAt: Date | null
   parentId: string | null
   targetId: string | null
+  storageKeyId: string | null
   creatorId: string | null
   taskId: string | null
   projectId: string | null
@@ -86,7 +86,6 @@ export type AssetCountAggregateOutputType = {
   id: number
   name: number
   nameNgram: number
-  key: number
   type: number
   mediaType: number
   fileCount: number
@@ -101,6 +100,7 @@ export type AssetCountAggregateOutputType = {
   updatedAt: number
   parentId: number
   targetId: number
+  storageKeyId: number
   creatorId: number
   taskId: number
   projectId: number
@@ -121,7 +121,6 @@ export type AssetSumAggregateInputType = {
 export type AssetMinAggregateInputType = {
   id?: true
   name?: true
-  key?: true
   type?: true
   mediaType?: true
   fileCount?: true
@@ -135,6 +134,7 @@ export type AssetMinAggregateInputType = {
   updatedAt?: true
   parentId?: true
   targetId?: true
+  storageKeyId?: true
   creatorId?: true
   taskId?: true
   projectId?: true
@@ -143,7 +143,6 @@ export type AssetMinAggregateInputType = {
 export type AssetMaxAggregateInputType = {
   id?: true
   name?: true
-  key?: true
   type?: true
   mediaType?: true
   fileCount?: true
@@ -157,6 +156,7 @@ export type AssetMaxAggregateInputType = {
   updatedAt?: true
   parentId?: true
   targetId?: true
+  storageKeyId?: true
   creatorId?: true
   taskId?: true
   projectId?: true
@@ -166,7 +166,6 @@ export type AssetCountAggregateInputType = {
   id?: true
   name?: true
   nameNgram?: true
-  key?: true
   type?: true
   mediaType?: true
   fileCount?: true
@@ -181,6 +180,7 @@ export type AssetCountAggregateInputType = {
   updatedAt?: true
   parentId?: true
   targetId?: true
+  storageKeyId?: true
   creatorId?: true
   taskId?: true
   projectId?: true
@@ -277,7 +277,6 @@ export type AssetGroupByOutputType = {
   id: string
   name: string
   nameNgram: string[]
-  key: string | null
   type: $Enums.AssetType
   mediaType: string | null
   fileCount: number
@@ -292,6 +291,7 @@ export type AssetGroupByOutputType = {
   updatedAt: Date
   parentId: string | null
   targetId: string | null
+  storageKeyId: string | null
   creatorId: string | null
   taskId: string | null
   projectId: string | null
@@ -324,7 +324,6 @@ export type AssetWhereInput = {
   id?: Prisma.StringFilter<"Asset"> | string
   name?: Prisma.StringFilter<"Asset"> | string
   nameNgram?: Prisma.StringNullableListFilter<"Asset">
-  key?: Prisma.StringNullableFilter<"Asset"> | string | null
   type?: Prisma.EnumAssetTypeFilter<"Asset"> | $Enums.AssetType
   mediaType?: Prisma.StringNullableFilter<"Asset"> | string | null
   fileCount?: Prisma.IntFilter<"Asset"> | number
@@ -339,6 +338,7 @@ export type AssetWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"Asset"> | Date | string
   parentId?: Prisma.StringNullableFilter<"Asset"> | string | null
   targetId?: Prisma.StringNullableFilter<"Asset"> | string | null
+  storageKeyId?: Prisma.StringNullableFilter<"Asset"> | string | null
   creatorId?: Prisma.StringNullableFilter<"Asset"> | string | null
   taskId?: Prisma.StringNullableFilter<"Asset"> | string | null
   projectId?: Prisma.StringNullableFilter<"Asset"> | string | null
@@ -346,6 +346,7 @@ export type AssetWhereInput = {
   children?: Prisma.AssetListRelationFilter
   target?: Prisma.XOR<Prisma.AssetNullableScalarRelationFilter, Prisma.AssetWhereInput> | null
   symlinks?: Prisma.AssetListRelationFilter
+  storageKey?: Prisma.XOR<Prisma.StorageKeyNullableScalarRelationFilter, Prisma.StorageKeyWhereInput> | null
   metadataValues?: Prisma.AssetMetadataValueListRelationFilter
   creator?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   task?: Prisma.XOR<Prisma.TaskNullableScalarRelationFilter, Prisma.TaskWhereInput> | null
@@ -364,7 +365,6 @@ export type AssetOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   nameNgram?: Prisma.SortOrder
-  key?: Prisma.SortOrderInput | Prisma.SortOrder
   type?: Prisma.SortOrder
   mediaType?: Prisma.SortOrderInput | Prisma.SortOrder
   fileCount?: Prisma.SortOrder
@@ -379,6 +379,7 @@ export type AssetOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   parentId?: Prisma.SortOrderInput | Prisma.SortOrder
   targetId?: Prisma.SortOrderInput | Prisma.SortOrder
+  storageKeyId?: Prisma.SortOrderInput | Prisma.SortOrder
   creatorId?: Prisma.SortOrderInput | Prisma.SortOrder
   taskId?: Prisma.SortOrderInput | Prisma.SortOrder
   projectId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -386,6 +387,7 @@ export type AssetOrderByWithRelationInput = {
   children?: Prisma.AssetOrderByRelationAggregateInput
   target?: Prisma.AssetOrderByWithRelationInput
   symlinks?: Prisma.AssetOrderByRelationAggregateInput
+  storageKey?: Prisma.StorageKeyOrderByWithRelationInput
   metadataValues?: Prisma.AssetMetadataValueOrderByRelationAggregateInput
   creator?: Prisma.UserOrderByWithRelationInput
   task?: Prisma.TaskOrderByWithRelationInput
@@ -408,7 +410,6 @@ export type AssetWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.AssetWhereInput | Prisma.AssetWhereInput[]
   name?: Prisma.StringFilter<"Asset"> | string
   nameNgram?: Prisma.StringNullableListFilter<"Asset">
-  key?: Prisma.StringNullableFilter<"Asset"> | string | null
   type?: Prisma.EnumAssetTypeFilter<"Asset"> | $Enums.AssetType
   mediaType?: Prisma.StringNullableFilter<"Asset"> | string | null
   fileCount?: Prisma.IntFilter<"Asset"> | number
@@ -423,6 +424,7 @@ export type AssetWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"Asset"> | Date | string
   parentId?: Prisma.StringNullableFilter<"Asset"> | string | null
   targetId?: Prisma.StringNullableFilter<"Asset"> | string | null
+  storageKeyId?: Prisma.StringNullableFilter<"Asset"> | string | null
   creatorId?: Prisma.StringNullableFilter<"Asset"> | string | null
   taskId?: Prisma.StringNullableFilter<"Asset"> | string | null
   projectId?: Prisma.StringNullableFilter<"Asset"> | string | null
@@ -430,6 +432,7 @@ export type AssetWhereUniqueInput = Prisma.AtLeast<{
   children?: Prisma.AssetListRelationFilter
   target?: Prisma.XOR<Prisma.AssetNullableScalarRelationFilter, Prisma.AssetWhereInput> | null
   symlinks?: Prisma.AssetListRelationFilter
+  storageKey?: Prisma.XOR<Prisma.StorageKeyNullableScalarRelationFilter, Prisma.StorageKeyWhereInput> | null
   metadataValues?: Prisma.AssetMetadataValueListRelationFilter
   creator?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   task?: Prisma.XOR<Prisma.TaskNullableScalarRelationFilter, Prisma.TaskWhereInput> | null
@@ -448,7 +451,6 @@ export type AssetOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   nameNgram?: Prisma.SortOrder
-  key?: Prisma.SortOrderInput | Prisma.SortOrder
   type?: Prisma.SortOrder
   mediaType?: Prisma.SortOrderInput | Prisma.SortOrder
   fileCount?: Prisma.SortOrder
@@ -463,6 +465,7 @@ export type AssetOrderByWithAggregationInput = {
   updatedAt?: Prisma.SortOrder
   parentId?: Prisma.SortOrderInput | Prisma.SortOrder
   targetId?: Prisma.SortOrderInput | Prisma.SortOrder
+  storageKeyId?: Prisma.SortOrderInput | Prisma.SortOrder
   creatorId?: Prisma.SortOrderInput | Prisma.SortOrder
   taskId?: Prisma.SortOrderInput | Prisma.SortOrder
   projectId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -480,7 +483,6 @@ export type AssetScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"Asset"> | string
   name?: Prisma.StringWithAggregatesFilter<"Asset"> | string
   nameNgram?: Prisma.StringNullableListFilter<"Asset">
-  key?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
   type?: Prisma.EnumAssetTypeWithAggregatesFilter<"Asset"> | $Enums.AssetType
   mediaType?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
   fileCount?: Prisma.IntWithAggregatesFilter<"Asset"> | number
@@ -495,6 +497,7 @@ export type AssetScalarWhereWithAggregatesInput = {
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Asset"> | Date | string
   parentId?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
   targetId?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
+  storageKeyId?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
   creatorId?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
   taskId?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
   projectId?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
@@ -504,7 +507,6 @@ export type AssetCreateInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -521,6 +523,7 @@ export type AssetCreateInput = {
   children?: Prisma.AssetCreateNestedManyWithoutParentInput
   target?: Prisma.AssetCreateNestedOneWithoutSymlinksInput
   symlinks?: Prisma.AssetCreateNestedManyWithoutTargetInput
+  storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
@@ -539,7 +542,6 @@ export type AssetUncheckedCreateInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -554,6 +556,7 @@ export type AssetUncheckedCreateInput = {
   updatedAt?: Date | string
   parentId?: string | null
   targetId?: string | null
+  storageKeyId?: string | null
   creatorId?: string | null
   taskId?: string | null
   projectId?: string | null
@@ -574,7 +577,6 @@ export type AssetUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -591,6 +593,7 @@ export type AssetUpdateInput = {
   children?: Prisma.AssetUpdateManyWithoutParentNestedInput
   target?: Prisma.AssetUpdateOneWithoutSymlinksNestedInput
   symlinks?: Prisma.AssetUpdateManyWithoutTargetNestedInput
+  storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
@@ -609,7 +612,6 @@ export type AssetUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -624,6 +626,7 @@ export type AssetUncheckedUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -644,7 +647,6 @@ export type AssetCreateManyInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -659,6 +661,7 @@ export type AssetCreateManyInput = {
   updatedAt?: Date | string
   parentId?: string | null
   targetId?: string | null
+  storageKeyId?: string | null
   creatorId?: string | null
   taskId?: string | null
   projectId?: string | null
@@ -668,7 +671,6 @@ export type AssetUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -687,7 +689,6 @@ export type AssetUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -702,6 +703,7 @@ export type AssetUncheckedUpdateManyInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -736,7 +738,6 @@ export type AssetCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   nameNgram?: Prisma.SortOrder
-  key?: Prisma.SortOrder
   type?: Prisma.SortOrder
   mediaType?: Prisma.SortOrder
   fileCount?: Prisma.SortOrder
@@ -751,6 +752,7 @@ export type AssetCountOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
   parentId?: Prisma.SortOrder
   targetId?: Prisma.SortOrder
+  storageKeyId?: Prisma.SortOrder
   creatorId?: Prisma.SortOrder
   taskId?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
@@ -764,7 +766,6 @@ export type AssetAvgOrderByAggregateInput = {
 export type AssetMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
-  key?: Prisma.SortOrder
   type?: Prisma.SortOrder
   mediaType?: Prisma.SortOrder
   fileCount?: Prisma.SortOrder
@@ -778,6 +779,7 @@ export type AssetMaxOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
   parentId?: Prisma.SortOrder
   targetId?: Prisma.SortOrder
+  storageKeyId?: Prisma.SortOrder
   creatorId?: Prisma.SortOrder
   taskId?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
@@ -786,7 +788,6 @@ export type AssetMaxOrderByAggregateInput = {
 export type AssetMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
-  key?: Prisma.SortOrder
   type?: Prisma.SortOrder
   mediaType?: Prisma.SortOrder
   fileCount?: Prisma.SortOrder
@@ -800,6 +801,7 @@ export type AssetMinOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
   parentId?: Prisma.SortOrder
   targetId?: Prisma.SortOrder
+  storageKeyId?: Prisma.SortOrder
   creatorId?: Prisma.SortOrder
   taskId?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
@@ -1097,6 +1099,48 @@ export type AssetUncheckedUpdateManyWithoutTargetNestedInput = {
   deleteMany?: Prisma.AssetScalarWhereInput | Prisma.AssetScalarWhereInput[]
 }
 
+export type AssetCreateNestedManyWithoutStorageKeyInput = {
+  create?: Prisma.XOR<Prisma.AssetCreateWithoutStorageKeyInput, Prisma.AssetUncheckedCreateWithoutStorageKeyInput> | Prisma.AssetCreateWithoutStorageKeyInput[] | Prisma.AssetUncheckedCreateWithoutStorageKeyInput[]
+  connectOrCreate?: Prisma.AssetCreateOrConnectWithoutStorageKeyInput | Prisma.AssetCreateOrConnectWithoutStorageKeyInput[]
+  createMany?: Prisma.AssetCreateManyStorageKeyInputEnvelope
+  connect?: Prisma.AssetWhereUniqueInput | Prisma.AssetWhereUniqueInput[]
+}
+
+export type AssetUncheckedCreateNestedManyWithoutStorageKeyInput = {
+  create?: Prisma.XOR<Prisma.AssetCreateWithoutStorageKeyInput, Prisma.AssetUncheckedCreateWithoutStorageKeyInput> | Prisma.AssetCreateWithoutStorageKeyInput[] | Prisma.AssetUncheckedCreateWithoutStorageKeyInput[]
+  connectOrCreate?: Prisma.AssetCreateOrConnectWithoutStorageKeyInput | Prisma.AssetCreateOrConnectWithoutStorageKeyInput[]
+  createMany?: Prisma.AssetCreateManyStorageKeyInputEnvelope
+  connect?: Prisma.AssetWhereUniqueInput | Prisma.AssetWhereUniqueInput[]
+}
+
+export type AssetUpdateManyWithoutStorageKeyNestedInput = {
+  create?: Prisma.XOR<Prisma.AssetCreateWithoutStorageKeyInput, Prisma.AssetUncheckedCreateWithoutStorageKeyInput> | Prisma.AssetCreateWithoutStorageKeyInput[] | Prisma.AssetUncheckedCreateWithoutStorageKeyInput[]
+  connectOrCreate?: Prisma.AssetCreateOrConnectWithoutStorageKeyInput | Prisma.AssetCreateOrConnectWithoutStorageKeyInput[]
+  upsert?: Prisma.AssetUpsertWithWhereUniqueWithoutStorageKeyInput | Prisma.AssetUpsertWithWhereUniqueWithoutStorageKeyInput[]
+  createMany?: Prisma.AssetCreateManyStorageKeyInputEnvelope
+  set?: Prisma.AssetWhereUniqueInput | Prisma.AssetWhereUniqueInput[]
+  disconnect?: Prisma.AssetWhereUniqueInput | Prisma.AssetWhereUniqueInput[]
+  delete?: Prisma.AssetWhereUniqueInput | Prisma.AssetWhereUniqueInput[]
+  connect?: Prisma.AssetWhereUniqueInput | Prisma.AssetWhereUniqueInput[]
+  update?: Prisma.AssetUpdateWithWhereUniqueWithoutStorageKeyInput | Prisma.AssetUpdateWithWhereUniqueWithoutStorageKeyInput[]
+  updateMany?: Prisma.AssetUpdateManyWithWhereWithoutStorageKeyInput | Prisma.AssetUpdateManyWithWhereWithoutStorageKeyInput[]
+  deleteMany?: Prisma.AssetScalarWhereInput | Prisma.AssetScalarWhereInput[]
+}
+
+export type AssetUncheckedUpdateManyWithoutStorageKeyNestedInput = {
+  create?: Prisma.XOR<Prisma.AssetCreateWithoutStorageKeyInput, Prisma.AssetUncheckedCreateWithoutStorageKeyInput> | Prisma.AssetCreateWithoutStorageKeyInput[] | Prisma.AssetUncheckedCreateWithoutStorageKeyInput[]
+  connectOrCreate?: Prisma.AssetCreateOrConnectWithoutStorageKeyInput | Prisma.AssetCreateOrConnectWithoutStorageKeyInput[]
+  upsert?: Prisma.AssetUpsertWithWhereUniqueWithoutStorageKeyInput | Prisma.AssetUpsertWithWhereUniqueWithoutStorageKeyInput[]
+  createMany?: Prisma.AssetCreateManyStorageKeyInputEnvelope
+  set?: Prisma.AssetWhereUniqueInput | Prisma.AssetWhereUniqueInput[]
+  disconnect?: Prisma.AssetWhereUniqueInput | Prisma.AssetWhereUniqueInput[]
+  delete?: Prisma.AssetWhereUniqueInput | Prisma.AssetWhereUniqueInput[]
+  connect?: Prisma.AssetWhereUniqueInput | Prisma.AssetWhereUniqueInput[]
+  update?: Prisma.AssetUpdateWithWhereUniqueWithoutStorageKeyInput | Prisma.AssetUpdateWithWhereUniqueWithoutStorageKeyInput[]
+  updateMany?: Prisma.AssetUpdateManyWithWhereWithoutStorageKeyInput | Prisma.AssetUpdateManyWithWhereWithoutStorageKeyInput[]
+  deleteMany?: Prisma.AssetScalarWhereInput | Prisma.AssetScalarWhereInput[]
+}
+
 export type AssetCreateNestedOneWithoutMetadataValuesInput = {
   create?: Prisma.XOR<Prisma.AssetCreateWithoutMetadataValuesInput, Prisma.AssetUncheckedCreateWithoutMetadataValuesInput>
   connectOrCreate?: Prisma.AssetCreateOrConnectWithoutMetadataValuesInput
@@ -1215,7 +1259,6 @@ export type AssetCreateWithoutCreatorInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -1232,6 +1275,7 @@ export type AssetCreateWithoutCreatorInput = {
   children?: Prisma.AssetCreateNestedManyWithoutParentInput
   target?: Prisma.AssetCreateNestedOneWithoutSymlinksInput
   symlinks?: Prisma.AssetCreateNestedManyWithoutTargetInput
+  storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
   project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
@@ -1249,7 +1293,6 @@ export type AssetUncheckedCreateWithoutCreatorInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -1264,6 +1307,7 @@ export type AssetUncheckedCreateWithoutCreatorInput = {
   updatedAt?: Date | string
   parentId?: string | null
   targetId?: string | null
+  storageKeyId?: string | null
   taskId?: string | null
   projectId?: string | null
   children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
@@ -1312,7 +1356,6 @@ export type AssetScalarWhereInput = {
   id?: Prisma.StringFilter<"Asset"> | string
   name?: Prisma.StringFilter<"Asset"> | string
   nameNgram?: Prisma.StringNullableListFilter<"Asset">
-  key?: Prisma.StringNullableFilter<"Asset"> | string | null
   type?: Prisma.EnumAssetTypeFilter<"Asset"> | $Enums.AssetType
   mediaType?: Prisma.StringNullableFilter<"Asset"> | string | null
   fileCount?: Prisma.IntFilter<"Asset"> | number
@@ -1327,6 +1370,7 @@ export type AssetScalarWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"Asset"> | Date | string
   parentId?: Prisma.StringNullableFilter<"Asset"> | string | null
   targetId?: Prisma.StringNullableFilter<"Asset"> | string | null
+  storageKeyId?: Prisma.StringNullableFilter<"Asset"> | string | null
   creatorId?: Prisma.StringNullableFilter<"Asset"> | string | null
   taskId?: Prisma.StringNullableFilter<"Asset"> | string | null
   projectId?: Prisma.StringNullableFilter<"Asset"> | string | null
@@ -1336,7 +1380,6 @@ export type AssetCreateWithoutTeamRootFolderInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -1353,6 +1396,7 @@ export type AssetCreateWithoutTeamRootFolderInput = {
   children?: Prisma.AssetCreateNestedManyWithoutParentInput
   target?: Prisma.AssetCreateNestedOneWithoutSymlinksInput
   symlinks?: Prisma.AssetCreateNestedManyWithoutTargetInput
+  storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
@@ -1370,7 +1414,6 @@ export type AssetUncheckedCreateWithoutTeamRootFolderInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -1385,6 +1428,7 @@ export type AssetUncheckedCreateWithoutTeamRootFolderInput = {
   updatedAt?: Date | string
   parentId?: string | null
   targetId?: string | null
+  storageKeyId?: string | null
   creatorId?: string | null
   taskId?: string | null
   projectId?: string | null
@@ -1420,7 +1464,6 @@ export type AssetUpdateWithoutTeamRootFolderInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1437,6 +1480,7 @@ export type AssetUpdateWithoutTeamRootFolderInput = {
   children?: Prisma.AssetUpdateManyWithoutParentNestedInput
   target?: Prisma.AssetUpdateOneWithoutSymlinksNestedInput
   symlinks?: Prisma.AssetUpdateManyWithoutTargetNestedInput
+  storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
@@ -1454,7 +1498,6 @@ export type AssetUncheckedUpdateWithoutTeamRootFolderInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1469,6 +1512,7 @@ export type AssetUncheckedUpdateWithoutTeamRootFolderInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1488,7 +1532,6 @@ export type AssetCreateWithoutProjectRootFolderInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -1505,6 +1548,7 @@ export type AssetCreateWithoutProjectRootFolderInput = {
   children?: Prisma.AssetCreateNestedManyWithoutParentInput
   target?: Prisma.AssetCreateNestedOneWithoutSymlinksInput
   symlinks?: Prisma.AssetCreateNestedManyWithoutTargetInput
+  storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
@@ -1522,7 +1566,6 @@ export type AssetUncheckedCreateWithoutProjectRootFolderInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -1537,6 +1580,7 @@ export type AssetUncheckedCreateWithoutProjectRootFolderInput = {
   updatedAt?: Date | string
   parentId?: string | null
   targetId?: string | null
+  storageKeyId?: string | null
   creatorId?: string | null
   taskId?: string | null
   projectId?: string | null
@@ -1561,7 +1605,6 @@ export type AssetCreateWithoutProjectShareRootInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -1578,6 +1621,7 @@ export type AssetCreateWithoutProjectShareRootInput = {
   children?: Prisma.AssetCreateNestedManyWithoutParentInput
   target?: Prisma.AssetCreateNestedOneWithoutSymlinksInput
   symlinks?: Prisma.AssetCreateNestedManyWithoutTargetInput
+  storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
@@ -1595,7 +1639,6 @@ export type AssetUncheckedCreateWithoutProjectShareRootInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -1610,6 +1653,7 @@ export type AssetUncheckedCreateWithoutProjectShareRootInput = {
   updatedAt?: Date | string
   parentId?: string | null
   targetId?: string | null
+  storageKeyId?: string | null
   creatorId?: string | null
   taskId?: string | null
   projectId?: string | null
@@ -1634,7 +1678,6 @@ export type AssetCreateWithoutProjectInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -1651,6 +1694,7 @@ export type AssetCreateWithoutProjectInput = {
   children?: Prisma.AssetCreateNestedManyWithoutParentInput
   target?: Prisma.AssetCreateNestedOneWithoutSymlinksInput
   symlinks?: Prisma.AssetCreateNestedManyWithoutTargetInput
+  storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
@@ -1668,7 +1712,6 @@ export type AssetUncheckedCreateWithoutProjectInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -1683,6 +1726,7 @@ export type AssetUncheckedCreateWithoutProjectInput = {
   updatedAt?: Date | string
   parentId?: string | null
   targetId?: string | null
+  storageKeyId?: string | null
   creatorId?: string | null
   taskId?: string | null
   children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
@@ -1723,7 +1767,6 @@ export type AssetUpdateWithoutProjectRootFolderInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1740,6 +1783,7 @@ export type AssetUpdateWithoutProjectRootFolderInput = {
   children?: Prisma.AssetUpdateManyWithoutParentNestedInput
   target?: Prisma.AssetUpdateOneWithoutSymlinksNestedInput
   symlinks?: Prisma.AssetUpdateManyWithoutTargetNestedInput
+  storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
@@ -1757,7 +1801,6 @@ export type AssetUncheckedUpdateWithoutProjectRootFolderInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1772,6 +1815,7 @@ export type AssetUncheckedUpdateWithoutProjectRootFolderInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1802,7 +1846,6 @@ export type AssetUpdateWithoutProjectShareRootInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1819,6 +1862,7 @@ export type AssetUpdateWithoutProjectShareRootInput = {
   children?: Prisma.AssetUpdateManyWithoutParentNestedInput
   target?: Prisma.AssetUpdateOneWithoutSymlinksNestedInput
   symlinks?: Prisma.AssetUpdateManyWithoutTargetNestedInput
+  storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
@@ -1836,7 +1880,6 @@ export type AssetUncheckedUpdateWithoutProjectShareRootInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1851,6 +1894,7 @@ export type AssetUncheckedUpdateWithoutProjectShareRootInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1886,7 +1930,6 @@ export type AssetCreateWithoutShareLinkRootFolderInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -1903,6 +1946,7 @@ export type AssetCreateWithoutShareLinkRootFolderInput = {
   children?: Prisma.AssetCreateNestedManyWithoutParentInput
   target?: Prisma.AssetCreateNestedOneWithoutSymlinksInput
   symlinks?: Prisma.AssetCreateNestedManyWithoutTargetInput
+  storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
@@ -1920,7 +1964,6 @@ export type AssetUncheckedCreateWithoutShareLinkRootFolderInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -1935,6 +1978,7 @@ export type AssetUncheckedCreateWithoutShareLinkRootFolderInput = {
   updatedAt?: Date | string
   parentId?: string | null
   targetId?: string | null
+  storageKeyId?: string | null
   creatorId?: string | null
   taskId?: string | null
   projectId?: string | null
@@ -1970,7 +2014,6 @@ export type AssetUpdateWithoutShareLinkRootFolderInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1987,6 +2030,7 @@ export type AssetUpdateWithoutShareLinkRootFolderInput = {
   children?: Prisma.AssetUpdateManyWithoutParentNestedInput
   target?: Prisma.AssetUpdateOneWithoutSymlinksNestedInput
   symlinks?: Prisma.AssetUpdateManyWithoutTargetNestedInput
+  storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
@@ -2004,7 +2048,6 @@ export type AssetUncheckedUpdateWithoutShareLinkRootFolderInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -2019,6 +2062,7 @@ export type AssetUncheckedUpdateWithoutShareLinkRootFolderInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2038,7 +2082,6 @@ export type AssetCreateWithoutChildrenInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -2054,6 +2097,7 @@ export type AssetCreateWithoutChildrenInput = {
   parent?: Prisma.AssetCreateNestedOneWithoutChildrenInput
   target?: Prisma.AssetCreateNestedOneWithoutSymlinksInput
   symlinks?: Prisma.AssetCreateNestedManyWithoutTargetInput
+  storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
@@ -2072,7 +2116,6 @@ export type AssetUncheckedCreateWithoutChildrenInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -2087,6 +2130,7 @@ export type AssetUncheckedCreateWithoutChildrenInput = {
   updatedAt?: Date | string
   parentId?: string | null
   targetId?: string | null
+  storageKeyId?: string | null
   creatorId?: string | null
   taskId?: string | null
   projectId?: string | null
@@ -2111,7 +2155,6 @@ export type AssetCreateWithoutParentInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -2127,6 +2170,7 @@ export type AssetCreateWithoutParentInput = {
   children?: Prisma.AssetCreateNestedManyWithoutParentInput
   target?: Prisma.AssetCreateNestedOneWithoutSymlinksInput
   symlinks?: Prisma.AssetCreateNestedManyWithoutTargetInput
+  storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
@@ -2145,7 +2189,6 @@ export type AssetUncheckedCreateWithoutParentInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -2159,6 +2202,7 @@ export type AssetUncheckedCreateWithoutParentInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   targetId?: string | null
+  storageKeyId?: string | null
   creatorId?: string | null
   taskId?: string | null
   projectId?: string | null
@@ -2189,7 +2233,6 @@ export type AssetCreateWithoutSymlinksInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -2205,6 +2248,7 @@ export type AssetCreateWithoutSymlinksInput = {
   parent?: Prisma.AssetCreateNestedOneWithoutChildrenInput
   children?: Prisma.AssetCreateNestedManyWithoutParentInput
   target?: Prisma.AssetCreateNestedOneWithoutSymlinksInput
+  storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
@@ -2223,7 +2267,6 @@ export type AssetUncheckedCreateWithoutSymlinksInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -2238,6 +2281,7 @@ export type AssetUncheckedCreateWithoutSymlinksInput = {
   updatedAt?: Date | string
   parentId?: string | null
   targetId?: string | null
+  storageKeyId?: string | null
   creatorId?: string | null
   taskId?: string | null
   projectId?: string | null
@@ -2262,7 +2306,6 @@ export type AssetCreateWithoutTargetInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -2278,6 +2321,7 @@ export type AssetCreateWithoutTargetInput = {
   parent?: Prisma.AssetCreateNestedOneWithoutChildrenInput
   children?: Prisma.AssetCreateNestedManyWithoutParentInput
   symlinks?: Prisma.AssetCreateNestedManyWithoutTargetInput
+  storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
@@ -2296,7 +2340,6 @@ export type AssetUncheckedCreateWithoutTargetInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -2310,6 +2353,7 @@ export type AssetUncheckedCreateWithoutTargetInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
+  storageKeyId?: string | null
   creatorId?: string | null
   taskId?: string | null
   projectId?: string | null
@@ -2351,7 +2395,6 @@ export type AssetUpdateWithoutChildrenInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -2367,6 +2410,7 @@ export type AssetUpdateWithoutChildrenInput = {
   parent?: Prisma.AssetUpdateOneWithoutChildrenNestedInput
   target?: Prisma.AssetUpdateOneWithoutSymlinksNestedInput
   symlinks?: Prisma.AssetUpdateManyWithoutTargetNestedInput
+  storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
@@ -2385,7 +2429,6 @@ export type AssetUncheckedUpdateWithoutChildrenInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -2400,6 +2443,7 @@ export type AssetUncheckedUpdateWithoutChildrenInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2446,7 +2490,6 @@ export type AssetUpdateWithoutSymlinksInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -2462,6 +2505,7 @@ export type AssetUpdateWithoutSymlinksInput = {
   parent?: Prisma.AssetUpdateOneWithoutChildrenNestedInput
   children?: Prisma.AssetUpdateManyWithoutParentNestedInput
   target?: Prisma.AssetUpdateOneWithoutSymlinksNestedInput
+  storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
@@ -2480,7 +2524,6 @@ export type AssetUncheckedUpdateWithoutSymlinksInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -2495,6 +2538,7 @@ export type AssetUncheckedUpdateWithoutSymlinksInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2526,11 +2570,10 @@ export type AssetUpdateManyWithWhereWithoutTargetInput = {
   data: Prisma.XOR<Prisma.AssetUpdateManyMutationInput, Prisma.AssetUncheckedUpdateManyWithoutTargetInput>
 }
 
-export type AssetCreateWithoutMetadataValuesInput = {
+export type AssetCreateWithoutStorageKeyInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -2547,6 +2590,101 @@ export type AssetCreateWithoutMetadataValuesInput = {
   children?: Prisma.AssetCreateNestedManyWithoutParentInput
   target?: Prisma.AssetCreateNestedOneWithoutSymlinksInput
   symlinks?: Prisma.AssetCreateNestedManyWithoutTargetInput
+  metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
+  creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
+  project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
+  comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
+  commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
+  embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
+  projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
+  projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
+  shareLinkRootFolder?: Prisma.ShareLinkCreateNestedOneWithoutRootFolderInput
+}
+
+export type AssetUncheckedCreateWithoutStorageKeyInput = {
+  id?: string
+  name?: string
+  nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
+  type: $Enums.AssetType
+  mediaType?: string | null
+  fileCount?: number
+  sizeByte?: number
+  status: $Enums.AssetStatus
+  transcodeTaskId?: string | null
+  media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  isDeleted?: boolean
+  deletedAt?: Date | string | null
+  sortIndex?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  parentId?: string | null
+  targetId?: string | null
+  creatorId?: string | null
+  taskId?: string | null
+  projectId?: string | null
+  children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
+  symlinks?: Prisma.AssetUncheckedCreateNestedManyWithoutTargetInput
+  metadataValues?: Prisma.AssetMetadataValueUncheckedCreateNestedManyWithoutAssetInput
+  comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutAssetInput
+  commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
+  embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
+  projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
+  projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
+  shareLinkRootFolder?: Prisma.ShareLinkUncheckedCreateNestedOneWithoutRootFolderInput
+}
+
+export type AssetCreateOrConnectWithoutStorageKeyInput = {
+  where: Prisma.AssetWhereUniqueInput
+  create: Prisma.XOR<Prisma.AssetCreateWithoutStorageKeyInput, Prisma.AssetUncheckedCreateWithoutStorageKeyInput>
+}
+
+export type AssetCreateManyStorageKeyInputEnvelope = {
+  data: Prisma.AssetCreateManyStorageKeyInput | Prisma.AssetCreateManyStorageKeyInput[]
+  skipDuplicates?: boolean
+}
+
+export type AssetUpsertWithWhereUniqueWithoutStorageKeyInput = {
+  where: Prisma.AssetWhereUniqueInput
+  update: Prisma.XOR<Prisma.AssetUpdateWithoutStorageKeyInput, Prisma.AssetUncheckedUpdateWithoutStorageKeyInput>
+  create: Prisma.XOR<Prisma.AssetCreateWithoutStorageKeyInput, Prisma.AssetUncheckedCreateWithoutStorageKeyInput>
+}
+
+export type AssetUpdateWithWhereUniqueWithoutStorageKeyInput = {
+  where: Prisma.AssetWhereUniqueInput
+  data: Prisma.XOR<Prisma.AssetUpdateWithoutStorageKeyInput, Prisma.AssetUncheckedUpdateWithoutStorageKeyInput>
+}
+
+export type AssetUpdateManyWithWhereWithoutStorageKeyInput = {
+  where: Prisma.AssetScalarWhereInput
+  data: Prisma.XOR<Prisma.AssetUpdateManyMutationInput, Prisma.AssetUncheckedUpdateManyWithoutStorageKeyInput>
+}
+
+export type AssetCreateWithoutMetadataValuesInput = {
+  id?: string
+  name?: string
+  nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
+  type: $Enums.AssetType
+  mediaType?: string | null
+  fileCount?: number
+  sizeByte?: number
+  status: $Enums.AssetStatus
+  transcodeTaskId?: string | null
+  media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  isDeleted?: boolean
+  deletedAt?: Date | string | null
+  sortIndex?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  parent?: Prisma.AssetCreateNestedOneWithoutChildrenInput
+  children?: Prisma.AssetCreateNestedManyWithoutParentInput
+  target?: Prisma.AssetCreateNestedOneWithoutSymlinksInput
+  symlinks?: Prisma.AssetCreateNestedManyWithoutTargetInput
+  storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
   project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
@@ -2564,7 +2702,6 @@ export type AssetUncheckedCreateWithoutMetadataValuesInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -2579,6 +2716,7 @@ export type AssetUncheckedCreateWithoutMetadataValuesInput = {
   updatedAt?: Date | string
   parentId?: string | null
   targetId?: string | null
+  storageKeyId?: string | null
   creatorId?: string | null
   taskId?: string | null
   projectId?: string | null
@@ -2614,7 +2752,6 @@ export type AssetUpdateWithoutMetadataValuesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -2631,6 +2768,7 @@ export type AssetUpdateWithoutMetadataValuesInput = {
   children?: Prisma.AssetUpdateManyWithoutParentNestedInput
   target?: Prisma.AssetUpdateOneWithoutSymlinksNestedInput
   symlinks?: Prisma.AssetUpdateManyWithoutTargetNestedInput
+  storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
@@ -2648,7 +2786,6 @@ export type AssetUncheckedUpdateWithoutMetadataValuesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -2663,6 +2800,7 @@ export type AssetUncheckedUpdateWithoutMetadataValuesInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2682,7 +2820,6 @@ export type AssetCreateWithoutCommentsInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -2699,6 +2836,7 @@ export type AssetCreateWithoutCommentsInput = {
   children?: Prisma.AssetCreateNestedManyWithoutParentInput
   target?: Prisma.AssetCreateNestedOneWithoutSymlinksInput
   symlinks?: Prisma.AssetCreateNestedManyWithoutTargetInput
+  storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
@@ -2716,7 +2854,6 @@ export type AssetUncheckedCreateWithoutCommentsInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -2731,6 +2868,7 @@ export type AssetUncheckedCreateWithoutCommentsInput = {
   updatedAt?: Date | string
   parentId?: string | null
   targetId?: string | null
+  storageKeyId?: string | null
   creatorId?: string | null
   taskId?: string | null
   projectId?: string | null
@@ -2766,7 +2904,6 @@ export type AssetUpdateWithoutCommentsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -2783,6 +2920,7 @@ export type AssetUpdateWithoutCommentsInput = {
   children?: Prisma.AssetUpdateManyWithoutParentNestedInput
   target?: Prisma.AssetUpdateOneWithoutSymlinksNestedInput
   symlinks?: Prisma.AssetUpdateManyWithoutTargetNestedInput
+  storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
@@ -2800,7 +2938,6 @@ export type AssetUncheckedUpdateWithoutCommentsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -2815,6 +2952,7 @@ export type AssetUncheckedUpdateWithoutCommentsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2834,7 +2972,6 @@ export type AssetCreateWithoutCommentAttachmentsInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -2851,6 +2988,7 @@ export type AssetCreateWithoutCommentAttachmentsInput = {
   children?: Prisma.AssetCreateNestedManyWithoutParentInput
   target?: Prisma.AssetCreateNestedOneWithoutSymlinksInput
   symlinks?: Prisma.AssetCreateNestedManyWithoutTargetInput
+  storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
@@ -2868,7 +3006,6 @@ export type AssetUncheckedCreateWithoutCommentAttachmentsInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -2883,6 +3020,7 @@ export type AssetUncheckedCreateWithoutCommentAttachmentsInput = {
   updatedAt?: Date | string
   parentId?: string | null
   targetId?: string | null
+  storageKeyId?: string | null
   creatorId?: string | null
   taskId?: string | null
   projectId?: string | null
@@ -2918,7 +3056,6 @@ export type AssetUpdateWithoutCommentAttachmentsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -2935,6 +3072,7 @@ export type AssetUpdateWithoutCommentAttachmentsInput = {
   children?: Prisma.AssetUpdateManyWithoutParentNestedInput
   target?: Prisma.AssetUpdateOneWithoutSymlinksNestedInput
   symlinks?: Prisma.AssetUpdateManyWithoutTargetNestedInput
+  storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
@@ -2952,7 +3090,6 @@ export type AssetUncheckedUpdateWithoutCommentAttachmentsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -2967,6 +3104,7 @@ export type AssetUncheckedUpdateWithoutCommentAttachmentsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2986,7 +3124,6 @@ export type AssetCreateWithoutEmbeddingsInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -3003,6 +3140,7 @@ export type AssetCreateWithoutEmbeddingsInput = {
   children?: Prisma.AssetCreateNestedManyWithoutParentInput
   target?: Prisma.AssetCreateNestedOneWithoutSymlinksInput
   symlinks?: Prisma.AssetCreateNestedManyWithoutTargetInput
+  storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
@@ -3020,7 +3158,6 @@ export type AssetUncheckedCreateWithoutEmbeddingsInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -3035,6 +3172,7 @@ export type AssetUncheckedCreateWithoutEmbeddingsInput = {
   updatedAt?: Date | string
   parentId?: string | null
   targetId?: string | null
+  storageKeyId?: string | null
   creatorId?: string | null
   taskId?: string | null
   projectId?: string | null
@@ -3070,7 +3208,6 @@ export type AssetUpdateWithoutEmbeddingsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -3087,6 +3224,7 @@ export type AssetUpdateWithoutEmbeddingsInput = {
   children?: Prisma.AssetUpdateManyWithoutParentNestedInput
   target?: Prisma.AssetUpdateOneWithoutSymlinksNestedInput
   symlinks?: Prisma.AssetUpdateManyWithoutTargetNestedInput
+  storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
@@ -3104,7 +3242,6 @@ export type AssetUncheckedUpdateWithoutEmbeddingsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -3119,6 +3256,7 @@ export type AssetUncheckedUpdateWithoutEmbeddingsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3138,7 +3276,6 @@ export type AssetCreateWithoutNotificationsInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -3155,6 +3292,7 @@ export type AssetCreateWithoutNotificationsInput = {
   children?: Prisma.AssetCreateNestedManyWithoutParentInput
   target?: Prisma.AssetCreateNestedOneWithoutSymlinksInput
   symlinks?: Prisma.AssetCreateNestedManyWithoutTargetInput
+  storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
   task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
@@ -3172,7 +3310,6 @@ export type AssetUncheckedCreateWithoutNotificationsInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -3187,6 +3324,7 @@ export type AssetUncheckedCreateWithoutNotificationsInput = {
   updatedAt?: Date | string
   parentId?: string | null
   targetId?: string | null
+  storageKeyId?: string | null
   creatorId?: string | null
   taskId?: string | null
   projectId?: string | null
@@ -3222,7 +3360,6 @@ export type AssetUpdateWithoutNotificationsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -3239,6 +3376,7 @@ export type AssetUpdateWithoutNotificationsInput = {
   children?: Prisma.AssetUpdateManyWithoutParentNestedInput
   target?: Prisma.AssetUpdateOneWithoutSymlinksNestedInput
   symlinks?: Prisma.AssetUpdateManyWithoutTargetNestedInput
+  storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
@@ -3256,7 +3394,6 @@ export type AssetUncheckedUpdateWithoutNotificationsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -3271,6 +3408,7 @@ export type AssetUncheckedUpdateWithoutNotificationsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3290,7 +3428,6 @@ export type AssetCreateWithoutTaskInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -3307,6 +3444,7 @@ export type AssetCreateWithoutTaskInput = {
   children?: Prisma.AssetCreateNestedManyWithoutParentInput
   target?: Prisma.AssetCreateNestedOneWithoutSymlinksInput
   symlinks?: Prisma.AssetCreateNestedManyWithoutTargetInput
+  storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
   metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
   creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
   project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
@@ -3324,7 +3462,6 @@ export type AssetUncheckedCreateWithoutTaskInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -3339,6 +3476,7 @@ export type AssetUncheckedCreateWithoutTaskInput = {
   updatedAt?: Date | string
   parentId?: string | null
   targetId?: string | null
+  storageKeyId?: string | null
   creatorId?: string | null
   projectId?: string | null
   children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
@@ -3384,7 +3522,6 @@ export type AssetCreateManyCreatorInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -3399,6 +3536,7 @@ export type AssetCreateManyCreatorInput = {
   updatedAt?: Date | string
   parentId?: string | null
   targetId?: string | null
+  storageKeyId?: string | null
   taskId?: string | null
   projectId?: string | null
 }
@@ -3407,7 +3545,6 @@ export type AssetUpdateWithoutCreatorInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -3424,6 +3561,7 @@ export type AssetUpdateWithoutCreatorInput = {
   children?: Prisma.AssetUpdateManyWithoutParentNestedInput
   target?: Prisma.AssetUpdateOneWithoutSymlinksNestedInput
   symlinks?: Prisma.AssetUpdateManyWithoutTargetNestedInput
+  storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
@@ -3441,7 +3579,6 @@ export type AssetUncheckedUpdateWithoutCreatorInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -3456,6 +3593,7 @@ export type AssetUncheckedUpdateWithoutCreatorInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
@@ -3475,7 +3613,6 @@ export type AssetUncheckedUpdateManyWithoutCreatorInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -3490,6 +3627,7 @@ export type AssetUncheckedUpdateManyWithoutCreatorInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
@@ -3498,7 +3636,6 @@ export type AssetCreateManyProjectInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -3513,6 +3650,7 @@ export type AssetCreateManyProjectInput = {
   updatedAt?: Date | string
   parentId?: string | null
   targetId?: string | null
+  storageKeyId?: string | null
   creatorId?: string | null
   taskId?: string | null
 }
@@ -3521,7 +3659,6 @@ export type AssetUpdateWithoutProjectInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -3538,6 +3675,7 @@ export type AssetUpdateWithoutProjectInput = {
   children?: Prisma.AssetUpdateManyWithoutParentNestedInput
   target?: Prisma.AssetUpdateOneWithoutSymlinksNestedInput
   symlinks?: Prisma.AssetUpdateManyWithoutTargetNestedInput
+  storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
@@ -3555,7 +3693,6 @@ export type AssetUncheckedUpdateWithoutProjectInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -3570,6 +3707,7 @@ export type AssetUncheckedUpdateWithoutProjectInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
@@ -3589,7 +3727,6 @@ export type AssetUncheckedUpdateManyWithoutProjectInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -3604,6 +3741,7 @@ export type AssetUncheckedUpdateManyWithoutProjectInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
@@ -3612,7 +3750,6 @@ export type AssetCreateManyParentInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -3626,6 +3763,7 @@ export type AssetCreateManyParentInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   targetId?: string | null
+  storageKeyId?: string | null
   creatorId?: string | null
   taskId?: string | null
   projectId?: string | null
@@ -3635,7 +3773,6 @@ export type AssetCreateManyTargetInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -3649,6 +3786,7 @@ export type AssetCreateManyTargetInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
+  storageKeyId?: string | null
   creatorId?: string | null
   taskId?: string | null
   projectId?: string | null
@@ -3658,7 +3796,6 @@ export type AssetUpdateWithoutParentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -3674,6 +3811,7 @@ export type AssetUpdateWithoutParentInput = {
   children?: Prisma.AssetUpdateManyWithoutParentNestedInput
   target?: Prisma.AssetUpdateOneWithoutSymlinksNestedInput
   symlinks?: Prisma.AssetUpdateManyWithoutTargetNestedInput
+  storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
@@ -3692,7 +3830,6 @@ export type AssetUncheckedUpdateWithoutParentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -3706,6 +3843,7 @@ export type AssetUncheckedUpdateWithoutParentInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3726,7 +3864,6 @@ export type AssetUncheckedUpdateManyWithoutParentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -3740,6 +3877,7 @@ export type AssetUncheckedUpdateManyWithoutParentInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3749,7 +3887,6 @@ export type AssetUpdateWithoutTargetInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -3765,6 +3902,7 @@ export type AssetUpdateWithoutTargetInput = {
   parent?: Prisma.AssetUpdateOneWithoutChildrenNestedInput
   children?: Prisma.AssetUpdateManyWithoutParentNestedInput
   symlinks?: Prisma.AssetUpdateManyWithoutTargetNestedInput
+  storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
   task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
@@ -3783,7 +3921,6 @@ export type AssetUncheckedUpdateWithoutTargetInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -3797,6 +3934,7 @@ export type AssetUncheckedUpdateWithoutTargetInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3817,7 +3955,6 @@ export type AssetUncheckedUpdateManyWithoutTargetInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -3831,16 +3968,16 @@ export type AssetUncheckedUpdateManyWithoutTargetInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
-export type AssetCreateManyTaskInput = {
+export type AssetCreateManyStorageKeyInput = {
   id?: string
   name?: string
   nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
-  key?: string | null
   type: $Enums.AssetType
   mediaType?: string | null
   fileCount?: number
@@ -3856,14 +3993,14 @@ export type AssetCreateManyTaskInput = {
   parentId?: string | null
   targetId?: string | null
   creatorId?: string | null
+  taskId?: string | null
   projectId?: string | null
 }
 
-export type AssetUpdateWithoutTaskInput = {
+export type AssetUpdateWithoutStorageKeyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -3882,6 +4019,121 @@ export type AssetUpdateWithoutTaskInput = {
   symlinks?: Prisma.AssetUpdateManyWithoutTargetNestedInput
   metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
   creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
+  project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
+  comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
+  commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
+  embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
+  projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
+  projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
+  shareLinkRootFolder?: Prisma.ShareLinkUpdateOneWithoutRootFolderNestedInput
+}
+
+export type AssetUncheckedUpdateWithoutStorageKeyInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
+  type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
+  mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fileCount?: Prisma.IntFieldUpdateOperationsInput | number
+  sizeByte?: Prisma.IntFieldUpdateOperationsInput | number
+  status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
+  transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
+  symlinks?: Prisma.AssetUncheckedUpdateManyWithoutTargetNestedInput
+  metadataValues?: Prisma.AssetMetadataValueUncheckedUpdateManyWithoutAssetNestedInput
+  comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutAssetNestedInput
+  commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
+  embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
+  projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
+  projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
+  shareLinkRootFolder?: Prisma.ShareLinkUncheckedUpdateOneWithoutRootFolderNestedInput
+}
+
+export type AssetUncheckedUpdateManyWithoutStorageKeyInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
+  type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
+  mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fileCount?: Prisma.IntFieldUpdateOperationsInput | number
+  sizeByte?: Prisma.IntFieldUpdateOperationsInput | number
+  status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
+  transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+}
+
+export type AssetCreateManyTaskInput = {
+  id?: string
+  name?: string
+  nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
+  type: $Enums.AssetType
+  mediaType?: string | null
+  fileCount?: number
+  sizeByte?: number
+  status: $Enums.AssetStatus
+  transcodeTaskId?: string | null
+  media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  isDeleted?: boolean
+  deletedAt?: Date | string | null
+  sortIndex?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  parentId?: string | null
+  targetId?: string | null
+  storageKeyId?: string | null
+  creatorId?: string | null
+  projectId?: string | null
+}
+
+export type AssetUpdateWithoutTaskInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
+  type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
+  mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fileCount?: Prisma.IntFieldUpdateOperationsInput | number
+  sizeByte?: Prisma.IntFieldUpdateOperationsInput | number
+  status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
+  transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  parent?: Prisma.AssetUpdateOneWithoutChildrenNestedInput
+  children?: Prisma.AssetUpdateManyWithoutParentNestedInput
+  target?: Prisma.AssetUpdateOneWithoutSymlinksNestedInput
+  symlinks?: Prisma.AssetUpdateManyWithoutTargetNestedInput
+  storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
+  metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
+  creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
   commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
@@ -3897,7 +4149,6 @@ export type AssetUncheckedUpdateWithoutTaskInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -3912,6 +4163,7 @@ export type AssetUncheckedUpdateWithoutTaskInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
@@ -3931,7 +4183,6 @@ export type AssetUncheckedUpdateManyWithoutTaskInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
-  key?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
   mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fileCount?: Prisma.IntFieldUpdateOperationsInput | number
@@ -3946,6 +4197,7 @@ export type AssetUncheckedUpdateManyWithoutTaskInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
@@ -4039,7 +4291,6 @@ export type AssetSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   id?: boolean
   name?: boolean
   nameNgram?: boolean
-  key?: boolean
   type?: boolean
   mediaType?: boolean
   fileCount?: boolean
@@ -4054,6 +4305,7 @@ export type AssetSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   updatedAt?: boolean
   parentId?: boolean
   targetId?: boolean
+  storageKeyId?: boolean
   creatorId?: boolean
   taskId?: boolean
   projectId?: boolean
@@ -4061,6 +4313,7 @@ export type AssetSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   children?: boolean | Prisma.Asset$childrenArgs<ExtArgs>
   target?: boolean | Prisma.Asset$targetArgs<ExtArgs>
   symlinks?: boolean | Prisma.Asset$symlinksArgs<ExtArgs>
+  storageKey?: boolean | Prisma.Asset$storageKeyArgs<ExtArgs>
   metadataValues?: boolean | Prisma.Asset$metadataValuesArgs<ExtArgs>
   creator?: boolean | Prisma.Asset$creatorArgs<ExtArgs>
   task?: boolean | Prisma.Asset$taskArgs<ExtArgs>
@@ -4080,7 +4333,6 @@ export type AssetSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   id?: boolean
   name?: boolean
   nameNgram?: boolean
-  key?: boolean
   type?: boolean
   mediaType?: boolean
   fileCount?: boolean
@@ -4095,11 +4347,13 @@ export type AssetSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   updatedAt?: boolean
   parentId?: boolean
   targetId?: boolean
+  storageKeyId?: boolean
   creatorId?: boolean
   taskId?: boolean
   projectId?: boolean
   parent?: boolean | Prisma.Asset$parentArgs<ExtArgs>
   target?: boolean | Prisma.Asset$targetArgs<ExtArgs>
+  storageKey?: boolean | Prisma.Asset$storageKeyArgs<ExtArgs>
   creator?: boolean | Prisma.Asset$creatorArgs<ExtArgs>
   task?: boolean | Prisma.Asset$taskArgs<ExtArgs>
   project?: boolean | Prisma.Asset$projectArgs<ExtArgs>
@@ -4109,7 +4363,6 @@ export type AssetSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   id?: boolean
   name?: boolean
   nameNgram?: boolean
-  key?: boolean
   type?: boolean
   mediaType?: boolean
   fileCount?: boolean
@@ -4124,11 +4377,13 @@ export type AssetSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   updatedAt?: boolean
   parentId?: boolean
   targetId?: boolean
+  storageKeyId?: boolean
   creatorId?: boolean
   taskId?: boolean
   projectId?: boolean
   parent?: boolean | Prisma.Asset$parentArgs<ExtArgs>
   target?: boolean | Prisma.Asset$targetArgs<ExtArgs>
+  storageKey?: boolean | Prisma.Asset$storageKeyArgs<ExtArgs>
   creator?: boolean | Prisma.Asset$creatorArgs<ExtArgs>
   task?: boolean | Prisma.Asset$taskArgs<ExtArgs>
   project?: boolean | Prisma.Asset$projectArgs<ExtArgs>
@@ -4138,7 +4393,6 @@ export type AssetSelectScalar = {
   id?: boolean
   name?: boolean
   nameNgram?: boolean
-  key?: boolean
   type?: boolean
   mediaType?: boolean
   fileCount?: boolean
@@ -4153,17 +4407,19 @@ export type AssetSelectScalar = {
   updatedAt?: boolean
   parentId?: boolean
   targetId?: boolean
+  storageKeyId?: boolean
   creatorId?: boolean
   taskId?: boolean
   projectId?: boolean
 }
 
-export type AssetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "nameNgram" | "key" | "type" | "mediaType" | "fileCount" | "sizeByte" | "status" | "transcodeTaskId" | "media" | "isDeleted" | "deletedAt" | "sortIndex" | "createdAt" | "updatedAt" | "parentId" | "targetId" | "creatorId" | "taskId" | "projectId", ExtArgs["result"]["asset"]>
+export type AssetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "nameNgram" | "type" | "mediaType" | "fileCount" | "sizeByte" | "status" | "transcodeTaskId" | "media" | "isDeleted" | "deletedAt" | "sortIndex" | "createdAt" | "updatedAt" | "parentId" | "targetId" | "storageKeyId" | "creatorId" | "taskId" | "projectId", ExtArgs["result"]["asset"]>
 export type AssetInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   parent?: boolean | Prisma.Asset$parentArgs<ExtArgs>
   children?: boolean | Prisma.Asset$childrenArgs<ExtArgs>
   target?: boolean | Prisma.Asset$targetArgs<ExtArgs>
   symlinks?: boolean | Prisma.Asset$symlinksArgs<ExtArgs>
+  storageKey?: boolean | Prisma.Asset$storageKeyArgs<ExtArgs>
   metadataValues?: boolean | Prisma.Asset$metadataValuesArgs<ExtArgs>
   creator?: boolean | Prisma.Asset$creatorArgs<ExtArgs>
   task?: boolean | Prisma.Asset$taskArgs<ExtArgs>
@@ -4181,6 +4437,7 @@ export type AssetInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs =
 export type AssetIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   parent?: boolean | Prisma.Asset$parentArgs<ExtArgs>
   target?: boolean | Prisma.Asset$targetArgs<ExtArgs>
+  storageKey?: boolean | Prisma.Asset$storageKeyArgs<ExtArgs>
   creator?: boolean | Prisma.Asset$creatorArgs<ExtArgs>
   task?: boolean | Prisma.Asset$taskArgs<ExtArgs>
   project?: boolean | Prisma.Asset$projectArgs<ExtArgs>
@@ -4188,6 +4445,7 @@ export type AssetIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
 export type AssetIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   parent?: boolean | Prisma.Asset$parentArgs<ExtArgs>
   target?: boolean | Prisma.Asset$targetArgs<ExtArgs>
+  storageKey?: boolean | Prisma.Asset$storageKeyArgs<ExtArgs>
   creator?: boolean | Prisma.Asset$creatorArgs<ExtArgs>
   task?: boolean | Prisma.Asset$taskArgs<ExtArgs>
   project?: boolean | Prisma.Asset$projectArgs<ExtArgs>
@@ -4200,6 +4458,7 @@ export type $AssetPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     children: Prisma.$AssetPayload<ExtArgs>[]
     target: Prisma.$AssetPayload<ExtArgs> | null
     symlinks: Prisma.$AssetPayload<ExtArgs>[]
+    storageKey: Prisma.$StorageKeyPayload<ExtArgs> | null
     metadataValues: Prisma.$AssetMetadataValuePayload<ExtArgs>[]
     creator: Prisma.$UserPayload<ExtArgs> | null
     task: Prisma.$TaskPayload<ExtArgs> | null
@@ -4217,7 +4476,6 @@ export type $AssetPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     id: string
     name: string
     nameNgram: string[]
-    key: string | null
     type: $Enums.AssetType
     mediaType: string | null
     fileCount: number
@@ -4235,6 +4493,7 @@ export type $AssetPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     updatedAt: Date
     parentId: string | null
     targetId: string | null
+    storageKeyId: string | null
     creatorId: string | null
     taskId: string | null
     projectId: string | null
@@ -4636,6 +4895,7 @@ export interface Prisma__AssetClient<T, Null = never, ExtArgs extends runtime.Ty
   children<T extends Prisma.Asset$childrenArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Asset$childrenArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssetPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   target<T extends Prisma.Asset$targetArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Asset$targetArgs<ExtArgs>>): Prisma.Prisma__AssetClient<runtime.Types.Result.GetResult<Prisma.$AssetPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   symlinks<T extends Prisma.Asset$symlinksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Asset$symlinksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssetPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  storageKey<T extends Prisma.Asset$storageKeyArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Asset$storageKeyArgs<ExtArgs>>): Prisma.Prisma__StorageKeyClient<runtime.Types.Result.GetResult<Prisma.$StorageKeyPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   metadataValues<T extends Prisma.Asset$metadataValuesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Asset$metadataValuesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssetMetadataValuePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   creator<T extends Prisma.Asset$creatorArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Asset$creatorArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   task<T extends Prisma.Asset$taskArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Asset$taskArgs<ExtArgs>>): Prisma.Prisma__TaskClient<runtime.Types.Result.GetResult<Prisma.$TaskPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
@@ -4680,7 +4940,6 @@ export interface AssetFieldRefs {
   readonly id: Prisma.FieldRef<"Asset", 'String'>
   readonly name: Prisma.FieldRef<"Asset", 'String'>
   readonly nameNgram: Prisma.FieldRef<"Asset", 'String[]'>
-  readonly key: Prisma.FieldRef<"Asset", 'String'>
   readonly type: Prisma.FieldRef<"Asset", 'AssetType'>
   readonly mediaType: Prisma.FieldRef<"Asset", 'String'>
   readonly fileCount: Prisma.FieldRef<"Asset", 'Int'>
@@ -4695,6 +4954,7 @@ export interface AssetFieldRefs {
   readonly updatedAt: Prisma.FieldRef<"Asset", 'DateTime'>
   readonly parentId: Prisma.FieldRef<"Asset", 'String'>
   readonly targetId: Prisma.FieldRef<"Asset", 'String'>
+  readonly storageKeyId: Prisma.FieldRef<"Asset", 'String'>
   readonly creatorId: Prisma.FieldRef<"Asset", 'String'>
   readonly taskId: Prisma.FieldRef<"Asset", 'String'>
   readonly projectId: Prisma.FieldRef<"Asset", 'String'>
@@ -5182,6 +5442,25 @@ export type Asset$symlinksArgs<ExtArgs extends runtime.Types.Extensions.Internal
   take?: number
   skip?: number
   distinct?: Prisma.AssetScalarFieldEnum | Prisma.AssetScalarFieldEnum[]
+}
+
+/**
+ * Asset.storageKey
+ */
+export type Asset$storageKeyArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the StorageKey
+   */
+  select?: Prisma.StorageKeySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the StorageKey
+   */
+  omit?: Prisma.StorageKeyOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.StorageKeyInclude<ExtArgs> | null
+  where?: Prisma.StorageKeyWhereInput
 }
 
 /**

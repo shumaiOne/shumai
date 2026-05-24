@@ -255,10 +255,14 @@ export interface UpdateAssetMediaActivityParams {
 
 export async function updateAssetMediaActivity(params: UpdateAssetMediaActivityParams) {
   const bucket = process.env.S3_BUCKET || 'shumai'
-  const asset = await prisma.asset.findUnique({ where: { id: params.assetId } })
-  if (!asset || !asset.key) throw new Error('Asset not found')
+  const asset = await prisma.asset.findUnique({
+    where: { id: params.assetId },
+    include: { storageKey: true },
+  })
+  const key = asset?.storageKey?.key
+  if (!asset || !key) throw new Error('Asset not found or has no key')
 
-  const infoKey = path.join(path.dirname(asset.key), 'info.json')
+  const infoKey = path.join(path.dirname(key), 'info.json')
   const buffer = Buffer.from(JSON.stringify(params.mediaInfo))
   await s3Service.putObject(bucket, infoKey, buffer, buffer.length, 'application/json')
 

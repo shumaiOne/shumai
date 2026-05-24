@@ -1293,24 +1293,38 @@ describe('AssetService', () => {
         type: AssetType.file,
         status: AssetStatus.pending_purge,
         isDeleted: true,
-        projectId: project.id,
-        parentId: folderA.id,
-        key: `key-${i}`,
+        project: { connect: { id: project.id } },
+        parent: { connect: { id: folderA.id } },
+        storageKey: {
+          create: { key: `key-${i}` },
+        },
       }))
 
-      await prisma.asset.createMany({ data: childData })
+      for (const data of childData) {
+        const asset = await prisma.asset.create({
+          data: data as any,
+          include: { storageKey: true },
+        })
+        await prisma.storageKey.update({
+          where: { id: asset.storageKeyId! },
+          data: { createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000) },
+        })
+      }
 
       // 3. Trigger the purge job for the FIRST batch (100 items)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (assetService as any).purgePendingAssets()
 
-      // 4. Verify some items were processed in S3
-      // We don't know the order, but if Folder A was in the first 100,
-      // then its synchronous cascade will have wiped the remaining children.
-
-      // 5. Trigger the purge job for the SECOND batch
+      // ...
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (assetService as any).purgePendingAssets()
+
+      // 6. Trigger GC job to physically delete files
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (assetService as any).purgeUnreferencedStorageKeys()
+      // Call it again to process the remaining items (batch size is 100)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (assetService as any).purgeUnreferencedStorageKeys()
 
       // 6. Verify S3 deletion was called for EVERY child
       for (let i = 0; i < childCount; i++) {
@@ -1334,23 +1348,28 @@ describe('AssetService', () => {
           type: AssetType.file,
           status: AssetStatus.pending_purge,
           isDeleted: true,
-          projectId: project.id,
-          key: 'file/01KSBRJVY3DPK111S2MECFKDQ4/raw',
+          project: { connect: { id: project.id } },
+          storageKey: {
+            create: {
+              key: 'file/01KSBRJVY3DPK111S2MECFKDQ4/raw',
+              createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
+            },
+          },
         },
       })
 
-      // Trigger the purge job
+      // 1. Purge the asset record
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (assetService as any).purgePendingAssets()
+
+      // 2. Trigger GC job
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (assetService as any).purgeUnreferencedStorageKeys()
 
       // Verify deletePrefix was called with the correct prefix instead of just deleteObject
       expect(s3Service.deletePrefix).toHaveBeenCalledWith(
         expect.any(String),
         'file/01KSBRJVY3DPK111S2MECFKDQ4/',
-      )
-      expect(s3Service.deleteObject).not.toHaveBeenCalledWith(
-        expect.any(String),
-        'file/01KSBRJVY3DPK111S2MECFKDQ4/raw',
       )
 
       // Verify record is gone

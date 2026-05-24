@@ -47,7 +47,8 @@ export async function aiAutofillMedia(task: WorkflowTask): Promise<void> {
 
     // 1. Get Asset
     const asset = await executeActivity(TaskQueueDb, getAssetActivity, task.assetId)
-    if (!asset || !asset.project) {
+    const key = asset?.storageKey?.key
+    if (!asset || !asset.project || !key) {
       throw new Error('Asset or project not found')
     }
     const teamId = asset.project.teamId
@@ -63,13 +64,13 @@ export async function aiAutofillMedia(task: WorkflowTask): Promise<void> {
     )
 
     const download = await executeActivity(transcodeWorkerQueue, downloadMediaToTmpActivity, {
-      assetKey: asset.key || '',
+      assetKey: key,
     })
     const { filePath } = download
     tmpDir = download.tmpDir
 
     const generatedFiles = await executeActivity(transcodeWorkerQueue, extractAiMetadataActivity, {
-      assetKey: asset.key || '',
+      assetKey: key,
       filePath,
       type: 'autofill',
       isImage,

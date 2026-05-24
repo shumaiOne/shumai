@@ -11,6 +11,7 @@ export async function getAssetActivity(assetId: string) {
   return prisma.asset.findUnique({
     where: { id: assetId },
     include: {
+      storageKey: true,
       project: {
         include: {
           team: true,
@@ -46,7 +47,7 @@ export async function updateAssetMetadataActivity(params: UpdateAssetMetadataPar
 export async function getCommentActivity(commentId: string) {
   return prisma.assetComment.findUnique({
     where: { id: commentId },
-    include: { attachments: { include: { asset: true } } },
+    include: { attachments: { include: { asset: { include: { storageKey: true } } } } },
   })
 }
 

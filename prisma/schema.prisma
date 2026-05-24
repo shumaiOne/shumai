@@ -347,7 +347,6 @@ model Asset {
   id                String       @id @default(ulid())
   name              String       @default("")
   nameNgram         String[]     @default([]) @map("name_ngram")
-  key               String?
   type              AssetType
   mediaType         String?      @map("media_type")
   fileCount         Int          @default(0) @map("file_count")
@@ -369,6 +368,9 @@ model Asset {
   targetId          String?      @map("target_id")
   target            Asset?       @relation("SymlinkTarget", fields: [targetId], references: [id])
   symlinks          Asset[]      @relation("SymlinkTarget")
+
+  storageKeyId      String?      @map("storage_key_id")
+  storageKey        StorageKey?  @relation(fields: [storageKeyId], references: [id])
 
   metadataValues    AssetMetadataValue[] @relation("AssetToMetadataValues")
 
@@ -401,6 +403,16 @@ model Asset {
   @@index([deletedAt])
   @@index([nameNgram], type: Gin)
   @@unique([parentId, targetId], name: "parentIdTargetId")
+}
+
+model StorageKey {
+  id        String   @id @default(ulid())
+  key       String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  assets    Asset[]
+
+  @@map("storage_keys")
 }
 
 model AssetMetadataValue {

@@ -241,8 +241,13 @@ describe('ProjectService', () => {
           name: 'Test Asset',
           type: 'file',
           status: 'processed',
-          projectId: project.id,
-          key: 'asset-key',
+          project: { connect: { id: project.id } },
+          storageKey: {
+            connectOrCreate: {
+              where: { key: 'asset-key' },
+              create: { key: 'asset-key' },
+            },
+          },
         },
       })
 
@@ -310,9 +315,14 @@ describe('ProjectService', () => {
           name: 'File C',
           type: 'file',
           status: 'processed',
-          projectId: project.id,
-          parentId: folderB.id,
-          key: 'file-c-key',
+          project: { connect: { id: project.id } },
+          parent: { connect: { id: folderB.id } },
+          storageKey: {
+            connectOrCreate: {
+              where: { key: 'file-c-key' },
+              create: { key: 'file-c-key' },
+            },
+          },
         },
       })
 
@@ -337,8 +347,18 @@ describe('ProjectService', () => {
       // Manually trigger the private cleanup methods for testing
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (assetService as any).expireTrashedAssets()
+      // Trigger the purge job
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (assetService as any).purgePendingAssets()
+
+      // Manually set storage key createdAt to the past so GC picks it up
+      await prisma.storageKey.updateMany({
+        data: { createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000) },
+      })
+
+      // Trigger GC job
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (assetService as any).purgeUnreferencedStorageKeys()
 
       // Verify everything is wiped from DB
       expect(await prisma.project.findUnique({ where: { id: project.id } })).toBeNull()

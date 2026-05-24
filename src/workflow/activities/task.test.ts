@@ -33,7 +33,7 @@ describe('Task Activities', () => {
     const asset = await prisma.asset.create({
       data: {
         name: 'test.mp4',
-        key: 'test.mp4',
+        storageKey: { create: { key: 'test.mp4' } },
         status: 'uploaded',
         type: 'file',
       },

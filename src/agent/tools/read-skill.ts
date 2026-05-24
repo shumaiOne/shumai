@@ -65,15 +65,16 @@ export const createReadSkillTool = (
 
         const asset = await prisma.asset.findUnique({
           where: { id: skill.assetId },
+          include: { storageKey: true },
         })
 
-        if (!asset || !asset.key) {
+        if (!asset || !asset.storageKey?.key) {
           throw new Error('Skill asset not found or has no key')
         }
 
         const { buffer: zipBuffer } = await s3Service.getObject(
           process.env.S3_BUCKET || 'shumai',
-          asset.key,
+          asset.storageKey.key,
         )
 
         const zip = new AdmZip(zipBuffer)

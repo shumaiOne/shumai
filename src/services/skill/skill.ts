@@ -25,9 +25,11 @@ export class SkillService {
     } else if (req.assetId) {
       const asset = await this.prismaClient.asset.findUnique({
         where: { id: req.assetId },
+        include: { storageKey: true },
       })
-      if (!asset || !asset.key) throw new Error('Asset not found or has no key')
-      const { buffer } = await s3Service.getObject(process.env.S3_BUCKET || 'shumai', asset.key)
+      const key = asset?.storageKey?.key
+      if (!asset || !key) throw new Error('Asset not found or has no key')
+      const { buffer } = await s3Service.getObject(process.env.S3_BUCKET || 'shumai', key)
       zipBuffer = buffer
     } else {
       throw new Error('Either assetId or githubUrl must be provided')
@@ -68,7 +70,7 @@ export class SkillService {
     const skillAsset = await this.prismaClient.asset.create({
       data: {
         name: `${name}.zip`,
-        key: assetKey,
+        storageKey: { create: { key: assetKey } },
         type: 'file',
         mediaType: 'application/zip',
         sizeByte: repackedZip.length,

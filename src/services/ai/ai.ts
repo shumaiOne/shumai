@@ -118,6 +118,7 @@ export class AiService {
 
     const asset = await this.prismaClient.asset.findUnique({
       where: { id: assetId },
+      include: { storageKey: true },
     })
 
     if (!asset) throw new Error('failed to get asset')
@@ -146,11 +147,12 @@ export class AiService {
       throw new Error(`unsupported media type for embeddings: ${asset.mediaType}`)
     }
 
-    if (!asset.key) {
+    const key = asset.storageKey?.key
+    if (!key) {
       throw new Error(`asset has no key`)
     }
 
-    const { buffer: data } = await s3Service.getObject(process.env.S3_BUCKET || 'shumai', asset.key)
+    const { buffer: data } = await s3Service.getObject(process.env.S3_BUCKET || 'shumai', key)
 
     if (isImage) {
       const embVec = await p.generateImageEmbedding(config.model, data)

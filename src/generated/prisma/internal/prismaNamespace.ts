@@ -397,6 +397,7 @@ export const ModelName = {
   ProjectMember: 'ProjectMember',
   ShareLink: 'ShareLink',
   Asset: 'Asset',
+  StorageKey: 'StorageKey',
   AssetMetadataValue: 'AssetMetadataValue',
   AssetComment: 'AssetComment',
   AssetCommentAttachment: 'AssetCommentAttachment',
@@ -429,7 +430,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "sandbox" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "asset" | "assetMetadataValue" | "assetComment" | "assetCommentAttachment" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "agentSession" | "agentSessionEntry" | "userMetadata" | "model" | "provider"
+    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "sandbox" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "asset" | "storageKey" | "assetMetadataValue" | "assetComment" | "assetCommentAttachment" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "agentSession" | "agentSessionEntry" | "userMetadata" | "model" | "provider"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1392,6 +1393,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.AssetCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.AssetCountAggregateOutputType> | number
+        }
+      }
+    }
+    StorageKey: {
+      payload: Prisma.$StorageKeyPayload<ExtArgs>
+      fields: Prisma.StorageKeyFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.StorageKeyFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageKeyPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.StorageKeyFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageKeyPayload>
+        }
+        findFirst: {
+          args: Prisma.StorageKeyFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageKeyPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.StorageKeyFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageKeyPayload>
+        }
+        findMany: {
+          args: Prisma.StorageKeyFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageKeyPayload>[]
+        }
+        create: {
+          args: Prisma.StorageKeyCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageKeyPayload>
+        }
+        createMany: {
+          args: Prisma.StorageKeyCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.StorageKeyCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageKeyPayload>[]
+        }
+        delete: {
+          args: Prisma.StorageKeyDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageKeyPayload>
+        }
+        update: {
+          args: Prisma.StorageKeyUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageKeyPayload>
+        }
+        deleteMany: {
+          args: Prisma.StorageKeyDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.StorageKeyUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.StorageKeyUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageKeyPayload>[]
+        }
+        upsert: {
+          args: Prisma.StorageKeyUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StorageKeyPayload>
+        }
+        aggregate: {
+          args: Prisma.StorageKeyAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateStorageKey>
+        }
+        groupBy: {
+          args: Prisma.StorageKeyGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.StorageKeyGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.StorageKeyCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.StorageKeyCountAggregateOutputType> | number
         }
       }
     }
@@ -2863,7 +2938,6 @@ export const AssetScalarFieldEnum = {
   id: 'id',
   name: 'name',
   nameNgram: 'nameNgram',
-  key: 'key',
   type: 'type',
   mediaType: 'mediaType',
   fileCount: 'fileCount',
@@ -2878,12 +2952,23 @@ export const AssetScalarFieldEnum = {
   updatedAt: 'updatedAt',
   parentId: 'parentId',
   targetId: 'targetId',
+  storageKeyId: 'storageKeyId',
   creatorId: 'creatorId',
   taskId: 'taskId',
   projectId: 'projectId'
 } as const
 
 export type AssetScalarFieldEnum = (typeof AssetScalarFieldEnum)[keyof typeof AssetScalarFieldEnum]
+
+
+export const StorageKeyScalarFieldEnum = {
+  id: 'id',
+  key: 'key',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type StorageKeyScalarFieldEnum = (typeof StorageKeyScalarFieldEnum)[keyof typeof StorageKeyScalarFieldEnum]
 
 
 export const AssetMetadataValueScalarFieldEnum = {
@@ -3554,6 +3639,7 @@ export type GlobalOmitConfig = {
   projectMember?: Prisma.ProjectMemberOmit
   shareLink?: Prisma.ShareLinkOmit
   asset?: Prisma.AssetOmit
+  storageKey?: Prisma.StorageKeyOmit
   assetMetadataValue?: Prisma.AssetMetadataValueOmit
   assetComment?: Prisma.AssetCommentOmit
   assetCommentAttachment?: Prisma.AssetCommentAttachmentOmit

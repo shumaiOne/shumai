@@ -76,7 +76,7 @@ describe('readSkillTool', () => {
       data: {
         id: 'asset1',
         name: 'skill.zip',
-        key: 'skills/skill.zip',
+        storageKey: { create: { key: 'skills/skill.zip' } },
         type: 'file',
         status: 'uploaded',
       },

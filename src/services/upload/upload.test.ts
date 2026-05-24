@@ -101,10 +101,15 @@ describe('UploadService', () => {
       data: {
         name: 'video.mp4',
         type: AssetType.file,
-        projectId,
-        parentId,
+        project: { connect: { id: projectId } },
+        parent: { connect: { id: parentId } },
         status: AssetStatus.uploading,
-        key: 'test-key',
+        storageKey: {
+          connectOrCreate: {
+            where: { key: 'test-key' },
+            create: { key: 'test-key' },
+          },
+        },
         mediaType: 'video/mp4',
       },
     })
@@ -134,10 +139,15 @@ describe('UploadService', () => {
       data: {
         name: 'image.png',
         type: AssetType.file,
-        projectId,
-        parentId,
+        project: { connect: { id: projectId } },
+        parent: { connect: { id: parentId } },
         status: AssetStatus.uploading,
-        key: 'test-key',
+        storageKey: {
+          connectOrCreate: {
+            where: { key: 'test-key' },
+            create: { key: 'test-key' },
+          },
+        },
         mediaType: 'image/png',
       },
     })
@@ -162,10 +172,15 @@ describe('UploadService', () => {
       data: {
         name: 'file.txt',
         type: AssetType.file,
-        projectId,
-        parentId,
+        project: { connect: { id: projectId } },
+        parent: { connect: { id: parentId } },
         status: AssetStatus.uploading,
-        key: 'test-key',
+        storageKey: {
+          connectOrCreate: {
+            where: { key: 'test-key' },
+            create: { key: 'test-key' },
+          },
+        },
         mediaType: 'text/plain',
       },
     })
@@ -259,10 +274,15 @@ describe('UploadService', () => {
       data: {
         name: 'v2.txt',
         type: AssetType.file,
-        projectId,
-        parentId: stack.id,
+        project: { connect: { id: projectId } },
+        parent: { connect: { id: stack.id } },
         status: AssetStatus.uploading,
-        key: 'v2-key',
+        storageKey: {
+          connectOrCreate: {
+            where: { key: 'v2-key' },
+            create: { key: 'v2-key' },
+          },
+        },
         sizeByte: 2000,
       },
     })
