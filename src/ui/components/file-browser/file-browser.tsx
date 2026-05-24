@@ -145,10 +145,11 @@ export function FileBrowser({
       const share = await res.json()
 
       // Add assets to the new share link
-      await client.api.teams[':teamId'].shares[':shareId'].assets.$post({
+      const assetsRes = await client.api.teams[':teamId'].shares[':shareId'].assets.$post({
         param: { teamId, shareId: share.id },
         json: { assetIds: items.map((i) => i.id!) },
       })
+      if (!assetsRes.ok) throw new Error('Failed to add assets to share link')
 
       return share
     },

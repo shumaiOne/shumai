@@ -212,7 +212,7 @@ export function FileBrowserContextMenu({
           <span>Download</span>
         </ContextMenuItem>
 
-        {item.type === 'file' && (
+        {(item.type === 'file' || item.type === 'version_stack') && (
           <ContextMenuItem onSelect={() => onNewVersion(item)}>
             <UploadCloud className="mr-2 h-4 w-4" />
             <span>Create new version</span>
