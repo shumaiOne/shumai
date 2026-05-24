@@ -9,6 +9,7 @@ import { useFieldStore } from '@/ui/stores/fields'
 import { useMemberStore } from '@/ui/stores/members'
 import { useUiStore } from '@/ui/stores/ui'
 import { useUserMetadataStore } from '@/ui/stores/user-metadata'
+import { useTopNavStore } from '@/ui/stores/top-nav'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -110,6 +111,53 @@ export default function FileSystemManager({
   const displayStyle = viewModes[projectId] ?? 'card'
 
   const containerRef = useRef<HTMLDivElement>(null)
+
+  const { data: folderInfo } = isRecentlyDeleted
+    ? { data: undefined }
+    : useQuery({
+        queryKey: ['folders', teamId, assetId],
+        queryFn: async () => {
+          const res = await client.api.teams[':teamId'].folders[':folderId'].$get({
+            param: { teamId: teamId, folderId: assetId },
+          })
+          if (!res.ok) throw new Error('failed to fetch folder')
+          return (await res.json()) as unknown as AssetInfo
+        },
+      })
+
+  const { setProjectState, clearProjectState } = useTopNavStore()
+
+  useEffect(() => {
+    setProjectState({
+      teamId,
+      projectId,
+      projectName,
+      ancestorFolders: folderInfo?.ancestorFolders ?? [],
+      currentAsset: isRecentlyDeleted
+        ? { name: 'Recently Deleted', type: 'folder' }
+        : { name: folderInfo?.name, type: 'folder' },
+      isRootFolder: !isRecentlyDeleted && assetId === rootFolderId,
+      onFolderClick: (id: string) => {
+        navigate({
+          to: '/projects/$projectId/folders/$folderId',
+          params: { projectId, folderId: id },
+        })
+      },
+    })
+
+    return () => clearProjectState()
+  }, [
+    teamId,
+    projectId,
+    projectName,
+    folderInfo,
+    isRecentlyDeleted,
+    assetId,
+    rootFolderId,
+    setProjectState,
+    clearProjectState,
+    navigate,
+  ])
 
   const {
     data: foldersData,

@@ -8,10 +8,11 @@ import { ResizeHandle } from '@/ui/components/resize-handle'
 import { useMemberStore } from '@/ui/stores/members'
 import { useTeamContextStore } from '@/ui/stores/team-context'
 import { useUiStore } from '@/ui/stores/ui'
+import { useTopNavStore } from '@/ui/stores/top-nav'
 import { type Annotation } from '@/ui/types'
 
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useState, useRef } from 'react'
 import type { CommentInfo, AssetInfo } from '@/dtos/asset'
@@ -94,6 +95,18 @@ function FileViewPage() {
     placeholderData: keepPreviousData,
   })
 
+  const { data: versionsList } = useQuery({
+    queryKey: ['projects', projectId, 'version_stacks', fileId, 'versions'],
+    queryFn: async () => {
+      const res = await client.api.projects[':projectId'].version_stacks[':stackId'].versions.$get({
+        param: { projectId: projectId, stackId: fileId },
+      })
+      if (!res.ok) throw new Error('Failed to fetch versions')
+      return await res.json()
+    },
+    enabled: !!projectId && !!fileId && !!versionAssetId,
+  })
+
   const { data: projectInfo } = useQuery({
     queryKey: ['projects', projectId],
     queryFn: async () => {
@@ -105,10 +118,55 @@ function FileViewPage() {
     },
   })
 
+  const navigate = useNavigate()
+  const { setProjectState, clearProjectState } = useTopNavStore()
+
   const isLoading = isStackLoading || (!!versionAssetId && isVersionLoading)
   const isError = isStackError || (!!versionAssetId && isVersionError)
   const isFetching = isStackFetching || (!!versionAssetId && isVersionFetching)
   const fileData = versionData || stackData
+  const versionsDataList = versionAssetId ? versionsList : stackData?.versionStack?.versions
+
+  useEffect(() => {
+    if (fileData && projectInfo && teamId) {
+      setProjectState({
+        teamId,
+        projectId,
+        projectName: projectInfo.name ?? '',
+        ancestorFolders: fileData.ancestorFolders ?? [],
+        currentAsset: {
+          name: fileData.name,
+          type: 'file',
+          version: versionsDataList
+            ? (versionsDataList.find((v: { id: string }) => v.id === activeFileId)?.version ??
+              versionsDataList.length)
+            : undefined,
+        },
+        isRootFolder: false,
+        fileId,
+        versions: versionsDataList,
+        onFolderClick: (id: string) => {
+          navigate({
+            to: '/projects/$projectId/folders/$folderId',
+            params: { projectId, folderId: id },
+          })
+        },
+      })
+    }
+
+    return () => clearProjectState()
+  }, [
+    teamId,
+    projectId,
+    projectInfo,
+    fileData,
+    versionsDataList,
+    activeFileId,
+    fileId,
+    setProjectState,
+    clearProjectState,
+    navigate,
+  ])
 
   if (isLoading && !fileData) {
     return <div>Loading...</div>

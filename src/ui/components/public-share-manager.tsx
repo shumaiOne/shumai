@@ -1,9 +1,10 @@
 'use client'
 
 import { client } from '@/ui/api/client'
+import { useTopNavStore } from '@/ui/stores/top-nav'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { useEffect, useState, useMemo, useRef } from 'react'
-import { BreadcrumbNav } from './breadcrumb-nav'
+import { TopNav } from './top-nav'
 import { FileBrowser } from './file-browser/file-browser'
 import { FileViewerRightSidebar } from './file-viewer-right-sidebar'
 import { ResizeHandle } from './resize-handle'
@@ -85,7 +86,7 @@ export function PublicShareManager({
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [rightSidebarWidth, setRightSidebarWidth] = useState(360)
-  const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false)
+  const [isRightSidebarCollapsed] = useState(false)
   const videoRef = useRef<Player | null>(null)
   const [annotations, setAnnotations] = useState<Annotation[]>([])
 
@@ -268,9 +269,53 @@ export function PublicShareManager({
     setAnnotations([])
   }
 
+  const { setProjectState, clearProjectState } = useTopNavStore()
+
+  useEffect(() => {
+    if (isPasswordValid && !shareInfo.isExpired && !shareInfo.isDisabled) {
+      const currentFolderName =
+        currentFolderId === shareInfo.rootFolderId
+          ? shareInfo.name
+          : folders.find((f) => f.id === currentFolderId)?.name || shareInfo.name
+
+      setProjectState({
+        teamId: '', // Public view doesn't have team context
+        projectId: shareInfo.projectId,
+        projectName: shareInfo.name,
+        ancestorFolders: ancestorFolders,
+        currentAsset: {
+          name: viewingFileData?.name || currentFolderName,
+          type: viewingFileId ? 'file' : 'folder',
+          version: viewingFileData?.versionStack
+            ? (viewingFileData.versionStack.versions.find((v) => v.id === viewingFileData.id)
+                ?.version ?? viewingFileData.versionStack.versions.length)
+            : undefined,
+        },
+        isRootFolder: currentFolderId === shareInfo.rootFolderId && !viewingFileId,
+        isPublic: true,
+        shareId: shareInfo.id,
+        onFolderClick: handleBreadcrumbClick,
+      })
+    }
+
+    return () => clearProjectState()
+  }, [
+    isPasswordValid,
+    shareInfo,
+    currentFolderId,
+    folders,
+    viewingFileData,
+    viewingFileId,
+    ancestorFolders,
+    setProjectState,
+    clearProjectState,
+  ])
+
+  let content
+
   if (shareInfo.isExpired || shareInfo.isDisabled) {
-    return (
-      <div className="flex h-screen items-center justify-center p-4">
+    content = (
+      <div className="flex flex-1 items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
@@ -286,11 +331,9 @@ export function PublicShareManager({
         </Card>
       </div>
     )
-  }
-
-  if (!isPasswordValid) {
-    return (
-      <div className="flex h-screen items-center justify-center p-4">
+  } else if (!isPasswordValid) {
+    content = (
+      <div className="flex flex-1 items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
@@ -315,39 +358,8 @@ export function PublicShareManager({
         </Card>
       </div>
     )
-  }
-
-  const currentFolderName =
-    currentFolderId === shareInfo.rootFolderId
-      ? shareInfo.name
-      : folders.find((f) => f.id === currentFolderId)?.name || shareInfo.name
-
-  return (
-    <div className="flex h-screen flex-col bg-background">
-      <BreadcrumbNav
-        teamId="" // Public view doesn't have team context
-        projectId={shareInfo.projectId}
-        projectName={shareInfo.name}
-        ancestorFolders={ancestorFolders}
-        currentAsset={{
-          name: viewingFileData?.name || currentFolderName,
-          type: viewingFileId ? 'file' : 'folder',
-          version: viewingFileData?.versionStack
-            ? (viewingFileData.versionStack.versions.find((v) => v.id === viewingFileData.id)
-                ?.version ?? viewingFileData.versionStack.versions.length)
-            : undefined,
-        }}
-        isRootFolder={currentFolderId === shareInfo.rootFolderId && !viewingFileId}
-        displayStyle="card"
-        onDisplayStyleChange={() => {}}
-        isLeftSidebarCollapsed={true}
-        onLeftSidebarToggle={() => {}}
-        isRightSidebarCollapsed={isRightSidebarCollapsed}
-        onRightSidebarToggle={() => setIsRightSidebarCollapsed(!isRightSidebarCollapsed)}
-        isPublic={true}
-        onFolderClick={handleBreadcrumbClick}
-      />
-
+  } else {
+    content = (
       <div className="flex flex-1 overflow-hidden relative">
         {viewingFileId ? (
           <div className="flex-1 relative bg-muted/30">
@@ -423,6 +435,14 @@ export function PublicShareManager({
           </>
         )}
       </div>
+    )
+  }
+
+  return (
+    <div className="flex h-screen flex-col bg-background">
+      <TopNav />
+      {content}
     </div>
   )
 }
+
