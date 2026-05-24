@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { prisma } from '@/db'
 import { setupTestDbHooks } from '@/db-test-hooks'
 import { uploadService } from './upload'
+import { s3Service } from '@/services/s3/s3'
 import { AssetStatus, AssetType, WorkflowTaskType } from '@/generated/prisma/client'
 
 vi.mock('@/services/s3/s3', () => ({
@@ -178,5 +179,110 @@ describe('UploadService', () => {
       where: { assetId: asset.id, type: WorkflowTaskType.transcode },
     })
     expect(workflowTask).toBeNull()
+  })
+
+  it('should create a version stack when parentId is a file', async () => {
+    // Create an existing file
+    const fileA = await prisma.asset.create({
+      data: {
+        name: 'fileA.txt',
+        type: AssetType.file,
+        projectId,
+        parentId,
+        status: AssetStatus.processed,
+        sizeByte: 1000,
+      },
+    })
+
+    const req = {
+      parentId: fileA.id,
+      files: [
+        {
+          name: 'fileA_v2.txt',
+          id: 'v2',
+          size: 2000,
+          type: 'file' as const,
+          mediaType: 'text/plain',
+          children: [],
+        },
+      ],
+    }
+
+    const resp = await uploadService.createUploadTask(userId, req)
+    expect(resp.taskId).toBeDefined()
+
+    // Should have created a version stack
+    const stack = await prisma.asset.findFirst({
+      where: { type: AssetType.version_stack, parentId },
+    })
+    expect(stack).toBeDefined()
+    expect(stack?.fileCount).toBe(1) // Only fileA is "uploaded", the new one is still "uploading"
+    expect(stack?.sizeByte).toBe(1000)
+
+    // The new asset should be inside the stack
+    const newAsset = await prisma.asset.findFirst({
+      where: { taskId: resp.taskId, parentId: stack!.id },
+    })
+    expect(newAsset).toBeDefined()
+    expect(newAsset?.status).toBe(AssetStatus.uploading)
+  })
+
+  it('should correctly update counts when confirming a version in a stack', async () => {
+    // Create a stack with one existing file
+    const stack = await prisma.asset.create({
+      data: {
+        name: '',
+        type: AssetType.version_stack,
+        projectId,
+        parentId,
+        status: AssetStatus.uploaded,
+        fileCount: 1,
+        sizeByte: 1000,
+      },
+    })
+    await prisma.asset.create({
+      data: {
+        name: 'v1.txt',
+        type: AssetType.file,
+        projectId,
+        parentId: stack.id,
+        status: AssetStatus.processed,
+        sizeByte: 1000,
+      },
+    })
+
+    // Create an uploading asset in that stack
+    const task = await prisma.task.create({
+      data: { creatorId: userId, total: 1, uploaded: 0, type: 'upload' },
+    })
+    const fileV2 = await prisma.asset.create({
+      data: {
+        name: 'v2.txt',
+        type: AssetType.file,
+        projectId,
+        parentId: stack.id,
+        status: AssetStatus.uploading,
+        key: 'v2-key',
+        sizeByte: 2000,
+      },
+    })
+
+    vi.spyOn(s3Service, 'getObjectSize').mockResolvedValue(2000)
+
+    // Manually set parent folder size to match initial stack size for realistic aggregation
+    await prisma.asset.update({
+      where: { id: parentId },
+      data: { sizeByte: 1000 },
+    })
+
+    await uploadService.confirmFileUpload(userId, task.id, { fileId: fileV2.id })
+
+    const updatedStack = await prisma.asset.findUnique({ where: { id: stack.id } })
+    expect(updatedStack?.fileCount).toBe(2)
+    expect(updatedStack?.sizeByte).toBe(3000)
+
+    // Verify parent folder size (initially 1000 from stack)
+    const parentFolder = await prisma.asset.findUnique({ where: { id: parentId } })
+    expect(parentFolder?.sizeByte).toBe(3000)
   })
 })

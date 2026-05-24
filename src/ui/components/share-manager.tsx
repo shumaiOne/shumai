@@ -1,8 +1,7 @@
 import type { AncestorFolder, AssetInfo, AssetInfoPaginatedList } from '@/dtos/asset'
 import { client } from '@/ui/api/client'
 import { useMutation, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
-import { BreadcrumbNav } from './breadcrumb-nav'
+import { useEffect, useState, useMemo } from 'react'
 import { FileBrowser } from './file-browser/file-browser'
 import { ShareSettingsSidebar } from './share-settings-sidebar'
 import { FolderTree } from './folder-tree'
@@ -13,6 +12,7 @@ import { PointerActivationConstraints } from '@dnd-kit/dom'
 import { SnapToPointer } from './dnd-modifiers'
 import { useUiStore } from '@/ui/stores/ui'
 import { useUserMetadataStore } from '@/ui/stores/user-metadata'
+import { useTopNavStore } from '@/ui/stores/top-nav'
 import type { ShareLinkInfo } from '@/dtos/share'
 import { toast } from 'sonner'
 
@@ -56,27 +56,42 @@ export default function ShareManager({
   const [ancestorFolders, setAncestorFolders] = useState<AncestorFolder[]>([])
 
   useEffect(() => {
-    if (shareRootId && !currentFolderId) {
+    if (shareRootId) {
       setCurrentFolderId(shareRootId)
+      setAncestorFolders([])
+      setSelectedIds(new Set())
     }
-  }, [shareRootId, currentFolderId])
+  }, [shareRootId, shareId])
+
+  const setProjectState = useTopNavStore((s) => s.setProjectState)
+  const clearProjectState = useTopNavStore((s) => s.clearProjectState)
+
+  const handleBreadcrumbClick = (folderId: string) => {
+    if (folderId === currentFolderId) return
+
+    if (folderId === shareRootId) {
+      setCurrentFolderId(shareRootId)
+      setAncestorFolders([])
+    } else {
+      const index = ancestorFolders.findIndex((f) => f.id === folderId)
+      if (index !== -1) {
+        setCurrentFolderId(folderId)
+        setAncestorFolders(ancestorFolders.slice(index + 1))
+      }
+    }
+    setSelectedIds(new Set())
+  }
 
   const [leftSidebarWidth, setLeftSidebarWidth] = useState(240)
   const [rightSidebarWidth, setRightSidebarWidth] = useState(360)
 
   const {
     fileListLeftSidebarCollapsed: isLeftSidebarCollapsed,
-    setFileListLeftSidebarCollapsed: setIsLeftSidebarCollapsed,
     fileListRightSidebarCollapsed: isRightSidebarCollapsed,
-    setFileListRightSidebarCollapsed: setIsRightSidebarCollapsed,
     viewModes,
-    setViewMode,
   } = useUiStore()
 
   const displayStyle = viewModes[projectId] ?? 'card'
-  const setDisplayStyle = (style: 'card' | 'list') => {
-    setViewMode(projectId, style)
-  }
 
   const {
     data: foldersData,
@@ -124,8 +139,48 @@ export default function ShareManager({
     getNextPageParam: (lastPage) => lastPage.pageInfo?.cursor || undefined,
   })
 
-  const folders = foldersData?.pages.flatMap((page) => page.data ?? []) ?? []
-  const files = filesData?.pages.flatMap((page) => page.data ?? []) ?? []
+  const folders = useMemo(
+    () => foldersData?.pages.flatMap((page) => page.data ?? []) ?? [],
+    [foldersData],
+  )
+  const files = useMemo(
+    () => filesData?.pages.flatMap((page) => page.data ?? []) ?? [],
+    [filesData],
+  )
+
+  useEffect(() => {
+    if (shareLink) {
+      setProjectState({
+        teamId,
+        projectId,
+        projectName,
+        ancestorFolders,
+        currentAsset: {
+          name:
+            currentFolderId === shareRootId
+              ? shareLink.name
+              : folders.find((f) => f.id === currentFolderId)?.name || shareLink.name,
+          type: 'folder',
+        },
+        isRootFolder: false, // Ensure share link name or subfolder is always shown in TopNav
+        shareId,
+        onFolderClick: handleBreadcrumbClick,
+      })
+    }
+    return () => clearProjectState()
+  }, [
+    teamId,
+    projectId,
+    projectName,
+    ancestorFolders,
+    currentFolderId,
+    shareRootId,
+    shareLink,
+    shareId,
+    folders,
+    setProjectState,
+    clearProjectState,
+  ])
 
   const handleClearSelection = () => {
     setSelectedIds(new Set())
@@ -170,22 +225,6 @@ export default function ShareManager({
     }
   }
 
-  const handleBreadcrumbClick = (folderId: string) => {
-    if (folderId === currentFolderId) return
-
-    if (folderId === shareRootId) {
-      setCurrentFolderId(shareRootId)
-      setAncestorFolders([])
-    } else {
-      const index = ancestorFolders.findIndex((f) => f.id === folderId)
-      if (index !== -1) {
-        setCurrentFolderId(folderId)
-        setAncestorFolders(ancestorFolders.slice(index + 1))
-      }
-    }
-    setSelectedIds(new Set())
-  }
-
   if (!shareLink) return <div>Loading...</div>
 
   return (
@@ -201,28 +240,6 @@ export default function ShareManager({
       onDragEnd={handleDragEnd}
     >
       <div className="flex h-screen flex-col bg-background">
-        <BreadcrumbNav
-          teamId={teamId}
-          projectId={projectId}
-          projectName={projectName}
-          ancestorFolders={ancestorFolders}
-          currentAsset={{
-            name:
-              currentFolderId === shareRootId
-                ? shareLink.name
-                : folders.find((f) => f.id === currentFolderId)?.name || shareLink.name,
-            type: 'folder',
-          }}
-          isRootFolder={currentFolderId === shareRootId}
-          displayStyle={displayStyle}
-          onDisplayStyleChange={setDisplayStyle}
-          isLeftSidebarCollapsed={isLeftSidebarCollapsed}
-          onLeftSidebarToggle={() => setIsLeftSidebarCollapsed(!isLeftSidebarCollapsed)}
-          isRightSidebarCollapsed={isRightSidebarCollapsed}
-          onRightSidebarToggle={() => setIsRightSidebarCollapsed(!isRightSidebarCollapsed)}
-          onFolderClick={handleBreadcrumbClick}
-        />
-
         <div className="flex flex-1 overflow-hidden relative">
           {!isLeftSidebarCollapsed && (
             <>
