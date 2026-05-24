@@ -340,7 +340,7 @@ export default function FileSystemManager({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex h-full flex-col bg-background">
+      <div className="flex flex-1 flex-col bg-background">
         <div ref={containerRef} className="flex flex-1 overflow-hidden relative">
           {!isLeftSidebarCollapsed && (
             <div

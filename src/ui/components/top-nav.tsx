@@ -2,23 +2,31 @@ import { client } from '@/ui/api/client'
 import { useTeamContextStore } from '@/ui/stores/team-context'
 import { useUiStore } from '@/ui/stores/ui'
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate, useParams, useRouterState, useSearch } from '@tanstack/react-router'
+import { useMatches, useNavigate, useParams, useRouterState, useSearch } from '@tanstack/react-router'
 import { BreadcrumbNav } from './breadcrumb-nav'
 import { ShumaiLogo } from '@/ui/components/ui/icons'
 import type { AncestorFolder } from '@/dtos/asset'
 
 export function TopNav() {
-  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const matches = useMatches()
   const { teamId } = useTeamContextStore()
 
-  // Match exact team page: /teams/$teamId or /teams/$teamId/
-  const isTeamDashboard = teamId && (pathname === `/teams/${teamId}` || pathname === `/teams/${teamId}/`)
+  const currentRouteId = matches[matches.length - 1]?.routeId
+
+  // Match exact team page: /teams/$teamId/
+  const isTeamDashboard = teamId && currentRouteId === '/teams/$teamId/'
 
   if (isTeamDashboard) {
     return <TeamHeader />
   }
 
-  if (pathname.startsWith('/projects/')) {
+  // Ensure it's a project route but NOT the share management route
+  if (
+    currentRouteId === '/projects/$projectId/' ||
+    currentRouteId === '/projects/$projectId/folders/$folderId' ||
+    currentRouteId === '/projects/$projectId/files/$fileId' ||
+    currentRouteId === '/projects/$projectId/recently-deleted'
+  ) {
     return <ProjectTopNav />
   }
 
@@ -143,8 +151,10 @@ function ProjectTopNav() {
       ? uiStore.setFileViewRightSidebarCollapsed(!uiStore.fileViewRightSidebarCollapsed)
       : uiStore.setFileListRightSidebarCollapsed(!uiStore.fileListRightSidebarCollapsed)
 
-  const displayStyle = uiStore.viewModes[projectId!] ?? 'card'
-  const onDisplayStyleChange = (style: 'card' | 'list') => uiStore.setViewMode(projectId!, style)
+  const displayStyle = projectId ? (uiStore.viewModes[projectId] ?? 'card') : 'card'
+  const onDisplayStyleChange = (style: 'card' | 'list') => {
+    if (projectId) uiStore.setViewMode(projectId, style)
+  }
 
   const handleFolderClick = (id: string) => {
     navigate({

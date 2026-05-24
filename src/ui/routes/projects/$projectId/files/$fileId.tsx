@@ -152,7 +152,7 @@ function FileViewPage() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-background">
+    <div className="flex flex-1 flex-col bg-background">
       <div className="flex flex-1 overflow-hidden">
         {!isLeftSidebarCollapsed && (
           <>

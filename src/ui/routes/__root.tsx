@@ -80,7 +80,7 @@ function RootComponent() {
       </DualSidebar>
       <div className="flex flex-col flex-1 md:pl-16 overflow-hidden relative">
         <TopNav />
-        <main className="flex-1 overflow-hidden relative">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden relative flex flex-col">
           <Outlet />
         </main>
       </div>
