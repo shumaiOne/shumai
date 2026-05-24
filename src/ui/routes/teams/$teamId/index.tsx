@@ -275,7 +275,7 @@ function TeamPage() {
                     Updated {formatDateAgo((project.updatedAt as string) ?? '')}
                   </p>
                   <div onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu>
+                    <DropdownMenu modal={false}>
                       <DropdownMenuTrigger asChild>
                         <button className="hover:bg-muted outline-none flex px-1">
                           <MoreHorizontal className="w-5 h-5 text-muted-foreground" />

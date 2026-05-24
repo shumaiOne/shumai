@@ -304,3 +304,7 @@ We use a custom workflow engine that supports both **Local** (polling-based) and
 - When importing across layers, always use absolute paths with the `@` alias for the root of the project (e.g. `import { AssetInfo } from '@/services/asset/models'`).
 - For types that have been migrated from `@/ui/api/api`, use the equivalent types from the `src/services/<domain>/models.ts` instead.
 - **DTO Naming**: Do not append the `Dto` suffix to types or interfaces (e.g. use `JoinRequest` instead of `JoinRequestDto`).
+
+## Radix UI / Shadcn UI Patterns
+
+- **Modal Overlays**: When triggering a dialog (e.g., `Dialog`, `AlertDialog`) from inside a `DropdownMenu`, you must set `modal={false}` on the `<DropdownMenu>` component. Failing to do so will cause the UI to freeze due to conflicting focus management between the two modal components.

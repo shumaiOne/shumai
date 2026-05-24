@@ -1,11 +1,11 @@
 import { ObjectInfo } from '@/dtos/s3'
 import {
-  GetObjectCommand,
-  HeadObjectCommand,
-  ListObjectsV2Command,
-  PutObjectCommand,
-  DeleteObjectCommand,
-  S3Client,
+    DeleteObjectCommand,
+    GetObjectCommand,
+    HeadObjectCommand,
+    ListObjectsV2Command,
+    PutObjectCommand,
+    S3Client,
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import * as crypto from 'crypto'
@@ -271,7 +271,7 @@ export class LocalStorageService implements S3Service {
   private basePath: string
   private endpoint: string
 
-  constructor(endpoint: string, basePath: string = 'data/s3/data') {
+  constructor(endpoint: string, basePath: string = 'data') {
     this.endpoint = endpoint.replace(/\/$/, '')
     this.basePath = path.resolve(basePath)
     if (!fs.existsSync(this.basePath)) {
