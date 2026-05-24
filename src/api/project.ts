@@ -62,6 +62,7 @@ const route = new Hono<{ Variables: { user: User } }>()
     async (c) => {
       const projectId = c.req.param('projectId')
       const user = c.get('user')
+      const req = c.req.valid('query')
 
       await authzService.hasPermission({
         projectId,
@@ -69,8 +70,14 @@ const route = new Hono<{ Variables: { user: User } }>()
         permission: Permission.Read,
       })
 
-      // STUB: AssetService is not migrated yet.
-      return c.json({ data: [], pageInfo: {} })
+      const resp = await assetService.listChildren({
+        projectId,
+        assetType: req.assetType,
+        showDeleted: true,
+        after: req.after,
+        first: req.first,
+      })
+      return c.json(resp)
     },
   )
   .get('/teams/:teamId/projects', zValidator('query', listProjectsRequestSchema), async (c) => {
@@ -112,6 +119,19 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     const p = await projectService.getProject(projectId)
     return c.json(p)
+  })
+  .delete('/projects/:projectId', async (c) => {
+    const projectId = c.req.param('projectId')
+    const user = c.get('user')
+
+    await authzService.hasPermission({
+      projectId,
+      user,
+      permission: Permission.Admin,
+    })
+
+    await projectService.deleteProject(projectId)
+    return c.json({ success: true })
   })
   .get('/projects/:projectId/team', async (c) => {
     const projectId = c.req.param('projectId')

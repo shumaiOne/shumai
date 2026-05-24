@@ -266,7 +266,7 @@ export function FileCard({
             {displayItem.creator?.name}
           </p>
         </div>
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button
               size="icon-sm"

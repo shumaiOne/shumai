@@ -2,13 +2,15 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { prisma } from '@/db'
 import { setupTestDbHooks } from '@/db-test-hooks'
 
-import { AssetType } from '@/generated/prisma/client.ts'
+import { AssetType, AssetStatus } from '@/generated/prisma/client.ts'
 import { AssetService } from './asset'
 
 vi.mock('@/services/s3/s3', () => ({
   s3Service: {
     presign: vi.fn().mockResolvedValue('http://mock-s3-url'),
     putObject: vi.fn().mockResolvedValue(undefined),
+    deleteObject: vi.fn().mockResolvedValue(1),
+    deletePrefix: vi.fn().mockResolvedValue(1),
   },
 }))
 
@@ -412,12 +414,12 @@ describe('AssetService', () => {
     const folderA = await prisma.asset.findUnique({
       where: { id: assets.folderA.id },
     })
-    expect(folderA?.removed).toBe(true)
+    expect(folderA?.isDeleted).toBe(true)
 
     const fileA1 = await prisma.asset.findUnique({
       where: { id: assets.fileA1.id },
     })
-    expect(fileA1?.removed).toBe(true)
+    expect(fileA1?.isDeleted).toBe(true)
 
     // Verify root size decreased by folderA's size
     await verifyAsset(assets.root.id, {
@@ -432,14 +434,14 @@ describe('AssetService', () => {
     const folderRestoredA = await prisma.asset.findUnique({
       where: { id: assets.folderA.id },
     })
-    expect(folderRestoredA?.removed).toBe(false)
+    expect(folderRestoredA?.isDeleted).toBe(false)
 
     expect(folderRestoredA?.deletedAt).toBeNull()
 
     const fileA1Restored = await prisma.asset.findUnique({
       where: { id: assets.fileA1.id },
     })
-    expect(fileA1Restored?.removed).toBe(false)
+    expect(fileA1Restored?.isDeleted).toBe(false)
 
     // Verify root restored properly
     await verifyAsset(assets.root.id, {
@@ -1171,6 +1173,95 @@ describe('AssetService', () => {
       expect(versions[1].id).toBe(file1.id) // older version must be second
       expect(versions[1].version).toBe(1)
       expect(versions[1].name).toBe('version1.txt')
+    })
+  })
+
+  describe('Asset Cascade Bug (Reproduction)', () => {
+    it('should NOT cascade delete children from DB before their S3 files are deleted', async () => {
+      const { project } = await setupBasicAssets()
+      const { s3Service } = await import('@/services/s3/s3')
+
+      // 1. Create Folder A
+      const folderA = await prisma.asset.create({
+        data: {
+          name: 'Folder A',
+          type: AssetType.folder,
+          status: 'pending_purge',
+          isDeleted: true,
+          projectId: project.id,
+        },
+      })
+
+      // 2. Create 101 children files for Folder A
+      // Each has an S3 key.
+      const childCount = 101
+      const childData = Array.from({ length: childCount }).map((_, i) => ({
+        name: `File ${i}`,
+        type: AssetType.file,
+        status: AssetStatus.pending_purge,
+        isDeleted: true,
+        projectId: project.id,
+        parentId: folderA.id,
+        key: `key-${i}`,
+      }))
+
+      await prisma.asset.createMany({ data: childData })
+
+      // 3. Trigger the purge job for the FIRST batch (100 items)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (assetService as any).purgePendingAssets()
+
+      // 4. Verify some items were processed in S3
+      // We don't know the order, but if Folder A was in the first 100,
+      // then its synchronous cascade will have wiped the remaining children.
+
+      // 5. Trigger the purge job for the SECOND batch
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (assetService as any).purgePendingAssets()
+
+      // 6. Verify S3 deletion was called for EVERY child
+      for (let i = 0; i < childCount; i++) {
+        expect(s3Service.deleteObject).toHaveBeenCalledWith(expect.any(String), `key-${i}`)
+      }
+
+      // Verify folder and all children are gone from DB
+      expect(await prisma.asset.findUnique({ where: { id: folderA.id } })).toBeNull()
+      const remainingChildren = await prisma.asset.count({ where: { parentId: folderA.id } })
+      expect(remainingChildren).toBe(0)
+    })
+
+    it('should delete the entire directory prefix for assets with complex keys (e.g., file/ULID/raw)', async () => {
+      const { project } = await setupBasicAssets()
+      const { s3Service } = await import('@/services/s3/s3')
+
+      // Create an asset with a complex key
+      const complexFile = await prisma.asset.create({
+        data: {
+          name: 'Complex File',
+          type: AssetType.file,
+          status: AssetStatus.pending_purge,
+          isDeleted: true,
+          projectId: project.id,
+          key: 'file/01KSBRJVY3DPK111S2MECFKDQ4/raw',
+        },
+      })
+
+      // Trigger the purge job
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (assetService as any).purgePendingAssets()
+
+      // Verify deletePrefix was called with the correct prefix instead of just deleteObject
+      expect(s3Service.deletePrefix).toHaveBeenCalledWith(
+        expect.any(String),
+        'file/01KSBRJVY3DPK111S2MECFKDQ4/',
+      )
+      expect(s3Service.deleteObject).not.toHaveBeenCalledWith(
+        expect.any(String),
+        'file/01KSBRJVY3DPK111S2MECFKDQ4/raw',
+      )
+
+      // Verify record is gone
+      expect(await prisma.asset.findUnique({ where: { id: complexFile.id } })).toBeNull()
     })
   })
 })

@@ -3,10 +3,13 @@ import { prisma } from '@/db'
 import { setupTestDbHooks } from '@/db-test-hooks'
 import { ProjectService } from './project'
 import { s3Service } from '@/services/s3/s3'
+import { assetService } from '@/services/asset/asset'
 
 vi.mock('@/services/s3/s3', () => ({
   s3Service: {
     presign: vi.fn(),
+    deleteObject: vi.fn().mockResolvedValue(1),
+    deletePrefix: vi.fn().mockResolvedValue(1),
   },
 }))
 
@@ -216,6 +219,144 @@ describe('ProjectService', () => {
       expect(p?.shareRootId).toBeDefined()
       expect(p?.shareRoot?.type).toBe('share_root')
       expect(p?.shareRoot?.name).toBe('share_root')
+    })
+  })
+
+  describe('deleteProject', () => {
+    it('detaches and soft-deletes project assets', async () => {
+      const team = await prisma.team.create({ data: { name: 'Delete Team' } })
+      const u = await prisma.user.create({ data: { name: 'u', email: 'delete@example.com' } })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: u.id, role: 'owner' },
+      })
+
+      const project = await projectService.createProject(u, {
+        name: 'Project to Delete',
+        teamId: team.id,
+      })
+
+      // Add some related data
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'Test Asset',
+          type: 'file',
+          status: 'processed',
+          projectId: project.id,
+          key: 'asset-key',
+        },
+      })
+
+      // Set cover image key
+      await prisma.project.update({
+        where: { id: project.id },
+        data: { coverImageKey: 'cover-key' },
+      })
+
+      // Delete project
+      await projectService.deleteProject(project.id)
+
+      // Verify project is deleted
+      const p = await prisma.project.findUnique({ where: { id: project.id } })
+      expect(p).toBeNull()
+
+      // Verify asset is soft-deleted and detached
+      const a = await prisma.asset.findUnique({ where: { id: asset.id } })
+      expect(a).toBeDefined()
+      expect(a?.isDeleted).toBe(true)
+      expect(a?.projectId).toBeNull()
+      expect(a?.parentId).toBeNull()
+
+      // Verify S3 project cover cleanup (synchronous)
+      expect(s3Service.deleteObject).toHaveBeenCalledWith(expect.any(String), 'cover-key')
+      // S3 asset key cleanup is NOT called synchronously
+      expect(s3Service.deleteObject).not.toHaveBeenCalledWith(expect.any(String), 'asset-key')
+    })
+
+    it('cleans up nested hierarchy asynchronously in background job', async () => {
+      const team = await prisma.team.create({ data: { name: 'Nested Team' } })
+      const u = await prisma.user.create({ data: { name: 'u', email: 'nested@example.com' } })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: u.id, role: 'owner' },
+      })
+
+      const project = await projectService.createProject(u, {
+        name: 'Nested Project',
+        teamId: team.id,
+      })
+
+      const projectDb = await prisma.project.findUnique({ where: { id: project.id } })
+
+      // Create hierarchy: Folder A -> Folder B -> File C
+      const folderA = await prisma.asset.create({
+        data: {
+          name: 'Folder A',
+          type: 'folder',
+          status: 'processed',
+          projectId: project.id,
+          parentId: projectDb!.rootFolderId,
+        },
+      })
+      const folderB = await prisma.asset.create({
+        data: {
+          name: 'Folder B',
+          type: 'folder',
+          status: 'processed',
+          projectId: project.id,
+          parentId: folderA.id,
+        },
+      })
+      const fileC = await prisma.asset.create({
+        data: {
+          name: 'File C',
+          type: 'file',
+          status: 'processed',
+          projectId: project.id,
+          parentId: folderB.id,
+          key: 'file-c-key',
+        },
+      })
+
+      // Add metadata and comments to verify cascade
+      await prisma.assetMetadataValue.create({
+        data: {
+          assetId: fileC.id,
+          fieldId: 'test-field',
+          stringValue: 'test-value',
+        },
+      })
+      const comment = await prisma.assetComment.create({
+        data: {
+          assetId: fileC.id,
+          message: 'Test comment',
+        },
+      })
+
+      // Delete project
+      await projectService.deleteProject(project.id)
+
+      // Manually trigger the private cleanup methods for testing
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (assetService as any).expireTrashedAssets()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (assetService as any).purgePendingAssets()
+
+      // Verify everything is wiped from DB
+      expect(await prisma.project.findUnique({ where: { id: project.id } })).toBeNull()
+      expect(await prisma.asset.findUnique({ where: { id: folderA.id } })).toBeNull()
+      expect(await prisma.asset.findUnique({ where: { id: folderB.id } })).toBeNull()
+      expect(await prisma.asset.findUnique({ where: { id: fileC.id } })).toBeNull()
+
+      // Verify cascade
+      expect(
+        await prisma.assetMetadataValue.findUnique({
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          where: { assetId_fieldId: { assetId: fileC.id, fieldId: 'test-field' } },
+        }),
+      ).toBeNull()
+      expect(await prisma.assetComment.findUnique({ where: { id: comment.id } })).toBeNull()
+
+      // Verify S3 cleanup for file
+      expect(s3Service.deleteObject).toHaveBeenCalledWith(expect.any(String), 'file-c-key')
     })
   })
 })

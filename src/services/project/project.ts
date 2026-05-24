@@ -130,7 +130,7 @@ export class ProjectService {
     const direction = req.sortDirection === 'desc' ? 'desc' : 'asc'
     if (req.sortBy) {
       if (req.sortBy === 'created_at') {
-        orderBy.id = direction
+        orderBy.createdAt = direction
       } else if (req.sortBy === 'updated_at') {
         orderBy.updatedAt = direction
       } else {
@@ -222,6 +222,63 @@ export class ProjectService {
         name: pm.teamMember.user.name,
         role: pm.role,
       }))
+  }
+
+  async deleteProject(projectId: string): Promise<void> {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    })
+    if (!project) throw new Error('Project not found')
+
+    const immediateCleanupDate = new Date(0)
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Mark ALL project assets as isDeleted and detach projectId
+      // We keep parentId intact so the folder structure remains for Stage 1 cleanup.
+      await tx.asset.updateMany({
+        where: { projectId },
+        data: {
+          isDeleted: true,
+          projectId: null,
+        },
+      })
+
+      // 2. Mark root folders as 'trashed' with deletedAt = 0 to trigger immediate background purge
+      const rootIds = [project.rootFolderId, project.shareRootId].filter(
+        (id): id is string => id !== null,
+      )
+      if (rootIds.length > 0) {
+        await tx.asset.updateMany({
+          where: { id: { in: rootIds } },
+          data: {
+            status: 'trashed',
+            deletedAt: immediateCleanupDate,
+          },
+        })
+      }
+
+      // 3. Unlink root folders from project record to avoid FK cycles during project deletion
+      await tx.project.update({
+        where: { id: projectId },
+        data: { rootFolderId: null, shareRootId: null },
+      })
+
+      // 4. Delete the project itself
+      // Cascade deletes will handle project members, invites, notifications, etc.
+      await tx.project.delete({
+        where: { id: projectId },
+      })
+    })
+
+    // Synchronously delete the project's cover image if it exists
+    if (project.coverImageKey) {
+      const bucket = process.env.S3_BUCKET || 'shumai'
+      try {
+        await s3Service.deleteObject(bucket, project.coverImageKey)
+      } catch (e: unknown) {
+        console.error(`Failed to delete project cover image ${project.coverImageKey}:`, e)
+      }
+    }
   }
 
   async getProjectRootFolder(projectId: string): Promise<string> {

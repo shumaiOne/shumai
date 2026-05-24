@@ -24,6 +24,8 @@ export function useFileActions({
   selectedIds,
 }: UseFileActionsProps) {
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [itemsToDelete, setItemsToDelete] = useState<AssetInfo[]>([])
   const queryClient = useQueryClient()
 
   const $createFolder = client.api.teams[':teamId'].folders.$post
@@ -113,9 +115,9 @@ export function useFileActions({
     setEditingItemId(item.id!)
   }
 
-  const handleDelete = (items: AssetInfo[]) => {
-    const fileIds = items.filter((i) => i.type === 'file').map((i) => i.id!)
-    const folderIds = items.filter((i) => i.type === 'folder').map((i) => i.id!)
+  const confirmDelete = () => {
+    const fileIds = itemsToDelete.filter((i) => i.type === 'file').map((i) => i.id!)
+    const folderIds = itemsToDelete.filter((i) => i.type === 'folder').map((i) => i.id!)
 
     if (fileIds.length > 0) {
       deleteFiles(
@@ -142,6 +144,14 @@ export function useFileActions({
         },
       )
     }
+
+    setIsDeleteDialogOpen(false)
+    setItemsToDelete([])
+  }
+
+  const handleDelete = (items: AssetInfo[]) => {
+    setItemsToDelete(items)
+    setIsDeleteDialogOpen(true)
   }
 
   const handleRestore = (items: AssetInfo[]) => {
@@ -269,5 +279,9 @@ export function useFileActions({
     handleNewFolder,
     handleAction,
     onRenameSubmit,
+    isDeleteDialogOpen,
+    setIsDeleteDialogOpen,
+    itemsToDelete,
+    confirmDelete,
   }
 }

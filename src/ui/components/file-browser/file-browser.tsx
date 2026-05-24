@@ -23,6 +23,16 @@ import { FileListItem } from './file-list-item'
 import { FolderCard } from './folder-card'
 import { Button } from '../ui/button'
 import { ContextMenu, ContextMenuTrigger } from '../ui/context-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../ui/alert-dialog'
 import { useFileActions } from './use-file-actions'
 
 interface FileBrowserProps {
@@ -110,6 +120,9 @@ export function FileBrowser({
     handleDownload,
     handleAction,
     onRenameSubmit,
+    isDeleteDialogOpen,
+    setIsDeleteDialogOpen,
+    confirmDelete,
   } = useFileActions({
     teamId,
     projectId,
@@ -520,7 +533,7 @@ export function FileBrowser({
 
   const renderContent = () => {
     return (
-      <ContextMenu>
+      <ContextMenu modal={false}>
         <ContextMenuTrigger asChild disabled={isShareView || isPublic}>
           <div
             ref={scrollContainerRef}
@@ -680,6 +693,28 @@ export function FileBrowser({
         onChange={handleFileChange}
       />
       {renderContent()}
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Asset?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deleted items can be recovered for 30 days before being permanently deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                confirmDelete()
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

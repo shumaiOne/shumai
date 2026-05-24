@@ -276,7 +276,7 @@ export function FolderCard({
             <span className="text-xs tracking-wide opacity-80">
               {item.fileCount || 0} {(item.fileCount || 0) === 1 ? 'Item' : 'Items'}
             </span>
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <button
                   onClick={(e) => e.stopPropagation()}
