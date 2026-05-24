@@ -1,4 +1,5 @@
 import { prisma } from '@/db'
+import { logger } from '@/logger'
 import {
   AncestorFolder,
   AssetInfo,
@@ -852,6 +853,9 @@ export class AssetService {
 
     if (lockedAssets.length === 0) return
 
+    let physicalFilesDeleted = 0
+    let physicalFoldersDeleted = 0
+
     // 2. Physical file deletion from storage
     const bucket = process.env.S3_BUCKET || 'shumai'
     const results = await Promise.all(
@@ -864,9 +868,12 @@ export class AssetService {
             const parts = a.key.split('/')
             if (parts.length > 2) {
               const prefix = parts.slice(0, parts.length - 1).join('/') + '/'
-              await s3Service.deletePrefix(bucket, prefix)
+              const count = await s3Service.deletePrefix(bucket, prefix)
+              physicalFilesDeleted += count
+              physicalFoldersDeleted += 1
             } else {
-              await s3Service.deleteObject(bucket, a.key)
+              const count = await s3Service.deleteObject(bucket, a.key)
+              physicalFilesDeleted += count
             }
             return a.id
           } catch (e: unknown) {
@@ -885,6 +892,10 @@ export class AssetService {
       await this.prismaClient.asset.deleteMany({
         where: { id: { in: successfulIds } },
       })
+
+      logger.info(
+        `${successfulIds.length} assets purged, deleted ${physicalFilesDeleted} files in ${physicalFoldersDeleted} folders`,
+      )
     }
   }
 

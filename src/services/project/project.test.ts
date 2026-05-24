@@ -8,8 +8,8 @@ import { assetService } from '@/services/asset/asset'
 vi.mock('@/services/s3/s3', () => ({
   s3Service: {
     presign: vi.fn(),
-    deleteObject: vi.fn(),
-    deletePrefix: vi.fn(),
+    deleteObject: vi.fn().mockResolvedValue(1),
+    deletePrefix: vi.fn().mockResolvedValue(1),
   },
 }))
 

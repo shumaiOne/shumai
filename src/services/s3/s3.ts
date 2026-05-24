@@ -50,8 +50,8 @@ export interface S3Service {
   ): Promise<void>
   getObject(bucket: string, key: string): Promise<S3Object>
   downloadToFile(bucket: string, key: string, filePath: string): Promise<void>
-  deleteObject(bucket: string, key: string): Promise<void>
-  deletePrefix(bucket: string, prefix: string): Promise<void>
+  deleteObject(bucket: string, key: string): Promise<number>
+  deletePrefix(bucket: string, prefix: string): Promise<number>
   headObject(bucket: string, key: string): Promise<ObjectInfo>
   listObjects(bucket: string, prefix: string): Promise<string[]>
   uploadFile(filePath: string, contentType: string): Promise<string>
@@ -160,19 +160,26 @@ export class S3StorageService implements S3Service {
     })
   }
 
-  async deleteObject(bucket: string, key: string): Promise<void> {
+  async deleteObject(bucket: string, key: string): Promise<number> {
     const command = new DeleteObjectCommand({
       Bucket: bucket,
       Key: key,
     })
-    await this.client.send(command)
+    try {
+      await this.client.send(command)
+      return 1
+    } catch {
+      // If object doesn't exist, we return 0
+      return 0
+    }
   }
 
-  async deletePrefix(bucket: string, prefix: string): Promise<void> {
+  async deletePrefix(bucket: string, prefix: string): Promise<number> {
     const keys = await this.listObjects(bucket, prefix)
     if (keys.length > 0) {
       await Promise.all(keys.map((key) => this.deleteObject(bucket, key)))
     }
+    return keys.length
   }
 
   async headObject(bucket: string, key: string): Promise<ObjectInfo> {
@@ -329,26 +336,32 @@ export class LocalStorageService implements S3Service {
     await fs.promises.copyFile(srcPath, filePath)
   }
 
-  async deleteObject(bucket: string, key: string): Promise<void> {
+  async deleteObject(bucket: string, key: string): Promise<number> {
     const filePath = this.getFilePath(bucket, key)
     try {
       await fs.promises.unlink(filePath)
+      return 1
     } catch (e: unknown) {
       if (e instanceof Error && (e as NodeJS.ErrnoException).code === 'ENOENT') {
         // Ignore if file doesn't exist
-        return
+        return 0
       }
       throw e
     }
   }
 
-  async deletePrefix(bucket: string, prefix: string): Promise<void> {
+  async deletePrefix(bucket: string, prefix: string): Promise<number> {
+    // Get count of files before deleting
+    const keys = await this.listObjects(bucket, prefix)
+    if (keys.length === 0) return 0
+
     const dirPath = this.getFilePath(bucket, prefix)
     try {
       await fs.promises.rm(dirPath, { recursive: true, force: true })
+      return keys.length
     } catch (e: unknown) {
       if (e instanceof Error && (e as NodeJS.ErrnoException).code === 'ENOENT') {
-        return
+        return 0
       }
       throw e
     }

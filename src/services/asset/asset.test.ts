@@ -9,8 +9,8 @@ vi.mock('@/services/s3/s3', () => ({
   s3Service: {
     presign: vi.fn().mockResolvedValue('http://mock-s3-url'),
     putObject: vi.fn().mockResolvedValue(undefined),
-    deleteObject: vi.fn().mockResolvedValue(undefined),
-    deletePrefix: vi.fn().mockResolvedValue(undefined),
+    deleteObject: vi.fn().mockResolvedValue(1),
+    deletePrefix: vi.fn().mockResolvedValue(1),
   },
 }))
 
