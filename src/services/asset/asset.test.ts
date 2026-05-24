@@ -1214,7 +1214,7 @@ describe('AssetService', () => {
       // 4. Verify some items were processed in S3
       // We don't know the order, but if Folder A was in the first 100,
       // then its synchronous cascade will have wiped the remaining children.
-      
+
       // 5. Trigger the purge job for the SECOND batch
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (assetService as any).purgePendingAssets()

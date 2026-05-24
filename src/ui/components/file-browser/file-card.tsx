@@ -267,7 +267,8 @@ export function FileCard({
           </p>
         </div>
         <DropdownMenu modal={false}>
-          <DropdownMenuTrigger asChild>            <Button
+          <DropdownMenuTrigger asChild>
+            <Button
               size="icon-sm"
               variant="ghost"
               className="cursor-pointer"

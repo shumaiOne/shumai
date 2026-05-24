@@ -177,9 +177,5 @@ export function FileBrowserContextMenu({
       </ContextMenuContent>
     )
 
-  return (
-    <>
-      {contextMenuContent}
-    </>
-  )
+  return <>{contextMenuContent}</>
 }
