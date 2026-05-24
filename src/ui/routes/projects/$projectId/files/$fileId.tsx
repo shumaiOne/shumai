@@ -1,7 +1,6 @@
 import { InferRequestType, InferResponseType } from 'hono/client'
 import { useMutation } from '@tanstack/react-query'
 import { client } from '@/ui/api/client'
-import { BreadcrumbNav } from '@/ui/components/breadcrumb-nav'
 import { FileViewer } from '@/ui/components/file-viewer'
 import { FileViewerLeftSidebar } from '@/ui/components/file-viewer-left-sidebar'
 import { FileViewerRightSidebar } from '@/ui/components/file-viewer-right-sidebar'
@@ -27,7 +26,6 @@ function FileViewPage() {
   const videoRef = useRef<Player | null>(null)
   const {
     fileViewRightSidebarCollapsed: isRightSidebarCollapsed,
-    setFileViewRightSidebarCollapsed: setIsRightSidebarCollapsed,
     fileViewLeftSidebarCollapsed: isLeftSidebarCollapsed,
     setFileViewLeftSidebarCollapsed: setIsLeftSidebarCollapsed,
   } = useUiStore()
@@ -96,18 +94,6 @@ function FileViewPage() {
     placeholderData: keepPreviousData,
   })
 
-  const { data: versionsList } = useQuery({
-    queryKey: ['projects', projectId, 'version_stacks', fileId, 'versions'],
-    queryFn: async () => {
-      const res = await client.api.projects[':projectId'].version_stacks[':stackId'].versions.$get({
-        param: { projectId: projectId, stackId: fileId },
-      })
-      if (!res.ok) throw new Error('Failed to fetch versions')
-      return await res.json()
-    },
-    enabled: !!projectId && !!fileId && !!versionAssetId,
-  })
-
   const { data: projectInfo } = useQuery({
     queryKey: ['projects', projectId],
     queryFn: async () => {
@@ -123,7 +109,6 @@ function FileViewPage() {
   const isError = isStackError || (!!versionAssetId && isVersionError)
   const isFetching = isStackFetching || (!!versionAssetId && isVersionFetching)
   const fileData = versionData || stackData
-  const versionsDataList = versionAssetId ? versionsList : stackData?.versionStack?.versions
 
   if (isLoading && !fileData) {
     return <div>Loading...</div>
@@ -167,28 +152,7 @@ function FileViewPage() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-background">
-      <BreadcrumbNav
-        teamId={teamId}
-        projectId={projectId}
-        projectName={projectInfo.name ?? ''}
-        ancestorFolders={fileData.ancestorFolders ?? []}
-        currentAsset={{
-          name: fileData.name,
-          type: 'file',
-          version: versionsDataList
-            ? (versionsDataList.find((v) => v.id === activeFileId)?.version ??
-              versionsDataList.length)
-            : undefined,
-        }}
-        isRootFolder={false}
-        isLeftSidebarCollapsed={isLeftSidebarCollapsed}
-        onLeftSidebarToggle={() => setIsLeftSidebarCollapsed(!isLeftSidebarCollapsed)}
-        isRightSidebarCollapsed={isRightSidebarCollapsed}
-        onRightSidebarToggle={() => setIsRightSidebarCollapsed(!isRightSidebarCollapsed)}
-        fileId={fileId}
-        versions={versionsDataList}
-      />
+    <div className="flex h-full flex-col bg-background">
       <div className="flex flex-1 overflow-hidden">
         {!isLeftSidebarCollapsed && (
           <>

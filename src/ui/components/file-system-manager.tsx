@@ -12,7 +12,6 @@ import { useUserMetadataStore } from '@/ui/stores/user-metadata'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { BreadcrumbNav } from './breadcrumb-nav'
 import { FileBrowser } from './file-browser/file-browser'
 import { FileViewerRightSidebar } from './file-viewer-right-sidebar'
 import { FolderTree } from './folder-tree'
@@ -106,28 +105,11 @@ export default function FileSystemManager({
     fileListRightSidebarCollapsed: isRightSidebarCollapsed,
     setFileListRightSidebarCollapsed: setIsRightSidebarCollapsed,
     viewModes,
-    setViewMode,
   } = useUiStore()
 
   const displayStyle = viewModes[projectId] ?? 'card'
-  const setDisplayStyle = (style: 'card' | 'list') => {
-    setViewMode(projectId, style)
-  }
 
   const containerRef = useRef<HTMLDivElement>(null)
-
-  const { data: folderInfo } = isRecentlyDeleted
-    ? { data: undefined }
-    : useQuery({
-        queryKey: ['folders', teamId, assetId],
-        queryFn: async () => {
-          const res = await client.api.teams[':teamId'].folders[':folderId'].$get({
-            param: { teamId: teamId, folderId: assetId },
-          })
-          if (!res.ok) throw new Error('failed to fetch folder')
-          return (await res.json()) as unknown as AssetInfo
-        },
-      })
 
   const {
     data: foldersData,
@@ -358,26 +340,7 @@ export default function FileSystemManager({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex h-screen flex-col bg-background">
-        <BreadcrumbNav
-          teamId={teamId}
-          projectId={projectId}
-          projectName={projectName}
-          ancestorFolders={folderInfo?.ancestorFolders ?? []}
-          currentAsset={
-            isRecentlyDeleted
-              ? { name: 'Recently Deleted', type: 'folder' }
-              : { name: folderInfo?.name, type: 'folder' }
-          }
-          isRootFolder={assetId === rootFolderId}
-          displayStyle={displayStyle}
-          onDisplayStyleChange={setDisplayStyle}
-          isLeftSidebarCollapsed={isLeftSidebarCollapsed}
-          onLeftSidebarToggle={() => setIsLeftSidebarCollapsed(!isLeftSidebarCollapsed)}
-          isRightSidebarCollapsed={isRightSidebarCollapsed}
-          onRightSidebarToggle={() => setIsRightSidebarCollapsed(!isRightSidebarCollapsed)}
-        />
-
+      <div className="flex h-full flex-col bg-background">
         <div ref={containerRef} className="flex flex-1 overflow-hidden relative">
           {!isLeftSidebarCollapsed && (
             <div

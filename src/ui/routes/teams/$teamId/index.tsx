@@ -205,12 +205,8 @@ function TeamPage() {
   const safeMembers = Array.isArray(members) ? members : []
 
   return (
-    <div>
-      <div className="flex h-14 flex-wrap items-center justify-center gap-2 border-b border-border bg-card px-4 py-2">
-        <ShumaiLogo className="w-10 h-10 text-orange-600" />
-      </div>
-      <div className="p-4">
-        <div className="flex flex-wrap items-center justify-between mb-4 gap-4">
+    <div className="p-4">
+      <div className="flex flex-wrap items-center justify-between mb-4 gap-4">
           <h1 className="text-2xl font-bold">Projects</h1>
           <div className="flex flex-wrap items-center gap-4">
             <div
@@ -379,7 +375,6 @@ function TeamPage() {
           onInvite={handleInvite}
         />
       </div>
-    </div>
   )
 }
 
