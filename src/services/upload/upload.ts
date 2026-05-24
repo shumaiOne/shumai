@@ -68,14 +68,27 @@ export class UploadService {
     if (!parentAsset.projectId) throw new Error('Parent asset has no project')
 
     const presignedUrls: PresignedUrl[] = []
-    await this.createAssetsRecursively(
+    const isParentFile = parentAsset.type === AssetType.file
+    const targetParentId = isParentFile ? parentAsset.parentId! : parentAsset.id
+
+    const createdAssetIds = await this.createAssetsRecursively(
       userId,
       task.id,
       parentAsset.projectId,
-      parentAsset.id,
+      targetParentId,
       req.files,
       presignedUrls,
     )
+
+    if (isParentFile && createdAssetIds.length > 0) {
+      for (const assetId of createdAssetIds) {
+        await assetService.reparentAssets({
+          assetIds: [assetId],
+          newParentId: parentAsset.id,
+          creatorId: userId,
+        })
+      }
+    }
 
     return {
       taskId: task.id,
@@ -90,12 +103,13 @@ export class UploadService {
     parentId: string,
     files: FileNode[],
     presignedUrls: PresignedUrl[],
-  ): Promise<void> {
+  ): Promise<string[]> {
     const firstFile = await this.prismaClient.asset.findFirst({
       where: { parentId },
       orderBy: { sortIndex: 'asc' },
     })
     let currentSortIndex = firstFile?.sortIndex || undefined
+    const createdIds: string[] = []
 
     for (const file of files) {
       if (file.name.startsWith('.')) continue
@@ -124,6 +138,7 @@ export class UploadService {
           taskId,
         },
       })
+      createdIds.push(newAsset.id)
 
       if (file.children && file.children.length > 0) {
         await this.createAssetsRecursively(
@@ -143,6 +158,7 @@ export class UploadService {
         })
       }
     }
+    return createdIds
   }
 
   async confirmFileUpload(

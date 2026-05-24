@@ -1,10 +1,24 @@
 import type { AssetInfo } from '@/dtos/asset'
+import type { ShareLinkInfo } from '@/dtos/share'
 import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
 } from '@/ui/components/ui/context-menu'
-import { Download, Edit, FolderPlus, Trash2, UploadCloud, History, FileText } from 'lucide-react'
+import {
+  Download,
+  Edit,
+  FolderPlus,
+  Trash2,
+  UploadCloud,
+  History,
+  FileText,
+  Link,
+  Plus,
+} from 'lucide-react'
 
 interface FileBrowserContextMenuProps {
   item: AssetInfo | null
@@ -16,12 +30,16 @@ interface FileBrowserContextMenuProps {
   onNewFolder: (name: string) => void
   onUploadFile: () => void
   onUploadFolder: () => void
+  onNewVersion: (item: AssetInfo) => void
   folders: AssetInfo[]
   files: AssetInfo[]
   isRecentlyDeleted?: boolean
   onOpenAgentsMd?: (item: AssetInfo | null) => void
   isShareView?: boolean
   onRemoveFromShare?: (items: AssetInfo[]) => void
+  shareLinks?: ShareLinkInfo[]
+  onCreateShareLink?: (items: AssetInfo[]) => void
+  onAddToShareLink?: (shareId: string, items: AssetInfo[]) => void
 }
 
 export function FileBrowserContextMenu({
@@ -34,12 +52,16 @@ export function FileBrowserContextMenu({
   onNewFolder,
   onUploadFile,
   onUploadFolder,
+  onNewVersion,
   folders,
   files,
   isRecentlyDeleted,
   onOpenAgentsMd,
   isShareView,
   onRemoveFromShare,
+  shareLinks = [],
+  onCreateShareLink,
+  onAddToShareLink,
 }: FileBrowserContextMenuProps) {
   const allItems = [...folders, ...files]
   const selectedItems = allItems.filter((i) => selectedIds.has(i.id!))
@@ -142,6 +164,31 @@ export function FileBrowserContextMenu({
           <Trash2 className="mr-2 h-4 w-4" />
           <span>Delete</span>
         </ContextMenuItem>
+
+        <ContextMenuSeparator />
+        <ContextMenuItem onSelect={() => onCreateShareLink?.(itemsToModify)}>
+          <Plus className="mr-2 h-4 w-4" />
+          <span>Create Share Link</span>
+        </ContextMenuItem>
+
+        {shareLinks.length > 0 && (
+          <ContextMenuSub>
+            <ContextMenuSubTrigger>
+              <Link className="mr-2 h-4 w-4" />
+              <span>Add to Share Links</span>
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent className="w-48">
+              {shareLinks.map((share) => (
+                <ContextMenuItem
+                  key={share.id}
+                  onSelect={() => onAddToShareLink?.(share.id, itemsToModify)}
+                >
+                  <span className="truncate">{share.name}</span>
+                </ContextMenuItem>
+              ))}
+            </ContextMenuSubContent>
+          </ContextMenuSub>
+        )}
       </ContextMenuContent>
     ) : (
       <ContextMenuContent
@@ -162,6 +209,13 @@ export function FileBrowserContextMenu({
           <span>Download</span>
         </ContextMenuItem>
 
+        {item.type === 'file' && (
+          <ContextMenuItem onSelect={() => onNewVersion(item)}>
+            <UploadCloud className="mr-2 h-4 w-4" />
+            <span>Create new version</span>
+          </ContextMenuItem>
+        )}
+
         {item.type === 'folder' && onOpenAgentsMd && (
           <ContextMenuItem onSelect={() => onOpenAgentsMd(item)}>
             <FileText className="mr-2 h-4 w-4" />
@@ -174,6 +228,31 @@ export function FileBrowserContextMenu({
           <Trash2 className="mr-2 h-4 w-4" />
           <span>Delete</span>
         </ContextMenuItem>
+
+        <ContextMenuSeparator />
+        <ContextMenuItem onSelect={() => onCreateShareLink?.(itemsToModify)}>
+          <Plus className="mr-2 h-4 w-4" />
+          <span>Create Share Link</span>
+        </ContextMenuItem>
+
+        {shareLinks.length > 0 && (
+          <ContextMenuSub>
+            <ContextMenuSubTrigger>
+              <Link className="mr-2 h-4 w-4" />
+              <span>Add to Share Links</span>
+            </ContextMenuSubTrigger>
+            <ContextMenuSubContent className="w-48">
+              {shareLinks.map((share) => (
+                <ContextMenuItem
+                  key={share.id}
+                  onSelect={() => onAddToShareLink?.(share.id, itemsToModify)}
+                >
+                  <span className="truncate">{share.name}</span>
+                </ContextMenuItem>
+              ))}
+            </ContextMenuSubContent>
+          </ContextMenuSub>
+        )}
       </ContextMenuContent>
     )
 

@@ -5,15 +5,17 @@ import type { InferRequestType, InferResponseType } from 'hono/client'
 import type { AssetInfo } from '@/dtos/asset'
 import type { SearchCondition, SearchSort } from '@/dtos/search'
 import type { CreateUploadTaskRequest } from '@/dtos/upload'
+import type { ShareLinkInfo } from '@/dtos/share'
 import { useFieldStore } from '@/ui/stores/fields'
 import { useUploadStore } from '@/ui/stores/upload'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Download } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useInView } from 'react-intersection-observer'
 import { toast } from 'sonner'
 import type { DragState } from '../dnd-types'
 import { FileBrowserContextMenu } from './context-menu'
+import { useNavigate } from '@tanstack/react-router'
 
 import { FileBrowserGridView } from './grid-view'
 import { FileBrowserListView } from './list-view'
@@ -109,6 +111,92 @@ export function FileBrowser({
 }: FileBrowserProps) {
   const [contextMenuItem, setContextMenuItem] = useState<AssetInfo | null>(null)
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
+
+  const { data: shareLinksData } = useQuery({
+    queryKey: ['shares', teamId, projectId],
+    queryFn: async () => {
+      const res = await client.api.teams[':teamId'].projects[':projectId'].shares.$get({
+        param: { teamId, projectId },
+        query: { first: '100' },
+      })
+      if (!res.ok) throw new Error('Failed to fetch share links')
+      return (await res.json()) as unknown as { data: ShareLinkInfo[] }
+    },
+    enabled: !!teamId && !!projectId && !isPublic,
+  })
+
+  const { mutate: createShareLink } = useMutation({
+    mutationFn: async (items: AssetInfo[]) => {
+      const name =
+        items.length === 1
+          ? items[0].name
+          : new Date().toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })
+
+      const res = await client.api.teams[':teamId'].projects[':projectId'].shares.$post({
+        param: { teamId, projectId },
+        json: { name },
+      })
+      if (!res.ok) throw new Error('Failed to create share link')
+      const share = await res.json()
+
+      // Add assets to the new share link
+      await client.api.teams[':teamId'].shares[':shareId'].assets.$post({
+        param: { teamId, shareId: share.id },
+        json: { assetIds: items.map((i) => i.id!) },
+      })
+
+      return share
+    },
+    onSuccess: (share) => {
+      queryClient.invalidateQueries({ queryKey: ['shares', teamId, projectId] })
+      toast.success('Share link created', {
+        action: {
+          label: 'View',
+          onClick: () =>
+            navigate({
+              to: '/projects/$projectId/shares/$shareId',
+              params: { projectId, shareId: share.id },
+            }),
+        },
+      })
+    },
+  })
+
+  const { mutate: addToShareLink } = useMutation({
+    mutationFn: async ({ shareId, items }: { shareId: string; items: AssetInfo[] }) => {
+      const res = await client.api.teams[':teamId'].shares[':shareId'].assets.$post({
+        param: { teamId, shareId },
+        json: { assetIds: items.map((i) => i.id!) },
+      })
+      if (!res.ok) throw new Error('Failed to add assets')
+      return { shareId }
+    },
+    onSuccess: ({ shareId }) => {
+      toast.success('Added to share link', {
+        action: {
+          label: 'View',
+          onClick: () =>
+            navigate({
+              to: '/projects/$projectId/shares/$shareId',
+              params: { projectId, shareId },
+            }),
+        },
+      })
+    },
+  })
+
+  const handleCreateShareLink = (items: AssetInfo[]) => {
+    createShareLink(items)
+  }
+
+  const handleAddToShareLink = (shareId: string, items: AssetInfo[]) => {
+    addToShareLink({ shareId, items })
+  }
 
   const {
     editingItemId,
@@ -178,6 +266,8 @@ export function FileBrowser({
   const [filesExpanded, setFilesExpanded] = React.useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const folderInputRef = useRef<HTMLInputElement>(null)
+  const newVersionInputRef = useRef<HTMLInputElement>(null)
+  const [targetVersionFileId, setTargetVersionFileId] = useState<string | null>(null)
   const fileContextMenu = useRef(false)
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -411,7 +501,7 @@ export function FileBrowser({
   }
 
   const processAndUploadFiles = useCallback(
-    (files: FileList | File[]) => {
+    (files: FileList | File[], overrideParentId?: string) => {
       if (!files || files.length === 0) return
 
       const fileWithIds: FileWithId[] = []
@@ -459,7 +549,7 @@ export function FileBrowser({
       createUploadTaskMutation({
         param: { teamId: teamId },
         json: {
-          parentId: assetId,
+          parentId: overrideParentId || assetId,
           files: root,
         },
       })
@@ -469,6 +559,20 @@ export function FileBrowser({
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     processAndUploadFiles(event.target.files!)
+  }
+
+  const handleNewVersionClick = (item: AssetInfo) => {
+    setTargetVersionFileId(item.id!)
+    newVersionInputRef.current?.click()
+  }
+
+  const handleNewVersionFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && targetVersionFileId) {
+      processAndUploadFiles(event.target.files, targetVersionFileId)
+      setTargetVersionFileId(null)
+      // Reset input
+      event.target.value = ''
+    }
   }
 
   const handlePaste = useCallback(
@@ -667,8 +771,12 @@ export function FileBrowser({
           onNewFolder={handleNewFolder}
           onUploadFile={handleUploadFilesClick}
           onUploadFolder={handleUploadFolderClick}
+          onNewVersion={handleNewVersionClick}
           onRestore={handleRestore}
           isRecentlyDeleted={isRecentlyDeleted}
+          shareLinks={shareLinksData?.data ?? []}
+          onCreateShareLink={handleCreateShareLink}
+          onAddToShareLink={handleAddToShareLink}
         />
       </ContextMenu>
     )
@@ -691,6 +799,12 @@ export function FileBrowser({
         webkitdirectory="true"
         style={{ display: 'none' }}
         onChange={handleFileChange}
+      />
+      <input
+        type="file"
+        ref={newVersionInputRef}
+        style={{ display: 'none' }}
+        onChange={handleNewVersionFileChange}
       />
       {renderContent()}
 
