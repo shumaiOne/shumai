@@ -240,7 +240,7 @@ describe('UploadService', () => {
         sizeByte: 1000,
       },
     })
-    const fileV1 = await prisma.asset.create({
+    await prisma.asset.create({
       data: {
         name: 'v1.txt',
         type: AssetType.file,

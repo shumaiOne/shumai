@@ -143,7 +143,10 @@ export default function ShareManager({
     () => foldersData?.pages.flatMap((page) => page.data ?? []) ?? [],
     [foldersData],
   )
-  const files = useMemo(() => filesData?.pages.flatMap((page) => page.data ?? []) ?? [], [filesData])
+  const files = useMemo(
+    () => filesData?.pages.flatMap((page) => page.data ?? []) ?? [],
+    [filesData],
+  )
 
   useEffect(() => {
     if (shareLink) {
