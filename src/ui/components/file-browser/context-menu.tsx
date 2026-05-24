@@ -5,17 +5,6 @@ import {
   ContextMenuSeparator,
 } from '@/ui/components/ui/context-menu'
 import { Download, Edit, FolderPlus, Trash2, UploadCloud, History, FileText } from 'lucide-react'
-import { useState } from 'react'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '../ui/alert-dialog'
 
 interface FileBrowserContextMenuProps {
   item: AssetInfo | null
@@ -52,14 +41,11 @@ export function FileBrowserContextMenu({
   isShareView,
   onRemoveFromShare,
 }: FileBrowserContextMenuProps) {
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-
   const allItems = [...folders, ...files]
   const selectedItems = allItems.filter((i) => selectedIds.has(i.id!))
   const isItemSelected = item && selectedIds.has(item.id!)
   const itemsToModify = isItemSelected ? selectedItems : item ? [item] : []
   const itemsToDelete = itemsToModify
-  const deleteCount = itemsToDelete.length
   const itemsToRestore = itemsToModify
 
   const handleRename = () => {
@@ -69,7 +55,7 @@ export function FileBrowserContextMenu({
   }
 
   const handleDelete = () => {
-    setIsDeleteDialogOpen(true)
+    onDelete(itemsToDelete)
   }
 
   const handleDownload = () => {
@@ -194,28 +180,6 @@ export function FileBrowserContextMenu({
   return (
     <>
       {contextMenuContent}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              You are about to delete {deleteCount} item(s). Deleted items can be recovered for 30
-              days before being permanently deleted.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                onDelete(itemsToDelete)
-                setIsDeleteDialogOpen(false)
-              }}
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   )
 }
