@@ -15,6 +15,7 @@ import {
 } from '@tanstack/react-router'
 import { HomeIcon } from 'lucide-react'
 import { useEffect } from 'react'
+import { TopNav } from '@/ui/components/top-nav'
 
 function RootComponent() {
   const user = useAuthStore((state) => state.user)
@@ -47,7 +48,7 @@ function RootComponent() {
   }, [teamId, projectId, setTeamId, ensureTeamIdForProject])
 
   return (
-    <>
+    <div className="flex h-screen w-full bg-background overflow-hidden">
       <Toaster />
       <DualSidebar>
         <DualSidebarItem
@@ -77,10 +78,13 @@ function RootComponent() {
           <UploadTasks />
         </DualSidebarItem>
       </DualSidebar>
-      <main className="md:pl-16">
-        <Outlet />
-      </main>
-    </>
+      <div className="flex flex-col flex-1 md:pl-16 overflow-hidden relative">
+        <TopNav />
+        <main className="flex-1 overflow-y-auto overflow-x-hidden relative flex flex-col">
+          <Outlet />
+        </main>
+      </div>
+    </div>
   )
 }
 

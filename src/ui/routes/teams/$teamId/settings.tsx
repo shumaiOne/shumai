@@ -1,17 +1,16 @@
+import { ImageTranscodeStrategy, VideoTranscodeStrategy } from '@/dtos/team'
 import { client } from '@/ui/api/client'
-import { VideoTranscodeStrategy, ImageTranscodeStrategy } from '@/dtos/team'
+import { AgentsSettings } from '@/ui/components/settings/AgentsSettings'
+import { ProvidersSettings } from '@/ui/components/settings/ProvidersSettings'
+import { SandboxSettings } from '@/ui/components/settings/SandboxSettings'
+import { SkillsConfigCard } from '@/ui/components/settings/SkillsConfigCard'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card'
 import { Switch } from '@/ui/components/ui/switch'
-import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
-import { Loader2, User, Film, Cpu, Puzzle } from 'lucide-react'
 import { cn } from '@/ui/lib/utils'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { createFileRoute } from '@tanstack/react-router'
+import { Bot, Cpu, Film, Loader2, Puzzle, Shield, User } from 'lucide-react'
 import { useState } from 'react'
-import { ProvidersSettings } from '@/ui/components/settings/ProvidersSettings'
-import { SkillsConfigCard } from '@/ui/components/settings/SkillsConfigCard'
-import { AgentsSettings } from '@/ui/components/settings/AgentsSettings'
-import { SandboxSettings } from '@/ui/components/settings/SandboxSettings'
-import { Bot, Shield } from 'lucide-react'
 
 type SettingsTab = 'general' | 'transcode' | 'skills' | 'providers' | 'agents' | 'sandbox'
 
@@ -105,10 +104,10 @@ function TeamSettingsPage() {
     (settings as any)?.transcode?.imageStrategy || ImageTranscodeStrategy.single
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans selection:bg-blue-100 dark:selection:bg-blue-900 transition-colors duration-300">
-      <div className="flex flex-col md:flex-row min-h-screen">
+    <div className="h-full bg-slate-50 dark:bg-slate-950 font-sans selection:bg-blue-100 dark:selection:bg-blue-900 transition-colors duration-300">
+      <div className="flex flex-col md:flex-row h-full">
         {/* Sidebar */}
-        <aside className="w-full md:w-72 bg-white dark:bg-slate-900 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 flex-shrink-0 z-10 md:fixed md:inset-y-0 md:left-16 overflow-y-auto transition-colors duration-300">
+        <div className="w-full h-full md:w-72 bg-white dark:bg-slate-900 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 z-10 md:left-16 overflow-y-auto transition-colors duration-300">
           <nav className="p-4 space-y-1 mt-4">
             <div className="mb-2 px-4 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
               Settings
@@ -214,10 +213,10 @@ function TeamSettingsPage() {
               )}
             </button>
           </nav>
-        </aside>
+        </div>
 
         {/* Main Content Area */}
-        <main className="flex-1 bg-slate-50/50 dark:bg-slate-950 md:ml-72 h-screen flex flex-col transition-colors duration-300 overflow-hidden">
+        <main className="flex-1 bg-slate-50/50 dark:bg-slate-950 h-full flex flex-col transition-colors duration-300 overflow-y-hidden">
           <div className="flex-1 flex flex-col max-w-4xl w-full mx-auto p-6 md:p-10 overflow-hidden">
             <div className="flex-none flex items-center justify-between mb-6">
               <div>

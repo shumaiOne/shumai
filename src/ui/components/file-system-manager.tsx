@@ -9,10 +9,10 @@ import { useFieldStore } from '@/ui/stores/fields'
 import { useMemberStore } from '@/ui/stores/members'
 import { useUiStore } from '@/ui/stores/ui'
 import { useUserMetadataStore } from '@/ui/stores/user-metadata'
+import { useTopNavStore } from '@/ui/stores/top-nav'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { BreadcrumbNav } from './breadcrumb-nav'
 import { FileBrowser } from './file-browser/file-browser'
 import { FileViewerRightSidebar } from './file-viewer-right-sidebar'
 import { FolderTree } from './folder-tree'
@@ -106,13 +106,9 @@ export default function FileSystemManager({
     fileListRightSidebarCollapsed: isRightSidebarCollapsed,
     setFileListRightSidebarCollapsed: setIsRightSidebarCollapsed,
     viewModes,
-    setViewMode,
   } = useUiStore()
 
   const displayStyle = viewModes[projectId] ?? 'card'
-  const setDisplayStyle = (style: 'card' | 'list') => {
-    setViewMode(projectId, style)
-  }
 
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -128,6 +124,40 @@ export default function FileSystemManager({
           return (await res.json()) as unknown as AssetInfo
         },
       })
+
+  const { setProjectState, clearProjectState } = useTopNavStore()
+
+  useEffect(() => {
+    setProjectState({
+      teamId,
+      projectId,
+      projectName,
+      ancestorFolders: folderInfo?.ancestorFolders ?? [],
+      currentAsset: isRecentlyDeleted
+        ? { name: 'Recently Deleted', type: 'folder' }
+        : { name: folderInfo?.name, type: 'folder' },
+      isRootFolder: !isRecentlyDeleted && assetId === rootFolderId,
+      onFolderClick: (id: string) => {
+        navigate({
+          to: '/projects/$projectId/folders/$folderId',
+          params: { projectId, folderId: id },
+        })
+      },
+    })
+
+    return () => clearProjectState()
+  }, [
+    teamId,
+    projectId,
+    projectName,
+    folderInfo,
+    isRecentlyDeleted,
+    assetId,
+    rootFolderId,
+    setProjectState,
+    clearProjectState,
+    navigate,
+  ])
 
   const {
     data: foldersData,
@@ -358,26 +388,7 @@ export default function FileSystemManager({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex h-screen flex-col bg-background">
-        <BreadcrumbNav
-          teamId={teamId}
-          projectId={projectId}
-          projectName={projectName}
-          ancestorFolders={folderInfo?.ancestorFolders ?? []}
-          currentAsset={
-            isRecentlyDeleted
-              ? { name: 'Recently Deleted', type: 'folder' }
-              : { name: folderInfo?.name, type: 'folder' }
-          }
-          isRootFolder={assetId === rootFolderId}
-          displayStyle={displayStyle}
-          onDisplayStyleChange={setDisplayStyle}
-          isLeftSidebarCollapsed={isLeftSidebarCollapsed}
-          onLeftSidebarToggle={() => setIsLeftSidebarCollapsed(!isLeftSidebarCollapsed)}
-          isRightSidebarCollapsed={isRightSidebarCollapsed}
-          onRightSidebarToggle={() => setIsRightSidebarCollapsed(!isRightSidebarCollapsed)}
-        />
-
+      <div className="flex flex-1 flex-col bg-background">
         <div ref={containerRef} className="flex flex-1 overflow-hidden relative">
           {!isLeftSidebarCollapsed && (
             <div
