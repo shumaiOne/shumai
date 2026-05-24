@@ -533,7 +533,7 @@ export function FileBrowser({
 
   const renderContent = () => {
     return (
-      <ContextMenu>
+      <ContextMenu modal={false}>
         <ContextMenuTrigger asChild disabled={isShareView || isPublic}>
           <div
             ref={scrollContainerRef}
