@@ -6,6 +6,7 @@ import {
   AttachmentInfo,
   ChildPreview,
   CommentInfo,
+  CopyAssetsRequest,
   CreateAssetRequest,
   CreateCommentRequest,
   FieldValueInfo,
@@ -21,6 +22,8 @@ import { Asset, AssetType, Prisma } from '@/generated/prisma/client.ts'
 import { PaginatedData, paginateQuery, PaginationParams } from '@/services/pagination'
 import { s3Service } from '@/services/s3/s3'
 import { generateKeyBetween } from 'jittered-fractional-indexing'
+import * as path from 'path'
+import { ulid } from 'ulid'
 
 type AssetWithIncludes = Prisma.AssetGetPayload<{
   include: {
@@ -264,6 +267,206 @@ export class AssetService {
         await this.dissolveStackIfEmpty(tx, oldParent)
       }
     })
+  }
+
+  async copyAssets(req: CopyAssetsRequest): Promise<void> {
+    await this.prismaClient.$transaction(async (tx) => {
+      const newParent = await tx.asset.findUnique({
+        where: { id: req.newParentId },
+        include: { project: { include: { team: true } } },
+      })
+      if (!newParent) throw new Error('New parent not found')
+      if (!newParent.project) throw new Error('New parent folder is not associated with a project')
+
+      const assetsToCopy = await tx.asset.findMany({
+        where: { id: { in: req.assetIds } },
+        include: { project: { include: { team: true } } },
+      })
+
+      if (assetsToCopy.length !== req.assetIds.length) {
+        throw new Error('Not all assets to be copied were found')
+      }
+
+      for (const a of assetsToCopy) {
+        if (!a.project || !a.project.team) {
+          throw new Error(`Asset ${a.id} is not associated with a team`)
+        }
+        if (!newParent.project.team) {
+          throw new Error('New parent folder is not associated with a team')
+        }
+        if (a.project.team.id !== newParent.project.team.id) {
+          throw new Error(`Cannot copy asset ${a.id} to a different team`)
+        }
+      }
+
+      const firstFile = await tx.asset.findFirst({
+        where: { parentId: newParent.id },
+        orderBy: { sortIndex: 'asc' },
+      })
+      let firstSortIndex = firstFile?.sortIndex || null
+
+      let totalSize = 0
+      for (let i = req.assetIds.length - 1; i >= 0; i--) {
+        const assetId = req.assetIds[i]
+        const asset = assetsToCopy.find((a) => a.id === assetId)!
+        const newSortIndex = generateSortIndex(firstSortIndex)
+        const copiedAsset = await this.copyAssetRecursive(
+          tx,
+          asset,
+          newParent.id,
+          newParent.projectId!,
+          newSortIndex,
+          req.creatorId,
+          req.withComments,
+        )
+        totalSize += copiedAsset.sizeByte
+        firstSortIndex = newSortIndex
+      }
+
+      await tx.asset.update({
+        where: { id: newParent.id },
+        data: {
+          fileCount: { increment: assetsToCopy.length },
+        },
+      })
+      await this.updateAncestorsSize(tx, newParent.id, totalSize)
+    })
+  }
+
+  private async copyAssetRecursive(
+    tx: Prisma.TransactionClient,
+    asset: Asset,
+    newParentId: string | null,
+    projectId: string | null,
+    sortIndex: string | null,
+    creatorId?: string,
+    withComments: boolean = false,
+  ): Promise<Asset> {
+    let newKey = asset.key
+    if (asset.type === AssetType.file && asset.key) {
+      // Duplicate S3 object
+      const bucket = process.env.S3_BUCKET || 'shumai'
+      const ext = path.extname(asset.key)
+      newKey = ulid() + ext
+      await s3Service.copyObject(bucket, asset.key, bucket, newKey)
+    }
+
+    const newAsset = await tx.asset.create({
+      data: {
+        name: asset.name,
+        nameNgram: asset.nameNgram,
+        key: newKey,
+        type: asset.type,
+        mediaType: asset.mediaType,
+        fileCount: asset.fileCount,
+        sizeByte: asset.sizeByte,
+        status: asset.status,
+        transcodeTaskId: asset.transcodeTaskId,
+        media: (asset.media as any) || undefined,
+        isDeleted: asset.isDeleted,
+        deletedAt: asset.deletedAt,
+        sortIndex: sortIndex,
+        parentId: newParentId,
+        projectId: projectId,
+        creatorId: creatorId || asset.creatorId,
+        taskId: asset.taskId,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        targetId: asset.targetId as any,
+      },
+    })
+
+    if (withComments) {
+      await this.copyComments(tx, asset.id, newAsset.id, creatorId)
+    }
+
+    if (asset.type === AssetType.folder) {
+      const children = await tx.asset.findMany({
+        where: { parentId: asset.id },
+        orderBy: { sortIndex: 'asc' },
+      })
+      for (const child of children) {
+        await this.copyAssetRecursive(
+          tx,
+          child,
+          newAsset.id,
+          projectId,
+          child.sortIndex,
+          creatorId,
+          withComments,
+        )
+      }
+    }
+
+    return newAsset
+  }
+
+  private async copyComments(
+    tx: Prisma.TransactionClient,
+    oldAssetId: string,
+    newAssetId: string,
+    creatorId?: string,
+  ) {
+    const comments = await tx.assetComment.findMany({
+      where: { assetId: oldAssetId, replyToId: null },
+      include: {
+        attachments: { include: { asset: true } },
+        replies: {
+          include: {
+            attachments: { include: { asset: true } },
+          },
+        },
+      },
+    })
+
+    for (const comment of comments) {
+      await this.copyCommentRecursive(tx, comment, newAssetId, null, creatorId)
+    }
+  }
+
+  private async copyCommentRecursive(
+    tx: Prisma.TransactionClient,
+    comment: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+    newAssetId: string,
+    newReplyToId: string | null,
+    creatorId?: string,
+  ) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, createdAt, updatedAt, assetId, replyToId, attachments, replies, ...data } = comment
+    const newComment = await tx.assetComment.create({
+      data: {
+        ...data,
+        assetId: newAssetId,
+        replyToId: newReplyToId,
+        creatorId: creatorId || comment.creatorId,
+      },
+    })
+
+    if (attachments) {
+      for (const attachment of attachments) {
+        // Deep copy attachment asset
+        const copiedAttachmentAsset = await this.copyAssetRecursive(
+          tx,
+          attachment.asset,
+          null, // attachment usually has no parent
+          attachment.asset.projectId,
+          attachment.asset.sortIndex,
+          creatorId,
+          false,
+        )
+        await tx.assetCommentAttachment.create({
+          data: {
+            commentId: newComment.id,
+            assetId: copiedAttachmentAsset.id,
+          },
+        })
+      }
+    }
+
+    if (replies) {
+      for (const reply of replies) {
+        await this.copyCommentRecursive(tx, reply, newAssetId, newComment.id, creatorId)
+      }
+    }
   }
 
   private async reparentFileToFile(

@@ -1,5 +1,6 @@
 import { ObjectInfo } from '@/dtos/s3'
 import {
+  CopyObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
@@ -49,6 +50,12 @@ export interface S3Service {
     contentType?: string,
   ): Promise<void>
   getObject(bucket: string, key: string): Promise<S3Object>
+  copyObject(
+    sourceBucket: string,
+    sourceKey: string,
+    destBucket: string,
+    destKey: string,
+  ): Promise<void>
   downloadToFile(bucket: string, key: string, filePath: string): Promise<void>
   deleteObject(bucket: string, key: string): Promise<number>
   deletePrefix(bucket: string, prefix: string): Promise<number>
@@ -129,6 +136,21 @@ export class S3StorageService implements S3Service {
       buffer: Buffer.from(byteArray),
       contentType: response.ContentType || 'application/octet-stream',
     }
+  }
+
+  async copyObject(
+    sourceBucket: string,
+    sourceKey: string,
+    destBucket: string,
+    destKey: string,
+  ): Promise<void> {
+    const command = new CopyObjectCommand({
+      Bucket: destBucket,
+      Key: destKey,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      CopySource: `${sourceBucket}/${sourceKey}`,
+    })
+    await this.client.send(command)
   }
 
   async downloadToFile(bucket: string, key: string, filePath: string): Promise<void> {
@@ -329,6 +351,21 @@ export class LocalStorageService implements S3Service {
       }
       throw e
     }
+  }
+
+  async copyObject(
+    sourceBucket: string,
+    sourceKey: string,
+    destBucket: string,
+    destKey: string,
+  ): Promise<void> {
+    const srcPath = this.getFilePath(sourceBucket, sourceKey)
+    const destPath = this.getFilePath(destBucket, destKey)
+    const dir = path.dirname(destPath)
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true })
+    }
+    await fs.promises.copyFile(srcPath, destPath)
   }
 
   async downloadToFile(bucket: string, key: string, filePath: string): Promise<void> {

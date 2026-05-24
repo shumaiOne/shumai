@@ -11,6 +11,7 @@ vi.mock('@/services/s3/s3', () => ({
     putObject: vi.fn().mockResolvedValue(undefined),
     deleteObject: vi.fn().mockResolvedValue(1),
     deletePrefix: vi.fn().mockResolvedValue(1),
+    copyObject: vi.fn().mockResolvedValue(undefined),
   },
 }))
 
@@ -353,6 +354,98 @@ describe('AssetService', () => {
       fileCount: 1,
       size: 100,
     })
+  })
+
+  it('handles copying assets recursively', async () => {
+    const { user, assets } = await setupBasicAssets()
+
+    await assetService.copyAssets({
+      assetIds: [assets.folderA.id],
+      newParentId: assets.root3.id,
+      creatorId: user.id,
+      withComments: false,
+    })
+
+    // Verify root3 now has 1 more folder
+    await verifyAsset(assets.root3.id, {
+      type: AssetType.folder,
+      fileCount: 1,
+      size: 300,
+    })
+
+    // Verify children of folderA were copied
+    const copiedFolders = await prisma.asset.findMany({
+      where: { parentId: assets.root3.id, name: 'folderA' },
+    })
+    expect(copiedFolders.length).toBe(1)
+    const newFolderA = copiedFolders[0]
+
+    const children = await prisma.asset.findMany({
+      where: { parentId: newFolderA.id },
+    })
+    expect(children.length).toBe(2)
+    expect(children.map((c) => c.name)).toContain('fileA1')
+    expect(children.map((c) => c.name)).toContain('fileA2')
+  })
+
+  it('handles copying assets with comments and attachments', async () => {
+    const { user, assets, project } = await setupBasicAssets()
+
+    // Create a comment with attachment on fileA1
+    const attachmentAsset = await prisma.asset.create({
+      data: {
+        name: 'attach.png',
+        type: AssetType.attachment,
+        projectId: project.id,
+        creatorId: user.id,
+        status: 'uploaded',
+        sizeByte: 50,
+      },
+    })
+
+    const comment = await prisma.assetComment.create({
+      data: {
+        assetId: assets.fileA1.id,
+        creatorId: user.id,
+        message: 'Original Comment',
+      },
+    })
+
+    await prisma.assetCommentAttachment.create({
+      data: {
+        commentId: comment.id,
+        assetId: attachmentAsset.id,
+      },
+    })
+
+    await assetService.copyAssets({
+      assetIds: [assets.fileA1.id],
+      newParentId: assets.root3.id,
+      creatorId: user.id,
+      withComments: true,
+    })
+
+    // Find the copied file
+    const copiedFiles = await prisma.asset.findMany({
+      where: { parentId: assets.root3.id, name: 'fileA1' },
+    })
+    expect(copiedFiles.length).toBe(1)
+    const newFileA1 = copiedFiles[0]
+
+    // Verify comments were copied
+    const newComments = await prisma.assetComment.findMany({
+      where: { assetId: newFileA1.id },
+      include: { attachments: { include: { asset: true } } },
+    })
+    expect(newComments.length).toBe(1)
+    expect(newComments[0].message).toBe('Original Comment')
+    expect(newComments[0].attachments.length).toBe(1)
+
+    // Verify attachment asset was deep copied
+    const newAttachmentAsset = newComments[0].attachments[0].asset
+    expect(newAttachmentAsset.id).not.toBe(attachmentAsset.id)
+    expect(newAttachmentAsset.name).toBe('attach.png')
+    expect(newAttachmentAsset.type).toBe(AssetType.attachment)
   })
 
   it('handles reparenting - Version Stack: move into stack', async () => {

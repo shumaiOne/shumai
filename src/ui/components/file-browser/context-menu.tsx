@@ -19,6 +19,8 @@ import {
   FileText,
   Link,
   Plus,
+  ArrowRight,
+  Copy,
 } from 'lucide-react'
 
 interface FileBrowserContextMenuProps {
@@ -32,6 +34,8 @@ interface FileBrowserContextMenuProps {
   onUploadFile: () => void
   onUploadFolder: () => void
   onNewVersion: (item: AssetInfo) => void
+  onMoveTo: (items: AssetInfo[]) => void
+  onCopyTo: (items: AssetInfo[]) => void
   folders: AssetInfo[]
   files: AssetInfo[]
   isRecentlyDeleted?: boolean
@@ -54,6 +58,8 @@ export function FileBrowserContextMenu({
   onUploadFile,
   onUploadFolder,
   onNewVersion,
+  onMoveTo,
+  onCopyTo,
   folders,
   files,
   isRecentlyDeleted,
@@ -161,6 +167,14 @@ export function FileBrowserContextMenu({
           <Download className="mr-2 h-4 w-4" />
           <span>Download</span>
         </ContextMenuItem>
+        <ContextMenuItem onSelect={() => onMoveTo(itemsToModify)}>
+          <ArrowRight className="mr-2 h-4 w-4" />
+          <span>Move to</span>
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={() => onCopyTo(itemsToModify)}>
+          <Copy className="mr-2 h-4 w-4" />
+          <span>Copy to</span>
+        </ContextMenuItem>
         <ContextMenuItem onSelect={handleDelete} className="text-destructive">
           <Trash2 className="mr-2 h-4 w-4" />
           <span>Delete</span>
@@ -210,6 +224,15 @@ export function FileBrowserContextMenu({
         <ContextMenuItem onSelect={handleDownload}>
           <Download className="mr-2 h-4 w-4" />
           <span>Download</span>
+        </ContextMenuItem>
+
+        <ContextMenuItem onSelect={() => onMoveTo(itemsToModify)}>
+          <ArrowRight className="mr-2 h-4 w-4" />
+          <span>Move to</span>
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={() => onCopyTo(itemsToModify)}>
+          <Copy className="mr-2 h-4 w-4" />
+          <span>Copy to</span>
         </ContextMenuItem>
 
         {(item.type === 'file' || item.type === 'version_stack') && (
