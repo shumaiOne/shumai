@@ -1,7 +1,7 @@
 import type { AncestorFolder, AssetInfo, AssetInfoPaginatedList } from '@/dtos/asset'
 import { client } from '@/ui/api/client'
 import { useMutation, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { FileBrowser } from './file-browser/file-browser'
 import { ShareSettingsSidebar } from './share-settings-sidebar'
 import { FolderTree } from './folder-tree'
@@ -61,7 +61,8 @@ export default function ShareManager({
     }
   }, [shareRootId, currentFolderId])
 
-  const { setProjectState, clearProjectState } = useTopNavStore()
+  const setProjectState = useTopNavStore((s) => s.setProjectState)
+  const clearProjectState = useTopNavStore((s) => s.clearProjectState)
 
   const handleBreadcrumbClick = (folderId: string) => {
     if (folderId === currentFolderId) return
@@ -136,8 +137,11 @@ export default function ShareManager({
     getNextPageParam: (lastPage) => lastPage.pageInfo?.cursor || undefined,
   })
 
-  const folders = foldersData?.pages.flatMap((page) => page.data ?? []) ?? []
-  const files = filesData?.pages.flatMap((page) => page.data ?? []) ?? []
+  const folders = useMemo(
+    () => foldersData?.pages.flatMap((page) => page.data ?? []) ?? [],
+    [foldersData],
+  )
+  const files = useMemo(() => filesData?.pages.flatMap((page) => page.data ?? []) ?? [], [filesData])
 
   useEffect(() => {
     if (shareLink) {
