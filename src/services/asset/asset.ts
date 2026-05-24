@@ -894,6 +894,11 @@ export class AssetService {
       })
 
       logger.info(
+        {
+          purgedCount: successfulIds.length,
+          physicalFilesDeleted,
+          physicalFoldersDeleted,
+        },
         `${successfulIds.length} assets purged, deleted ${physicalFilesDeleted} files in ${physicalFoldersDeleted} folders`,
       )
     }

@@ -308,3 +308,14 @@ We use a custom workflow engine that supports both **Local** (polling-based) and
 ## Radix UI / Shadcn UI Patterns
 
 - **Modal Overlays**: When triggering a dialog (e.g., `Dialog`, `AlertDialog`) from inside a `DropdownMenu`, you must set `modal={false}` on the `<DropdownMenu>` component. Failing to do so will cause the UI to freeze due to conflicting focus management between the two modal components.
+
+## Logging
+
+We use **pino** for logging. Always use **structured logging** to ensure logs are easily searchable and machine-readable.
+
+- **Import**: `import { logger } from '@/logger'`
+- **Usage**: Pass an object as the first argument containing the metadata, and a string as the second argument for the descriptive message.
+  ```typescript
+  logger.info({ userId: user.id, projectId }, 'Project deleted successfully')
+  ```
+- **Levels**: Use appropriate levels: `debug`, `info`, `warn`, `error`.
