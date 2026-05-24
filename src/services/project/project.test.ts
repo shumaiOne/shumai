@@ -9,6 +9,7 @@ vi.mock('@/services/s3/s3', () => ({
   s3Service: {
     presign: vi.fn(),
     deleteObject: vi.fn(),
+    deletePrefix: vi.fn(),
   },
 }))
 

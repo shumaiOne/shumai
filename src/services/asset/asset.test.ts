@@ -10,6 +10,7 @@ vi.mock('@/services/s3/s3', () => ({
     presign: vi.fn().mockResolvedValue('http://mock-s3-url'),
     putObject: vi.fn().mockResolvedValue(undefined),
     deleteObject: vi.fn().mockResolvedValue(undefined),
+    deletePrefix: vi.fn().mockResolvedValue(undefined),
   },
 }))
 
@@ -1227,6 +1228,40 @@ describe('AssetService', () => {
       expect(await prisma.asset.findUnique({ where: { id: folderA.id } })).toBeNull()
       const remainingChildren = await prisma.asset.count({ where: { parentId: folderA.id } })
       expect(remainingChildren).toBe(0)
+    })
+
+    it('should delete the entire directory prefix for assets with complex keys (e.g., file/ULID/raw)', async () => {
+      const { project } = await setupBasicAssets()
+      const { s3Service } = await import('@/services/s3/s3')
+
+      // Create an asset with a complex key
+      const complexFile = await prisma.asset.create({
+        data: {
+          name: 'Complex File',
+          type: AssetType.file,
+          status: AssetStatus.pending_purge,
+          isDeleted: true,
+          projectId: project.id,
+          key: 'file/01KSBRJVY3DPK111S2MECFKDQ4/raw',
+        },
+      })
+
+      // Trigger the purge job
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (assetService as any).purgePendingAssets()
+
+      // Verify deletePrefix was called with the correct prefix instead of just deleteObject
+      expect(s3Service.deletePrefix).toHaveBeenCalledWith(
+        expect.any(String),
+        'file/01KSBRJVY3DPK111S2MECFKDQ4/',
+      )
+      expect(s3Service.deleteObject).not.toHaveBeenCalledWith(
+        expect.any(String),
+        'file/01KSBRJVY3DPK111S2MECFKDQ4/raw',
+      )
+
+      // Verify record is gone
+      expect(await prisma.asset.findUnique({ where: { id: complexFile.id } })).toBeNull()
     })
   })
 })

@@ -858,10 +858,19 @@ export class AssetService {
       lockedAssets.map(async (a) => {
         if (a.key) {
           try {
-            await s3Service.deleteObject(bucket, a.key)
+            // Check if this asset has a dedicated directory (e.g., file/ULID/raw)
+            // If it has more than one slash, we delete the entire containing directory
+            // to ensure transcodes/thumbnails are also removed.
+            const parts = a.key.split('/')
+            if (parts.length > 2) {
+              const prefix = parts.slice(0, parts.length - 1).join('/') + '/'
+              await s3Service.deletePrefix(bucket, prefix)
+            } else {
+              await s3Service.deleteObject(bucket, a.key)
+            }
             return a.id
           } catch (e: unknown) {
-            console.error(`Failed to delete storage object ${a.key}:`, e)
+            console.error(`Failed to delete storage object(s) for ${a.key}:`, e)
             return null
           }
         }

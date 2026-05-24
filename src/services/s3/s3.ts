@@ -51,6 +51,7 @@ export interface S3Service {
   getObject(bucket: string, key: string): Promise<S3Object>
   downloadToFile(bucket: string, key: string, filePath: string): Promise<void>
   deleteObject(bucket: string, key: string): Promise<void>
+  deletePrefix(bucket: string, prefix: string): Promise<void>
   headObject(bucket: string, key: string): Promise<ObjectInfo>
   listObjects(bucket: string, prefix: string): Promise<string[]>
   uploadFile(filePath: string, contentType: string): Promise<string>
@@ -165,6 +166,13 @@ export class S3StorageService implements S3Service {
       Key: key,
     })
     await this.client.send(command)
+  }
+
+  async deletePrefix(bucket: string, prefix: string): Promise<void> {
+    const keys = await this.listObjects(bucket, prefix)
+    if (keys.length > 0) {
+      await Promise.all(keys.map((key) => this.deleteObject(bucket, key)))
+    }
   }
 
   async headObject(bucket: string, key: string): Promise<ObjectInfo> {
@@ -328,6 +336,18 @@ export class LocalStorageService implements S3Service {
     } catch (e: unknown) {
       if (e instanceof Error && (e as NodeJS.ErrnoException).code === 'ENOENT') {
         // Ignore if file doesn't exist
+        return
+      }
+      throw e
+    }
+  }
+
+  async deletePrefix(bucket: string, prefix: string): Promise<void> {
+    const dirPath = this.getFilePath(bucket, prefix)
+    try {
+      await fs.promises.rm(dirPath, { recursive: true, force: true })
+    } catch (e: unknown) {
+      if (e instanceof Error && (e as NodeJS.ErrnoException).code === 'ENOENT') {
         return
       }
       throw e
