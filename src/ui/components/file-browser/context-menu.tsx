@@ -7,6 +7,7 @@ import {
   ContextMenuSub,
   ContextMenuSubContent,
   ContextMenuSubTrigger,
+  ContextMenuPortal,
 } from '@/ui/components/ui/context-menu'
 import {
   Download,
@@ -177,16 +178,18 @@ export function FileBrowserContextMenu({
               <Link className="mr-2 h-4 w-4" />
               <span>Add to Share Links</span>
             </ContextMenuSubTrigger>
-            <ContextMenuSubContent className="w-48">
-              {shareLinks.map((share) => (
-                <ContextMenuItem
-                  key={share.id}
-                  onSelect={() => onAddToShareLink?.(share.id, itemsToModify)}
-                >
-                  <span className="truncate">{share.name}</span>
-                </ContextMenuItem>
-              ))}
-            </ContextMenuSubContent>
+            <ContextMenuPortal>
+              <ContextMenuSubContent className="w-48">
+                {shareLinks.map((share) => (
+                  <ContextMenuItem
+                    key={share.id}
+                    onSelect={() => onAddToShareLink?.(share.id, itemsToModify)}
+                  >
+                    <span className="truncate">{share.name}</span>
+                  </ContextMenuItem>
+                ))}
+              </ContextMenuSubContent>
+            </ContextMenuPortal>
           </ContextMenuSub>
         )}
       </ContextMenuContent>
@@ -241,16 +244,18 @@ export function FileBrowserContextMenu({
               <Link className="mr-2 h-4 w-4" />
               <span>Add to Share Links</span>
             </ContextMenuSubTrigger>
-            <ContextMenuSubContent className="w-48">
-              {shareLinks.map((share) => (
-                <ContextMenuItem
-                  key={share.id}
-                  onSelect={() => onAddToShareLink?.(share.id, itemsToModify)}
-                >
-                  <span className="truncate">{share.name}</span>
-                </ContextMenuItem>
-              ))}
-            </ContextMenuSubContent>
+            <ContextMenuPortal>
+              <ContextMenuSubContent className="w-48">
+                {shareLinks.map((share) => (
+                  <ContextMenuItem
+                    key={share.id}
+                    onSelect={() => onAddToShareLink?.(share.id, itemsToModify)}
+                  >
+                    <span className="truncate">{share.name}</span>
+                  </ContextMenuItem>
+                ))}
+              </ContextMenuSubContent>
+            </ContextMenuPortal>
           </ContextMenuSub>
         )}
       </ContextMenuContent>

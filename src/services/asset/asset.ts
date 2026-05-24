@@ -318,12 +318,16 @@ export class AssetService {
       },
     })
 
-    await tx.asset.update({
-      where: { id: oldParentId },
-      data: { fileCount: { decrement: 1 } },
-    })
-    await this.updateAncestorsSize(tx, oldParentId, -sourceAsset.sizeByte)
-    await this.updateAncestorsSize(tx, stackParentId, sourceAsset.sizeByte)
+    const isUploading = sourceAsset.status === 'uploading'
+
+    if (!isUploading) {
+      await tx.asset.update({
+        where: { id: oldParentId },
+        data: { fileCount: { decrement: 1 } },
+      })
+      await this.updateAncestorsSize(tx, oldParentId, -sourceAsset.sizeByte)
+      await this.updateAncestorsSize(tx, stackParentId, sourceAsset.sizeByte)
+    }
 
     const firstIndex = generateKeyBetween(null, null)
     const secondIndex = generateKeyBetween(firstIndex, null)
@@ -341,8 +345,8 @@ export class AssetService {
     await tx.asset.update({
       where: { id: stack.id },
       data: {
-        fileCount: 2,
-        sizeByte: destFile.sizeByte + sourceAsset.sizeByte,
+        fileCount: isUploading ? 1 : 2,
+        sizeByte: isUploading ? destFile.sizeByte : destFile.sizeByte + sourceAsset.sizeByte,
       },
     })
 

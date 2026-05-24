@@ -56,10 +56,12 @@ export default function ShareManager({
   const [ancestorFolders, setAncestorFolders] = useState<AncestorFolder[]>([])
 
   useEffect(() => {
-    if (shareRootId && !currentFolderId) {
+    if (shareRootId) {
       setCurrentFolderId(shareRootId)
+      setAncestorFolders([])
+      setSelectedIds(new Set())
     }
-  }, [shareRootId, currentFolderId])
+  }, [shareRootId, shareId])
 
   const setProjectState = useTopNavStore((s) => s.setProjectState)
   const clearProjectState = useTopNavStore((s) => s.clearProjectState)
@@ -157,7 +159,7 @@ export default function ShareManager({
               : folders.find((f) => f.id === currentFolderId)?.name || shareLink.name,
           type: 'folder',
         },
-        isRootFolder: currentFolderId === shareRootId,
+        isRootFolder: false, // Ensure share link name or subfolder is always shown in TopNav
         shareId,
         onFolderClick: handleBreadcrumbClick,
       })
