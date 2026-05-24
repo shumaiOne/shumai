@@ -207,174 +207,170 @@ function TeamPage() {
   return (
     <div className="p-4">
       <div className="flex flex-wrap items-center justify-between mb-4 gap-4">
-          <h1 className="text-2xl font-bold">Projects</h1>
-          <div className="flex flex-wrap items-center gap-4">
-            <div
-              className="flex items-center -space-x-2 cursor-pointer hover:opacity-90"
-              onClick={() => setIsMembersDialogOpen(true)}
-            >
-              {safeMembers.slice(0, 3).map((member) => (
-                <Avatar key={member.id} className="border-2 border-background w-8 h-8">
-                  <AvatarFallback className="text-[10px]">
-                    {getInitials(member.name)}
-                  </AvatarFallback>
-                </Avatar>
-              ))}
-              {safeMembers.length > 3 && (
-                <div className="flex items-center justify-center w-8 h-8 rounded-full border-2 border-background bg-muted text-[10px] font-medium">
-                  +{safeMembers.length - 3}
-                </div>
-              )}
-            </div>
-            <SortDropdown
-              sortBy={sortBy}
-              sortDirection={sortDirection}
-              onSortChange={handleSortChange}
-            />
-            <Button
-              className="bg-orange-600 hover:bg-orange-700 text-white gap-2"
-              onClick={handleCreateProjectClick}
-            >
-              <PlusIcon className="w-4 h-4" />
-              Create Project
-            </Button>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-4">
-          {projects.data?.map((project: ProjectInfo) => (
-            <div
-              key={project.id}
-              className={cn(
-                'shadow-md relative border rounded-xl overflow-hidden cursor-pointer transition-transform duration-100 ease-in-out',
-                clickedProjectId === project.id ? 'scale-95' : 'scale-100',
-              )}
-              onClick={(e) => handleCardClick(project.id!, e)}
-            >
-              <div className="flex flex-col">
-                <div className="relative w-full h-full aspect-square flex items-center justify-center bg-zinc-400/20">
-                  {project.coverImage ? (
-                    <img
-                      src={project.coverImage}
-                      alt={project.name}
-                      className="w-full h-full object-cover rounded"
-                    />
-                  ) : (
-                    <div className="text-center text-muted-foreground font-bold tracking-wider z-10">
-                      <ShumaiLogo className="w-8 h-8 text-zinc-400" />
-                    </div>
-                  )}
-                  <div className="absolute bottom-0 left-0 w-full h-[65%] bg-linear-to-t from-black/35 to-black/0" />
-                  <p className="absolute left-1 bottom-2 text-white">{project.name}</p>
-                </div>
-                <div className="px-2 h-10 flex justify-between items-center">
-                  <p className="truncate pr-1 text-xs text-muted-foreground">
-                    Updated {formatDateAgo((project.updatedAt as string) ?? '')}
-                  </p>
-                  <div onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu modal={false}>
-                      <DropdownMenuTrigger asChild>
-                        <button className="hover:bg-muted outline-none flex px-1">
-                          <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleEditProjectClick(project)
-                          }}
-                        >
-                          Project Settings
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => handleDeleteProjectClick(project)}
-                        >
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
+        <h1 className="text-2xl font-bold">Projects</h1>
+        <div className="flex flex-wrap items-center gap-4">
           <div
-            className={cn(
-              'shadow-md relative border rounded-xl overflow-hidden cursor-pointer transition-transform duration-100 ease-in-out border-dashed hover:border-orange-600/50 group',
-              clickedProjectId === 'create' ? 'scale-95' : 'scale-100',
+            className="flex items-center -space-x-2 cursor-pointer hover:opacity-90"
+            onClick={() => setIsMembersDialogOpen(true)}
+          >
+            {safeMembers.slice(0, 3).map((member) => (
+              <Avatar key={member.id} className="border-2 border-background w-8 h-8">
+                <AvatarFallback className="text-[10px]">{getInitials(member.name)}</AvatarFallback>
+              </Avatar>
+            ))}
+            {safeMembers.length > 3 && (
+              <div className="flex items-center justify-center w-8 h-8 rounded-full border-2 border-background bg-muted text-[10px] font-medium">
+                +{safeMembers.length - 3}
+              </div>
             )}
-            onClick={handleCreateCardClick}
+          </div>
+          <SortDropdown
+            sortBy={sortBy}
+            sortDirection={sortDirection}
+            onSortChange={handleSortChange}
+          />
+          <Button
+            className="bg-orange-600 hover:bg-orange-700 text-white gap-2"
+            onClick={handleCreateProjectClick}
+          >
+            <PlusIcon className="w-4 h-4" />
+            Create Project
+          </Button>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-4">
+        {projects.data?.map((project: ProjectInfo) => (
+          <div
+            key={project.id}
+            className={cn(
+              'shadow-md relative border rounded-xl overflow-hidden cursor-pointer transition-transform duration-100 ease-in-out',
+              clickedProjectId === project.id ? 'scale-95' : 'scale-100',
+            )}
+            onClick={(e) => handleCardClick(project.id!, e)}
           >
             <div className="flex flex-col">
-              <div className="relative w-full aspect-square flex items-center justify-center bg-zinc-400/5 group-hover:bg-orange-600/5 transition-colors">
-                <PlusIcon className="w-8 h-8 text-zinc-400 group-hover:text-orange-600 transition-colors" />
+              <div className="relative w-full h-full aspect-square flex items-center justify-center bg-zinc-400/20">
+                {project.coverImage ? (
+                  <img
+                    src={project.coverImage}
+                    alt={project.name}
+                    className="w-full h-full object-cover rounded"
+                  />
+                ) : (
+                  <div className="text-center text-muted-foreground font-bold tracking-wider z-10">
+                    <ShumaiLogo className="w-8 h-8 text-zinc-400" />
+                  </div>
+                )}
+                <div className="absolute bottom-0 left-0 w-full h-[65%] bg-linear-to-t from-black/35 to-black/0" />
+                <p className="absolute left-1 bottom-2 text-white">{project.name}</p>
               </div>
-              <div className="px-2 h-10 flex items-center justify-center bg-zinc-400/10 border-t group-hover:bg-orange-600/10 transition-colors">
-                <p className="text-sm text-muted-foreground group-hover:text-orange-600 transition-colors">
-                  Create Project
+              <div className="px-2 h-10 flex justify-between items-center">
+                <p className="truncate pr-1 text-xs text-muted-foreground">
+                  Updated {formatDateAgo((project.updatedAt as string) ?? '')}
                 </p>
+                <div onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenu modal={false}>
+                    <DropdownMenuTrigger asChild>
+                      <button className="hover:bg-muted outline-none flex px-1">
+                        <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleEditProjectClick(project)
+                        }}
+                      >
+                        Project Settings
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => handleDeleteProjectClick(project)}
+                      >
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             </div>
           </div>
+        ))}
+        <div
+          className={cn(
+            'shadow-md relative border rounded-xl overflow-hidden cursor-pointer transition-transform duration-100 ease-in-out border-dashed hover:border-orange-600/50 group',
+            clickedProjectId === 'create' ? 'scale-95' : 'scale-100',
+          )}
+          onClick={handleCreateCardClick}
+        >
+          <div className="flex flex-col">
+            <div className="relative w-full aspect-square flex items-center justify-center bg-zinc-400/5 group-hover:bg-orange-600/5 transition-colors">
+              <PlusIcon className="w-8 h-8 text-zinc-400 group-hover:text-orange-600 transition-colors" />
+            </div>
+            <div className="px-2 h-10 flex items-center justify-center bg-zinc-400/10 border-t group-hover:bg-orange-600/10 transition-colors">
+              <p className="text-sm text-muted-foreground group-hover:text-orange-600 transition-colors">
+                Create Project
+              </p>
+            </div>
+          </div>
         </div>
-
-        <ProjectDialog
-          open={isProjectDialogOpen}
-          onOpenChange={setIsProjectDialogOpen}
-          mode={projectDialogMode}
-          teamId={teamId}
-          project={selectedProject}
-        />
-
-        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the project &quot;
-                {projectToDelete?.name}&quot; and all its assets.
-                <div className="mt-4 flex flex-col gap-2 text-foreground">
-                  <span className="text-sm font-medium">
-                    Type <strong>delete</strong> to confirm:
-                  </span>
-                  <Input
-                    value={deleteConfirmText}
-                    onChange={(e) => setDeleteConfirmText(e.target.value)}
-                    placeholder="delete"
-                    className="h-9"
-                    autoFocus
-                  />
-                </div>
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={deleteProjectMutation.isPending}>
-                Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={(e) => {
-                  e.preventDefault()
-                  handleConfirmDelete()
-                }}
-                disabled={deleteConfirmText !== 'delete' || deleteProjectMutation.isPending}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {deleteProjectMutation.isPending ? 'Deleting...' : 'Delete'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        <MembersDialog
-          open={isMembersDialogOpen}
-          onOpenChange={setIsMembersDialogOpen}
-          title="Team Members"
-          members={safeMembers}
-          isOwner={me?.role === 'owner'}
-          onInvite={handleInvite}
-        />
       </div>
+
+      <ProjectDialog
+        open={isProjectDialogOpen}
+        onOpenChange={setIsProjectDialogOpen}
+        mode={projectDialogMode}
+        teamId={teamId}
+        project={selectedProject}
+      />
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the project &quot;
+              {projectToDelete?.name}&quot; and all its assets.
+              <div className="mt-4 flex flex-col gap-2 text-foreground">
+                <span className="text-sm font-medium">
+                  Type <strong>delete</strong> to confirm:
+                </span>
+                <Input
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="delete"
+                  className="h-9"
+                  autoFocus
+                />
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteProjectMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                handleConfirmDelete()
+              }}
+              disabled={deleteConfirmText !== 'delete' || deleteProjectMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteProjectMutation.isPending ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <MembersDialog
+        open={isMembersDialogOpen}
+        onOpenChange={setIsMembersDialogOpen}
+        title="Team Members"
+        members={safeMembers}
+        isOwner={me?.role === 'owner'}
+        onInvite={handleInvite}
+      />
+    </div>
   )
 }
 
