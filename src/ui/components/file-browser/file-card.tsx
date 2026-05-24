@@ -80,7 +80,7 @@ export function FileCard({
   const inputRef = useRef<HTMLInputElement>(null)
 
   const shouldPoll =
-    item.type === 'file' &&
+    (item.type === 'file' || item.type === 'version_stack') &&
     !!teamId &&
     (item.status === 'uploading' || item.status === 'uploaded' || item.status === 'processing')
 
