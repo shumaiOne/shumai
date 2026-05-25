@@ -15,7 +15,6 @@ import { Avatar, AvatarFallback } from '../ui/avatar'
 import { Button } from '../ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { Separator } from '../ui/separator'
-import { Filter } from 'lucide-react'
 
 type FileBrowserToolbarProps = {
   teamId: string
@@ -164,7 +163,6 @@ export function FileBrowserToolbar({
                 size="sm"
                 className="inline-flex items-center gap-2 px-4 py-2 hover:bg-primary/10 font-semibold rounded-xl cursor-pointer h-8"
               >
-                <Filter className="h-4 w-4" />
                 <span>Filter</span>
                 {activeFiltersCount > 0 && (
                   <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/50 border border-primary-foreground/20">
@@ -173,22 +171,24 @@ export function FileBrowserToolbar({
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[400px] p-0" align="start">
-              <FilterPanel
-                fields={fields}
-                conditions={filterConditions}
-                onChange={(newConditions) => {
-                  onFilterChange(newConditions)
-                  onUpdateCollection?.({
-                    filter: {
-                      ...collection.filter,
-                      conditions: newConditions,
-                    },
-                  })
-                }}
-                excludeFields={[]}
-                hidePrefix
-              />
+            <PopoverContent className="w-[500px] p-0 overflow-hidden" align="start">
+              <div className="max-h-[80vh] overflow-y-auto">
+                <FilterPanel
+                  fields={fields}
+                  conditions={filterConditions}
+                  onChange={(newConditions) => {
+                    onFilterChange(newConditions)
+                    onUpdateCollection?.({
+                      filter: {
+                        ...collection.filter,
+                        conditions: newConditions,
+                      },
+                    })
+                  }}
+                  excludeFields={[]}
+                  hidePrefix
+                />
+              </div>
             </PopoverContent>
           </Popover>
         ) : (
