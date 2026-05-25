@@ -18,12 +18,10 @@ import {
   UpdateAssetOrderRequest,
   UserInfo,
 } from '@/dtos/asset'
-import { Asset, AssetStatus, AssetType, Prisma, StorageKey, StorageKeyStatus } from '@/generated/prisma/client.ts'
+import { Asset, AssetStatus, AssetType, Prisma, StorageKey } from '@/generated/prisma/client.ts'
 import { PaginatedData, paginateQuery, PaginationParams } from '@/services/pagination'
 import { s3Service } from '@/services/s3/s3'
 import { generateKeyBetween } from 'jittered-fractional-indexing'
-import * as path from 'path'
-import { ulid } from 'ulid'
 
 type AssetWithIncludes = Prisma.AssetGetPayload<{
   include: {
@@ -356,7 +354,7 @@ export class AssetService {
         sizeByte: asset.sizeByte,
         status: asset.status,
         transcodeTaskId: asset.transcodeTaskId,
-        media: (asset.media as any) || undefined,
+        media: (asset.media as unknown as PrismaJson.MediaInfo) || undefined,
         isDeleted: asset.isDeleted,
         deletedAt: asset.deletedAt,
         sortIndex: sortIndex,
@@ -697,7 +695,7 @@ export class AssetService {
     if (parent) data.parent = { connect: { id: parent.id } }
     if (sortIndex) data.sortIndex = sortIndex
     if (req.key) {
-      ;(data as any).storageKey = {
+      data.storageKey = {
         connectOrCreate: {
           where: { key: req.key },
           create: { key: req.key },
@@ -892,7 +890,7 @@ export class AssetService {
         storageKey: true,
       },
     })
-    const infos = await this.toAssetInfos([asset as any])
+    const infos = await this.toAssetInfos([asset as unknown as AssetWithIncludes])
     return infos[0]
   }
 

@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { prisma } from '@/db'
 import { setupTestDbHooks } from '@/db-test-hooks'
 
-import { AssetType, AssetStatus } from '@/generated/prisma/client.ts'
+import { AssetType, AssetStatus, Prisma } from '@/generated/prisma/client.ts'
 import { AssetService } from './asset'
 
 vi.mock('@/services/s3/s3', () => ({
@@ -1302,7 +1302,7 @@ describe('AssetService', () => {
 
       for (const data of childData) {
         const asset = await prisma.asset.create({
-          data: data as any,
+          data: data as unknown as Prisma.AssetCreateInput,
           include: { storageKey: true },
         })
         await prisma.storageKey.update({
