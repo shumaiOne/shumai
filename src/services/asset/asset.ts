@@ -1,21 +1,21 @@
 import { prisma } from '@/db'
 import {
-  AncestorFolder,
-  AssetInfo,
-  AttachmentInfo,
-  ChildPreview,
-  CommentInfo,
-  CopyAssetsRequest,
-  CreateAssetRequest,
-  CreateCommentRequest,
-  FieldValueInfo,
-  GetAssetRequest,
-  ListChildrenRequest,
-  PreviewInfo,
-  ReparentAssetsRequest,
-  UpdateAssetNameRequest,
-  UpdateAssetOrderRequest,
-  UserInfo,
+    AncestorFolder,
+    AssetInfo,
+    AttachmentInfo,
+    ChildPreview,
+    CommentInfo,
+    CopyAssetsRequest,
+    CreateAssetRequest,
+    CreateCommentRequest,
+    FieldValueInfo,
+    GetAssetRequest,
+    ListChildrenRequest,
+    PreviewInfo,
+    ReparentAssetsRequest,
+    UpdateAssetNameRequest,
+    UpdateAssetOrderRequest,
+    UserInfo,
 } from '@/dtos/asset'
 import { Asset, AssetStatus, AssetType, Prisma, StorageKey } from '@/generated/prisma/client.ts'
 import { logger } from '@/logger'
@@ -1086,7 +1086,7 @@ export class AssetService {
       WITH to_purge AS (
         SELECT id FROM storage_keys sk
         WHERE NOT EXISTS (SELECT 1 FROM assets a WHERE a.storage_key_id = sk.id)
-          AND sk.created_at < NOW() - INTERVAL '24 hours'
+          AND sk.created_at < NOW() - INTERVAL '20 seconds'
           AND (sk.status = 'active' OR (sk.status = 'purging' AND sk.updated_at < NOW() - INTERVAL '1 hour'))
         LIMIT 100
         FOR UPDATE SKIP LOCKED

@@ -474,6 +474,7 @@ export default function FileSystemManager({
             dragState={dragState}
             collection={collection}
             onUpdateCollection={onUpdateCollection}
+            rootFolderId={rootFolderId}
           />
 
           {!isRightSidebarCollapsed && (

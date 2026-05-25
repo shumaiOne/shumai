@@ -74,6 +74,7 @@ interface FileBrowserProps {
   collection?: CollectionInfo
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onUpdateCollection?: (updates: { name?: string; filter?: any }) => void
+  rootFolderId?: string
 }
 
 type FileWithId = {
@@ -116,6 +117,7 @@ export function FileBrowser({
   fieldVisibility,
   collection,
   onUpdateCollection,
+  rootFolderId,
 }: FileBrowserProps) {
   const [contextMenuItem, setContextMenuItem] = useState<AssetInfo | null>(null)
   const [moveCopyMode, setMoveCopyMode] = useState<'move' | 'copy' | null>(null)
@@ -753,6 +755,7 @@ export function FileBrowser({
                 isRecentlyDeleted={isRecentlyDeleted}
                 collection={collection}
                 onUpdateCollection={onUpdateCollection}
+                rootFolderId={rootFolderId}
               />
             )}
             {displayStyle === 'list' ? (

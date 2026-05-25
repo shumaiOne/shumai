@@ -1,18 +1,18 @@
+import type { AssetInfo } from '@/dtos/asset'
+import type { CollectionInfo } from '@/dtos/collection'
 import { type FieldInfo as MetadataFieldInfo } from '@/dtos/metadata'
 import type { SearchCondition, SearchSort } from '@/dtos/search'
-import type { CollectionInfo } from '@/dtos/collection'
-import type { AssetInfo } from '@/dtos/asset'
 import { client } from '@/ui/api/client'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import type { InferRequestType, InferResponseType } from 'hono/client'
 import { useState } from 'react'
 import { FieldsManager } from '../fields-manager'
+import { FolderTree } from '../folder-tree'
 import { ManageFieldsDialog } from '../manage-fields-dialog'
 import { MembersDialog } from '../members-dialog'
-import { SearchFilterDialog } from '../search/search-filter-dialog'
 import { FilterPanel } from '../search/filter-panel'
+import { SearchFilterDialog } from '../search/search-filter-dialog'
 import { SortControl } from '../search/sort-control'
-import { FolderTree } from '../folder-tree'
 import { Avatar, AvatarFallback } from '../ui/avatar'
 import { Button } from '../ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
@@ -31,6 +31,7 @@ type FileBrowserToolbarProps = {
   collection?: CollectionInfo
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onUpdateCollection?: (updates: { name?: string; filter?: any }) => void
+  rootFolderId?: string
 }
 
 export function FileBrowserToolbar({
@@ -45,6 +46,7 @@ export function FileBrowserToolbar({
   isRecentlyDeleted,
   collection,
   onUpdateCollection,
+  rootFolderId,
 }: FileBrowserToolbarProps) {
   const [popoverOpen, setPopoverOpen] = useState(false)
   const [searchDialogOpen, setSearchDialogOpen] = useState(false)
@@ -191,8 +193,8 @@ export function FileBrowserToolbar({
                     <FolderTree
                       teamId={teamId}
                       projectId={projectId}
-                      projectName=""
-                      rootFolderId={collection.filter.sourceFolderId} // This is not ideal but FolderTree handles subtrees
+                      projectName="Assets"
+                      rootFolderId={rootFolderId!}
                       onSelect={(folder: AssetInfo) => {
                         onUpdateCollection?.({
                           filter: {
@@ -202,7 +204,7 @@ export function FileBrowserToolbar({
                         })
                         setIsFolderSelectorOpen(false)
                       }}
-                      selectedFolderId={assetId}
+                      selectedFolderId={collection.filter.sourceFolderId}
                       hideCollections
                       hideShares
                     />
