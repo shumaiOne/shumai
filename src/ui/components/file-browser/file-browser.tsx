@@ -13,6 +13,7 @@ import { Download } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useInView } from 'react-intersection-observer'
 import { toast } from 'sonner'
+import { formatSize } from '@/ui/lib/format'
 import type { DragState } from '../dnd-types'
 import { FileBrowserContextMenu } from './context-menu'
 import { useNavigate } from '@tanstack/react-router'
@@ -393,12 +394,6 @@ export function FileBrowser({
       return `10000+ ${isFile ? 'Asset' : 'Folder'}s`
     }
     return `${count} ${isFile ? 'Asset' : 'Folder'}${count !== 1 ? 's' : ''}`
-  }
-
-  const formatSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
-    return `${(bytes / (1024 * 1024)).toFixed(0)} MB`
   }
 
   const handleEmptyAreaClick = (e: React.MouseEvent) => {

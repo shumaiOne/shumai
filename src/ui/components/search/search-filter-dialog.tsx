@@ -5,19 +5,19 @@ import { client } from '@/ui/api/client'
 import { Button } from '@/ui/components/ui/button'
 import { Dialog, DialogContent } from '@/ui/components/ui/dialog'
 import { Input } from '@/ui/components/ui/input'
+import { formatSize } from '@/ui/lib/format'
 import { cn } from '@/ui/lib/utils'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import {
-  AlertCircle,
-  ChevronDown,
-  ChevronUp,
-  FileIcon,
-  FolderIcon,
-  Loader2,
-  Search,
-  SlidersHorizontal,
-  X,
+    AlertCircle,
+    ChevronDown,
+    ChevronUp,
+    FileIcon,
+    FolderIcon,
+    Loader2,
+    Search,
+    X,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { FilterPanel } from './filter-panel'
@@ -115,7 +115,15 @@ export function SearchFilterDialog({
   })
 
   const handleApply = () => {
-    onApply(combinedConditions)
+    const finalConditions = [...conditions]
+    if (searchInput.trim()) {
+      finalConditions.push({
+        field: 'name',
+        operator: 'contains',
+        value: searchInput.trim(),
+      })
+    }
+    onApply(finalConditions)
     onOpenChange(false)
   }
 
@@ -144,31 +152,8 @@ export function SearchFilterDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px] p-0 gap-0 overflow-hidden bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-900 rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
-        {/* Header Block ported from Demo */}
-        <div className="p-5 border-b border-neutral-100 dark:border-neutral-900 bg-neutral-50/50 dark:bg-neutral-950/50 flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-indigo-50 dark:bg-indigo-950/50 rounded-lg text-indigo-600 dark:text-indigo-400">
-                <SlidersHorizontal className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="font-semibold text-lg text-neutral-900 dark:text-neutral-100 leading-tight">
-                  Advanced Query Console
-                </h2>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
-                    Refining live workspace directory
-                  </p>
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[10px] font-mono font-bold px-1 py-0.2 rounded text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20">
-                    LIVE-DB
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
+      <DialogContent className="sm:max-w-[900px] p-0 gap-0 overflow-hidden bg-background border-border rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="p-5 pt-8 border-b border-border bg-muted/30 flex flex-col gap-3">
           <form
             onSubmit={(e) => {
               e.preventDefault()
@@ -180,20 +165,20 @@ export function SearchFilterDialog({
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search records by name..."
-              className="w-full pl-4 pr-24 py-3 bg-white dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-800 rounded-xl text-sm h-12 focus-visible:ring-2 focus-visible:ring-indigo-500/20 shadow-sm"
+              className="w-full pl-4 pr-24 py-3 bg-background border-border rounded-xl text-sm h-12 focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm"
             />
             {searchInput && (
               <button
                 type="button"
                 onClick={() => setSearchInput('')}
-                className="absolute right-20 top-1/2 -translate-y-1/2 p-1 rounded-md text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors"
+                className="absolute right-20 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-foreground transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             )}
             <button
               type="submit"
-              className="absolute right-1.5 top-1.5 bottom-1.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg flex items-center justify-center transition-colors shadow-sm"
+              className="absolute right-1.5 top-1.5 bottom-1.5 px-4 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold rounded-lg flex items-center justify-center transition-colors shadow-sm"
             >
               Search
             </button>
@@ -201,20 +186,18 @@ export function SearchFilterDialog({
 
           <div
             onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
-            className="flex items-center justify-between py-1.5 px-1 mt-1 rounded-lg hover:bg-neutral-100/50 dark:hover:bg-neutral-900/50 cursor-pointer select-none transition-colors group"
+            className="flex items-center justify-between py-1.5 px-1 mt-1 rounded-lg hover:bg-accent/50 cursor-pointer select-none transition-colors group"
           >
             <div className="flex items-center gap-2">
               {isFiltersExpanded ? (
-                <ChevronUp className="w-4 h-4 text-neutral-400 group-hover:text-neutral-600" />
+                <ChevronUp className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
               ) : (
-                <ChevronDown className="w-4 h-4 text-neutral-400 group-hover:text-neutral-600" />
+                <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
               )}
-              <span className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">
-                Filters
-              </span>
+              <span className="text-xs font-semibold text-foreground/80">Filters</span>
 
               {activeFiltersCount > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900">
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/10 text-primary border border-primary/20">
                   {activeFiltersCount} active
                 </span>
               )}
@@ -227,7 +210,7 @@ export function SearchFilterDialog({
                   e.stopPropagation()
                   handleClearFilters()
                 }}
-                className="text-[11px] font-medium text-rose-500 hover:text-rose-600 underline underline-offset-2 transition-colors"
+                className="text-[11px] font-medium text-destructive hover:text-destructive/80 underline underline-offset-2 transition-colors"
               >
                 Reset All Criteria
               </button>
@@ -235,7 +218,7 @@ export function SearchFilterDialog({
           </div>
 
           {isFiltersExpanded && (
-            <div className="mt-1 p-4 bg-neutral-100/70 dark:bg-neutral-900/40 border border-neutral-200 dark:border-neutral-900 rounded-xl flex flex-col gap-3 animate-in slide-in-from-top-1 duration-200">
+            <div className="mt-1 p-4 bg-muted/40 border border-border rounded-xl flex flex-col gap-3 animate-in slide-in-from-top-1 duration-200">
               <FilterPanel
                 fields={fields}
                 conditions={conditions}
@@ -249,50 +232,45 @@ export function SearchFilterDialog({
         </div>
 
         {/* Results Body ported from Demo */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-5 bg-white dark:bg-neutral-950">
+        <div className="flex-1 overflow-y-auto p-4 md:p-5 bg-background">
           <div className="flex items-center justify-between mb-3 px-1">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 font-mono">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/60 font-mono">
               Search Results
             </span>
             {isLoading && (
-              <span className="inline-flex items-center gap-1.5 text-xs text-indigo-500">
+              <span className="inline-flex items-center gap-1.5 text-xs text-primary">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 Querying database...
               </span>
             )}
           </div>
 
-          <div className="flex flex-col border border-neutral-100 dark:border-neutral-900 rounded-xl divide-y divide-neutral-100 dark:divide-neutral-900 overflow-hidden">
+          <div className="flex flex-col border border-border rounded-xl divide-y divide-border overflow-hidden">
             {!hasActiveCriteria ? (
-              <div className="py-20 text-center flex flex-col items-center justify-center bg-neutral-50/50 dark:bg-neutral-950/20">
-                <Search className="w-10 h-10 text-neutral-300 dark:text-neutral-800 mb-2" />
-                <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
-                  Ready to Search
-                </h3>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400 max-w-sm mt-1 mx-auto">
+              <div className="py-20 text-center flex flex-col items-center justify-center bg-muted/20">
+                <Search className="w-10 h-10 text-muted-foreground/30 mb-2" />
+                <h3 className="text-sm font-semibold text-foreground/80">Ready to Search</h3>
+                <p className="text-xs text-muted-foreground max-w-sm mt-1 mx-auto">
                   Enter a name or add a filter rule to start discovering assets.
                 </p>
               </div>
             ) : isLoading ? (
               Array.from({ length: 3 }).map((_, idx) => (
-                <div
-                  key={idx}
-                  className="p-3.5 flex items-center gap-3 animate-pulse bg-neutral-50/40 dark:bg-neutral-900/10"
-                >
-                  <div className="w-11 h-11 rounded-xl bg-neutral-200 dark:bg-neutral-800 shrink-0" />
+                <div key={idx} className="p-3.5 flex items-center gap-3 animate-pulse bg-muted/10">
+                  <div className="w-11 h-11 rounded-xl bg-muted shrink-0" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-1/3" />
-                    <div className="h-3 bg-neutral-100 dark:bg-neutral-900 rounded w-1/4" />
+                    <div className="h-4 bg-muted rounded w-1/3" />
+                    <div className="h-3 bg-muted/50 rounded w-1/4" />
                   </div>
                 </div>
               ))
             ) : searchResults?.data?.length === 0 ? (
-              <div className="py-12 px-4 text-center flex flex-col items-center justify-center bg-neutral-50/50 dark:bg-neutral-950/20">
-                <AlertCircle className="w-10 h-10 text-neutral-300 dark:text-neutral-800 mb-2" />
-                <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
+              <div className="py-12 px-4 text-center flex flex-col items-center justify-center bg-muted/20">
+                <AlertCircle className="w-10 h-10 text-muted-foreground/30 mb-2" />
+                <h3 className="text-sm font-semibold text-foreground/80">
                   No records matched your criteria
                 </h3>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400 max-w-sm mt-1 mx-auto">
+                <p className="text-xs text-muted-foreground max-w-sm mt-1 mx-auto">
                   Try adjusting spelling or removing filter rows.
                 </p>
               </div>
@@ -301,12 +279,12 @@ export function SearchFilterDialog({
                 <div
                   key={record.id}
                   onClick={() => handleResultClick(record)}
-                  className="p-3.5 flex items-center gap-3 hover:bg-neutral-50 dark:hover:bg-neutral-900/40 transition-colors group/record cursor-pointer"
+                  className="p-3.5 flex items-center gap-3 hover:bg-muted/40 transition-colors group/record cursor-pointer"
                 >
                   <div
                     className={cn(
-                      'shrink-0 w-11 h-11 rounded-xl shadow-xs flex items-center justify-center text-white font-bold relative group-hover/record:scale-105 transition-transform bg-neutral-100 dark:bg-neutral-900 overflow-hidden',
-                      record.type === 'folder' ? 'bg-indigo-50' : '',
+                      'shrink-0 w-11 h-11 rounded-xl shadow-xs flex items-center justify-center text-white font-bold relative group-hover/record:scale-105 transition-transform bg-muted overflow-hidden',
+                      record.type === 'folder' ? 'bg-primary/5' : '',
                     )}
                   >
                     {record.preview?.thumbnailUrl ? (
@@ -316,25 +294,25 @@ export function SearchFilterDialog({
                         className="w-full h-full object-cover rounded-xl"
                       />
                     ) : record.type === 'folder' ? (
-                      <FolderIcon className="h-6 w-6 text-indigo-500" />
+                      <FolderIcon className="h-6 w-6 text-primary/70" />
                     ) : (
-                      <FileIcon className="h-6 w-6 text-neutral-400" />
+                      <FileIcon className="h-6 w-6 text-muted-foreground" />
                     )}
                   </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-3">
                       <div className="truncate">
-                        <span className="font-medium text-sm text-neutral-900 dark:text-neutral-100 group-hover/record:text-indigo-600 transition-colors block truncate">
+                        <span className="font-medium text-sm text-foreground group-hover/record:text-primary transition-colors block truncate">
                           {record.name}
                         </span>
-                        <span className="text-xs text-neutral-400 dark:text-neutral-500 block mt-0.5 truncate">
+                        <span className="text-xs text-muted-foreground block mt-0.5 truncate">
                           {record.type === 'folder'
                             ? 'Folder'
-                            : `Size: ${formatBytes(record.sizeByte || 0)}`}
+                            : `Size: ${formatSize(record.sizeByte || 0)}`}
                         </span>
                       </div>
-                      <span className="text-xs text-neutral-400 dark:text-neutral-500 font-mono shrink-0">
+                      <span className="text-xs text-muted-foreground font-mono shrink-0">
                         {new Date(record.createdAt).toLocaleDateString(undefined, {
                           year: 'numeric',
                           month: 'short',
@@ -349,11 +327,11 @@ export function SearchFilterDialog({
         </div>
 
         {/* Footer ported from Demo */}
-        <div className="p-4 border-t border-neutral-100 dark:border-neutral-900 bg-neutral-50 dark:bg-neutral-950/70 flex items-center justify-between shrink-0">
-          <div className="text-xs text-neutral-500 dark:text-neutral-400 flex items-center gap-2">
+        <div className="p-4 border-t border-border bg-muted/30 flex items-center justify-between shrink-0">
+          <div className="text-xs text-muted-foreground flex items-center gap-2">
             <span>
               Matched{' '}
-              <strong className="font-mono font-bold text-neutral-800 dark:text-neutral-200">
+              <strong className="font-mono font-bold text-foreground">
                 {searchResults?.data?.length || 0}
               </strong>{' '}
               items
@@ -376,12 +354,4 @@ export function SearchFilterDialog({
       </DialogContent>
     </Dialog>
   )
-}
-
-function formatBytes(bytes: number) {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
 }

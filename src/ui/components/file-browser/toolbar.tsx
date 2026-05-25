@@ -1,8 +1,9 @@
-import type { SearchCondition, SearchSort } from '@/dtos/search'
 import { type FieldInfo as MetadataFieldInfo } from '@/dtos/metadata'
+import type { SearchCondition, SearchSort } from '@/dtos/search'
 import { client } from '@/ui/api/client'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import type { InferRequestType, InferResponseType } from 'hono/client'
+import { useState } from 'react'
 import { FieldsManager } from '../fields-manager'
 import { ManageFieldsDialog } from '../manage-fields-dialog'
 import { MembersDialog } from '../members-dialog'
@@ -11,8 +12,6 @@ import { SortControl } from '../search/sort-control'
 import { Avatar, AvatarFallback } from '../ui/avatar'
 import { Button } from '../ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
-import { SlidersHorizontal } from 'lucide-react'
-import { useState } from 'react'
 import { Separator } from '../ui/separator'
 
 type FileBrowserToolbarProps = {
@@ -125,7 +124,6 @@ export function FileBrowserToolbar({
           <PopoverTrigger asChild>
             <div>
               <Button variant="ghost" size="sm">
-                <SlidersHorizontal className="h-4 w-4 mr-2" />
                 Fields
               </Button>
             </div>
@@ -145,12 +143,11 @@ export function FileBrowserToolbar({
           disabled={isRecentlyDeleted}
           variant={activeFiltersCount > 0 ? 'secondary' : 'ghost'}
           size="sm"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-xs hover:shadow-indigo-500/10 transition-all cursor-pointer h-8"
+          className="inline-flex items-center gap-2 px-4 py-2 hover:bg-primary/10 font-semibold rounded-xl cursor-pointer h-8"
         >
-          <SlidersHorizontal className="w-4 h-4" />
-          <span>Query Console</span>
+          <span>Search</span>
           {activeFiltersCount > 0 && (
-            <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-white/20 text-white border border-white/20">
+            <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/50 border border-primary-foreground/20">
               {activeFiltersCount}
             </span>
           )}
