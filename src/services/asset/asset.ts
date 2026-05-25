@@ -1071,9 +1071,8 @@ export class AssetService {
     // using FOR UPDATE SKIP LOCKED to ensure multiple servers don't pick up the same keys.
     const lockedKeys = await this.prismaClient.$queryRaw<{ id: string; key: string }[]>`
       WITH to_purge AS (
-        SELECT sk.id FROM storage_keys sk
-        LEFT JOIN assets a ON a.storage_key_id = sk.id
-        WHERE a.id IS NULL
+        SELECT id FROM storage_keys sk
+        WHERE NOT EXISTS (SELECT 1 FROM assets a WHERE a.storage_key_id = sk.id)
           AND sk.created_at < NOW() - INTERVAL '24 hours'
           AND (sk.status = 'active' OR (sk.status = 'purging' AND sk.updated_at < NOW() - INTERVAL '1 hour'))
         LIMIT 100
