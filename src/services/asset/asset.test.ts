@@ -1311,11 +1311,7 @@ describe('AssetService', () => {
         })
       }
 
-      // 3. Trigger the purge job for the FIRST batch (100 items)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (assetService as any).purgePendingAssets()
-
-      // ...
+      // 3. Trigger the purge job
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (assetService as any).purgePendingAssets()
 

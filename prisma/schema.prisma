@@ -42,6 +42,10 @@ enum AssetStatus {
   processed
   trashed
   pending_purge
+}
+
+enum StorageKeyStatus {
+  active
   purging
 }
 
@@ -406,10 +410,11 @@ model Asset {
 }
 
 model StorageKey {
-  id        String   @id @default(ulid())
-  key       String   @unique
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id        String           @id @default(ulid())
+  key       String           @unique
+  status    StorageKeyStatus @default(active)
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
   assets    Asset[]
 
   @@map("storage_keys")

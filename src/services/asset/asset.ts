@@ -18,7 +18,7 @@ import {
   UpdateAssetOrderRequest,
   UserInfo,
 } from '@/dtos/asset'
-import { Asset, AssetType, Prisma, StorageKey } from '@/generated/prisma/client.ts'
+import { Asset, AssetStatus, AssetType, Prisma, StorageKey, StorageKeyStatus } from '@/generated/prisma/client.ts'
 import { PaginatedData, paginateQuery, PaginationParams } from '@/services/pagination'
 import { s3Service } from '@/services/s3/s3'
 import { generateKeyBetween } from 'jittered-fractional-indexing'
@@ -980,45 +980,26 @@ export class AssetService {
 
   private cleanupJobsRunning = false
 
-  startCleanupJob() {
+  async startCleanupJob() {
     this.cleanupJobsRunning = true
 
-    // Stage 1: Expiration Job - Move expired trashed roots to pending_purge
-    const runExpiration = async () => {
+    const runCleanup = async () => {
       if (!this.cleanupJobsRunning) return
+
       try {
         await this.expireTrashedAssets()
-      } catch (e: unknown) {
-        console.error('Error in asset expiration job:', e)
-      }
-      setTimeout(runExpiration, 5000) // Run every 5 seconds, less frequent
-    }
-
-    // Stage 2: Physical Purge Job - Delete files from S3 and wipe from DB
-    const runPurge = async () => {
-      if (!this.cleanupJobsRunning) return
-      try {
         await this.purgePendingAssets()
-      } catch (e: unknown) {
-        console.error('Error in asset purge job:', e)
-      }
-      setTimeout(runPurge, 1000) // Run every 1 second
-    }
-
-    // Stage 3: Garbage Collection Job - Purge unreferenced StorageKeys and physical files
-    const runGc = async () => {
-      if (!this.cleanupJobsRunning) return
-      try {
         await this.purgeUnreferencedStorageKeys()
       } catch (e: unknown) {
-        console.error('Error in asset GC job:', e)
+        console.error('Error in asset cleanup job:', e)
       }
-      setTimeout(runGc, 10000) // Run every 10 seconds
+
+      if (this.cleanupJobsRunning) {
+        setTimeout(runCleanup, 5000) // Run every 5 seconds after previous run completion
+      }
     }
 
-    runExpiration()
-    runPurge()
-    runGc()
+    runCleanup()
   }
 
   stopCleanupJob() {
@@ -1062,39 +1043,19 @@ export class AssetService {
   }
 
   /**
-   * Stage 2: Physically delete files and DB records for assets marked as 'pending_purge'.
+   * Stage 2: Delete DB records for assets marked as 'pending_purge'.
    */
   private async purgePendingAssets() {
-    // 1. Lock 100 assets using raw SQL FOR UPDATE SKIP LOCKED and mark them as 'purging'
-    // We include a timeout check (1 hour) to allow picking up stalled tasks.
-    const lockedAssets = await this.prismaClient.$queryRaw<{ id: string }[]>`
-      WITH to_purge AS (
-        SELECT id FROM assets
-        WHERE status = 'pending_purge'
-           OR (status = 'purging' AND updated_at < NOW() - INTERVAL '1 hour')
-        LIMIT 100
-        FOR UPDATE SKIP LOCKED
-      )
-      UPDATE assets SET status = 'purging', updated_at = NOW()
-      WHERE id IN (SELECT id FROM to_purge)
-      RETURNING id;
-    `
+    const { count } = await this.prismaClient.asset.deleteMany({
+      where: { status: AssetStatus.pending_purge },
+    })
 
-    if (lockedAssets.length === 0) return
-
-    const successfulIds = lockedAssets.map((a) => a.id)
-
-    // 3. Hard delete from database
-    if (successfulIds.length > 0) {
-      await this.prismaClient.asset.deleteMany({
-        where: { id: { in: successfulIds } },
-      })
-
+    if (count > 0) {
       logger.info(
         {
-          purgedCount: successfulIds.length,
+          purgedCount: count,
         },
-        `${successfulIds.length} assets purged from database`,
+        `${count} assets purged from database`,
       )
     }
   }
@@ -1105,23 +1066,30 @@ export class AssetService {
    */
   private async purgeUnreferencedStorageKeys() {
     const bucket = process.env.S3_BUCKET || 'shumai'
-    let purgedCount = 0
-    let physicalFilesDeleted = 0
 
     // 1. Find storage keys with no associated assets and older than 24 hours
-    // We use 24 hours to avoid race conditions with ongoing uploads or copies.
-    const twentyFourHoursAgo = new Date()
-    twentyFourHoursAgo.setDate(twentyFourHoursAgo.getDate() - 1)
+    // using FOR UPDATE SKIP LOCKED to ensure multiple servers don't pick up the same keys.
+    const lockedKeys = await this.prismaClient.$queryRaw<{ id: string; key: string }[]>`
+      WITH to_purge AS (
+        SELECT sk.id FROM storage_keys sk
+        LEFT JOIN assets a ON a.storage_key_id = sk.id
+        WHERE a.id IS NULL
+          AND sk.created_at < NOW() - INTERVAL '24 hours'
+          AND (sk.status = 'active' OR (sk.status = 'purging' AND sk.updated_at < NOW() - INTERVAL '1 hour'))
+        LIMIT 100
+        FOR UPDATE SKIP LOCKED
+      )
+      UPDATE storage_keys SET status = 'purging', updated_at = NOW()
+      WHERE id IN (SELECT id FROM to_purge)
+      RETURNING id, key;
+    `
 
-    const unreferencedKeys = await this.prismaClient.storageKey.findMany({
-      where: {
-        assets: { none: {} },
-        createdAt: { lt: twentyFourHoursAgo },
-      },
-      take: 100,
-    })
+    if (lockedKeys.length === 0) return
 
-    for (const sk of unreferencedKeys) {
+    let physicalFilesDeleted = 0
+    let purgedCount = 0
+
+    for (const sk of lockedKeys) {
       try {
         // Physically delete from S3
         const parts = sk.key.split('/')

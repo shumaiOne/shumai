@@ -328,6 +328,23 @@ export type EnumAssetStatusWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumAssetStatusFilter<$PrismaModel>
 }
 
+export type EnumStorageKeyStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.StorageKeyStatus | Prisma.EnumStorageKeyStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.StorageKeyStatus[] | Prisma.ListEnumStorageKeyStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.StorageKeyStatus[] | Prisma.ListEnumStorageKeyStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumStorageKeyStatusFilter<$PrismaModel> | $Enums.StorageKeyStatus
+}
+
+export type EnumStorageKeyStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.StorageKeyStatus | Prisma.EnumStorageKeyStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.StorageKeyStatus[] | Prisma.ListEnumStorageKeyStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.StorageKeyStatus[] | Prisma.ListEnumStorageKeyStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumStorageKeyStatusWithAggregatesFilter<$PrismaModel> | $Enums.StorageKeyStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumStorageKeyStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumStorageKeyStatusFilter<$PrismaModel>
+}
+
 export type FloatNullableFilter<$PrismaModel = never> = {
   equals?: number | Prisma.FloatFieldRefInput<$PrismaModel> | null
   in?: number[] | Prisma.ListFloatFieldRefInput<$PrismaModel> | null
@@ -907,6 +924,23 @@ export type NestedEnumAssetStatusWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumAssetStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumAssetStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumStorageKeyStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.StorageKeyStatus | Prisma.EnumStorageKeyStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.StorageKeyStatus[] | Prisma.ListEnumStorageKeyStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.StorageKeyStatus[] | Prisma.ListEnumStorageKeyStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumStorageKeyStatusFilter<$PrismaModel> | $Enums.StorageKeyStatus
+}
+
+export type NestedEnumStorageKeyStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.StorageKeyStatus | Prisma.EnumStorageKeyStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.StorageKeyStatus[] | Prisma.ListEnumStorageKeyStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.StorageKeyStatus[] | Prisma.ListEnumStorageKeyStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumStorageKeyStatusWithAggregatesFilter<$PrismaModel> | $Enums.StorageKeyStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumStorageKeyStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumStorageKeyStatusFilter<$PrismaModel>
 }
 
 export type NestedFloatNullableFilter<$PrismaModel = never> = {

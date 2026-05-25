@@ -2964,6 +2964,7 @@ export type AssetScalarFieldEnum = (typeof AssetScalarFieldEnum)[keyof typeof As
 export const StorageKeyScalarFieldEnum = {
   id: 'id',
   key: 'key',
+  status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -3403,6 +3404,20 @@ export type EnumAssetStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$Pris
  * Reference to a field of type 'AssetStatus[]'
  */
 export type ListEnumAssetStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AssetStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'StorageKeyStatus'
+ */
+export type EnumStorageKeyStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'StorageKeyStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'StorageKeyStatus[]'
+ */
+export type ListEnumStorageKeyStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'StorageKeyStatus[]'>
     
 
 

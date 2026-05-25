@@ -37,11 +37,18 @@ export const AssetStatus = {
   processing: 'processing',
   processed: 'processed',
   trashed: 'trashed',
-  pending_purge: 'pending_purge',
-  purging: 'purging'
+  pending_purge: 'pending_purge'
 } as const
 
 export type AssetStatus = (typeof AssetStatus)[keyof typeof AssetStatus]
+
+
+export const StorageKeyStatus = {
+  active: 'active',
+  purging: 'purging'
+} as const
+
+export type StorageKeyStatus = (typeof StorageKeyStatus)[keyof typeof StorageKeyStatus]
 
 
 export const InviteRole = {

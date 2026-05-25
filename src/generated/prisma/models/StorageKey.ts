@@ -29,6 +29,7 @@ export type AggregateStorageKey = {
 export type StorageKeyMinAggregateOutputType = {
   id: string | null
   key: string | null
+  status: $Enums.StorageKeyStatus | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -36,6 +37,7 @@ export type StorageKeyMinAggregateOutputType = {
 export type StorageKeyMaxAggregateOutputType = {
   id: string | null
   key: string | null
+  status: $Enums.StorageKeyStatus | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -43,6 +45,7 @@ export type StorageKeyMaxAggregateOutputType = {
 export type StorageKeyCountAggregateOutputType = {
   id: number
   key: number
+  status: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -52,6 +55,7 @@ export type StorageKeyCountAggregateOutputType = {
 export type StorageKeyMinAggregateInputType = {
   id?: true
   key?: true
+  status?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -59,6 +63,7 @@ export type StorageKeyMinAggregateInputType = {
 export type StorageKeyMaxAggregateInputType = {
   id?: true
   key?: true
+  status?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -66,6 +71,7 @@ export type StorageKeyMaxAggregateInputType = {
 export type StorageKeyCountAggregateInputType = {
   id?: true
   key?: true
+  status?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -146,6 +152,7 @@ export type StorageKeyGroupByArgs<ExtArgs extends runtime.Types.Extensions.Inter
 export type StorageKeyGroupByOutputType = {
   id: string
   key: string
+  status: $Enums.StorageKeyStatus
   createdAt: Date
   updatedAt: Date
   _count: StorageKeyCountAggregateOutputType | null
@@ -174,6 +181,7 @@ export type StorageKeyWhereInput = {
   NOT?: Prisma.StorageKeyWhereInput | Prisma.StorageKeyWhereInput[]
   id?: Prisma.StringFilter<"StorageKey"> | string
   key?: Prisma.StringFilter<"StorageKey"> | string
+  status?: Prisma.EnumStorageKeyStatusFilter<"StorageKey"> | $Enums.StorageKeyStatus
   createdAt?: Prisma.DateTimeFilter<"StorageKey"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"StorageKey"> | Date | string
   assets?: Prisma.AssetListRelationFilter
@@ -182,6 +190,7 @@ export type StorageKeyWhereInput = {
 export type StorageKeyOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   key?: Prisma.SortOrder
+  status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   assets?: Prisma.AssetOrderByRelationAggregateInput
@@ -193,6 +202,7 @@ export type StorageKeyWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.StorageKeyWhereInput | Prisma.StorageKeyWhereInput[]
   OR?: Prisma.StorageKeyWhereInput[]
   NOT?: Prisma.StorageKeyWhereInput | Prisma.StorageKeyWhereInput[]
+  status?: Prisma.EnumStorageKeyStatusFilter<"StorageKey"> | $Enums.StorageKeyStatus
   createdAt?: Prisma.DateTimeFilter<"StorageKey"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"StorageKey"> | Date | string
   assets?: Prisma.AssetListRelationFilter
@@ -201,6 +211,7 @@ export type StorageKeyWhereUniqueInput = Prisma.AtLeast<{
 export type StorageKeyOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   key?: Prisma.SortOrder
+  status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.StorageKeyCountOrderByAggregateInput
@@ -214,6 +225,7 @@ export type StorageKeyScalarWhereWithAggregatesInput = {
   NOT?: Prisma.StorageKeyScalarWhereWithAggregatesInput | Prisma.StorageKeyScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"StorageKey"> | string
   key?: Prisma.StringWithAggregatesFilter<"StorageKey"> | string
+  status?: Prisma.EnumStorageKeyStatusWithAggregatesFilter<"StorageKey"> | $Enums.StorageKeyStatus
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"StorageKey"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"StorageKey"> | Date | string
 }
@@ -221,6 +233,7 @@ export type StorageKeyScalarWhereWithAggregatesInput = {
 export type StorageKeyCreateInput = {
   id?: string
   key: string
+  status?: $Enums.StorageKeyStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   assets?: Prisma.AssetCreateNestedManyWithoutStorageKeyInput
@@ -229,6 +242,7 @@ export type StorageKeyCreateInput = {
 export type StorageKeyUncheckedCreateInput = {
   id?: string
   key: string
+  status?: $Enums.StorageKeyStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   assets?: Prisma.AssetUncheckedCreateNestedManyWithoutStorageKeyInput
@@ -237,6 +251,7 @@ export type StorageKeyUncheckedCreateInput = {
 export type StorageKeyUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   key?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumStorageKeyStatusFieldUpdateOperationsInput | $Enums.StorageKeyStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assets?: Prisma.AssetUpdateManyWithoutStorageKeyNestedInput
@@ -245,6 +260,7 @@ export type StorageKeyUpdateInput = {
 export type StorageKeyUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   key?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumStorageKeyStatusFieldUpdateOperationsInput | $Enums.StorageKeyStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assets?: Prisma.AssetUncheckedUpdateManyWithoutStorageKeyNestedInput
@@ -253,6 +269,7 @@ export type StorageKeyUncheckedUpdateInput = {
 export type StorageKeyCreateManyInput = {
   id?: string
   key: string
+  status?: $Enums.StorageKeyStatus
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -260,6 +277,7 @@ export type StorageKeyCreateManyInput = {
 export type StorageKeyUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   key?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumStorageKeyStatusFieldUpdateOperationsInput | $Enums.StorageKeyStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -267,6 +285,7 @@ export type StorageKeyUpdateManyMutationInput = {
 export type StorageKeyUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   key?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumStorageKeyStatusFieldUpdateOperationsInput | $Enums.StorageKeyStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -279,6 +298,7 @@ export type StorageKeyNullableScalarRelationFilter = {
 export type StorageKeyCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   key?: Prisma.SortOrder
+  status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -286,6 +306,7 @@ export type StorageKeyCountOrderByAggregateInput = {
 export type StorageKeyMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   key?: Prisma.SortOrder
+  status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -293,6 +314,7 @@ export type StorageKeyMaxOrderByAggregateInput = {
 export type StorageKeyMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   key?: Prisma.SortOrder
+  status?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -313,9 +335,14 @@ export type StorageKeyUpdateOneWithoutAssetsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.StorageKeyUpdateToOneWithWhereWithoutAssetsInput, Prisma.StorageKeyUpdateWithoutAssetsInput>, Prisma.StorageKeyUncheckedUpdateWithoutAssetsInput>
 }
 
+export type EnumStorageKeyStatusFieldUpdateOperationsInput = {
+  set?: $Enums.StorageKeyStatus
+}
+
 export type StorageKeyCreateWithoutAssetsInput = {
   id?: string
   key: string
+  status?: $Enums.StorageKeyStatus
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -323,6 +350,7 @@ export type StorageKeyCreateWithoutAssetsInput = {
 export type StorageKeyUncheckedCreateWithoutAssetsInput = {
   id?: string
   key: string
+  status?: $Enums.StorageKeyStatus
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -346,6 +374,7 @@ export type StorageKeyUpdateToOneWithWhereWithoutAssetsInput = {
 export type StorageKeyUpdateWithoutAssetsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   key?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumStorageKeyStatusFieldUpdateOperationsInput | $Enums.StorageKeyStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -353,6 +382,7 @@ export type StorageKeyUpdateWithoutAssetsInput = {
 export type StorageKeyUncheckedUpdateWithoutAssetsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   key?: Prisma.StringFieldUpdateOperationsInput | string
+  status?: Prisma.EnumStorageKeyStatusFieldUpdateOperationsInput | $Enums.StorageKeyStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -391,6 +421,7 @@ export type StorageKeyCountOutputTypeCountAssetsArgs<ExtArgs extends runtime.Typ
 export type StorageKeySelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   key?: boolean
+  status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   assets?: boolean | Prisma.StorageKey$assetsArgs<ExtArgs>
@@ -400,6 +431,7 @@ export type StorageKeySelect<ExtArgs extends runtime.Types.Extensions.InternalAr
 export type StorageKeySelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   key?: boolean
+  status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["storageKey"]>
@@ -407,6 +439,7 @@ export type StorageKeySelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
 export type StorageKeySelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   key?: boolean
+  status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["storageKey"]>
@@ -414,11 +447,12 @@ export type StorageKeySelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
 export type StorageKeySelectScalar = {
   id?: boolean
   key?: boolean
+  status?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type StorageKeyOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "key" | "createdAt" | "updatedAt", ExtArgs["result"]["storageKey"]>
+export type StorageKeyOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "key" | "status" | "createdAt" | "updatedAt", ExtArgs["result"]["storageKey"]>
 export type StorageKeyInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   assets?: boolean | Prisma.StorageKey$assetsArgs<ExtArgs>
   _count?: boolean | Prisma.StorageKeyCountOutputTypeDefaultArgs<ExtArgs>
@@ -434,6 +468,7 @@ export type $StorageKeyPayload<ExtArgs extends runtime.Types.Extensions.Internal
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     key: string
+    status: $Enums.StorageKeyStatus
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["storageKey"]>
@@ -862,6 +897,7 @@ export interface Prisma__StorageKeyClient<T, Null = never, ExtArgs extends runti
 export interface StorageKeyFieldRefs {
   readonly id: Prisma.FieldRef<"StorageKey", 'String'>
   readonly key: Prisma.FieldRef<"StorageKey", 'String'>
+  readonly status: Prisma.FieldRef<"StorageKey", 'StorageKeyStatus'>
   readonly createdAt: Prisma.FieldRef<"StorageKey", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"StorageKey", 'DateTime'>
 }
