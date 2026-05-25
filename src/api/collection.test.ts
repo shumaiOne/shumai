@@ -2,12 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { collectionService } from '@/services/collection/collection'
 import { authzService } from '@/services/authz/authz'
 import app from './collection'
-import { authMiddleware } from '@/api/middleware/auth'
-import { Hono } from 'hono'
 
 vi.mock('@/api/middleware/auth', () => ({
   authMiddleware: vi.fn(async (c, next) => {
-    c.set('user', { id: 'user-1', name: 'Test User' })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    c.set('user', { id: 'user-1', name: 'Test User' } as any)
     await next()
   }),
 }))
@@ -25,6 +24,7 @@ describe('Collection API', () => {
     const mockCreate = vi.spyOn(collectionService, 'createCollection').mockResolvedValue({
       id: collectionId,
       name: 'New Collection',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       filter: { conditions: [], operator: 'AND', recursively: true } as any,
       projectId,
       createdAt: new Date(),
@@ -45,6 +45,7 @@ describe('Collection API', () => {
       },
       {
         user: { id: 'user-1' },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any,
     )
 
@@ -59,6 +60,7 @@ describe('Collection API', () => {
         {
           id: collectionId,
           name: 'Col 1',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           filter: { conditions: [], operator: 'AND', recursively: true } as any,
           projectId,
           createdAt: new Date(),
@@ -83,6 +85,7 @@ describe('Collection API', () => {
     const mockGet = vi.spyOn(collectionService, 'getCollection').mockResolvedValue({
       id: collectionId,
       name: 'Col 1',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       filter: { conditions: [], operator: 'AND', recursively: true } as any,
       projectId,
       createdAt: new Date(),
@@ -104,6 +107,7 @@ describe('Collection API', () => {
     const mockUpdate = vi.spyOn(collectionService, 'updateCollection').mockResolvedValue({
       id: collectionId,
       name: 'Updated Name',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       filter: { conditions: [], operator: 'AND', recursively: true } as any,
       projectId,
       createdAt: new Date(),
@@ -127,6 +131,7 @@ describe('Collection API', () => {
   })
 
   it('DELETE /teams/:teamId/projects/:projectId/collections/:collectionId', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mockDelete = vi.spyOn(collectionService, 'deleteCollection').mockResolvedValue({} as any)
     const mockAuthz = vi.spyOn(authzService, 'hasPermission').mockResolvedValue(undefined)
 
