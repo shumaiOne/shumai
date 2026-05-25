@@ -52,7 +52,7 @@ declare global {
     // ----------------------------------------------------------------------
     // Collection Filter
     // ----------------------------------------------------------------------
-    export type CollectionFilter = import('./dtos/search').SearchFilter
+    export type CollectionFilter = import('./dtos/collection').CollectionFilter
     export type ImageTranscodeStrategy = 'disable' | 'single'
 
     export interface TranscodeSettings {

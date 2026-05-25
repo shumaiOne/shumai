@@ -24,8 +24,11 @@ describe('Collection API', () => {
     const mockCreate = vi.spyOn(collectionService, 'createCollection').mockResolvedValue({
       id: collectionId,
       name: 'New Collection',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      filter: { conditions: [], operator: 'AND', recursively: true } as any,
+      filter: {
+        sourceFolderId: 'root-1',
+        searchFilter: { conditions: [], operator: 'AND', recursively: true },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
       projectId,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -40,7 +43,10 @@ describe('Collection API', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: 'New Collection',
-          filter: { conditions: [], operator: 'AND', recursively: true },
+          filter: {
+            sourceFolderId: 'root-1',
+            searchFilter: { conditions: [], operator: 'AND', recursively: true },
+          },
         }),
       },
       {
@@ -60,8 +66,11 @@ describe('Collection API', () => {
         {
           id: collectionId,
           name: 'Col 1',
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          filter: { conditions: [], operator: 'AND', recursively: true } as any,
+          filter: {
+            sourceFolderId: 'root-1',
+            searchFilter: { conditions: [], operator: 'AND', recursively: true },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any,
           projectId,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -85,8 +94,11 @@ describe('Collection API', () => {
     const mockGet = vi.spyOn(collectionService, 'getCollection').mockResolvedValue({
       id: collectionId,
       name: 'Col 1',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      filter: { conditions: [], operator: 'AND', recursively: true } as any,
+      filter: {
+        sourceFolderId: 'root-1',
+        searchFilter: { conditions: [], operator: 'AND', recursively: true },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
       projectId,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -107,8 +119,11 @@ describe('Collection API', () => {
     const mockUpdate = vi.spyOn(collectionService, 'updateCollection').mockResolvedValue({
       id: collectionId,
       name: 'Updated Name',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      filter: { conditions: [], operator: 'AND', recursively: true } as any,
+      filter: {
+        sourceFolderId: 'root-1',
+        searchFilter: { conditions: [], operator: 'AND', recursively: true },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
       projectId,
       createdAt: new Date(),
       updatedAt: new Date(),

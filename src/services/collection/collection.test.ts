@@ -43,14 +43,17 @@ describe('CollectionService', () => {
     const collection = await collectionService.createCollection(project.id, {
       name: 'Test Collection',
       filter: {
-        operator: 'AND',
-        conditions: [{ field: 'name', operator: 'contains', value: 'test' }],
-        recursively: true,
+        sourceFolderId: project.rootFolder!,
+        searchFilter: {
+          operator: 'AND',
+          conditions: [{ field: 'name', operator: 'contains', value: 'test' }],
+          recursively: true,
+        },
       },
     })
     expect(collection.name).toBe('Test Collection')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect((collection.filter as any).conditions[0].value).toBe('test')
+    expect((collection.filter as any).searchFilter.conditions[0].value).toBe('test')
 
     // Get
     const fetched = await collectionService.getCollection(collection.id)
@@ -60,14 +63,17 @@ describe('CollectionService', () => {
     const updated = await collectionService.updateCollection(collection.id, {
       name: 'Updated Name',
       filter: {
-        operator: 'AND',
-        conditions: [{ field: 'rating', operator: 'eq', value: 5 }],
-        recursively: true,
+        sourceFolderId: project.rootFolder!,
+        searchFilter: {
+          operator: 'AND',
+          conditions: [{ field: 'rating', operator: 'eq', value: 5 }],
+          recursively: true,
+        },
       },
     })
     expect(updated.name).toBe('Updated Name')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect((updated.filter as any).conditions[0].field).toBe('rating')
+    expect((updated.filter as any).searchFilter.conditions[0].field).toBe('rating')
 
     // Delete
     await collectionService.deleteCollection(collection.id)
@@ -82,7 +88,10 @@ describe('CollectionService', () => {
     for (let i = 0; i < 5; i++) {
       await collectionService.createCollection(project.id, {
         name: `Collection ${i}`,
-        filter: { operator: 'AND', conditions: [], recursively: true },
+        filter: {
+          sourceFolderId: project.rootFolder!,
+          searchFilter: { operator: 'AND', conditions: [], recursively: true },
+        },
       })
     }
 
@@ -117,7 +126,10 @@ describe('CollectionService', () => {
 
     await collectionService.createCollection(project.id, {
       name: 'To be deleted',
-      filter: { operator: 'AND', conditions: [], recursively: true },
+      filter: {
+        sourceFolderId: project.rootFolder!,
+        searchFilter: { operator: 'AND', conditions: [], recursively: true },
+      },
     })
 
     const countBefore = await prisma.collection.count({

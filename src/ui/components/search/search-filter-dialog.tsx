@@ -113,8 +113,11 @@ export function SearchFilterDialog({
         json: {
           name,
           filter: {
-            conditions: combinedConditions,
-            recursively: true,
+            sourceFolderId: assetId,
+            searchFilter: {
+              conditions: combinedConditions,
+              recursively: true,
+            },
           },
         },
       })

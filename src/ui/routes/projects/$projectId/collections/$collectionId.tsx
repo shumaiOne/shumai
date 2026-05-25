@@ -79,12 +79,14 @@ function CollectionPage() {
     return <div>Loading collection...</div>
   }
 
+  const sourceFolderId = collection.filter.sourceFolderId || rootFolderId
+
   return (
     <FileSystemManager
       teamId={teamId}
       projectId={projectId}
       projectName={projectInfo.name ?? ''}
-      assetId={rootFolderId}
+      assetId={sourceFolderId}
       rootFolderId={rootFolderId}
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       collection={collection as any}

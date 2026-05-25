@@ -96,7 +96,7 @@ export default function FileSystemManager({
   }, [teamId, fetchMembers, fetchMetadata])
 
   const initialFilterConditions = useMemo(() => {
-    return collection?.filter?.conditions || []
+    return collection?.filter?.searchFilter?.conditions || []
   }, [collection])
 
   const [filterConditions, setFilterConditions] =

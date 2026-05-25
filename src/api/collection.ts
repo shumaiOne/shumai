@@ -7,9 +7,9 @@ import {
   updateCollectionRequestSchema,
   listCollectionsRequestSchema,
   CollectionInfo,
+  CollectionFilter,
 } from '@/dtos/collection'
 import type { Prisma } from '@/generated/prisma/client'
-import type { SearchFilter } from '@/dtos/search'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -17,7 +17,7 @@ function toCollectionInfo(c: Prisma.CollectionGetPayload<Record<string, never>>)
   return {
     id: c.id,
     name: c.name,
-    filter: c.filter as unknown as SearchFilter,
+    filter: c.filter as unknown as CollectionFilter,
     projectId: c.projectId,
     createdAt: c.createdAt.toISOString(),
     updatedAt: c.updatedAt.toISOString(),
