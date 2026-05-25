@@ -1,22 +1,23 @@
-import type { SearchCondition, SearchSort } from '@/dtos/search'
 import { type FieldInfo as MetadataFieldInfo } from '@/dtos/metadata'
+import type { SearchCondition, SearchSort } from '@/dtos/search'
 import { client } from '@/ui/api/client'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import type { InferRequestType, InferResponseType } from 'hono/client'
+import { useState } from 'react'
 import { FieldsManager } from '../fields-manager'
 import { ManageFieldsDialog } from '../manage-fields-dialog'
 import { MembersDialog } from '../members-dialog'
-import { FilterPanel } from '../search/filter-panel'
+import { SearchFilterDialog } from '../search/search-filter-dialog'
 import { SortControl } from '../search/sort-control'
 import { Avatar, AvatarFallback } from '../ui/avatar'
 import { Button } from '../ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
-import { ListFilter, SlidersHorizontal } from 'lucide-react'
-import { useState } from 'react'
 import { Separator } from '../ui/separator'
 
 type FileBrowserToolbarProps = {
+  teamId: string
   projectId: string
+  assetId: string
   fields: MetadataFieldInfo[]
   filterConditions: SearchCondition[]
   onFilterChange: (conditions: SearchCondition[]) => void
@@ -26,7 +27,9 @@ type FileBrowserToolbarProps = {
 }
 
 export function FileBrowserToolbar({
+  teamId,
   projectId,
+  assetId,
   fields,
   filterConditions,
   onFilterChange,
@@ -35,9 +38,11 @@ export function FileBrowserToolbar({
   isRecentlyDeleted,
 }: FileBrowserToolbarProps) {
   const [popoverOpen, setPopoverOpen] = useState(false)
-  const [filterPopoverOpen, setFilterPopoverOpen] = useState(false)
+  const [searchDialogOpen, setSearchDialogOpen] = useState(false)
   const [manageDialogOpen, setManageDialogOpen] = useState(false)
   const [isMembersDialogOpen, setIsMembersDialogOpen] = useState(false)
+
+  const activeFiltersCount = filterConditions.length
 
   const { data: members } = useQuery({
     queryKey: ['projects', projectId, 'members'],
@@ -119,7 +124,6 @@ export function FileBrowserToolbar({
           <PopoverTrigger asChild>
             <div>
               <Button variant="ghost" size="sm">
-                <SlidersHorizontal className="h-4 w-4 mr-2" />
                 Fields
               </Button>
             </div>
@@ -132,29 +136,7 @@ export function FileBrowserToolbar({
             />
           </PopoverContent>
         </Popover>
-        <Separator orientation="vertical" />
 
-        <Popover open={filterPopoverOpen} onOpenChange={setFilterPopoverOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant={filterConditions.length > 0 ? 'secondary' : 'ghost'}
-              size="sm"
-              className="h-8"
-              disabled={isRecentlyDeleted}
-            >
-              <ListFilter className="h-4 w-4 mr-1" />
-              Filter
-              {filterConditions.length > 0 && (
-                <span className="ml-1 rounded-full bg-primary/20 px-1.5 py-0.5 text-[10px]">
-                  {filterConditions.length}
-                </span>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="center">
-            <FilterPanel fields={fields} conditions={filterConditions} onChange={onFilterChange} />
-          </PopoverContent>
-        </Popover>
         <Separator orientation="vertical" />
         <SortControl
           fields={fields}
@@ -162,6 +144,23 @@ export function FileBrowserToolbar({
           onSortChange={onSortChange}
           disabled={isRecentlyDeleted}
         />
+
+        <Separator orientation="vertical" />
+
+        <Button
+          onClick={() => setSearchDialogOpen(true)}
+          disabled={isRecentlyDeleted}
+          variant={activeFiltersCount > 0 ? 'secondary' : 'ghost'}
+          size="sm"
+          className="inline-flex items-center gap-2 px-4 py-2 hover:bg-primary/10 font-semibold rounded-xl cursor-pointer h-8"
+        >
+          <span>Search</span>
+          {activeFiltersCount > 0 && (
+            <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/50 border border-primary-foreground/20">
+              {activeFiltersCount}
+            </span>
+          )}
+        </Button>
       </div>
 
       <div className="flex items-center gap-2">
@@ -197,6 +196,17 @@ export function FileBrowserToolbar({
         members={members || []}
         isOwner={me?.role === 'owner'}
         onInvite={handleInvite}
+      />
+
+      <SearchFilterDialog
+        open={searchDialogOpen}
+        onOpenChange={setSearchDialogOpen}
+        teamId={teamId}
+        projectId={projectId}
+        assetId={assetId}
+        fields={fields}
+        initialConditions={filterConditions}
+        onApply={onFilterChange}
       />
     </div>
   )

@@ -18,6 +18,8 @@ interface FilterPanelProps {
   conditions: SearchCondition[]
   onChange: (conditions: SearchCondition[]) => void
   className?: string
+  excludeFields?: string[]
+  hidePrefix?: boolean
 }
 
 const SYSTEM_FIELDS = [
@@ -27,7 +29,14 @@ const SYSTEM_FIELDS = [
   { id: 'sizeByte', label: 'Size', type: 'number' },
 ]
 
-export function FilterPanel({ fields, conditions, onChange, className }: FilterPanelProps) {
+export function FilterPanel({
+  fields,
+  conditions,
+  onChange,
+  className,
+  excludeFields,
+  hidePrefix,
+}: FilterPanelProps) {
   const allFields = [
     ...SYSTEM_FIELDS,
     ...fields.map((f) => ({
@@ -36,14 +45,14 @@ export function FilterPanel({ fields, conditions, onChange, className }: FilterP
       type: getFieldType(f),
       options: f.config?.select?.options,
     })),
-  ]
+  ].filter((f) => !excludeFields?.includes(f.id))
 
   const handleAddCondition = () => {
     onChange([
       ...conditions,
       {
-        field: 'name',
-        operator: 'contains',
+        field: allFields[0]?.id || 'name',
+        operator: 'eq',
         value: '',
       },
     ])
@@ -75,9 +84,11 @@ export function FilterPanel({ fields, conditions, onChange, className }: FilterP
     <div className={cn('p-2 space-y-4 min-w-[100px]', className)}>
       {conditions.map((condition, index) => (
         <div key={index} className="flex items-center gap-2">
-          <div className="w-16 text-sm text-muted-foreground font-medium text-right">
-            {index === 0 ? 'Where' : 'and'}
-          </div>
+          {!hidePrefix && (
+            <div className="w-16 text-sm text-muted-foreground font-medium text-right">
+              {index === 0 ? 'Where' : 'and'}
+            </div>
+          )}
           <div className="flex-1 flex items-center gap-2">
             <Select
               value={condition.field}

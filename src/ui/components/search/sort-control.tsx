@@ -1,5 +1,5 @@
-import type { SearchSort } from '@/dtos/search'
 import { type FieldInfo as MetadataFieldInfo } from '@/dtos/metadata'
+import type { SearchSort } from '@/dtos/search'
 import { Button } from '@/ui/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/ui/popover'
 import {
@@ -9,7 +9,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/ui/components/ui/select'
-import { ArrowDownWideNarrow } from 'lucide-react'
 
 interface SortControlProps {
   fields: MetadataFieldInfo[]
@@ -79,7 +78,6 @@ export function SortControl({ fields, sort, onSortChange, disabled }: SortContro
           className="h-8"
           disabled={disabled}
         >
-          <ArrowDownWideNarrow className="h-4 w-4 mr-1" />
           {sort ? `Sorted by ${currentField.label}` : 'Sort by'}
         </Button>
       </PopoverTrigger>

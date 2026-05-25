@@ -13,6 +13,7 @@ import { Download } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useInView } from 'react-intersection-observer'
 import { toast } from 'sonner'
+import { formatSize } from '@/ui/lib/format'
 import type { DragState } from '../dnd-types'
 import { FileBrowserContextMenu } from './context-menu'
 import { useNavigate } from '@tanstack/react-router'
@@ -395,12 +396,6 @@ export function FileBrowser({
     return `${count} ${isFile ? 'Asset' : 'Folder'}${count !== 1 ? 's' : ''}`
   }
 
-  const formatSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
-    return `${(bytes / (1024 * 1024)).toFixed(0)} MB`
-  }
-
   const handleEmptyAreaClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement
     // Clear selection if we didn't click on a card/row, button, or other interactive element
@@ -741,7 +736,9 @@ export function FileBrowser({
           >
             {!isShareView && !isPublic && onFilterChange && onSortChange && (
               <FileBrowserToolbar
+                teamId={teamId}
                 projectId={projectId}
+                assetId={assetId}
                 fields={fields || []}
                 filterConditions={filterConditions || []}
                 onFilterChange={onFilterChange}
