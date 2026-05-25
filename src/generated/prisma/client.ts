@@ -196,3 +196,8 @@ export type Model = Prisma.ModelModel
  * 
  */
 export type Provider = Prisma.ProviderModel
+/**
+ * Model Collection
+ * 
+ */
+export type Collection = Prisma.CollectionModel

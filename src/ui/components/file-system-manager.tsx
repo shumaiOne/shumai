@@ -1,6 +1,7 @@
 import type { AssetInfo, AssetInfoPaginatedList } from '@/dtos/asset'
 import { type FieldInfo as MetadataFieldInfo } from '@/dtos/metadata'
 import type { SearchCondition, SearchSort } from '@/dtos/search'
+import type { CollectionInfo } from '@/dtos/collection'
 import { client } from '@/ui/api/client'
 import { useMutation } from '@tanstack/react-query'
 import { InferRequestType, InferResponseType } from 'hono/client'
@@ -29,6 +30,9 @@ type FileSystemManagerProps = {
   projectName: string
   assetId: string
   rootFolderId: string
+  collection?: CollectionInfo
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onUpdateCollection?: (updates: { name?: string; filter?: any }) => void
 }
 
 export default function FileSystemManager({
@@ -37,6 +41,8 @@ export default function FileSystemManager({
   projectName,
   assetId,
   rootFolderId,
+  collection,
+  onUpdateCollection,
 }: FileSystemManagerProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -89,7 +95,17 @@ export default function FileSystemManager({
     }
   }, [teamId, fetchMembers, fetchMetadata])
 
-  const [filterConditions, setFilterConditions] = useState<SearchCondition[]>([])
+  const initialFilterConditions = useMemo(() => {
+    return collection?.filter?.searchFilter?.conditions || []
+  }, [collection])
+
+  const [filterConditions, setFilterConditions] =
+    useState<SearchCondition[]>(initialFilterConditions)
+
+  useEffect(() => {
+    setFilterConditions(initialFilterConditions)
+  }, [initialFilterConditions])
+
   const sortKey = `project:${projectId}:sort`
   const sort = (metadata[sortKey] as SearchSort | undefined) || { field: 'custom', order: 'asc' }
   const setSort = (newSort: SearchSort | undefined) => {
@@ -98,7 +114,8 @@ export default function FileSystemManager({
     }
   }
 
-  const isFiltering = filterConditions.length > 0
+  const isCollection = !!collection
+  const isFiltering = filterConditions.length > 0 || isCollection
 
   const {
     fileListLeftSidebarCollapsed: isLeftSidebarCollapsed,
@@ -135,8 +152,10 @@ export default function FileSystemManager({
       ancestorFolders: folderInfo?.ancestorFolders ?? [],
       currentAsset: isRecentlyDeleted
         ? { name: 'Recently Deleted', type: 'folder' }
-        : { name: folderInfo?.name, type: 'folder' },
-      isRootFolder: !isRecentlyDeleted && assetId === rootFolderId,
+        : isCollection
+          ? { name: collection.name, type: 'folder' }
+          : { name: folderInfo?.name, type: 'folder' },
+      isRootFolder: !isRecentlyDeleted && !isCollection && assetId === rootFolderId,
       onFolderClick: (id: string) => {
         navigate({
           to: '/projects/$projectId/folders/$folderId',
@@ -167,18 +186,21 @@ export default function FileSystemManager({
   } = useInfiniteQuery<AssetInfoPaginatedList>({
     queryKey: isRecentlyDeleted
       ? ['projects', projectId, 'recently-deleted', 'folder']
-      : ['search', teamId, assetId, 'folder', filterConditions, sort],
+      : ['search', teamId, assetId, 'folder', filterConditions, sort, isCollection],
     queryFn: async ({ pageParam }) => {
-      if (isRecentlyDeleted) {
-        const res = await client.api.projects[':projectId']['recently-deleted'].$get({
-          param: { projectId: projectId },
-          query: {
-            assetType: 'folder',
-            after: pageParam as string,
-          },
-        })
-        if (!res.ok) throw new Error('failed to fetch recently deleted folders')
-        return (await res.json()) as unknown as AssetInfoPaginatedList
+      if (isRecentlyDeleted || isCollection) {
+        if (isRecentlyDeleted) {
+          const res = await client.api.projects[':projectId']['recently-deleted'].$get({
+            param: { projectId: projectId },
+            query: {
+              assetType: 'folder',
+              after: pageParam as string,
+            },
+          })
+          if (!res.ok) throw new Error('failed to fetch recently deleted folders')
+          return (await res.json()) as unknown as AssetInfoPaginatedList
+        }
+        return { data: [], pageInfo: { total: 0 } }
       }
       if (isFiltering) {
         return { data: [], pageInfo: { total: 0 } }
@@ -212,7 +234,7 @@ export default function FileSystemManager({
   } = useInfiniteQuery<AssetInfoPaginatedList>({
     queryKey: isRecentlyDeleted
       ? ['projects', projectId, 'recently-deleted', 'file']
-      : ['search', teamId, assetId, 'file', filterConditions, sort],
+      : ['search', teamId, assetId, 'file', filterConditions, sort, isCollection],
     queryFn: async ({ pageParam }) => {
       if (isRecentlyDeleted) {
         const res = await client.api.projects[':projectId']['recently-deleted'].$get({
@@ -231,7 +253,7 @@ export default function FileSystemManager({
         json: {
           assetType: 'file',
           after: pageParam as string,
-          recursively: isFiltering,
+          recursively: isFiltering || isCollection,
           conditions: filterConditions,
           sort,
         },
@@ -450,6 +472,9 @@ export default function FileSystemManager({
             sort={sort}
             onSortChange={setSort}
             dragState={dragState}
+            collection={collection}
+            onUpdateCollection={onUpdateCollection}
+            rootFolderId={rootFolderId}
           />
 
           {!isRightSidebarCollapsed && (

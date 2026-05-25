@@ -11,9 +11,9 @@ import {
   Loader2,
   Trash2,
   Plus,
-  MoreHorizontal,
   Share2,
   LayoutGrid,
+  Bookmark,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useInView } from 'react-intersection-observer'
@@ -21,6 +21,7 @@ import { useDraggable, useDroppable } from '@dnd-kit/react'
 import type { DragState } from './dnd-types'
 import { toast } from 'sonner'
 import type { ShareLinkInfo } from '@/dtos/share'
+import type { CollectionInfo } from '@/dtos/collection'
 
 interface FolderTreeProps {
   teamId: string
@@ -30,6 +31,8 @@ interface FolderTreeProps {
   dragState?: DragState
   onSelect?: (folder: AssetInfo) => void
   selectedFolderId?: string
+  hideCollections?: boolean
+  hideShares?: boolean
 }
 
 export function FolderTree({
@@ -40,6 +43,8 @@ export function FolderTree({
   dragState,
   onSelect,
   selectedFolderId,
+  hideCollections,
+  hideShares,
 }: FolderTreeProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -59,6 +64,50 @@ export function FolderTree({
       return (await res.json()) as unknown as { data: ShareLinkInfo[] }
     },
     enabled: !!teamId && !!projectId,
+  })
+
+  const { data: collectionsData } = useQuery({
+    queryKey: ['collections', teamId, projectId],
+    queryFn: async () => {
+      const res = await client.api.teams[':teamId'].projects[':projectId'].collections.$get({
+        param: { teamId, projectId },
+        query: { first: '100' },
+      })
+      if (!res.ok) throw new Error('Failed to fetch collections')
+      return (await res.json()) as unknown as { data: CollectionInfo[] }
+    },
+    enabled: !!teamId && !!projectId,
+  })
+
+  const { mutate: createCollection } = useMutation({
+    mutationFn: async () => {
+      const res = await client.api.teams[':teamId'].projects[':projectId'].collections.$post({
+        param: { teamId, projectId },
+        json: {
+          name: 'Untitled Collection',
+          filter: {
+            sourceFolderId: rootFolderId,
+            searchFilter: {
+              conditions: [],
+              recursively: true,
+            },
+          },
+        },
+      })
+      if (!res.ok) throw new Error('Failed to create collection')
+      return await res.json()
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['collections', teamId, projectId] })
+      toast.success('Collection created')
+      navigate({
+        to: '/projects/$projectId/collections/$collectionId',
+        params: { projectId, collectionId: data.id },
+      })
+    },
+    onError: (err) => {
+      toast.error(`Error: ${err.message}`)
+    },
   })
 
   const { mutate: createShareLink } = useMutation({
@@ -143,55 +192,79 @@ export function FolderTree({
           </div>
         </div>
 
-        <div>
-          <header className="flex items-center justify-between px-2 mb-1">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Collections
-            </h3>
-            <button className="text-muted-foreground hover:text-foreground">
-              <Plus className="h-3.5 w-3.5" />
-            </button>
-          </header>
-        </div>
-
-        <div>
-          <header className="flex items-center justify-between px-2 mb-1">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Share Links
-            </h3>
-            <div className="flex items-center gap-1">
-              <button className="text-muted-foreground hover:text-foreground">
-                <MoreHorizontal className="h-3.5 w-3.5" />
-              </button>
+        {!hideCollections && (
+          <div>
+            <header className="flex items-center justify-between px-2 mb-1">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Collections
+              </h3>
               <button
-                onClick={() => createShareLink()}
+                onClick={() => createCollection()}
                 className="text-muted-foreground hover:text-foreground"
               >
                 <Plus className="h-3.5 w-3.5" />
               </button>
-            </div>
-          </header>
+            </header>
 
-          <div className="space-y-0.5">
-            <div className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
-              <div className="flex h-4 w-4 items-center justify-center">
-                <LayoutGrid className="h-4 w-4 text-sidebar-primary" />
-              </div>
-              <span className="flex-1 truncate text-sidebar-foreground">
-                All Share Links ({shareLinks.length})
-              </span>
+            <div className="space-y-0.5">
+              {collectionsData?.data.map((collection) => (
+                <div
+                  key={collection.id}
+                  className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  onClick={() =>
+                    navigate({
+                      to: '/projects/$projectId/collections/$collectionId',
+                      params: { projectId, collectionId: collection.id },
+                    })
+                  }
+                >
+                  <div className="flex h-4 w-4 items-center justify-center">
+                    <Bookmark className="h-4 w-4 text-sidebar-primary" />
+                  </div>
+                  <span className="flex-1 truncate text-sidebar-foreground">{collection.name}</span>
+                </div>
+              ))}
             </div>
-
-            {shareLinks.map((link) => (
-              <ShareLinkItem
-                key={link.id}
-                link={link}
-                projectId={projectId}
-                dragState={dragState}
-              />
-            ))}
           </div>
-        </div>
+        )}
+
+        {!hideShares && (
+          <div>
+            <header className="flex items-center justify-between px-2 mb-1">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Share Links
+              </h3>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => createShareLink()}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </header>
+
+            <div className="space-y-0.5">
+              <div className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                <div className="flex h-4 w-4 items-center justify-center">
+                  <LayoutGrid className="h-4 w-4 text-sidebar-primary" />
+                </div>
+                <span className="flex-1 truncate text-sidebar-foreground">
+                  All Share Links ({shareLinks.length})
+                </span>
+              </div>
+
+              {shareLinks.map((link) => (
+                <ShareLinkItem
+                  key={link.id}
+                  link={link}
+                  projectId={projectId}
+                  dragState={dragState}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -6,6 +6,7 @@ import type { AssetInfo } from '@/dtos/asset'
 import type { SearchCondition, SearchSort } from '@/dtos/search'
 import type { CreateUploadTaskRequest } from '@/dtos/upload'
 import type { ShareLinkInfo } from '@/dtos/share'
+import type { CollectionInfo } from '@/dtos/collection'
 import { useFieldStore } from '@/ui/stores/fields'
 import { useUploadStore } from '@/ui/stores/upload'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -70,6 +71,10 @@ interface FileBrowserProps {
   isPublic?: boolean
   onRemoveFromShare?: (items: AssetInfo[]) => void
   fieldVisibility?: Record<string, boolean>
+  collection?: CollectionInfo
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onUpdateCollection?: (updates: { name?: string; filter?: any }) => void
+  rootFolderId?: string
 }
 
 type FileWithId = {
@@ -110,6 +115,9 @@ export function FileBrowser({
   isPublic,
   onRemoveFromShare,
   fieldVisibility,
+  collection,
+  onUpdateCollection,
+  rootFolderId,
 }: FileBrowserProps) {
   const [contextMenuItem, setContextMenuItem] = useState<AssetInfo | null>(null)
   const [moveCopyMode, setMoveCopyMode] = useState<'move' | 'copy' | null>(null)
@@ -745,6 +753,9 @@ export function FileBrowser({
                 sort={sort}
                 onSortChange={onSortChange}
                 isRecentlyDeleted={isRecentlyDeleted}
+                collection={collection}
+                onUpdateCollection={onUpdateCollection}
+                rootFolderId={rootFolderId}
               />
             )}
             {displayStyle === 'list' ? (

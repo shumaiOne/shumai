@@ -1,9 +1,8 @@
-import * as taskActivities from './task'
-import * as aiActivities from './ai'
 import * as transcodeActivities from '@/transcode/activities/transcode'
 import * as agentActivities from './agent'
+import * as aiActivities from './ai'
 import * as dbActivities from './db'
-import * as gcActivities from './gc'
+import * as taskActivities from './task'
 
 export const activities = {
   ...taskActivities,
@@ -11,5 +10,4 @@ export const activities = {
   ...transcodeActivities,
   ...agentActivities,
   ...dbActivities,
-  ...gcActivities,
 }

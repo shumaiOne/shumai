@@ -5,6 +5,7 @@ import { Hono } from 'hono'
 import agentRoute from '@/api/agent'
 import attachmentRoute from '@/api/attachment'
 import authnRoute from '@/api/authn'
+import collectionRoute from '@/api/collection'
 import fileRoute from '@/api/file'
 import folderRoute from '@/api/folder'
 import inviteRoute from '@/api/invite'
@@ -42,6 +43,7 @@ const apiRoute = new Hono<{ Variables: { user: User } }>()
   .route('/', notificationRoute)
   .route('/', metadataRoute)
   .route('/', projectRoute)
+  .route('/', collectionRoute)
   .route('/', teamRoute)
   .route('/', versionStackRoute)
   .route('/', fileRoute)

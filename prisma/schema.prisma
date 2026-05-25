@@ -306,6 +306,7 @@ model Project {
   invites                Invite[]           @relation("ProjectToInvite")
   notifications          Notification[]     @relation("ProjectToNotification")
   shareLinks             ShareLink[]        @relation("ProjectToShareLink")
+  collections            Collection[]       @relation("ProjectToCollection")
 
   @@map("projects")
   @@index([createdAt])
@@ -745,4 +746,19 @@ model Provider {
 
   @@unique([teamId, name])
   @@map("providers")
+}
+
+model Collection {
+  id        String   @id @default(ulid())
+  name      String
+  /// [CollectionFilter]
+  filter    Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  projectId String   @map("project_id")
+  project   Project  @relation("ProjectToCollection", fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt(sort: Desc)])
+  @@map("collections")
 }

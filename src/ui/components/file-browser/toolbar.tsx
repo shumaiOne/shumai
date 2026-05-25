@@ -1,3 +1,5 @@
+import type { AssetInfo } from '@/dtos/asset'
+import type { CollectionInfo } from '@/dtos/collection'
 import { type FieldInfo as MetadataFieldInfo } from '@/dtos/metadata'
 import type { SearchCondition, SearchSort } from '@/dtos/search'
 import { client } from '@/ui/api/client'
@@ -5,8 +7,10 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import type { InferRequestType, InferResponseType } from 'hono/client'
 import { useState } from 'react'
 import { FieldsManager } from '../fields-manager'
+import { FolderTree } from '../folder-tree'
 import { ManageFieldsDialog } from '../manage-fields-dialog'
 import { MembersDialog } from '../members-dialog'
+import { FilterPanel } from '../search/filter-panel'
 import { SearchFilterDialog } from '../search/search-filter-dialog'
 import { SortControl } from '../search/sort-control'
 import { Avatar, AvatarFallback } from '../ui/avatar'
@@ -24,6 +28,10 @@ type FileBrowserToolbarProps = {
   sort?: SearchSort
   onSortChange: (sort?: SearchSort) => void
   isRecentlyDeleted?: boolean
+  collection?: CollectionInfo
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onUpdateCollection?: (updates: { name?: string; filter?: any }) => void
+  rootFolderId?: string
 }
 
 export function FileBrowserToolbar({
@@ -36,13 +44,30 @@ export function FileBrowserToolbar({
   sort,
   onSortChange,
   isRecentlyDeleted,
+  collection,
+  onUpdateCollection,
+  rootFolderId,
 }: FileBrowserToolbarProps) {
   const [popoverOpen, setPopoverOpen] = useState(false)
   const [searchDialogOpen, setSearchDialogOpen] = useState(false)
   const [manageDialogOpen, setManageDialogOpen] = useState(false)
   const [isMembersDialogOpen, setIsMembersDialogOpen] = useState(false)
+  const [isFolderSelectorOpen, setIsFolderSelectorOpen] = useState(false)
 
   const activeFiltersCount = filterConditions.length
+  const isCollection = !!collection
+
+  const { data: folderInfo } = useQuery({
+    queryKey: ['folders', teamId, assetId],
+    queryFn: async () => {
+      const res = await client.api.teams[':teamId'].folders[':folderId'].$get({
+        param: { teamId: teamId, folderId: assetId },
+      })
+      if (!res.ok) throw new Error('failed to fetch folder')
+      return (await res.json()) as unknown as AssetInfo
+    },
+    enabled: isCollection && !!teamId && !!assetId,
+  })
 
   const { data: members } = useQuery({
     queryKey: ['projects', projectId, 'members'],
@@ -147,20 +172,104 @@ export function FileBrowserToolbar({
 
         <Separator orientation="vertical" />
 
-        <Button
-          onClick={() => setSearchDialogOpen(true)}
-          disabled={isRecentlyDeleted}
-          variant={activeFiltersCount > 0 ? 'secondary' : 'ghost'}
-          size="sm"
-          className="inline-flex items-center gap-2 px-4 py-2 hover:bg-primary/10 font-semibold rounded-xl cursor-pointer h-8"
-        >
-          <span>Search</span>
-          {activeFiltersCount > 0 && (
-            <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/50 border border-primary-foreground/20">
-              {activeFiltersCount}
-            </span>
-          )}
-        </Button>
+        {isCollection ? (
+          <>
+            <Popover open={isFolderSelectorOpen} onOpenChange={setIsFolderSelectorOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="inline-flex items-center gap-2 px-3 py-2 hover:bg-primary/10 font-semibold rounded-xl cursor-pointer h-8 text-muted-foreground"
+                >
+                  <span className="truncate max-w-[150px]">{folderInfo?.name || 'Loading...'}</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[300px] p-0" align="start">
+                <div className="h-[400px] flex flex-col">
+                  <div className="p-2 border-b text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Select Source Folder
+                  </div>
+                  <div className="flex-1 overflow-y-auto">
+                    <FolderTree
+                      teamId={teamId}
+                      projectId={projectId}
+                      projectName="Assets"
+                      rootFolderId={rootFolderId!}
+                      onSelect={(folder: AssetInfo) => {
+                        onUpdateCollection?.({
+                          filter: {
+                            ...collection.filter,
+                            sourceFolderId: folder.id,
+                          },
+                        })
+                        setIsFolderSelectorOpen(false)
+                      }}
+                      selectedFolderId={collection.filter.sourceFolderId}
+                      hideCollections
+                      hideShares
+                    />
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            <Separator orientation="vertical" />
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={activeFiltersCount > 0 ? 'secondary' : 'ghost'}
+                  size="sm"
+                  className="inline-flex items-center gap-2 px-4 py-2 hover:bg-primary/10 font-semibold rounded-xl cursor-pointer h-8"
+                >
+                  <span>Filter</span>
+                  {activeFiltersCount > 0 && (
+                    <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/50 border border-primary-foreground/20">
+                      {activeFiltersCount}
+                    </span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[500px] p-0 overflow-hidden" align="start">
+                <div className="max-h-[80vh] overflow-y-auto">
+                  <FilterPanel
+                    fields={fields}
+                    conditions={filterConditions}
+                    onChange={(newConditions) => {
+                      onFilterChange(newConditions)
+                      onUpdateCollection?.({
+                        filter: {
+                          ...collection.filter,
+                          searchFilter: {
+                            ...collection.filter.searchFilter,
+                            conditions: newConditions,
+                          },
+                        },
+                      })
+                    }}
+                    excludeFields={[]}
+                    hidePrefix
+                  />
+                </div>
+              </PopoverContent>
+            </Popover>
+          </>
+        ) : (
+          <Button
+            onClick={() => setSearchDialogOpen(true)}
+            disabled={isRecentlyDeleted}
+            variant={activeFiltersCount > 0 ? 'secondary' : 'ghost'}
+            size="sm"
+            className="inline-flex items-center gap-2 px-4 py-2 hover:bg-primary/10 font-semibold rounded-xl cursor-pointer h-8"
+          >
+            <span>Search</span>
+            {activeFiltersCount > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/50 border border-primary-foreground/20">
+                {activeFiltersCount}
+              </span>
+            )}
+          </Button>
+        )}
       </div>
 
       <div className="flex items-center gap-2">

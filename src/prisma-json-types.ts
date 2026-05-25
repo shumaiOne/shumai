@@ -48,6 +48,11 @@ declare global {
     // Team Settings
     // ----------------------------------------------------------------------
     export type VideoTranscodeStrategy = 'disable' | 'single' | 'full'
+
+    // ----------------------------------------------------------------------
+    // Collection Filter
+    // ----------------------------------------------------------------------
+    export type CollectionFilter = import('./dtos/collection').CollectionFilter
     export type ImageTranscodeStrategy = 'disable' | 'single'
 
     export interface TranscodeSettings {
