@@ -448,6 +448,93 @@ describe('AssetService', () => {
     expect(newAttachmentAsset.type).toBe(AssetType.attachment)
   })
 
+  it('rejects copying a folder into its own descendant', async () => {
+    const { user, assets } = await setupBasicAssets()
+
+    // Create a subfolder inside folderA
+    const subfolder = await prisma.asset.create({
+      data: {
+        name: 'subfolder',
+        type: AssetType.folder,
+        projectId: assets.folderA.projectId,
+        parentId: assets.folderA.id,
+        status: 'uploaded',
+      },
+    })
+
+    await expect(
+      assetService.copyAssets({
+        assetIds: [assets.folderA.id],
+        newParentId: subfolder.id,
+        creatorId: user.id,
+        withComments: false,
+      }),
+    ).rejects.toThrow('Cannot copy a folder into its own descendant')
+  })
+
+  it('uses destination project when copying comment attachments', async () => {
+    const { user, assets, project } = await setupBasicAssets()
+
+    // Set up project 2
+    const project2 = await prisma.project.create({
+      data: { name: 'Project 2', teamId: project.teamId },
+    })
+    const root2 = await prisma.asset.create({
+      data: { name: 'root2', type: AssetType.folder, projectId: project2.id, status: 'uploaded' },
+    })
+
+    // Create a comment with attachment on fileA1
+    const attachmentAsset = await prisma.asset.create({
+      data: {
+        name: 'attach.png',
+        type: AssetType.attachment,
+        projectId: project.id,
+        creatorId: user.id,
+        status: 'uploaded',
+        sizeByte: 50,
+      },
+    })
+
+    const comment = await prisma.assetComment.create({
+      data: {
+        assetId: assets.fileA1.id,
+        creatorId: user.id,
+        message: 'Original Comment',
+      },
+    })
+
+    await prisma.assetCommentAttachment.create({
+      data: {
+        commentId: comment.id,
+        assetId: attachmentAsset.id,
+      },
+    })
+
+    // Copy to project 2
+    await assetService.copyAssets({
+      assetIds: [assets.fileA1.id],
+      newParentId: root2.id,
+      creatorId: user.id,
+      withComments: true,
+    })
+
+    // Find the copied file in project 2
+    const newFileA1 = await prisma.asset.findFirstOrThrow({
+      where: { parentId: root2.id, name: 'fileA1' },
+    })
+
+    // Verify comments were copied
+    const newComments = await prisma.assetComment.findMany({
+      where: { assetId: newFileA1.id },
+      include: { attachments: { include: { asset: true } } },
+    })
+    expect(newComments.length).toBe(1)
+
+    // Verify attachment asset belongs to PROJECT 2
+    const newAttachmentAsset = newComments[0].attachments[0].asset
+    expect(newAttachmentAsset.projectId).toBe(project2.id)
+  })
+
   it('handles reparenting - Version Stack: move into stack', async () => {
     const { user, assets } = await setupBasicAssets()
     await assetService.reparentAssets({

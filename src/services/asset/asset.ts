@@ -1,5 +1,4 @@
 import { prisma } from '@/db'
-import { logger } from '@/logger'
 import {
   AncestorFolder,
   AssetInfo,
@@ -19,6 +18,7 @@ import {
   UserInfo,
 } from '@/dtos/asset'
 import { Asset, AssetStatus, AssetType, Prisma, StorageKey } from '@/generated/prisma/client.ts'
+import { logger } from '@/logger'
 import { PaginatedData, paginateQuery, PaginationParams } from '@/services/pagination'
 import { s3Service } from '@/services/s3/s3'
 import { generateKeyBetween } from 'jittered-fractional-indexing'
@@ -289,6 +289,20 @@ export class AssetService {
         throw new Error('Not all assets to be copied were found')
       }
 
+      // Check if newParentId is a descendant of any asset being copied
+      const ancestors = await tx.$queryRaw<{ id: string }[]>`
+        WITH RECURSIVE ancestor AS (
+          SELECT id, parent_id FROM assets WHERE id = ${newParent.id}
+          UNION ALL
+          SELECT a.id, a.parent_id FROM assets a
+          INNER JOIN ancestor d ON a.id = d.parent_id
+        )
+        SELECT id FROM ancestor WHERE id IN (${Prisma.join(req.assetIds)}) LIMIT 1;
+      `
+      if (ancestors.length > 0) {
+        throw new Error('Cannot copy a folder into its own descendant')
+      }
+
       for (const a of assetsToCopy) {
         if (!a.project || !a.project.team) {
           throw new Error(`Asset ${a.id} is not associated with a team`)
@@ -354,7 +368,7 @@ export class AssetService {
         sizeByte: asset.sizeByte,
         status: asset.status,
         transcodeTaskId: asset.transcodeTaskId,
-        media: (asset.media as unknown as PrismaJson.MediaInfo) || undefined,
+        media: asset.media || undefined,
         isDeleted: asset.isDeleted,
         deletedAt: asset.deletedAt,
         sortIndex: sortIndex,
@@ -362,14 +376,13 @@ export class AssetService {
         projectId: projectId,
         creatorId: creatorId || asset.creatorId,
         taskId: asset.taskId,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        targetId: asset.targetId as any,
+        targetId: asset.targetId,
         storageKeyId: asset.storageKeyId,
       },
     })
 
     if (withComments) {
-      await this.copyComments(tx, asset.id, newAsset.id, creatorId)
+      await this.copyComments(tx, asset.id, newAsset.id, projectId, creatorId)
     }
 
     if (asset.type === AssetType.folder) {
@@ -397,6 +410,7 @@ export class AssetService {
     tx: Prisma.TransactionClient,
     oldAssetId: string,
     newAssetId: string,
+    projectId: string | null,
     creatorId?: string,
   ) {
     const comments = await tx.assetComment.findMany({
@@ -412,7 +426,7 @@ export class AssetService {
     })
 
     for (const comment of comments) {
-      await this.copyCommentRecursive(tx, comment, newAssetId, null, creatorId)
+      await this.copyCommentRecursive(tx, comment, newAssetId, null, projectId, creatorId)
     }
   }
 
@@ -421,6 +435,7 @@ export class AssetService {
     comment: any, // eslint-disable-line @typescript-eslint/no-explicit-any
     newAssetId: string,
     newReplyToId: string | null,
+    projectId: string | null,
     creatorId?: string,
   ) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -441,7 +456,7 @@ export class AssetService {
           tx,
           attachment.asset,
           null, // attachment usually has no parent
-          attachment.asset.projectId,
+          projectId,
           attachment.asset.sortIndex,
           creatorId,
           false,
@@ -457,7 +472,7 @@ export class AssetService {
 
     if (replies) {
       for (const reply of replies) {
-        await this.copyCommentRecursive(tx, reply, newAssetId, newComment.id, creatorId)
+        await this.copyCommentRecursive(tx, reply, newAssetId, newComment.id, projectId, creatorId)
       }
     }
   }
