@@ -29,15 +29,15 @@ function RecentlyDeletedPage() {
   const rootFolderId = projectInfo?.rootFolder
 
   const { data: rootFolder } = useQuery({
-    queryKey: ['folders', teamId!, rootFolderId!],
+    queryKey: ['folders', rootFolderId!],
     queryFn: () =>
       (async () => {
-        const res = await client.api.teams[':teamId'].folders[':folderId'].$get({
-          param: { teamId: teamId!, folderId: rootFolderId! },
+        const res = await client.api.folders[':folderId'].$get({
+          param: { folderId: rootFolderId! },
         })
         return await res.json()
       })(),
-    enabled: !!teamId && !!rootFolderId,
+    enabled: !!rootFolderId,
   })
 
   if (!teamId || !rootFolderId || !rootFolder) {

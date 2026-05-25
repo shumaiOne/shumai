@@ -1,69 +1,40 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { Hono } from 'hono'
+import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { Hono, type Context, type Next } from 'hono'
 import projectRoute from './project'
-import { authMiddleware } from '@/api/middleware/auth'
+import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 import { projectService } from '@/services/project/project'
 import { assetService } from '@/services/asset/asset'
-import { authzService } from '@/services/authz/authz'
-
-vi.mock('@/services/authz/authz', () => ({
-  authzService: {
-    hasPermission: vi.fn(),
-  },
-  Permission: {
-    Read: 'Read',
-    Edit: 'Edit',
-    Admin: 'Admin',
-  },
-}))
 
 vi.mock('@/api/middleware/auth', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  authMiddleware: async (c: any, next: any) => {
+  authMiddleware: async (c: Context, next: Next) => {
     c.set('user', { id: 'user1', name: 'Test User' })
     await next()
   },
 }))
 
+vi.mock('@/services/authz/authz')
+vi.mock('@/services/project/project')
+vi.mock('@/services/asset/asset')
+
 describe('project api', () => {
-  let mockListProjects: any // eslint-disable-line @typescript-eslint/no-explicit-any
-  let mockCreateProject: any // eslint-disable-line @typescript-eslint/no-explicit-any
-  let mockUpdateProject: any // eslint-disable-line @typescript-eslint/no-explicit-any
-  let mockGetProject: any // eslint-disable-line @typescript-eslint/no-explicit-any
-  let mockGetProjectTeam: any // eslint-disable-line @typescript-eslint/no-explicit-any
-  let mockListProjectMembers: any // eslint-disable-line @typescript-eslint/no-explicit-any
-  let mockReparentAssets: any // eslint-disable-line @typescript-eslint/no-explicit-any
+  const app = new Hono()
+    .use('*', async (c, next) => {
+      c.set('user', { id: 'user1', name: 'Test User' })
+      await next()
+    })
+    .route('/', projectRoute)
 
   beforeEach(() => {
-    mockListProjects = vi.fn()
-    mockCreateProject = vi.fn()
-    mockUpdateProject = vi.fn()
-    mockGetProject = vi.fn()
-    mockGetProjectTeam = vi.fn()
-    mockListProjectMembers = vi.fn()
-    mockReparentAssets = vi.fn()
-    vi.mocked(authzService.hasPermission).mockClear()
-
-    vi.spyOn(projectService, 'listProjects').mockImplementation(mockListProjects)
-    vi.spyOn(projectService, 'createProject').mockImplementation(mockCreateProject)
-    vi.spyOn(projectService, 'updateProject').mockImplementation(mockUpdateProject)
-    vi.spyOn(projectService, 'getProject').mockImplementation(mockGetProject)
-    vi.spyOn(projectService, 'getProjectTeam').mockImplementation(mockGetProjectTeam)
-    vi.spyOn(projectService, 'listProjectMembers').mockImplementation(mockListProjectMembers)
-    vi.spyOn(assetService, 'reparentAssets').mockImplementation(mockReparentAssets)
-  })
-
-  afterEach(() => {
     vi.restoreAllMocks()
+    vi.mocked(authzService.hasPermission).mockResolvedValue(undefined)
   })
 
   it('GET /teams/:teamId/projects', async () => {
-    mockListProjects.mockResolvedValue({
-      data: [{ id: 'foo', name: 'foo.png', rootFolder: 'uid' }],
+    vi.mocked(projectService.listProjects).mockResolvedValue({
+      data: [{ id: 'foo', name: 'foo.png', rootFolder: 'uid' }] as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       pageInfo: { total: 100, cursor: 'abc' },
     })
 
-    const app = new Hono().use('*', authMiddleware).route('/', projectRoute)
     const res = await app.request('/teams/t/projects?page_size=10')
 
     expect(res.status).toBe(200)
@@ -71,16 +42,21 @@ describe('project api', () => {
     expect(json.data).toHaveLength(1)
     expect(json.pageInfo.total).toBe(100)
     expect(json.data[0].id).toBe('foo')
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Read,
+      type: ResourceType.Team,
+      id: 't',
+    })
   })
 
   it('POST /teams/:teamId/projects', async () => {
-    mockCreateProject.mockResolvedValue({
+    vi.mocked(projectService.createProject).mockResolvedValue({
       id: 'foo',
       name: 'foo.png',
       coverImage: 'http://s3/bucket/key',
-    })
+    } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
-    const app = new Hono().use('*', authMiddleware).route('/', projectRoute)
     const res = await app.request('/teams/t/projects', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -92,17 +68,22 @@ describe('project api', () => {
     expect(json.id).toBe('foo')
     expect(json.name).toBe('foo.png')
     expect(json.coverImage).toBe('http://s3/bucket/key')
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Edit,
+      type: ResourceType.Team,
+      id: 't',
+    })
   })
 
-  it('PUT /teams/:teamId/projects/:projectId', async () => {
-    mockUpdateProject.mockResolvedValue({
+  it('PUT /projects/:projectId', async () => {
+    vi.mocked(projectService.updateProject).mockResolvedValue({
       id: 'foo',
       name: 'updated',
       coverImage: 'http://s3/bucket/key',
-    })
+    } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
-    const app = new Hono().use('*', authMiddleware).route('/', projectRoute)
-    const res = await app.request('/teams/t/projects/foo', {
+    const res = await app.request('/projects/foo', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'updated' }),
@@ -111,39 +92,54 @@ describe('project api', () => {
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.name).toBe('updated')
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Edit,
+      type: ResourceType.Project,
+      id: 'foo',
+    })
   })
 
   it('GET /projects/:projectId', async () => {
-    mockGetProject.mockResolvedValue({
+    vi.mocked(projectService.getProject).mockResolvedValue({
       id: 'p',
       name: 'foo.png',
       rootFolder: 'root_folder_id',
-    })
+    } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
-    const app = new Hono().use('*', authMiddleware).route('/', projectRoute)
     const res = await app.request('/projects/p')
 
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.rootFolder).toBe('root_folder_id')
     expect(json.id).toBe('p')
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Read,
+      type: ResourceType.Project,
+      id: 'p',
+    })
   })
 
   it('GET /projects/:projectId/team', async () => {
-    mockGetProjectTeam.mockResolvedValue('teamId')
+    vi.mocked(projectService.getProjectTeam).mockResolvedValue('teamId')
 
-    const app = new Hono().use('*', authMiddleware).route('/', projectRoute)
     const res = await app.request('/projects/p/team')
 
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.teamId).toBe('teamId')
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Read,
+      type: ResourceType.Project,
+      id: 'p',
+    })
   })
 
   it('POST /projects/:projectId/reparent', async () => {
-    mockReparentAssets.mockResolvedValue(undefined)
+    vi.mocked(assetService.reparentAssets).mockResolvedValue(undefined)
 
-    const app = new Hono().use('*', authMiddleware).route('/', projectRoute)
     const res = await app.request('/projects/p/reparent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -154,22 +150,25 @@ describe('project api', () => {
     })
 
     expect(res.status).toBe(204)
-    expect(authzService.hasPermission).toHaveBeenNthCalledWith(1, {
-      assetId: 'new_parent_id',
-      user: { id: 'user1', name: 'Test User' },
-      permission: 'Edit',
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Edit,
+      type: ResourceType.Asset,
+      id: 'new_parent_id',
     })
-    expect(authzService.hasPermission).toHaveBeenNthCalledWith(2, {
-      assetId: 'asset_1',
-      user: { id: 'user1', name: 'Test User' },
-      permission: 'Edit',
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Edit,
+      type: ResourceType.Asset,
+      id: 'asset_1',
     })
-    expect(authzService.hasPermission).toHaveBeenNthCalledWith(3, {
-      assetId: 'asset_2',
-      user: { id: 'user1', name: 'Test User' },
-      permission: 'Edit',
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Edit,
+      type: ResourceType.Asset,
+      id: 'asset_2',
     })
-    expect(mockReparentAssets).toHaveBeenCalledWith({
+    expect(assetService.reparentAssets).toHaveBeenCalledWith({
       newParentId: 'new_parent_id',
       assetIds: ['asset_1', 'asset_2'],
       creatorId: 'user1',

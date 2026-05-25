@@ -6,7 +6,7 @@ import {
   joinRequestSchema,
   InviteInfo,
 } from '@/dtos/invite'
-import { authzService, Permission } from '@/services/authz/authz'
+import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 import { inviteService } from '@/services/invite/invite'
 import { notificationService } from '@/services/notification/notification'
 import { NotificationType } from '@/generated/prisma/client'
@@ -40,9 +40,10 @@ const route = new Hono<{ Variables: { user: User } }>()
     const user = c.get('user')
 
     await authzService.hasPermission({
-      teamId,
       user,
       permission: Permission.Admin,
+      type: ResourceType.Team,
+      id: teamId,
     })
 
     const inv = await inviteService.createTeamInvite({
@@ -63,9 +64,10 @@ const route = new Hono<{ Variables: { user: User } }>()
       const user = c.get('user')
 
       await authzService.hasPermission({
-        projectId,
         user,
         permission: Permission.Admin,
+        type: ResourceType.Project,
+        id: projectId,
       })
 
       const inv = await inviteService.createProjectInvite({

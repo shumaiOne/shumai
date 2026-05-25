@@ -55,15 +55,15 @@ export const MessageCard: React.FC<MessageCardProps> = ({
     initialMessage.message in AI_PLACEHOLDERS
 
   const { data: polledMessage } = useQuery({
-    queryKey: ['teams', teamId, 'comments', initialMessage.id],
+    queryKey: ['comments', initialMessage.id],
     queryFn: async () => {
-      const res = await client.api.teams[':teamId'].comments[':commentId'].$get({
-        param: { teamId: teamId!, commentId: initialMessage.id! },
+      const res = await client.api.comments[':commentId'].$get({
+        param: { commentId: initialMessage.id! },
       })
       if (!res.ok) throw new Error('Failed to fetch comment')
       return (await res.json()) as CommentInfo
     },
-    enabled: !!teamId && isRunning,
+    enabled: isRunning,
     refetchInterval: (query) => {
       const data = query.state.data as CommentInfo
       if (data && (!data.message || !(data.message in AI_PLACEHOLDERS))) {
@@ -97,15 +97,15 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   const isAdmin = me?.role === 'owner'
 
   const { data: logs, isLoading: isLogsLoading } = useQuery({
-    queryKey: ['teams', teamId, 'agent-sessions', message.sessionId, 'entries'],
+    queryKey: ['agent-sessions', message.sessionId, 'entries'],
     queryFn: async () => {
-      const res = await client.api.teams[':teamId']['agent-sessions'][':sessionId'].entries.$get({
-        param: { teamId: teamId!, sessionId: message.sessionId! },
+      const res = await client.api['agent-sessions'][':sessionId'].entries.$get({
+        param: { sessionId: message.sessionId! },
       })
       if (!res.ok) throw new Error('Failed to fetch session logs')
       return await res.json()
     },
-    enabled: isLogsOpen && !!message.sessionId && !!teamId,
+    enabled: isLogsOpen && !!message.sessionId,
   })
 
   const renderFormattedMessage = (text: string) => {

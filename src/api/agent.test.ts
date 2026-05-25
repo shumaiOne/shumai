@@ -96,7 +96,7 @@ describe('Agent API', () => {
     })
   })
 
-  describe('PUT /teams/:teamId/agents/:agentId', () => {
+  describe('PUT /agents/:agentId', () => {
     it('updates an agent', async () => {
       const mockAgent = {
         id: 'agent1',
@@ -111,7 +111,7 @@ describe('Agent API', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(agentService.updateAgent).mockResolvedValue(mockAgent as any)
 
-      const res = await app.request('/teams/team1/agents/agent1', {
+      const res = await app.request('/agents/agent1', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -131,9 +131,9 @@ describe('Agent API', () => {
     })
   })
 
-  describe('DELETE /teams/:teamId/agents/:agentId', () => {
+  describe('DELETE /agents/:agentId', () => {
     it('deletes an agent', async () => {
-      const res = await app.request('/teams/team1/agents/agent1', {
+      const res = await app.request('/agents/agent1', {
         method: 'DELETE',
       })
 
@@ -142,7 +142,7 @@ describe('Agent API', () => {
     })
   })
 
-  describe('GET /teams/:teamId/agent-sessions/:sessionId/entries', () => {
+  describe('GET /agent-sessions/:sessionId/entries', () => {
     it('returns entries of agent session if user is admin', async () => {
       const mockEntries = [
         {
@@ -154,7 +154,7 @@ describe('Agent API', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(agentService.getSessionEntries).mockResolvedValue(mockEntries as any)
 
-      const res = await app.request('/teams/team1/agent-sessions/session1/entries', {
+      const res = await app.request('/agent-sessions/session1/entries', {
         headers: { 'Content-Type': 'application/json' },
       })
 
@@ -164,16 +164,17 @@ describe('Agent API', () => {
       expect(data[0].id).toBe('entry1')
       expect(data[0].entry.step).toBe(1)
       expect(authzService.hasPermission).toHaveBeenCalledWith({
-        teamId: 'team1',
         user: undefined,
         permission: 'Admin',
+        type: 'agentSession',
+        id: 'session1',
       })
     })
 
     it('denies access if user is not admin', async () => {
       vi.mocked(authzService.hasPermission).mockRejectedValue(new Error('Forbidden'))
 
-      const res = await app.request('/teams/team1/agent-sessions/session1/entries', {
+      const res = await app.request('/agent-sessions/session1/entries', {
         headers: { 'Content-Type': 'application/json' },
       })
 

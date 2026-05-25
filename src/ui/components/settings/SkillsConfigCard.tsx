@@ -57,8 +57,8 @@ export const SkillsConfigCard: React.FC<SkillsConfigCardProps> = ({ teamId }) =>
   // Delete Skill
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await client.api.teams[':teamId'].skills[':id'].$delete({
-        param: { teamId, id },
+      const res = await client.api.skills[':id'].$delete({
+        param: { id },
       })
       if (!res.ok) throw new Error('Failed to delete skill')
     },
@@ -499,8 +499,8 @@ const ConfigSkillDialog = ({
 
     setIsSaving(true)
     try {
-      const res = await client.api.teams[':teamId'].skills[':id'].config.$patch({
-        param: { teamId, id: skill.id },
+      const res = await client.api.skills[':id'].config.$patch({
+        param: { id: skill.id },
         json: { config: finalConfig },
       })
       if (!res.ok) {

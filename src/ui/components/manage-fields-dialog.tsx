@@ -161,7 +161,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
       resetEditor(data)
     },
   })
-  const $put = client.api.projects[':projectId'].fields[':fieldId'].$put
+  const $put = client.api.fields[':fieldId'].$put
   const { mutate: updateField } = useMutation<
     InferResponseType<typeof $put>,
     Error,
@@ -179,7 +179,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
       updateFields(newFields)
     },
   })
-  const $delete = client.api.projects[':projectId'].fields[':fieldId'].$delete
+  const $delete = client.api.fields[':fieldId'].$delete
   const { mutate: deleteField } = useMutation<
     InferResponseType<typeof $delete>,
     Error,
@@ -287,7 +287,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
   const handleSaveEdit = () => {
     if (!selectedField) return
     updateField({
-      param: { projectId: projectId, fieldId: selectedField.id! },
+      param: { fieldId: selectedField.id! },
       json: {
         config: {
           ...selectedField.config,
@@ -303,7 +303,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
   const handleDelete = () => {
     if (!selectedField) return
     if (confirm('Are you sure you want to delete this field?')) {
-      deleteField({ param: { projectId: projectId, fieldId: selectedField.id! } })
+      deleteField({ param: { fieldId: selectedField.id! } })
     }
   }
 

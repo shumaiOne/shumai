@@ -2,7 +2,7 @@ import { setupTestDbHooks } from '@/db-test-hooks'
 import { describe, expect, it } from 'vitest'
 
 import { prisma } from '@/db'
-import { authzService, Permission } from '@/services/authz/authz'
+import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 
 describe('AuthzService', () => {
   setupTestDbHooks()
@@ -52,6 +52,18 @@ describe('AuthzService', () => {
       },
     })
 
+    // Collection
+    const collection = await prisma.collection.create({
+      data: {
+        name: 'Collection A',
+        projectId: project.id,
+        filter: {
+          sourceFolderId: 'root',
+          searchFilter: { conditions: [], operator: 'AND', recursively: true },
+        },
+      },
+    })
+
     // Project Scope User
     const userProjectEditor = await prisma.user.create({
       data: { name: 'p_editor', email: 'p_editor@example.com', password: 'pass' },
@@ -72,7 +84,8 @@ describe('AuthzService', () => {
       {
         name: 'Owner can Admin Project',
         req: {
-          projectId: project.id,
+          type: ResourceType.Project,
+          id: project.id,
           user: userOwner,
           permission: Permission.Admin,
         },
@@ -81,7 +94,8 @@ describe('AuthzService', () => {
       {
         name: 'Editor cannot Admin Project',
         req: {
-          projectId: project.id,
+          type: ResourceType.Project,
+          id: project.id,
           user: userEditor,
           permission: Permission.Admin,
         },
@@ -90,7 +104,8 @@ describe('AuthzService', () => {
       {
         name: 'Editor can Edit Project',
         req: {
-          projectId: project.id,
+          type: ResourceType.Project,
+          id: project.id,
           user: userEditor,
           permission: Permission.Edit,
         },
@@ -99,7 +114,8 @@ describe('AuthzService', () => {
       {
         name: 'Reviewer cannot Edit Project',
         req: {
-          projectId: project.id,
+          type: ResourceType.Project,
+          id: project.id,
           user: userReviewer,
           permission: Permission.Edit,
         },
@@ -108,7 +124,8 @@ describe('AuthzService', () => {
       {
         name: 'Reviewer can Read Project',
         req: {
-          projectId: project.id,
+          type: ResourceType.Project,
+          id: project.id,
           user: userReviewer,
           permission: Permission.Read,
         },
@@ -117,7 +134,8 @@ describe('AuthzService', () => {
       {
         name: 'Non-member cannot Read Project',
         req: {
-          projectId: project.id,
+          type: ResourceType.Project,
+          id: project.id,
           user: userOther,
           permission: Permission.Read,
         },
@@ -127,7 +145,8 @@ describe('AuthzService', () => {
       {
         name: 'Project Editor can Edit Project',
         req: {
-          projectId: project.id,
+          type: ResourceType.Project,
+          id: project.id,
           user: userProjectEditor,
           permission: Permission.Edit,
         },
@@ -136,7 +155,8 @@ describe('AuthzService', () => {
       {
         name: 'Project Editor cannot Admin Project',
         req: {
-          projectId: project.id,
+          type: ResourceType.Project,
+          id: project.id,
           user: userProjectEditor,
           permission: Permission.Admin,
         },
@@ -145,7 +165,8 @@ describe('AuthzService', () => {
       {
         name: 'Project Scope User can Read Team',
         req: {
-          teamId: team.id,
+          type: ResourceType.Team,
+          id: team.id,
           user: userProjectEditor,
           permission: Permission.Read,
         },
@@ -154,7 +175,8 @@ describe('AuthzService', () => {
       {
         name: 'Project Scope User cannot Edit Team',
         req: {
-          teamId: team.id,
+          type: ResourceType.Team,
+          id: team.id,
           user: userProjectEditor,
           permission: Permission.Edit,
         },
@@ -162,22 +184,35 @@ describe('AuthzService', () => {
         errMessage: 'User has only project scope',
       },
       {
-        name: 'Resolve Team from Asset ID',
+        name: 'Resolve Context from Asset',
         req: {
-          assetId: asset.id,
+          type: ResourceType.Asset,
+          id: asset.id,
           user: userOwner,
           permission: Permission.Edit,
         },
         wantErr: false,
       },
       {
-        name: 'Asset without Project',
+        name: 'Resolve Context from Collection',
         req: {
-          assetId: '01HJXXW6A61234567890ABCDEF',
+          type: ResourceType.Collection,
+          id: collection.id,
+          user: userOwner,
+          permission: Permission.Edit,
+        },
+        wantErr: false,
+      },
+      {
+        name: 'Asset Not Found',
+        req: {
+          type: ResourceType.Asset,
+          id: '01HJXXW6A61234567890ABCDEF',
           user: userOwner,
           permission: Permission.Read,
         },
         wantErr: true,
+        errMessage: 'Asset not found',
       },
     ]
 
@@ -191,13 +226,13 @@ describe('AuthzService', () => {
         } catch (e: any) {
           err = e
         }
-        expect(err).toBeDefined()
+        expect(err, tt.name).toBeDefined()
         if (tt.errMessage) {
           expect(err.message).include(tt.errMessage)
         }
       } else {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await expect(authzService.hasPermission(tt.req as any)).resolves.toBeUndefined()
+        await expect(authzService.hasPermission(tt.req as any), tt.name).resolves.toBeUndefined()
       }
     }
   })

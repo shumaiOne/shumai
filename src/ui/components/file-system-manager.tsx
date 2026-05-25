@@ -47,7 +47,7 @@ export default function FileSystemManager({
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { loadedProjectId, setFields } = useFieldStore()
-  const $patchMetadata = client.api.teams[':teamId'].files[':fileId'].metadata.$patch
+  const $patchMetadata = client.api.files[':fileId'].metadata.$patch
   const { mutate: patchMetadata } = useMutation<
     InferResponseType<typeof $patchMetadata>,
     Error,
@@ -132,10 +132,10 @@ export default function FileSystemManager({
   const { data: folderInfo } = isRecentlyDeleted
     ? { data: undefined }
     : useQuery({
-        queryKey: ['folders', teamId, assetId],
+        queryKey: ['folders', assetId],
         queryFn: async () => {
-          const res = await client.api.teams[':teamId'].folders[':folderId'].$get({
-            param: { teamId: teamId, folderId: assetId },
+          const res = await client.api.folders[':folderId'].$get({
+            param: { folderId: assetId },
           })
           if (!res.ok) throw new Error('failed to fetch folder')
           return (await res.json()) as unknown as AssetInfo
@@ -206,8 +206,8 @@ export default function FileSystemManager({
         return { data: [], pageInfo: { total: 0 } }
       }
 
-      const res = await client.api.teams[':teamId'].folders[':folderId'].search.$post({
-        param: { teamId: teamId, folderId: assetId },
+      const res = await client.api.folders[':folderId'].search.$post({
+        param: { folderId: assetId },
         json: {
           assetType: 'folder',
           after: pageParam as string,
@@ -248,8 +248,8 @@ export default function FileSystemManager({
         return (await res.json()) as unknown as AssetInfoPaginatedList
       }
 
-      const res = await client.api.teams[':teamId'].folders[':folderId'].search.$post({
-        param: { teamId: teamId, folderId: assetId },
+      const res = await client.api.folders[':folderId'].search.$post({
+        param: { folderId: assetId },
         json: {
           assetType: 'file',
           after: pageParam as string,
@@ -370,7 +370,7 @@ export default function FileSystemManager({
   const handleSaveField = (fileId: string, fieldId: string, value: unknown) => {
     patchMetadata(
       {
-        param: { teamId: teamId, fileId: fileId },
+        param: { fileId: fileId },
         json: [{ key: fieldId, value }] as InferRequestType<typeof $patchMetadata>['json'],
       },
       {
@@ -378,7 +378,6 @@ export default function FileSystemManager({
           queryClient.invalidateQueries({
             queryKey: [
               'folders',
-              teamId,
               assetId,
               'children',
               {

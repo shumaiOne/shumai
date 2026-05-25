@@ -1,41 +1,18 @@
-import { describe, expect, it, vi } from 'vitest'
-import { Hono } from 'hono'
+import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { Hono, type Context, type Next } from 'hono'
 import inviteRoute from './invite'
 import publicInviteRoute from './public-invite'
-import { authMiddleware } from '@/api/middleware/auth'
+import { authzService, Permission, ResourceType } from '@/services/authz/authz'
+import { inviteService } from '@/services/invite/invite'
+import { notificationService } from '@/services/notification/notification'
 
-vi.mock('@/services/invite/invite', () => ({
-  inviteService: {
-    createTeamInvite: vi.fn(),
-    createProjectInvite: vi.fn(),
-    getInvite: vi.fn(),
-    consumeInvite: vi.fn(),
-  },
-}))
-
-vi.mock('@/services/notification/notification', () => ({
-  notificationService: {
-    create: vi.fn(),
-  },
-}))
-
-vi.mock('@/services/authz/authz', () => ({
-  authzService: {
-    hasPermission: vi.fn(),
-  },
-  Permission: {
-    Read: 'Read',
-    Edit: 'Edit',
-    Admin: 'Admin',
-  },
-}))
+vi.mock('@/services/invite/invite')
+vi.mock('@/services/notification/notification')
+vi.mock('@/services/authz/authz')
 
 vi.mock('@/api/middleware/auth', () => ({
-  // any is used here because Hono's Context and Next types are complex to mock in vitest.mock
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  authMiddleware: async (c: any, next: any) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    c.set('user', { id: 'u1', name: 'Test User' } as any)
+  authMiddleware: async (c: Context, next: Next) => {
+    c.set('user', { id: 'u1', name: 'Test User' })
     await next()
   },
 }))
@@ -43,15 +20,24 @@ vi.mock('@/api/middleware/auth', () => ({
 const getApp = () => {
   const app = new Hono()
     .route('/', publicInviteRoute)
-    .use('*', authMiddleware)
+    .use('*', async (c, next) => {
+      c.set('user', { id: 'u1', name: 'Test User' })
+      await next()
+    })
     .route('/', inviteRoute)
   return app
 }
 
 describe('Invite API', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(authzService.hasPermission).mockResolvedValue(undefined)
+  })
+
   it('GET /invite/:code', async () => {
     const app = getApp()
-    const { inviteService } = await import('@/services/invite/invite')
+
+    // Using any here because mocking complex service return types or Hono context is overly verbose for this test.
     vi.mocked(inviteService.getInvite).mockResolvedValue({
       code: 'code123',
       teamId: 't1',
@@ -59,7 +45,7 @@ describe('Invite API', () => {
       inviter: { name: 'Inviter' },
       role: 'editor',
       used: false,
-    } as never)
+    } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const res = await app.request('/invite/code123')
     expect(res.status).toBe(200)
@@ -75,9 +61,8 @@ describe('Invite API', () => {
 
   it('POST /teams/:teamId/invite', async () => {
     const app = getApp()
-    const { authzService } = await import('@/services/authz/authz')
-    const { inviteService } = await import('@/services/invite/invite')
-    vi.mocked(authzService.hasPermission).mockResolvedValue(undefined as never)
+
+    // Using any here because mocking complex service return types or Hono context is overly verbose for this test.
     vi.mocked(inviteService.createTeamInvite).mockResolvedValue({
       code: 'test-code',
       role: 'editor',
@@ -85,7 +70,7 @@ describe('Invite API', () => {
       team: { name: 'Team A' },
       inviter: { name: 'Inviter' },
       used: false,
-    } as never)
+    } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const res = await app.request('/teams/t1/invite', {
       method: 'POST',
@@ -105,6 +90,12 @@ describe('Invite API', () => {
       inviterName: 'Inviter',
       isUsed: false,
     })
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Admin,
+      type: ResourceType.Team,
+      id: 't1',
+    })
     expect(inviteService.createTeamInvite).toHaveBeenCalledWith({
       teamId: 't1',
       role: 'editor',
@@ -114,9 +105,8 @@ describe('Invite API', () => {
 
   it('POST /projects/:projectId/invite', async () => {
     const app = getApp()
-    const { authzService } = await import('@/services/authz/authz')
-    const { inviteService } = await import('@/services/invite/invite')
-    vi.mocked(authzService.hasPermission).mockResolvedValue(undefined as never)
+
+    // Using any here because mocking complex service return types or Hono context is overly verbose for this test.
     vi.mocked(inviteService.createProjectInvite).mockResolvedValue({
       code: 'proj-code',
       role: 'reviewer',
@@ -125,7 +115,7 @@ describe('Invite API', () => {
       project: { id: 'p1', name: 'Project A' },
       inviter: { name: 'Inviter' },
       used: false,
-    } as never)
+    } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const res = await app.request('/projects/p1/invite', {
       method: 'POST',
@@ -147,6 +137,12 @@ describe('Invite API', () => {
       inviterName: 'Inviter',
       isUsed: false,
     })
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Admin,
+      type: ResourceType.Project,
+      id: 'p1',
+    })
     expect(inviteService.createProjectInvite).toHaveBeenCalledWith({
       projectId: 'p1',
       role: 'reviewer',
@@ -156,19 +152,21 @@ describe('Invite API', () => {
 
   it('POST /join (Team)', async () => {
     const app = getApp()
-    const { inviteService } = await import('@/services/invite/invite')
-    const { notificationService } = await import('@/services/notification/notification')
+    // Using any here because mocking complex service return types or Hono context is overly verbose for this test.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(notificationService.create).mockResolvedValue(undefined as any)
 
-    vi.mocked(notificationService.create).mockResolvedValue(undefined as never)
-
+    // Using any here because mocking complex service return types or Hono context is overly verbose for this test.
     vi.mocked(inviteService.getInvite).mockResolvedValue({
       code: 'code123',
       teamId: 't1',
       team: { name: 'Team A' },
       inviter: { name: 'Inviter' },
       used: false,
-    } as never)
-    vi.mocked(inviteService.consumeInvite).mockResolvedValue(undefined as never)
+    } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+    // Using any here because mocking complex service return types or Hono context is overly verbose for this test.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(inviteService.consumeInvite).mockResolvedValue(undefined as any)
 
     const res = await app.request('/join', {
       method: 'POST',

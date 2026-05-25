@@ -108,8 +108,8 @@ export function SearchFilterDialog({
       }
       if (!name) name = 'Untitled Collection'
 
-      const res = await client.api.teams[':teamId'].projects[':projectId'].collections.$post({
-        param: { teamId, projectId },
+      const res = await client.api.projects[':projectId'].collections.$post({
+        param: { projectId },
         json: {
           name,
           filter: {
@@ -125,7 +125,7 @@ export function SearchFilterDialog({
       return await res.json()
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['collections', teamId, projectId] })
+      queryClient.invalidateQueries({ queryKey: ['collections', projectId] })
       toast.success('Collection saved')
       onOpenChange(false)
       navigate({
@@ -141,8 +141,8 @@ export function SearchFilterDialog({
   const { data: searchResults, isLoading } = useQuery({
     queryKey: ['search-preview', teamId, assetId, combinedConditions],
     queryFn: async () => {
-      const res = await client.api.teams[':teamId'].folders[':folderId'].search.$post({
-        param: { teamId, folderId: assetId },
+      const res = await client.api.folders[':folderId'].search.$post({
+        param: { folderId: assetId },
         json: {
           assetType: undefined,
           conditions: combinedConditions,

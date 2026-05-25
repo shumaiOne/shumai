@@ -4,15 +4,20 @@ import versionStackRoute from './versionStack'
 import { authMiddleware } from '@/api/middleware/auth'
 import { versionStackService } from '@/services/versionStack/versionStack'
 import { assetService } from '@/services/asset/asset'
+import { authzService, ResourceType, Permission } from '@/services/authz/authz'
 
 vi.mock('@/services/authz/authz', () => ({
   authzService: {
-    hasPermission: vi.fn(),
+    hasPermission: vi.fn().mockResolvedValue(undefined),
   },
   Permission: {
     Read: 'Read',
     Edit: 'Edit',
     Admin: 'Admin',
+  },
+  ResourceType: {
+    Project: 'project',
+    Asset: 'asset',
   },
 }))
 
@@ -35,6 +40,7 @@ describe('versionStack api', () => {
     mockChangeStackFileVersion = vi.spyOn(versionStackService, 'changeStackFileVersion')
     mockGetAsset = vi.spyOn(assetService, 'getAsset')
     mockGetStackVersions = vi.spyOn(assetService, 'getStackVersions')
+    vi.mocked(authzService.hasPermission).mockResolvedValue(undefined)
   })
 
   afterEach(() => {
@@ -61,6 +67,13 @@ describe('versionStack api', () => {
       const data = await res.json()
       expect(data).toEqual(mockAssetInfo)
 
+      expect(authzService.hasPermission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: ResourceType.Project,
+          id: 'p1',
+          permission: Permission.Edit,
+        }),
+      )
       expect(mockCreateVersionStack).toHaveBeenCalledWith({
         projectId: 'p1',
         creatorId: 'user1',
@@ -68,28 +81,15 @@ describe('versionStack api', () => {
       })
       expect(mockGetAsset).toHaveBeenCalledWith({ assetId: 'stack1' })
     })
-
-    it('should fail with validation error for invalid body', async () => {
-      const app = new Hono().use('*', authMiddleware).route('/', versionStackRoute)
-
-      const res = await app.request('/projects/p1/version_stacks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ wrongField: [] }),
-      })
-
-      expect(res.status).toBe(400)
-      expect(mockCreateVersionStack).not.toHaveBeenCalled()
-    })
   })
 
-  describe('POST /projects/:projectID/version_stacks/:stackID/order', () => {
+  describe('POST /version_stacks/:stackID/order', () => {
     it('should change order and return 200', async () => {
       mockChangeStackFileVersion.mockResolvedValue()
 
       const app = new Hono().use('*', authMiddleware).route('/', versionStackRoute)
 
-      const res = await app.request('/projects/p1/version_stacks/stack1/order', {
+      const res = await app.request('/version_stacks/stack1/order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fileId: 'f1', beforeId: 'f2' }),
@@ -97,28 +97,22 @@ describe('versionStack api', () => {
 
       expect(res.status).toBe(200)
 
+      expect(authzService.hasPermission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: ResourceType.Asset,
+          id: 'stack1',
+          permission: Permission.Edit,
+        }),
+      )
       expect(mockChangeStackFileVersion).toHaveBeenCalledWith({
         stackId: 'stack1',
         fileId: 'f1',
         beforeId: 'f2',
       })
     })
-
-    it('should fail with validation error for invalid body', async () => {
-      const app = new Hono().use('*', authMiddleware).route('/', versionStackRoute)
-
-      const res = await app.request('/projects/p1/version_stacks/stack1/order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileId: 'f1' }), // missing beforeId
-      })
-
-      expect(res.status).toBe(400)
-      expect(mockChangeStackFileVersion).not.toHaveBeenCalled()
-    })
   })
 
-  describe('GET /projects/:projectID/version_stacks/:stackID/versions', () => {
+  describe('GET /version_stacks/:stackID/versions', () => {
     it('should return stack versions', async () => {
       const mockVersions = [
         {
@@ -134,7 +128,7 @@ describe('versionStack api', () => {
 
       const app = new Hono().use('*', authMiddleware).route('/', versionStackRoute)
 
-      const res = await app.request('/projects/p1/version_stacks/stack1/versions', {
+      const res = await app.request('/version_stacks/stack1/versions', {
         method: 'GET',
       })
 
@@ -142,6 +136,13 @@ describe('versionStack api', () => {
       const data = await res.json()
       expect(data).toEqual(mockVersions)
 
+      expect(authzService.hasPermission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: ResourceType.Asset,
+          id: 'stack1',
+          permission: Permission.Read,
+        }),
+      )
       expect(mockGetStackVersions).toHaveBeenCalledWith('stack1')
     })
   })

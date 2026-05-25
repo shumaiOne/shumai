@@ -65,6 +65,12 @@ export class ProviderService {
     }))
   }
 
+  async getById(id: string) {
+    return this.prismaClient.provider.findUnique({
+      where: { id },
+    })
+  }
+
   async listModelsByProvider(teamId: string, providerId: string) {
     return this.prismaClient.model.findMany({
       where: {

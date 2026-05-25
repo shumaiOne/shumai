@@ -8,46 +8,35 @@ export enum Permission {
   Admin = 'Admin',
 }
 
+export enum ResourceType {
+  Team = 'team',
+  Project = 'project',
+  Asset = 'asset',
+  Collection = 'collection',
+  Agent = 'agent',
+  Share = 'share',
+  MetadataField = 'metadataField',
+  Skill = 'skill',
+  Provider = 'provider',
+  Invite = 'invite',
+  Comment = 'comment',
+  AgentSession = 'agentSession',
+}
+
 export interface AuthzRequest {
-  teamId?: string
-  projectId?: string
-  assetId?: string
   user: User
   permission: Permission
+  type: ResourceType
+  id: string
 }
 
 export class AuthzService {
   async hasPermission(req: AuthzRequest): Promise<void> {
     if (!req.user) throw new Error('User is required')
 
-    let projectId = req.projectId
-    let teamId: string | undefined
+    const { teamId, projectId } = await this.resolveContext(req.type, req.id)
 
-    // 1. Resolve ProjectID and TeamID
-    if (req.assetId) {
-      const asset = await prisma.asset.findUnique({
-        where: { id: req.assetId },
-        select: { projectId: true },
-      })
-      if (!asset) throw new Error('Asset not found')
-      if (!asset.projectId) throw new Error(`Asset ${req.assetId} does not belong to a project`)
-
-      projectId = asset.projectId
-    }
-
-    if (projectId) {
-      const proj = await prisma.project.findUnique({
-        where: { id: projectId },
-        select: { teamId: true },
-      })
-      if (!proj) throw new Error('Project not found')
-      teamId = proj.teamId
-    } else {
-      if (!req.teamId) throw new Error('Project ID or Team ID is required')
-      teamId = req.teamId
-    }
-
-    // 2. Check Team Membership
+    // 1. Check Team Membership
     const member = await prisma.teamMember.findUnique({
       where: {
         teamIdUserId: {
@@ -59,15 +48,17 @@ export class AuthzService {
 
     if (!member) throw new Error('User is not a member of the team')
 
-    // 3. Check Scope
+    // 2. Check Scope
     if (member.scope === 'team') {
       return this.checkRole(member.role, req.permission)
     }
 
-    // 4. Scope is Project
+    // 3. Scope is Project
     if (!projectId) {
-      // User has project scope but no project context provided.
-      // Allow Read access to team context (e.g. ListProjects)
+      // User has project scope but no project context provided (e.g. Team-level resource)
+      // If it's a team-level resource, project-scoped users shouldn't have access except for Read maybe?
+      // But usually team resources like Skills/Providers are managed by Team Owners/Editors.
+      // For now, let's keep the logic: project-scoped users can't access team-level resources unless it's Read (like ListProjects).
       if (req.permission === Permission.Read) {
         return
       }
@@ -87,6 +78,144 @@ export class AuthzService {
     if (!pm) throw new Error(`User is not a member of project ${projectId}`)
 
     return this.checkRole(pm.role, req.permission)
+  }
+
+  private async resolveContext(
+    type: ResourceType,
+    id: string,
+  ): Promise<{ teamId: string; projectId?: string }> {
+    switch (type) {
+      case ResourceType.Team:
+        return { teamId: id }
+
+      case ResourceType.Project: {
+        const proj = await prisma.project.findUnique({
+          where: { id },
+          select: { teamId: true },
+        })
+        if (!proj) throw new Error('Project not found')
+        return { teamId: proj.teamId, projectId: id }
+      }
+
+      case ResourceType.Asset: {
+        const asset = await prisma.asset.findUnique({
+          where: { id },
+          select: {
+            parentId: true,
+            teamRootFolder: { select: { id: true } },
+            project: { select: { id: true, teamId: true } },
+          },
+        })
+        if (!asset) throw new Error('Asset not found')
+        if (asset.project) {
+          return { teamId: asset.project.teamId, projectId: asset.project.id }
+        }
+        if (asset.teamRootFolder) {
+          return { teamId: asset.teamRootFolder.id }
+        }
+        if (asset.parentId) {
+          // If it's a nested asset, we might need recursive lookup.
+          // However, in this project, assets typically have projectId if they are in a project.
+          // If parentId is set but no project, it might be in a team root folder.
+          // For now, let's try to get context from parent.
+          return this.resolveContext(ResourceType.Asset, asset.parentId)
+        }
+        throw new Error('Could not resolve context for asset')
+      }
+
+      case ResourceType.Collection: {
+        const coll = await prisma.collection.findUnique({
+          where: { id },
+          include: { project: true },
+        })
+        if (!coll) throw new Error('Collection not found')
+        return { teamId: coll.project.teamId, projectId: coll.projectId }
+      }
+
+      case ResourceType.Agent: {
+        const agent = await prisma.agent.findUnique({
+          where: { id },
+          select: { teamId: true },
+        })
+        if (!agent) throw new Error('Agent not found')
+        return { teamId: agent.teamId }
+      }
+
+      case ResourceType.AgentSession: {
+        const session = await prisma.agentSession.findUnique({
+          where: { id },
+          include: { agent: true },
+        })
+        if (!session) throw new Error('Agent session not found')
+        return { teamId: session.agent.teamId }
+      }
+
+      case ResourceType.Share: {
+        const share = await prisma.shareLink.findUnique({
+          where: { id },
+          include: { project: true },
+        })
+        if (!share) throw new Error('Share not found')
+        return { teamId: share.project.teamId, projectId: share.projectId }
+      }
+
+      case ResourceType.MetadataField: {
+        const field = await prisma.metadataField.findUnique({
+          where: { key: id },
+          select: { teamId: true, projectId: true },
+        })
+        if (!field) throw new Error('Metadata field not found')
+        if (field.projectId) {
+          const proj = await prisma.project.findUnique({
+            where: { id: field.projectId },
+            select: { teamId: true },
+          })
+          return { teamId: proj!.teamId, projectId: field.projectId }
+        }
+        if (!field.teamId) throw new Error('Metadata field has no context')
+        return { teamId: field.teamId }
+      }
+
+      case ResourceType.Skill: {
+        const skill = await prisma.skill.findUnique({
+          where: { id },
+          select: { teamId: true },
+        })
+        if (!skill) throw new Error('Skill not found')
+        return { teamId: skill.teamId }
+      }
+
+      case ResourceType.Provider: {
+        const provider = await prisma.provider.findUnique({
+          where: { id },
+          select: { teamId: true },
+        })
+        if (!provider) throw new Error('Provider not found')
+        return { teamId: provider.teamId }
+      }
+
+      case ResourceType.Invite: {
+        const invite = await prisma.invite.findUnique({
+          where: { id },
+          select: { teamId: true, projectId: true },
+        })
+        if (!invite) throw new Error('Invite not found')
+        return { teamId: invite.teamId, projectId: invite.projectId ?? undefined }
+      }
+
+      case ResourceType.Comment: {
+        const comment = await prisma.assetComment.findUnique({
+          where: { id },
+          include: { asset: { include: { project: true } } },
+        })
+        if (!comment) throw new Error('Comment not found')
+        if (!comment.asset.project) throw new Error('Comment asset has no project')
+        return { teamId: comment.asset.project.teamId, projectId: comment.asset.projectId! }
+      }
+
+      default:
+        throw new Error(`Unsupported resource type: ${type}`)
+    }
   }
 
   private checkRole(role: string, permission: Permission): void {

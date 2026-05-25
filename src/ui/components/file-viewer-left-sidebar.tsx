@@ -10,7 +10,6 @@ import { Button } from './ui/button'
 import { ScrollArea } from './ui/scroll-area'
 
 interface FileViewerLeftSidebarProps {
-  teamId: string
   projectId: string
   currentAssetId: string
   parentFolderId: string
@@ -18,7 +17,6 @@ interface FileViewerLeftSidebarProps {
 }
 
 export const FileViewerLeftSidebar: FC<FileViewerLeftSidebarProps> = ({
-  teamId,
   projectId,
   currentAssetId,
   parentFolderId,
@@ -34,7 +32,6 @@ export const FileViewerLeftSidebar: FC<FileViewerLeftSidebarProps> = ({
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
     queryKey: [
       'folders',
-      teamId,
       parentFolderId,
       'children',
       {
@@ -42,8 +39,8 @@ export const FileViewerLeftSidebar: FC<FileViewerLeftSidebarProps> = ({
       },
     ],
     queryFn: async ({ pageParam }) => {
-      const res = await client.api.teams[':teamId'].folders[':folderId'].children.$get({
-        param: { teamId: teamId, folderId: parentFolderId },
+      const res = await client.api.folders[':folderId'].children.$get({
+        param: { folderId: parentFolderId },
         query: {
           assetType: 'file',
           after: pageParam,

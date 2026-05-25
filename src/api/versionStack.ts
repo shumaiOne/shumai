@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { versionStackService } from '@/services/versionStack/versionStack'
 import { assetService } from '@/services/asset/asset'
-import { authzService, Permission } from '@/services/authz/authz'
+import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 import {
   createVersionStackRequestSchema,
   changeStackFileVersionRequestSchema,
@@ -23,9 +23,10 @@ const route = app
       const req = c.req.valid('json')
 
       await authzService.hasPermission({
-        projectId,
         user,
         permission: Permission.Edit,
+        type: ResourceType.Project,
+        id: projectId,
       })
 
       const stack = await versionStackService.createVersionStack({
@@ -40,18 +41,18 @@ const route = app
     },
   )
   .post(
-    '/projects/:projectId/version_stacks/:stackId/order',
+    '/version_stacks/:stackId/order',
     zValidator('json', changeStackFileVersionRequestSchema),
     async (c) => {
-      const projectId = c.req.param('projectId')
       const stackId = c.req.param('stackId')
       const user = c.get('user')
       const req = c.req.valid('json')
 
       await authzService.hasPermission({
-        projectId,
         user,
         permission: Permission.Edit,
+        type: ResourceType.Asset,
+        id: stackId,
       })
 
       await versionStackService.changeStackFileVersion({
@@ -63,15 +64,15 @@ const route = app
       return new Response(null, { status: 200 })
     },
   )
-  .get('/projects/:projectId/version_stacks/:stackId/versions', async (c) => {
-    const projectId = c.req.param('projectId')
+  .get('/version_stacks/:stackId/versions', async (c) => {
     const stackId = c.req.param('stackId')
     const user = c.get('user')
 
     await authzService.hasPermission({
-      projectId,
       user,
       permission: Permission.Read,
+      type: ResourceType.Asset,
+      id: stackId,
     })
 
     const versions = await assetService.getStackVersions(stackId)

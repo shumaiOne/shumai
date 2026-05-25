@@ -73,7 +73,7 @@ export function ProjectDialog({ open, onOpenChange, mode, teamId, project }: Pro
     },
   })
 
-  const $put = client.api.teams[':teamId'].projects[':projectId'].$put
+  const $put = client.api.projects[':projectId'].$put
   const { mutate: updateProject } = useMutation<
     InferResponseType<typeof $put>,
     Error,
@@ -81,7 +81,7 @@ export function ProjectDialog({ open, onOpenChange, mode, teamId, project }: Pro
   >({
     mutationFn: async (payload) => {
       const res = await $put({
-        param: { teamId: teamId, projectId: project!.id! },
+        param: { projectId: project!.id! },
         json: payload,
       })
       if (!res.ok) throw new Error('Failed to update project')

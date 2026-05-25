@@ -128,8 +128,8 @@ export function FileBrowser({
   const { data: shareLinksData } = useQuery({
     queryKey: ['shares', teamId, projectId],
     queryFn: async () => {
-      const res = await client.api.teams[':teamId'].projects[':projectId'].shares.$get({
-        param: { teamId, projectId },
+      const res = await client.api.projects[':projectId'].shares.$get({
+        param: { projectId },
         query: { first: '100' },
       })
       if (!res.ok) throw new Error('Failed to fetch share links')
@@ -240,16 +240,16 @@ export function FileBrowser({
               day: 'numeric',
             })
 
-      const res = await client.api.teams[':teamId'].projects[':projectId'].shares.$post({
-        param: { teamId, projectId },
+      const res = await client.api.projects[':projectId'].shares.$post({
+        param: { projectId },
         json: { name },
       })
       if (!res.ok) throw new Error('Failed to create share link')
       const share = await res.json()
 
       // Add assets to the new share link
-      const assetsRes = await client.api.teams[':teamId'].shares[':shareId'].assets.$post({
-        param: { teamId, shareId: share.id },
+      const assetsRes = await client.api.shares[':shareId'].assets.$post({
+        param: { shareId: share.id },
         json: { assetIds: items.map((i) => i.id!) },
       })
       if (!assetsRes.ok) throw new Error('Failed to add assets to share link')
@@ -273,8 +273,8 @@ export function FileBrowser({
 
   const { mutate: addToShareLink } = useMutation({
     mutationFn: async ({ shareId, items }: { shareId: string; items: AssetInfo[] }) => {
-      const res = await client.api.teams[':teamId'].shares[':shareId'].assets.$post({
-        param: { teamId, shareId },
+      const res = await client.api.shares[':shareId'].assets.$post({
+        param: { shareId },
         json: { assetIds: items.map((i) => i.id!) },
       })
       if (!res.ok) throw new Error('Failed to add assets')

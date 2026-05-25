@@ -1,27 +1,30 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { Hono } from 'hono'
+import { Hono, type Context, type Next } from 'hono'
 import fileRoute from './file'
 import { assetService } from '@/services/asset/asset'
 import { metadataService } from '@/services/metadata/metadata'
 import { notificationService } from '@/services/notification/notification'
 import { s3Service } from '@/services/s3/s3'
-import { authzService } from '@/services/authz/authz'
 import { authMiddleware } from '@/api/middleware/auth'
+import { authzService, ResourceType, Permission } from '@/services/authz/authz'
 
 vi.mock('@/services/authz/authz', () => ({
   authzService: {
-    hasPermission: vi.fn(),
+    hasPermission: vi.fn().mockResolvedValue(undefined),
   },
   Permission: {
     Read: 'Read',
     Edit: 'Edit',
     Admin: 'Admin',
   },
+  ResourceType: {
+    Asset: 'asset',
+    Team: 'team',
+  },
 }))
 
 vi.mock('@/api/middleware/auth', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  authMiddleware: async (c: any, next: any) => {
+  authMiddleware: async (c: Context, next: Next) => {
     c.set('user', { id: 'user1', name: 'Test User' })
     await next()
   },
@@ -32,6 +35,7 @@ describe('file api', () => {
     vi.mocked(authzService.hasPermission).mockClear()
 
     vi.spyOn(assetService, 'getAsset').mockImplementation(vi.fn())
+    vi.spyOn(assetService, 'getAssetContext').mockResolvedValue({ teamId: 'test-team' })
     vi.spyOn(assetService, 'updateAssetName').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'deleteAssets').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'createComment').mockImplementation(vi.fn())
@@ -41,13 +45,14 @@ describe('file api', () => {
     vi.spyOn(metadataService, 'updateAssetMetadata').mockImplementation(vi.fn())
     vi.spyOn(notificationService, 'create').mockImplementation(vi.fn())
     vi.spyOn(s3Service, 'putObject').mockImplementation(vi.fn())
+    vi.mocked(authzService.hasPermission).mockResolvedValue(undefined)
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
   })
 
-  it('GET /teams/:teamId/files/:fileId', async () => {
+  it('GET /files/:fileId', async () => {
     vi.mocked(assetService.getAsset).mockResolvedValue({
       id: 'test-id',
       name: 'test-file',
@@ -61,20 +66,21 @@ describe('file api', () => {
     })
 
     const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
-    const res = await app.request('/teams/test-team/files/test-id')
+    const res = await app.request('/files/test-id')
 
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.name).toBe('test-file')
 
     expect(authzService.hasPermission).toHaveBeenCalledWith({
-      assetId: 'test-id',
       user: { id: 'user1', name: 'Test User' },
-      permission: 'Read',
+      permission: Permission.Read,
+      type: ResourceType.Asset,
+      id: 'test-id',
     })
   })
 
-  it('PUT /teams/:teamId/files/:fileId', async () => {
+  it('PUT /files/:fileId', async () => {
     vi.mocked(assetService.updateAssetName).mockResolvedValue({
       id: 'test-id',
       name: 'new-name',
@@ -88,7 +94,7 @@ describe('file api', () => {
     })
 
     const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
-    const res = await app.request('/teams/test-team/files/test-id', {
+    const res = await app.request('/files/test-id', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'new-name' }),
@@ -99,17 +105,18 @@ describe('file api', () => {
     expect(json.name).toBe('new-name')
 
     expect(authzService.hasPermission).toHaveBeenCalledWith({
-      assetId: 'test-id',
       user: { id: 'user1', name: 'Test User' },
-      permission: 'Edit',
+      permission: Permission.Edit,
+      type: ResourceType.Asset,
+      id: 'test-id',
     })
   })
 
-  it('DELETE /teams/:teamId/files', async () => {
+  it('DELETE /files', async () => {
     vi.mocked(assetService.deleteAssets).mockResolvedValue(undefined)
 
     const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
-    const res = await app.request('/teams/test-team/files', {
+    const res = await app.request('/files', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ids: ['test-id'] }),
@@ -118,18 +125,19 @@ describe('file api', () => {
     expect(res.status).toBe(204)
 
     expect(authzService.hasPermission).toHaveBeenCalledWith({
-      assetId: 'test-id',
       user: { id: 'user1', name: 'Test User' },
-      permission: 'Edit',
+      permission: Permission.Edit,
+      type: ResourceType.Asset,
+      id: 'test-id',
     })
     expect(assetService.deleteAssets).toHaveBeenCalledWith(['test-id'])
   })
 
-  it('POST /teams/:teamId/files/restore', async () => {
+  it('POST /files/restore', async () => {
     vi.mocked(assetService.restoreAssets).mockResolvedValue(undefined)
 
     const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
-    const res = await app.request('/teams/test-team/files/restore', {
+    const res = await app.request('/files/restore', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ids: ['test-id'] }),
@@ -138,14 +146,15 @@ describe('file api', () => {
     expect(res.status).toBe(204)
 
     expect(authzService.hasPermission).toHaveBeenCalledWith({
-      assetId: 'test-id',
       user: { id: 'user1', name: 'Test User' },
-      permission: 'Edit',
+      permission: Permission.Edit,
+      type: ResourceType.Asset,
+      id: 'test-id',
     })
     expect(assetService.restoreAssets).toHaveBeenCalledWith(['test-id'])
   })
 
-  it('POST /teams/:teamId/files/:fileId/comments', async () => {
+  it('POST /files/:fileId/comments', async () => {
     vi.mocked(assetService.createComment).mockResolvedValue({
       id: 'comment-id',
       assetId: 'test-id',
@@ -160,8 +169,14 @@ describe('file api', () => {
       sessionId: null,
     })
 
+    // Mock assetService.getAsset to return teamId for notification
+    vi.mocked(assetService.getAsset).mockResolvedValue({
+      id: 'test-id',
+      project: { teamId: 'test-team' },
+    } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+
     const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
-    const res = await app.request('/teams/test-team/files/test-id/comments', {
+    const res = await app.request('/files/test-id/comments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: 'hello', attachmentIds: [] }),
@@ -172,9 +187,10 @@ describe('file api', () => {
     expect(json.message).toBe('hello')
 
     expect(authzService.hasPermission).toHaveBeenCalledWith({
-      assetId: 'test-id',
       user: { id: 'user1', name: 'Test User' },
-      permission: 'Read',
+      permission: Permission.Read,
+      type: ResourceType.Asset,
+      id: 'test-id',
     })
 
     expect(notificationService.create).toHaveBeenCalledWith({
@@ -186,7 +202,7 @@ describe('file api', () => {
     })
   })
 
-  it('GET /teams/:teamId/files/:fileId/comments', async () => {
+  it('GET /files/:fileId/comments', async () => {
     vi.mocked(assetService.listComments).mockResolvedValue({
       data: [
         {
@@ -207,7 +223,7 @@ describe('file api', () => {
     })
 
     const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
-    const res = await app.request('/teams/test-team/files/test-id/comments')
+    const res = await app.request('/files/test-id/comments')
 
     expect(res.status).toBe(200)
     const json = await res.json()
@@ -215,9 +231,10 @@ describe('file api', () => {
     expect(json.data[0].message).toBe('hello')
 
     expect(authzService.hasPermission).toHaveBeenCalledWith({
-      assetId: 'test-id',
       user: { id: 'user1', name: 'Test User' },
-      permission: 'Read',
+      permission: Permission.Read,
+      type: ResourceType.Asset,
+      id: 'test-id',
     })
   })
 
@@ -239,18 +256,24 @@ describe('file api', () => {
     expect(json.key).toMatch(/^files\//)
 
     expect(authzService.hasPermission).toHaveBeenCalledWith({
-      teamId: 'test-team',
       user: { id: 'user1', name: 'Test User' },
-      permission: 'Read',
+      permission: Permission.Read,
+      type: ResourceType.Team,
+      id: 'test-team',
     })
     expect(s3Service.putObject).toHaveBeenCalled()
   })
 
-  it('PATCH /teams/:teamId/files/:fileId/metadata', async () => {
+  it('PATCH /files/:fileId/metadata', async () => {
     vi.mocked(metadataService.updateAssetMetadata).mockResolvedValue(undefined)
+    // Mock assetService.getAsset to return teamId for notification
+    vi.mocked(assetService.getAsset).mockResolvedValue({
+      id: 'test-id',
+      project: { teamId: 'test-team' },
+    } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
-    const res = await app.request('/teams/test-team/files/test-id/metadata', {
+    const res = await app.request('/files/test-id/metadata', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify([{ key: 'status', value: 'approved' }]),
@@ -259,9 +282,10 @@ describe('file api', () => {
     expect(res.status).toBe(200)
 
     expect(authzService.hasPermission).toHaveBeenCalledWith({
-      assetId: 'test-id',
       user: { id: 'user1', name: 'Test User' },
-      permission: 'Edit',
+      permission: Permission.Edit,
+      type: ResourceType.Asset,
+      id: 'test-id',
     })
 
     expect(notificationService.create).toHaveBeenCalledWith({
@@ -272,7 +296,7 @@ describe('file api', () => {
     })
   })
 
-  it('PATCH /teams/:teamId/files/:fileId/order', async () => {
+  it('PATCH /files/:fileId/order', async () => {
     vi.spyOn(assetService, 'updateAssetOrder').mockResolvedValue({
       id: 'test-id',
       name: 'test-file',
@@ -286,7 +310,7 @@ describe('file api', () => {
     })
 
     const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
-    const res = await app.request('/teams/test-team/files/test-id/order', {
+    const res = await app.request('/files/test-id/order', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ beforeIndex: 'index-1' }),
@@ -295,9 +319,10 @@ describe('file api', () => {
     expect(res.status).toBe(200)
 
     expect(authzService.hasPermission).toHaveBeenCalledWith({
-      assetId: 'test-id',
       user: { id: 'user1', name: 'Test User' },
-      permission: 'Edit',
+      permission: Permission.Edit,
+      type: ResourceType.Asset,
+      id: 'test-id',
     })
 
     expect(assetService.updateAssetOrder).toHaveBeenCalledWith('test-id', {
