@@ -7,17 +7,18 @@ import { Dialog, DialogContent } from '@/ui/components/ui/dialog'
 import { Input } from '@/ui/components/ui/input'
 import { formatSize } from '@/ui/lib/format'
 import { cn } from '@/ui/lib/utils'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
+import { toast } from 'sonner'
 import {
-    AlertCircle,
-    ChevronDown,
-    ChevronUp,
-    FileIcon,
-    FolderIcon,
-    Loader2,
-    Search,
-    X,
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  FileIcon,
+  FolderIcon,
+  Loader2,
+  Search,
+  X,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { FilterPanel } from './filter-panel'
@@ -44,6 +45,7 @@ export function SearchFilterDialog({
   onApply,
 }: SearchFilterDialogProps) {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   const initialKeyword = useMemo(() => {
     const cond = initialConditions.find((c) => c.field === 'name' && c.operator === 'contains')
@@ -94,6 +96,44 @@ export function SearchFilterDialog({
       conditions.some((c) => String(c.value || '').trim() !== '')
     )
   }, [debouncedSearchInput, conditions])
+
+  const { mutate: saveAsCollection, isPending: isSaving } = useMutation({
+    mutationFn: async () => {
+      let name = debouncedSearchInput.trim()
+      if (!name && conditions.length > 0) {
+        const first = conditions[0]
+        const field = fields.find((f) => f.id === first.field)
+        const fieldName = field?.config?.name || first.field
+        name = `${fieldName} ${first.operator} ${first.value}`
+      }
+      if (!name) name = 'Untitled Collection'
+
+      const res = await client.api.teams[':teamId'].projects[':projectId'].collections.$post({
+        param: { teamId, projectId },
+        json: {
+          name,
+          filter: {
+            conditions: combinedConditions,
+            recursively: true,
+          },
+        },
+      })
+      if (!res.ok) throw new Error('Failed to save collection')
+      return await res.json()
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['collections', teamId, projectId] })
+      toast.success('Collection saved')
+      onOpenChange(false)
+      navigate({
+        to: '/projects/$projectId/collections/$collectionId',
+        params: { projectId, collectionId: data.id },
+      })
+    },
+    onError: (err) => {
+      toast.error(`Error: ${err.message}`)
+    },
+  })
 
   const { data: searchResults, isLoading } = useQuery({
     queryKey: ['search-preview', teamId, assetId, combinedConditions],
@@ -343,11 +383,17 @@ export function SearchFilterDialog({
               variant="outline"
               size="xs"
               className="h-8 text-[10px] font-semibold uppercase tracking-wider"
-              onClick={() => {
-                // Future implementation for saving collections
-              }}
+              disabled={!hasActiveCriteria || isSaving}
+              onClick={() => saveAsCollection()}
             >
-              Save as collection
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Save as collection'
+              )}
             </Button>
           </div>
         </div>

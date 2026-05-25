@@ -229,6 +229,7 @@ export type ProjectWhereInput = {
   invites?: Prisma.InviteListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
   shareLinks?: Prisma.ShareLinkListRelationFilter
+  collections?: Prisma.CollectionListRelationFilter
 }
 
 export type ProjectOrderByWithRelationInput = {
@@ -251,6 +252,7 @@ export type ProjectOrderByWithRelationInput = {
   invites?: Prisma.InviteOrderByRelationAggregateInput
   notifications?: Prisma.NotificationOrderByRelationAggregateInput
   shareLinks?: Prisma.ShareLinkOrderByRelationAggregateInput
+  collections?: Prisma.CollectionOrderByRelationAggregateInput
 }
 
 export type ProjectWhereUniqueInput = Prisma.AtLeast<{
@@ -276,6 +278,7 @@ export type ProjectWhereUniqueInput = Prisma.AtLeast<{
   invites?: Prisma.InviteListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
   shareLinks?: Prisma.ShareLinkListRelationFilter
+  collections?: Prisma.CollectionListRelationFilter
 }, "id" | "rootFolderId" | "shareRootId">
 
 export type ProjectOrderByWithAggregationInput = {
@@ -327,6 +330,7 @@ export type ProjectCreateInput = {
   invites?: Prisma.InviteCreateNestedManyWithoutProjectInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutProjectInput
   shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutProjectInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateInput = {
@@ -346,6 +350,7 @@ export type ProjectUncheckedCreateInput = {
   invites?: Prisma.InviteUncheckedCreateNestedManyWithoutProjectInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutProjectInput
   shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutProjectInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUpdateInput = {
@@ -365,6 +370,7 @@ export type ProjectUpdateInput = {
   invites?: Prisma.InviteUpdateManyWithoutProjectNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutProjectNestedInput
   shareLinks?: Prisma.ShareLinkUpdateManyWithoutProjectNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateInput = {
@@ -384,6 +390,7 @@ export type ProjectUncheckedUpdateInput = {
   invites?: Prisma.InviteUncheckedUpdateManyWithoutProjectNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutProjectNestedInput
   shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateManyInput = {
@@ -677,6 +684,20 @@ export type ProjectUpdateOneWithoutNotificationsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ProjectUpdateToOneWithWhereWithoutNotificationsInput, Prisma.ProjectUpdateWithoutNotificationsInput>, Prisma.ProjectUncheckedUpdateWithoutNotificationsInput>
 }
 
+export type ProjectCreateNestedOneWithoutCollectionsInput = {
+  create?: Prisma.XOR<Prisma.ProjectCreateWithoutCollectionsInput, Prisma.ProjectUncheckedCreateWithoutCollectionsInput>
+  connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutCollectionsInput
+  connect?: Prisma.ProjectWhereUniqueInput
+}
+
+export type ProjectUpdateOneRequiredWithoutCollectionsNestedInput = {
+  create?: Prisma.XOR<Prisma.ProjectCreateWithoutCollectionsInput, Prisma.ProjectUncheckedCreateWithoutCollectionsInput>
+  connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutCollectionsInput
+  upsert?: Prisma.ProjectUpsertWithoutCollectionsInput
+  connect?: Prisma.ProjectWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ProjectUpdateToOneWithWhereWithoutCollectionsInput, Prisma.ProjectUpdateWithoutCollectionsInput>, Prisma.ProjectUncheckedUpdateWithoutCollectionsInput>
+}
+
 export type ProjectCreateWithoutTeamInput = {
   id?: string
   name: string
@@ -693,6 +714,7 @@ export type ProjectCreateWithoutTeamInput = {
   invites?: Prisma.InviteCreateNestedManyWithoutProjectInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutProjectInput
   shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutProjectInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutTeamInput = {
@@ -711,6 +733,7 @@ export type ProjectUncheckedCreateWithoutTeamInput = {
   invites?: Prisma.InviteUncheckedCreateNestedManyWithoutProjectInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutProjectInput
   shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutProjectInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutTeamInput = {
@@ -771,6 +794,7 @@ export type ProjectCreateWithoutMembersInput = {
   invites?: Prisma.InviteCreateNestedManyWithoutProjectInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutProjectInput
   shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutProjectInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutMembersInput = {
@@ -789,6 +813,7 @@ export type ProjectUncheckedCreateWithoutMembersInput = {
   invites?: Prisma.InviteUncheckedCreateNestedManyWithoutProjectInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutProjectInput
   shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutProjectInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutMembersInput = {
@@ -823,6 +848,7 @@ export type ProjectUpdateWithoutMembersInput = {
   invites?: Prisma.InviteUpdateManyWithoutProjectNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutProjectNestedInput
   shareLinks?: Prisma.ShareLinkUpdateManyWithoutProjectNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutMembersInput = {
@@ -841,6 +867,7 @@ export type ProjectUncheckedUpdateWithoutMembersInput = {
   invites?: Prisma.InviteUncheckedUpdateManyWithoutProjectNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutProjectNestedInput
   shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutShareLinksInput = {
@@ -859,6 +886,7 @@ export type ProjectCreateWithoutShareLinksInput = {
   metadataFields?: Prisma.MetadataFieldCreateNestedManyWithoutProjectInput
   invites?: Prisma.InviteCreateNestedManyWithoutProjectInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutProjectInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutShareLinksInput = {
@@ -877,6 +905,7 @@ export type ProjectUncheckedCreateWithoutShareLinksInput = {
   metadataFields?: Prisma.MetadataFieldUncheckedCreateNestedManyWithoutProjectInput
   invites?: Prisma.InviteUncheckedCreateNestedManyWithoutProjectInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutProjectInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutShareLinksInput = {
@@ -911,6 +940,7 @@ export type ProjectUpdateWithoutShareLinksInput = {
   metadataFields?: Prisma.MetadataFieldUpdateManyWithoutProjectNestedInput
   invites?: Prisma.InviteUpdateManyWithoutProjectNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutProjectNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutShareLinksInput = {
@@ -929,6 +959,7 @@ export type ProjectUncheckedUpdateWithoutShareLinksInput = {
   metadataFields?: Prisma.MetadataFieldUncheckedUpdateManyWithoutProjectNestedInput
   invites?: Prisma.InviteUncheckedUpdateManyWithoutProjectNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutProjectNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutAssetsInput = {
@@ -947,6 +978,7 @@ export type ProjectCreateWithoutAssetsInput = {
   invites?: Prisma.InviteCreateNestedManyWithoutProjectInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutProjectInput
   shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutProjectInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutAssetsInput = {
@@ -965,6 +997,7 @@ export type ProjectUncheckedCreateWithoutAssetsInput = {
   invites?: Prisma.InviteUncheckedCreateNestedManyWithoutProjectInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutProjectInput
   shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutProjectInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutAssetsInput = {
@@ -988,6 +1021,7 @@ export type ProjectCreateWithoutRootFolderInput = {
   invites?: Prisma.InviteCreateNestedManyWithoutProjectInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutProjectInput
   shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutProjectInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutRootFolderInput = {
@@ -1006,6 +1040,7 @@ export type ProjectUncheckedCreateWithoutRootFolderInput = {
   invites?: Prisma.InviteUncheckedCreateNestedManyWithoutProjectInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutProjectInput
   shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutProjectInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutRootFolderInput = {
@@ -1029,6 +1064,7 @@ export type ProjectCreateWithoutShareRootInput = {
   invites?: Prisma.InviteCreateNestedManyWithoutProjectInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutProjectInput
   shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutProjectInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutShareRootInput = {
@@ -1047,6 +1083,7 @@ export type ProjectUncheckedCreateWithoutShareRootInput = {
   invites?: Prisma.InviteUncheckedCreateNestedManyWithoutProjectInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutProjectInput
   shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutProjectInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutShareRootInput = {
@@ -1081,6 +1118,7 @@ export type ProjectUpdateWithoutAssetsInput = {
   invites?: Prisma.InviteUpdateManyWithoutProjectNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutProjectNestedInput
   shareLinks?: Prisma.ShareLinkUpdateManyWithoutProjectNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutAssetsInput = {
@@ -1099,6 +1137,7 @@ export type ProjectUncheckedUpdateWithoutAssetsInput = {
   invites?: Prisma.InviteUncheckedUpdateManyWithoutProjectNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutProjectNestedInput
   shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUpsertWithoutRootFolderInput = {
@@ -1128,6 +1167,7 @@ export type ProjectUpdateWithoutRootFolderInput = {
   invites?: Prisma.InviteUpdateManyWithoutProjectNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutProjectNestedInput
   shareLinks?: Prisma.ShareLinkUpdateManyWithoutProjectNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutRootFolderInput = {
@@ -1146,6 +1186,7 @@ export type ProjectUncheckedUpdateWithoutRootFolderInput = {
   invites?: Prisma.InviteUncheckedUpdateManyWithoutProjectNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutProjectNestedInput
   shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUpsertWithoutShareRootInput = {
@@ -1175,6 +1216,7 @@ export type ProjectUpdateWithoutShareRootInput = {
   invites?: Prisma.InviteUpdateManyWithoutProjectNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutProjectNestedInput
   shareLinks?: Prisma.ShareLinkUpdateManyWithoutProjectNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutShareRootInput = {
@@ -1193,6 +1235,7 @@ export type ProjectUncheckedUpdateWithoutShareRootInput = {
   invites?: Prisma.InviteUncheckedUpdateManyWithoutProjectNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutProjectNestedInput
   shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutInvitesInput = {
@@ -1211,6 +1254,7 @@ export type ProjectCreateWithoutInvitesInput = {
   metadataFields?: Prisma.MetadataFieldCreateNestedManyWithoutProjectInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutProjectInput
   shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutProjectInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutInvitesInput = {
@@ -1229,6 +1273,7 @@ export type ProjectUncheckedCreateWithoutInvitesInput = {
   metadataFields?: Prisma.MetadataFieldUncheckedCreateNestedManyWithoutProjectInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutProjectInput
   shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutProjectInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutInvitesInput = {
@@ -1263,6 +1308,7 @@ export type ProjectUpdateWithoutInvitesInput = {
   metadataFields?: Prisma.MetadataFieldUpdateManyWithoutProjectNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutProjectNestedInput
   shareLinks?: Prisma.ShareLinkUpdateManyWithoutProjectNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutInvitesInput = {
@@ -1281,6 +1327,7 @@ export type ProjectUncheckedUpdateWithoutInvitesInput = {
   metadataFields?: Prisma.MetadataFieldUncheckedUpdateManyWithoutProjectNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutProjectNestedInput
   shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutMetadataFieldsInput = {
@@ -1299,6 +1346,7 @@ export type ProjectCreateWithoutMetadataFieldsInput = {
   invites?: Prisma.InviteCreateNestedManyWithoutProjectInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutProjectInput
   shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutProjectInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutMetadataFieldsInput = {
@@ -1317,6 +1365,7 @@ export type ProjectUncheckedCreateWithoutMetadataFieldsInput = {
   invites?: Prisma.InviteUncheckedCreateNestedManyWithoutProjectInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutProjectInput
   shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutProjectInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutMetadataFieldsInput = {
@@ -1351,6 +1400,7 @@ export type ProjectUpdateWithoutMetadataFieldsInput = {
   invites?: Prisma.InviteUpdateManyWithoutProjectNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutProjectNestedInput
   shareLinks?: Prisma.ShareLinkUpdateManyWithoutProjectNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutMetadataFieldsInput = {
@@ -1369,6 +1419,7 @@ export type ProjectUncheckedUpdateWithoutMetadataFieldsInput = {
   invites?: Prisma.InviteUncheckedUpdateManyWithoutProjectNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutProjectNestedInput
   shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutNotificationsInput = {
@@ -1387,6 +1438,7 @@ export type ProjectCreateWithoutNotificationsInput = {
   metadataFields?: Prisma.MetadataFieldCreateNestedManyWithoutProjectInput
   invites?: Prisma.InviteCreateNestedManyWithoutProjectInput
   shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutProjectInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutNotificationsInput = {
@@ -1405,6 +1457,7 @@ export type ProjectUncheckedCreateWithoutNotificationsInput = {
   metadataFields?: Prisma.MetadataFieldUncheckedCreateNestedManyWithoutProjectInput
   invites?: Prisma.InviteUncheckedCreateNestedManyWithoutProjectInput
   shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutProjectInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutNotificationsInput = {
@@ -1439,6 +1492,7 @@ export type ProjectUpdateWithoutNotificationsInput = {
   metadataFields?: Prisma.MetadataFieldUpdateManyWithoutProjectNestedInput
   invites?: Prisma.InviteUpdateManyWithoutProjectNestedInput
   shareLinks?: Prisma.ShareLinkUpdateManyWithoutProjectNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutNotificationsInput = {
@@ -1456,6 +1510,99 @@ export type ProjectUncheckedUpdateWithoutNotificationsInput = {
   assets?: Prisma.AssetUncheckedUpdateManyWithoutProjectNestedInput
   metadataFields?: Prisma.MetadataFieldUncheckedUpdateManyWithoutProjectNestedInput
   invites?: Prisma.InviteUncheckedUpdateManyWithoutProjectNestedInput
+  shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
+}
+
+export type ProjectCreateWithoutCollectionsInput = {
+  id?: string
+  name: string
+  coverImageKey?: string | null
+  metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
+  enableNotification?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  team: Prisma.TeamCreateNestedOneWithoutProjectsInput
+  rootFolder?: Prisma.AssetCreateNestedOneWithoutProjectRootFolderInput
+  shareRoot?: Prisma.AssetCreateNestedOneWithoutProjectShareRootInput
+  members?: Prisma.ProjectMemberCreateNestedManyWithoutProjectInput
+  assets?: Prisma.AssetCreateNestedManyWithoutProjectInput
+  metadataFields?: Prisma.MetadataFieldCreateNestedManyWithoutProjectInput
+  invites?: Prisma.InviteCreateNestedManyWithoutProjectInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutProjectInput
+  shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutProjectInput
+}
+
+export type ProjectUncheckedCreateWithoutCollectionsInput = {
+  id?: string
+  name: string
+  coverImageKey?: string | null
+  metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
+  enableNotification?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  teamId: string
+  rootFolderId?: string | null
+  shareRootId?: string | null
+  members?: Prisma.ProjectMemberUncheckedCreateNestedManyWithoutProjectInput
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutProjectInput
+  metadataFields?: Prisma.MetadataFieldUncheckedCreateNestedManyWithoutProjectInput
+  invites?: Prisma.InviteUncheckedCreateNestedManyWithoutProjectInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutProjectInput
+  shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutProjectInput
+}
+
+export type ProjectCreateOrConnectWithoutCollectionsInput = {
+  where: Prisma.ProjectWhereUniqueInput
+  create: Prisma.XOR<Prisma.ProjectCreateWithoutCollectionsInput, Prisma.ProjectUncheckedCreateWithoutCollectionsInput>
+}
+
+export type ProjectUpsertWithoutCollectionsInput = {
+  update: Prisma.XOR<Prisma.ProjectUpdateWithoutCollectionsInput, Prisma.ProjectUncheckedUpdateWithoutCollectionsInput>
+  create: Prisma.XOR<Prisma.ProjectCreateWithoutCollectionsInput, Prisma.ProjectUncheckedCreateWithoutCollectionsInput>
+  where?: Prisma.ProjectWhereInput
+}
+
+export type ProjectUpdateToOneWithWhereWithoutCollectionsInput = {
+  where?: Prisma.ProjectWhereInput
+  data: Prisma.XOR<Prisma.ProjectUpdateWithoutCollectionsInput, Prisma.ProjectUncheckedUpdateWithoutCollectionsInput>
+}
+
+export type ProjectUpdateWithoutCollectionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
+  enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  team?: Prisma.TeamUpdateOneRequiredWithoutProjectsNestedInput
+  rootFolder?: Prisma.AssetUpdateOneWithoutProjectRootFolderNestedInput
+  shareRoot?: Prisma.AssetUpdateOneWithoutProjectShareRootNestedInput
+  members?: Prisma.ProjectMemberUpdateManyWithoutProjectNestedInput
+  assets?: Prisma.AssetUpdateManyWithoutProjectNestedInput
+  metadataFields?: Prisma.MetadataFieldUpdateManyWithoutProjectNestedInput
+  invites?: Prisma.InviteUpdateManyWithoutProjectNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutProjectNestedInput
+  shareLinks?: Prisma.ShareLinkUpdateManyWithoutProjectNestedInput
+}
+
+export type ProjectUncheckedUpdateWithoutCollectionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
+  enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  teamId?: Prisma.StringFieldUpdateOperationsInput | string
+  rootFolderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shareRootId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  members?: Prisma.ProjectMemberUncheckedUpdateManyWithoutProjectNestedInput
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutProjectNestedInput
+  metadataFields?: Prisma.MetadataFieldUncheckedUpdateManyWithoutProjectNestedInput
+  invites?: Prisma.InviteUncheckedUpdateManyWithoutProjectNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutProjectNestedInput
   shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutProjectNestedInput
 }
 
@@ -1487,6 +1634,7 @@ export type ProjectUpdateWithoutTeamInput = {
   invites?: Prisma.InviteUpdateManyWithoutProjectNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutProjectNestedInput
   shareLinks?: Prisma.ShareLinkUpdateManyWithoutProjectNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutTeamInput = {
@@ -1505,6 +1653,7 @@ export type ProjectUncheckedUpdateWithoutTeamInput = {
   invites?: Prisma.InviteUncheckedUpdateManyWithoutProjectNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutProjectNestedInput
   shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateManyWithoutTeamInput = {
@@ -1531,6 +1680,7 @@ export type ProjectCountOutputType = {
   invites: number
   notifications: number
   shareLinks: number
+  collections: number
 }
 
 export type ProjectCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1540,6 +1690,7 @@ export type ProjectCountOutputTypeSelect<ExtArgs extends runtime.Types.Extension
   invites?: boolean | ProjectCountOutputTypeCountInvitesArgs
   notifications?: boolean | ProjectCountOutputTypeCountNotificationsArgs
   shareLinks?: boolean | ProjectCountOutputTypeCountShareLinksArgs
+  collections?: boolean | ProjectCountOutputTypeCountCollectionsArgs
 }
 
 /**
@@ -1594,6 +1745,13 @@ export type ProjectCountOutputTypeCountShareLinksArgs<ExtArgs extends runtime.Ty
   where?: Prisma.ShareLinkWhereInput
 }
 
+/**
+ * ProjectCountOutputType without action
+ */
+export type ProjectCountOutputTypeCountCollectionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CollectionWhereInput
+}
+
 
 export type ProjectSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1615,6 +1773,7 @@ export type ProjectSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   invites?: boolean | Prisma.Project$invitesArgs<ExtArgs>
   notifications?: boolean | Prisma.Project$notificationsArgs<ExtArgs>
   shareLinks?: boolean | Prisma.Project$shareLinksArgs<ExtArgs>
+  collections?: boolean | Prisma.Project$collectionsArgs<ExtArgs>
   _count?: boolean | Prisma.ProjectCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["project"]>
 
@@ -1674,6 +1833,7 @@ export type ProjectInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs
   invites?: boolean | Prisma.Project$invitesArgs<ExtArgs>
   notifications?: boolean | Prisma.Project$notificationsArgs<ExtArgs>
   shareLinks?: boolean | Prisma.Project$shareLinksArgs<ExtArgs>
+  collections?: boolean | Prisma.Project$collectionsArgs<ExtArgs>
   _count?: boolean | Prisma.ProjectCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ProjectIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1699,6 +1859,7 @@ export type $ProjectPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     invites: Prisma.$InvitePayload<ExtArgs>[]
     notifications: Prisma.$NotificationPayload<ExtArgs>[]
     shareLinks: Prisma.$ShareLinkPayload<ExtArgs>[]
+    collections: Prisma.$CollectionPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2117,6 +2278,7 @@ export interface Prisma__ProjectClient<T, Null = never, ExtArgs extends runtime.
   invites<T extends Prisma.Project$invitesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$invitesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InvitePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   notifications<T extends Prisma.Project$notificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   shareLinks<T extends Prisma.Project$shareLinksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$shareLinksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ShareLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  collections<T extends Prisma.Project$collectionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$collectionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CollectionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2736,6 +2898,30 @@ export type Project$shareLinksArgs<ExtArgs extends runtime.Types.Extensions.Inte
   take?: number
   skip?: number
   distinct?: Prisma.ShareLinkScalarFieldEnum | Prisma.ShareLinkScalarFieldEnum[]
+}
+
+/**
+ * Project.collections
+ */
+export type Project$collectionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Collection
+   */
+  select?: Prisma.CollectionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Collection
+   */
+  omit?: Prisma.CollectionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CollectionInclude<ExtArgs> | null
+  where?: Prisma.CollectionWhereInput
+  orderBy?: Prisma.CollectionOrderByWithRelationInput | Prisma.CollectionOrderByWithRelationInput[]
+  cursor?: Prisma.CollectionWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CollectionScalarFieldEnum | Prisma.CollectionScalarFieldEnum[]
 }
 
 /**

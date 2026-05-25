@@ -44,16 +44,17 @@ export type SearchOperator = z.infer<typeof searchOperatorSchema>
 export const searchAssetTypeSchema = z.enum(['file', 'folder'])
 export type SearchAssetType = z.infer<typeof searchAssetTypeSchema>
 
-export const searchRequestSchema = z
-  .object({
-    operator: searchOperatorSchema.optional().default('AND'),
-    conditions: z.array(searchConditionSchema).optional().default([]),
-    sort: searchSortSchema.optional(),
+export const searchFilterSchema = z.object({
+  operator: searchOperatorSchema.optional().default('AND'),
+  conditions: z.array(searchConditionSchema).optional().default([]),
+  sort: searchSortSchema.optional(),
 
-    assetType: searchAssetTypeSchema.optional(),
-    showSymlink: z.boolean().optional(),
-    recursively: z.boolean().optional().default(true),
-    query: z.string().optional(),
-  })
-  .merge(paginationParamsSchema)
+  assetType: searchAssetTypeSchema.optional(),
+  showSymlink: z.boolean().optional(),
+  recursively: z.boolean().optional().default(true),
+  query: z.string().optional(),
+})
+export type SearchFilter = z.infer<typeof searchFilterSchema>
+
+export const searchRequestSchema = searchFilterSchema.extend(paginationParamsSchema.shape)
 export type SearchRequest = z.infer<typeof searchRequestSchema>

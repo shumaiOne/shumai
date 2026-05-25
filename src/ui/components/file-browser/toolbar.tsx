@@ -1,5 +1,6 @@
 import { type FieldInfo as MetadataFieldInfo } from '@/dtos/metadata'
 import type { SearchCondition, SearchSort } from '@/dtos/search'
+import type { CollectionInfo } from '@/dtos/collection'
 import { client } from '@/ui/api/client'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import type { InferRequestType, InferResponseType } from 'hono/client'
@@ -8,11 +9,13 @@ import { FieldsManager } from '../fields-manager'
 import { ManageFieldsDialog } from '../manage-fields-dialog'
 import { MembersDialog } from '../members-dialog'
 import { SearchFilterDialog } from '../search/search-filter-dialog'
+import { FilterPanel } from '../search/filter-panel'
 import { SortControl } from '../search/sort-control'
 import { Avatar, AvatarFallback } from '../ui/avatar'
 import { Button } from '../ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { Separator } from '../ui/separator'
+import { Filter } from 'lucide-react'
 
 type FileBrowserToolbarProps = {
   teamId: string
@@ -24,6 +27,9 @@ type FileBrowserToolbarProps = {
   sort?: SearchSort
   onSortChange: (sort?: SearchSort) => void
   isRecentlyDeleted?: boolean
+  collection?: CollectionInfo
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onUpdateCollection?: (updates: { name?: string; filter?: any }) => void
 }
 
 export function FileBrowserToolbar({
@@ -36,6 +42,8 @@ export function FileBrowserToolbar({
   sort,
   onSortChange,
   isRecentlyDeleted,
+  collection,
+  onUpdateCollection,
 }: FileBrowserToolbarProps) {
   const [popoverOpen, setPopoverOpen] = useState(false)
   const [searchDialogOpen, setSearchDialogOpen] = useState(false)
@@ -43,6 +51,7 @@ export function FileBrowserToolbar({
   const [isMembersDialogOpen, setIsMembersDialogOpen] = useState(false)
 
   const activeFiltersCount = filterConditions.length
+  const isCollection = !!collection
 
   const { data: members } = useQuery({
     queryKey: ['projects', projectId, 'members'],
@@ -147,20 +156,57 @@ export function FileBrowserToolbar({
 
         <Separator orientation="vertical" />
 
-        <Button
-          onClick={() => setSearchDialogOpen(true)}
-          disabled={isRecentlyDeleted}
-          variant={activeFiltersCount > 0 ? 'secondary' : 'ghost'}
-          size="sm"
-          className="inline-flex items-center gap-2 px-4 py-2 hover:bg-primary/10 font-semibold rounded-xl cursor-pointer h-8"
-        >
-          <span>Search</span>
-          {activeFiltersCount > 0 && (
-            <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/50 border border-primary-foreground/20">
-              {activeFiltersCount}
-            </span>
-          )}
-        </Button>
+        {isCollection ? (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={activeFiltersCount > 0 ? 'secondary' : 'ghost'}
+                size="sm"
+                className="inline-flex items-center gap-2 px-4 py-2 hover:bg-primary/10 font-semibold rounded-xl cursor-pointer h-8"
+              >
+                <Filter className="h-4 w-4" />
+                <span>Filter</span>
+                {activeFiltersCount > 0 && (
+                  <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/50 border border-primary-foreground/20">
+                    {activeFiltersCount}
+                  </span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[400px] p-0" align="start">
+              <FilterPanel
+                fields={fields}
+                conditions={filterConditions}
+                onChange={(newConditions) => {
+                  onFilterChange(newConditions)
+                  onUpdateCollection?.({
+                    filter: {
+                      ...collection.filter,
+                      conditions: newConditions,
+                    },
+                  })
+                }}
+                excludeFields={[]}
+                hidePrefix
+              />
+            </PopoverContent>
+          </Popover>
+        ) : (
+          <Button
+            onClick={() => setSearchDialogOpen(true)}
+            disabled={isRecentlyDeleted}
+            variant={activeFiltersCount > 0 ? 'secondary' : 'ghost'}
+            size="sm"
+            className="inline-flex items-center gap-2 px-4 py-2 hover:bg-primary/10 font-semibold rounded-xl cursor-pointer h-8"
+          >
+            <span>Search</span>
+            {activeFiltersCount > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/50 border border-primary-foreground/20">
+                {activeFiltersCount}
+              </span>
+            )}
+          </Button>
+        )}
       </div>
 
       <div className="flex items-center gap-2">
