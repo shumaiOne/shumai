@@ -136,6 +136,15 @@ export function FileBrowserToolbar({
             />
           </PopoverContent>
         </Popover>
+
+        <Separator orientation="vertical" />
+        <SortControl
+          fields={fields}
+          sort={sort}
+          onSortChange={onSortChange}
+          disabled={isRecentlyDeleted}
+        />
+
         <Separator orientation="vertical" />
 
         <Button
@@ -152,14 +161,6 @@ export function FileBrowserToolbar({
             </span>
           )}
         </Button>
-
-        <Separator orientation="vertical" />
-        <SortControl
-          fields={fields}
-          sort={sort}
-          onSortChange={onSortChange}
-          disabled={isRecentlyDeleted}
-        />
       </div>
 
       <div className="flex items-center gap-2">

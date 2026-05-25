@@ -3,13 +3,12 @@ import type { SearchSort } from '@/dtos/search'
 import { Button } from '@/ui/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/ui/popover'
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/ui/components/ui/select'
-import { ArrowDownWideNarrow } from 'lucide-react'
 
 interface SortControlProps {
   fields: MetadataFieldInfo[]

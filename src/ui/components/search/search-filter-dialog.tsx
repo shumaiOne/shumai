@@ -212,7 +212,7 @@ export function SearchFilterDialog({
                 }}
                 className="text-[11px] font-medium text-destructive hover:text-destructive/80 underline underline-offset-2 transition-colors"
               >
-                Reset All Criteria
+                Reset
               </button>
             )}
           </div>
