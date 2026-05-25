@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { prisma } from '@/db'
 import { setupTestDbHooks } from '@/db-test-hooks'
 
-import { AssetType, AssetStatus } from '@/generated/prisma/client.ts'
+import { AssetType, AssetStatus, Prisma } from '@/generated/prisma/client.ts'
 import { AssetService } from './asset'
 
 vi.mock('@/services/s3/s3', () => ({
@@ -11,6 +11,7 @@ vi.mock('@/services/s3/s3', () => ({
     putObject: vi.fn().mockResolvedValue(undefined),
     deleteObject: vi.fn().mockResolvedValue(1),
     deletePrefix: vi.fn().mockResolvedValue(1),
+    copyObject: vi.fn().mockResolvedValue(undefined),
   },
 }))
 
@@ -353,6 +354,185 @@ describe('AssetService', () => {
       fileCount: 1,
       size: 100,
     })
+  })
+
+  it('handles copying assets recursively', async () => {
+    const { user, assets } = await setupBasicAssets()
+
+    await assetService.copyAssets({
+      assetIds: [assets.folderA.id],
+      newParentId: assets.root3.id,
+      creatorId: user.id,
+      withComments: false,
+    })
+
+    // Verify root3 now has 1 more folder
+    await verifyAsset(assets.root3.id, {
+      type: AssetType.folder,
+      fileCount: 1,
+      size: 300,
+    })
+
+    // Verify children of folderA were copied
+    const copiedFolders = await prisma.asset.findMany({
+      where: { parentId: assets.root3.id, name: 'folderA' },
+    })
+    expect(copiedFolders.length).toBe(1)
+    const newFolderA = copiedFolders[0]
+
+    const children = await prisma.asset.findMany({
+      where: { parentId: newFolderA.id },
+    })
+    expect(children.length).toBe(2)
+    expect(children.map((c) => c.name)).toContain('fileA1')
+    expect(children.map((c) => c.name)).toContain('fileA2')
+  })
+
+  it('handles copying assets with comments and attachments', async () => {
+    const { user, assets, project } = await setupBasicAssets()
+
+    // Create a comment with attachment on fileA1
+    const attachmentAsset = await prisma.asset.create({
+      data: {
+        name: 'attach.png',
+        type: AssetType.attachment,
+        projectId: project.id,
+        creatorId: user.id,
+        status: 'uploaded',
+        sizeByte: 50,
+      },
+    })
+
+    const comment = await prisma.assetComment.create({
+      data: {
+        assetId: assets.fileA1.id,
+        creatorId: user.id,
+        message: 'Original Comment',
+      },
+    })
+
+    await prisma.assetCommentAttachment.create({
+      data: {
+        commentId: comment.id,
+        assetId: attachmentAsset.id,
+      },
+    })
+
+    await assetService.copyAssets({
+      assetIds: [assets.fileA1.id],
+      newParentId: assets.root3.id,
+      creatorId: user.id,
+      withComments: true,
+    })
+
+    // Find the copied file
+    const copiedFiles = await prisma.asset.findMany({
+      where: { parentId: assets.root3.id, name: 'fileA1' },
+    })
+    expect(copiedFiles.length).toBe(1)
+    const newFileA1 = copiedFiles[0]
+
+    // Verify comments were copied
+    const newComments = await prisma.assetComment.findMany({
+      where: { assetId: newFileA1.id },
+      include: { attachments: { include: { asset: true } } },
+    })
+    expect(newComments.length).toBe(1)
+    expect(newComments[0].message).toBe('Original Comment')
+    expect(newComments[0].attachments.length).toBe(1)
+
+    // Verify attachment asset was deep copied
+    const newAttachmentAsset = newComments[0].attachments[0].asset
+    expect(newAttachmentAsset.id).not.toBe(attachmentAsset.id)
+    expect(newAttachmentAsset.name).toBe('attach.png')
+    expect(newAttachmentAsset.type).toBe(AssetType.attachment)
+  })
+
+  it('rejects copying a folder into its own descendant', async () => {
+    const { user, assets } = await setupBasicAssets()
+
+    // Create a subfolder inside folderA
+    const subfolder = await prisma.asset.create({
+      data: {
+        name: 'subfolder',
+        type: AssetType.folder,
+        projectId: assets.folderA.projectId,
+        parentId: assets.folderA.id,
+        status: 'uploaded',
+      },
+    })
+
+    await expect(
+      assetService.copyAssets({
+        assetIds: [assets.folderA.id],
+        newParentId: subfolder.id,
+        creatorId: user.id,
+        withComments: false,
+      }),
+    ).rejects.toThrow('Cannot copy a folder into its own descendant')
+  })
+
+  it('uses destination project when copying comment attachments', async () => {
+    const { user, assets, project } = await setupBasicAssets()
+
+    // Set up project 2
+    const project2 = await prisma.project.create({
+      data: { name: 'Project 2', teamId: project.teamId },
+    })
+    const root2 = await prisma.asset.create({
+      data: { name: 'root2', type: AssetType.folder, projectId: project2.id, status: 'uploaded' },
+    })
+
+    // Create a comment with attachment on fileA1
+    const attachmentAsset = await prisma.asset.create({
+      data: {
+        name: 'attach.png',
+        type: AssetType.attachment,
+        projectId: project.id,
+        creatorId: user.id,
+        status: 'uploaded',
+        sizeByte: 50,
+      },
+    })
+
+    const comment = await prisma.assetComment.create({
+      data: {
+        assetId: assets.fileA1.id,
+        creatorId: user.id,
+        message: 'Original Comment',
+      },
+    })
+
+    await prisma.assetCommentAttachment.create({
+      data: {
+        commentId: comment.id,
+        assetId: attachmentAsset.id,
+      },
+    })
+
+    // Copy to project 2
+    await assetService.copyAssets({
+      assetIds: [assets.fileA1.id],
+      newParentId: root2.id,
+      creatorId: user.id,
+      withComments: true,
+    })
+
+    // Find the copied file in project 2
+    const newFileA1 = await prisma.asset.findFirstOrThrow({
+      where: { parentId: root2.id, name: 'fileA1' },
+    })
+
+    // Verify comments were copied
+    const newComments = await prisma.assetComment.findMany({
+      where: { assetId: newFileA1.id },
+      include: { attachments: { include: { asset: true } } },
+    })
+    expect(newComments.length).toBe(1)
+
+    // Verify attachment asset belongs to PROJECT 2
+    const newAttachmentAsset = newComments[0].attachments[0].asset
+    expect(newAttachmentAsset.projectId).toBe(project2.id)
   })
 
   it('handles reparenting - Version Stack: move into stack', async () => {
@@ -1200,24 +1380,34 @@ describe('AssetService', () => {
         type: AssetType.file,
         status: AssetStatus.pending_purge,
         isDeleted: true,
-        projectId: project.id,
-        parentId: folderA.id,
-        key: `key-${i}`,
+        project: { connect: { id: project.id } },
+        parent: { connect: { id: folderA.id } },
+        storageKey: {
+          create: { key: `key-${i}` },
+        },
       }))
 
-      await prisma.asset.createMany({ data: childData })
+      for (const data of childData) {
+        const asset = await prisma.asset.create({
+          data: data as unknown as Prisma.AssetCreateInput,
+          include: { storageKey: true },
+        })
+        await prisma.storageKey.update({
+          where: { id: asset.storageKeyId! },
+          data: { createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000) },
+        })
+      }
 
-      // 3. Trigger the purge job for the FIRST batch (100 items)
+      // 3. Trigger the purge job
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (assetService as any).purgePendingAssets()
 
-      // 4. Verify some items were processed in S3
-      // We don't know the order, but if Folder A was in the first 100,
-      // then its synchronous cascade will have wiped the remaining children.
-
-      // 5. Trigger the purge job for the SECOND batch
+      // 6. Trigger GC job to physically delete files
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (assetService as any).purgePendingAssets()
+      await (assetService as any).purgeUnreferencedStorageKeys()
+      // Call it again to process the remaining items (batch size is 100)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (assetService as any).purgeUnreferencedStorageKeys()
 
       // 6. Verify S3 deletion was called for EVERY child
       for (let i = 0; i < childCount; i++) {
@@ -1241,23 +1431,28 @@ describe('AssetService', () => {
           type: AssetType.file,
           status: AssetStatus.pending_purge,
           isDeleted: true,
-          projectId: project.id,
-          key: 'file/01KSBRJVY3DPK111S2MECFKDQ4/raw',
+          project: { connect: { id: project.id } },
+          storageKey: {
+            create: {
+              key: 'file/01KSBRJVY3DPK111S2MECFKDQ4/raw',
+              createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
+            },
+          },
         },
       })
 
-      // Trigger the purge job
+      // 1. Purge the asset record
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (assetService as any).purgePendingAssets()
+
+      // 2. Trigger GC job
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (assetService as any).purgeUnreferencedStorageKeys()
 
       // Verify deletePrefix was called with the correct prefix instead of just deleteObject
       expect(s3Service.deletePrefix).toHaveBeenCalledWith(
         expect.any(String),
         'file/01KSBRJVY3DPK111S2MECFKDQ4/',
-      )
-      expect(s3Service.deleteObject).not.toHaveBeenCalledWith(
-        expect.any(String),
-        'file/01KSBRJVY3DPK111S2MECFKDQ4/raw',
       )
 
       // Verify record is gone

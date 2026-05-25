@@ -127,15 +127,15 @@ export class UploadService {
         data: {
           name: file.name,
           type: assetType,
-          key,
+          storageKey: key ? { create: { key } } : undefined,
           sortIndex: newSortIndex,
           mediaType: file.mediaType,
           status: AssetStatus.uploading,
           sizeByte: file.size,
-          creatorId: userId,
-          parentId,
-          projectId,
-          taskId,
+          creator: userId ? { connect: { id: userId } } : undefined,
+          parent: parentId ? { connect: { id: parentId } } : undefined,
+          project: { connect: { id: projectId } },
+          task: { connect: { id: taskId } },
         },
       })
       createdIds.push(newAsset.id)
@@ -168,11 +168,15 @@ export class UploadService {
   ): Promise<void> {
     const asset = await this.prismaClient.asset.findUnique({
       where: { id: req.fileId },
-      include: { project: { include: { team: true } } },
+      include: {
+        storageKey: true,
+        project: { include: { team: true } },
+      },
     })
     if (!asset) throw new Error('Asset not found')
     if (!asset.project) throw new Error('Project not found for asset')
-    if (!asset.key) throw new Error('Asset has no key')
+    const key = asset.storageKey?.key
+    if (!key) throw new Error('Asset has no key')
 
     if (req.errorMessage) {
       await this.prismaClient.asset.delete({ where: { id: asset.id } })
@@ -192,7 +196,7 @@ export class UploadService {
       return
     }
 
-    const size = await s3Service.getObjectSize(process.env.S3_BUCKET || 'shumai', asset.key)
+    const size = await s3Service.getObjectSize(process.env.S3_BUCKET || 'shumai', key)
 
     const project = asset.project
 

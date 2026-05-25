@@ -38,14 +38,15 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
 
     // 2. Get Asset
     const asset = await executeActivity(TaskQueueDb, getAssetActivity, task.assetId)
-    if (!asset || !asset.key) throw new Error('Asset not found')
+    const key = asset?.storageKey?.key
+    if (!asset || !key) throw new Error('Asset not found or has no key')
 
     // 3. Get Worker-Specific Queue for Transcode
     workerQueue = await executeActivity(TaskQueueTranscode, getTranscodeWorkerQueueActivity)
 
     // 4. Download Media to Tmp
     const download = await executeActivity(workerQueue, downloadMediaToTmpActivity, {
-      assetKey: asset.key,
+      assetKey: key,
     })
     const { filePath } = download
     tmpDir = download.tmpDir
@@ -59,7 +60,7 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
     })
 
     mediaInfo.original = {
-      key: asset.key,
+      key,
       downloadUrl: '',
       filesizeInBytes: 0,
       codec: '',
@@ -89,7 +90,7 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
         }
 
         const videoTranscode = await executeActivity(workerQueue, transcodeVideoActivity, {
-          assetKey: asset.key,
+          assetKey: key,
           filePath,
           videoSpec,
           duration: metadata.duration,
@@ -125,7 +126,7 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
           if (imageSpec.width > metadata.originalWidth) continue
 
           const imageTranscode = await executeActivity(workerQueue, transcodeImageActivity, {
-            assetKey: asset.key,
+            assetKey: key,
             filePath,
             imageSpec,
           })
@@ -143,7 +144,7 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
         format: 'webp',
       }
       const imageTranscode = await executeActivity(workerQueue, transcodeImageActivity, {
-        assetKey: asset.key,
+        assetKey: key,
         filePath,
         imageSpec,
       })
@@ -164,7 +165,7 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
     // 9. System: Thumbnail
     if (spec.thumbnail) {
       const thumbTranscode = await executeActivity(workerQueue, transcodeImageActivity, {
-        assetKey: asset.key,
+        assetKey: key,
         filePath,
         imageSpec: { width: 480, height: 0, quality: 80, format: 'webp' },
       })
@@ -173,8 +174,8 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
 
     // 10. System: Sprite/Poster (Video only usually)
     if (spec.sprite || spec.poster) {
-      const lastSlashIndex = asset.key.lastIndexOf('/')
-      const assetDir = lastSlashIndex === -1 ? '' : asset.key.substring(0, lastSlashIndex)
+      const lastSlashIndex = key.lastIndexOf('/')
+      const assetDir = lastSlashIndex === -1 ? '' : key.substring(0, lastSlashIndex)
 
       const spriteSpec: PrismaJson.SpriteInfo = {
         key: assetDir ? `${assetDir}/sprite.webp` : 'sprite.webp',
@@ -187,7 +188,7 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
       }
 
       const spriteResult = await executeActivity(workerQueue, generateSpriteActivity, {
-        assetKey: asset.key,
+        assetKey: key,
         filePath,
         spriteSpec,
         posterSpec,

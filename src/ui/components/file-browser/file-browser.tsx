@@ -16,6 +16,7 @@ import { toast } from 'sonner'
 import type { DragState } from '../dnd-types'
 import { FileBrowserContextMenu } from './context-menu'
 import { useNavigate } from '@tanstack/react-router'
+import { MoveCopyDialog } from '../move-copy-dialog'
 
 import { FileBrowserGridView } from './grid-view'
 import { FileBrowserListView } from './list-view'
@@ -110,6 +111,8 @@ export function FileBrowser({
   fieldVisibility,
 }: FileBrowserProps) {
   const [contextMenuItem, setContextMenuItem] = useState<AssetInfo | null>(null)
+  const [moveCopyMode, setMoveCopyMode] = useState<'move' | 'copy' | null>(null)
+  const [itemsToMoveCopy, setItemsToMoveCopy] = useState<AssetInfo[]>([])
   const queryClient = useQueryClient()
   const navigate = useNavigate()
 
@@ -125,6 +128,97 @@ export function FileBrowser({
     },
     enabled: !!teamId && !!projectId && !isPublic,
   })
+
+  const $reparent = client.api.projects[':projectId'].reparent.$post
+  const { mutate: reparentAssets } = useMutation<
+    InferResponseType<typeof $reparent, 204>,
+    Error,
+    InferRequestType<typeof $reparent>
+  >({
+    mutationFn: async (request) => {
+      const res = await $reparent(request)
+      if (!res.ok) throw new Error('Failed to move assets')
+      return null as unknown as InferResponseType<typeof $reparent, 204>
+    },
+  })
+
+  const $copy = client.api.projects[':projectId'].copy.$post
+  const { mutate: copyAssets } = useMutation<
+    InferResponseType<typeof $copy, 204>,
+    Error,
+    InferRequestType<typeof $copy>
+  >({
+    mutationFn: async (request) => {
+      const res = await $copy(request)
+      if (!res.ok) throw new Error('Failed to copy assets')
+      return null as unknown as InferResponseType<typeof $copy, 204>
+    },
+  })
+
+  const handleMoveCopyConfirm = async (targetFolderId: string, withComments: boolean) => {
+    const assetIds = itemsToMoveCopy.map((i) => i.id!)
+    if (moveCopyMode === 'move') {
+      reparentAssets(
+        {
+          param: { projectId },
+          json: { newParentId: targetFolderId, assetIds },
+        },
+        {
+          onSuccess: () => {
+            toast.success(`Successfully moved ${assetIds.length} item(s)`, {
+              action: {
+                label: 'Go to folder',
+                onClick: () => {
+                  navigate({
+                    to: '/projects/$projectId/folders/$folderId',
+                    params: { projectId, folderId: targetFolderId },
+                  })
+                },
+              },
+            })
+            queryClient.invalidateQueries({ queryKey: ['search', teamId] })
+            queryClient.invalidateQueries({ queryKey: ['folders', teamId] })
+            setMoveCopyMode(null)
+            setItemsToMoveCopy([])
+            onClearSelection()
+          },
+          onError: (err) => {
+            toast.error(`Error: ${err.message}`)
+          },
+        },
+      )
+    } else {
+      copyAssets(
+        {
+          param: { projectId },
+          json: { newParentId: targetFolderId, assetIds, withComments },
+        },
+        {
+          onSuccess: () => {
+            toast.success(`Successfully copied ${assetIds.length} item(s)`, {
+              action: {
+                label: 'Go to folder',
+                onClick: () => {
+                  navigate({
+                    to: '/projects/$projectId/folders/$folderId',
+                    params: { projectId, folderId: targetFolderId },
+                  })
+                },
+              },
+            })
+            queryClient.invalidateQueries({ queryKey: ['search', teamId] })
+            queryClient.invalidateQueries({ queryKey: ['folders', teamId] })
+            setMoveCopyMode(null)
+            setItemsToMoveCopy([])
+            onClearSelection()
+          },
+          onError: (err) => {
+            toast.error(`Error: ${err.message}`)
+          },
+        },
+      )
+    }
+  }
 
   const { mutate: createShareLink } = useMutation({
     mutationFn: async (items: AssetInfo[]) => {
@@ -773,6 +867,14 @@ export function FileBrowser({
           onUploadFile={handleUploadFilesClick}
           onUploadFolder={handleUploadFolderClick}
           onNewVersion={handleNewVersionClick}
+          onMoveTo={(items) => {
+            setItemsToMoveCopy(items)
+            setMoveCopyMode('move')
+          }}
+          onCopyTo={(items) => {
+            setItemsToMoveCopy(items)
+            setMoveCopyMode('copy')
+          }}
           onRestore={handleRestore}
           isRecentlyDeleted={isRecentlyDeleted}
           shareLinks={shareLinksData?.data ?? []}
@@ -808,6 +910,17 @@ export function FileBrowser({
         onChange={handleNewVersionFileChange}
       />
       {renderContent()}
+
+      {moveCopyMode && (
+        <MoveCopyDialog
+          isOpen={!!moveCopyMode}
+          onClose={() => setMoveCopyMode(null)}
+          onConfirm={handleMoveCopyConfirm}
+          mode={moveCopyMode}
+          teamId={teamId}
+          currentProjectId={projectId}
+        />
+      )}
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>

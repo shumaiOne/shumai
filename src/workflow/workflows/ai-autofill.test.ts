@@ -89,7 +89,7 @@ describe('AIAutofill Workflow', () => {
 
     mockActivities.getAssetActivity.mockResolvedValue({
       id: 'asset-1',
-      key: 'test.mp4',
+      storageKey: { key: 'test.mp4' },
       mediaType: 'video/mp4',
       project: { id: 'proj-1', teamId: 'team-1' },
     })
@@ -140,7 +140,7 @@ describe('AIAutofill Workflow', () => {
 
     mockActivities.getAssetActivity.mockResolvedValue({
       id: 'asset-1',
-      key: 'test.mp4',
+      storageKey: { key: 'test.mp4' },
       mediaType: 'video/mp4',
       project: { id: 'proj-1', teamId: 'team-1' },
     })

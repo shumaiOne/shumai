@@ -42,7 +42,8 @@ export async function aiTranscriptionMedia(task: WorkflowTask): Promise<void> {
 
     // 1. Get Asset
     const asset = await executeActivity(TaskQueueDb, getAssetActivity, task.assetId)
-    if (!asset || !asset.key) {
+    const key = asset?.storageKey?.key
+    if (!asset || !key) {
       throw new Error('Asset not found')
     }
 
@@ -53,13 +54,13 @@ export async function aiTranscriptionMedia(task: WorkflowTask): Promise<void> {
     )
 
     const download = await executeActivity(transcodeWorkerQueue, downloadMediaToTmpActivity, {
-      assetKey: asset.key,
+      assetKey: key,
     })
     const { filePath } = download
     tmpDir = download.tmpDir
 
     const generatedFiles = await executeActivity(transcodeWorkerQueue, extractAiMetadataActivity, {
-      assetKey: asset.key,
+      assetKey: key,
       filePath,
       type: 'transcription',
       isImage: false,

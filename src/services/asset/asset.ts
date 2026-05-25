@@ -1,11 +1,11 @@
 import { prisma } from '@/db'
-import { logger } from '@/logger'
 import {
   AncestorFolder,
   AssetInfo,
   AttachmentInfo,
   ChildPreview,
   CommentInfo,
+  CopyAssetsRequest,
   CreateAssetRequest,
   CreateCommentRequest,
   FieldValueInfo,
@@ -17,7 +17,8 @@ import {
   UpdateAssetOrderRequest,
   UserInfo,
 } from '@/dtos/asset'
-import { Asset, AssetType, Prisma } from '@/generated/prisma/client.ts'
+import { Asset, AssetStatus, AssetType, Prisma, StorageKey } from '@/generated/prisma/client.ts'
+import { logger } from '@/logger'
 import { PaginatedData, paginateQuery, PaginationParams } from '@/services/pagination'
 import { s3Service } from '@/services/s3/s3'
 import { generateKeyBetween } from 'jittered-fractional-indexing'
@@ -26,17 +27,19 @@ type AssetWithIncludes = Prisma.AssetGetPayload<{
   include: {
     creator: true
     metadataValues: true
+    storageKey: true
     target: {
       include: {
         creator: true
         metadataValues: true
+        storageKey: true
         children: {
-          include: { creator: true; metadataValues: true }
+          include: { creator: true; metadataValues: true; storageKey: true }
         }
       }
     }
     children: {
-      include: { creator: true; metadataValues: true }
+      include: { creator: true; metadataValues: true; storageKey: true }
     }
   }
 }>
@@ -44,11 +47,11 @@ type AssetWithIncludes = Prisma.AssetGetPayload<{
 type CommentWithIncludes = Prisma.AssetCommentGetPayload<{
   include: {
     creator: true
-    attachments: { include: { asset: true } }
+    attachments: { include: { asset: { include: { storageKey: true } } } }
     replies: {
       include: {
         creator: true
-        attachments: { include: { asset: true } }
+        attachments: { include: { asset: { include: { storageKey: true } } } }
       }
     }
   }
@@ -88,19 +91,21 @@ export class AssetService {
       include: {
         creator: true,
         metadataValues: true,
+        storageKey: true,
         target: {
           include: {
             creator: true,
             metadataValues: true,
+            storageKey: true,
             children: {
-              include: { creator: true, metadataValues: true },
+              include: { creator: true, metadataValues: true, storageKey: true },
               take: 3,
               orderBy: { sortIndex: 'asc' },
             },
           },
         },
         children: {
-          include: { creator: true, metadataValues: true },
+          include: { creator: true, metadataValues: true, storageKey: true },
           take: 3,
           orderBy: { sortIndex: 'asc' },
         },
@@ -264,6 +269,212 @@ export class AssetService {
         await this.dissolveStackIfEmpty(tx, oldParent)
       }
     })
+  }
+
+  async copyAssets(req: CopyAssetsRequest): Promise<void> {
+    await this.prismaClient.$transaction(async (tx) => {
+      const newParent = await tx.asset.findUnique({
+        where: { id: req.newParentId },
+        include: { project: { include: { team: true } } },
+      })
+      if (!newParent) throw new Error('New parent not found')
+      if (!newParent.project) throw new Error('New parent folder is not associated with a project')
+
+      const assetsToCopy = await tx.asset.findMany({
+        where: { id: { in: req.assetIds } },
+        include: { project: { include: { team: true } } },
+      })
+
+      if (assetsToCopy.length !== req.assetIds.length) {
+        throw new Error('Not all assets to be copied were found')
+      }
+
+      // Check if newParentId is a descendant of any asset being copied
+      const ancestors = await tx.$queryRaw<{ id: string }[]>`
+        WITH RECURSIVE ancestor AS (
+          SELECT id, parent_id FROM assets WHERE id = ${newParent.id}
+          UNION ALL
+          SELECT a.id, a.parent_id FROM assets a
+          INNER JOIN ancestor d ON a.id = d.parent_id
+        )
+        SELECT id FROM ancestor WHERE id IN (${Prisma.join(req.assetIds)}) LIMIT 1;
+      `
+      if (ancestors.length > 0) {
+        throw new Error('Cannot copy a folder into its own descendant')
+      }
+
+      for (const a of assetsToCopy) {
+        if (!a.project || !a.project.team) {
+          throw new Error(`Asset ${a.id} is not associated with a team`)
+        }
+        if (!newParent.project.team) {
+          throw new Error('New parent folder is not associated with a team')
+        }
+        if (a.project.team.id !== newParent.project.team.id) {
+          throw new Error(`Cannot copy asset ${a.id} to a different team`)
+        }
+      }
+
+      const firstFile = await tx.asset.findFirst({
+        where: { parentId: newParent.id },
+        orderBy: { sortIndex: 'asc' },
+      })
+      let firstSortIndex = firstFile?.sortIndex || null
+
+      let totalSize = 0
+      for (let i = req.assetIds.length - 1; i >= 0; i--) {
+        const assetId = req.assetIds[i]
+        const asset = assetsToCopy.find((a) => a.id === assetId)!
+        const newSortIndex = generateSortIndex(firstSortIndex)
+        const copiedAsset = await this.copyAssetRecursive(
+          tx,
+          asset,
+          newParent.id,
+          newParent.projectId!,
+          newSortIndex,
+          req.creatorId,
+          req.withComments,
+        )
+        totalSize += copiedAsset.sizeByte
+        firstSortIndex = newSortIndex
+      }
+
+      await tx.asset.update({
+        where: { id: newParent.id },
+        data: {
+          fileCount: { increment: assetsToCopy.length },
+        },
+      })
+      await this.updateAncestorsSize(tx, newParent.id, totalSize)
+    })
+  }
+
+  private async copyAssetRecursive(
+    tx: Prisma.TransactionClient,
+    asset: Asset & { storageKey?: StorageKey | null },
+    newParentId: string | null,
+    projectId: string | null,
+    sortIndex: string | null,
+    creatorId?: string,
+    withComments: boolean = false,
+  ): Promise<Asset> {
+    const newAsset = await tx.asset.create({
+      data: {
+        name: asset.name,
+        nameNgram: asset.nameNgram,
+        type: asset.type,
+        mediaType: asset.mediaType,
+        fileCount: asset.fileCount,
+        sizeByte: asset.sizeByte,
+        status: asset.status,
+        transcodeTaskId: asset.transcodeTaskId,
+        media: asset.media || undefined,
+        isDeleted: asset.isDeleted,
+        deletedAt: asset.deletedAt,
+        sortIndex: sortIndex,
+        parentId: newParentId,
+        projectId: projectId,
+        creatorId: creatorId || asset.creatorId,
+        taskId: asset.taskId,
+        targetId: asset.targetId,
+        storageKeyId: asset.storageKeyId,
+      },
+    })
+
+    if (withComments) {
+      await this.copyComments(tx, asset.id, newAsset.id, projectId, creatorId)
+    }
+
+    if (asset.type === AssetType.folder) {
+      const children = await tx.asset.findMany({
+        where: { parentId: asset.id },
+        orderBy: { sortIndex: 'asc' },
+      })
+      for (const child of children) {
+        await this.copyAssetRecursive(
+          tx,
+          child,
+          newAsset.id,
+          projectId,
+          child.sortIndex,
+          creatorId,
+          withComments,
+        )
+      }
+    }
+
+    return newAsset
+  }
+
+  private async copyComments(
+    tx: Prisma.TransactionClient,
+    oldAssetId: string,
+    newAssetId: string,
+    projectId: string | null,
+    creatorId?: string,
+  ) {
+    const comments = await tx.assetComment.findMany({
+      where: { assetId: oldAssetId, replyToId: null },
+      include: {
+        attachments: { include: { asset: true } },
+        replies: {
+          include: {
+            attachments: { include: { asset: true } },
+          },
+        },
+      },
+    })
+
+    for (const comment of comments) {
+      await this.copyCommentRecursive(tx, comment, newAssetId, null, projectId, creatorId)
+    }
+  }
+
+  private async copyCommentRecursive(
+    tx: Prisma.TransactionClient,
+    comment: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+    newAssetId: string,
+    newReplyToId: string | null,
+    projectId: string | null,
+    creatorId?: string,
+  ) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { id, createdAt, updatedAt, assetId, replyToId, attachments, replies, ...data } = comment
+    const newComment = await tx.assetComment.create({
+      data: {
+        ...data,
+        assetId: newAssetId,
+        replyToId: newReplyToId,
+        creatorId: creatorId || comment.creatorId,
+      },
+    })
+
+    if (attachments) {
+      for (const attachment of attachments) {
+        // Deep copy attachment asset
+        const copiedAttachmentAsset = await this.copyAssetRecursive(
+          tx,
+          attachment.asset,
+          null, // attachment usually has no parent
+          projectId,
+          attachment.asset.sortIndex,
+          creatorId,
+          false,
+        )
+        await tx.assetCommentAttachment.create({
+          data: {
+            commentId: newComment.id,
+            assetId: copiedAttachmentAsset.id,
+          },
+        })
+      }
+    }
+
+    if (replies) {
+      for (const reply of replies) {
+        await this.copyCommentRecursive(tx, reply, newAssetId, newComment.id, projectId, creatorId)
+      }
+    }
   }
 
   private async reparentFileToFile(
@@ -432,19 +643,21 @@ export class AssetService {
           include: {
             creator: true,
             metadataValues: true,
+            storageKey: true,
             target: {
               include: {
                 creator: true,
                 metadataValues: true,
+                storageKey: true,
                 children: {
-                  include: { creator: true, metadataValues: true },
+                  include: { creator: true, metadataValues: true, storageKey: true },
                   take: 3,
                   orderBy: { sortIndex: 'asc' },
                 },
               },
             },
             children: {
-              include: { creator: true, metadataValues: true },
+              include: { creator: true, metadataValues: true, storageKey: true },
               take: 3,
               orderBy: { sortIndex: 'asc' },
             },
@@ -496,7 +709,14 @@ export class AssetService {
 
     if (parent) data.parent = { connect: { id: parent.id } }
     if (sortIndex) data.sortIndex = sortIndex
-    if (req.key) data.key = req.key
+    if (req.key) {
+      data.storageKey = {
+        connectOrCreate: {
+          where: { key: req.key },
+          create: { key: req.key },
+        },
+      }
+    }
     if (req.sizeByte) data.sizeByte = req.sizeByte
     if (req.contentType) data.mediaType = req.contentType
     if (req.creatorId) data.creator = { connect: { id: req.creatorId } }
@@ -506,19 +726,21 @@ export class AssetService {
       include: {
         creator: true,
         metadataValues: true,
+        storageKey: true,
         target: {
           include: {
             creator: true,
             metadataValues: true,
+            storageKey: true,
             children: {
-              include: { creator: true, metadataValues: true },
+              include: { creator: true, metadataValues: true, storageKey: true },
               take: 3,
               orderBy: { sortIndex: 'asc' },
             },
           },
         },
         children: {
-          include: { creator: true, metadataValues: true },
+          include: { creator: true, metadataValues: true, storageKey: true },
           take: 3,
           orderBy: { sortIndex: 'asc' },
         },
@@ -543,19 +765,21 @@ export class AssetService {
       include: {
         creator: true,
         metadataValues: true,
+        storageKey: true,
         target: {
           include: {
             creator: true,
             metadataValues: true,
+            storageKey: true,
             children: {
-              include: { creator: true, metadataValues: true },
+              include: { creator: true, metadataValues: true, storageKey: true },
               take: 3,
               orderBy: { sortIndex: 'asc' },
             },
           },
         },
         children: {
-          include: { creator: true, metadataValues: true },
+          include: { creator: true, metadataValues: true, storageKey: true },
           take: 3,
           orderBy: { sortIndex: 'asc' },
         },
@@ -665,21 +889,23 @@ export class AssetService {
           include: {
             creator: true,
             metadataValues: true,
+            storageKey: true,
             children: {
-              include: { creator: true, metadataValues: true },
+              include: { creator: true, metadataValues: true, storageKey: true },
               take: 3,
               orderBy: { sortIndex: 'asc' },
             },
           },
         },
         children: {
-          include: { creator: true, metadataValues: true },
+          include: { creator: true, metadataValues: true, storageKey: true },
           take: 3,
           orderBy: { sortIndex: 'asc' },
         },
+        storageKey: true,
       },
     })
-    const infos = await this.toAssetInfos([asset])
+    const infos = await this.toAssetInfos([asset as unknown as AssetWithIncludes])
     return infos[0]
   }
 
@@ -767,33 +993,26 @@ export class AssetService {
 
   private cleanupJobsRunning = false
 
-  startCleanupJob() {
+  async startCleanupJob() {
     this.cleanupJobsRunning = true
 
-    // Stage 1: Expiration Job - Move expired trashed roots to pending_purge
-    const runExpiration = async () => {
+    const runCleanup = async () => {
       if (!this.cleanupJobsRunning) return
+
       try {
         await this.expireTrashedAssets()
-      } catch (e: unknown) {
-        console.error('Error in asset expiration job:', e)
-      }
-      setTimeout(runExpiration, 5000) // Run every 5 seconds, less frequent
-    }
-
-    // Stage 2: Physical Purge Job - Delete files from S3 and wipe from DB
-    const runPurge = async () => {
-      if (!this.cleanupJobsRunning) return
-      try {
         await this.purgePendingAssets()
+        await this.purgeUnreferencedStorageKeys()
       } catch (e: unknown) {
-        console.error('Error in asset purge job:', e)
+        console.error('Error in asset cleanup job:', e)
       }
-      setTimeout(runPurge, 1000) // Run every 1 second
+
+      if (this.cleanupJobsRunning) {
+        setTimeout(runCleanup, 5000) // Run every 5 seconds after previous run completion
+      }
     }
 
-    runExpiration()
-    runPurge()
+    runCleanup()
   }
 
   stopCleanupJob() {
@@ -837,73 +1056,81 @@ export class AssetService {
   }
 
   /**
-   * Stage 2: Physically delete files and DB records for assets marked as 'pending_purge'.
+   * Stage 2: Delete DB records for assets marked as 'pending_purge'.
    */
   private async purgePendingAssets() {
-    // 1. Lock 100 assets using raw SQL FOR UPDATE SKIP LOCKED and mark them as 'purging'
-    // We include a timeout check (1 hour) to allow picking up stalled tasks.
-    const lockedAssets = await this.prismaClient.$queryRaw<{ id: string; key: string | null }[]>`
+    const { count } = await this.prismaClient.asset.deleteMany({
+      where: { status: AssetStatus.pending_purge },
+    })
+
+    if (count > 0) {
+      logger.info(
+        {
+          purgedCount: count,
+        },
+        `${count} assets purged from database`,
+      )
+    }
+  }
+
+  /**
+   * Stage 3: Garbage Collection - Physically delete files and StorageKey records
+   * that have no associated logical assets.
+   */
+  private async purgeUnreferencedStorageKeys() {
+    const bucket = process.env.S3_BUCKET || 'shumai'
+
+    // 1. Find storage keys with no associated assets and older than 24 hours
+    // using FOR UPDATE SKIP LOCKED to ensure multiple servers don't pick up the same keys.
+    const lockedKeys = await this.prismaClient.$queryRaw<{ id: string; key: string }[]>`
       WITH to_purge AS (
-        SELECT id FROM assets
-        WHERE status = 'pending_purge'
-           OR (status = 'purging' AND updated_at < NOW() - INTERVAL '1 hour')
+        SELECT id FROM storage_keys sk
+        WHERE NOT EXISTS (SELECT 1 FROM assets a WHERE a.storage_key_id = sk.id)
+          AND sk.created_at < NOW() - INTERVAL '24 hours'
+          AND (sk.status = 'active' OR (sk.status = 'purging' AND sk.updated_at < NOW() - INTERVAL '1 hour'))
         LIMIT 100
         FOR UPDATE SKIP LOCKED
       )
-      UPDATE assets SET status = 'purging', updated_at = NOW()
+      UPDATE storage_keys SET status = 'purging', updated_at = NOW()
       WHERE id IN (SELECT id FROM to_purge)
       RETURNING id, key;
     `
 
-    if (lockedAssets.length === 0) return
+    if (lockedKeys.length === 0) return
 
     let physicalFilesDeleted = 0
-    let physicalFoldersDeleted = 0
+    let purgedCount = 0
 
-    // 2. Physical file deletion from storage
-    const bucket = process.env.S3_BUCKET || 'shumai'
-    const results = await Promise.all(
-      lockedAssets.map(async (a) => {
-        if (a.key) {
-          try {
-            // Check if this asset has a dedicated directory (e.g., file/ULID/raw)
-            // If it has more than one slash, we delete the entire containing directory
-            // to ensure transcodes/thumbnails are also removed.
-            const parts = a.key.split('/')
-            if (parts.length > 2) {
-              const prefix = parts.slice(0, parts.length - 1).join('/') + '/'
-              const count = await s3Service.deletePrefix(bucket, prefix)
-              physicalFilesDeleted += count
-              physicalFoldersDeleted += 1
-            } else {
-              const count = await s3Service.deleteObject(bucket, a.key)
-              physicalFilesDeleted += count
-            }
-            return a.id
-          } catch (e: unknown) {
-            console.error(`Failed to delete storage object(s) for ${a.key}:`, e)
-            return null
-          }
+    for (const sk of lockedKeys) {
+      try {
+        // Physically delete from S3
+        const parts = sk.key.split('/')
+        if (parts.length > 2) {
+          const prefix = parts.slice(0, parts.length - 1).join('/') + '/'
+          const count = await s3Service.deletePrefix(bucket, prefix)
+          physicalFilesDeleted += count
+        } else {
+          const count = await s3Service.deleteObject(bucket, sk.key)
+          physicalFilesDeleted += count
         }
-        // Assets without keys (folders, etc.) are considered processed
-        return a.id
-      }),
-    )
 
-    // 3. Hard delete from database ONLY for assets successfully removed from storage
-    const successfulIds = results.filter((id): id is string => id !== null)
-    if (successfulIds.length > 0) {
-      await this.prismaClient.asset.deleteMany({
-        where: { id: { in: successfulIds } },
-      })
+        // Delete from database
+        await this.prismaClient.storageKey.delete({
+          where: { id: sk.id },
+        })
+        purgedCount++
+      } catch (e: unknown) {
+        logger.error(
+          { key: sk.key, error: e instanceof Error ? e.message : String(e) },
+          'Failed to purge unreferenced storage key',
+        )
+      }
+    }
 
+    if (purgedCount > 0) {
       logger.info(
-        {
-          purgedCount: successfulIds.length,
-          physicalFilesDeleted,
-          physicalFoldersDeleted,
-        },
-        `${successfulIds.length} assets purged, deleted ${physicalFilesDeleted} files in ${physicalFoldersDeleted} folders`,
+        { purgedCount, physicalFilesDeleted },
+        `Garbage collection: purged ${purgedCount} storage keys and ${physicalFilesDeleted} physical files`,
       )
     }
   }
@@ -1077,12 +1304,12 @@ export class AssetService {
       where: { id: commentId },
       include: {
         creator: true,
-        asset: true,
-        attachments: { include: { asset: true } },
+        asset: { include: { storageKey: true } },
+        attachments: { include: { asset: { include: { storageKey: true } } } },
         replies: {
           include: {
             creator: true,
-            attachments: { include: { asset: true } },
+            attachments: { include: { asset: { include: { storageKey: true } } } },
           },
           orderBy: { id: 'asc' },
         },
@@ -1104,12 +1331,12 @@ export class AssetService {
           where: { assetId: resolvedAssetId, replyToId: null },
           include: {
             creator: true,
-            asset: true,
-            attachments: { include: { asset: true } },
+            asset: { include: { storageKey: true } },
+            attachments: { include: { asset: { include: { storageKey: true } } } },
             replies: {
               include: {
                 creator: true,
-                attachments: { include: { asset: true } },
+                attachments: { include: { asset: { include: { storageKey: true } } } },
               },
               orderBy: { id: 'asc' },
             },
@@ -1160,7 +1387,7 @@ export class AssetService {
     if (stackIds.size > 0) {
       const allVersions = await this.prismaClient.asset.findMany({
         where: { parentId: { in: Array.from(stackIds) }, isDeleted: false },
-        include: { creator: true, metadataValues: true },
+        include: { creator: true, metadataValues: true, storageKey: true },
       })
       for (const v of allVersions) {
         const list = versionsMap.get(v.parentId!) || []
@@ -1279,6 +1506,16 @@ export class AssetService {
         )
       }
 
+      const key = latestVersion.storageKey?.key
+      if (media && key) {
+        media.original = {
+          key,
+          downloadUrl: await s3Service.presign(process.env.S3_BUCKET || 'shumai', key, 'GET'),
+          filesizeInBytes: latestVersion.sizeByte,
+          codec: '', // TODO: extract from metadata if needed
+        }
+      }
+
       result.push({
         id: a.id,
         name:
@@ -1388,8 +1625,12 @@ export class AssetService {
     const attachments: AttachmentInfo[] = []
     if (c.attachments) {
       for (const a of c.attachments) {
-        if (a.asset?.key) {
-          const url = await s3Service.presign(process.env.S3_BUCKET || 'shumai', a.asset.key, 'GET')
+        if (a.asset?.storageKey?.key) {
+          const url = await s3Service.presign(
+            process.env.S3_BUCKET || 'shumai',
+            a.asset.storageKey.key,
+            'GET',
+          )
           attachments.push({
             id: a.id,
             assetId: a.asset.id,

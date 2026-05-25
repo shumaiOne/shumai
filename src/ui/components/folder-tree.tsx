@@ -28,6 +28,8 @@ interface FolderTreeProps {
   projectName: string
   rootFolderId: string
   dragState?: DragState
+  onSelect?: (folder: AssetInfo) => void
+  selectedFolderId?: string
 }
 
 export function FolderTree({
@@ -36,6 +38,8 @@ export function FolderTree({
   projectName,
   rootFolderId,
   dragState,
+  onSelect,
+  selectedFolderId,
 }: FolderTreeProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -117,6 +121,8 @@ export function FolderTree({
             level={0}
             isRoot={true}
             dragState={dragState}
+            onSelect={onSelect}
+            selectedFolderId={selectedFolderId}
           />
           <div
             className={cn(
@@ -247,6 +253,8 @@ interface FolderTreeItemProps {
   level: number
   isRoot?: boolean
   dragState?: DragState
+  onSelect?: (folder: AssetInfo) => void
+  selectedFolderId?: string
 }
 
 function FolderTreeItem({
@@ -256,6 +264,8 @@ function FolderTreeItem({
   level,
   isRoot,
   dragState,
+  onSelect,
+  selectedFolderId,
 }: FolderTreeItemProps) {
   const [isExpanded, setIsExpanded] = useState(isRoot || false)
   const navigate = useNavigate()
@@ -321,6 +331,11 @@ function FolderTreeItem({
   }
 
   const handleFolderClick = () => {
+    if (onSelect) {
+      onSelect(folder)
+      return
+    }
+
     if (isRoot) {
       navigate({
         to: '/projects/$projectId',
@@ -340,7 +355,7 @@ function FolderTreeItem({
       type: 'folder',
       item: folder,
     },
-    disabled: !!isRoot,
+    disabled: !!isRoot || !!onSelect,
   })
 
   const { ref: setDroppableRef, isDropTarget: isOver } = useDroppable({
@@ -349,7 +364,7 @@ function FolderTreeItem({
       type: 'folder',
       item: folder,
     },
-    disabled: dragState?.draggedIds.has(folder.id!),
+    disabled: dragState?.draggedIds.has(folder.id!) || !!onSelect,
   })
 
   const setNodeRef = (node: HTMLDivElement | null) => {
@@ -358,12 +373,15 @@ function FolderTreeItem({
   }
 
   const isValidDropTarget = useMemo(() => {
+    if (onSelect) return false
     if (!dragState?.isActive) return false
     if (dragState.draggedIds.has(folder.id!)) return false
     return true
-  }, [dragState, folder.id])
+  }, [dragState, folder.id, onSelect])
 
   const showDropFeedback = isOver && isValidDropTarget
+
+  const isSelected = selectedFolderId === folder.id
 
   return (
     <div>
@@ -371,7 +389,8 @@ function FolderTreeItem({
         ref={setNodeRef}
         className={cn(
           'group flex cursor-pointer items-center gap-1 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-          isActive && 'bg-sidebar-accent text-sidebar-accent-foreground font-medium',
+          (isActive || isSelected) &&
+            'bg-sidebar-accent text-sidebar-accent-foreground font-medium',
           isDragging && 'opacity-50',
           showDropFeedback && 'bg-sidebar-accent ring-2 ring-primary ring-inset',
         )}
@@ -415,6 +434,8 @@ function FolderTreeItem({
               folder={child}
               level={level + 1}
               dragState={dragState}
+              onSelect={onSelect}
+              selectedFolderId={selectedFolderId}
             />
           ))}
           {hasNextPage && (

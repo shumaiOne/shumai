@@ -163,6 +163,10 @@ The frontend is built with:
 
 We use **Vitest** for testing (via `bun run test`). **Do not use `bun test`** as it uses Bun's native test runner which is not compatible with this project's test suite.
 
+### Bug Fixes
+
+- **Mandatory Reproduction**: When fixing a backend bug, you MUST first write a test case that reproduces the bug (demonstrates the failure) before applying the fix. This ensures the bug is truly understood and prevents future regressions.
+
 ### Test Maintenance Rule
 
 - **Do not delete tests** unless the feature or code being tested is permanently removed from the codebase.

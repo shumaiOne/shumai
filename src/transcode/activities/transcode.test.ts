@@ -93,7 +93,7 @@ describe('Transcode Activities', () => {
     const asset = await prisma.asset.create({
       data: {
         name: 'v.mp4',
-        key: 'v.mp4',
+        storageKey: { create: { key: 'v.mp4' } },
         status: 'uploaded',
         type: 'file',
       },

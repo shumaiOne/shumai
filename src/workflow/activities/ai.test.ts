@@ -25,10 +25,10 @@ describe('AI Activities', () => {
     const asset = await prisma.asset.create({
       data: {
         name: 'test.png',
-        key: 'test.png',
+        storageKey: { create: { key: 'test.png' } },
         status: 'uploaded',
         type: 'file',
-        projectId: project.id,
+        project: { connect: { id: project.id } },
       },
     })
 
@@ -54,7 +54,7 @@ describe('AI Activities', () => {
     const asset = await prisma.asset.create({
       data: {
         name: 'test.png',
-        key: 'test.png',
+        storageKey: { create: { key: 'test.png' } },
         status: 'uploaded',
         type: 'file',
       },

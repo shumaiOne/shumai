@@ -3,7 +3,7 @@ import { zValidator } from '@hono/zod-validator'
 import { authzService, Permission } from '@/services/authz/authz'
 import { projectService } from '@/services/project/project'
 import { assetService } from '@/services/asset/asset'
-import { reparentAssetsRequestSchema } from '@/dtos/asset'
+import { reparentAssetsRequestSchema, copyAssetsRequestSchema } from '@/dtos/asset'
 import {
   createProjectRequestSchema,
   updateProjectRequestSchema,
@@ -208,5 +208,32 @@ const route = new Hono<{ Variables: { user: User } }>()
       return c.body(null, 204)
     },
   )
+  .post('/projects/:projectId/copy', zValidator('json', copyAssetsRequestSchema), async (c) => {
+    const user = c.get('user')
+    const req = c.req.valid('json')
+
+    // Check Edit permission on target folder/project
+    await authzService.hasPermission({
+      assetId: req.newParentId,
+      user,
+      permission: Permission.Edit,
+    })
+
+    // Check Read permission on all source assets
+    for (const assetId of req.assetIds) {
+      await authzService.hasPermission({
+        assetId,
+        user,
+        permission: Permission.Read,
+      })
+    }
+
+    await assetService.copyAssets({
+      ...req,
+      creatorId: user.id,
+    })
+
+    return c.body(null, 204)
+  })
 
 export default route

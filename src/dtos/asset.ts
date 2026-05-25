@@ -220,6 +220,14 @@ export const reparentAssetsRequestSchema = z.object({
 })
 export type ReparentAssetsRequest = z.infer<typeof reparentAssetsRequestSchema>
 
+export const copyAssetsRequestSchema = z.object({
+  newParentId: z.string(),
+  assetIds: z.array(z.string()),
+  withComments: z.boolean().default(false),
+  creatorId: z.string().optional(),
+})
+export type CopyAssetsRequest = z.infer<typeof copyAssetsRequestSchema>
+
 export const updateFileRequestSchema = z.object({
   name: z.string(),
 })

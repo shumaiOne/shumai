@@ -39,7 +39,7 @@ describe('SkillService', () => {
     const asset = await prisma.asset.create({
       data: {
         name: 'test.zip',
-        key: 'test.zip',
+        storageKey: { create: { key: 'test.zip' } },
         type: 'file',
         status: 'uploaded',
       },
