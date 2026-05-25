@@ -741,7 +741,9 @@ export function FileBrowser({
           >
             {!isShareView && !isPublic && onFilterChange && onSortChange && (
               <FileBrowserToolbar
+                teamId={teamId}
                 projectId={projectId}
+                assetId={assetId}
                 fields={fields || []}
                 filterConditions={filterConditions || []}
                 onFilterChange={onFilterChange}

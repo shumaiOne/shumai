@@ -6,17 +6,19 @@ import type { InferRequestType, InferResponseType } from 'hono/client'
 import { FieldsManager } from '../fields-manager'
 import { ManageFieldsDialog } from '../manage-fields-dialog'
 import { MembersDialog } from '../members-dialog'
-import { FilterPanel } from '../search/filter-panel'
+import { SearchFilterDialog } from '../search/search-filter-dialog'
 import { SortControl } from '../search/sort-control'
 import { Avatar, AvatarFallback } from '../ui/avatar'
 import { Button } from '../ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
-import { ListFilter, SlidersHorizontal } from 'lucide-react'
+import { SlidersHorizontal } from 'lucide-react'
 import { useState } from 'react'
 import { Separator } from '../ui/separator'
 
 type FileBrowserToolbarProps = {
+  teamId: string
   projectId: string
+  assetId: string
   fields: MetadataFieldInfo[]
   filterConditions: SearchCondition[]
   onFilterChange: (conditions: SearchCondition[]) => void
@@ -26,7 +28,9 @@ type FileBrowserToolbarProps = {
 }
 
 export function FileBrowserToolbar({
+  teamId,
   projectId,
+  assetId,
   fields,
   filterConditions,
   onFilterChange,
@@ -35,9 +39,11 @@ export function FileBrowserToolbar({
   isRecentlyDeleted,
 }: FileBrowserToolbarProps) {
   const [popoverOpen, setPopoverOpen] = useState(false)
-  const [filterPopoverOpen, setFilterPopoverOpen] = useState(false)
+  const [searchDialogOpen, setSearchDialogOpen] = useState(false)
   const [manageDialogOpen, setManageDialogOpen] = useState(false)
   const [isMembersDialogOpen, setIsMembersDialogOpen] = useState(false)
+
+  const activeFiltersCount = filterConditions.length
 
   const { data: members } = useQuery({
     queryKey: ['projects', projectId, 'members'],
@@ -134,27 +140,22 @@ export function FileBrowserToolbar({
         </Popover>
         <Separator orientation="vertical" />
 
-        <Popover open={filterPopoverOpen} onOpenChange={setFilterPopoverOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant={filterConditions.length > 0 ? 'secondary' : 'ghost'}
-              size="sm"
-              className="h-8"
-              disabled={isRecentlyDeleted}
-            >
-              <ListFilter className="h-4 w-4 mr-1" />
-              Filter
-              {filterConditions.length > 0 && (
-                <span className="ml-1 rounded-full bg-primary/20 px-1.5 py-0.5 text-[10px]">
-                  {filterConditions.length}
-                </span>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="center">
-            <FilterPanel fields={fields} conditions={filterConditions} onChange={onFilterChange} />
-          </PopoverContent>
-        </Popover>
+        <Button
+          onClick={() => setSearchDialogOpen(true)}
+          disabled={isRecentlyDeleted}
+          variant={activeFiltersCount > 0 ? 'secondary' : 'ghost'}
+          size="sm"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-xs hover:shadow-indigo-500/10 transition-all cursor-pointer h-8"
+        >
+          <SlidersHorizontal className="w-4 h-4" />
+          <span>Query Console</span>
+          {activeFiltersCount > 0 && (
+            <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-white/20 text-white border border-white/20">
+              {activeFiltersCount}
+            </span>
+          )}
+        </Button>
+
         <Separator orientation="vertical" />
         <SortControl
           fields={fields}
@@ -197,6 +198,17 @@ export function FileBrowserToolbar({
         members={members || []}
         isOwner={me?.role === 'owner'}
         onInvite={handleInvite}
+      />
+
+      <SearchFilterDialog
+        open={searchDialogOpen}
+        onOpenChange={setSearchDialogOpen}
+        teamId={teamId}
+        projectId={projectId}
+        assetId={assetId}
+        fields={fields}
+        initialConditions={filterConditions}
+        onApply={onFilterChange}
       />
     </div>
   )
