@@ -380,10 +380,10 @@ export function FileViewerRightSidebar({
             </div>
           )}
         </TabsContent>
-        <TabsContent value="fields" className="flex-1 overflow-auto">
-          <div className="mt-4">
+        <TabsContent value="fields" className="flex-1 flex flex-col overflow-hidden mt-4">
+          <ScrollArea className="flex-1 px-4">
             {sortedFields && sortedFields.length > 0 && (
-              <div className="space-y-4">
+              <div className="space-y-4 pb-4">
                 {sortedFields.map((field) => (
                   <div key={field.id} className="space-y-1">
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -401,7 +401,7 @@ export function FileViewerRightSidebar({
                 ))}
               </div>
             )}
-          </div>
+          </ScrollArea>
         </TabsContent>
       </Tabs>
     </div>
