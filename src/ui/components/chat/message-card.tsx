@@ -63,7 +63,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
       if (!res.ok) throw new Error('Failed to fetch comment')
       return (await res.json()) as CommentInfo
     },
-    enabled: isRunning,
+    enabled: !!teamId && isRunning,
     refetchInterval: (query) => {
       const data = query.state.data as CommentInfo
       if (data && (!data.message || !(data.message in AI_PLACEHOLDERS))) {
