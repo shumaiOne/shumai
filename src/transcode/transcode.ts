@@ -178,6 +178,12 @@ export class TranscodeService {
     return stream.codec_name
   }
 
+  private safeParseInt(value: string | number | undefined): number | undefined {
+    if (value === undefined || value === null) return undefined
+    const parsed = typeof value === 'string' ? parseInt(value, 10) : value
+    return Number.isFinite(parsed) ? (parsed as number) : undefined
+  }
+
   async getVideoInfo(inputFile: string): Promise<MediaMetadata> {
     const { stdout } = await execAsync(
       `ffprobe -v quiet -print_format json -show_format -show_streams "${inputFile}"`,
@@ -205,12 +211,10 @@ export class TranscodeService {
       videoCodec: this.resolveCodecName(videoStream),
       audioCodec: audioStream ? this.resolveCodecName(audioStream) : undefined,
       audioChannels: audioStream?.channels,
-      audioSampleRate: audioStream?.sample_rate ? parseInt(audioStream.sample_rate) : undefined,
-      audioBitDepth: audioStream?.bits_per_raw_sample
-        ? parseInt(audioStream.bits_per_raw_sample)
-        : audioStream?.bits_per_sample
-          ? parseInt(audioStream.bits_per_sample)
-          : undefined,
+      audioSampleRate: this.safeParseInt(audioStream?.sample_rate),
+      audioBitDepth:
+        this.safeParseInt(audioStream?.bits_per_raw_sample) ??
+        this.safeParseInt(audioStream?.bits_per_sample),
       mimeType: '',
     }
   }
