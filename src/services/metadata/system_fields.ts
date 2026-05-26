@@ -113,6 +113,46 @@ export const systemFields: Prisma.MetadataFieldCreateInput[] = [
     },
   },
   {
+    key: 'audio_bit_depth',
+    scope: 'SYSTEM',
+    readOnly: true,
+    config: {
+      name: 'Audio Bit Depth',
+      type: 'number',
+      number: { scale: 0 },
+    },
+  },
+  {
+    key: 'audio_channels',
+    scope: 'SYSTEM',
+    readOnly: true,
+    config: {
+      name: 'Audio Channels',
+      type: 'number',
+      number: { scale: 0 },
+    },
+  },
+  {
+    key: 'audio_codec',
+    scope: 'SYSTEM',
+    readOnly: true,
+    config: {
+      name: 'Audio Codec',
+      type: 'text',
+      text: {},
+    },
+  },
+  {
+    key: 'audio_sample_rate',
+    scope: 'SYSTEM',
+    readOnly: true,
+    config: {
+      name: 'Audio Sample Rate',
+      type: 'number',
+      number: { scale: 0 },
+    },
+  },
+  {
     key: 'format',
     scope: 'SYSTEM',
     readOnly: true,

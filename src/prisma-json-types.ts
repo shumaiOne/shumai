@@ -110,6 +110,10 @@ declare global {
       duration: number
       bitRate: number
       frameRate: number
+      audioCodec?: string
+      audioChannels?: number
+      audioSampleRate?: number
+      audioBitDepth?: number
       format: unknown
     }
 

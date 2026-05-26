@@ -49,15 +49,28 @@ export async function getMediaInfoActivity(params: {
       bitRate: info.bitRate,
       frameRate: info.frameRate,
       hasAudio: info.hasAudio,
+      audioCodec: info.audioCodec,
+      audioChannels: info.audioChannels,
+      audioSampleRate: info.audioSampleRate,
+      audioBitDepth: info.audioBitDepth,
       format: {},
     }
-    await metadataService.updateAssetMetadata(params.assetId, [
+    const metadataUpdates: { key: string; value: string | number }[] = [
       { key: 'resolution_width', value: info.originalWidth },
       { key: 'resolution_height', value: info.originalHeight },
       { key: 'duration', value: info.duration },
       { key: 'bitRate', value: info.bitRate / 1000 },
       { key: 'frame_rate', value: info.frameRate },
-    ])
+    ]
+    if (info.audioCodec) metadataUpdates.push({ key: 'audio_codec', value: info.audioCodec })
+    if (info.audioChannels !== undefined)
+      metadataUpdates.push({ key: 'audio_channels', value: info.audioChannels })
+    if (info.audioSampleRate !== undefined)
+      metadataUpdates.push({ key: 'audio_sample_rate', value: info.audioSampleRate })
+    if (info.audioBitDepth !== undefined)
+      metadataUpdates.push({ key: 'audio_bit_depth', value: info.audioBitDepth })
+
+    await metadataService.updateAssetMetadata(params.assetId, metadataUpdates)
   } else if (isImage) {
     const info = await transcodeService.getImageInfo(params.filePath)
     mediaInfo.metadata = {

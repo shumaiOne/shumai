@@ -49,6 +49,10 @@ describe('TranscodeService', () => {
         },
         {
           codec_type: 'audio',
+          codec_name: 'aac',
+          channels: 2,
+          sample_rate: '48000',
+          bits_per_raw_sample: '16',
         },
       ],
     })
@@ -66,6 +70,10 @@ describe('TranscodeService', () => {
     expect(info.duration).toBe(10.5)
     expect(info.frameRate).toBe(30)
     expect(info.hasAudio).toBe(true)
+    expect(info.audioCodec).toBe('aac')
+    expect(info.audioChannels).toBe(2)
+    expect(info.audioSampleRate).toBe(48000)
+    expect(info.audioBitDepth).toBe(16)
 
     expect(child_process.exec).toHaveBeenCalledWith(
       expect.stringContaining('ffprobe'),

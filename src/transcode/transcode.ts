@@ -17,6 +17,10 @@ export interface MediaMetadata {
   bitRate: number
   frameRate: number
   hasAudio: boolean
+  audioCodec?: string
+  audioChannels?: number
+  audioSampleRate?: number
+  audioBitDepth?: number
   mimeType: string
 }
 
@@ -64,6 +68,14 @@ export class TranscodeService {
       bitRate: parseFloat(info.format.bit_rate),
       frameRate,
       hasAudio: !!audioStream,
+      audioCodec: audioStream?.codec_name,
+      audioChannels: audioStream?.channels,
+      audioSampleRate: audioStream?.sample_rate ? parseInt(audioStream.sample_rate) : undefined,
+      audioBitDepth: audioStream?.bits_per_raw_sample
+        ? parseInt(audioStream.bits_per_raw_sample)
+        : audioStream?.bits_per_sample
+          ? parseInt(audioStream.bits_per_sample)
+          : undefined,
       mimeType: '',
     }
   }

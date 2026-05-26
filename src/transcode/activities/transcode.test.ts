@@ -50,6 +50,10 @@ describe('Transcode Activities', () => {
       bitRate: 1000,
       frameRate: 30,
       hasAudio: true,
+      audioCodec: 'aac',
+      audioChannels: 2,
+      audioSampleRate: 48000,
+      audioBitDepth: 16,
       mimeType: 'video/mp4',
     })
 
@@ -62,6 +66,10 @@ describe('Transcode Activities', () => {
     expect(transcodeService.getVideoInfo).toHaveBeenCalledWith('/tmp/v.mp4')
     expect(result.duration).toBe(10)
     expect(result.metadata?.originalWidth).toBe(1920)
+    expect(result.metadata?.audioCodec).toBe('aac')
+    expect(result.metadata?.audioChannels).toBe(2)
+    expect(result.metadata?.audioSampleRate).toBe(48000)
+    expect(result.metadata?.audioBitDepth).toBe(16)
   })
 
   it('should call getImageInfo for image assets', async () => {
