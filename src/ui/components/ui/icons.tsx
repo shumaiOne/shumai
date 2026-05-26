@@ -60,7 +60,7 @@ export const NotificationFillIcon: React.FC<React.SVGProps<SVGSVGElement>> = (pr
     xmlns="http://www.w3.org/2000/svg"
     width={30}
     height={30}
-    viewBox="0 -960 960 960"
+    viewBox="120 -792 720 720"
     fill="none"
     aria-hidden="true"
     focusable="false"
@@ -69,9 +69,8 @@ export const NotificationFillIcon: React.FC<React.SVGProps<SVGSVGElement>> = (pr
     <path
       fillRule="evenodd"
       clipRule="evenodd"
-      d="M160-200v-80h80v-280q0-83 50-147.5T420-792v-28q0-25 17.5-42.5T480-880q25 0 42.5 17.5T540-820v28q80 20 130 84.5T720-560v280h80v80H160ZM480-80q-33 0-56.5-23.5T400-160h160q0 33-23.5 56.5T480-80Z"
+      d="M 160 -180 v -72 h 80 v -252 q 0 -74.7 50 -132.75 T 420 -712.8 v -25.2 q 0 -22.5 17.5 -38.25 T 480 -792 q 25 0 42.5 15.75 T 540 -738 v 25.2 q 80 18 130 76.05 T 720 -504 v 252 h 80 v 72 H 160 Z M 480 -72 q -33 0 -56.5 -21.15 T 400 -144 h 160 q 0 29.7 -23.5 50.85 T 480 -72 Z"
       fill="currentColor"
-      transform="translate(0, -48) scale(1, 0.9)"
     />
   </svg>
 )
@@ -145,9 +144,7 @@ export const ShumaiLogo: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
 export const HomeIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 200 200"
-    width={30}
-    height={30}
+    viewBox="24 24 152 152"
     fill="none"
     aria-hidden="true"
     focusable="false"
@@ -156,7 +153,52 @@ export const HomeIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     <path
       d="M 44 170 L 44 100 L 24 100 L 100 30 L 126 54 L 126 36 L 142 36 L 142 69 L 176 100 L 156 100 L 156 170 L 120 170 L 120 136 A 20 20 0 0 0 80 136 L 80 170 Z"
       fill="currentColor"
-      transform="scale(1, 0.95)"
     />
   </svg>
 )
+
+interface UploadCloudIconProps extends React.SVGProps<SVGSVGElement> {
+  uploading?: boolean
+  className?: string
+}
+
+/**
+ * Custom UploadCloudIcon component.
+ * Replaces the animated version with a custom SVG while maintaining prop compatibility.
+ */
+export function UploadCloudIcon({
+  uploading = false,
+  className = '',
+  ...props
+}: UploadCloudIconProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="15 15 70 70"
+      width={30}
+      height={30}
+      className={className}
+      aria-hidden="true"
+      focusable="false"
+      {...props}
+    >
+      <path
+        d="M 44.1 75 H 30 A 15 15 0 0 1 30 45 A 20 20 0 0 1 70 45 A 15 15 0 0 1 70 75 H 55.9 V 60.2 H 61.9 L 50 45.3 L 38.1 60.2 H 44.1 Z"
+        fill="currentColor"
+      />
+      {uploading && (
+        <circle
+          cx="50"
+          cy="50"
+          r="48"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeDasharray="10 20"
+          fill="none"
+          className="animate-spin"
+          style={{ transformOrigin: 'center' }}
+        />
+      )}
+    </svg>
+  )
+}
