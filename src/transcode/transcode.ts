@@ -1,12 +1,12 @@
+import { prisma } from '@/db'
+import { WorkflowTaskStatus, WorkflowTaskType } from '@/generated/prisma/client'
+import '@/prisma-json-types'
 import { exec } from 'child_process'
-import { promisify } from 'util'
 import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
 import sharp from 'sharp'
-import { prisma } from '@/db'
-import { WorkflowTaskType, WorkflowTaskStatus } from '@/generated/prisma/client'
-import '@/prisma-json-types'
+import { promisify } from 'util'
 
 const execAsync = promisify(exec)
 
@@ -267,7 +267,7 @@ export class TranscodeService {
       args.push('-c:a', 'aac', '-b:a', '128k')
     }
 
-    args.push('-max_muxing_queue_size', '1024', `"${params.outputFile}"`)
+    args.push('-movflags', '+faststart', '-max_muxing_queue_size', '1024', `"${params.outputFile}"`)
 
     await execAsync(`ffmpeg -y ${args.join(' ')}`)
   }

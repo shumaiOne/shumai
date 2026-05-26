@@ -1,59 +1,57 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { s3Service } from '@/services/s3/s3'
-import route from './s3'
 import { Hono } from 'hono'
 
-describe('S3 API', () => {
-  const app = new Hono().route('/files', route)
+const { mockServeStatic } = vi.hoisted(() => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  mockServeStatic: vi.fn<(args: any) => any>(() => (c: any) => c.text('static-file')),
+}))
 
+vi.mock('hono/bun', () => ({
+  serveStatic: mockServeStatic,
+}))
+
+describe('S3 API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('GET /files/:bucket/:key sets Content-Type', async () => {
-    const mockHead = vi.spyOn(s3Service, 'headObject').mockResolvedValue({
-      key: 'test.webp',
-      size: 100,
-      lastModified: new Date(),
-      contentType: 'image/webp',
-      eTag: '"test"',
-    })
-    const mockGet = vi
-      .spyOn(s3Service, 'getObject')
-      .mockResolvedValue({ buffer: Buffer.from('test'), contentType: 'image/webp' })
+  it('GET /files/* calls serveStatic with correct options', async () => {
+    const { default: route } = await import('./s3')
+    const app = new Hono().route('/files', route)
 
     const res = await app.request('/files/b1/test.webp')
 
     expect(res.status).toBe(200)
-    expect(res.headers.get('Content-Type')).toBe('image/webp')
-    expect(mockHead).toHaveBeenCalledWith('b1', 'test.webp')
-    expect(mockGet).toHaveBeenCalledWith('b1', 'test.webp')
+    expect(await res.text()).toBe('static-file')
+    expect(mockServeStatic).toHaveBeenCalledWith(
+      expect.objectContaining({
+        root: './data',
+        rewriteRequestPath: expect.any(Function),
+      }),
+    )
+
+    // Verify rewriteRequestPath logic
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const options = vi.mocked(mockServeStatic).mock.calls[0][0] as any
+    if (options && options.rewriteRequestPath) {
+      expect(options.rewriteRequestPath('/files/b1/test.webp')).toBe('b1/test.webp')
+    }
   })
 
-  it('GET /files/:bucket/:key handles missing contentType', async () => {
-    vi.spyOn(s3Service, 'headObject').mockResolvedValue({
-      key: 'test',
-      size: 100,
-      lastModified: new Date(),
-      contentType: 'application/octet-stream',
-      eTag: '"test"',
-    })
-    vi.spyOn(s3Service, 'getObject').mockResolvedValue({
-      buffer: Buffer.from('test'),
-      contentType: 'application/octet-stream',
-    })
+  it('PUT /files/:bucket/:key calls s3Service.putObject', async () => {
+    const { default: route } = await import('./s3')
+    const app = new Hono().route('/files', route)
+    const mockPut = vi.spyOn(s3Service, 'putObject').mockResolvedValue(undefined)
+    const body = new TextEncoder().encode('test-data')
 
-    const res = await app.request('/files/b1/test')
+    const res = await app.request('/files/b1/test.webp', {
+      method: 'PUT',
+      body,
+    })
 
     expect(res.status).toBe(200)
-    expect(res.headers.get('Content-Type')).toBe('application/octet-stream')
-  })
-
-  it('GET /files/:bucket/:key returns 404 if not found', async () => {
-    vi.spyOn(s3Service, 'headObject').mockRejectedValue(new Error('NoSuchKey'))
-
-    const res = await app.request('/files/b1/not-found')
-
-    expect(res.status).toBe(404)
+    expect(await res.text()).toBe('OK')
+    expect(mockPut).toHaveBeenCalledWith('b1', 'test.webp', expect.any(Buffer), body.byteLength)
   })
 })
