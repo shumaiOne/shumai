@@ -236,4 +236,143 @@ describe('AuthzService', () => {
       }
     }
   })
+
+  it('should resolve context correctly for each ResourceType', async () => {
+    // Setup complete data graph for all types
+    const team = await prisma.team.create({ data: { name: 'Team X' } })
+    const project = await prisma.project.create({ data: { name: 'Project X', teamId: team.id } })
+
+    // Asset (Project-scoped)
+    const assetProject = await prisma.asset.create({
+      data: { name: 'Asset P', projectId: project.id, type: 'file', status: 'processed' },
+    })
+
+    // Asset (Team-scoped root folder fallback)
+    const assetTeam = await prisma.asset.create({
+      data: { name: 'Team Root', type: 'root', status: 'processed' },
+    })
+    await prisma.team.update({
+      where: { id: team.id },
+      data: { rootFolderId: assetTeam.id },
+    })
+
+    // Collection
+    const collection = await prisma.collection.create({
+      data: {
+        name: 'Coll',
+        projectId: project.id,
+        filter: {
+          sourceFolderId: 'root',
+          searchFilter: { conditions: [], operator: 'AND', recursively: true },
+        },
+      },
+    })
+
+    // Agent & Session
+    const user = await prisma.user.create({
+      data: { name: 'BotUser2', email: 'bot2@example.com', password: 'p' },
+    })
+    const agent = await prisma.agent.create({
+      data: { id: user.id, teamId: team.id, type: 'chat', enabled: true, config: {} },
+    })
+    const agentSession = await prisma.agentSession.create({
+      data: { agentId: agent.id, cwd: '/tmp' },
+    })
+
+    // Share
+    const share = await prisma.shareLink.create({
+      data: { name: 'Share1', rootFolderId: assetProject.id, projectId: project.id },
+    })
+
+    // Metadata Field
+    const teamField = await prisma.metadataField.create({
+      data: { key: 'field_t', scope: 'TEAM', teamId: team.id, config: { name: 'Field T' } },
+    })
+    const projectField = await prisma.metadataField.create({
+      data: { key: 'field_p', scope: 'PROJECT', projectId: project.id, config: { name: 'Field P' } },
+    })
+
+    // Skill
+    const skill = await prisma.skill.create({
+      data: { name: 'Skill 1', teamId: team.id, hash: '123', assetId: assetProject.id },
+    })
+
+    // Provider
+    const provider = await prisma.provider.create({
+      data: { name: 'Prov 1', teamId: team.id, config: {} },
+    })
+
+    // Invite
+    const inviteTeam = await prisma.invite.create({
+      data: { code: 'inv_t', teamId: team.id, role: 'editor', inviterId: user.id },
+    })
+    const inviteProject = await prisma.invite.create({
+      data: {
+        code: 'inv_p',
+        teamId: team.id,
+        projectId: project.id,
+        role: 'editor',
+        inviterId: user.id,
+      },
+    })
+
+    // Comment
+    const comment = await prisma.assetComment.create({
+      data: { assetId: assetProject.id, creatorId: user.id, message: 'hello' },
+    })
+
+    // Test execution via cast
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const resolveContext = (type: ResourceType, id: string) =>
+      (authzService as any).resolveContext(type, id)
+
+    // Tests
+    await expect(resolveContext(ResourceType.Team, team.id)).resolves.toEqual({ teamId: team.id })
+    await expect(resolveContext(ResourceType.Project, project.id)).resolves.toEqual({
+      teamId: team.id,
+      projectId: project.id,
+    })
+    await expect(resolveContext(ResourceType.Asset, assetProject.id)).resolves.toEqual({
+      teamId: team.id,
+      projectId: project.id,
+    })
+    await expect(resolveContext(ResourceType.Asset, assetTeam.id)).resolves.toEqual({
+      teamId: team.id,
+    })
+    await expect(resolveContext(ResourceType.Collection, collection.id)).resolves.toEqual({
+      teamId: team.id,
+      projectId: project.id,
+    })
+    await expect(resolveContext(ResourceType.Agent, agent.id)).resolves.toEqual({ teamId: team.id })
+    await expect(resolveContext(ResourceType.AgentSession, agentSession.id)).resolves.toEqual({
+      teamId: team.id,
+    })
+    await expect(resolveContext(ResourceType.Share, share.id)).resolves.toEqual({
+      teamId: team.id,
+      projectId: project.id,
+    })
+    await expect(resolveContext(ResourceType.MetadataField, teamField.key)).resolves.toEqual({
+      teamId: team.id,
+    })
+    await expect(resolveContext(ResourceType.MetadataField, projectField.key)).resolves.toEqual({
+      teamId: team.id,
+      projectId: project.id,
+    })
+    await expect(resolveContext(ResourceType.Skill, skill.id)).resolves.toEqual({ teamId: team.id })
+    await expect(resolveContext(ResourceType.Provider, provider.id)).resolves.toEqual({
+      teamId: team.id,
+    })
+    await expect(resolveContext(ResourceType.Invite, inviteTeam.id)).resolves.toEqual({
+      teamId: team.id,
+      projectId: undefined,
+    })
+    await expect(resolveContext(ResourceType.Invite, inviteProject.id)).resolves.toEqual({
+      teamId: team.id,
+      projectId: project.id,
+    })
+    await expect(resolveContext(ResourceType.Comment, comment.id)).resolves.toEqual({
+      teamId: team.id,
+      projectId: project.id,
+    })
+  })
 })
