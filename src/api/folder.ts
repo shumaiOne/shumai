@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
-import { authzService, Permission } from '@/services/authz/authz'
+import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 import { assetService } from '@/services/asset/asset'
 import { searchService } from '@/services/search/search'
 import {
@@ -16,14 +16,15 @@ import type { Prisma } from '@/generated/prisma/client'
 type User = Prisma.UserGetPayload<Record<string, never>>
 
 const route = new Hono<{ Variables: { user: User } }>()
-  .post('/teams/:teamId/folders', zValidator('json', createFolderRequestSchema), async (c) => {
+  .post('/folders', zValidator('json', createFolderRequestSchema), async (c) => {
     const user = c.get('user')
     const req = c.req.valid('json')
 
     await authzService.hasPermission({
-      assetId: req.parentId,
       user,
       permission: Permission.Edit,
+      type: ResourceType.Asset,
+      id: req.parentId,
     })
 
     const newAsset = await assetService.createAsset({
@@ -35,7 +36,7 @@ const route = new Hono<{ Variables: { user: User } }>()
     return c.json(newAsset)
   })
   .patch(
-    '/teams/:teamId/folders/:folderId/order',
+    '/folders/:folderId/order',
     zValidator('json', updateAssetOrderRequestSchema),
     async (c) => {
       const folderId = c.req.param('folderId')
@@ -43,126 +44,117 @@ const route = new Hono<{ Variables: { user: User } }>()
       const req = c.req.valid('json')
 
       await authzService.hasPermission({
-        assetId: folderId,
         user,
         permission: Permission.Edit,
+        type: ResourceType.Asset,
+        id: folderId,
       })
 
       const updated = await assetService.updateAssetOrder(folderId, req)
       return c.json(updated)
     },
   )
-  .put(
-    '/teams/:teamId/folders/:folderId',
-    zValidator('json', updateFolderRequestSchema),
-    async (c) => {
-      const folderId = c.req.param('folderId')
-      const user = c.get('user')
-      const req = c.req.valid('json')
+  .put('/folders/:folderId', zValidator('json', updateFolderRequestSchema), async (c) => {
+    const folderId = c.req.param('folderId')
+    const user = c.get('user')
+    const req = c.req.valid('json')
 
-      await authzService.hasPermission({
-        assetId: folderId,
-        user,
-        permission: Permission.Edit,
-      })
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Edit,
+      type: ResourceType.Asset,
+      id: folderId,
+    })
 
-      const updatedAsset = await assetService.updateAssetName({
-        id: folderId,
-        name: req.name,
-      })
+    const updatedAsset = await assetService.updateAssetName({
+      id: folderId,
+      name: req.name,
+    })
 
-      return c.json(updatedAsset)
-    },
-  )
-  .get('/teams/:teamId/folders/:folderId', async (c) => {
+    return c.json(updatedAsset)
+  })
+  .get('/folders/:folderId', async (c) => {
     const folderId = c.req.param('folderId')
     const user = c.get('user')
 
     await authzService.hasPermission({
-      assetId: folderId,
       user,
       permission: Permission.Read,
+      type: ResourceType.Asset,
+      id: folderId,
     })
 
     const assetInfo = await assetService.getAsset({ assetId: folderId })
     return c.json(assetInfo)
   })
-  .get(
-    '/teams/:teamId/folders/:folderId/children',
-    zValidator('query', listChildrenRequestSchema),
-    async (c) => {
-      const folderId = c.req.param('folderId')
-      const user = c.get('user')
-      const req = c.req.valid('query')
+  .get('/folders/:folderId/children', zValidator('query', listChildrenRequestSchema), async (c) => {
+    const folderId = c.req.param('folderId')
+    const user = c.get('user')
+    const req = c.req.valid('query')
 
-      await authzService.hasPermission({
-        assetId: folderId,
-        user,
-        permission: Permission.Read,
-      })
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Asset,
+      id: folderId,
+    })
 
-      const resp = await assetService.listChildren({
-        assetId: folderId,
-        assetType: req.assetType,
-        projectId: req.projectId,
-        showDeleted: req.showDeleted,
-        sort: req.sort,
-        order: req.order,
-      })
-      return c.json(resp)
-    },
-  )
-  .delete('/teams/:teamId/folders', zValidator('json', deleteFoldersRequestSchema), async (c) => {
+    const resp = await assetService.listChildren({
+      assetId: folderId,
+      assetType: req.assetType,
+      projectId: req.projectId,
+      showDeleted: req.showDeleted,
+      sort: req.sort,
+      order: req.order,
+    })
+    return c.json(resp)
+  })
+  .delete('/folders', zValidator('json', deleteFoldersRequestSchema), async (c) => {
     const user = c.get('user')
     const req = c.req.valid('json')
 
     for (const id of req.ids) {
       await authzService.hasPermission({
-        assetId: id,
         user,
         permission: Permission.Edit,
+        type: ResourceType.Asset,
+        id,
       })
     }
 
     await assetService.deleteAssets(req.ids)
     return c.body(null, 204)
   })
-  .post(
-    '/teams/:teamId/folders/restore',
-    zValidator('json', restoreFoldersRequestSchema),
-    async (c) => {
-      const user = c.get('user')
-      const req = c.req.valid('json')
+  .post('/folders/restore', zValidator('json', restoreFoldersRequestSchema), async (c) => {
+    const user = c.get('user')
+    const req = c.req.valid('json')
 
-      for (const id of req.ids) {
-        await authzService.hasPermission({
-          assetId: id,
-          user,
-          permission: Permission.Edit,
-        })
-      }
-
-      await assetService.restoreAssets(req.ids)
-      return c.body(null, 204)
-    },
-  )
-  .post(
-    '/teams/:teamId/folders/:folderId/search',
-    zValidator('json', searchRequestSchema),
-    async (c) => {
-      const folderId = c.req.param('folderId')
-      const user = c.get('user')
-      const req = c.req.valid('json')
-
+    for (const id of req.ids) {
       await authzService.hasPermission({
-        assetId: folderId,
         user,
-        permission: Permission.Read,
+        permission: Permission.Edit,
+        type: ResourceType.Asset,
+        id,
       })
+    }
 
-      const result = await searchService.search(folderId, req)
-      return c.json(result)
-    },
-  )
+    await assetService.restoreAssets(req.ids)
+    return c.body(null, 204)
+  })
+  .post('/folders/:folderId/search', zValidator('json', searchRequestSchema), async (c) => {
+    const folderId = c.req.param('folderId')
+    const user = c.get('user')
+    const req = c.req.valid('json')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Asset,
+      id: folderId,
+    })
+
+    const result = await searchService.search(folderId, req)
+    return c.json(result)
+  })
 
 export default route

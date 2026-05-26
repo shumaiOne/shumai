@@ -5,6 +5,7 @@ import { authMiddleware } from '@/api/middleware/auth'
 import { uploadService } from '@/services/upload/upload'
 import type { CreateUploadTaskResponse, TaskInfo } from '@/dtos/upload'
 import type { PaginatedData } from '@/services/pagination'
+import { authzService, ResourceType, Permission } from '@/services/authz/authz'
 
 vi.mock('@/api/middleware/auth', () => ({
   // We use any here because mocking Hono context and middleware
@@ -19,12 +20,16 @@ vi.mock('@/api/middleware/auth', () => ({
 
 vi.mock('@/services/authz/authz', () => ({
   authzService: {
-    hasPermission: vi.fn(),
+    hasPermission: vi.fn().mockResolvedValue(undefined),
   },
   Permission: {
     Read: 'Read',
     Edit: 'Edit',
     Admin: 'Admin',
+  },
+  ResourceType: {
+    Team: 'team',
+    Asset: 'asset',
   },
 }))
 
@@ -39,6 +44,7 @@ describe('Upload API', () => {
 
   beforeEach(() => {
     vi.restoreAllMocks()
+    vi.mocked(authzService.hasPermission).mockResolvedValue(undefined)
   })
 
   it('GET /teams/:teamId/upload/tasks', async () => {
@@ -53,6 +59,13 @@ describe('Upload API', () => {
     })
 
     expect(res.status).toBe(200)
+    expect(authzService.hasPermission).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: ResourceType.Team,
+        id: 'team1',
+        permission: Permission.Read,
+      }),
+    )
     expect(uploadService.listUploadTasks).toHaveBeenCalled()
   })
 
@@ -73,6 +86,13 @@ describe('Upload API', () => {
     })
 
     expect(res.status).toBe(200)
+    expect(authzService.hasPermission).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: ResourceType.Asset,
+        id: 'parent1',
+        permission: Permission.Edit,
+      }),
+    )
     expect(uploadService.createUploadTask).toHaveBeenCalled()
   })
 
@@ -88,6 +108,13 @@ describe('Upload API', () => {
     })
 
     expect(res.status).toBe(200)
+    expect(authzService.hasPermission).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: ResourceType.Team,
+        id: 'team1',
+        permission: Permission.Edit,
+      }),
+    )
     expect(uploadService.confirmFileUpload).toHaveBeenCalledWith('user1', 'task1', {
       fileId: 'file1',
     })

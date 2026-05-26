@@ -34,7 +34,7 @@ function FileViewPage() {
   const [leftSidebarWidth, setLeftSidebarWidth] = useState(280)
   const [rightSidebarWidth, setRightSidebarWidth] = useState(360)
   const [annotations, setAnnotations] = useState<Annotation[]>([])
-  const $patchMetadata = client.api.teams[':teamId'].files[':fileId'].metadata.$patch
+  const $patchMetadata = client.api.files[':fileId'].metadata.$patch
   const { mutate: patchMetadata } = useMutation<
     InferResponseType<typeof $patchMetadata>,
     Error,
@@ -65,10 +65,10 @@ function FileViewPage() {
     isError: isStackError,
     isFetching: isStackFetching,
   } = useQuery({
-    queryKey: ['teams', teamId, 'files', fileId],
+    queryKey: ['files', fileId],
     queryFn: async () => {
-      const res = await client.api.teams[':teamId'].files[':fileId'].$get({
-        param: { teamId: teamId!, fileId: fileId },
+      const res = await client.api.files[':fileId'].$get({
+        param: { fileId: fileId },
       })
       if (!res.ok) throw new Error('Failed to fetch stack')
       return await res.json()
@@ -83,10 +83,10 @@ function FileViewPage() {
     isError: isVersionError,
     isFetching: isVersionFetching,
   } = useQuery({
-    queryKey: ['teams', teamId, 'files', versionAssetId],
+    queryKey: ['files', versionAssetId],
     queryFn: async () => {
-      const res = await client.api.teams[':teamId'].files[':fileId'].$get({
-        param: { teamId: teamId!, fileId: versionAssetId! },
+      const res = await client.api.files[':fileId'].$get({
+        param: { fileId: versionAssetId! },
       })
       if (!res.ok) throw new Error('Failed to fetch version')
       return await res.json()
@@ -96,10 +96,10 @@ function FileViewPage() {
   })
 
   const { data: versionsList } = useQuery({
-    queryKey: ['projects', projectId, 'version_stacks', fileId, 'versions'],
+    queryKey: ['version_stacks', fileId, 'versions'],
     queryFn: async () => {
-      const res = await client.api.projects[':projectId'].version_stacks[':stackId'].versions.$get({
-        param: { projectId: projectId, stackId: fileId },
+      const res = await client.api.version_stacks[':stackId'].versions.$get({
+        param: { stackId: fileId },
       })
       if (!res.ok) throw new Error('Failed to fetch versions')
       return await res.json()
@@ -180,13 +180,13 @@ function FileViewPage() {
     if (!teamId) return
     patchMetadata(
       {
-        param: { teamId: teamId, fileId: activeFileId },
+        param: { fileId: activeFileId },
         json: [{ key: fieldId, value }] as InferRequestType<typeof $patchMetadata>['json'],
       },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({
-            queryKey: ['teams', teamId, 'files', activeFileId],
+            queryKey: ['files', activeFileId],
           })
         },
       },
@@ -216,7 +216,6 @@ function FileViewPage() {
           <>
             <div style={{ width: leftSidebarWidth }} className="flex-shrink-0">
               <FileViewerLeftSidebar
-                teamId={teamId!}
                 projectId={projectId}
                 currentAssetId={activeFileId}
                 parentFolderId={

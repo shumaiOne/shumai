@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { agentService } from '@/services/agent/agent'
-import { authzService, Permission } from '@/services/authz/authz'
+import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 import {
   createAgentRequestSchema,
   updateAgentRequestSchema,
@@ -19,9 +19,10 @@ const route = new Hono<{ Variables: { user: User } }>()
     const userReq = c.get('user')
 
     await authzService.hasPermission({
-      teamId,
       user: userReq,
       permission: Permission.Read,
+      type: ResourceType.Team,
+      id: teamId,
     })
 
     const agents = await agentService.listAgents({ teamId })
@@ -55,9 +56,10 @@ const route = new Hono<{ Variables: { user: User } }>()
     const req = c.req.valid('json')
 
     await authzService.hasPermission({
-      teamId,
       user: userReq,
       permission: Permission.Admin,
+      type: ResourceType.Team,
+      id: teamId,
     })
 
     const agent = await agentService.createAgent({
@@ -88,57 +90,53 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     return c.json(info, 200)
   })
-  .put(
-    '/teams/:teamId/agents/:agentId',
-    zValidator('json', updateAgentRequestSchema),
-    async (c) => {
-      const teamId = c.req.param('teamId')
-      const agentId = c.req.param('agentId')
-      const userReq = c.get('user')
-      const req = c.req.valid('json')
+  .put('/agents/:agentId', zValidator('json', updateAgentRequestSchema), async (c) => {
+    const agentId = c.req.param('agentId')
+    const userReq = c.get('user')
+    const req = c.req.valid('json')
 
-      await authzService.hasPermission({
-        teamId,
-        user: userReq,
-        permission: Permission.Admin,
-      })
+    await authzService.hasPermission({
+      user: userReq,
+      permission: Permission.Admin,
+      type: ResourceType.Agent,
+      id: agentId,
+    })
 
-      const agent = await agentService.updateAgent({
-        agentId,
-        ...req,
-      })
+    const agent = await agentService.updateAgent({
+      agentId,
+      ...req,
+    })
 
-      const config = agent.config as unknown as PrismaJson.AgentConfig
-      const info: AgentInfo = {
-        id: agent.id,
-        name: agent.user.name,
-        type: agent.type as AgentType,
-        enabled: agent.enabled,
-        avatar: agent.user.image || undefined,
-        providerId: agent.providerId || undefined,
-        modelId: agent.modelId || undefined,
-        thinkingLevel: config.thinkingLevel || '',
-        systemPrompt: config.systemPrompt,
-        soul: agent.soul || undefined,
-        skills: agent.skills.map((s) => ({
-          id: s.id,
-          skillId: s.skillId,
-          skill: s.skill,
-        })),
-      }
+    const config = agent.config as unknown as PrismaJson.AgentConfig
+    const info: AgentInfo = {
+      id: agent.id,
+      name: agent.user.name,
+      type: agent.type as AgentType,
+      enabled: agent.enabled,
+      avatar: agent.user.image || undefined,
+      providerId: agent.providerId || undefined,
+      modelId: agent.modelId || undefined,
+      thinkingLevel: config.thinkingLevel || '',
+      systemPrompt: config.systemPrompt,
+      soul: agent.soul || undefined,
+      skills: agent.skills.map((s) => ({
+        id: s.id,
+        skillId: s.skillId,
+        skill: s.skill,
+      })),
+    }
 
-      return c.json(info, 200)
-    },
-  )
-  .delete('/teams/:teamId/agents/:agentId', async (c) => {
-    const teamId = c.req.param('teamId')
+    return c.json(info, 200)
+  })
+  .delete('/agents/:agentId', async (c) => {
     const agentId = c.req.param('agentId')
     const userReq = c.get('user')
 
     await authzService.hasPermission({
-      teamId,
       user: userReq,
       permission: Permission.Admin,
+      type: ResourceType.Agent,
+      id: agentId,
     })
 
     await agentService.deleteAgent({
@@ -147,15 +145,15 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     return new Response(null, { status: 204 })
   })
-  .get('/teams/:teamId/agent-sessions/:sessionId/entries', async (c) => {
-    const teamId = c.req.param('teamId')
+  .get('/agent-sessions/:sessionId/entries', async (c) => {
     const sessionId = c.req.param('sessionId')
     const userReq = c.get('user')
 
     await authzService.hasPermission({
-      teamId,
       user: userReq,
       permission: Permission.Admin,
+      type: ResourceType.AgentSession,
+      id: sessionId,
     })
 
     const entries = await agentService.getSessionEntries({ sessionId })

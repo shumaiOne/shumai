@@ -1,53 +1,39 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { Hono } from 'hono'
+import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { Hono, type Context, type Next } from 'hono'
 import providerRoute from './provider'
-import { authMiddleware } from '@/api/middleware/auth'
 import { providerService } from '@/services/provider/provider'
-import { authzService } from '@/services/authz/authz'
-
-vi.mock('@/services/authz/authz', () => ({
-  authzService: {
-    hasPermission: vi.fn(),
-  },
-  Permission: {
-    Read: 'Read',
-    Edit: 'Edit',
-    Admin: 'Admin',
-  },
-}))
+import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 
 vi.mock('@/api/middleware/auth', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  authMiddleware: async (c: any, next: any) => {
+  authMiddleware: async (
+    c: Context<{ Variables: { user: { id: string; name: string } } }>,
+    next: Next,
+  ) => {
     c.set('user', { id: 'user1', name: 'Test User' })
     await next()
   },
 }))
 
-describe('provider api', () => {
-  const app = new Hono().use('*', authMiddleware).route('/', providerRoute)
+vi.mock('@/services/authz/authz')
+vi.mock('@/services/provider/provider')
 
-  let mockListByTeam: any // eslint-disable-line @typescript-eslint/no-explicit-any
-  let mockCreate: any // eslint-disable-line @typescript-eslint/no-explicit-any
-  let mockUpdate: any // eslint-disable-line @typescript-eslint/no-explicit-any
-  let mockDelete: any // eslint-disable-line @typescript-eslint/no-explicit-any
+describe('provider api', () => {
+  const app = new Hono<{ Variables: { user: { id: string; name: string } } }>()
+    .use('*', async (c, next) => {
+      c.set('user', { id: 'user1', name: 'Test User' })
+      await next()
+    })
+    .route('/', providerRoute)
 
   beforeEach(() => {
-    mockListByTeam = vi.spyOn(providerService, 'listByTeam')
-    mockCreate = vi.spyOn(providerService, 'create')
-    mockUpdate = vi.spyOn(providerService, 'update')
-    mockDelete = vi.spyOn(providerService, 'delete')
-
-    // Default to admin permission granted
+    vi.restoreAllMocks()
     vi.mocked(authzService.hasPermission).mockResolvedValue(undefined)
   })
 
-  afterEach(() => {
-    vi.restoreAllMocks()
-  })
-
   it('GET /teams/:teamId/providers returns providers', async () => {
-    mockListByTeam.mockResolvedValue([{ id: 'p1', name: 'openai', config: {} }])
+    vi.mocked(providerService.listByTeam).mockResolvedValue([
+      { id: 'p1', name: 'openai', config: { api: 'openai' } },
+    ] as unknown as Awaited<ReturnType<typeof providerService.listByTeam>>)
 
     const res = await app.request('/teams/t1/providers')
 
@@ -55,26 +41,36 @@ describe('provider api', () => {
     const data = await res.json()
     expect(data).toHaveLength(1)
     expect(data[0].id).toBe('p1')
-    expect(authzService.hasPermission).toHaveBeenCalledWith(
-      expect.objectContaining({
-        teamId: 't1',
-        permission: 'Admin',
-      }),
-    )
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Admin,
+      type: ResourceType.Team,
+      id: 't1',
+    })
   })
 
-  it('GET /teams/:teamId/providers/:id/models returns models', async () => {
-    const mockListModelsByProvider = vi.spyOn(providerService, 'listModelsByProvider')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mockListModelsByProvider.mockResolvedValue([{ modelId: 'm1', name: 'model1' } as any])
+  it('GET /providers/:id/models returns models', async () => {
+    vi.mocked(providerService.getById).mockResolvedValue({
+      id: 'p1',
+      teamId: 't1',
+    } as unknown as Awaited<ReturnType<typeof providerService.getById>>)
+    vi.mocked(providerService.listModelsByProvider).mockResolvedValue([
+      { modelId: 'm1', name: 'model1' },
+    ] as unknown as Awaited<ReturnType<typeof providerService.listModelsByProvider>>)
 
-    const res = await app.request('/teams/t1/providers/p1/models')
+    const res = await app.request('/providers/p1/models')
 
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data).toHaveLength(1)
     expect(data[0].modelId).toBe('m1')
-    expect(mockListModelsByProvider).toHaveBeenCalledWith('t1', 'p1')
+    expect(providerService.listModelsByProvider).toHaveBeenCalledWith('t1', 'p1')
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Admin,
+      type: ResourceType.Provider,
+      id: 'p1',
+    })
   })
 
   it('POST /teams/:teamId/providers creates provider', async () => {
@@ -89,14 +85,19 @@ describe('provider api', () => {
         config: {
           api: 'openai-completions',
           reasoning: false,
-          input: ['text'],
+          input: ['text' as const],
           contextWindow: 128000,
           maxTokens: 4096,
           cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
         },
       },
     ]
-    mockCreate.mockResolvedValue({ id: 'p1', name: 'openai', config, models })
+    vi.mocked(providerService.create).mockResolvedValue({
+      id: 'p1',
+      name: 'openai',
+      config,
+      models,
+    } as unknown as Awaited<ReturnType<typeof providerService.create>>)
 
     const res = await app.request('/teams/t1/providers', {
       method: 'POST',
@@ -107,10 +108,16 @@ describe('provider api', () => {
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data.name).toBe('openai')
-    expect(mockCreate).toHaveBeenCalledWith('t1', 'openai', config, models)
+    expect(providerService.create).toHaveBeenCalledWith('t1', 'openai', config, models)
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Admin,
+      type: ResourceType.Team,
+      id: 't1',
+    })
   })
 
-  it('PUT /teams/:teamId/providers/:id updates provider', async () => {
+  it('PUT /providers/:id updates provider', async () => {
     const config = {
       baseUrl: 'https://new-url.com',
       api: 'openai-completions',
@@ -122,16 +129,25 @@ describe('provider api', () => {
         config: {
           api: 'openai-completions',
           reasoning: false,
-          input: ['text'],
+          input: ['text' as const],
           contextWindow: 128000,
           maxTokens: 4096,
           cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
         },
       },
     ]
-    mockUpdate.mockResolvedValue({ id: 'p1', name: 'openai', config, models })
+    vi.mocked(providerService.getById).mockResolvedValue({
+      id: 'p1',
+      teamId: 't1',
+    } as unknown as Awaited<ReturnType<typeof providerService.getById>>)
+    vi.mocked(providerService.update).mockResolvedValue({
+      id: 'p1',
+      name: 'openai',
+      config,
+      models,
+    } as unknown as Awaited<ReturnType<typeof providerService.update>>)
 
-    const res = await app.request('/teams/t1/providers/p1', {
+    const res = await app.request('/providers/p1', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ config, models }),
@@ -140,19 +156,37 @@ describe('provider api', () => {
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data.config.baseUrl).toBe('https://new-url.com')
-    expect(mockUpdate).toHaveBeenCalledWith('t1', 'p1', config, models)
+    expect(providerService.update).toHaveBeenCalledWith('t1', 'p1', config, models)
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Admin,
+      type: ResourceType.Provider,
+      id: 'p1',
+    })
   })
 
-  it('DELETE /teams/:teamId/providers/:id deletes provider', async () => {
-    mockDelete.mockResolvedValue({ id: 'p1' })
+  it('DELETE /providers/:id deletes provider', async () => {
+    vi.mocked(providerService.getById).mockResolvedValue({
+      id: 'p1',
+      teamId: 't1',
+    } as unknown as Awaited<ReturnType<typeof providerService.getById>>)
+    vi.mocked(providerService.delete).mockResolvedValue({
+      id: 'p1',
+    } as unknown as Awaited<ReturnType<typeof providerService.delete>>)
 
-    const res = await app.request('/teams/t1/providers/p1', {
+    const res = await app.request('/providers/p1', {
       method: 'DELETE',
     })
 
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data.success).toBe(true)
-    expect(mockDelete).toHaveBeenCalledWith('t1', 'p1')
+    expect(providerService.delete).toHaveBeenCalledWith('t1', 'p1')
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Admin,
+      type: ResourceType.Provider,
+      id: 'p1',
+    })
   })
 })

@@ -66,8 +66,8 @@ export function FileListItem({
   const { data: polledItem } = useQuery({
     queryKey: ['file', teamId, item.id],
     queryFn: async () => {
-      const res = await client.api.teams[':teamId'].files[':fileId'].$get({
-        param: { teamId: teamId || '', fileId: item.id || '' },
+      const res = await client.api.files[':fileId'].$get({
+        param: { fileId: item.id || '' },
       })
       if (!res.ok) throw new Error('failed to fetch file')
       return (await res.json()) as unknown as AssetInfo

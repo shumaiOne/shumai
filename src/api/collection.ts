@@ -1,7 +1,7 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { collectionService } from '@/services/collection/collection'
-import { authzService, Permission } from '@/services/authz/authz'
+import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 import {
   createCollectionRequestSchema,
   updateCollectionRequestSchema,
@@ -26,18 +26,18 @@ function toCollectionInfo(c: Prisma.CollectionGetPayload<Record<string, never>>)
 
 const route = new Hono<{ Variables: { user: User } }>()
   .post(
-    '/teams/:teamId/projects/:projectId/collections',
+    '/projects/:projectId/collections',
     zValidator('json', createCollectionRequestSchema),
     async (c) => {
-      const { teamId, projectId } = c.req.param()
+      const { projectId } = c.req.param()
       const req = c.req.valid('json')
       const user = c.get('user')
 
       await authzService.hasPermission({
-        teamId,
-        projectId,
         user,
         permission: Permission.Edit,
+        type: ResourceType.Project,
+        id: projectId,
       })
 
       const collection = await collectionService.createCollection(projectId, req)
@@ -45,18 +45,18 @@ const route = new Hono<{ Variables: { user: User } }>()
     },
   )
   .get(
-    '/teams/:teamId/projects/:projectId/collections',
+    '/projects/:projectId/collections',
     zValidator('query', listCollectionsRequestSchema),
     async (c) => {
-      const { teamId, projectId } = c.req.param()
+      const { projectId } = c.req.param()
       const req = c.req.valid('query')
       const user = c.get('user')
 
       await authzService.hasPermission({
-        teamId,
-        projectId,
         user,
         permission: Permission.Read,
+        type: ResourceType.Project,
+        id: projectId,
       })
 
       const collections = await collectionService.listCollections(projectId, req)
@@ -67,15 +67,15 @@ const route = new Hono<{ Variables: { user: User } }>()
       })
     },
   )
-  .get('/teams/:teamId/projects/:projectId/collections/:collectionId', async (c) => {
-    const { teamId, projectId, collectionId } = c.req.param()
+  .get('/collections/:collectionId', async (c) => {
+    const { collectionId } = c.req.param()
     const user = c.get('user')
 
     await authzService.hasPermission({
-      teamId,
-      projectId,
       user,
       permission: Permission.Read,
+      type: ResourceType.Collection,
+      id: collectionId,
     })
 
     const collection = await collectionService.getCollection(collectionId)
@@ -86,33 +86,33 @@ const route = new Hono<{ Variables: { user: User } }>()
     return c.json(toCollectionInfo(collection))
   })
   .patch(
-    '/teams/:teamId/projects/:projectId/collections/:collectionId',
+    '/collections/:collectionId',
     zValidator('json', updateCollectionRequestSchema),
     async (c) => {
-      const { teamId, projectId, collectionId } = c.req.param()
+      const { collectionId } = c.req.param()
       const req = c.req.valid('json')
       const user = c.get('user')
 
       await authzService.hasPermission({
-        teamId,
-        projectId,
         user,
         permission: Permission.Edit,
+        type: ResourceType.Collection,
+        id: collectionId,
       })
 
       const collection = await collectionService.updateCollection(collectionId, req)
       return c.json(toCollectionInfo(collection))
     },
   )
-  .delete('/teams/:teamId/projects/:projectId/collections/:collectionId', async (c) => {
-    const { teamId, projectId, collectionId } = c.req.param()
+  .delete('/collections/:collectionId', async (c) => {
+    const { collectionId } = c.req.param()
     const user = c.get('user')
 
     await authzService.hasPermission({
-      teamId,
-      projectId,
       user,
       permission: Permission.Edit,
+      type: ResourceType.Collection,
+      id: collectionId,
     })
 
     await collectionService.deleteCollection(collectionId)

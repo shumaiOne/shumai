@@ -3,7 +3,7 @@ import { Hono } from 'hono'
 import skillRoute from './skill'
 import { skillService } from '@/services/skill/skill'
 import { authMiddleware } from '@/api/middleware/auth'
-import { authzService } from '@/services/authz/authz'
+import { authzService, ResourceType, Permission } from '@/services/authz/authz'
 
 vi.mock('@/api/middleware/auth', () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -16,12 +16,16 @@ vi.mock('@/api/middleware/auth', () => ({
 
 vi.mock('@/services/authz/authz', () => ({
   authzService: {
-    hasPermission: vi.fn(),
+    hasPermission: vi.fn().mockResolvedValue(undefined),
   },
   Permission: {
-    Read: 'read',
-    Edit: 'edit',
-    Admin: 'admin',
+    Read: 'Read',
+    Edit: 'Edit',
+    Admin: 'Admin',
+  },
+  ResourceType: {
+    Team: 'team',
+    Skill: 'skill',
   },
 }))
 
@@ -30,6 +34,7 @@ describe('Skill API', () => {
 
   beforeEach(() => {
     vi.restoreAllMocks()
+    vi.mocked(authzService.hasPermission).mockResolvedValue(undefined)
   })
 
   describe('GET /teams/:teamId/skills', () => {
@@ -56,7 +61,11 @@ describe('Skill API', () => {
       expect(res.status).toBe(200)
       expect(await res.json()).toEqual({ skills: mockSkills })
       expect(authzService.hasPermission).toHaveBeenCalledWith(
-        expect.objectContaining({ permission: 'admin' }),
+        expect.objectContaining({
+          type: ResourceType.Team,
+          id: 'team1',
+          permission: Permission.Admin,
+        }),
       )
     })
   })
@@ -83,6 +92,13 @@ describe('Skill API', () => {
 
       expect(res.status).toBe(200)
       expect(await res.json()).toEqual(mockSkill)
+      expect(authzService.hasPermission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: ResourceType.Team,
+          id: 'team1',
+          permission: Permission.Admin,
+        }),
+      )
       expect(skillService.upsertSkill).toHaveBeenCalledWith('team1', { assetId: 'asset1' })
     })
 
@@ -113,7 +129,7 @@ describe('Skill API', () => {
     })
 
     test('Forbidden without Admin permission', async () => {
-      vi.spyOn(authzService, 'hasPermission').mockRejectedValueOnce(new Error('Forbidden'))
+      vi.mocked(authzService.hasPermission).mockRejectedValueOnce(new Error('Forbidden'))
 
       const res = await app.request('/teams/team1/skills', {
         method: 'POST',
@@ -125,21 +141,28 @@ describe('Skill API', () => {
     })
   })
 
-  describe('DELETE /teams/:teamId/skills/:id', () => {
+  describe('DELETE /skills/:id', () => {
     test('Success', async () => {
       vi.spyOn(skillService, 'deleteSkill').mockResolvedValue(undefined)
 
-      const res = await app.request('/teams/team1/skills/skill1', {
+      const res = await app.request('/skills/skill1', {
         method: 'DELETE',
         headers: { Authorization: 'Bearer test' },
       })
 
       expect(res.status).toBe(204)
+      expect(authzService.hasPermission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: ResourceType.Skill,
+          id: 'skill1',
+          permission: Permission.Admin,
+        }),
+      )
       expect(skillService.deleteSkill).toHaveBeenCalledWith('skill1')
     })
   })
 
-  describe('PATCH /teams/:teamId/skills/:id/config', () => {
+  describe('PATCH /skills/:id/config', () => {
     test('Success', async () => {
       const mockConfig = {
         environmentVariables: [{ name: 'TEST_VAR', default: 'test_val' }],
@@ -156,7 +179,7 @@ describe('Skill API', () => {
       }
       vi.spyOn(skillService, 'updateSkillConfig').mockResolvedValue(mockSkill)
 
-      const res = await app.request('/teams/team1/skills/skill1/config', {
+      const res = await app.request('/skills/skill1/config', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer test' },
         body: JSON.stringify({ config: mockConfig }),
@@ -164,6 +187,13 @@ describe('Skill API', () => {
 
       expect(res.status).toBe(200)
       expect(await res.json()).toEqual(mockSkill)
+      expect(authzService.hasPermission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: ResourceType.Skill,
+          id: 'skill1',
+          permission: Permission.Admin,
+        }),
+      )
       expect(skillService.updateSkillConfig).toHaveBeenCalledWith('skill1', mockConfig)
     })
   })

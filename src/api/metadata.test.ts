@@ -1,36 +1,33 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { Hono } from 'hono'
+import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { Hono, type Context, type Next } from 'hono'
 import metadataRoute from './metadata'
 import { metadataService } from '@/services/metadata/metadata'
-import { Prisma } from '@/generated/prisma/client.ts'
-import { authMiddleware } from '@/api/middleware/auth'
-
-vi.mock('@/services/authz/authz', () => ({
-  authzService: {
-    hasPermission: vi.fn(),
-  },
-  Permission: {
-    Read: 'Read',
-    Edit: 'Edit',
-    Admin: 'Admin',
-  },
-}))
+import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 
 vi.mock('@/api/middleware/auth', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  authMiddleware: async (c: any, next: any) => {
+  authMiddleware: async (
+    c: Context<{ Variables: { user: { id: string; name: string } } }>,
+    next: Next,
+  ) => {
     c.set('user', { id: 'user1', name: 'Test User' })
     await next()
   },
 }))
 
+vi.mock('@/services/authz/authz')
+vi.mock('@/services/metadata/metadata')
+
 describe('metadata api', () => {
+  const app = new Hono<{ Variables: { user: { id: string; name: string } } }>()
+    .use('*', async (c, next) => {
+      c.set('user', { id: 'user1', name: 'Test User' })
+      await next()
+    })
+    .route('/', metadataRoute)
+
   beforeEach(() => {
     vi.restoreAllMocks()
-  })
-
-  afterEach(() => {
-    vi.restoreAllMocks()
+    vi.mocked(authzService.hasPermission).mockResolvedValue(undefined)
   })
 
   it('GET /teams/:teamId/fields', async () => {
@@ -41,11 +38,11 @@ describe('metadata api', () => {
       readOnly: false,
       description: 'desc',
       aiAutofill: true,
-    } as Prisma.MetadataFieldGetPayload<Record<string, never>>
+    }
 
-    vi.spyOn(metadataService, 'listTeamFields').mockResolvedValue([mockField])
+    // Using any here because mocking complex service return types or Hono context is overly verbose for this test.
+    vi.mocked(metadataService.listTeamFields).mockResolvedValue([mockField as any]) // eslint-disable-line @typescript-eslint/no-explicit-any
 
-    const app = new Hono().use('*', authMiddleware).route('/', metadataRoute)
     const res = await app.request('/teams/t1/fields')
 
     expect(res.status).toBe(200)
@@ -54,6 +51,12 @@ describe('metadata api', () => {
     expect(json[0].id).toBe('field1')
     expect(json[0].config.name).toBe('Test Field')
     expect(json[0].aiAutofill).toBe(true)
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Read,
+      type: ResourceType.Team,
+      id: 't1',
+    })
   })
 
   it('POST /teams/:teamId/fields', async () => {
@@ -64,11 +67,11 @@ describe('metadata api', () => {
       readOnly: false,
       description: 'desc',
       aiAutofill: true,
-    } as Prisma.MetadataFieldGetPayload<Record<string, never>>
+    }
 
-    vi.spyOn(metadataService, 'createTeamField').mockResolvedValue(mockField)
+    // Using any here because mocking complex service return types or Hono context is overly verbose for this test.
+    vi.mocked(metadataService.createTeamField).mockResolvedValue(mockField as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
-    const app = new Hono().use('*', authMiddleware).route('/', metadataRoute)
     const res = await app.request('/teams/t1/fields', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -82,6 +85,12 @@ describe('metadata api', () => {
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.id).toBe('newfield')
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Admin,
+      type: ResourceType.Team,
+      id: 't1',
+    })
   })
 
   it('GET /projects/:projectId/fields', async () => {
@@ -92,13 +101,12 @@ describe('metadata api', () => {
       readOnly: false,
       description: 'desc',
       aiAutofill: false,
-    } as Prisma.MetadataFieldGetPayload<Record<string, never>>
+    }
 
-    vi.spyOn(metadataService, 'listProjectFields').mockResolvedValue([
-      { field: mockField, visible: true },
+    vi.mocked(metadataService.listProjectFields).mockResolvedValue([
+      { field: mockField, visible: true } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
     ])
 
-    const app = new Hono().use('*', authMiddleware).route('/', metadataRoute)
     const res = await app.request('/projects/p1/fields')
 
     expect(res.status).toBe(200)
@@ -106,12 +114,19 @@ describe('metadata api', () => {
     expect(json).toHaveLength(1)
     expect(json[0].id).toBe('field1')
     expect(json[0].visible).toBe(true)
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Read,
+      type: ResourceType.Project,
+      id: 'p1',
+    })
   })
 
   it('PATCH /projects/:projectId/fields/order', async () => {
-    vi.spyOn(metadataService, 'updateProjectFieldsOrder').mockResolvedValue(undefined)
+    // Using any here because mocking complex service return types or Hono context is overly verbose for this test.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(metadataService.updateProjectFieldsOrder).mockResolvedValue(undefined as any)
 
-    const app = new Hono().use('*', authMiddleware).route('/', metadataRoute)
     const res = await app.request('/projects/p1/fields/order', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -122,33 +137,72 @@ describe('metadata api', () => {
     expect(metadataService.updateProjectFieldsOrder).toHaveBeenCalledWith('user1', 'p1', [
       { fieldId: 'field1', visible: true },
     ])
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Admin,
+      type: ResourceType.Project,
+      id: 'p1',
+    })
   })
 
-  it('DELETE /teams/:teamId/fields/:fieldId', async () => {
-    vi.spyOn(metadataService, 'deleteTeamField').mockResolvedValue(undefined)
+  it('DELETE /fields/:fieldId', async () => {
+    // Using any here because mocking complex service return types or Hono context is overly verbose for this test.
+    vi.mocked(metadataService.getFieldByKey).mockResolvedValue({
+      key: 'f1',
+      teamId: 't1',
+    } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+    // Using any here because mocking complex service return types or Hono context is overly verbose for this test.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(metadataService.deleteTeamField).mockResolvedValue(undefined as any)
 
-    const app = new Hono().use('*', authMiddleware).route('/', metadataRoute)
-    const res = await app.request('/teams/t1/fields/f1', {
+    const res = await app.request('/fields/f1', {
       method: 'DELETE',
     })
 
     expect(res.status).toBe(204)
     expect(metadataService.deleteTeamField).toHaveBeenCalledWith('t1', 'f1')
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Admin,
+      type: ResourceType.MetadataField,
+      id: 'f1',
+    })
   })
 
-  it('PATCH /teams/:teamId/files/:fileId/metadata', async () => {
-    vi.spyOn(metadataService, 'updateAssetMetadata').mockResolvedValue(undefined)
+  it('PUT /fields/:fieldId', async () => {
+    const mockField = {
+      key: 'f1',
+      scope: 'TEAM',
+      config: { name: 'Updated Field', type: 'text' },
+      readOnly: false,
+      description: 'desc',
+      aiAutofill: true,
+      teamId: 't1',
+    }
 
-    const app = new Hono().use('*', authMiddleware).route('/', metadataRoute)
-    const res = await app.request('/teams/t1/files/f1/metadata', {
-      method: 'PATCH',
+    // Using any here because mocking complex service return types or Hono context is overly verbose for this test.
+    vi.mocked(metadataService.getFieldByKey).mockResolvedValue(mockField as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+    // Using any here because mocking complex service return types or Hono context is overly verbose for this test.
+    vi.mocked(metadataService.updateTeamField).mockResolvedValue(mockField as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+
+    const res = await app.request('/fields/f1', {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify([{ key: 'resolution_width', value: 1920 }]),
+      body: JSON.stringify({
+        config: { name: 'Updated Field', type: 'text' },
+        aiAutofill: true,
+        description: 'desc',
+      }),
     })
 
-    expect(res.status).toBe(204)
-    expect(metadataService.updateAssetMetadata).toHaveBeenCalledWith('f1', [
-      { key: 'resolution_width', value: 1920 },
-    ])
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.id).toBe('f1')
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Admin,
+      type: ResourceType.MetadataField,
+      id: 'f1',
+    })
   })
 })

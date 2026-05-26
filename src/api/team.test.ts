@@ -5,15 +5,19 @@ import { authMiddleware } from '@/api/middleware/auth'
 import { teamService } from '@/services/team/team'
 import { userMetadataService } from '@/services/user-metadata/user-metadata'
 import { notificationService } from '@/services/notification/notification'
+import { authzService, ResourceType, Permission } from '@/services/authz/authz'
 
 vi.mock('@/services/authz/authz', () => ({
   authzService: {
-    hasPermission: vi.fn(),
+    hasPermission: vi.fn().mockResolvedValue(undefined),
   },
   Permission: {
     Read: 'Read',
     Edit: 'Edit',
     Admin: 'Admin',
+  },
+  ResourceType: {
+    Team: 'team',
   },
 }))
 
@@ -53,6 +57,7 @@ describe('team api', () => {
     mockCreateNotification = vi.spyOn(notificationService, 'create').mockResolvedValue()
     mockGetSandboxSettings = vi.spyOn(teamService, 'getSandboxSettings')
     mockUpdateSandboxSettings = vi.spyOn(teamService, 'updateSandboxSettings')
+    vi.mocked(authzService.hasPermission).mockResolvedValue(undefined)
   })
 
   afterEach(() => {
@@ -118,6 +123,13 @@ describe('team api', () => {
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data.role).toBe('owner')
+    expect(authzService.hasPermission).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: ResourceType.Team,
+        id: 't1',
+        permission: Permission.Read,
+      }),
+    )
     expect(mockGetMe).toHaveBeenCalledWith({ teamId: 't1', user: expect.any(Object) })
   })
 
@@ -129,6 +141,13 @@ describe('team api', () => {
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data).toHaveLength(1)
+    expect(authzService.hasPermission).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: ResourceType.Team,
+        id: 't1',
+        permission: Permission.Read,
+      }),
+    )
     expect(mockGetTeamMembers).toHaveBeenCalledWith({ teamId: 't1', includeAgents: false })
   })
 
@@ -140,6 +159,13 @@ describe('team api', () => {
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data.someKey).toBe('some_value')
+    expect(authzService.hasPermission).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: ResourceType.Team,
+        id: 't1',
+        permission: Permission.Read,
+      }),
+    )
     expect(mockGetSettings).toHaveBeenCalledWith('t1')
   })
 
@@ -155,6 +181,13 @@ describe('team api', () => {
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data.someKey).toBe('new_value')
+    expect(authzService.hasPermission).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: ResourceType.Team,
+        id: 't1',
+        permission: Permission.Admin,
+      }),
+    )
     expect(mockUpdateSettings).toHaveBeenCalledWith('t1', 'someKey', 'new_value')
   })
 
@@ -170,6 +203,13 @@ describe('team api', () => {
     const data = await res.json()
     expect(data).toHaveLength(2)
     expect(data[0].key).toBe('key1')
+    expect(authzService.hasPermission).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: ResourceType.Team,
+        id: 't1',
+        permission: Permission.Read,
+      }),
+    )
     expect(mockListUserMetadata).toHaveBeenCalledWith('user1', 't1')
   })
 
@@ -186,6 +226,13 @@ describe('team api', () => {
     const data = await res.json()
     expect(data.key).toBe('key1')
     expect(data.value).toBe('value1')
+    expect(authzService.hasPermission).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: ResourceType.Team,
+        id: 't1',
+        permission: Permission.Read,
+      }),
+    )
     expect(mockUpsertUserMetadata).toHaveBeenCalledWith('user1', 't1', 'key1', 'value1')
   })
 
@@ -197,6 +244,13 @@ describe('team api', () => {
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data.allowedDomains).toEqual(['example.com'])
+    expect(authzService.hasPermission).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: ResourceType.Team,
+        id: 't1',
+        permission: Permission.Read,
+      }),
+    )
     expect(mockGetSandboxSettings).toHaveBeenCalledWith('t1')
   })
 
@@ -212,6 +266,13 @@ describe('team api', () => {
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data.allowedDomains).toEqual(['new.com'])
+    expect(authzService.hasPermission).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: ResourceType.Team,
+        id: 't1',
+        permission: Permission.Admin,
+      }),
+    )
     expect(mockUpdateSandboxSettings).toHaveBeenCalledWith('t1', { allowedDomains: ['new.com'] })
   })
 })

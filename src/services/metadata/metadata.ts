@@ -67,6 +67,14 @@ export class MetadataService {
     return fields
   }
 
+  async getFieldByKey(
+    key: string,
+  ): Promise<Prisma.MetadataFieldGetPayload<Record<string, never>> | null> {
+    return this.client.metadataField.findUnique({
+      where: { key },
+    })
+  }
+
   async updateTeamField(
     teamId: string,
     fieldId: string,

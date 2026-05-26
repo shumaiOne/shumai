@@ -20,11 +20,10 @@ import React, { useState } from 'react'
 import { toast } from 'sonner'
 import { DateTimePicker } from '@/ui/components/datetime-picker'
 interface ShareSettingsSidebarProps {
-  teamId: string
   shareLink: ShareLinkInfo
 }
 
-export function ShareSettingsSidebar({ teamId, shareLink }: ShareSettingsSidebarProps) {
+export function ShareSettingsSidebar({ shareLink }: ShareSettingsSidebarProps) {
   const queryClient = useQueryClient()
   const [password, setPassword] = useState('')
   const [expireAt, setExpireAt] = useState<Date | undefined>(
@@ -45,18 +44,18 @@ export function ShareSettingsSidebar({ teamId, shareLink }: ShareSettingsSidebar
     enabled: !!shareLink.projectId,
   })
 
-  const $updateShare = client.api.teams[':teamId'].shares[':shareId'].$put
+  const $updateShare = client.api.shares[':shareId'].$put
   const { mutate: updateShare } = useMutation({
     mutationFn: async (json: UpdateShareLinkRequest) => {
       const res = await $updateShare({
-        param: { teamId, shareId: shareLink.id },
+        param: { shareId: shareLink.id },
         json,
       })
       if (!res.ok) throw new Error('Failed to update')
       return await res.json()
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['shares', teamId, shareLink.projectId] })
+      queryClient.invalidateQueries({ queryKey: ['shares', shareLink.projectId] })
       queryClient.invalidateQueries({ queryKey: ['share', shareLink.id] })
       toast.success('Settings updated')
     },

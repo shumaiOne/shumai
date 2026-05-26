@@ -99,7 +99,7 @@ export function FileViewerRightSidebar({
   } = useInfiniteQuery({
     queryKey: isPublic
       ? ['shares', shareId, 'files', file?.id, 'comments']
-      : ['teams', teamId, 'files', file?.id, 'comments'],
+      : ['files', file?.id, 'comments'],
     queryFn: async ({ pageParam }) => {
       if (isPublic) {
         const password = localStorage.getItem(`share_pwd_${shareId}`) || ''
@@ -117,8 +117,8 @@ export function FileViewerRightSidebar({
         if (!res.ok) throw new Error('Failed to fetch comments')
         return await res.json()
       } else {
-        const res = await client.api.teams[':teamId'].files[':fileId'].comments.$get({
-          param: { teamId: teamId, fileId: file!.id! },
+        const res = await client.api.files[':fileId'].comments.$get({
+          param: { fileId: file!.id! },
           query: { after: pageParam as string },
         })
         if (!res.ok) throw new Error('Failed to fetch comments')
@@ -168,8 +168,8 @@ export function FileViewerRightSidebar({
         if (!res.ok) throw new Error('Failed to create comment')
         return await res.json()
       } else {
-        const res = await client.api.teams[':teamId'].files[':fileId'].comments.$post({
-          param: { teamId: teamId, fileId: file!.id! },
+        const res = await client.api.files[':fileId'].comments.$post({
+          param: { fileId: file!.id! },
           json: {
             message: text,
             attachmentIds: attachmentIds,
@@ -185,7 +185,7 @@ export function FileViewerRightSidebar({
       queryClient.invalidateQueries({
         queryKey: isPublic
           ? ['shares', shareId, 'files', file?.id, 'comments']
-          : ['teams', teamId, 'files', file?.id, 'comments'],
+          : ['files', file?.id, 'comments'],
       })
     },
   })

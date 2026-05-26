@@ -4,6 +4,7 @@ import attachmentRoute from './attachment'
 import { assetService } from '@/services/asset/asset'
 import { AssetType } from '@/generated/prisma/client'
 import { authMiddleware } from '@/api/middleware/auth'
+import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 
 vi.mock('@/api/middleware/auth', () => ({
   // any is used here because Hono's Context and Next types are complex to mock in vitest.mock
@@ -15,16 +16,8 @@ vi.mock('@/api/middleware/auth', () => ({
   },
 }))
 
-vi.mock('@/services/authz/authz', () => ({
-  authzService: {
-    hasPermission: vi.fn(),
-  },
-  Permission: {
-    Read: 'Read',
-    Edit: 'Edit',
-    Admin: 'Admin',
-  },
-}))
+vi.mock('@/services/authz/authz')
+vi.mock('@/services/asset/asset')
 
 vi.mock('@/services/s3/s3', () => ({
   s3Service: {
@@ -37,12 +30,13 @@ describe('Attachment API', () => {
 
   beforeEach(() => {
     vi.restoreAllMocks()
+    vi.mocked(authzService.hasPermission).mockResolvedValue(undefined)
   })
 
   it('POST /projects/:projectId/attachments', async () => {
     // We only need the id for this test
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.spyOn(assetService, 'createAsset').mockResolvedValue({ id: 'asset1' } as any)
+    vi.mocked(assetService.createAsset).mockResolvedValue({ id: 'asset1' } as any)
 
     const res = await app.request('/projects/project1/attachments', {
       method: 'POST',
@@ -58,6 +52,12 @@ describe('Attachment API', () => {
     const json = await res.json()
     expect(json.id).toBe('asset1')
     expect(json.uploadUrl).toBe('http://mock-s3-url')
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Edit,
+      type: ResourceType.Project,
+      id: 'project1',
+    })
     expect(assetService.createAsset).toHaveBeenCalledWith(
       expect.objectContaining({
         name: 'test.txt',

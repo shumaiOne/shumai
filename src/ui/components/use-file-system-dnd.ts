@@ -44,7 +44,7 @@ export function useFileSystemDnd({
     },
   })
 
-  const $reorderFolder = client.api.teams[':teamId'].folders[':folderId'].order.$patch
+  const $reorderFolder = client.api.folders[':folderId'].order.$patch
   const { mutate: reorderFolder } = useMutation<
     InferResponseType<typeof $reorderFolder, 200>,
     Error,
@@ -57,7 +57,7 @@ export function useFileSystemDnd({
     },
   })
 
-  const $reorderFile = client.api.teams[':teamId'].files[':fileId'].order.$patch
+  const $reorderFile = client.api.files[':fileId'].order.$patch
   const { mutate: reorderFile } = useMutation<
     InferResponseType<typeof $reorderFile, 200>,
     Error,
@@ -70,7 +70,7 @@ export function useFileSystemDnd({
     },
   })
 
-  const $addAssetToShare = client.api.teams[':teamId'].shares[':shareId'].assets.$post
+  const $addAssetToShare = client.api.shares[':shareId'].assets.$post
   const { mutate: addAssetToShare } = useMutation<
     { addedCount: number },
     Error,
@@ -128,7 +128,7 @@ export function useFileSystemDnd({
 
         addAssetToShare(
           {
-            param: { teamId, shareId },
+            param: { shareId },
             json: { assetIds },
           },
           {
@@ -139,7 +139,7 @@ export function useFileSystemDnd({
                 toast.success(`Added ${data.addedCount} item(s) to share link`)
               }
               queryClient.invalidateQueries({
-                queryKey: ['shares', teamId, projectId],
+                queryKey: ['shares', projectId],
               })
               onClearSelection()
             },
@@ -178,8 +178,7 @@ export function useFileSystemDnd({
         if (isFolder) {
           reorderFolder(
             {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              param: { teamId: teamId, folderId: draggedId } as any,
+              param: { folderId: draggedId },
               json:
                 position === 'before'
                   ? { beforeIndex: targetItem.sortIndex ?? undefined }
@@ -201,8 +200,7 @@ export function useFileSystemDnd({
         } else {
           reorderFile(
             {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              param: { teamId: teamId, fileId: draggedId } as any,
+              param: { fileId: draggedId },
               json:
                 position === 'before'
                   ? { beforeIndex: targetItem.sortIndex ?? undefined }

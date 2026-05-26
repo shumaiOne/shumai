@@ -105,8 +105,8 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
   const { data: editingModels, isLoading: isModelsLoading } = useQuery({
     queryKey: ['teams', teamId, 'providers', editingProviderId, 'models'],
     queryFn: async () => {
-      const res = await client.api.teams[':teamId'].providers[':id'].models.$get({
-        param: { teamId, id: editingProviderId! },
+      const res = await client.api.providers[':id'].models.$get({
+        param: { id: editingProviderId! },
       })
       if (!res.ok) throw new Error('Failed to fetch models')
       return await res.json()
@@ -150,8 +150,8 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
   // Update Mutation
   const updateMutation = useMutation({
     mutationFn: async ({ id, values }: { id: string; values: ProviderFormValues }) => {
-      const res = await client.api.teams[':teamId'].providers[':id'].$put({
-        param: { teamId, id },
+      const res = await client.api.providers[':id'].$put({
+        param: { id },
         json: {
           config: values.config,
           models: values.models,
@@ -173,8 +173,8 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
   // Delete Mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await client.api.teams[':teamId'].providers[':id'].$delete({
-        param: { teamId, id },
+      const res = await client.api.providers[':id'].$delete({
+        param: { id },
       })
       if (!res.ok) throw new Error('Failed to delete provider')
       return await res.json()

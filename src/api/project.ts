@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
-import { authzService, Permission } from '@/services/authz/authz'
+import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 import { projectService } from '@/services/project/project'
 import { assetService } from '@/services/asset/asset'
 import { reparentAssetsRequestSchema, copyAssetsRequestSchema } from '@/dtos/asset'
@@ -22,9 +22,10 @@ const route = new Hono<{ Variables: { user: User } }>()
     const req = c.req.valid('json')
 
     await authzService.hasPermission({
-      teamId,
       user,
       permission: Permission.Edit,
+      type: ResourceType.Team,
+      id: teamId,
     })
 
     const newProject = await projectService.createProject(user, {
@@ -34,28 +35,25 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     return c.json(newProject)
   })
-  .put(
-    '/teams/:teamId/projects/:projectId',
-    zValidator('json', updateProjectRequestSchema),
-    async (c) => {
-      const projectId = c.req.param('projectId')
-      const user = c.get('user')
-      const req = c.req.valid('json')
+  .put('/projects/:projectId', zValidator('json', updateProjectRequestSchema), async (c) => {
+    const projectId = c.req.param('projectId')
+    const user = c.get('user')
+    const req = c.req.valid('json')
 
-      await authzService.hasPermission({
-        projectId,
-        user,
-        permission: Permission.Edit,
-      })
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Edit,
+      type: ResourceType.Project,
+      id: projectId,
+    })
 
-      const updatedProject = await projectService.updateProject({
-        projectId,
-        ...req,
-      })
+    const updatedProject = await projectService.updateProject({
+      projectId,
+      ...req,
+    })
 
-      return c.json(updatedProject)
-    },
-  )
+    return c.json(updatedProject)
+  })
   .get(
     '/projects/:projectId/recently-deleted',
     zValidator('query', recentlyDeletedRequestSchema),
@@ -65,9 +63,10 @@ const route = new Hono<{ Variables: { user: User } }>()
       const req = c.req.valid('query')
 
       await authzService.hasPermission({
-        projectId,
         user,
         permission: Permission.Read,
+        type: ResourceType.Project,
+        id: projectId,
       })
 
       const resp = await assetService.listChildren({
@@ -86,9 +85,10 @@ const route = new Hono<{ Variables: { user: User } }>()
     const req = c.req.valid('query')
 
     await authzService.hasPermission({
-      teamId,
       user,
       permission: Permission.Read,
+      type: ResourceType.Team,
+      id: teamId,
     })
 
     const res = await projectService.listProjects({
@@ -112,9 +112,10 @@ const route = new Hono<{ Variables: { user: User } }>()
     const user = c.get('user')
 
     await authzService.hasPermission({
-      projectId,
       user,
       permission: Permission.Read,
+      type: ResourceType.Project,
+      id: projectId,
     })
 
     const p = await projectService.getProject(projectId)
@@ -125,9 +126,10 @@ const route = new Hono<{ Variables: { user: User } }>()
     const user = c.get('user')
 
     await authzService.hasPermission({
-      projectId,
       user,
       permission: Permission.Admin,
+      type: ResourceType.Project,
+      id: projectId,
     })
 
     await projectService.deleteProject(projectId)
@@ -138,9 +140,10 @@ const route = new Hono<{ Variables: { user: User } }>()
     const user = c.get('user')
 
     await authzService.hasPermission({
-      projectId,
       user,
       permission: Permission.Read,
+      type: ResourceType.Project,
+      id: projectId,
     })
 
     const teamId = await projectService.getProjectTeam(projectId)
@@ -152,9 +155,10 @@ const route = new Hono<{ Variables: { user: User } }>()
     const { includeAgents } = c.req.valid('query')
 
     await authzService.hasPermission({
-      projectId,
       user,
       permission: Permission.Read,
+      type: ResourceType.Project,
+      id: projectId,
     })
 
     const members = await projectService.listProjectMembers({
@@ -168,9 +172,10 @@ const route = new Hono<{ Variables: { user: User } }>()
     const user = c.get('user')
 
     await authzService.hasPermission({
-      projectId,
       user,
       permission: Permission.Read,
+      type: ResourceType.Project,
+      id: projectId,
     })
 
     // STUB: AgentService is not migrated yet.
@@ -186,17 +191,19 @@ const route = new Hono<{ Variables: { user: User } }>()
 
       // Check Edit permission on target folder/project
       await authzService.hasPermission({
-        assetId: req.newParentId,
         user,
         permission: Permission.Edit,
+        type: ResourceType.Asset,
+        id: req.newParentId,
       })
 
       // Check Edit permission on all source assets
       for (const assetId of req.assetIds) {
         await authzService.hasPermission({
-          assetId,
           user,
           permission: Permission.Edit,
+          type: ResourceType.Asset,
+          id: assetId,
         })
       }
 
@@ -214,17 +221,19 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     // Check Edit permission on target folder/project
     await authzService.hasPermission({
-      assetId: req.newParentId,
       user,
       permission: Permission.Edit,
+      type: ResourceType.Asset,
+      id: req.newParentId,
     })
 
     // Check Read permission on all source assets
     for (const assetId of req.assetIds) {
       await authzService.hasPermission({
-        assetId,
         user,
         permission: Permission.Read,
+        type: ResourceType.Asset,
+        id: assetId,
       })
     }
 

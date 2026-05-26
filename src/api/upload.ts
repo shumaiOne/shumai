@@ -7,7 +7,7 @@ import {
   localUploadQuerySchema,
 } from '@/dtos/upload'
 import { paginationParamsSchema } from '@/dtos/pagination'
-import { authzService, Permission } from '@/services/authz/authz'
+import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 import { notificationService } from '@/services/notification/notification'
 import { NotificationType } from '@/generated/prisma/client'
 import { s3Service, verifyLocalUrlSignature } from '@/services/s3/s3'
@@ -48,8 +48,16 @@ const route = new Hono<{ Variables: { user: User } }>()
     return c.json({ success: true })
   })
   .get('/teams/:teamId/upload/tasks', zValidator('query', paginationParamsSchema), async (c) => {
+    const teamId = c.req.param('teamId')
     const user = c.get('user')
     const params = c.req.valid('query')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Team,
+      id: teamId,
+    })
 
     const tasks = await uploadService.listUploadTasks(user.id, params)
     return c.json(tasks)
@@ -58,15 +66,14 @@ const route = new Hono<{ Variables: { user: User } }>()
     '/teams/:teamId/upload/tasks',
     zValidator('json', createUploadTaskRequestSchema),
     async (c) => {
-      const teamId = c.req.param('teamId')
       const user = c.get('user')
       const req = c.req.valid('json')
 
       await authzService.hasPermission({
-        teamId,
-        assetId: req.parentId,
         user,
         permission: Permission.Edit,
+        type: ResourceType.Asset,
+        id: req.parentId,
       })
 
       const resp = await uploadService.createUploadTask(user.id, req)
@@ -81,6 +88,13 @@ const route = new Hono<{ Variables: { user: User } }>()
       const taskId = c.req.param('taskId')
       const user = c.get('user')
       const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Edit,
+        type: ResourceType.Team,
+        id: teamId,
+      })
 
       await uploadService.confirmFileUpload(user.id, taskId, req)
 

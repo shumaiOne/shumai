@@ -5,6 +5,7 @@ import publicShareRoute from './public-share'
 import { authMiddleware } from '@/api/middleware/auth'
 import { shareService } from '@/services/share/share'
 import { assetService } from '@/services/asset/asset'
+import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 
 vi.mock('@/api/middleware/auth', () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -20,9 +21,14 @@ vi.mock('@/services/authz/authz', () => ({
     hasPermission: vi.fn().mockResolvedValue(undefined),
   },
   Permission: {
-    Read: 'read',
-    Edit: 'edit',
-    Admin: 'admin',
+    Read: 'Read',
+    Edit: 'Edit',
+    Admin: 'Admin',
+  },
+  ResourceType: {
+    Project: 'project',
+    Share: 'share',
+    Asset: 'asset',
   },
 }))
 
@@ -34,6 +40,7 @@ describe('Share API', () => {
 
   beforeEach(() => {
     vi.restoreAllMocks()
+    vi.mocked(authzService.hasPermission).mockResolvedValue(undefined)
   })
 
   // Public Routes
@@ -102,7 +109,7 @@ describe('Share API', () => {
   })
 
   // Protected Routes
-  describe('POST /teams/:teamId/projects/:projectId/shares', () => {
+  describe('POST /projects/:projectId/shares', () => {
     test('Success', async () => {
       vi.spyOn(shareService, 'createShareLink').mockResolvedValue({
         id: 'share1',
@@ -116,7 +123,7 @@ describe('Share API', () => {
         updatedAt: new Date().toISOString(),
       })
 
-      const res = await app.request('/teams/team1/projects/project1/shares', {
+      const res = await app.request('/projects/project1/shares', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: 'My Share' }),
@@ -125,22 +132,36 @@ describe('Share API', () => {
       expect(res.status).toBe(200)
       const body = await res.json()
       expect(body.id).toBe('share1')
+      expect(authzService.hasPermission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: ResourceType.Project,
+          id: 'project1',
+          permission: Permission.Edit,
+        }),
+      )
       expect(shareService.createShareLink).toHaveBeenCalledWith('project1', { name: 'My Share' })
     })
   })
 
-  describe('GET /teams/:teamId/projects/:projectId/shares', () => {
+  describe('GET /projects/:projectId/shares', () => {
     test('Success', async () => {
       vi.spyOn(shareService, 'listProjectShareLinks').mockResolvedValue({
         data: [],
         pageInfo: { total: 0, cursor: undefined },
       })
 
-      const res = await app.request('/teams/team1/projects/project1/shares', {
+      const res = await app.request('/projects/project1/shares', {
         method: 'GET',
       })
 
       expect(res.status).toBe(200)
+      expect(authzService.hasPermission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: ResourceType.Project,
+          id: 'project1',
+          permission: Permission.Read,
+        }),
+      )
       expect(shareService.listProjectShareLinks).toHaveBeenCalledWith(
         expect.objectContaining({
           projectId: 'project1',
@@ -149,7 +170,7 @@ describe('Share API', () => {
     })
   })
 
-  describe('GET /teams/:teamId/shares/:shareId', () => {
+  describe('GET /shares/:shareId', () => {
     test('Success', async () => {
       vi.spyOn(shareService, 'getShareLink').mockResolvedValue({
         id: 'share1',
@@ -163,16 +184,23 @@ describe('Share API', () => {
         updatedAt: new Date().toISOString(),
       })
 
-      const res = await app.request('/teams/team1/shares/share1', {
+      const res = await app.request('/shares/share1', {
         method: 'GET',
       })
 
       expect(res.status).toBe(200)
+      expect(authzService.hasPermission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: ResourceType.Share,
+          id: 'share1',
+          permission: Permission.Read,
+        }),
+      )
       expect(shareService.getShareLink).toHaveBeenCalledWith('share1')
     })
   })
 
-  describe('POST /teams/:teamId/shares/:shareId/assets', () => {
+  describe('POST /shares/:shareId/assets', () => {
     test('Success', async () => {
       vi.spyOn(shareService, 'getShareLink').mockResolvedValue({
         id: 'share1',
@@ -187,7 +215,7 @@ describe('Share API', () => {
       })
       vi.spyOn(shareService, 'addAssetToShare').mockResolvedValue(1)
 
-      const res = await app.request('/teams/team1/shares/share1/assets', {
+      const res = await app.request('/shares/share1/assets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ assetIds: ['asset1'] }),
@@ -196,6 +224,20 @@ describe('Share API', () => {
       expect(res.status).toBe(200)
       const body = await res.json()
       expect(body.addedCount).toBe(1)
+      expect(authzService.hasPermission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: ResourceType.Share,
+          id: 'share1',
+          permission: Permission.Edit,
+        }),
+      )
+      expect(authzService.hasPermission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: ResourceType.Asset,
+          id: 'asset1',
+          permission: Permission.Read,
+        }),
+      )
       expect(shareService.addAssetToShare).toHaveBeenCalledWith('share1', { assetIds: ['asset1'] })
     })
   })

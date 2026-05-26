@@ -28,7 +28,7 @@ export function useFileActions({
   const [itemsToDelete, setItemsToDelete] = useState<AssetInfo[]>([])
   const queryClient = useQueryClient()
 
-  const $createFolder = client.api.teams[':teamId'].folders.$post
+  const $createFolder = client.api.folders.$post
   const { mutate: createFolder } = useMutation<
     InferResponseType<typeof $createFolder, 200>,
     Error,
@@ -41,7 +41,7 @@ export function useFileActions({
     },
   })
 
-  const $renameFolder = client.api.teams[':teamId'].folders[':folderId'].$put
+  const $renameFolder = client.api.folders[':folderId'].$put
   const { mutate: renameFolder } = useMutation<
     InferResponseType<typeof $renameFolder, 200>,
     Error,
@@ -54,7 +54,7 @@ export function useFileActions({
     },
   })
 
-  const $renameFile = client.api.teams[':teamId'].files[':fileId'].$put
+  const $renameFile = client.api.files[':fileId'].$put
   const { mutate: renameFile } = useMutation<
     InferResponseType<typeof $renameFile, 200>,
     Error,
@@ -67,7 +67,7 @@ export function useFileActions({
     },
   })
 
-  const $deleteFiles = client.api.teams[':teamId'].files.$delete
+  const $deleteFiles = client.api.files.$delete
   const { mutate: deleteFiles } = useMutation<void, Error, InferRequestType<typeof $deleteFiles>>({
     mutationFn: async (request) => {
       const res = await $deleteFiles(request)
@@ -75,7 +75,7 @@ export function useFileActions({
     },
   })
 
-  const $deleteFolders = client.api.teams[':teamId'].folders.$delete
+  const $deleteFolders = client.api.folders.$delete
   const { mutate: deleteFolders } = useMutation<
     InferResponseType<typeof $deleteFolders>,
     Error,
@@ -88,7 +88,7 @@ export function useFileActions({
     },
   })
 
-  const $restoreFiles = client.api.teams[':teamId'].files.restore.$post
+  const $restoreFiles = client.api.files.restore.$post
   const { mutate: restoreFiles } = useMutation<void, Error, InferRequestType<typeof $restoreFiles>>(
     {
       mutationFn: async (request) => {
@@ -98,7 +98,7 @@ export function useFileActions({
     },
   )
 
-  const $restoreFolders = client.api.teams[':teamId'].folders.restore.$post
+  const $restoreFolders = client.api.folders.restore.$post
   const { mutate: restoreFolders } = useMutation<
     InferResponseType<typeof $restoreFolders>,
     Error,
@@ -121,7 +121,7 @@ export function useFileActions({
 
     if (fileIds.length > 0) {
       deleteFiles(
-        { param: { teamId: teamId }, json: { ids: fileIds } },
+        { json: { ids: fileIds } },
         {
           onSuccess: () => {
             queryClient.invalidateQueries({
@@ -134,7 +134,7 @@ export function useFileActions({
 
     if (folderIds.length > 0) {
       deleteFolders(
-        { param: { teamId: teamId }, json: { ids: folderIds } },
+        { json: { ids: folderIds } },
         {
           onSuccess: () => {
             queryClient.invalidateQueries({
@@ -160,7 +160,7 @@ export function useFileActions({
 
     if (fileIds.length > 0) {
       restoreFiles(
-        { param: { teamId: teamId }, json: { ids: fileIds } },
+        { json: { ids: fileIds } },
         {
           onSuccess: () => {
             queryClient.invalidateQueries({
@@ -173,7 +173,7 @@ export function useFileActions({
 
     if (folderIds.length > 0) {
       restoreFolders(
-        { param: { teamId: teamId }, json: { ids: folderIds } },
+        { json: { ids: folderIds } },
         {
           onSuccess: () => {
             queryClient.invalidateQueries({
@@ -195,7 +195,7 @@ export function useFileActions({
 
   const handleNewFolder = (name: string) => {
     createFolder(
-      { param: { teamId: teamId }, json: { name, parentId: assetId } },
+      { json: { name, parentId: assetId } },
       {
         onSuccess: (data) => {
           queryClient.invalidateQueries({
@@ -215,7 +215,7 @@ export function useFileActions({
   const onRenameSubmit = (item: AssetInfo, newName: string) => {
     if (item.type === 'folder') {
       renameFolder(
-        { param: { teamId: teamId, folderId: item.id! }, json: { name: newName } },
+        { param: { folderId: item.id! }, json: { name: newName } },
         {
           onSuccess: () => {
             queryClient.invalidateQueries({
@@ -230,7 +230,7 @@ export function useFileActions({
     } else {
       renameFile(
         {
-          param: { teamId: teamId, fileId: item.id! },
+          param: { fileId: item.id! },
           json: { name: newName },
         },
         {

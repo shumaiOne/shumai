@@ -1,21 +1,21 @@
 import { prisma } from '@/db'
 import {
-    AncestorFolder,
-    AssetInfo,
-    AttachmentInfo,
-    ChildPreview,
-    CommentInfo,
-    CopyAssetsRequest,
-    CreateAssetRequest,
-    CreateCommentRequest,
-    FieldValueInfo,
-    GetAssetRequest,
-    ListChildrenRequest,
-    PreviewInfo,
-    ReparentAssetsRequest,
-    UpdateAssetNameRequest,
-    UpdateAssetOrderRequest,
-    UserInfo,
+  AncestorFolder,
+  AssetInfo,
+  AttachmentInfo,
+  ChildPreview,
+  CommentInfo,
+  CopyAssetsRequest,
+  CreateAssetRequest,
+  CreateCommentRequest,
+  FieldValueInfo,
+  GetAssetRequest,
+  ListChildrenRequest,
+  PreviewInfo,
+  ReparentAssetsRequest,
+  UpdateAssetNameRequest,
+  UpdateAssetOrderRequest,
+  UserInfo,
 } from '@/dtos/asset'
 import { Asset, AssetStatus, AssetType, Prisma, StorageKey } from '@/generated/prisma/client.ts'
 import { logger } from '@/logger'
@@ -828,6 +828,29 @@ export class AssetService {
     }
 
     return info
+  }
+
+  async getAssetContext(assetId: string): Promise<{ teamId: string; projectId?: string } | null> {
+    const asset = await this.prismaClient.asset.findUnique({
+      where: { id: assetId },
+      select: {
+        projectId: true,
+        project: { select: { teamId: true } },
+        teamRootFolder: { select: { id: true } },
+      },
+    })
+
+    if (!asset) return null
+
+    if (asset.project) {
+      return { teamId: asset.project.teamId, projectId: asset.projectId ?? undefined }
+    }
+
+    if (asset.teamRootFolder) {
+      return { teamId: asset.teamRootFolder.id }
+    }
+
+    return null
   }
 
   async resolveTargetAssetId(assetId: string): Promise<string> {

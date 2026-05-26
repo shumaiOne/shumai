@@ -43,8 +43,8 @@ export default function ShareManager({
   const { data: shareLink } = useQuery({
     queryKey: ['share', shareId],
     queryFn: async () => {
-      const res = await client.api.teams[':teamId'].shares[':shareId'].$get({
-        param: { teamId, shareId },
+      const res = await client.api.shares[':shareId'].$get({
+        param: { shareId },
       })
       if (!res.ok) throw new Error('Failed to fetch share link')
       return (await res.json()) as unknown as ShareLinkInfo
@@ -101,8 +101,8 @@ export default function ShareManager({
   } = useInfiniteQuery<AssetInfoPaginatedList>({
     queryKey: ['folder-children', teamId, currentFolderId, 'folder'],
     queryFn: async ({ pageParam }) => {
-      const res = await client.api.teams[':teamId'].folders[':folderId'].children.$get({
-        param: { teamId, folderId: currentFolderId! },
+      const res = await client.api.folders[':folderId'].children.$get({
+        param: { folderId: currentFolderId! },
         query: {
           assetType: 'folder',
           after: pageParam as string,
@@ -124,8 +124,8 @@ export default function ShareManager({
   } = useInfiniteQuery<AssetInfoPaginatedList>({
     queryKey: ['folder-children', teamId, currentFolderId, 'file'],
     queryFn: async ({ pageParam }) => {
-      const res = await client.api.teams[':teamId'].folders[':folderId'].children.$get({
-        param: { teamId, folderId: currentFolderId! },
+      const res = await client.api.folders[':folderId'].children.$get({
+        param: { folderId: currentFolderId! },
         query: {
           assetType: 'file',
           after: pageParam as string,
@@ -198,11 +198,11 @@ export default function ShareManager({
     onClearSelection: handleClearSelection,
   })
 
-  const $removeFromShare = client.api.teams[':teamId'].shares[':shareId'].assets[':assetId'].$delete
+  const $removeFromShare = client.api.shares[':shareId'].assets[':assetId'].$delete
   const { mutate: removeFromShare } = useMutation({
     mutationFn: async (assetId: string) => {
       const res = await $removeFromShare({
-        param: { teamId, shareId, assetId },
+        param: { shareId, assetId },
       })
       if (!res.ok) throw new Error('Failed to remove')
     },
@@ -306,7 +306,7 @@ export default function ShareManager({
                 }
               />
               <div style={{ width: rightSidebarWidth }} className="flex-shrink-0">
-                <ShareSettingsSidebar teamId={teamId} shareLink={shareLink} />
+                <ShareSettingsSidebar shareLink={shareLink} />
               </div>
             </>
           )}

@@ -5,7 +5,7 @@ import { assetService } from '@/services/asset/asset'
 import { s3Service } from '@/services/s3/s3'
 import { AssetType } from '@/generated/prisma/client'
 import { ulid } from 'ulid'
-import { authzService, Permission } from '@/services/authz/authz'
+import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 import type { Prisma } from '@/generated/prisma/client'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
@@ -19,9 +19,10 @@ const route = new Hono<{ Variables: { user: User } }>().post(
     const req = c.req.valid('json')
 
     await authzService.hasPermission({
-      projectId,
       user,
       permission: Permission.Edit,
+      type: ResourceType.Project,
+      id: projectId,
     })
 
     const key = `attachments/${ulid()}/${req.fileName}`

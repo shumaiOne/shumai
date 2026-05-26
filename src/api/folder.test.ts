@@ -3,17 +3,20 @@ import { Hono } from 'hono'
 import folderRoute from './folder'
 import { assetService } from '@/services/asset/asset'
 import { searchService } from '@/services/search/search'
-import { authzService } from '@/services/authz/authz'
+import { authzService, ResourceType, Permission } from '@/services/authz/authz'
 import { authMiddleware } from '@/api/middleware/auth'
 
 vi.mock('@/services/authz/authz', () => ({
   authzService: {
-    hasPermission: vi.fn(),
+    hasPermission: vi.fn().mockResolvedValue(undefined),
   },
   Permission: {
     Read: 'Read',
     Edit: 'Edit',
     Admin: 'Admin',
+  },
+  ResourceType: {
+    Asset: 'asset',
   },
 }))
 
@@ -42,7 +45,7 @@ describe('folder api', () => {
     vi.restoreAllMocks()
   })
 
-  it('GET /teams/:teamId/folders/:folderId', async () => {
+  it('GET /folders/:folderId', async () => {
     vi.mocked(assetService.getAsset).mockResolvedValue({
       id: 'test-id',
       name: 'test-folder',
@@ -56,20 +59,21 @@ describe('folder api', () => {
     })
 
     const app = new Hono().use('*', authMiddleware).route('/', folderRoute)
-    const res = await app.request('/teams/test-team/folders/test-id')
+    const res = await app.request('/folders/test-id')
 
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.name).toBe('test-folder')
 
     expect(authzService.hasPermission).toHaveBeenCalledWith({
-      assetId: 'test-id',
       user: { id: 'user1', name: 'Test User' },
-      permission: 'Read',
+      permission: Permission.Read,
+      type: ResourceType.Asset,
+      id: 'test-id',
     })
   })
 
-  it('PUT /teams/:teamId/folders/:folderId', async () => {
+  it('PUT /folders/:folderId', async () => {
     vi.mocked(assetService.updateAssetName).mockResolvedValue({
       id: 'test-id',
       name: 'new-name',
@@ -83,7 +87,7 @@ describe('folder api', () => {
     })
 
     const app = new Hono().use('*', authMiddleware).route('/', folderRoute)
-    const res = await app.request('/teams/test-team/folders/test-id', {
+    const res = await app.request('/folders/test-id', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'new-name' }),
@@ -94,13 +98,14 @@ describe('folder api', () => {
     expect(json.name).toBe('new-name')
 
     expect(authzService.hasPermission).toHaveBeenCalledWith({
-      assetId: 'test-id',
       user: { id: 'user1', name: 'Test User' },
-      permission: 'Edit',
+      permission: Permission.Edit,
+      type: ResourceType.Asset,
+      id: 'test-id',
     })
   })
 
-  it('POST /teams/:teamId/folders', async () => {
+  it('POST /folders', async () => {
     vi.mocked(assetService.createAsset).mockResolvedValue({
       id: 'new-id',
       name: 'new-folder',
@@ -114,7 +119,7 @@ describe('folder api', () => {
     })
 
     const app = new Hono().use('*', authMiddleware).route('/', folderRoute)
-    const res = await app.request('/teams/test-team/folders', {
+    const res = await app.request('/folders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'new-folder', parentId: 'parent-id' }),
@@ -125,13 +130,14 @@ describe('folder api', () => {
     expect(json.name).toBe('new-folder')
 
     expect(authzService.hasPermission).toHaveBeenCalledWith({
-      assetId: 'parent-id',
       user: { id: 'user1', name: 'Test User' },
-      permission: 'Edit',
+      permission: Permission.Edit,
+      type: ResourceType.Asset,
+      id: 'parent-id',
     })
   })
 
-  it('GET /teams/:teamId/folders/:folderId/children', async () => {
+  it('GET /folders/:folderId/children', async () => {
     vi.mocked(assetService.listChildren).mockResolvedValue({
       data: [
         {
@@ -150,7 +156,7 @@ describe('folder api', () => {
     })
 
     const app = new Hono().use('*', authMiddleware).route('/', folderRoute)
-    const res = await app.request('/teams/test-team/folders/test-id/children?assetType=folder')
+    const res = await app.request('/folders/test-id/children?assetType=folder')
 
     expect(res.status).toBe(200)
     const json = await res.json()
@@ -158,17 +164,18 @@ describe('folder api', () => {
     expect(json.data[0].name).toBe('child-folder')
 
     expect(authzService.hasPermission).toHaveBeenCalledWith({
-      assetId: 'test-id',
       user: { id: 'user1', name: 'Test User' },
-      permission: 'Read',
+      permission: Permission.Read,
+      type: ResourceType.Asset,
+      id: 'test-id',
     })
   })
 
-  it('DELETE /teams/:teamId/folders', async () => {
+  it('DELETE /folders', async () => {
     vi.mocked(assetService.deleteAssets).mockResolvedValue(undefined)
 
     const app = new Hono().use('*', authMiddleware).route('/', folderRoute)
-    const res = await app.request('/teams/test-team/folders', {
+    const res = await app.request('/folders', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ids: ['test-id'] }),
@@ -177,18 +184,19 @@ describe('folder api', () => {
     expect(res.status).toBe(204)
 
     expect(authzService.hasPermission).toHaveBeenCalledWith({
-      assetId: 'test-id',
       user: { id: 'user1', name: 'Test User' },
-      permission: 'Edit',
+      permission: Permission.Edit,
+      type: ResourceType.Asset,
+      id: 'test-id',
     })
     expect(assetService.deleteAssets).toHaveBeenCalledWith(['test-id'])
   })
 
-  it('POST /teams/:teamId/folders/restore', async () => {
+  it('POST /folders/restore', async () => {
     vi.mocked(assetService.restoreAssets).mockResolvedValue(undefined)
 
     const app = new Hono().use('*', authMiddleware).route('/', folderRoute)
-    const res = await app.request('/teams/test-team/folders/restore', {
+    const res = await app.request('/folders/restore', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ids: ['test-id'] }),
@@ -197,14 +205,15 @@ describe('folder api', () => {
     expect(res.status).toBe(204)
 
     expect(authzService.hasPermission).toHaveBeenCalledWith({
-      assetId: 'test-id',
       user: { id: 'user1', name: 'Test User' },
-      permission: 'Edit',
+      permission: Permission.Edit,
+      type: ResourceType.Asset,
+      id: 'test-id',
     })
     expect(assetService.restoreAssets).toHaveBeenCalledWith(['test-id'])
   })
 
-  it('POST /teams/:teamId/folders/:folderId/search', async () => {
+  it('POST /folders/:folderId/search', async () => {
     vi.mocked(searchService.search).mockResolvedValue({
       data: [
         {
@@ -223,7 +232,7 @@ describe('folder api', () => {
     })
 
     const app = new Hono().use('*', authMiddleware).route('/', folderRoute)
-    const res = await app.request('/teams/test-team/folders/test-id/search', {
+    const res = await app.request('/folders/test-id/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -237,13 +246,14 @@ describe('folder api', () => {
     expect(json.data[0].name).toBe('result-folder')
 
     expect(authzService.hasPermission).toHaveBeenCalledWith({
-      assetId: 'test-id',
       user: { id: 'user1', name: 'Test User' },
-      permission: 'Read',
+      permission: Permission.Read,
+      type: ResourceType.Asset,
+      id: 'test-id',
     })
   })
 
-  it('PATCH /teams/:teamId/folders/:folderId/order', async () => {
+  it('PATCH /folders/:folderId/order', async () => {
     vi.spyOn(assetService, 'updateAssetOrder').mockResolvedValue({
       id: 'test-id',
       name: 'test-folder',
@@ -257,7 +267,7 @@ describe('folder api', () => {
     })
 
     const app = new Hono().use('*', authMiddleware).route('/', folderRoute)
-    const res = await app.request('/teams/test-team/folders/test-id/order', {
+    const res = await app.request('/folders/test-id/order', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ beforeIndex: 'index-1' }),
@@ -266,9 +276,10 @@ describe('folder api', () => {
     expect(res.status).toBe(200)
 
     expect(authzService.hasPermission).toHaveBeenCalledWith({
-      assetId: 'test-id',
       user: { id: 'user1', name: 'Test User' },
-      permission: 'Edit',
+      permission: Permission.Edit,
+      type: ResourceType.Asset,
+      id: 'test-id',
     })
 
     expect(assetService.updateAssetOrder).toHaveBeenCalledWith('test-id', {

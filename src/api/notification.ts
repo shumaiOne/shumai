@@ -1,7 +1,7 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { notificationService } from '@/services/notification/notification'
-import { authzService, Permission } from '@/services/authz/authz'
+import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 import {
   listNotificationsRequestSchema,
   markNotificationReadRequestSchema,
@@ -20,9 +20,10 @@ const route = new Hono<{ Variables: { user: User } }>()
       const user = c.get('user')
 
       await authzService.hasPermission({
-        teamId,
         user,
         permission: Permission.Read,
+        type: ResourceType.Team,
+        id: teamId,
       })
 
       const res = await notificationService.list(teamId, user.id, {
@@ -50,9 +51,10 @@ const route = new Hono<{ Variables: { user: User } }>()
       const user = c.get('user')
 
       await authzService.hasPermission({
-        teamId,
         user,
         permission: Permission.Read,
+        type: ResourceType.Team,
+        id: teamId,
       })
 
       await notificationService.markRead(teamId, user.id, req.notificationId)

@@ -54,35 +54,35 @@ export function FolderTree({
   })
 
   const { data: shareLinksData } = useQuery({
-    queryKey: ['shares', teamId, projectId],
+    queryKey: ['shares', projectId],
     queryFn: async () => {
-      const res = await client.api.teams[':teamId'].projects[':projectId'].shares.$get({
-        param: { teamId, projectId },
+      const res = await client.api.projects[':projectId'].shares.$get({
+        param: { projectId },
         query: { first: '100' },
       })
       if (!res.ok) throw new Error('Failed to fetch share links')
       return (await res.json()) as unknown as { data: ShareLinkInfo[] }
     },
-    enabled: !!teamId && !!projectId,
+    enabled: !!projectId,
   })
 
   const { data: collectionsData } = useQuery({
-    queryKey: ['collections', teamId, projectId],
+    queryKey: ['collections', projectId],
     queryFn: async () => {
-      const res = await client.api.teams[':teamId'].projects[':projectId'].collections.$get({
-        param: { teamId, projectId },
+      const res = await client.api.projects[':projectId'].collections.$get({
+        param: { projectId },
         query: { first: '100' },
       })
       if (!res.ok) throw new Error('Failed to fetch collections')
       return (await res.json()) as unknown as { data: CollectionInfo[] }
     },
-    enabled: !!teamId && !!projectId,
+    enabled: !!projectId,
   })
 
   const { mutate: createCollection } = useMutation({
     mutationFn: async () => {
-      const res = await client.api.teams[':teamId'].projects[':projectId'].collections.$post({
-        param: { teamId, projectId },
+      const res = await client.api.projects[':projectId'].collections.$post({
+        param: { projectId },
         json: {
           name: 'Untitled Collection',
           filter: {
@@ -98,7 +98,7 @@ export function FolderTree({
       return await res.json()
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['collections', teamId, projectId] })
+      queryClient.invalidateQueries({ queryKey: ['collections', projectId] })
       toast.success('Collection created')
       navigate({
         to: '/projects/$projectId/collections/$collectionId',
@@ -112,8 +112,8 @@ export function FolderTree({
 
   const { mutate: createShareLink } = useMutation({
     mutationFn: async () => {
-      const res = await client.api.teams[':teamId'].projects[':projectId'].shares.$post({
-        param: { teamId, projectId },
+      const res = await client.api.projects[':projectId'].shares.$post({
+        param: { projectId },
         json: {
           name: new Date().toLocaleDateString('en-US', {
             year: 'numeric',
@@ -126,7 +126,7 @@ export function FolderTree({
       return await res.json()
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['shares', teamId, projectId] })
+      queryClient.invalidateQueries({ queryKey: ['shares', projectId] })
       toast.success('Share link created')
       navigate({
         to: '/projects/$projectId/shares/$shareId',
@@ -362,7 +362,6 @@ function FolderTreeItem({
   } = useInfiniteQuery<AssetInfoPaginatedList>({
     queryKey: [
       'folders',
-      teamId,
       folder.id,
       'children',
       {
@@ -370,8 +369,8 @@ function FolderTreeItem({
       },
     ],
     queryFn: async ({ pageParam }) => {
-      const res = await client.api.teams[':teamId'].folders[':folderId'].children.$get({
-        param: { teamId: teamId, folderId: folder.id },
+      const res = await client.api.folders[':folderId'].children.$get({
+        param: { folderId: folder.id },
         query: {
           assetType: 'folder',
           after: pageParam as string,

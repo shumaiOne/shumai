@@ -82,8 +82,8 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
 
   const deleteAgentMutation = useMutation({
     mutationFn: async (agentId: string) => {
-      const res = await client.api.teams[':teamId'].agents[':agentId'].$delete({
-        param: { teamId, agentId },
+      const res = await client.api.agents[':agentId'].$delete({
+        param: { agentId },
       })
       if (!res.ok) throw new Error('failed to delete agent')
     },
@@ -112,8 +112,8 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
       soul?: string
       skills?: string[]
     }) => {
-      const res = await client.api.teams[':teamId'].agents[':agentId'].$put({
-        param: { teamId: params.teamId, agentId: params.agentId },
+      const res = await client.api.agents[':agentId'].$put({
+        param: { agentId: params.agentId },
         json: {
           name: params.name,
           type: params.type,

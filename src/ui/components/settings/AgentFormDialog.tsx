@@ -144,8 +144,8 @@ export function AgentFormDialog({
   const { data: models, isLoading: isModelsLoading } = useQuery({
     queryKey: ['teams', teamId, 'providers', selectedProviderId, 'models'],
     queryFn: async () => {
-      const res = await client.api.teams[':teamId'].providers[':id'].models.$get({
-        param: { teamId, id: selectedProviderId! },
+      const res = await client.api.providers[':id'].models.$get({
+        param: { id: selectedProviderId! },
       })
       if (!res.ok) throw new Error('Failed to fetch models')
       return await res.json()
@@ -174,8 +174,8 @@ export function AgentFormDialog({
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, values }: { id: string; values: AgentFormValues }) => {
-      const res = await client.api.teams[':teamId'].agents[':agentId'].$put({
-        param: { teamId, agentId: id },
+      const res = await client.api.agents[':agentId'].$put({
+        param: { agentId: id },
         json: values,
       })
       if (!res.ok) throw new Error('Failed to update agent')

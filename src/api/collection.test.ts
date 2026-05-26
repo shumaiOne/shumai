@@ -1,26 +1,46 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { collectionService } from '@/services/collection/collection'
-import { authzService } from '@/services/authz/authz'
-import app from './collection'
+import { authzService, Permission, ResourceType } from '@/services/authz/authz'
+import { Hono, Context, Next } from 'hono'
+import collectionRoute from './collection'
 
 vi.mock('@/api/middleware/auth', () => ({
-  authMiddleware: vi.fn(async (c, next) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    c.set('user', { id: 'user-1', name: 'Test User' } as any)
+  authMiddleware: async (c: Context, next: Next) => {
+    c.set('user', { id: 'user-1', name: 'Test User' })
     await next()
-  }),
+  },
+}))
+
+vi.mock('@/services/authz/authz', () => ({
+  authzService: {
+    hasPermission: vi.fn().mockResolvedValue(undefined),
+  },
+  Permission: {
+    Read: 'Read',
+    Edit: 'Edit',
+    Admin: 'Admin',
+  },
+  ResourceType: {
+    Project: 'project',
+    Collection: 'collection',
+  },
 }))
 
 describe('Collection API', () => {
-  const teamId = 'team-1'
   const projectId = 'project-1'
   const collectionId = 'col-1'
+  const authMiddleware = async (c: Context, next: Next) => {
+    c.set('user', { id: 'user-1', name: 'Test User' })
+    await next()
+  }
+  const app = new Hono().use('*', authMiddleware).route('/', collectionRoute)
 
   beforeEach(() => {
     vi.restoreAllMocks()
+    vi.mocked(authzService.hasPermission).mockResolvedValue(undefined)
   })
 
-  it('POST /teams/:teamId/projects/:projectId/collections', async () => {
+  it('POST /projects/:projectId/collections', async () => {
     const mockCreate = vi.spyOn(collectionService, 'createCollection').mockResolvedValue({
       id: collectionId,
       name: 'New Collection',
@@ -34,33 +54,29 @@ describe('Collection API', () => {
       updatedAt: new Date(),
     })
 
-    const mockAuthz = vi.spyOn(authzService, 'hasPermission').mockResolvedValue(undefined)
-
-    const res = await app.request(
-      `/teams/${teamId}/projects/${projectId}/collections`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: 'New Collection',
-          filter: {
-            sourceFolderId: 'root-1',
-            searchFilter: { conditions: [], operator: 'AND', recursively: true },
-          },
-        }),
-      },
-      {
-        user: { id: 'user-1' },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any,
-    )
+    const res = await app.request(`/projects/${projectId}/collections`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'New Collection',
+        filter: {
+          sourceFolderId: 'root-1',
+          searchFilter: { conditions: [], operator: 'AND', recursively: true },
+        },
+      }),
+    })
 
     expect(res.status).toBe(200)
     expect(mockCreate).toHaveBeenCalledWith(projectId, expect.any(Object))
-    expect(mockAuthz).toHaveBeenCalled()
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.any(Object),
+      permission: Permission.Edit,
+      type: ResourceType.Project,
+      id: projectId,
+    })
   })
 
-  it('GET /teams/:teamId/projects/:projectId/collections', async () => {
+  it('GET /projects/:projectId/collections', async () => {
     const mockList = vi.spyOn(collectionService, 'listCollections').mockResolvedValue({
       data: [
         {
@@ -79,18 +95,21 @@ describe('Collection API', () => {
       pageInfo: { total: 1 },
     })
 
-    const mockAuthz = vi.spyOn(authzService, 'hasPermission').mockResolvedValue(undefined)
-
-    const res = await app.request(`/teams/${teamId}/projects/${projectId}/collections`)
+    const res = await app.request(`/projects/${projectId}/collections`)
 
     expect(res.status).toBe(200)
     const json = await res.json()
     expect(json.data).toHaveLength(1)
     expect(mockList).toHaveBeenCalled()
-    expect(mockAuthz).toHaveBeenCalled()
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.any(Object),
+      permission: Permission.Read,
+      type: ResourceType.Project,
+      id: projectId,
+    })
   })
 
-  it('GET /teams/:teamId/projects/:projectId/collections/:collectionId', async () => {
+  it('GET /collections/:collectionId', async () => {
     const mockGet = vi.spyOn(collectionService, 'getCollection').mockResolvedValue({
       id: collectionId,
       name: 'Col 1',
@@ -104,18 +123,19 @@ describe('Collection API', () => {
       updatedAt: new Date(),
     })
 
-    const mockAuthz = vi.spyOn(authzService, 'hasPermission').mockResolvedValue(undefined)
-
-    const res = await app.request(
-      `/teams/${teamId}/projects/${projectId}/collections/${collectionId}`,
-    )
+    const res = await app.request(`/collections/${collectionId}`)
 
     expect(res.status).toBe(200)
     expect(mockGet).toHaveBeenCalledWith(collectionId)
-    expect(mockAuthz).toHaveBeenCalled()
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.any(Object),
+      permission: Permission.Read,
+      type: ResourceType.Collection,
+      id: collectionId,
+    })
   })
 
-  it('PATCH /teams/:teamId/projects/:projectId/collections/:collectionId', async () => {
+  it('PATCH /collections/:collectionId', async () => {
     const mockUpdate = vi.spyOn(collectionService, 'updateCollection').mockResolvedValue({
       id: collectionId,
       name: 'Updated Name',
@@ -129,36 +149,37 @@ describe('Collection API', () => {
       updatedAt: new Date(),
     })
 
-    const mockAuthz = vi.spyOn(authzService, 'hasPermission').mockResolvedValue(undefined)
-
-    const res = await app.request(
-      `/teams/${teamId}/projects/${projectId}/collections/${collectionId}`,
-      {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'Updated Name' }),
-      },
-    )
+    const res = await app.request(`/collections/${collectionId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Updated Name' }),
+    })
 
     expect(res.status).toBe(200)
     expect(mockUpdate).toHaveBeenCalledWith(collectionId, { name: 'Updated Name' })
-    expect(mockAuthz).toHaveBeenCalled()
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.any(Object),
+      permission: Permission.Edit,
+      type: ResourceType.Collection,
+      id: collectionId,
+    })
   })
 
-  it('DELETE /teams/:teamId/projects/:projectId/collections/:collectionId', async () => {
+  it('DELETE /collections/:collectionId', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mockDelete = vi.spyOn(collectionService, 'deleteCollection').mockResolvedValue({} as any)
-    const mockAuthz = vi.spyOn(authzService, 'hasPermission').mockResolvedValue(undefined)
 
-    const res = await app.request(
-      `/teams/${teamId}/projects/${projectId}/collections/${collectionId}`,
-      {
-        method: 'DELETE',
-      },
-    )
+    const res = await app.request(`/collections/${collectionId}`, {
+      method: 'DELETE',
+    })
 
     expect(res.status).toBe(200)
     expect(mockDelete).toHaveBeenCalledWith(collectionId)
-    expect(mockAuthz).toHaveBeenCalled()
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.any(Object),
+      permission: Permission.Edit,
+      type: ResourceType.Collection,
+      id: collectionId,
+    })
   })
 })

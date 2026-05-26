@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
-import { authzService, Permission } from '@/services/authz/authz'
+import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 import { teamService } from '@/services/team/team'
 import { userMetadataService } from '@/services/user-metadata/user-metadata'
 import { notificationService } from '@/services/notification/notification'
@@ -64,9 +64,10 @@ const route = new Hono<{ Variables: { user: User } }>()
     const teamId = c.req.param('teamId')
 
     await authzService.hasPermission({
-      teamId,
       user,
       permission: Permission.Read,
+      type: ResourceType.Team,
+      id: teamId,
     })
 
     const me = await teamService.getMe({
@@ -82,9 +83,10 @@ const route = new Hono<{ Variables: { user: User } }>()
     const { includeAgents } = c.req.valid('query')
 
     await authzService.hasPermission({
-      teamId,
       user,
       permission: Permission.Read,
+      type: ResourceType.Team,
+      id: teamId,
     })
 
     const members = await teamService.getTeamMembers({
@@ -99,9 +101,10 @@ const route = new Hono<{ Variables: { user: User } }>()
     const teamId = c.req.param('teamId')
 
     await authzService.hasPermission({
-      teamId,
       user,
       permission: Permission.Read,
+      type: ResourceType.Team,
+      id: teamId,
     })
 
     const settings = await teamService.getSettings(teamId)
@@ -116,9 +119,10 @@ const route = new Hono<{ Variables: { user: User } }>()
       const req = c.req.valid('json')
 
       await authzService.hasPermission({
-        teamId,
         user,
         permission: Permission.Admin,
+        type: ResourceType.Team,
+        id: teamId,
       })
 
       const settings = await teamService.updateSettings(teamId, req.key, req.value)
@@ -130,9 +134,10 @@ const route = new Hono<{ Variables: { user: User } }>()
     const teamId = c.req.param('teamId')
 
     await authzService.hasPermission({
-      teamId,
       user,
       permission: Permission.Read,
+      type: ResourceType.Team,
+      id: teamId,
     })
 
     const sandbox = await teamService.getSandboxSettings(teamId)
@@ -147,9 +152,10 @@ const route = new Hono<{ Variables: { user: User } }>()
       const req = c.req.valid('json')
 
       await authzService.hasPermission({
-        teamId,
         user,
         permission: Permission.Admin,
+        type: ResourceType.Team,
+        id: teamId,
       })
 
       const sandbox = await teamService.updateSandboxSettings(teamId, req)
@@ -161,9 +167,10 @@ const route = new Hono<{ Variables: { user: User } }>()
     const teamId = c.req.param('teamId')
 
     await authzService.hasPermission({
-      teamId,
       user,
       permission: Permission.Read,
+      type: ResourceType.Team,
+      id: teamId,
     })
 
     const metadata = await userMetadataService.listMetadata(user.id, teamId)
@@ -179,9 +186,10 @@ const route = new Hono<{ Variables: { user: User } }>()
       const req = c.req.valid('json')
 
       await authzService.hasPermission({
-        teamId,
         user,
         permission: Permission.Read,
+        type: ResourceType.Team,
+        id: teamId,
       })
 
       const metadata = await userMetadataService.upsertMetadata(user.id, teamId, key, req.value)

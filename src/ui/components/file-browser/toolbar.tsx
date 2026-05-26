@@ -58,15 +58,15 @@ export function FileBrowserToolbar({
   const isCollection = !!collection
 
   const { data: folderInfo } = useQuery({
-    queryKey: ['folders', teamId, assetId],
+    queryKey: ['folders', assetId],
     queryFn: async () => {
-      const res = await client.api.teams[':teamId'].folders[':folderId'].$get({
-        param: { teamId: teamId, folderId: assetId },
+      const res = await client.api.folders[':folderId'].$get({
+        param: { folderId: assetId },
       })
       if (!res.ok) throw new Error('failed to fetch folder')
       return (await res.json()) as unknown as AssetInfo
     },
-    enabled: isCollection && !!teamId && !!assetId,
+    enabled: isCollection && !!assetId,
   })
 
   const { data: members } = useQuery({

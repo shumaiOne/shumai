@@ -2,7 +2,7 @@ import { setupTestDbHooks } from '@/db-test-hooks'
 import { describe, expect, it } from 'vitest'
 
 import { prisma } from '@/db'
-import { authzService, Permission } from '@/services/authz/authz'
+import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 
 describe('AuthzService', () => {
   setupTestDbHooks()
@@ -52,6 +52,18 @@ describe('AuthzService', () => {
       },
     })
 
+    // Collection
+    const collection = await prisma.collection.create({
+      data: {
+        name: 'Collection A',
+        projectId: project.id,
+        filter: {
+          sourceFolderId: 'root',
+          searchFilter: { conditions: [], operator: 'AND', recursively: true },
+        },
+      },
+    })
+
     // Project Scope User
     const userProjectEditor = await prisma.user.create({
       data: { name: 'p_editor', email: 'p_editor@example.com', password: 'pass' },
@@ -72,7 +84,8 @@ describe('AuthzService', () => {
       {
         name: 'Owner can Admin Project',
         req: {
-          projectId: project.id,
+          type: ResourceType.Project,
+          id: project.id,
           user: userOwner,
           permission: Permission.Admin,
         },
@@ -81,7 +94,8 @@ describe('AuthzService', () => {
       {
         name: 'Editor cannot Admin Project',
         req: {
-          projectId: project.id,
+          type: ResourceType.Project,
+          id: project.id,
           user: userEditor,
           permission: Permission.Admin,
         },
@@ -90,7 +104,8 @@ describe('AuthzService', () => {
       {
         name: 'Editor can Edit Project',
         req: {
-          projectId: project.id,
+          type: ResourceType.Project,
+          id: project.id,
           user: userEditor,
           permission: Permission.Edit,
         },
@@ -99,7 +114,8 @@ describe('AuthzService', () => {
       {
         name: 'Reviewer cannot Edit Project',
         req: {
-          projectId: project.id,
+          type: ResourceType.Project,
+          id: project.id,
           user: userReviewer,
           permission: Permission.Edit,
         },
@@ -108,7 +124,8 @@ describe('AuthzService', () => {
       {
         name: 'Reviewer can Read Project',
         req: {
-          projectId: project.id,
+          type: ResourceType.Project,
+          id: project.id,
           user: userReviewer,
           permission: Permission.Read,
         },
@@ -117,7 +134,8 @@ describe('AuthzService', () => {
       {
         name: 'Non-member cannot Read Project',
         req: {
-          projectId: project.id,
+          type: ResourceType.Project,
+          id: project.id,
           user: userOther,
           permission: Permission.Read,
         },
@@ -127,7 +145,8 @@ describe('AuthzService', () => {
       {
         name: 'Project Editor can Edit Project',
         req: {
-          projectId: project.id,
+          type: ResourceType.Project,
+          id: project.id,
           user: userProjectEditor,
           permission: Permission.Edit,
         },
@@ -136,7 +155,8 @@ describe('AuthzService', () => {
       {
         name: 'Project Editor cannot Admin Project',
         req: {
-          projectId: project.id,
+          type: ResourceType.Project,
+          id: project.id,
           user: userProjectEditor,
           permission: Permission.Admin,
         },
@@ -145,7 +165,8 @@ describe('AuthzService', () => {
       {
         name: 'Project Scope User can Read Team',
         req: {
-          teamId: team.id,
+          type: ResourceType.Team,
+          id: team.id,
           user: userProjectEditor,
           permission: Permission.Read,
         },
@@ -154,7 +175,8 @@ describe('AuthzService', () => {
       {
         name: 'Project Scope User cannot Edit Team',
         req: {
-          teamId: team.id,
+          type: ResourceType.Team,
+          id: team.id,
           user: userProjectEditor,
           permission: Permission.Edit,
         },
@@ -162,22 +184,35 @@ describe('AuthzService', () => {
         errMessage: 'User has only project scope',
       },
       {
-        name: 'Resolve Team from Asset ID',
+        name: 'Resolve Context from Asset',
         req: {
-          assetId: asset.id,
+          type: ResourceType.Asset,
+          id: asset.id,
           user: userOwner,
           permission: Permission.Edit,
         },
         wantErr: false,
       },
       {
-        name: 'Asset without Project',
+        name: 'Resolve Context from Collection',
         req: {
-          assetId: '01HJXXW6A61234567890ABCDEF',
+          type: ResourceType.Collection,
+          id: collection.id,
+          user: userOwner,
+          permission: Permission.Edit,
+        },
+        wantErr: false,
+      },
+      {
+        name: 'Asset Not Found',
+        req: {
+          type: ResourceType.Asset,
+          id: '01HJXXW6A61234567890ABCDEF',
           user: userOwner,
           permission: Permission.Read,
         },
         wantErr: true,
+        errMessage: 'Asset not found',
       },
     ]
 
@@ -191,14 +226,175 @@ describe('AuthzService', () => {
         } catch (e: any) {
           err = e
         }
-        expect(err).toBeDefined()
+        expect(err, tt.name).toBeDefined()
         if (tt.errMessage) {
           expect(err.message).include(tt.errMessage)
         }
       } else {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await expect(authzService.hasPermission(tt.req as any)).resolves.toBeUndefined()
+        await expect(authzService.hasPermission(tt.req as any), tt.name).resolves.toBeUndefined()
       }
     }
+  })
+
+  it('should resolve context correctly for each ResourceType', async () => {
+    // Setup complete data graph for all types
+    const team = await prisma.team.create({ data: { name: 'Team X' } })
+    const project = await prisma.project.create({ data: { name: 'Project X', teamId: team.id } })
+
+    // Asset (Project-scoped)
+    const assetProject = await prisma.asset.create({
+      data: { name: 'Asset P', projectId: project.id, type: 'file', status: 'processed' },
+    })
+
+    // Asset (Team-scoped root folder fallback)
+    const assetTeam = await prisma.asset.create({
+      data: { name: 'Team Root', type: 'root', status: 'processed' },
+    })
+    await prisma.team.update({
+      where: { id: team.id },
+      data: { rootFolderId: assetTeam.id },
+    })
+
+    // Collection
+    const collection = await prisma.collection.create({
+      data: {
+        name: 'Coll',
+        projectId: project.id,
+        filter: {
+          sourceFolderId: 'root',
+          searchFilter: { conditions: [], operator: 'AND', recursively: true },
+        },
+      },
+    })
+
+    // Agent & Session
+    const user = await prisma.user.create({
+      data: { name: 'BotUser2', email: 'bot2@example.com', password: 'p' },
+    })
+    const agent = await prisma.agent.create({
+      data: {
+        id: user.id,
+        teamId: team.id,
+        type: 'chat',
+        enabled: true,
+        config: { provider: 'openai', model: 'gpt-4o' },
+      },
+    })
+    const agentSession = await prisma.agentSession.create({
+      data: { agentId: agent.id, cwd: '/tmp' },
+    })
+
+    // Share
+    const share = await prisma.shareLink.create({
+      data: { name: 'Share1', rootFolderId: assetProject.id, projectId: project.id },
+    })
+
+    // Metadata Field
+    const teamField = await prisma.metadataField.create({
+      data: {
+        key: 'field_t',
+        scope: 'TEAM',
+        teamId: team.id,
+        config: { name: 'Field T', type: 'text' },
+      },
+    })
+    const projectField = await prisma.metadataField.create({
+      data: {
+        key: 'field_p',
+        scope: 'PROJECT',
+        projectId: project.id,
+        config: { name: 'Field P', type: 'text' },
+      },
+    })
+
+    // Skill
+    const skill = await prisma.skill.create({
+      data: { name: 'Skill 1', teamId: team.id, hash: '123', assetId: assetProject.id },
+    })
+
+    // Provider
+    const provider = await prisma.provider.create({
+      data: { name: 'Prov 1', teamId: team.id, config: { api: 'openai' } },
+    })
+
+    // Invite
+    const inviteTeam = await prisma.invite.create({
+      data: { code: 'inv_t', teamId: team.id, role: 'editor', inviterId: user.id },
+    })
+    const inviteProject = await prisma.invite.create({
+      data: {
+        code: 'inv_p',
+        teamId: team.id,
+        projectId: project.id,
+        role: 'editor',
+        inviterId: user.id,
+      },
+    })
+
+    // Comment
+    const comment = await prisma.assetComment.create({
+      data: { assetId: assetProject.id, creatorId: user.id, message: 'hello' },
+    })
+
+    // Test execution via cast
+    const resolveContext = (type: ResourceType, id: string) =>
+      (
+        authzService as unknown as {
+          resolveContext: (
+            type: ResourceType,
+            id: string,
+          ) => Promise<{ teamId: string; projectId?: string }>
+        }
+      ).resolveContext(type, id)
+
+    // Tests
+    await expect(resolveContext(ResourceType.Team, team.id)).resolves.toEqual({ teamId: team.id })
+    await expect(resolveContext(ResourceType.Project, project.id)).resolves.toEqual({
+      teamId: team.id,
+      projectId: project.id,
+    })
+    await expect(resolveContext(ResourceType.Asset, assetProject.id)).resolves.toEqual({
+      teamId: team.id,
+      projectId: project.id,
+    })
+    await expect(resolveContext(ResourceType.Asset, assetTeam.id)).resolves.toEqual({
+      teamId: team.id,
+    })
+    await expect(resolveContext(ResourceType.Collection, collection.id)).resolves.toEqual({
+      teamId: team.id,
+      projectId: project.id,
+    })
+    await expect(resolveContext(ResourceType.Agent, agent.id)).resolves.toEqual({ teamId: team.id })
+    await expect(resolveContext(ResourceType.AgentSession, agentSession.id)).resolves.toEqual({
+      teamId: team.id,
+    })
+    await expect(resolveContext(ResourceType.Share, share.id)).resolves.toEqual({
+      teamId: team.id,
+      projectId: project.id,
+    })
+    await expect(resolveContext(ResourceType.MetadataField, teamField.key)).resolves.toEqual({
+      teamId: team.id,
+    })
+    await expect(resolveContext(ResourceType.MetadataField, projectField.key)).resolves.toEqual({
+      teamId: team.id,
+      projectId: project.id,
+    })
+    await expect(resolveContext(ResourceType.Skill, skill.id)).resolves.toEqual({ teamId: team.id })
+    await expect(resolveContext(ResourceType.Provider, provider.id)).resolves.toEqual({
+      teamId: team.id,
+    })
+    await expect(resolveContext(ResourceType.Invite, inviteTeam.id)).resolves.toEqual({
+      teamId: team.id,
+      projectId: undefined,
+    })
+    await expect(resolveContext(ResourceType.Invite, inviteProject.id)).resolves.toEqual({
+      teamId: team.id,
+      projectId: project.id,
+    })
+    await expect(resolveContext(ResourceType.Comment, comment.id)).resolves.toEqual({
+      teamId: team.id,
+      projectId: project.id,
+    })
   })
 })
