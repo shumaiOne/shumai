@@ -1,5 +1,3 @@
-import { InferRequestType, InferResponseType } from 'hono/client'
-import { useMutation } from '@tanstack/react-query'
 import { client } from '@/ui/api/client'
 import { FileViewer } from '@/ui/components/file-viewer'
 import { FileViewerLeftSidebar } from '@/ui/components/file-viewer-left-sidebar'
@@ -7,15 +5,17 @@ import { FileViewerRightSidebar } from '@/ui/components/file-viewer-right-sideba
 import { ResizeHandle } from '@/ui/components/resize-handle'
 import { useMemberStore } from '@/ui/stores/members'
 import { useTeamContextStore } from '@/ui/stores/team-context'
-import { useUiStore } from '@/ui/stores/ui'
 import { useTopNavStore } from '@/ui/stores/top-nav'
+import { useUiStore } from '@/ui/stores/ui'
 import { type Annotation } from '@/ui/types'
+import { useMutation } from '@tanstack/react-query'
+import { InferRequestType, InferResponseType } from 'hono/client'
 
+import type { AssetInfo, CommentInfo } from '@/dtos/asset'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
-import { useEffect, useState, useRef } from 'react'
-import type { CommentInfo, AssetInfo } from '@/dtos/asset'
+import { useEffect, useRef, useState } from 'react'
 import type Player from 'video.js/dist/types/player'
 
 function FileViewPage() {
@@ -210,8 +210,8 @@ function FileViewPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-background">
-      <div className="flex flex-1 overflow-hidden">
+    <div className="h-full flex flex-1 flex-col bg-background">
+      <div className="h-full flex flex-1 overflow-hidden">
         {!isLeftSidebarCollapsed && (
           <>
             <div style={{ width: leftSidebarWidth }} className="flex-shrink-0">

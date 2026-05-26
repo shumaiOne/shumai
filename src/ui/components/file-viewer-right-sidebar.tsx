@@ -298,7 +298,7 @@ export function FileViewerRightSidebar({
   }
 
   return (
-    <div className="bg-background h-full">
+    <div className="bg-background h-full flex flex-col overflow-hidden">
       {/* Lightbox */}
       {viewingAttachment && viewingAttachment.mediaType?.startsWith('image/') && (
         <div
@@ -319,8 +319,8 @@ export function FileViewerRightSidebar({
           </div>
         </div>
       )}
-      <Tabs defaultValue="comments" className="p-4 h-full flex flex-col px-2">
-        <TabsList className="w-full">
+      <Tabs defaultValue="comments" className="p-4 flex-1 flex flex-col px-2 min-h-0">
+        <TabsList className="w-full shrink-0">
           <TabsTrigger value="comments" className="flex-1">
             Comments
           </TabsTrigger>
@@ -328,7 +328,7 @@ export function FileViewerRightSidebar({
             Fields
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="comments" className="flex-1 flex flex-col overflow-auto mt-4">
+        <TabsContent value="comments" className="flex-1 flex flex-col overflow-hidden min-h-0 mt-4">
           <ScrollArea className="flex-1 px-4">
             <div className="space-y-4">
               {comments.map((comment) => (
@@ -360,7 +360,7 @@ export function FileViewerRightSidebar({
             </div>
           </ScrollArea>
           {(!readOnly || isPublic) && (
-            <div className="mt-4">
+            <div className="mt-4 shrink-0">
               <GuestIdentityPopup
                 isOpen={isGuestPopupOpen}
                 onClose={() => setIsGuestPopupOpen(false)}
@@ -380,7 +380,7 @@ export function FileViewerRightSidebar({
             </div>
           )}
         </TabsContent>
-        <TabsContent value="fields" className="flex-1 flex flex-col overflow-hidden mt-4">
+        <TabsContent value="fields" className="flex-1 flex flex-col overflow-hidden min-h-0 mt-4">
           <ScrollArea className="flex-1 px-4">
             {sortedFields && sortedFields.length > 0 && (
               <div className="space-y-4 pb-4">
