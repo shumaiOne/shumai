@@ -43,12 +43,23 @@ describe('TranscodeService', () => {
       streams: [
         {
           codec_type: 'video',
+          codec_name: 'h264',
           width: 1920,
           height: 1080,
           r_frame_rate: '30/1',
+          tags: {
+            mime_codec_string: 'avc1.4d401e',
+          },
         },
         {
           codec_type: 'audio',
+          codec_name: 'aac',
+          channels: 2,
+          sample_rate: '48000',
+          bits_per_raw_sample: '16',
+          tags: {
+            mime_codec_string: 'mp4a.40.2',
+          },
         },
       ],
     })
@@ -66,6 +77,11 @@ describe('TranscodeService', () => {
     expect(info.duration).toBe(10.5)
     expect(info.frameRate).toBe(30)
     expect(info.hasAudio).toBe(true)
+    expect(info.videoCodec).toBe('Advanced Video Coding')
+    expect(info.audioCodec).toBe('MPEG-4 Audio')
+    expect(info.audioChannels).toBe(2)
+    expect(info.audioSampleRate).toBe(48000)
+    expect(info.audioBitDepth).toBe(16)
 
     expect(child_process.exec).toHaveBeenCalledWith(
       expect.stringContaining('ffprobe'),
