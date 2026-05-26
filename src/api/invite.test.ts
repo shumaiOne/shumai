@@ -11,14 +11,17 @@ vi.mock('@/services/notification/notification')
 vi.mock('@/services/authz/authz')
 
 vi.mock('@/api/middleware/auth', () => ({
-  authMiddleware: async (c: Context, next: Next) => {
+  authMiddleware: async (
+    c: Context<{ Variables: { user: { id: string; name: string } } }>,
+    next: Next,
+  ) => {
     c.set('user', { id: 'u1', name: 'Test User' })
     await next()
   },
 }))
 
 const getApp = () => {
-  const app = new Hono()
+  const app = new Hono<{ Variables: { user: { id: string; name: string } } }>()
     .route('/', publicInviteRoute)
     .use('*', async (c, next) => {
       c.set('user', { id: 'u1', name: 'Test User' })

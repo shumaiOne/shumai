@@ -273,7 +273,13 @@ describe('AuthzService', () => {
       data: { name: 'BotUser2', email: 'bot2@example.com', password: 'p' },
     })
     const agent = await prisma.agent.create({
-      data: { id: user.id, teamId: team.id, type: 'chat', enabled: true, config: {} },
+      data: {
+        id: user.id,
+        teamId: team.id,
+        type: 'chat',
+        enabled: true,
+        config: { provider: 'openai', model: 'gpt-4o' },
+      },
     })
     const agentSession = await prisma.agentSession.create({
       data: { agentId: agent.id, cwd: '/tmp' },
@@ -286,10 +292,20 @@ describe('AuthzService', () => {
 
     // Metadata Field
     const teamField = await prisma.metadataField.create({
-      data: { key: 'field_t', scope: 'TEAM', teamId: team.id, config: { name: 'Field T' } },
+      data: {
+        key: 'field_t',
+        scope: 'TEAM',
+        teamId: team.id,
+        config: { name: 'Field T', type: 'text' },
+      },
     })
     const projectField = await prisma.metadataField.create({
-      data: { key: 'field_p', scope: 'PROJECT', projectId: project.id, config: { name: 'Field P' } },
+      data: {
+        key: 'field_p',
+        scope: 'PROJECT',
+        projectId: project.id,
+        config: { name: 'Field P', type: 'text' },
+      },
     })
 
     // Skill
@@ -299,7 +315,7 @@ describe('AuthzService', () => {
 
     // Provider
     const provider = await prisma.provider.create({
-      data: { name: 'Prov 1', teamId: team.id, config: {} },
+      data: { name: 'Prov 1', teamId: team.id, config: { api: 'openai' } },
     })
 
     // Invite
@@ -322,9 +338,15 @@ describe('AuthzService', () => {
     })
 
     // Test execution via cast
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const resolveContext = (type: ResourceType, id: string) =>
-      (authzService as any).resolveContext(type, id)
+      (
+        authzService as unknown as {
+          resolveContext: (
+            type: ResourceType,
+            id: string,
+          ) => Promise<{ teamId: string; projectId?: string }>
+        }
+      ).resolveContext(type, id)
 
     // Tests
     await expect(resolveContext(ResourceType.Team, team.id)).resolves.toEqual({ teamId: team.id })

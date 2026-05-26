@@ -5,7 +5,10 @@ import { providerService } from '@/services/provider/provider'
 import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 
 vi.mock('@/api/middleware/auth', () => ({
-  authMiddleware: async (c: Context, next: Next) => {
+  authMiddleware: async (
+    c: Context<{ Variables: { user: { id: string; name: string } } }>,
+    next: Next,
+  ) => {
     c.set('user', { id: 'user1', name: 'Test User' })
     await next()
   },
@@ -15,7 +18,7 @@ vi.mock('@/services/authz/authz')
 vi.mock('@/services/provider/provider')
 
 describe('provider api', () => {
-  const app = new Hono()
+  const app = new Hono<{ Variables: { user: { id: string; name: string } } }>()
     .use('*', async (c, next) => {
       c.set('user', { id: 'user1', name: 'Test User' })
       await next()
@@ -28,11 +31,9 @@ describe('provider api', () => {
   })
 
   it('GET /teams/:teamId/providers returns providers', async () => {
-    // Using any here because mocking complex service return types or Hono context is overly verbose for this test.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.mocked(providerService.listByTeam).mockResolvedValue([
-      { id: 'p1', name: 'openai', config: {} },
-    ] as any)
+      { id: 'p1', name: 'openai', config: { api: 'openai' } },
+    ] as unknown as Awaited<ReturnType<typeof providerService.listByTeam>>)
 
     const res = await app.request('/teams/t1/providers')
 
@@ -49,14 +50,13 @@ describe('provider api', () => {
   })
 
   it('GET /providers/:id/models returns models', async () => {
-    // Using any here because mocking complex service return types or Hono context is overly verbose for this test.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.mocked(providerService.getById).mockResolvedValue({ id: 'p1', teamId: 't1' } as any)
-    // Using any here because mocking complex service return types or Hono context is overly verbose for this test.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(providerService.getById).mockResolvedValue({
+      id: 'p1',
+      teamId: 't1',
+    } as unknown as Awaited<ReturnType<typeof providerService.getById>>)
     vi.mocked(providerService.listModelsByProvider).mockResolvedValue([
       { modelId: 'm1', name: 'model1' },
-    ] as any)
+    ] as unknown as Awaited<ReturnType<typeof providerService.listModelsByProvider>>)
 
     const res = await app.request('/providers/p1/models')
 
@@ -85,21 +85,19 @@ describe('provider api', () => {
         config: {
           api: 'openai-completions',
           reasoning: false,
-          input: ['text'],
+          input: ['text' as const],
           contextWindow: 128000,
           maxTokens: 4096,
           cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
         },
       },
     ]
-    // Using any here because mocking complex service return types or Hono context is overly verbose for this test.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.mocked(providerService.create).mockResolvedValue({
       id: 'p1',
       name: 'openai',
       config,
       models,
-    } as any)
+    } as unknown as Awaited<ReturnType<typeof providerService.create>>)
 
     const res = await app.request('/teams/t1/providers', {
       method: 'POST',
@@ -131,24 +129,23 @@ describe('provider api', () => {
         config: {
           api: 'openai-completions',
           reasoning: false,
-          input: ['text'],
+          input: ['text' as const],
           contextWindow: 128000,
           maxTokens: 4096,
           cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
         },
       },
     ]
-    // Using any here because mocking complex service return types or Hono context is overly verbose for this test.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.mocked(providerService.getById).mockResolvedValue({ id: 'p1', teamId: 't1' } as any)
-    // Using any here because mocking complex service return types or Hono context is overly verbose for this test.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(providerService.getById).mockResolvedValue({
+      id: 'p1',
+      teamId: 't1',
+    } as unknown as Awaited<ReturnType<typeof providerService.getById>>)
     vi.mocked(providerService.update).mockResolvedValue({
       id: 'p1',
       name: 'openai',
       config,
       models,
-    } as any)
+    } as unknown as Awaited<ReturnType<typeof providerService.update>>)
 
     const res = await app.request('/providers/p1', {
       method: 'PUT',
@@ -169,12 +166,13 @@ describe('provider api', () => {
   })
 
   it('DELETE /providers/:id deletes provider', async () => {
-    // Using any here because mocking complex service return types or Hono context is overly verbose for this test.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.mocked(providerService.getById).mockResolvedValue({ id: 'p1', teamId: 't1' } as any)
-    // Using any here because mocking complex service return types or Hono context is overly verbose for this test.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.mocked(providerService.delete).mockResolvedValue({ id: 'p1' } as any)
+    vi.mocked(providerService.getById).mockResolvedValue({
+      id: 'p1',
+      teamId: 't1',
+    } as unknown as Awaited<ReturnType<typeof providerService.getById>>)
+    vi.mocked(providerService.delete).mockResolvedValue({
+      id: 'p1',
+    } as unknown as Awaited<ReturnType<typeof providerService.delete>>)
 
     const res = await app.request('/providers/p1', {
       method: 'DELETE',

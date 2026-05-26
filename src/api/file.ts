@@ -36,25 +36,21 @@ const route = new Hono<{ Variables: { user: User } }>()
     const asset = await assetService.getAsset({ assetId: fileId })
     return c.json(asset)
   })
-  .patch(
-    '/files/:fileId/order',
-    zValidator('json', updateAssetOrderRequestSchema),
-    async (c) => {
-      const fileId = c.req.param('fileId')
-      const user = c.get('user')
-      const req = c.req.valid('json')
+  .patch('/files/:fileId/order', zValidator('json', updateAssetOrderRequestSchema), async (c) => {
+    const fileId = c.req.param('fileId')
+    const user = c.get('user')
+    const req = c.req.valid('json')
 
-      await authzService.hasPermission({
-        user,
-        permission: Permission.Edit,
-        type: ResourceType.Asset,
-        id: fileId,
-      })
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Edit,
+      type: ResourceType.Asset,
+      id: fileId,
+    })
 
-      const updated = await assetService.updateAssetOrder(fileId, req)
-      return c.json(updated)
-    },
-  )
+    const updated = await assetService.updateAssetOrder(fileId, req)
+    return c.json(updated)
+  })
   .put('/files/:fileId', zValidator('json', updateFileRequestSchema), async (c) => {
     const fileId = c.req.param('fileId')
     const user = c.get('user')
@@ -165,25 +161,21 @@ const route = new Hono<{ Variables: { user: User } }>()
       return c.json(comment, 201)
     },
   )
-  .get(
-    '/files/:fileId/comments',
-    zValidator('query', paginationParamsSchema),
-    async (c) => {
-      const fileId = c.req.param('fileId')
-      const user = c.get('user')
-      const req = c.req.valid('query')
+  .get('/files/:fileId/comments', zValidator('query', paginationParamsSchema), async (c) => {
+    const fileId = c.req.param('fileId')
+    const user = c.get('user')
+    const req = c.req.valid('query')
 
-      await authzService.hasPermission({
-        user,
-        permission: Permission.Read,
-        type: ResourceType.Asset,
-        id: fileId,
-      })
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Asset,
+      id: fileId,
+    })
 
-      const comments = await assetService.listComments(fileId, req)
-      return c.json(comments)
-    },
-  )
+    const comments = await assetService.listComments(fileId, req)
+    return c.json(comments)
+  })
   .get('/comments/:commentId', async (c) => {
     const commentId = c.req.param('commentId')
     const user = c.get('user')
@@ -198,26 +190,22 @@ const route = new Hono<{ Variables: { user: User } }>()
     const comment = await assetService.getComment(commentId)
     return c.json(comment)
   })
-  .post(
-    '/files/restore',
-    zValidator('json', restoreFilesRequestSchema),
-    async (c) => {
-      const user = c.get('user')
-      const req = c.req.valid('json')
+  .post('/files/restore', zValidator('json', restoreFilesRequestSchema), async (c) => {
+    const user = c.get('user')
+    const req = c.req.valid('json')
 
-      for (const id of req.ids) {
-        await authzService.hasPermission({
-          user,
-          permission: Permission.Edit,
-          type: ResourceType.Asset,
-          id,
-        })
-      }
+    for (const id of req.ids) {
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Edit,
+        type: ResourceType.Asset,
+        id,
+      })
+    }
 
-      await assetService.restoreAssets(req.ids)
-      return c.body(null, 204)
-    },
-  )
+    await assetService.restoreAssets(req.ids)
+    return c.body(null, 204)
+  })
   .post('/teams/:teamId/files', zValidator('form', uploadFileRequestSchema), async (c) => {
     const teamId = c.req.param('teamId')
     const user = c.get('user')

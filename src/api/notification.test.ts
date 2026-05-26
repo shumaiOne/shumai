@@ -5,7 +5,10 @@ import { notificationService } from '@/services/notification/notification'
 import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 
 vi.mock('@/api/middleware/auth', () => ({
-  authMiddleware: async (c: Context, next: Next) => {
+  authMiddleware: async (
+    c: Context<{ Variables: { user: { id: string; name: string } } }>,
+    next: Next,
+  ) => {
     c.set('user', { id: 'user1', name: 'Test User' })
     await next()
   },
@@ -15,7 +18,7 @@ vi.mock('@/services/authz/authz')
 vi.mock('@/services/notification/notification')
 
 describe('notification api', () => {
-  const app = new Hono()
+  const app = new Hono<{ Variables: { user: { id: string; name: string } } }>()
     .use('*', async (c, next) => {
       c.set('user', { id: 'user1', name: 'Test User' })
       await next()
