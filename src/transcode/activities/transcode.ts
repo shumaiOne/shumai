@@ -49,6 +49,7 @@ export async function getMediaInfoActivity(params: {
       bitRate: info.bitRate,
       frameRate: info.frameRate,
       hasAudio: info.hasAudio,
+      videoCodec: info.videoCodec,
       audioCodec: info.audioCodec,
       audioChannels: info.audioChannels,
       audioSampleRate: info.audioSampleRate,
@@ -62,6 +63,7 @@ export async function getMediaInfoActivity(params: {
       { key: 'bitRate', value: info.bitRate / 1000 },
       { key: 'frame_rate', value: info.frameRate },
     ]
+    if (info.videoCodec) metadataUpdates.push({ key: 'video_codec', value: info.videoCodec })
     if (info.audioCodec) metadataUpdates.push({ key: 'audio_codec', value: info.audioCodec })
     if (info.audioChannels !== undefined)
       metadataUpdates.push({ key: 'audio_channels', value: info.audioChannels })

@@ -153,6 +153,16 @@ export const systemFields: Prisma.MetadataFieldCreateInput[] = [
     },
   },
   {
+    key: 'video_codec',
+    scope: 'SYSTEM',
+    readOnly: true,
+    config: {
+      name: 'Video Codec',
+      type: 'text',
+      text: {},
+    },
+  },
+  {
     key: 'format',
     scope: 'SYSTEM',
     readOnly: true,
