@@ -1,6 +1,6 @@
 import { DualSidebar, DualSidebarItem } from '@/ui/components/dual-sidebar'
 import { NotificationList } from '@/ui/components/notification-list'
-import { NotificationFillIcon } from '@/ui/components/ui/icons'
+import { NotificationFillIcon, HomeIcon } from '@/ui/components/ui/icons'
 import { Toaster } from '@/ui/components/ui/sonner'
 import { UploadCloudIcon } from '@/ui/components/ui/upload-cloud'
 import { UploadTasks } from '@/ui/components/upload-tasks'
@@ -13,7 +13,6 @@ import {
   useNavigate,
   useRouterState,
 } from '@tanstack/react-router'
-import { HomeIcon } from 'lucide-react'
 import { useEffect } from 'react'
 import { TopNav } from '@/ui/components/top-nav'
 

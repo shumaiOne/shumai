@@ -97,8 +97,8 @@ export const DualSidebar: React.FC<DualSidebarProps> = ({ children }) => {
       >
         <div className="absolute bottom-0 w-full h-[70dvh] bg-linear-to-t from-orange-400/10 to-transparent"></div>
         {/* Level 1: Icon Bar */}
-        <nav className="w-16 bg-slate-100 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col items-center pb-4 pt-2 space-y-2 flex-shrink-0">
-          <div className="flex-1 space-y-2">
+        <nav className="w-16 bg-slate-100 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col items-center pb-4 pt-0 space-y-2 flex-shrink-0">
+          <div className="flex-1 w-full flex flex-col items-center space-y-5">
             {sidebarItems.map((item, index) => (
               <div key={item.props.label} className="relative group">
                 <button
@@ -108,7 +108,7 @@ export const DualSidebar: React.FC<DualSidebarProps> = ({ children }) => {
                   className={`p-3 rounded-lg transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500 dark:focus-visible:ring-offset-slate-900 ${
                     activeItem === index
                       ? 'bg-blue-600 text-white shadow-lg'
-                      : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 dark:text-slate-400'
+                      : 'text-slate-400 hover:text-slate-500 dark:hover:text-slate-400 dark:text-slate-500 cursor-pointer'
                   }`}
                 >
                   {item.props.icon}
@@ -122,7 +122,7 @@ export const DualSidebar: React.FC<DualSidebarProps> = ({ children }) => {
               </div>
             ))}
           </div>
-          <div className="mt-auto">
+          <div className="mt-auto w-full flex flex-col items-center">
             <UserMenu />
           </div>
         </nav>
