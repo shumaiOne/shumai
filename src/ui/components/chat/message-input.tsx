@@ -1,13 +1,16 @@
-import { client } from '@/ui/api/client'
-import type { CommentInfo } from '@/dtos/asset'
-import type { UserInfo } from '@/dtos/team'
+import type { CommentInfo, PostAttachmentRequest, PostAttachmentResponse } from '@/dtos/asset'
 import type { BotInfo } from '@/dtos/project'
-import type { PostAttachmentRequest, PostAttachmentResponse } from '@/dtos/asset'
+import type { UserInfo } from '@/dtos/team'
+import { client } from '@/ui/api/client'
+import { useAnnotationStore } from '@/ui/stores/annotation-store'
+import type { Annotation } from '@/ui/types'
+import { useMutation } from '@tanstack/react-query'
 import {
   ArrowLeft,
   ArrowUp,
   Brush,
   ChevronDown,
+  Clock,
   FileIcon,
   Minus,
   Paperclip,
@@ -19,11 +22,9 @@ import {
 import React, { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { Button } from '../ui/button'
 import { DrawAnnotation } from '../ui/icons'
-import { ProgressCircle } from '../ui/progress-circle'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
-import { useAnnotationStore } from '@/ui/stores/annotation-store'
-import type { Annotation } from '@/ui/types'
-import { useMutation } from '@tanstack/react-query'
+import { ProgressCircle } from '../ui/progress-circle'
+import { formatTimestamp } from '../viewers/utils'
 
 type UploadingFile = {
   id: string // A unique ID for the file, e.g., timestamp + name
@@ -40,6 +41,7 @@ interface ChatInputProps {
     attachmentIds: string[],
     annotations?: Annotation[],
     replyToId?: string | null,
+    second?: number | null,
   ) => void
   replyingTo?: CommentInfo | null
   onCancelReply?: () => void
@@ -48,6 +50,9 @@ interface ChatInputProps {
   initialText?: string
   hideAnnotationControl?: boolean
   disableMentions?: boolean
+  currentTime?: number
+  frameRate?: number
+  onTyping?: () => void
 }
 
 const PREDEFINED_COLORS = [
@@ -76,11 +81,15 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
       initialText = '',
       hideAnnotationControl = false,
       disableMentions = false,
+      currentTime,
+      frameRate,
+      onTyping,
     },
     ref,
   ) => {
     const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([])
     const [viewingFile, setViewingFile] = useState<File | null>(null)
+    const [isTimestampEnabled, setIsTimestampEnabled] = useState(true)
 
     // Annotation Store
     const {
@@ -190,6 +199,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
     const handleInput = () => {
       if (!editorRef.current) return
       setHasContent(!!editorRef.current.innerText.trim())
+      onTyping?.()
 
       if (disableMentions) {
         setShowMentionList(false)
@@ -395,7 +405,13 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
       // Allow sending if annotations exist, even if text is empty
       if (!processedText && successfulAttachmentIds.length === 0 && annotations.length === 0) return
 
-      onSendMessage(processedText, successfulAttachmentIds, annotations, replyingTo?.id)
+      onSendMessage(
+        processedText,
+        successfulAttachmentIds,
+        annotations,
+        replyingTo?.id,
+        isTimestampEnabled ? currentTime : undefined,
+      )
 
       // Reset editor
       editorRef.current.innerHTML = ''
@@ -566,7 +582,21 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
           </div>
         )}
 
-        <div className="w-full px-4 pt-1 pb-1">
+        <div
+          onClick={() => editorRef.current?.focus()}
+          className="w-full px-4 pt-1 pb-1 cursor-text flow-root max-h-60 overflow-y-auto"
+        >
+          {isTimestampEnabled && currentTime !== undefined && frameRate !== undefined && (
+            <div
+              onClick={(e) => {
+                e.stopPropagation()
+                editorRef.current?.focus()
+              }}
+              className="float-left select-none bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-2.5 py-0.5 mt-3 mr-2 rounded-sm text-xs font-mono font-bold flex items-center gap-1 cursor-text"
+            >
+              {formatTimestamp(currentTime, frameRate)}
+            </div>
+          )}
           <div
             ref={editorRef}
             contentEditable={!isDrawing}
@@ -576,7 +606,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
             data-placeholder={
               isDrawing ? 'Drawing active...' : replyingTo ? 'Reply...' : 'Message...'
             }
-            className="w-full bg-transparent border-none focus:ring-0 resize-none max-h-60 min-h-[40px] leading-relaxed py-2 focus:outline-none overflow-y-auto"
+            className={`bg-transparent border-none focus:ring-0 resize-none min-h-[40px] leading-relaxed py-2 focus:outline-none block ${isTimestampEnabled && currentTime !== undefined && frameRate !== undefined && !hasContent ? 'pl-[120px]' : ''}`}
           />
         </div>
 
@@ -679,6 +709,17 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
                 multiple
                 onChange={handleFileSelect}
               />
+              {currentTime !== undefined && frameRate !== undefined && (
+                <Button
+                  onClick={() => setIsTimestampEnabled(!isTimestampEnabled)}
+                  variant={isTimestampEnabled ? 'secondary' : 'ghost'}
+                  size="icon"
+                  className={`p-2 rounded-full cursor-pointer ${isTimestampEnabled ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : ''}`}
+                  title={isTimestampEnabled ? 'Disable Timestamp' : 'Enable Timestamp'}
+                >
+                  <Clock className="w-4 h-4" />
+                </Button>
+              )}
               <Button
                 onClick={() => fileInputRef.current?.click()}
                 className="p-2 rounded-full cursor-pointer"

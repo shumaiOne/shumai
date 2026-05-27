@@ -664,6 +664,28 @@ describe('AssetService', () => {
     expect(list.data[0].replies.length).toBe(1)
   })
 
+  it('can create and retrieve comments with video timestamp', async () => {
+    const { user, assets } = await setupBasicAssets()
+
+    const comment = await assetService.createComment({
+      assetId: assets.fileA1.id,
+      userId: user.id,
+      message: 'Interesting point at 5.5s',
+      second: 5.5,
+      attachmentIds: [],
+    })
+
+    expect(comment.second).toBe(5.5)
+
+    const retrieved = await assetService.getComment(comment.id)
+    expect(retrieved.second).toBe(5.5)
+
+    const list = await assetService.listComments(assets.fileA1.id, {
+      first: 10,
+    })
+    expect(list.data[0].second).toBe(5.5)
+  })
+
   it('correctly handles AI comments with agent identity', async () => {
     const { assets, project } = await setupBasicAssets()
 

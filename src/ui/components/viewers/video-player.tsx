@@ -51,6 +51,7 @@ interface VideoPlayerProps {
   playerRef?: React.RefObject<Player | null>
   onPlay?: () => void
   onPause?: () => void
+  onTimeUpdate?: (time: number) => void
   annotations?: Annotation[]
 }
 
@@ -299,6 +300,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   playerRef: passedPlayerRef,
   onPlay,
   onPause,
+  onTimeUpdate,
   annotations,
 }) => {
   const localPlayerRef = useRef<Player | null>(null)
@@ -494,6 +496,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         duration: duration || prev.duration,
         progress: duration > 0 ? (current / duration) * 100 : 0,
       }))
+
+      if (onTimeUpdate) {
+        onTimeUpdate(current)
+      }
     })
 
     player.on('volumechange', () => {

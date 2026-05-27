@@ -1,19 +1,19 @@
-import { type FieldInfo as MetadataFieldInfo } from '@/dtos/metadata'
-import { client } from '@/ui/api/client'
 import type { AssetInfo, AttachmentInfo, CommentInfo, FieldValueInfo } from '@/dtos/asset'
+import { type FieldInfo as MetadataFieldInfo } from '@/dtos/metadata'
 import type { UserInfo } from '@/dtos/team'
+import { client } from '@/ui/api/client'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tabs'
 import { useFieldStore } from '@/ui/stores/fields'
-import { useInfiniteQuery, useQueryClient, useQuery, useMutation } from '@tanstack/react-query'
+import type { Annotation } from '@/ui/types'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { XIcon } from 'lucide-react'
 import React, { useEffect, useMemo, useState } from 'react'
 import { useInView } from 'react-intersection-observer'
 import { MessageCard } from './chat/message-card'
 import { ChatInput } from './chat/message-input'
 import FieldRenderer from './field-renderer'
-import { ScrollArea } from './ui/scroll-area'
-import type { Annotation } from '@/ui/types'
 import { GuestIdentityPopup } from './guest-identity-popup'
+import { ScrollArea } from './ui/scroll-area'
 
 interface FileViewerRightSidebarProps {
   teamId: string
@@ -27,6 +27,9 @@ interface FileViewerRightSidebarProps {
   publicFields?: MetadataFieldInfo[]
   isPublic?: boolean
   shareId?: string
+  currentTime?: number
+  onTyping?: () => void
+  selectedCommentId?: string | null
 }
 
 export function FileViewerRightSidebar({
@@ -41,6 +44,9 @@ export function FileViewerRightSidebar({
   publicFields,
   isPublic = false,
   shareId,
+  currentTime,
+  onTyping,
+  selectedCommentId,
 }: FileViewerRightSidebarProps) {
   const { fields, setFields } = useFieldStore()
   const queryClient = useQueryClient()
@@ -53,6 +59,7 @@ export function FileViewerRightSidebar({
     attachmentIds: string[]
     annotations?: Annotation[]
     replyToId?: string | null
+    second?: number | null
   } | null>(null)
 
   const { data: apiFields } = useQuery({
@@ -139,12 +146,14 @@ export function FileViewerRightSidebar({
       annotations,
       replyToId,
       guestUserId,
+      second,
     }: {
       text: string
       attachmentIds: string[]
       annotations?: Annotation[]
       replyToId?: string | null
       guestUserId?: string
+      second?: number | null
     }) => {
       if (isPublic) {
         const password = localStorage.getItem(`share_pwd_${shareId}`) || ''
@@ -156,6 +165,7 @@ export function FileViewerRightSidebar({
               attachmentIds: attachmentIds,
               replyToId: replyToId ?? undefined,
               annotations: annotations,
+              second: second ?? undefined,
             },
           },
           {
@@ -175,6 +185,7 @@ export function FileViewerRightSidebar({
             attachmentIds: attachmentIds,
             replyToId: replyToId ?? undefined,
             annotations: annotations,
+            second: second ?? undefined,
           },
         })
         if (!res.ok) throw new Error('Failed to create comment')
@@ -225,6 +236,7 @@ export function FileViewerRightSidebar({
     attachmentIds: string[],
     annotations?: Annotation[],
     replyToId?: string | null,
+    second?: number | null,
   ) => {
     if (!file?.id) return
 
@@ -240,16 +252,16 @@ export function FileViewerRightSidebar({
         console.log('[handleSendMessage] guestUserId from storage:', guestUserId)
         if (!guestUserId) {
           console.log('[handleSendMessage] no guest ID, opening popup')
-          setPendingComment({ text, attachmentIds, annotations, replyToId })
+          setPendingComment({ text, attachmentIds, annotations, replyToId, second })
           setIsGuestPopupOpen(true)
           return
         }
-        createComment({ text, attachmentIds, annotations, replyToId, guestUserId })
+        createComment({ text, attachmentIds, annotations, replyToId, guestUserId, second })
       } else {
-        createComment({ text, attachmentIds, annotations, replyToId })
+        createComment({ text, attachmentIds, annotations, replyToId, second })
       }
     } else {
-      createComment({ text, attachmentIds, annotations, replyToId })
+      createComment({ text, attachmentIds, annotations, replyToId, second })
     }
     setReplyingTo(null)
   }
@@ -319,7 +331,7 @@ export function FileViewerRightSidebar({
           </div>
         </div>
       )}
-      <Tabs defaultValue="comments" className="p-4 flex-1 flex flex-col px-2 min-h-0">
+      <Tabs defaultValue="comments" className="p-1 flex-1 flex flex-col px-2 min-h-0">
         <TabsList className="w-full shrink-0">
           <TabsTrigger value="comments" className="flex-1">
             Comments
@@ -328,11 +340,11 @@ export function FileViewerRightSidebar({
             Fields
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="comments" className="flex-1 flex flex-col overflow-hidden min-h-0 mt-4">
-          <ScrollArea className="flex-1 px-4">
+        <TabsContent value="comments" className="flex-1 flex flex-col overflow-hidden min-h-0 mt-0">
+          <ScrollArea className="flex-1">
             <div className="space-y-4">
               {comments.map((comment) => (
-                <div key={comment.id} onClick={() => onCommentSelect?.(comment)}>
+                <div key={comment.id}>
                   <MessageCard
                     teamId={teamId}
                     message={comment}
@@ -340,19 +352,38 @@ export function FileViewerRightSidebar({
                     onReply={setReplyingTo}
                     onViewAttachment={setViewingAttachment}
                     hasReplies={!!comment.replies?.length}
+                    frameRate={
+                      file?.mediaType?.startsWith('video/')
+                        ? file?.media?.metadata?.frameRate || 30
+                        : undefined
+                    }
+                    isSelected={selectedCommentId === comment.id}
+                    onSelect={() => {
+                      onCommentSelect?.(comment)
+                    }}
                   />
                   {comment.replies?.map((reply, index) => (
-                    <MessageCard
-                      teamId={teamId}
-                      isReply={true}
-                      key={reply.id}
-                      message={reply}
-                      getUser={getUser}
-                      onReply={setReplyingTo}
-                      onViewAttachment={setViewingAttachment}
-                      hasReplies={false}
-                      isLastReply={index === (comment.replies?.length ?? 0) - 1}
-                    />
+                    <div key={reply.id}>
+                      <MessageCard
+                        teamId={teamId}
+                        isReply={true}
+                        message={reply}
+                        getUser={getUser}
+                        onReply={setReplyingTo}
+                        onViewAttachment={setViewingAttachment}
+                        hasReplies={false}
+                        isLastReply={index === (comment.replies?.length ?? 0) - 1}
+                        frameRate={
+                          file?.mediaType?.startsWith('video/')
+                            ? file?.media?.metadata?.frameRate || 30
+                            : undefined
+                        }
+                        isSelected={selectedCommentId === reply.id}
+                        onSelect={() => {
+                          onCommentSelect?.(reply)
+                        }}
+                      />
+                    </div>
                   ))}
                 </div>
               ))}
@@ -375,6 +406,13 @@ export function FileViewerRightSidebar({
                   bots={enabledBots}
                   hideAnnotationControl={hideAnnotationControl}
                   disableMentions={isPublic}
+                  currentTime={file?.mediaType?.startsWith('video/') ? currentTime : undefined}
+                  frameRate={
+                    file?.mediaType?.startsWith('video/')
+                      ? file?.media?.metadata?.frameRate || 30
+                      : undefined
+                  }
+                  onTyping={onTyping}
                 />
               </GuestIdentityPopup>
             </div>

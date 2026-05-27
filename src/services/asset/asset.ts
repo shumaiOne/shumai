@@ -1690,6 +1690,7 @@ export class AssetService {
       assetId: c.assetId,
       message: c.message,
       annotations: c.annotation,
+      second: c.second,
       creator,
       replies,
       attachments,

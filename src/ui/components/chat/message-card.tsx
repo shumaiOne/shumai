@@ -10,13 +10,14 @@ import {
   DialogTitle,
 } from '@/ui/components/ui/dialog'
 import { Separator } from '@/ui/components/ui/separator'
+import { formatTimeAgo } from '@/ui/lib/time'
 import { useQuery } from '@tanstack/react-query'
 import { Download, File, Terminal } from 'lucide-react'
 import React from 'react'
-import { formatTimeAgo } from '@/ui/lib/time'
 import Markdown from 'react-markdown'
 import { Avatar, AvatarFallback } from '../ui/avatar'
 import { Skeleton } from '../ui/skeleton'
+import { formatTimestamp } from '../viewers/utils'
 
 interface MessageCardProps {
   teamId?: string
@@ -27,6 +28,9 @@ interface MessageCardProps {
   getUser: (id: string) => UserInfo
   onReply: (message: CommentInfo) => void
   onViewAttachment: (attachment: AttachmentInfo) => void
+  isSelected?: boolean
+  onSelect?: () => void
+  frameRate?: number
   rootParentId?: string
 }
 
@@ -48,6 +52,9 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   getUser,
   onReply,
   onViewAttachment,
+  isSelected,
+  onSelect,
+  frameRate,
 }) => {
   const isRunning =
     !!initialMessage.sessionId &&
@@ -133,9 +140,16 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   }
 
   return (
-    <div className={`relative flex gap-4 ${isReply ? 'mt-4' : 'mt-6'} group`}>
+    <div
+      onClick={onSelect}
+      className={`relative flex gap-4 ${isReply ? 'mt-2' : 'mt-3'} mr-3 group p-3 py-4 border transition-all duration-200 cursor-pointer rounded-xl ${
+        isSelected
+          ? 'border-blue-500/40 dark:border-blue-400/40 bg-blue-500/10 dark:bg-blue-400/10 shadow-sm'
+          : 'border-transparent bg-foreground/2 dark:bg-foreground/10 hover:bg-foreground/4 dark:hover:bg-foreground/15'
+      }`}
+    >
       {hasReplies && !isReply && (
-        <div className="absolute left-[1rem] top-[2rem] bottom-[-1.5rem] w-0.5 bg-foreground/10 -translate-x-1/2 z-0" />
+        <div className="absolute left-[1.7rem] top-[2rem] bottom-[-1.8rem] w-0.5 bg-foreground/10 -translate-x-1/2 z-0" />
       )}
 
       {isReply && !isLastReply && (
@@ -161,21 +175,29 @@ export const MessageCard: React.FC<MessageCardProps> = ({
           </span>
         </div>
 
-        {showSkeleton ? (
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-4 w-1/2" />
-            <span className="text-xs text-muted-foreground animate-pulse">{loadingText}</span>
-          </div>
-        ) : message.sessionId ? (
-          <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none break-words">
-            <Markdown>{preprocessMarkdown(message.message!)}</Markdown>
-          </div>
-        ) : (
-          <div className="text-sm leading-relaxed whitespace-pre-wrap break-words text-wrap break-all">
-            {renderFormattedMessage(message.message!)}
-          </div>
-        )}
+        <div className="flow-root mt-1">
+          {message.second !== null && message.second !== undefined && frameRate && (
+            <div className="float-left select-none bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-2.5 py-1 mt-[2px] mr-2 rounded-sm text-xs leading-none font-mono font-bold flex items-center gap-1">
+              {formatTimestamp(message.second, frameRate)}
+            </div>
+          )}
+
+          {showSkeleton ? (
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+              <span className="text-xs text-muted-foreground animate-pulse">{loadingText}</span>
+            </div>
+          ) : message.sessionId ? (
+            <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none break-words">
+              <Markdown>{preprocessMarkdown(message.message!)}</Markdown>
+            </div>
+          ) : (
+            <div className="text-sm leading-relaxed whitespace-pre-wrap break-words text-wrap break-all">
+              {renderFormattedMessage(message.message!)}
+            </div>
+          )}
+        </div>
 
         {/* Attachments */}
         {message.attachments && message.attachments.length > 0 && (

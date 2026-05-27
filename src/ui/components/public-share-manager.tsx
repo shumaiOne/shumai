@@ -89,6 +89,8 @@ export function PublicShareManager({
   const [isRightSidebarCollapsed] = useState(false)
   const videoRef = useRef<Player | null>(null)
   const [annotations, setAnnotations] = useState<Annotation[]>([])
+  const [currentTime, setCurrentTime] = useState(0)
+  const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null)
 
   const {
     data: foldersData,
@@ -254,19 +256,29 @@ export function PublicShareManager({
   }
 
   const handleCommentSelect = (comment: CommentInfo) => {
+    setSelectedCommentId(comment.id || null)
     const newAnnotations = comment.annotations as Annotation[]
     if (newAnnotations && newAnnotations.length > 0) {
       setAnnotations(newAnnotations)
+    } else {
+      setAnnotations([])
+    }
+
+    if (comment.second !== null && comment.second !== undefined) {
+      if (videoRef.current) {
+        videoRef.current.currentTime(comment.second)
+        videoRef.current.pause()
+      }
+    } else if (newAnnotations && newAnnotations.length > 0) {
       if (videoRef.current) {
         videoRef.current.pause()
       }
-    } else {
-      setAnnotations([])
     }
   }
 
   const handlePlay = () => {
     setAnnotations([])
+    setSelectedCommentId(null)
   }
 
   const { setProjectState, clearProjectState } = useTopNavStore()
@@ -373,6 +385,7 @@ export function PublicShareManager({
                 file={viewingFileData}
                 videoRef={videoRef}
                 onPlay={handlePlay}
+                onTimeUpdate={setCurrentTime}
                 annotations={annotations}
               />
             )}
@@ -430,6 +443,13 @@ export function PublicShareManager({
                 onCommentSelect={handleCommentSelect}
                 isPublic={true}
                 shareId={shareInfo.id}
+                currentTime={currentTime}
+                onTyping={() => {
+                  if (videoRef.current) {
+                    videoRef.current.pause()
+                  }
+                }}
+                selectedCommentId={selectedCommentId}
               />
             </div>
           </>
