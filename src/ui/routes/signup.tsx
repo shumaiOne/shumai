@@ -1,17 +1,10 @@
 import { client } from '@/ui/api/client'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/ui/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/ui/components/ui/card'
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/ui/components/ui/card'
 import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Mail, Lock, CheckCircle2, ArrowRight, UserPlus } from 'lucide-react'
 import { useAuthStore } from '@/ui/stores/auth'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
@@ -19,11 +12,11 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { signUp } from '@/ui/lib/auth-client'
 import { useState } from 'react'
+import { ShumaiLogo } from '@/ui/components/ui/icons'
 
 const signupSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email address'),
-  password: z.string().min(1, 'Password is required'),
+  password: z.string().min(3, 'Password must be at least 3 characters'),
   inviteCode: z.string().optional(),
 })
 
@@ -74,9 +67,8 @@ function SignupPage() {
     const { data: session, error: signUpError } = await signUp.email({
       email: data.email,
       password: data.password,
-      name: data.name,
+      name: data.email, // Use email as the username
       inviteCode: data.inviteCode,
-      // Cast to any because inviteCode is a custom field handled in Better Auth hooks
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any)
 
@@ -94,8 +86,11 @@ function SignupPage() {
 
   if (isSignupInfoLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="flex items-center justify-center min-h-screen bg-zinc-50 dark:bg-zinc-950">
+        <div className="relative flex flex-col items-center">
+          <ShumaiLogo className="h-16 w-16 animate-pulse mb-4 text-rose-500 shadow-xl rounded-2xl" />
+          <Loader2 className="h-6 w-6 animate-spin text-rose-500/70" />
+        </div>
       </div>
     )
   }
@@ -105,19 +100,34 @@ function SignupPage() {
 
   if (isPublicSignupDisabled) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Card className="w-full max-w-sm">
-          <CardHeader>
-            <CardTitle>Registration Disabled</CardTitle>
-            <CardDescription>
-              Public registration is disabled. You need an invite code to join.
+      <div className="min-h-screen w-full flex items-center justify-center p-4 md:p-8 bg-zinc-50 dark:bg-zinc-950 font-sans overflow-hidden relative">
+        {/* Background Mesh Blobs */}
+        <div className="bg-rose-500/10 dark:bg-rose-600/5 w-[500px] h-[500px] rounded-full blur-[120px] absolute top-[-10%] left-[-10%] animate-drift-slow" />
+        <div className="bg-orange-500/10 dark:bg-orange-600/5 w-[500px] h-[500px] rounded-full blur-[120px] absolute bottom-[-10%] right-[-10%] animate-drift-medium" />
+
+        <Card className="w-full max-w-md relative z-10 border border-zinc-200/50 dark:border-zinc-800/40 shadow-2xl bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl rounded-3xl overflow-hidden">
+          <CardHeader className="text-center pt-8 pb-4">
+            <div className="flex justify-center mb-4">
+              <ShumaiLogo className="h-16 w-16 shadow-lg shadow-rose-500/10 rounded-2xl" />
+            </div>
+            <CardTitle className="text-2xl font-bold tracking-tight bg-gradient-to-r from-rose-500 to-orange-500 bg-clip-text text-transparent">
+              Registration Disabled
+            </CardTitle>
+            <CardDescription className="mt-2 text-zinc-600 dark:text-zinc-400">
+              Public registration is currently disabled. You will need an invite code to join this
+              team.
             </CardDescription>
           </CardHeader>
-          <CardFooter className="text-center text-sm">
-            Already have an account?{' '}
-            <a href="/login" className="text-blue-500 hover:underline">
-              Login
-            </a>
+          <CardFooter className="flex flex-col gap-4 pb-8 text-center text-sm border-t border-zinc-200/30 dark:border-zinc-800/30 pt-6">
+            <p className="text-zinc-500 dark:text-zinc-400">
+              Already have an account?{' '}
+              <a
+                href="/login"
+                className="font-semibold text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 transition-colors hover:underline inline-flex items-center gap-1"
+              >
+                Login here <ArrowRight className="w-3.5 h-3.5" />
+              </a>
+            </p>
           </CardFooter>
         </Card>
       </div>
@@ -125,70 +135,179 @@ function SignupPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen py-8">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Sign Up</CardTitle>
-          <CardDescription>Create an account to get started.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {error && <p className="text-red-500 text-sm text-center mb-4">{error}</p>}
-          {isFirstUser && (
-            <div className="mb-4 p-3 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-md text-sm">
-              You will be the owner of the default team.
+    <div className="min-h-screen w-full flex items-center justify-center p-4 md:p-8 bg-zinc-50 dark:bg-zinc-950 font-sans overflow-hidden relative">
+      {/* Drifting Background Mesh Blobs */}
+      <div className="bg-rose-500/10 dark:bg-rose-600/5 w-[600px] h-[600px] rounded-full blur-[140px] absolute top-[-10%] left-[-10%] animate-drift-slow" />
+      <div className="bg-orange-500/10 dark:bg-orange-600/5 w-[600px] h-[600px] rounded-full blur-[140px] absolute bottom-[-10%] right-[-10%] animate-drift-medium" />
+
+      {/* Main Glassmorphic Split-Pane Card */}
+      <div className="relative max-w-4xl w-full flex flex-col md:flex-row rounded-3xl border border-zinc-200/50 dark:border-zinc-800/40 shadow-2xl bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl overflow-hidden min-h-[580px] z-10 transition-all duration-300 hover:shadow-rose-500/5">
+        {/* Left Pane (Brand Showcase) */}
+        <div className="w-full md:w-1/2 bg-gradient-to-br from-rose-500/10 via-orange-500/5 to-transparent p-8 md:p-12 flex flex-col justify-between border-b md:border-b-0 md:border-r border-zinc-200/50 dark:border-zinc-800/40 relative overflow-hidden">
+          {/* Subtle Grid Overlay */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
+
+          {/* Logo & Brand */}
+          <div className="relative flex items-center gap-3">
+            <ShumaiLogo className="h-12 w-12 shadow-lg shadow-rose-500/10 rounded-2xl transition-transform duration-500 hover:scale-105" />
+            <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 bg-clip-text text-transparent">
+              Shumai
+            </span>
+          </div>
+
+          {/* Marketing Copy / Feature Points */}
+          <div className="relative my-8 md:my-0 space-y-6">
+            <h2 className="text-3xl font-extrabold tracking-tight leading-tight text-zinc-900 dark:text-zinc-50">
+              Create assets.
+              <br />
+              <span className="bg-gradient-to-r from-rose-500 to-orange-500 bg-clip-text text-transparent">
+                Organize workflows.
+              </span>
+            </h2>
+            <p className="text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed max-w-sm">
+              The ultimate collaboration hub for your design assets, code resources, and team
+              communication.
+            </p>
+
+            <ul className="space-y-3.5 pt-4">
+              {[
+                'Instant asset uploads & indexing',
+                'Custom metadata & metadata schemas',
+                'Advanced team permission controls',
+              ].map((text, i) => (
+                <li
+                  key={i}
+                  className="flex items-center gap-3 text-sm text-zinc-700 dark:text-zinc-300 font-medium"
+                >
+                  <CheckCircle2 className="w-5 h-5 text-rose-500 flex-shrink-0" />
+                  <span>{text}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Context Banners (First User / Invite Info) */}
+          <div className="relative pt-4 border-t border-zinc-200/30 dark:border-zinc-800/30">
+            {isFirstUser && (
+              <div className="flex items-start gap-3 p-3 bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 rounded-2xl text-xs leading-relaxed font-medium">
+                <span>🎉</span>
+                <span>You will be the owner of the default workspace as the first user!</span>
+              </div>
+            )}
+            {inviteInfo && !('error' in inviteInfo) && (
+              <div className="flex items-start gap-3 p-3 bg-rose-500/10 border border-rose-500/20 text-rose-800 dark:text-rose-300 rounded-2xl text-xs leading-relaxed font-medium">
+                <span>👋</span>
+                <span>
+                  <strong>{inviteInfo.inviterName}</strong> invited you to join{' '}
+                  <strong>{inviteInfo.teamName || inviteInfo.projectName}</strong> as a{' '}
+                  <strong>{inviteInfo.role}</strong>.
+                </span>
+              </div>
+            )}
+            {!isFirstUser && !inviteInfo && (
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                Join our community of developers and designers.
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Right Pane (Form Container) */}
+        <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
+          <div className="mb-8">
+            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+              Create Account
+            </h1>
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-1">
+              Start building and organizing your space.
+            </p>
+          </div>
+
+          {error && (
+            <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 rounded-xl text-sm text-center font-medium">
+              {error}
             </div>
           )}
-          {inviteInfo && !('error' in inviteInfo) && (
-            <div className="mb-4 p-3 bg-muted rounded-md text-sm">
-              <span className="font-semibold">{inviteInfo.inviterName}</span> invited you to join{' '}
-              <span className="font-semibold">{inviteInfo.teamName || inviteInfo.projectName}</span>{' '}
-              as <span className="font-semibold">{inviteInfo.role}</span>.
-            </div>
-          )}
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input id="name" {...form.register('name')} placeholder="Your name" />
-              {form.formState.errors.name && (
-                <p className="text-red-500 text-sm">{form.formState.errors.name.message}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                {...form.register('email')}
-                placeholder="you@example.com"
-                type="email"
-              />
+              <Label
+                htmlFor="email"
+                className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 tracking-wide uppercase"
+              >
+                Email Address
+              </Label>
+              <div className="relative group">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 dark:text-zinc-600 transition-colors group-focus-within:text-rose-500" />
+                <Input
+                  id="email"
+                  {...form.register('email')}
+                  placeholder="you@example.com"
+                  type="email"
+                  className="pl-10.5 h-11 border-zinc-200 dark:border-zinc-800 focus-visible:ring-rose-500/50 focus-visible:border-rose-500 rounded-xl transition-all shadow-sm"
+                />
+              </div>
               {form.formState.errors.email && (
-                <p className="text-red-500 text-sm">{form.formState.errors.email.message}</p>
+                <p className="text-red-500 text-xs font-medium">
+                  {form.formState.errors.email.message}
+                </p>
               )}
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                {...form.register('password')}
-                placeholder="Your password"
-              />
+              <Label
+                htmlFor="password"
+                className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 tracking-wide uppercase"
+              >
+                Password
+              </Label>
+              <div className="relative group">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 dark:text-zinc-600 transition-colors group-focus-within:text-rose-500" />
+                <Input
+                  id="password"
+                  type="password"
+                  {...form.register('password')}
+                  placeholder="At least 3 characters"
+                  className="pl-10.5 h-11 border-zinc-200 dark:border-zinc-800 focus-visible:ring-rose-500/50 focus-visible:border-rose-500 rounded-xl transition-all shadow-sm"
+                />
+              </div>
               {form.formState.errors.password && (
-                <p className="text-red-500 text-sm">{form.formState.errors.password.message}</p>
+                <p className="text-red-500 text-xs font-medium">
+                  {form.formState.errors.password.message}
+                </p>
               )}
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating account...' : 'Sign Up'}
+
+            <Button
+              type="submit"
+              className="w-full h-11 bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-600 hover:to-orange-600 text-white font-semibold rounded-xl shadow-md shadow-rose-500/10 hover:shadow-rose-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 border-0"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Creating account...
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-4 h-4" />
+                  Sign Up
+                </>
+              )}
             </Button>
           </form>
-        </CardContent>
-        <CardFooter className="text-center text-sm">
-          Already have an account?{' '}
-          <a href="/login" className="text-blue-500 hover:underline">
-            Login
-          </a>
-        </CardFooter>
-      </Card>
+
+          <div className="mt-8 pt-6 border-t border-zinc-200/30 dark:border-zinc-800/30 text-center text-sm">
+            <span className="text-zinc-500 dark:text-zinc-400">Already have an account? </span>
+            <a
+              href="/login"
+              className="font-semibold text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 transition-colors hover:underline inline-flex items-center gap-0.5"
+            >
+              Login <ArrowRight className="w-3.5 h-3.5" />
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

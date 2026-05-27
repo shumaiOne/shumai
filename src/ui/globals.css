@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
@@ -67,6 +69,8 @@
 }
 
 @theme inline {
+  --font-sans: 'Plus Jakarta Sans', var(--font-sans);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -100,6 +104,8 @@
   --color-sidebar-ring: var(--sidebar-ring);
 
   --animate-upload-breathing: upload-breathing 2s cubic-bezier(0.4, 0, 0.6, 1) infinite alternate;
+  --animate-drift-slow: drift-slow 15s ease-in-out infinite alternate;
+  --animate-drift-medium: drift-medium 12s ease-in-out infinite alternate;
 
   @keyframes upload-breathing {
     0% {
@@ -109,6 +115,30 @@
     100% {
       filter: drop-shadow(0 0 2px rgb(var(--primary))) drop-shadow(0 0 4px rgb(var(--primary)));
       transform: scale(1.05);
+    }
+  }
+
+  @keyframes drift-slow {
+    0% {
+      transform: translate(0px, 0px) scale(1);
+    }
+    50% {
+      transform: translate(40px, -60px) scale(1.15);
+    }
+    100% {
+      transform: translate(-30px, 30px) scale(0.9);
+    }
+  }
+
+  @keyframes drift-medium {
+    0% {
+      transform: translate(0px, 0px) scale(1.1);
+    }
+    50% {
+      transform: translate(-50px, 40px) scale(0.85);
+    }
+    100% {
+      transform: translate(30px, -30px) scale(1.05);
     }
   }
 }
