@@ -738,8 +738,7 @@ export function FileBrowser({
       <ContextMenu modal={false}>
         <ContextMenuTrigger asChild disabled={isShareView || isPublic}>
           <div
-            ref={scrollContainerRef}
-            className="flex-1 overflow-y-auto bg-background relative flex flex-col"
+            className="flex-1 bg-background relative flex flex-col min-h-0 overflow-hidden"
             onContextMenu={(e) => onContextMenu(e)}
           >
             {!isShareView && !isPublic && onFilterChange && onSortChange && (
@@ -758,76 +757,81 @@ export function FileBrowser({
                 rootFolderId={rootFolderId}
               />
             )}
-            {displayStyle === 'list' ? (
-              <FileBrowserListView
-                folders={folders}
-                files={files}
-                totalFolders={totalFolders}
-                totalFiles={totalFiles}
-                selectedItem={selectedItem}
-                selectedIds={selectedIds}
-                displayedFields={displayedFields}
-                onItemSelect={onItemSelect}
-                onItemDoubleClick={onItemDoubleClick}
-                renderItem={renderItem}
-                foldersExpanded={foldersExpanded}
-                setFoldersExpanded={setFoldersExpanded}
-                filesExpanded={filesExpanded}
-                setFilesExpanded={setFilesExpanded}
-                foldersRef={foldersRef}
-                filesRef={filesRef}
-                hasNextFoldersPage={hasNextFoldersPage}
-                hasNextFilesPage={hasNextFilesPage}
-                formatCount={formatCount}
-                formatSize={formatSize}
-                foldersSize={foldersSize}
-                filesSize={filesSize}
-                handleEmptyAreaClick={handleEmptyAreaClick}
-                dragState={dragState}
-                sort={sort}
-              />
-            ) : (
-              <FileBrowserGridView
-                folders={folders}
-                files={files}
-                totalFolders={totalFolders}
-                totalFiles={totalFiles}
-                renderItem={renderItem}
-                foldersExpanded={foldersExpanded}
-                setFoldersExpanded={setFoldersExpanded}
-                filesExpanded={filesExpanded}
-                setFilesExpanded={setFilesExpanded}
-                foldersRef={foldersRef}
-                filesRef={filesRef}
-                hasNextFoldersPage={hasNextFoldersPage}
-                hasNextFilesPage={hasNextFilesPage}
-                formatCount={formatCount}
-                formatSize={formatSize}
-                foldersSize={foldersSize}
-                filesSize={filesSize}
-                handleEmptyAreaClick={handleEmptyAreaClick}
-                dragState={dragState}
-                sort={sort}
-              />
-            )}
+            <div
+              ref={scrollContainerRef}
+              className="flex-1 overflow-y-auto min-h-0 relative flex flex-col"
+            >
+              {displayStyle === 'list' ? (
+                <FileBrowserListView
+                  folders={folders}
+                  files={files}
+                  totalFolders={totalFolders}
+                  totalFiles={totalFiles}
+                  selectedItem={selectedItem}
+                  selectedIds={selectedIds}
+                  displayedFields={displayedFields}
+                  onItemSelect={onItemSelect}
+                  onItemDoubleClick={onItemDoubleClick}
+                  renderItem={renderItem}
+                  foldersExpanded={foldersExpanded}
+                  setFoldersExpanded={setFoldersExpanded}
+                  filesExpanded={filesExpanded}
+                  setFilesExpanded={setFilesExpanded}
+                  foldersRef={foldersRef}
+                  filesRef={filesRef}
+                  hasNextFoldersPage={hasNextFoldersPage}
+                  hasNextFilesPage={hasNextFilesPage}
+                  formatCount={formatCount}
+                  formatSize={formatSize}
+                  foldersSize={foldersSize}
+                  filesSize={filesSize}
+                  handleEmptyAreaClick={handleEmptyAreaClick}
+                  dragState={dragState}
+                  sort={sort}
+                />
+              ) : (
+                <FileBrowserGridView
+                  folders={folders}
+                  files={files}
+                  totalFolders={totalFolders}
+                  totalFiles={totalFiles}
+                  renderItem={renderItem}
+                  foldersExpanded={foldersExpanded}
+                  setFoldersExpanded={setFoldersExpanded}
+                  filesExpanded={filesExpanded}
+                  setFilesExpanded={setFilesExpanded}
+                  foldersRef={foldersRef}
+                  filesRef={filesRef}
+                  hasNextFoldersPage={hasNextFoldersPage}
+                  hasNextFilesPage={hasNextFilesPage}
+                  formatCount={formatCount}
+                  formatSize={formatSize}
+                  foldersSize={foldersSize}
+                  filesSize={filesSize}
+                  handleEmptyAreaClick={handleEmptyAreaClick}
+                  dragState={dragState}
+                  sort={sort}
+                />
+              )}
 
-            {(isFetchingNextFoldersPage || isFetchingNextFilesPage) && (
-              <div className="flex justify-center items-center p-4">
-                <p>Loading more...</p>
-              </div>
-            )}
-
-            {folders.length === 0 &&
-              files.length === 0 &&
-              !isFetchingNextFoldersPage &&
-              !isFetchingNextFilesPage && (
-                <div className="empty-area flex h-full items-center justify-center text-sm text-muted-foreground">
-                  This folder is empty
+              {(isFetchingNextFoldersPage || isFetchingNextFilesPage) && (
+                <div className="flex justify-center items-center p-4">
+                  <p>Loading more...</p>
                 </div>
               )}
 
+              {folders.length === 0 &&
+                files.length === 0 &&
+                !isFetchingNextFoldersPage &&
+                !isFetchingNextFilesPage && (
+                  <div className="empty-area flex h-full items-center justify-center text-sm text-muted-foreground">
+                    This folder is empty
+                  </div>
+                )}
+            </div>
+
             {selectedCount > 0 && (
-              <div className="border-t border-border bg-card px-4 py-3 flex items-center justify-between">
+              <div className="border-t border-border bg-card px-4 py-3 flex items-center justify-between shrink-0">
                 <div className="text-sm text-muted-foreground">
                   {selectedFolders > 0 && selectedFiles > 0 && (
                     <span>
