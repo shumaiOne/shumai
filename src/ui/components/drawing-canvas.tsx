@@ -379,7 +379,7 @@ const DrawingCanvas = ({
             width={boxWidth}
             height={boxHeight}
             stroke={annotation.color}
-            strokeWidth={2 / scale}
+            strokeWidth={2.6 / scale}
             listening={false}
           />
         )
@@ -391,7 +391,7 @@ const DrawingCanvas = ({
             key={i}
             points={points}
             stroke={annotation.color}
-            strokeWidth={2 / scale}
+            strokeWidth={2.6 / scale}
             fill={annotation.color}
             pointerLength={10 / scale}
             pointerWidth={10 / scale}
@@ -407,7 +407,7 @@ const DrawingCanvas = ({
             key={i}
             points={points}
             stroke={annotation.color}
-            strokeWidth={2 / scale}
+            strokeWidth={2.6 / scale}
             tension={0.5}
             lineCap="round"
             lineJoin="round"
@@ -463,16 +463,16 @@ const DrawingCanvas = ({
           <Group listening={false}>
             <Line
               ref={currentLineRef}
-              strokeWidth={2 / scale}
+              strokeWidth={2.6 / scale}
               lineCap="round"
               lineJoin="round"
               visible={false}
             />
-            <Rect ref={currentRectRef} strokeWidth={2 / scale} visible={false} />
+            <Rect ref={currentRectRef} strokeWidth={2.6 / scale} visible={false} />
             <Arrow
               ref={currentArrowRef}
               points={[]}
-              strokeWidth={2 / scale}
+              strokeWidth={2.6 / scale}
               pointerLength={10 / scale}
               pointerWidth={10 / scale}
               visible={false}

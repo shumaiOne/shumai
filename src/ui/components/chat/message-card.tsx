@@ -3,11 +3,11 @@ import type { UserInfo } from '@/dtos/team'
 import { client } from '@/ui/api/client'
 import { Button } from '@/ui/components/ui/button'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
 } from '@/ui/components/ui/dialog'
 import { Separator } from '@/ui/components/ui/separator'
 import { formatTimeAgo } from '@/ui/lib/time'
@@ -16,6 +16,7 @@ import { Download, File, Terminal } from 'lucide-react'
 import React from 'react'
 import Markdown from 'react-markdown'
 import { Avatar, AvatarFallback } from '../ui/avatar'
+import { DrawAnnotation } from '../ui/icons'
 import { Skeleton } from '../ui/skeleton'
 import { formatTimestamp } from '../viewers/utils'
 
@@ -81,6 +82,8 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   })
 
   const message = polledMessage || initialMessage
+  const hasDrawInfo =
+    !!message.annotations && Array.isArray(message.annotations) && message.annotations.length > 0
   const creator = message.creator
   const showSkeleton =
     !!message.sessionId && !!message.message && message.message in AI_PLACEHOLDERS
@@ -179,6 +182,15 @@ export const MessageCard: React.FC<MessageCardProps> = ({
           {message.second !== null && message.second !== undefined && frameRate && (
             <div className="float-left select-none bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-2.5 py-1 mt-[2px] mr-2 rounded-sm text-xs leading-none font-mono font-bold flex items-center gap-1">
               {formatTimestamp(message.second, frameRate)}
+            </div>
+          )}
+
+          {hasDrawInfo && (
+            <div
+              className="float-left select-none bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-1 py-1 mt-[2px] mr-2 rounded-sm text-xs leading-none font-bold flex items-center gap-1"
+              title="Contains drawing annotations"
+            >
+              <DrawAnnotation className="w-3.5 h-3.5" />
             </div>
           )}
 
