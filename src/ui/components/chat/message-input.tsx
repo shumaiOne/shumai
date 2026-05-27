@@ -599,13 +599,11 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
           )}
           <div
             ref={editorRef}
-            contentEditable={!isDrawing}
+            contentEditable
             suppressContentEditableWarning
             onInput={handleInput}
             onKeyDown={handleKeyDown}
-            data-placeholder={
-              isDrawing ? 'Drawing active...' : replyingTo ? 'Reply...' : 'Message...'
-            }
+            data-placeholder={replyingTo ? 'Reply...' : 'Message...'}
             className={`bg-transparent border-none focus:ring-0 resize-none min-h-[40px] leading-relaxed py-2 focus:outline-none block ${isTimestampEnabled && currentTime !== undefined && frameRate !== undefined && !hasContent ? 'pl-[120px]' : ''}`}
           />
         </div>
