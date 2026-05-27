@@ -1,12 +1,12 @@
 import { client } from '@/ui/api/client'
 import { Avatar, AvatarFallback } from '@/ui/components/ui/avatar'
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu'
 import { useTeamId } from '@/ui/hooks/use-team-id'
 import { signOut } from '@/ui/lib/auth-client'

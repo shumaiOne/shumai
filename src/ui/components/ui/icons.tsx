@@ -177,28 +177,46 @@ export function UploadCloudIcon({
       viewBox="15 15 70 70"
       width={30}
       height={30}
-      className={className}
+      className={`${className} ${uploading ? 'animate-upload-breathing' : ''}`}
       aria-hidden="true"
       focusable="false"
+      style={uploading ? { transformOrigin: 'center' } : undefined}
       {...props}
     >
+      {uploading && (
+        <defs>
+          <linearGradient id="upload-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#3b82f6">
+              <animate
+                attributeName="stop-color"
+                values="#3b82f6;#ec4899;#8b5cf6;#3b82f6"
+                dur="3s"
+                repeatCount="indefinite"
+              />
+            </stop>
+            <stop offset="50%" stopColor="#8b5cf6">
+              <animate
+                attributeName="stop-color"
+                values="#8b5cf6;#3b82f6;#ec4899;#8b5cf6"
+                dur="3s"
+                repeatCount="indefinite"
+              />
+            </stop>
+            <stop offset="100%" stopColor="#ec4899">
+              <animate
+                attributeName="stop-color"
+                values="#ec4899;#8b5cf6;#3b82f6;#ec4899"
+                dur="3s"
+                repeatCount="indefinite"
+              />
+            </stop>
+          </linearGradient>
+        </defs>
+      )}
       <path
         d="M 44.1 75 H 30 A 15 15 0 0 1 30 45 A 20 20 0 0 1 70 45 A 15 15 0 0 1 70 75 H 55.9 V 60.2 H 61.9 L 50 45.3 L 38.1 60.2 H 44.1 Z"
-        fill="currentColor"
+        fill={uploading ? 'url(#upload-gradient)' : 'currentColor'}
       />
-      {uploading && (
-        <circle
-          cx="50"
-          cy="50"
-          r="48"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeDasharray="10 20"
-          fill="none"
-          className="animate-spin"
-          style={{ transformOrigin: 'center' }}
-        />
-      )}
     </svg>
   )
 }
