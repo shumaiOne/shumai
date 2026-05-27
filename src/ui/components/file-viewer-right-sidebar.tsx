@@ -1,19 +1,19 @@
-import { type FieldInfo as MetadataFieldInfo } from '@/dtos/metadata'
-import { client } from '@/ui/api/client'
 import type { AssetInfo, AttachmentInfo, CommentInfo, FieldValueInfo } from '@/dtos/asset'
+import { type FieldInfo as MetadataFieldInfo } from '@/dtos/metadata'
 import type { UserInfo } from '@/dtos/team'
+import { client } from '@/ui/api/client'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tabs'
 import { useFieldStore } from '@/ui/stores/fields'
-import { useInfiniteQuery, useQueryClient, useQuery, useMutation } from '@tanstack/react-query'
+import type { Annotation } from '@/ui/types'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { XIcon } from 'lucide-react'
 import React, { useEffect, useMemo, useState } from 'react'
 import { useInView } from 'react-intersection-observer'
 import { MessageCard } from './chat/message-card'
 import { ChatInput } from './chat/message-input'
 import FieldRenderer from './field-renderer'
-import { ScrollArea } from './ui/scroll-area'
-import type { Annotation } from '@/ui/types'
 import { GuestIdentityPopup } from './guest-identity-popup'
+import { ScrollArea } from './ui/scroll-area'
 
 interface FileViewerRightSidebarProps {
   teamId: string
@@ -338,9 +338,9 @@ export function FileViewerRightSidebar({
             Fields
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="comments" className="flex-1 flex flex-col overflow-hidden min-h-0 mt-4">
-          <ScrollArea className="flex-1 px-4">
-            <div className="space-y-4">
+        <TabsContent value="comments" className="flex-1 flex flex-col overflow-hidden min-h-0 mt-0">
+          <ScrollArea className="flex-1">
+            <div className="space-y-2">
               {comments.map((comment) => (
                 <div key={comment.id} onClick={() => onCommentSelect?.(comment)}>
                   <MessageCard

@@ -3,17 +3,17 @@ import type { UserInfo } from '@/dtos/team'
 import { client } from '@/ui/api/client'
 import { Button } from '@/ui/components/ui/button'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
 } from '@/ui/components/ui/dialog'
 import { Separator } from '@/ui/components/ui/separator'
-import { useQuery } from '@tanstack/react-query'
-import { Download, File, Terminal, Clock } from 'lucide-react'
-import React from 'react'
 import { formatTimeAgo } from '@/ui/lib/time'
+import { useQuery } from '@tanstack/react-query'
+import { Download, File, Terminal } from 'lucide-react'
+import React from 'react'
 import Markdown from 'react-markdown'
 import { Avatar, AvatarFallback } from '../ui/avatar'
 import { Skeleton } from '../ui/skeleton'
@@ -138,9 +138,11 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   }
 
   return (
-    <div className={`relative flex gap-4 ${isReply ? 'mt-4' : 'mt-6'} group`}>
+    <div
+      className={`relative flex gap-4 ${isReply ? 'mt-0' : 'mt-2'} group p-3 py-4 bg-foreground/2 dark:bg-foreground/10 hover:bg-foreground/4 dark:hover:bg-foreground/15 rounded`}
+    >
       {hasReplies && !isReply && (
-        <div className="absolute left-[1rem] top-[2rem] bottom-[-1.5rem] w-0.5 bg-foreground/10 -translate-x-1/2 z-0" />
+        <div className="absolute left-[1.7rem] top-[2rem] bottom-[-1.8rem] w-0.5 bg-foreground/10 -translate-x-1/2 z-0" />
       )}
 
       {isReply && !isLastReply && (
@@ -158,18 +160,6 @@ export const MessageCard: React.FC<MessageCardProps> = ({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <span className="font-semibold text-sm">{creator?.name || 'Unknown'}</span>
-          {message.second !== null && message.second !== undefined && frameRate && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onTimestampClick?.(message.second!)
-              }}
-              className="bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold flex items-center gap-1 border border-blue-200 dark:border-blue-800 shadow-sm hover:bg-blue-200 dark:hover:bg-blue-900/60 transition-colors"
-            >
-              <Clock className="w-2.5 h-2.5" />
-              {formatTimestamp(message.second, frameRate)}
-            </button>
-          )}
           <span className="text-xs text-gray-400">
             {new Date(message.createdAt!).toLocaleTimeString([], {
               hour: '2-digit',
@@ -178,21 +168,35 @@ export const MessageCard: React.FC<MessageCardProps> = ({
           </span>
         </div>
 
-        {showSkeleton ? (
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-4 w-1/2" />
-            <span className="text-xs text-muted-foreground animate-pulse">{loadingText}</span>
-          </div>
-        ) : message.sessionId ? (
-          <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none break-words">
-            <Markdown>{preprocessMarkdown(message.message!)}</Markdown>
-          </div>
-        ) : (
-          <div className="text-sm leading-relaxed whitespace-pre-wrap break-words text-wrap break-all">
-            {renderFormattedMessage(message.message!)}
-          </div>
-        )}
+        <div className="flow-root mt-1">
+          {message.second !== null && message.second !== undefined && frameRate && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onTimestampClick?.(message.second!)
+              }}
+              className="float-left select-none bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-2.5 py-0.5 mt-0.5 mr-2 rounded-sm text-xs font-mono font-bold flex items-center gap-1 transition-colors"
+            >
+              {formatTimestamp(message.second, frameRate)}
+            </button>
+          )}
+
+          {showSkeleton ? (
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+              <span className="text-xs text-muted-foreground animate-pulse">{loadingText}</span>
+            </div>
+          ) : message.sessionId ? (
+            <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none break-words">
+              <Markdown>{preprocessMarkdown(message.message!)}</Markdown>
+            </div>
+          ) : (
+            <div className="text-sm leading-relaxed whitespace-pre-wrap break-words text-wrap break-all">
+              {renderFormattedMessage(message.message!)}
+            </div>
+          )}
+        </div>
 
         {/* Attachments */}
         {message.attachments && message.attachments.length > 0 && (
