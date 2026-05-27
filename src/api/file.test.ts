@@ -298,6 +298,23 @@ describe('file api', () => {
     })
   })
 
+  it('PATCH /files/:fileId/metadata rejects readonly fields with 422', async () => {
+    vi.mocked(metadataService.updateAssetMetadata).mockRejectedValue(
+      new Error('Field some-key is read-only'),
+    )
+
+    const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+    const res = await app.request('/files/test-id/metadata', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify([{ key: 'some-key', value: 'approved' }]),
+    })
+
+    expect(res.status).toBe(422)
+    const body = await res.json()
+    expect(body.error).toContain('Field some-key is read-only')
+  })
+
   it('PATCH /files/:fileId/order', async () => {
     vi.spyOn(assetService, 'updateAssetOrder').mockResolvedValue({
       id: 'test-id',

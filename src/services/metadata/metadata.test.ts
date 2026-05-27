@@ -156,4 +156,39 @@ describe('MetadataService', () => {
     const height = values.find((v) => v.fieldId === 'resolution_height')
     expect(height?.numberValue).toBe(1080)
   })
+
+  it('should reject updating read-only fields', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'test-team' },
+    })
+    const project = await prisma.project.create({
+      data: { name: 'test-project', teamId: team.id },
+    })
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'test-asset',
+        project: { connect: { id: project.id } },
+        type: 'file',
+        status: 'uploaded',
+        sizeByte: 100,
+      },
+    })
+
+    // Create a read-only metadata field
+    const field = await prisma.metadataField.create({
+      data: {
+        key: 'readonly-field',
+        scope: 'PROJECT',
+        project: { connect: { id: project.id } },
+        config: { name: 'Readonly Field', type: 'text' },
+        readOnly: true,
+      },
+    })
+
+    const reqs = [{ key: field.key, value: 'some value' }]
+
+    await expect(metadataService.updateAssetMetadata(asset.id, reqs)).rejects.toThrow(
+      'Field readonly-field is read-only',
+    )
+  })
 })

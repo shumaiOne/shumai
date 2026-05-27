@@ -432,7 +432,7 @@ export function FileViewerRightSidebar({
                         config={field.config}
                         value={itemFieldValueMap[field.id!]?.value}
                         onSave={(val) => onSaveField(field.id!, val)}
-                        readOnly={readOnly}
+                        readOnly={readOnly || field.readOnly}
                       />
                     </div>
                   </div>

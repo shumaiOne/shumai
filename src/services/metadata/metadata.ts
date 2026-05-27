@@ -264,6 +264,13 @@ export class MetadataService {
 
     await this.client.$transaction(async (tx) => {
       for (const req of reqs) {
+        const field = await tx.metadataField.findUnique({
+          where: { key: req.key },
+        })
+        if (field?.readOnly) {
+          throw new Error(`Field ${field.key} is read-only`)
+        }
+
         const value = req.value
         let stringValue: string | null = null
         let numberValue: number | null = null

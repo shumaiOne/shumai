@@ -101,7 +101,14 @@ const route = new Hono<{ Variables: { user: User } }>()
         id: fileId,
       })
 
-      await metadataService.updateAssetMetadata(fileId, req)
+      try {
+        await metadataService.updateAssetMetadata(fileId, req)
+      } catch (err) {
+        if (err instanceof Error && err.message.includes('is read-only')) {
+          return c.json({ error: err.message }, 422)
+        }
+        throw err
+      }
 
       const hasStatus = req.some((m) => m.key === 'status')
       if (hasStatus) {
