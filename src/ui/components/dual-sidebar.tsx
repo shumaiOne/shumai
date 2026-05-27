@@ -1,5 +1,7 @@
 import { Menu } from 'lucide-react'
 import React, { useMemo, useState } from 'react'
+import { Button } from './ui/button'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 import { UserMenu } from './user-menu'
 
 interface DualSidebarItemProps {
@@ -65,14 +67,16 @@ export const DualSidebar: React.FC<DualSidebarProps> = ({ children }) => {
   return (
     <>
       {/* Mobile Hamburger Button */}
-      <button
+      <Button
+        variant="ghost"
+        size="icon"
         onClick={toggleMobileMenu}
-        className="md:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm text-slate-800 dark:text-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+        className="md:hidden fixed top-4 left-4 z-50 rounded-md bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm text-slate-800 dark:text-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         aria-label="Open navigation menu"
         aria-expanded={isMobileMenuOpen}
       >
         <Menu />
-      </button>
+      </Button>
 
       {/* Mobile Overlay */}
       {isMobileMenuOpen && (
@@ -97,32 +101,39 @@ export const DualSidebar: React.FC<DualSidebarProps> = ({ children }) => {
       >
         <div className="absolute bottom-0 w-full h-[70dvh] bg-linear-to-t from-orange-400/10 to-transparent"></div>
         {/* Level 1: Icon Bar */}
-        <nav className="w-16 bg-slate-100 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col items-center pb-4 pt-2 space-y-2 flex-shrink-0">
-          <div className="flex-1 space-y-2">
-            {sidebarItems.map((item, index) => (
-              <div key={item.props.label} className="relative group">
-                <button
-                  onClick={() => handleItemClick(index)}
-                  aria-label={item.props.label}
-                  aria-expanded={activeItem === index}
-                  className={`p-3 rounded-lg transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500 dark:focus-visible:ring-offset-slate-900 ${
-                    activeItem === index
-                      ? 'bg-blue-600 text-white shadow-lg'
-                      : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 dark:text-slate-400'
-                  }`}
-                >
-                  {item.props.icon}
-                </button>
-                <span
-                  className="absolute left-full ml-4 px-2 py-1 text-sm bg-slate-800 text-white rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap"
-                  role="tooltip"
-                >
-                  {item.props.label}
-                </span>
-              </div>
-            ))}
+        <nav className="w-16 bg-slate-100 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col items-center pb-4 pt-0 space-y-2 flex-shrink-0">
+          <div className="flex-1 w-full flex flex-col items-center space-y-5 pt-1">
+            <TooltipProvider>
+              {sidebarItems.map((item, index) => (
+                <Tooltip key={item.props.label}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon-lg"
+                      onClick={() => handleItemClick(index)}
+                      aria-label={item.props.label}
+                      aria-expanded={activeItem === index}
+                      className={`w-12 h-12 [&_svg:not([class*='size-'])]:size-6 transition-all duration-200 ${
+                        activeItem === index
+                          ? 'bg-blue-600 text-white shadow-lg hover:bg-blue-600 hover:text-white'
+                          : 'text-slate-400 hover:text-slate-500 dark:hover:text-slate-400 dark:text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      {item.props.icon}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="right"
+                    sideOffset={16}
+                    className="bg-slate-800 text-white border-slate-700"
+                  >
+                    <p>{item.props.label}</p>
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+            </TooltipProvider>
           </div>
-          <div className="mt-auto">
+          <div className="mt-auto w-full flex flex-col items-center pb-2">
             <UserMenu />
           </div>
         </nav>

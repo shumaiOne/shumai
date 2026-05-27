@@ -1,3 +1,4 @@
+import { client } from '@/ui/api/client'
 import { Avatar, AvatarFallback } from '@/ui/components/ui/avatar'
 import {
   DropdownMenu,
@@ -8,12 +9,11 @@ import {
   DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu'
 import { useTeamId } from '@/ui/hooks/use-team-id'
+import { signOut } from '@/ui/lib/auth-client'
 import { useAuthStore } from '@/ui/stores/auth'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useTheme } from './theme-provider'
-import { client } from '@/ui/api/client'
-import { useQuery } from '@tanstack/react-query'
-import { signOut } from '@/ui/lib/auth-client'
 
 export function UserMenu() {
   const { clearAuth } = useAuthStore()
@@ -51,8 +51,8 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Avatar>
-          <AvatarFallback className="text-black bg-orange-500/80">
+        <Avatar className="rounded-lg w-10 h-10">
+          <AvatarFallback className="rounded-lg bg-primary/40 text-foreground">
             {getInitials(me?.name)}
           </AvatarFallback>
         </Avatar>
