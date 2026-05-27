@@ -441,6 +441,11 @@ export function PublicShareManager({
                 isPublic={true}
                 shareId={shareInfo.id}
                 currentTime={currentTime}
+                onTyping={() => {
+                  if (videoRef.current) {
+                    videoRef.current.pause()
+                  }
+                }}
               />
             </div>
           </>

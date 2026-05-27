@@ -8,10 +8,10 @@ import { useAuthStore } from '@/ui/stores/auth'
 import { useTeamContextStore } from '@/ui/stores/team-context'
 import { useUploadStore } from '@/ui/stores/upload'
 import {
-    createRootRouteWithContext,
-    Outlet,
-    useNavigate,
-    useRouterState,
+  createRootRouteWithContext,
+  Outlet,
+  useNavigate,
+  useRouterState,
 } from '@tanstack/react-router'
 import { useEffect } from 'react'
 

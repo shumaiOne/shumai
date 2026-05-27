@@ -1,8 +1,10 @@
-import { client } from '@/ui/api/client'
-import type { CommentInfo } from '@/dtos/asset'
-import type { UserInfo } from '@/dtos/team'
+import type { CommentInfo, PostAttachmentRequest, PostAttachmentResponse } from '@/dtos/asset'
 import type { BotInfo } from '@/dtos/project'
-import type { PostAttachmentRequest, PostAttachmentResponse } from '@/dtos/asset'
+import type { UserInfo } from '@/dtos/team'
+import { client } from '@/ui/api/client'
+import { useAnnotationStore } from '@/ui/stores/annotation-store'
+import type { Annotation } from '@/ui/types'
+import { useMutation } from '@tanstack/react-query'
 import {
   ArrowLeft,
   ArrowUp,
@@ -20,11 +22,8 @@ import {
 import React, { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { Button } from '../ui/button'
 import { DrawAnnotation } from '../ui/icons'
-import { ProgressCircle } from '../ui/progress-circle'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
-import { useAnnotationStore } from '@/ui/stores/annotation-store'
-import type { Annotation } from '@/ui/types'
-import { useMutation } from '@tanstack/react-query'
+import { ProgressCircle } from '../ui/progress-circle'
 import { formatTimestamp } from '../viewers/utils'
 
 type UploadingFile = {
@@ -53,6 +52,7 @@ interface ChatInputProps {
   disableMentions?: boolean
   currentTime?: number
   frameRate?: number
+  onTyping?: () => void
 }
 
 const PREDEFINED_COLORS = [
@@ -83,6 +83,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
       disableMentions = false,
       currentTime,
       frameRate,
+      onTyping,
     },
     ref,
   ) => {
@@ -198,6 +199,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
     const handleInput = () => {
       if (!editorRef.current) return
       setHasContent(!!editorRef.current.innerText.trim())
+      onTyping?.()
 
       if (disableMentions) {
         setShowMentionList(false)
@@ -580,16 +582,21 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
           </div>
         )}
 
-        {isTimestampEnabled && currentTime !== undefined && frameRate !== undefined && (
-          <div className="px-4 pt-3 flex">
-            <div className="bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-mono font-bold flex items-center gap-1.5 border border-blue-200 dark:border-blue-800 shadow-sm animate-in fade-in zoom-in duration-200">
-              <Clock className="w-3 h-3" />
+        <div
+          onClick={() => editorRef.current?.focus()}
+          className="w-full px-4 pt-1 pb-1 cursor-text flow-root max-h-60 overflow-y-auto"
+        >
+          {isTimestampEnabled && currentTime !== undefined && frameRate !== undefined && (
+            <div
+              onClick={(e) => {
+                e.stopPropagation()
+                editorRef.current?.focus()
+              }}
+              className="float-left select-none bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-2.5 py-0.5 mt-3 mr-2 rounded-sm text-xs font-mono font-bold flex items-center gap-1 cursor-text"
+            >
               {formatTimestamp(currentTime, frameRate)}
             </div>
-          </div>
-        )}
-
-        <div className="w-full px-4 pt-1 pb-1">
+          )}
           <div
             ref={editorRef}
             contentEditable={!isDrawing}
@@ -599,7 +606,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
             data-placeholder={
               isDrawing ? 'Drawing active...' : replyingTo ? 'Reply...' : 'Message...'
             }
-            className="w-full bg-transparent border-none focus:ring-0 resize-none max-h-60 min-h-[40px] leading-relaxed py-2 focus:outline-none overflow-y-auto"
+            className={`bg-transparent border-none focus:ring-0 resize-none min-h-[40px] leading-relaxed py-2 focus:outline-none block ${isTimestampEnabled && currentTime !== undefined && frameRate !== undefined && !hasContent ? 'pl-[120px]' : ''}`}
           />
         </div>
 

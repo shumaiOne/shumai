@@ -28,6 +28,7 @@ interface FileViewerRightSidebarProps {
   isPublic?: boolean
   shareId?: string
   currentTime?: number
+  onTyping?: () => void
 }
 
 export function FileViewerRightSidebar({
@@ -43,6 +44,7 @@ export function FileViewerRightSidebar({
   isPublic = false,
   shareId,
   currentTime,
+  onTyping,
 }: FileViewerRightSidebarProps) {
   const { fields, setFields } = useFieldStore()
   const queryClient = useQueryClient()
@@ -389,6 +391,7 @@ export function FileViewerRightSidebar({
                   disableMentions={isPublic}
                   currentTime={currentTime}
                   frameRate={file?.media?.metadata?.frameRate || 30}
+                  onTyping={onTyping}
                 />
               </GuestIdentityPopup>
             </div>

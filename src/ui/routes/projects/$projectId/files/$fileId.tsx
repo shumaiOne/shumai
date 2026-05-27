@@ -256,8 +256,8 @@ function FileViewPage() {
             onTimeUpdate={setCurrentTime}
             annotations={annotations}
           />
-          </div>
-          {!isRightSidebarCollapsed && (
+        </div>
+        {!isRightSidebarCollapsed && (
           <>
             <ResizeHandle
               onResize={(delta) => {
@@ -274,11 +274,15 @@ function FileViewPage() {
                 members={members}
                 onCommentSelect={handleCommentSelect}
                 currentTime={currentTime}
+                onTyping={() => {
+                  if (videoRef.current) {
+                    videoRef.current.pause()
+                  }
+                }}
               />
             </div>
           </>
-          )}
-
+        )}
       </div>
     </div>
   )
