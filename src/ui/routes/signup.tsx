@@ -86,7 +86,7 @@ function SignupPage() {
 
   if (isSignupInfoLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      <div className="flex items-center justify-center min-h-screen bg-zinc-100/80 dark:bg-black">
         <div className="relative flex flex-col items-center">
           <ShumaiLogo className="h-16 w-16 animate-pulse mb-4 text-rose-500 shadow-xl rounded-2xl" />
           <Loader2 className="h-6 w-6 animate-spin text-rose-500/70" />
@@ -100,12 +100,12 @@ function SignupPage() {
 
   if (isPublicSignupDisabled) {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center p-4 md:p-8 bg-zinc-50 dark:bg-zinc-950 font-sans overflow-hidden relative">
+      <div className="min-h-screen w-full flex items-center justify-center p-4 md:p-8 bg-zinc-100/80 dark:bg-black font-sans overflow-hidden relative">
         {/* Background Mesh Blobs */}
         <div className="bg-rose-500/10 dark:bg-rose-600/5 w-[500px] h-[500px] rounded-full blur-[120px] absolute top-[-10%] left-[-10%] animate-drift-slow" />
         <div className="bg-orange-500/10 dark:bg-orange-600/5 w-[500px] h-[500px] rounded-full blur-[120px] absolute bottom-[-10%] right-[-10%] animate-drift-medium" />
 
-        <Card className="w-full max-w-md relative z-10 border border-zinc-200/50 dark:border-zinc-800/40 shadow-2xl bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl rounded-3xl overflow-hidden">
+        <Card className="w-full max-w-md relative z-10 border border-zinc-200 dark:border-zinc-850 shadow-2xl bg-white dark:bg-zinc-900 rounded-3xl overflow-hidden">
           <CardHeader className="text-center pt-8 pb-4">
             <div className="flex justify-center mb-4">
               <ShumaiLogo className="h-16 w-16 shadow-lg shadow-rose-500/10 rounded-2xl" />
@@ -135,15 +135,15 @@ function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 md:p-8 bg-zinc-50 dark:bg-zinc-950 font-sans overflow-hidden relative">
+    <div className="min-h-screen w-full flex items-center justify-center p-4 md:p-8 bg-zinc-100/80 dark:bg-black font-sans overflow-hidden relative">
       {/* Drifting Background Mesh Blobs */}
       <div className="bg-rose-500/10 dark:bg-rose-600/5 w-[600px] h-[600px] rounded-full blur-[140px] absolute top-[-10%] left-[-10%] animate-drift-slow" />
       <div className="bg-orange-500/10 dark:bg-orange-600/5 w-[600px] h-[600px] rounded-full blur-[140px] absolute bottom-[-10%] right-[-10%] animate-drift-medium" />
 
       {/* Main Glassmorphic Split-Pane Card */}
-      <div className="relative max-w-4xl w-full flex flex-col md:flex-row rounded-3xl border border-zinc-200/50 dark:border-zinc-800/40 shadow-2xl bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl overflow-hidden min-h-[580px] z-10 transition-all duration-300 hover:shadow-rose-500/5">
+      <div className="relative max-w-4xl w-full flex flex-col md:flex-row rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl bg-white dark:bg-zinc-900 overflow-hidden min-h-[580px] z-10 transition-all duration-300 hover:shadow-rose-500/5">
         {/* Left Pane (Brand Showcase) */}
-        <div className="w-full md:w-1/2 bg-gradient-to-br from-rose-500/10 via-orange-500/5 to-transparent p-8 md:p-12 flex flex-col justify-between border-b md:border-b-0 md:border-r border-zinc-200/50 dark:border-zinc-800/40 relative overflow-hidden">
+        <div className="w-full md:w-1/2 bg-gradient-to-br from-rose-500/15 via-orange-500/10 to-amber-500/5 dark:from-rose-950/30 dark:via-orange-950/15 dark:to-zinc-900/40 p-8 md:p-12 flex flex-col justify-between border-b md:border-b-0 md:border-r border-zinc-200 dark:border-zinc-800 relative overflow-hidden">
           {/* Subtle Grid Overlay */}
           <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
 
