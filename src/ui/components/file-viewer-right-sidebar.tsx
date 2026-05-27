@@ -29,6 +29,7 @@ interface FileViewerRightSidebarProps {
   shareId?: string
   currentTime?: number
   onTyping?: () => void
+  selectedCommentId?: string | null
 }
 
 export function FileViewerRightSidebar({
@@ -45,6 +46,7 @@ export function FileViewerRightSidebar({
   shareId,
   currentTime,
   onTyping,
+  selectedCommentId,
 }: FileViewerRightSidebarProps) {
   const { fields, setFields } = useFieldStore()
   const queryClient = useQueryClient()
@@ -52,7 +54,6 @@ export function FileViewerRightSidebar({
   const [replyingTo, setReplyingTo] = useState<CommentInfo | null>(null)
   const [viewingAttachment, setViewingAttachment] = useState<AttachmentInfo | null>(null)
   const [isGuestPopupOpen, setIsGuestPopupOpen] = useState(false)
-  const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null)
   const [pendingComment, setPendingComment] = useState<{
     text: string
     attachmentIds: string[]
@@ -354,7 +355,6 @@ export function FileViewerRightSidebar({
                     frameRate={file?.media?.metadata?.frameRate || 30}
                     isSelected={selectedCommentId === comment.id}
                     onSelect={() => {
-                      setSelectedCommentId(comment.id!)
                       onCommentSelect?.(comment)
                     }}
                   />
@@ -372,7 +372,6 @@ export function FileViewerRightSidebar({
                         frameRate={file?.media?.metadata?.frameRate || 30}
                         isSelected={selectedCommentId === reply.id}
                         onSelect={() => {
-                          setSelectedCommentId(reply.id!)
                           onCommentSelect?.(reply)
                         }}
                       />

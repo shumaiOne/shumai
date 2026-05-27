@@ -35,6 +35,7 @@ function FileViewPage() {
   const [rightSidebarWidth, setRightSidebarWidth] = useState(360)
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [currentTime, setCurrentTime] = useState(0)
+  const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null)
   const $patchMetadata = client.api.files[':fileId'].metadata.$patch
   const { mutate: patchMetadata } = useMutation<
     InferResponseType<typeof $patchMetadata>,
@@ -195,6 +196,7 @@ function FileViewPage() {
   }
 
   const handleCommentSelect = (comment: CommentInfo) => {
+    setSelectedCommentId(comment.id || null)
     const newAnnotations = comment.annotations as Annotation[]
     if (newAnnotations && newAnnotations.length > 0) {
       setAnnotations(newAnnotations)
@@ -216,6 +218,7 @@ function FileViewPage() {
 
   const handlePlay = () => {
     setAnnotations([])
+    setSelectedCommentId(null)
   }
 
   return (
@@ -279,6 +282,7 @@ function FileViewPage() {
                     videoRef.current.pause()
                   }
                 }}
+                selectedCommentId={selectedCommentId}
               />
             </div>
           </>

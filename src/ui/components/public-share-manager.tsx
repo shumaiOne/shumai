@@ -90,6 +90,7 @@ export function PublicShareManager({
   const videoRef = useRef<Player | null>(null)
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [currentTime, setCurrentTime] = useState(0)
+  const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null)
 
   const {
     data: foldersData,
@@ -255,6 +256,7 @@ export function PublicShareManager({
   }
 
   const handleCommentSelect = (comment: CommentInfo) => {
+    setSelectedCommentId(comment.id || null)
     const newAnnotations = comment.annotations as Annotation[]
     if (newAnnotations && newAnnotations.length > 0) {
       setAnnotations(newAnnotations)
@@ -276,6 +278,7 @@ export function PublicShareManager({
 
   const handlePlay = () => {
     setAnnotations([])
+    setSelectedCommentId(null)
   }
 
   const { setProjectState, clearProjectState } = useTopNavStore()
@@ -446,6 +449,7 @@ export function PublicShareManager({
                     videoRef.current.pause()
                   }
                 }}
+                selectedCommentId={selectedCommentId}
               />
             </div>
           </>
