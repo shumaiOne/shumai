@@ -331,7 +331,7 @@ export function FileViewerRightSidebar({
           </div>
         </div>
       )}
-      <Tabs defaultValue="comments" className="p-4 flex-1 flex flex-col px-2 min-h-0">
+      <Tabs defaultValue="comments" className="p-1 flex-1 flex flex-col px-2 min-h-0">
         <TabsList className="w-full shrink-0">
           <TabsTrigger value="comments" className="flex-1">
             Comments
@@ -352,7 +352,11 @@ export function FileViewerRightSidebar({
                     onReply={setReplyingTo}
                     onViewAttachment={setViewingAttachment}
                     hasReplies={!!comment.replies?.length}
-                    frameRate={file?.media?.metadata?.frameRate || 30}
+                    frameRate={
+                      file?.mediaType?.startsWith('video/')
+                        ? file?.media?.metadata?.frameRate || 30
+                        : undefined
+                    }
                     isSelected={selectedCommentId === comment.id}
                     onSelect={() => {
                       onCommentSelect?.(comment)
@@ -369,7 +373,11 @@ export function FileViewerRightSidebar({
                         onViewAttachment={setViewingAttachment}
                         hasReplies={false}
                         isLastReply={index === (comment.replies?.length ?? 0) - 1}
-                        frameRate={file?.media?.metadata?.frameRate || 30}
+                        frameRate={
+                          file?.mediaType?.startsWith('video/')
+                            ? file?.media?.metadata?.frameRate || 30
+                            : undefined
+                        }
                         isSelected={selectedCommentId === reply.id}
                         onSelect={() => {
                           onCommentSelect?.(reply)
@@ -398,8 +406,12 @@ export function FileViewerRightSidebar({
                   bots={enabledBots}
                   hideAnnotationControl={hideAnnotationControl}
                   disableMentions={isPublic}
-                  currentTime={currentTime}
-                  frameRate={file?.media?.metadata?.frameRate || 30}
+                  currentTime={file?.mediaType?.startsWith('video/') ? currentTime : undefined}
+                  frameRate={
+                    file?.mediaType?.startsWith('video/')
+                      ? file?.media?.metadata?.frameRate || 30
+                      : undefined
+                  }
                   onTyping={onTyping}
                 />
               </GuestIdentityPopup>

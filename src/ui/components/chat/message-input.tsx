@@ -709,15 +709,17 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
                 multiple
                 onChange={handleFileSelect}
               />
-              <Button
-                onClick={() => setIsTimestampEnabled(!isTimestampEnabled)}
-                variant={isTimestampEnabled ? 'secondary' : 'ghost'}
-                size="icon"
-                className={`p-2 rounded-full cursor-pointer ${isTimestampEnabled ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : ''}`}
-                title={isTimestampEnabled ? 'Disable Timestamp' : 'Enable Timestamp'}
-              >
-                <Clock className="w-4 h-4" />
-              </Button>
+              {currentTime !== undefined && frameRate !== undefined && (
+                <Button
+                  onClick={() => setIsTimestampEnabled(!isTimestampEnabled)}
+                  variant={isTimestampEnabled ? 'secondary' : 'ghost'}
+                  size="icon"
+                  className={`p-2 rounded-full cursor-pointer ${isTimestampEnabled ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : ''}`}
+                  title={isTimestampEnabled ? 'Disable Timestamp' : 'Enable Timestamp'}
+                >
+                  <Clock className="w-4 h-4" />
+                </Button>
+              )}
               <Button
                 onClick={() => fileInputRef.current?.click()}
                 className="p-2 rounded-full cursor-pointer"
