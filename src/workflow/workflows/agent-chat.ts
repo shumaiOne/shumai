@@ -6,12 +6,13 @@ import {
   TaskQueueDb,
 } from '@/workflow/workflow-utils'
 
-export async function aiChat(task: WorkflowTask): Promise<void> {
+export async function agentChat(task: WorkflowTask): Promise<void> {
   const {
     updateTaskStatusActivity,
     getAssetActivity,
     getCommentActivity,
-    aiChatActivity,
+    getAgentChatContextActivity,
+    agentChatActivity,
     createCommentActivity,
     updateCommentActivity,
     updateTaskUsageActivity,
@@ -67,6 +68,12 @@ export async function aiChat(task: WorkflowTask): Promise<void> {
       })
     }
 
+    // 4b. Fetch Agent Context (Database Activity on db_queue)
+    const context = await executeActivity(TaskQueueDb, getAgentChatContextActivity, {
+      teamId,
+      agentId: payload.agentId,
+    })
+
     // 5. Prepare Images (Attachments only)
     const attachmentImageUrls: string[] = []
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -103,7 +110,7 @@ export async function aiChat(task: WorkflowTask): Promise<void> {
 
     const agentWorkerQueue = await executeActivity(TaskQueueAgent, getAgentWorkerQueueActivity)
 
-    const aiResult = await executeActivity(agentWorkerQueue, aiChatActivity, {
+    const aiResult = await executeActivity(agentWorkerQueue, agentChatActivity, {
       teamId,
       agentId: payload.agentId,
       message: userComment.message || '',
@@ -114,6 +121,7 @@ export async function aiChat(task: WorkflowTask): Promise<void> {
       sessionId,
       userId: payload.userId,
       explicitMention: payload?.explicitMention,
+      context,
     })
 
     // 7. Update Placeholder Comment
@@ -146,7 +154,7 @@ export async function aiChat(task: WorkflowTask): Promise<void> {
       output: { sessionId: aiResult.sessionId },
     })
   } catch (err) {
-    console.error(`AiChat failed for task ${task.id}:`, err)
+    console.error(`AgentChat failed for task ${task.id}:`, err)
 
     // Update placeholder comment with error message
     if (placeholderCommentId) {
@@ -175,4 +183,4 @@ export async function aiChat(task: WorkflowTask): Promise<void> {
   }
 }
 
-export const aiChatWorkflow = aiChat
+export const agentChatWorkflow = agentChat

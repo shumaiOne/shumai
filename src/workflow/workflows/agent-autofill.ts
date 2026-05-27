@@ -7,12 +7,13 @@ import {
   TaskQueueTranscode,
 } from '@/workflow/workflow-utils'
 
-export async function aiAutofillMedia(task: WorkflowTask): Promise<void> {
+export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
   const {
     updateTaskStatusActivity,
     getAssetActivity,
     extractAiMetadataActivity,
     getProjectAutofillFieldsActivity,
+    getAgentAutofillContextActivity,
     autofillAiActivity,
     updateTaskUsageActivity,
     updateAssetMetadataActivity,
@@ -107,6 +108,11 @@ export async function aiAutofillMedia(task: WorkflowTask): Promise<void> {
       return
     }
 
+    // 3b. Fetch Agent Context (Database Activity on db_queue)
+    const context = await executeActivity(TaskQueueDb, getAgentAutofillContextActivity, {
+      teamId,
+    })
+
     // 4. Call AI Service
     const agentWorkerQueue = await executeActivity(TaskQueueAgent, getAgentWorkerQueueActivity)
 
@@ -118,6 +124,7 @@ export async function aiAutofillMedia(task: WorkflowTask): Promise<void> {
         config: f.config as unknown as PrismaJson.FieldConfig,
         description: f.description,
       })),
+      context,
     })
 
     if (aiResult.usage) {
@@ -159,7 +166,7 @@ export async function aiAutofillMedia(task: WorkflowTask): Promise<void> {
       status: 'completed',
     })
   } catch (err) {
-    console.error(`AiAutofillMedia failed for task ${task.id}:`, err)
+    console.error(`AgentAutofillMedia failed for task ${task.id}:`, err)
 
     // Update placeholder comment with error message
     if (placeholderCommentId) {
@@ -191,4 +198,4 @@ export async function aiAutofillMedia(task: WorkflowTask): Promise<void> {
   }
 }
 
-export const aiAutofillWorkflow = aiAutofillMedia
+export const agentAutofillWorkflow = agentAutofillMedia

@@ -1,74 +1,50 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { prisma } from '@/db'
-import { setupTestDbHooks } from '@/db-test-hooks'
-import { getAssetActivity, generateEmbeddingActivity, getCommentActivity } from './ai'
-import { aiService } from '@/services/ai/ai'
+import { generateEmbeddingActivity } from './ai'
+import { s3Service } from '@/services/s3/s3'
 
-vi.mock('@/services/ai/ai', () => ({
-  aiService: {
-    generateAssetEmbeddings: vi.fn(),
+vi.mock('@/services/s3/s3', () => ({
+  s3Service: {
+    getObject: vi.fn(),
+    putObject: vi.fn(),
+    headObject: vi.fn(),
+    listObjects: vi.fn(),
   },
 }))
 
-describe('AI Activities', () => {
-  setupTestDbHooks()
+vi.mock('@/services/ai/provider/gemini', () => {
+  return {
+    GeminiProvider: class {
+      generateImageEmbedding = vi.fn().mockResolvedValue([0.1, 0.2, 0.3])
+    },
+  }
+})
 
+describe('AI Activities', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('should get asset with project and team', async () => {
-    const team = await prisma.team.create({ data: { name: 'Team A' } })
-    const project = await prisma.project.create({
-      data: { name: 'Proj A', teamId: team.id },
-    })
-    const asset = await prisma.asset.create({
-      data: {
-        name: 'test.png',
-        storageKey: { create: { key: 'test.png' } },
-        status: 'uploaded',
-        type: 'file',
-        project: { connect: { id: project.id } },
-      },
-    })
+  it('should generate image embedding', async () => {
+    vi.mocked(s3Service.getObject).mockResolvedValue({
+      buffer: Buffer.from('test-image'),
+      contentType: 'image/png',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock getObject return value needs broad any casting
+    } as any)
 
-    const result = await getAssetActivity(asset.id)
-    expect(result?.project?.team?.id).toBe(team.id)
-  })
+    const context = {
+      agent: { config: { provider: 'google', model: 'gemini' } },
+      asset: { id: 'a1', mediaType: 'image/png', storageKey: { key: 'test.png' } },
+      dbProvider: { config: { apiKey: 'key' } },
+    }
 
-  it('should call generateAssetEmbeddings', async () => {
-    vi.mocked(aiService.generateAssetEmbeddings).mockResolvedValue({
-      inputTokens: 1,
-      outputTokens: 1,
-      model: 'clip',
+    const res = await generateEmbeddingActivity({
+      teamId: 't1',
+      assetId: 'a1',
+      context,
     })
 
-    await generateEmbeddingActivity({ teamId: 't1', assetId: 'a1' })
-    expect(aiService.generateAssetEmbeddings).toHaveBeenCalledWith('t1', 'a1')
-  })
-
-  it('should get and update comments', async () => {
-    const user = await prisma.user.create({
-      data: { name: 'Test User', email: 'test-ai@example.com', password: 'pw' },
-    })
-    const asset = await prisma.asset.create({
-      data: {
-        name: 'test.png',
-        storageKey: { create: { key: 'test.png' } },
-        status: 'uploaded',
-        type: 'file',
-      },
-    })
-
-    const comment = await prisma.assetComment.create({
-      data: {
-        assetId: asset.id,
-        creatorId: user.id,
-        message: 'Original',
-      },
-    })
-
-    const fetched = await getCommentActivity(comment.id)
-    expect(fetched?.message).toBe('Original')
+    expect(res.embeddings.length).toBe(1)
+    expect(res.embeddings[0].embedding).toEqual([0.1, 0.2, 0.3])
+    expect(s3Service.getObject).toHaveBeenCalledWith('shumai', 'test.png')
   })
 })

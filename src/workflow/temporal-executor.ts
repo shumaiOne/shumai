@@ -20,13 +20,13 @@ export class TemporalExecutor implements Executor {
         workflowName = 'aiTranscriptionWorkflow'
         break
       case WorkflowTaskType.ai_embedding:
-        workflowName = 'aiEmbeddingWorkflow'
+        workflowName = 'agentEmbeddingWorkflow'
         break
       case WorkflowTaskType.ai_metadata_autofill:
-        workflowName = 'aiAutofillWorkflow'
+        workflowName = 'agentAutofillWorkflow'
         break
       case WorkflowTaskType.chat:
-        workflowName = 'aiChatWorkflow'
+        workflowName = 'agentChatWorkflow'
         break
       case WorkflowTaskType.transcode:
         workflowName = 'transcodeWorkflow'

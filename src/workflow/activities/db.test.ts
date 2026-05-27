@@ -6,6 +6,10 @@ import {
   updateCommentActivity,
   deleteCommentActivity,
   initializeAgentSessionActivity,
+  getAgentChatContextActivity,
+  getAgentAutofillContextActivity,
+  getEmbeddingContextActivity,
+  saveAssetEmbeddingsActivity,
 } from './db'
 import type { SessionTreeEntry } from '@earendil-works/pi-agent-core'
 
@@ -185,5 +189,130 @@ describe('Database Activities', () => {
     } else {
       throw new Error('Expected entry to be a message')
     }
+  })
+
+  it('should support context-fetching and embedding database activities', async () => {
+    const team = await prisma.team.create({ data: { name: 't_ctx' } })
+    const project = await prisma.project.create({
+      data: { name: 'p_ctx', teamId: team.id },
+    })
+    const sk = await prisma.storageKey.create({ data: { key: 'asset-key' } })
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'test-asset',
+        type: 'file',
+        projectId: project.id,
+        status: 'uploaded',
+        mediaType: 'image/png',
+        storageKeyId: sk.id,
+      },
+    })
+
+    const provider = await prisma.provider.create({
+      data: {
+        name: 'google',
+        teamId: team.id,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- provider config requires broad any casting since it is defined as generic Json in Prisma schema
+        config: { api: 'google', apiKey: 'key' } as any,
+      },
+    })
+
+    const model = await prisma.model.create({
+      data: {
+        modelId: 'gemini',
+        name: 'Gemini',
+        providerId: provider.id,
+        config: {
+          reasoning: false,
+          input: ['text'],
+          contextWindow: 1000,
+          maxTokens: 1000,
+          cost: {
+            input: 0,
+            output: 0,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- model config requires broad any casting since it is defined as generic Json in Prisma schema
+        } as any,
+      },
+    })
+
+    const botUser = await prisma.user.create({
+      data: { name: 'Pirate Bot', email: 'bot@example.com', type: 'agent' },
+    })
+
+    const agent = await prisma.agent.create({
+      data: {
+        id: botUser.id,
+        teamId: team.id,
+        type: 'chat',
+        enabled: true,
+        providerId: provider.id,
+        modelId: model.id,
+        config: { provider: 'google', model: 'gemini' },
+      },
+    })
+
+    await prisma.teamMember.create({
+      data: { teamId: team.id, userId: botUser.id, role: 'reviewer' },
+    })
+
+    // Test getAgentChatContextActivity
+    const chatCtx = await getAgentChatContextActivity({ teamId: team.id, agentId: agent.id })
+    expect(chatCtx.agent.id).toBe(agent.id)
+    expect(chatCtx.dbProviders.length).toBe(1)
+    expect(chatCtx.allowedDomains).toEqual([])
+
+    // Test getAgentAutofillContextActivity (needs an autofill agent)
+    const autofillBot = await prisma.user.create({
+      data: { name: 'Autofill Bot', email: 'autobot@example.com', type: 'agent' },
+    })
+    const autofillAgent = await prisma.agent.create({
+      data: {
+        id: autofillBot.id,
+        teamId: team.id,
+        type: 'autofill',
+        enabled: true,
+        providerId: provider.id,
+        modelId: model.id,
+        config: { provider: 'google', model: 'gemini' },
+      },
+    })
+    const autofillCtx = await getAgentAutofillContextActivity({ teamId: team.id })
+    expect(autofillCtx.agent.id).toBe(autofillAgent.id)
+
+    // Test getEmbeddingContextActivity (needs an embedding agent)
+    const embeddingBot = await prisma.user.create({
+      data: { name: 'Embedding Bot', email: 'emb@example.com', type: 'agent' },
+    })
+    const embeddingAgent = await prisma.agent.create({
+      data: {
+        id: embeddingBot.id,
+        teamId: team.id,
+        type: 'embedding',
+        enabled: true,
+        providerId: provider.id,
+        modelId: model.id,
+        config: { provider: 'google', model: 'gemini' },
+      },
+    })
+    await prisma.teamMember.create({
+      data: { teamId: team.id, userId: embeddingBot.id, role: 'reviewer' },
+    })
+    const embCtx = await getEmbeddingContextActivity({ teamId: team.id, assetId: asset.id })
+    expect(embCtx.agent.id).toBe(embeddingAgent.id)
+    expect(embCtx.asset.id).toBe(asset.id)
+
+    // Test saveAssetEmbeddingsActivity
+    const mockEmbedding = Array(1536).fill(0.1)
+    await saveAssetEmbeddingsActivity({
+      assetId: asset.id,
+      embeddings: [{ embedding: mockEmbedding }],
+    })
+    const dbEmbeddings = await prisma.assetEmbedding.findMany({
+      where: { assetId: asset.id },
+    })
+    expect(dbEmbeddings.length).toBe(1)
   })
 })

@@ -1,11 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { prisma } from '@/db'
 import { setupTestDbHooks } from '@/db-test-hooks'
-import {
-  updateTaskStatusActivity,
-  updateAssetStatusActivity,
-  updateTaskUsageActivity,
-} from './task'
+import { updateTaskStatusActivity, updateAssetStatusActivity, updateTaskUsageActivity } from './db'
 import { WorkflowTaskStatus, WorkflowTaskType, AssetStatus } from '@/generated/prisma/client'
 
 describe('Task Activities', () => {
