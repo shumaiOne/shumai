@@ -100,22 +100,25 @@ function LoginPage() {
           {/* Marketing Copy / Feature Points */}
           <div className="relative my-8 md:my-0 space-y-6">
             <h2 className="text-3xl font-extrabold tracking-tight leading-tight text-zinc-900 dark:text-zinc-50">
-              Create assets.
+              One workspace
+              <br />
+              for all your
               <br />
               <span className="bg-gradient-to-r from-rose-500 to-orange-500 bg-clip-text text-transparent">
-                Organize workflows.
+                creative assets.
               </span>
             </h2>
             <p className="text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed max-w-sm">
-              The ultimate collaboration hub for your design assets, code resources, and team
-              communication.
+              Upload and index your files, enrich them with custom metadata schemas, draw
+              annotations directly on media, and gather instant feedback — all in one modern
+              workspace built for creators.
             </p>
 
             <ul className="space-y-3.5 pt-4">
               {[
-                'Instant asset uploads & indexing',
-                'Custom metadata & metadata schemas',
-                'Advanced team permission controls',
+                'Instant asset uploads & high-fidelity media players',
+                'Custom metadata schemas & drawing canvas reviews',
+                'Frictionless team workspaces & secure sharing',
               ].map((text, i) => (
                 <li
                   key={i}
