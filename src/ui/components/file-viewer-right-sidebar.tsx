@@ -52,6 +52,7 @@ export function FileViewerRightSidebar({
   const [replyingTo, setReplyingTo] = useState<CommentInfo | null>(null)
   const [viewingAttachment, setViewingAttachment] = useState<AttachmentInfo | null>(null)
   const [isGuestPopupOpen, setIsGuestPopupOpen] = useState(false)
+  const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null)
   const [pendingComment, setPendingComment] = useState<{
     text: string
     attachmentIds: string[]
@@ -340,9 +341,9 @@ export function FileViewerRightSidebar({
         </TabsList>
         <TabsContent value="comments" className="flex-1 flex flex-col overflow-hidden min-h-0 mt-0">
           <ScrollArea className="flex-1">
-            <div className="space-y-2">
+            <div className="space-y-4">
               {comments.map((comment) => (
-                <div key={comment.id} onClick={() => onCommentSelect?.(comment)}>
+                <div key={comment.id}>
                   <MessageCard
                     teamId={teamId}
                     message={comment}
@@ -351,22 +352,31 @@ export function FileViewerRightSidebar({
                     onViewAttachment={setViewingAttachment}
                     hasReplies={!!comment.replies?.length}
                     frameRate={file?.media?.metadata?.frameRate || 30}
-                    onTimestampClick={(sec) => onCommentSelect?.({ ...comment, second: sec })}
+                    isSelected={selectedCommentId === comment.id}
+                    onSelect={() => {
+                      setSelectedCommentId(comment.id!)
+                      onCommentSelect?.(comment)
+                    }}
                   />
                   {comment.replies?.map((reply, index) => (
-                    <MessageCard
-                      teamId={teamId}
-                      isReply={true}
-                      key={reply.id}
-                      message={reply}
-                      getUser={getUser}
-                      onReply={setReplyingTo}
-                      onViewAttachment={setViewingAttachment}
-                      hasReplies={false}
-                      isLastReply={index === (comment.replies?.length ?? 0) - 1}
-                      frameRate={file?.media?.metadata?.frameRate || 30}
-                      onTimestampClick={(sec) => onCommentSelect?.({ ...reply, second: sec })}
-                    />
+                    <div key={reply.id}>
+                      <MessageCard
+                        teamId={teamId}
+                        isReply={true}
+                        message={reply}
+                        getUser={getUser}
+                        onReply={setReplyingTo}
+                        onViewAttachment={setViewingAttachment}
+                        hasReplies={false}
+                        isLastReply={index === (comment.replies?.length ?? 0) - 1}
+                        frameRate={file?.media?.metadata?.frameRate || 30}
+                        isSelected={selectedCommentId === reply.id}
+                        onSelect={() => {
+                          setSelectedCommentId(reply.id!)
+                          onCommentSelect?.(reply)
+                        }}
+                      />
+                    </div>
                   ))}
                 </div>
               ))}

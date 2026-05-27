@@ -12,7 +12,7 @@ import {
 import { Separator } from '@/ui/components/ui/separator'
 import { formatTimeAgo } from '@/ui/lib/time'
 import { useQuery } from '@tanstack/react-query'
-import { Download, File, Terminal } from 'lucide-react'
+import { Clock, Download, File, Terminal } from 'lucide-react'
 import React from 'react'
 import Markdown from 'react-markdown'
 import { Avatar, AvatarFallback } from '../ui/avatar'
@@ -28,7 +28,8 @@ interface MessageCardProps {
   getUser: (id: string) => UserInfo
   onReply: (message: CommentInfo) => void
   onViewAttachment: (attachment: AttachmentInfo) => void
-  onTimestampClick?: (seconds: number) => void
+  isSelected?: boolean
+  onSelect?: () => void
   frameRate?: number
   rootParentId?: string
 }
@@ -51,7 +52,8 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   getUser,
   onReply,
   onViewAttachment,
-  onTimestampClick,
+  isSelected,
+  onSelect,
   frameRate,
 }) => {
   const isRunning =
@@ -139,7 +141,12 @@ export const MessageCard: React.FC<MessageCardProps> = ({
 
   return (
     <div
-      className={`relative flex gap-4 ${isReply ? 'mt-0' : 'mt-2'} group p-3 py-4 bg-foreground/2 dark:bg-foreground/10 hover:bg-foreground/4 dark:hover:bg-foreground/15 rounded`}
+      onClick={onSelect}
+      className={`relative flex gap-4 ${isReply ? 'mt-2' : 'mt-3'} mr-3 group p-3 py-4 border transition-all duration-200 cursor-pointer rounded-xl ${
+        isSelected
+          ? 'border-blue-500/40 dark:border-blue-400/40 bg-blue-500/10 dark:bg-blue-400/10 shadow-sm'
+          : 'border-transparent bg-foreground/2 dark:bg-foreground/10 hover:bg-foreground/4 dark:hover:bg-foreground/15'
+      }`}
     >
       {hasReplies && !isReply && (
         <div className="absolute left-[1.7rem] top-[2rem] bottom-[-1.8rem] w-0.5 bg-foreground/10 -translate-x-1/2 z-0" />
@@ -170,15 +177,10 @@ export const MessageCard: React.FC<MessageCardProps> = ({
 
         <div className="flow-root mt-1">
           {message.second !== null && message.second !== undefined && frameRate && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onTimestampClick?.(message.second!)
-              }}
-              className="float-left select-none bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-2.5 py-0.5 mt-0.5 mr-2 rounded-sm text-xs font-mono font-bold flex items-center gap-1 transition-colors"
-            >
+            <div className="float-left select-none bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-2.5 py-0.5 mt-0.5 mr-2 rounded-sm text-xs font-mono font-bold flex items-center gap-1 border border-blue-200 dark:border-blue-800 shadow-sm">
+              <Clock className="w-3 h-3" />
               {formatTimestamp(message.second, frameRate)}
-            </button>
+            </div>
           )}
 
           {showSkeleton ? (
