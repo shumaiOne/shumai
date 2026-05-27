@@ -11,12 +11,13 @@ import {
 } from '@/ui/components/ui/dialog'
 import { Separator } from '@/ui/components/ui/separator'
 import { useQuery } from '@tanstack/react-query'
-import { Download, File, Terminal } from 'lucide-react'
+import { Download, File, Terminal, Clock } from 'lucide-react'
 import React from 'react'
 import { formatTimeAgo } from '@/ui/lib/time'
 import Markdown from 'react-markdown'
 import { Avatar, AvatarFallback } from '../ui/avatar'
 import { Skeleton } from '../ui/skeleton'
+import { formatTimestamp } from '../viewers/utils'
 
 interface MessageCardProps {
   teamId?: string
@@ -27,6 +28,8 @@ interface MessageCardProps {
   getUser: (id: string) => UserInfo
   onReply: (message: CommentInfo) => void
   onViewAttachment: (attachment: AttachmentInfo) => void
+  onTimestampClick?: (seconds: number) => void
+  frameRate?: number
   rootParentId?: string
 }
 
@@ -48,6 +51,8 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   getUser,
   onReply,
   onViewAttachment,
+  onTimestampClick,
+  frameRate,
 }) => {
   const isRunning =
     !!initialMessage.sessionId &&
@@ -153,6 +158,18 @@ export const MessageCard: React.FC<MessageCardProps> = ({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <span className="font-semibold text-sm">{creator?.name || 'Unknown'}</span>
+          {message.second !== null && message.second !== undefined && frameRate && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onTimestampClick?.(message.second!)
+              }}
+              className="bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold flex items-center gap-1 border border-blue-200 dark:border-blue-800 shadow-sm hover:bg-blue-200 dark:hover:bg-blue-900/60 transition-colors"
+            >
+              <Clock className="w-2.5 h-2.5" />
+              {formatTimestamp(message.second, frameRate)}
+            </button>
+          )}
           <span className="text-xs text-gray-400">
             {new Date(message.createdAt!).toLocaleTimeString([], {
               hour: '2-digit',

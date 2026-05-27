@@ -16,10 +16,18 @@ type FileViewerProps = {
   videoRef?: RefObject<Player | null>
   onPlay?: () => void
   onPause?: () => void
+  onTimeUpdate?: (time: number) => void
   annotations?: Annotation[]
 }
 
-export function FileViewer({ file, videoRef, onPlay, onPause, annotations }: FileViewerProps) {
+export function FileViewer({
+  file,
+  videoRef,
+  onPlay,
+  onPause,
+  onTimeUpdate,
+  annotations,
+}: FileViewerProps) {
   const { width: screenWidth } = useScreenSize()
   const isImage = file.mediaType?.startsWith('image/')
   const isVideo = file.mediaType?.startsWith('video/')
@@ -186,6 +194,7 @@ export function FileViewer({ file, videoRef, onPlay, onPause, annotations }: Fil
           playerRef={videoRef}
           onPlay={onPlay}
           onPause={onPause}
+          onTimeUpdate={onTimeUpdate}
           annotations={displayAnnotations}
         />
       )}

@@ -27,6 +27,7 @@ interface FileViewerRightSidebarProps {
   publicFields?: MetadataFieldInfo[]
   isPublic?: boolean
   shareId?: string
+  currentTime?: number
 }
 
 export function FileViewerRightSidebar({
@@ -41,6 +42,7 @@ export function FileViewerRightSidebar({
   publicFields,
   isPublic = false,
   shareId,
+  currentTime,
 }: FileViewerRightSidebarProps) {
   const { fields, setFields } = useFieldStore()
   const queryClient = useQueryClient()
@@ -53,6 +55,7 @@ export function FileViewerRightSidebar({
     attachmentIds: string[]
     annotations?: Annotation[]
     replyToId?: string | null
+    second?: number | null
   } | null>(null)
 
   const { data: apiFields } = useQuery({
@@ -139,12 +142,14 @@ export function FileViewerRightSidebar({
       annotations,
       replyToId,
       guestUserId,
+      second,
     }: {
       text: string
       attachmentIds: string[]
       annotations?: Annotation[]
       replyToId?: string | null
       guestUserId?: string
+      second?: number | null
     }) => {
       if (isPublic) {
         const password = localStorage.getItem(`share_pwd_${shareId}`) || ''
@@ -156,6 +161,7 @@ export function FileViewerRightSidebar({
               attachmentIds: attachmentIds,
               replyToId: replyToId ?? undefined,
               annotations: annotations,
+              second: second ?? undefined,
             },
           },
           {
@@ -175,6 +181,7 @@ export function FileViewerRightSidebar({
             attachmentIds: attachmentIds,
             replyToId: replyToId ?? undefined,
             annotations: annotations,
+            second: second ?? undefined,
           },
         })
         if (!res.ok) throw new Error('Failed to create comment')
@@ -225,6 +232,7 @@ export function FileViewerRightSidebar({
     attachmentIds: string[],
     annotations?: Annotation[],
     replyToId?: string | null,
+    second?: number | null,
   ) => {
     if (!file?.id) return
 
@@ -240,16 +248,16 @@ export function FileViewerRightSidebar({
         console.log('[handleSendMessage] guestUserId from storage:', guestUserId)
         if (!guestUserId) {
           console.log('[handleSendMessage] no guest ID, opening popup')
-          setPendingComment({ text, attachmentIds, annotations, replyToId })
+          setPendingComment({ text, attachmentIds, annotations, replyToId, second })
           setIsGuestPopupOpen(true)
           return
         }
-        createComment({ text, attachmentIds, annotations, replyToId, guestUserId })
+        createComment({ text, attachmentIds, annotations, replyToId, guestUserId, second })
       } else {
-        createComment({ text, attachmentIds, annotations, replyToId })
+        createComment({ text, attachmentIds, annotations, replyToId, second })
       }
     } else {
-      createComment({ text, attachmentIds, annotations, replyToId })
+      createComment({ text, attachmentIds, annotations, replyToId, second })
     }
     setReplyingTo(null)
   }
@@ -340,6 +348,8 @@ export function FileViewerRightSidebar({
                     onReply={setReplyingTo}
                     onViewAttachment={setViewingAttachment}
                     hasReplies={!!comment.replies?.length}
+                    frameRate={file?.media?.metadata?.frameRate || 30}
+                    onTimestampClick={(sec) => onCommentSelect?.({ ...comment, second: sec })}
                   />
                   {comment.replies?.map((reply, index) => (
                     <MessageCard
@@ -352,6 +362,8 @@ export function FileViewerRightSidebar({
                       onViewAttachment={setViewingAttachment}
                       hasReplies={false}
                       isLastReply={index === (comment.replies?.length ?? 0) - 1}
+                      frameRate={file?.media?.metadata?.frameRate || 30}
+                      onTimestampClick={(sec) => onCommentSelect?.({ ...reply, second: sec })}
                     />
                   ))}
                 </div>
@@ -375,6 +387,8 @@ export function FileViewerRightSidebar({
                   bots={enabledBots}
                   hideAnnotationControl={hideAnnotationControl}
                   disableMentions={isPublic}
+                  currentTime={currentTime}
+                  frameRate={file?.media?.metadata?.frameRate || 30}
                 />
               </GuestIdentityPopup>
             </div>

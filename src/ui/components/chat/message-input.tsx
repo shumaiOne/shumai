@@ -8,6 +8,7 @@ import {
   ArrowUp,
   Brush,
   ChevronDown,
+  Clock,
   FileIcon,
   Minus,
   Paperclip,
@@ -24,6 +25,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { useAnnotationStore } from '@/ui/stores/annotation-store'
 import type { Annotation } from '@/ui/types'
 import { useMutation } from '@tanstack/react-query'
+import { formatTimestamp } from '../viewers/utils'
 
 type UploadingFile = {
   id: string // A unique ID for the file, e.g., timestamp + name
@@ -40,6 +42,7 @@ interface ChatInputProps {
     attachmentIds: string[],
     annotations?: Annotation[],
     replyToId?: string | null,
+    second?: number | null,
   ) => void
   replyingTo?: CommentInfo | null
   onCancelReply?: () => void
@@ -48,6 +51,8 @@ interface ChatInputProps {
   initialText?: string
   hideAnnotationControl?: boolean
   disableMentions?: boolean
+  currentTime?: number
+  frameRate?: number
 }
 
 const PREDEFINED_COLORS = [
@@ -76,11 +81,14 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
       initialText = '',
       hideAnnotationControl = false,
       disableMentions = false,
+      currentTime,
+      frameRate,
     },
     ref,
   ) => {
     const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([])
     const [viewingFile, setViewingFile] = useState<File | null>(null)
+    const [isTimestampEnabled, setIsTimestampEnabled] = useState(true)
 
     // Annotation Store
     const {
@@ -395,7 +403,13 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
       // Allow sending if annotations exist, even if text is empty
       if (!processedText && successfulAttachmentIds.length === 0 && annotations.length === 0) return
 
-      onSendMessage(processedText, successfulAttachmentIds, annotations, replyingTo?.id)
+      onSendMessage(
+        processedText,
+        successfulAttachmentIds,
+        annotations,
+        replyingTo?.id,
+        isTimestampEnabled ? currentTime : undefined,
+      )
 
       // Reset editor
       editorRef.current.innerHTML = ''
@@ -566,6 +580,15 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
           </div>
         )}
 
+        {isTimestampEnabled && currentTime !== undefined && frameRate !== undefined && (
+          <div className="px-4 pt-3 flex">
+            <div className="bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-3 py-1 rounded-full text-xs font-mono font-bold flex items-center gap-1.5 border border-blue-200 dark:border-blue-800 shadow-sm animate-in fade-in zoom-in duration-200">
+              <Clock className="w-3 h-3" />
+              {formatTimestamp(currentTime, frameRate)}
+            </div>
+          </div>
+        )}
+
         <div className="w-full px-4 pt-1 pb-1">
           <div
             ref={editorRef}
@@ -679,6 +702,15 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
                 multiple
                 onChange={handleFileSelect}
               />
+              <Button
+                onClick={() => setIsTimestampEnabled(!isTimestampEnabled)}
+                variant={isTimestampEnabled ? 'secondary' : 'ghost'}
+                size="icon"
+                className={`p-2 rounded-full cursor-pointer ${isTimestampEnabled ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : ''}`}
+                title={isTimestampEnabled ? 'Disable Timestamp' : 'Enable Timestamp'}
+              >
+                <Clock className="w-4 h-4" />
+              </Button>
               <Button
                 onClick={() => fileInputRef.current?.click()}
                 className="p-2 rounded-full cursor-pointer"

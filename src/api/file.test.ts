@@ -157,10 +157,11 @@ describe('file api', () => {
   it('POST /files/:fileId/comments', async () => {
     vi.mocked(assetService.createComment).mockResolvedValue({
       id: 'comment-id',
-      assetId: 'test-id',
+      assetId: 'file-id',
       message: 'hello',
       annotations: null,
-      creator: { id: 'user1', name: 'user-name' },
+      second: null,
+      creator: { id: 'user-id', name: 'Test User' },
       replies: [],
       attachments: [],
       mentions: [],
@@ -207,10 +208,11 @@ describe('file api', () => {
       data: [
         {
           id: 'comment-id',
-          assetId: 'test-id',
+          assetId: 'file-id',
           message: 'hello',
           annotations: null,
-          creator: { id: 'user1', name: 'user-name' },
+          second: null,
+          creator: { id: 'user-id', name: 'Test User' },
           replies: [],
           attachments: [],
           mentions: [],

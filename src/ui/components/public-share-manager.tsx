@@ -89,6 +89,7 @@ export function PublicShareManager({
   const [isRightSidebarCollapsed] = useState(false)
   const videoRef = useRef<Player | null>(null)
   const [annotations, setAnnotations] = useState<Annotation[]>([])
+  const [currentTime, setCurrentTime] = useState(0)
 
   const {
     data: foldersData,
@@ -257,11 +258,19 @@ export function PublicShareManager({
     const newAnnotations = comment.annotations as Annotation[]
     if (newAnnotations && newAnnotations.length > 0) {
       setAnnotations(newAnnotations)
+    } else {
+      setAnnotations([])
+    }
+
+    if (comment.second !== null && comment.second !== undefined) {
+      if (videoRef.current) {
+        videoRef.current.currentTime(comment.second)
+        videoRef.current.pause()
+      }
+    } else if (newAnnotations && newAnnotations.length > 0) {
       if (videoRef.current) {
         videoRef.current.pause()
       }
-    } else {
-      setAnnotations([])
     }
   }
 
@@ -373,6 +382,7 @@ export function PublicShareManager({
                 file={viewingFileData}
                 videoRef={videoRef}
                 onPlay={handlePlay}
+                onTimeUpdate={setCurrentTime}
                 annotations={annotations}
               />
             )}
@@ -430,6 +440,7 @@ export function PublicShareManager({
                 onCommentSelect={handleCommentSelect}
                 isPublic={true}
                 shareId={shareInfo.id}
+                currentTime={currentTime}
               />
             </div>
           </>

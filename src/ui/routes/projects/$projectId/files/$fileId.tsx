@@ -34,6 +34,7 @@ function FileViewPage() {
   const [leftSidebarWidth, setLeftSidebarWidth] = useState(280)
   const [rightSidebarWidth, setRightSidebarWidth] = useState(360)
   const [annotations, setAnnotations] = useState<Annotation[]>([])
+  const [currentTime, setCurrentTime] = useState(0)
   const $patchMetadata = client.api.files[':fileId'].metadata.$patch
   const { mutate: patchMetadata } = useMutation<
     InferResponseType<typeof $patchMetadata>,
@@ -197,11 +198,19 @@ function FileViewPage() {
     const newAnnotations = comment.annotations as Annotation[]
     if (newAnnotations && newAnnotations.length > 0) {
       setAnnotations(newAnnotations)
+    } else {
+      setAnnotations([])
+    }
+
+    if (comment.second !== null && comment.second !== undefined) {
+      if (videoRef.current) {
+        videoRef.current.currentTime(comment.second)
+        videoRef.current.pause()
+      }
+    } else if (newAnnotations && newAnnotations.length > 0) {
       if (videoRef.current) {
         videoRef.current.pause()
       }
-    } else {
-      setAnnotations([])
     }
   }
 
@@ -244,29 +253,32 @@ function FileViewPage() {
             file={fileData as unknown as AssetInfo}
             videoRef={videoRef}
             onPlay={handlePlay}
+            onTimeUpdate={setCurrentTime}
             annotations={annotations}
           />
-        </div>
-        {!isRightSidebarCollapsed && (
+          </div>
+          {!isRightSidebarCollapsed && (
           <>
             <ResizeHandle
               onResize={(delta) => {
-                setRightSidebarWidth((prev) => Math.max(240, Math.min(600, prev - delta)))
+                setRightSidebarWidth((prev) => Math.max(300, Math.min(600, prev - delta)))
               }}
               className="hidden md:block"
             />
             <div style={{ width: rightSidebarWidth }} className="flex-shrink-0">
               <FileViewerRightSidebar
-                teamId={teamId!}
+                teamId={teamId}
                 projectId={projectId}
                 file={fileData as unknown as AssetInfo}
                 onSaveField={handleSaveField}
                 members={members}
                 onCommentSelect={handleCommentSelect}
+                currentTime={currentTime}
               />
             </div>
           </>
-        )}
+          )}
+
       </div>
     </div>
   )

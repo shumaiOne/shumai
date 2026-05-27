@@ -189,6 +189,7 @@ export type CommentInfo = {
   message: string | null
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   annotations: any
+  second: number | null
   creator: UserInfo
   replies: CommentInfo[]
   attachments: AttachmentInfo[]
@@ -204,6 +205,7 @@ export const commentInfoSchema: z.ZodType<CommentInfo> = z.object({
   message: z.string().nullable(),
 
   annotations: z.any(),
+  second: z.number().nullable(),
   creator: userInfoSchema,
   replies: z.array(z.lazy(() => commentInfoSchema)),
   attachments: z.array(attachmentInfoSchema),
