@@ -3,16 +3,16 @@ import type { UserInfo } from '@/dtos/team'
 import { client } from '@/ui/api/client'
 import { Button } from '@/ui/components/ui/button'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
 } from '@/ui/components/ui/dialog'
 import { Separator } from '@/ui/components/ui/separator'
 import { formatTimeAgo } from '@/ui/lib/time'
 import { useQuery } from '@tanstack/react-query'
-import { Clock, Download, File, Terminal } from 'lucide-react'
+import { Download, File, Terminal } from 'lucide-react'
 import React from 'react'
 import Markdown from 'react-markdown'
 import { Avatar, AvatarFallback } from '../ui/avatar'
@@ -177,8 +177,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
 
         <div className="flow-root mt-1">
           {message.second !== null && message.second !== undefined && frameRate && (
-            <div className="float-left select-none bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-2.5 py-0.5 mt-0.5 mr-2 rounded-sm text-xs font-mono font-bold flex items-center gap-1 border border-blue-200 dark:border-blue-800 shadow-sm">
-              <Clock className="w-3 h-3" />
+            <div className="float-left select-none bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-2.5 py-1 mt-[2px] mr-2 rounded-sm text-xs leading-none font-mono font-bold flex items-center gap-1">
               {formatTimestamp(message.second, frameRate)}
             </div>
           )}
