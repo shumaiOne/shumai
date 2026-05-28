@@ -47,6 +47,9 @@ async function generateMultimodalEmbedding(
         },
       },
     ],
+    config: {
+      outputDimensionality: 1536,
+    },
   })
 
   const values = response.embeddings?.[0]?.values
