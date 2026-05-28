@@ -1,8 +1,4 @@
-import { ElevenLabsProvider } from '@/services/ai/provider/elevenlabs'
-import { GeminiProvider } from '@/services/ai/provider/gemini'
-import { OpenAiProvider } from '@/services/ai/provider/openai'
-import { Provider, Usage } from '@/services/ai/provider/provider'
-import { AiProvider } from '@/dtos/ai'
+import { GoogleGenAI } from '@google/genai'
 import { s3Service } from '@/services/s3/s3'
 import { transcodeService } from '@/transcode/transcode'
 import { exec } from 'child_process'
@@ -14,41 +10,10 @@ import { ApplicationFailure } from '@temporalio/activity'
 
 const execAsync = promisify(exec)
 
-function providerFactory(providerName: string, config: PrismaJson.AiProviderSettings): Provider {
-  let pKey: AiProvider
-  switch (providerName) {
-    case AiProvider.Google:
-      pKey = AiProvider.Google
-      break
-    case AiProvider.OpenAi:
-      pKey = AiProvider.OpenAi
-      break
-    case AiProvider.ElevenLabs:
-      pKey = AiProvider.ElevenLabs
-      break
-    default:
-      throw ApplicationFailure.create({
-        message: `Unsupported provider: ${providerName}`,
-        nonRetryable: true,
-      })
-  }
-
-  switch (pKey) {
-    case AiProvider.Google:
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- provider config requires a broad casting since it is a JSON property of the provider model
-      return new GeminiProvider(config as any)
-    case AiProvider.OpenAi:
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- provider config requires a broad casting since it is a JSON property of the provider model
-      return new OpenAiProvider(config as any)
-    case AiProvider.ElevenLabs:
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- provider config requires a broad casting since it is a JSON property of the provider model
-      return new ElevenLabsProvider(config as any)
-    default:
-      throw ApplicationFailure.create({
-        message: `Provider implementation for ${providerName} not found`,
-        nonRetryable: true,
-      })
-  }
+export interface Usage {
+  inputTokens: number
+  outputTokens: number
+  model: string
 }
 
 export interface GeneratedEmbedding {
@@ -63,8 +28,35 @@ export interface GenerateEmbeddingParams {
   context: {
     agent: unknown
     asset: unknown
-    dbProvider: unknown
   }
+}
+
+async function generateMultimodalEmbedding(
+  ai: GoogleGenAI,
+  buffer: Buffer,
+  mimeType: string,
+): Promise<number[]> {
+  const response = await ai.models.embedContent({
+    model: 'gemini-embedding-2',
+    contents: [
+      {
+        inlineData: {
+          data: buffer.toString('base64'),
+          mimeType,
+        },
+      },
+    ],
+    config: {
+      outputDimensionality: 1536,
+    },
+  })
+
+  const values = response.embeddings?.[0]?.values
+  if (!values) {
+    throw new Error('No embedding values returned from gemini-embedding-2')
+  }
+
+  return values
 }
 
 export async function generateEmbeddingActivity(params: GenerateEmbeddingParams): Promise<{
@@ -72,30 +64,25 @@ export async function generateEmbeddingActivity(params: GenerateEmbeddingParams)
   usage: Usage
 }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- context properties are fetched as JSON from the DB activity
-  const { agent, asset, dbProvider } = params.context as any
-
-  const config = agent.config as unknown as PrismaJson.AgentConfig
-  if (!config.provider) {
-    throw ApplicationFailure.create({
-      message: 'embedding provider not configured',
-      nonRetryable: true,
-    })
-  }
-  if (!config.model) {
-    throw ApplicationFailure.create({
-      message: 'embedding model not configured',
-      nonRetryable: true,
-    })
-  }
+  const { asset } = params.context as any
 
   if (!asset.mediaType) {
     throw ApplicationFailure.create({ message: 'asset has no media type', nonRetryable: true })
   }
 
-  const p = providerFactory(config.provider, dbProvider.config as PrismaJson.AiProviderSettings)
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) {
+    throw ApplicationFailure.create({
+      message: 'GEMINI_API_KEY environment variable is not configured',
+      nonRetryable: true,
+    })
+  }
+
+  const resolvedApiKey = process.env[apiKey] || apiKey
+  const ai = new GoogleGenAI({ apiKey: resolvedApiKey })
 
   const usage: Usage = {
-    model: config.model,
+    model: 'gemini-embedding-2',
     inputTokens: 0,
     outputTokens: 0,
   }
@@ -120,7 +107,7 @@ export async function generateEmbeddingActivity(params: GenerateEmbeddingParams)
   const results: GeneratedEmbedding[] = []
 
   if (isImage) {
-    const embVec = await p.generateImageEmbedding(config.model, data)
+    const embVec = await generateMultimodalEmbedding(ai, data, asset.mediaType)
     results.push({ embedding: embVec })
   } else if (isVideo) {
     const tmpFile = path.join(os.tmpdir(), `video-${Date.now()}.mp4`)
@@ -152,7 +139,7 @@ export async function generateEmbeddingActivity(params: GenerateEmbeddingParams)
         fs.unlinkSync(chunkTmp)
 
         try {
-          const embVec = await p.generateVideoEmbedding(config.model, chunkData)
+          const embVec = await generateMultimodalEmbedding(ai, chunkData, 'video/mp4')
           results.push({ embedding: embVec, startTime: start, endTime: end })
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (e: any) {

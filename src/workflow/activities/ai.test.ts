@@ -11,10 +11,21 @@ vi.mock('@/services/s3/s3', () => ({
   },
 }))
 
-vi.mock('@/services/ai/provider/gemini', () => {
+const mockEmbedContent = vi.fn().mockResolvedValue({
+  embeddings: [
+    {
+      values: [0.1, 0.2, 0.3],
+    },
+  ],
+})
+
+vi.mock('@google/genai', () => {
   return {
-    GeminiProvider: class {
-      generateImageEmbedding = vi.fn().mockResolvedValue([0.1, 0.2, 0.3])
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    GoogleGenAI: class {
+      models = {
+        embedContent: mockEmbedContent,
+      }
     },
   }
 })
@@ -22,6 +33,7 @@ vi.mock('@/services/ai/provider/gemini', () => {
 describe('AI Activities', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    process.env.GEMINI_API_KEY = 'test-key'
   })
 
   it('should generate image embedding', async () => {
@@ -34,7 +46,6 @@ describe('AI Activities', () => {
     const context = {
       agent: { config: { provider: 'google', model: 'gemini' } },
       asset: { id: 'a1', mediaType: 'image/png', storageKey: { key: 'test.png' } },
-      dbProvider: { config: { apiKey: 'key' } },
     }
 
     const res = await generateEmbeddingActivity({
