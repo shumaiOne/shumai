@@ -68,7 +68,7 @@ describe('Agent Autofill Workflow', () => {
     })
     mockActivities.extractAiMetadataActivity.mockResolvedValue(['/tmp/1.webp'])
     mockActivities.getProjectAutofillFieldsActivity.mockResolvedValue([
-      { id: 'f1', config: { name: 'F1', type: 'text' } },
+      { id: 'f1', key: 'f1', config: { name: 'F1', type: 'text' } },
     ])
     mockActivities.getAgentAutofillContextActivity.mockResolvedValue({ agent: { id: 'b1' } })
     mockActivities.getAgentWorkerQueueActivity.mockResolvedValue('agent_queue')

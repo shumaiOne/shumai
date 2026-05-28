@@ -309,14 +309,14 @@ export class MetadataService {
         await tx.assetMetadataValue.upsert({
           where: {
             // eslint-disable-next-line @typescript-eslint/naming-convention
-            assetId_fieldId: {
+            assetId_fieldKey: {
               assetId: resolvedAssetId,
-              fieldId: req.key,
+              fieldKey: req.key,
             },
           },
           create: {
             assetId: resolvedAssetId,
-            fieldId: req.key,
+            fieldKey: req.key,
             stringValue,
             numberValue,
             booleanValue,

@@ -235,14 +235,14 @@ export class SearchService {
     }
 
     // EAV queries on metadataValues
-    const baseFilter = { fieldId: field }
+    const baseFilter = { fieldKey: field }
 
     // Handle Empty/NotEmpty globally for EAV
     if (operator === 'isEmpty') {
-      return { metadataValues: { none: { fieldId: field } } }
+      return { metadataValues: { none: { fieldKey: field } } }
     }
     if (operator === 'isNotEmpty') {
-      return { metadataValues: { some: { fieldId: field } } }
+      return { metadataValues: { some: { fieldKey: field } } }
     }
 
     const valuePredicate = (): Prisma.AssetMetadataValueWhereInput => {
@@ -295,11 +295,11 @@ export class SearchService {
           // "is not" in EAV context: either the field doesn't exist,
           // OR it exists but has a different value.
           OR: [
-            { metadataValues: { none: { fieldId: field } } },
+            { metadataValues: { none: { fieldKey: field } } },
             {
               metadataValues: {
                 some: {
-                  fieldId: field,
+                  fieldKey: field,
                   NOT: valuePredicate(),
                 },
               },

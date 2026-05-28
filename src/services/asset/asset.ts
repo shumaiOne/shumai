@@ -1520,7 +1520,7 @@ export class AssetService {
           } else if (mv.booleanValue !== null) {
             value = mv.booleanValue
           }
-          fieldValues.push({ fieldId: mv.fieldId, value })
+          fieldValues.push({ fieldId: mv.fieldKey, value })
         }
       }
 

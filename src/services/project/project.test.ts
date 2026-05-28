@@ -330,7 +330,7 @@ describe('ProjectService', () => {
       await prisma.assetMetadataValue.create({
         data: {
           assetId: fileC.id,
-          fieldId: 'test-field',
+          fieldKey: 'test-field',
           stringValue: 'test-value',
         },
       })
@@ -370,7 +370,7 @@ describe('ProjectService', () => {
       expect(
         await prisma.assetMetadataValue.findUnique({
           // eslint-disable-next-line @typescript-eslint/naming-convention
-          where: { assetId_fieldId: { assetId: fileC.id, fieldId: 'test-field' } },
+          where: { assetId_fieldKey: { assetId: fileC.id, fieldKey: 'test-field' } },
         }),
       ).toBeNull()
       expect(await prisma.assetComment.findUnique({ where: { id: comment.id } })).toBeNull()
