@@ -183,20 +183,6 @@ const route = new Hono<{ Variables: { user: User } }>()
     const comments = await assetService.listComments(fileId, req)
     return c.json(comments)
   })
-  .get('/comments/:commentId', async (c) => {
-    const commentId = c.req.param('commentId')
-    const user = c.get('user')
-
-    await authzService.hasPermission({
-      user,
-      permission: Permission.Read,
-      type: ResourceType.Comment,
-      id: commentId,
-    })
-
-    const comment = await assetService.getComment(commentId)
-    return c.json(comment)
-  })
   .post('/files/restore', zValidator('json', restoreFilesRequestSchema), async (c) => {
     const user = c.get('user')
     const req = c.req.valid('json')

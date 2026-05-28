@@ -57,31 +57,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   onSelect,
   frameRate,
 }) => {
-  const isRunning =
-    !!initialMessage.sessionId &&
-    !!initialMessage.message &&
-    initialMessage.message in AI_PLACEHOLDERS
-
-  const { data: polledMessage } = useQuery({
-    queryKey: ['comments', initialMessage.id],
-    queryFn: async () => {
-      const res = await client.api.comments[':commentId'].$get({
-        param: { commentId: initialMessage.id! },
-      })
-      if (!res.ok) throw new Error('Failed to fetch comment')
-      return (await res.json()) as CommentInfo
-    },
-    enabled: !!teamId && isRunning,
-    refetchInterval: (query) => {
-      const data = query.state.data as CommentInfo
-      if (data && (!data.message || !(data.message in AI_PLACEHOLDERS))) {
-        return false
-      }
-      return 2000
-    },
-  })
-
-  const message = polledMessage || initialMessage
+  const message = initialMessage
   const hasDrawInfo =
     !!message.annotations && Array.isArray(message.annotations) && message.annotations.length > 0
   const creator = message.creator
