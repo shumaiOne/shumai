@@ -216,7 +216,7 @@ describe('TranscodeService', () => {
   })
 
   it('should create transcode tasks correctly', async () => {
-    const task = (await transcodeService.createVideoTranscodeTask('asset-123', {
+    const task = (await transcodeService.createVideoTranscodeTask('asset-123', 'proj-123', {
       videoStrategy: 'single',
       thumbnail: true,
     })) as WorkflowTask
@@ -224,7 +224,7 @@ describe('TranscodeService', () => {
     expect(task.assetId).toBe('asset-123')
     expect(task.type).toBe('transcode')
     expect(task.status).toBe('pending')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect((task.payload as any).videoStrategy).toBe('single')
+    expect(task.payload?.projectId).toBe('proj-123')
+    expect(task.payload?.transcode?.videoStrategy).toBe('single')
   })
 })

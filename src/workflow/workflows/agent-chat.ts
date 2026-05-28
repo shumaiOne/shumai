@@ -1,3 +1,4 @@
+import { ApplicationFailure } from '@temporalio/workflow'
 import type { WorkflowTask } from '@/generated/prisma/client'
 import {
   executeActivity,
@@ -6,12 +7,13 @@ import {
   TaskQueueDb,
 } from '@/workflow/workflow-utils'
 
-export async function aiChat(task: WorkflowTask): Promise<void> {
+export async function agentChat(task: WorkflowTask): Promise<void> {
   const {
     updateTaskStatusActivity,
     getAssetActivity,
     getCommentActivity,
-    aiChatActivity,
+    getAgentChatContextActivity,
+    agentChatActivity,
     createCommentActivity,
     updateCommentActivity,
     updateTaskUsageActivity,
@@ -29,23 +31,37 @@ export async function aiChat(task: WorkflowTask): Promise<void> {
       status: 'processing',
     })
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const payload = task.payload as any
+    const payload = task.payload
+    if (!payload) {
+      throw ApplicationFailure.create({ message: 'Task payload is missing', nonRetryable: true })
+    }
 
-    let sessionId = payload?.sessionId || payload?.session_id
+    const agentId = payload.agent?.agentId
+    if (!agentId) {
+      throw ApplicationFailure.create({ message: 'agentId missing in payload', nonRetryable: true })
+    }
+
+    let sessionId = payload.agent?.sessionId
 
     // 1. Get User Comment
-    const userCommentId = payload?.userCommentId
-    if (!userCommentId) throw new Error('userCommentId missing in payload')
+    const userCommentId = payload.agent?.userCommentId
+    if (!userCommentId) {
+      throw ApplicationFailure.create({
+        message: 'userCommentId missing in payload',
+        nonRetryable: true,
+      })
+    }
     const userComment = await executeActivity(TaskQueueDb, getCommentActivity, userCommentId)
-    if (!userComment) throw new Error('User comment not found')
+    if (!userComment) {
+      throw ApplicationFailure.create({ message: 'User comment not found', nonRetryable: true })
+    }
 
     // 2. Create Placeholder Comment
     const placeholder = await executeActivity(TaskQueueDb, createCommentActivity, {
       assetId: task.assetId,
       message: '__CHAT__',
       sessionId: sessionId || 'pending',
-      agentId: payload?.agentId,
+      agentId: agentId,
       replyToId: userComment.replyToId ?? userComment.id,
     })
     placeholderCommentId = placeholder.id
@@ -53,7 +69,7 @@ export async function aiChat(task: WorkflowTask): Promise<void> {
     // 3. Get Asset
     const asset = await executeActivity(TaskQueueDb, getAssetActivity, task.assetId)
     if (!asset || !asset.project) {
-      throw new Error('Asset or project not found')
+      throw ApplicationFailure.create({ message: 'Asset or project not found', nonRetryable: true })
     }
     const teamId = asset.project.teamId
 
@@ -61,20 +77,24 @@ export async function aiChat(task: WorkflowTask): Promise<void> {
     if (!sessionId) {
       sessionId = await executeActivity(TaskQueueDb, initializeAgentSessionActivity, {
         teamId,
-        agentId: payload.agentId,
+        agentId: agentId,
         userCommentId,
-        userId: payload.userId,
+        userId: payload.agent?.userId,
       })
     }
 
+    // 4b. Fetch Agent Context (Database Activity on db_queue)
+    const context = await executeActivity(TaskQueueDb, getAgentChatContextActivity, {
+      teamId,
+      agentId: agentId,
+    })
+
     // 5. Prepare Images (Attachments only)
     const attachmentImageUrls: string[] = []
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userCommentWithAttachments = userComment as any
-    if (userCommentWithAttachments?.attachments) {
-      for (const att of userCommentWithAttachments.attachments) {
-        if (att.asset?.mediaType?.startsWith('image/') && att.asset?.key) {
-          attachmentImageUrls.push(att.asset.key)
+    if (userComment?.attachments) {
+      for (const att of userComment.attachments) {
+        if (att.asset?.mediaType?.startsWith('image/') && att.asset?.storageKey?.key) {
+          attachmentImageUrls.push(att.asset.storageKey.key)
         }
       }
     }
@@ -87,7 +107,7 @@ export async function aiChat(task: WorkflowTask): Promise<void> {
 
     instruction += `\n\nIf you need to view the asset's media content (frames/images/video), call the 'analyze_asset_media' tool by passing the appropriate 'key' from the Asset Media Info above. Choose the most suitable format based on your capabilities and the user's request (e.g., use a poster or sprite for quick visual checks, or a transcode/raw file for detailed analysis).`
 
-    if (payload?.explicitMention) {
+    if (payload.agent?.explicitMention) {
       instruction += `\n\nThe user explicitly mentioned you in their message. You MUST reply to this message.`
     } else {
       instruction += `\n\nThe user did not explicitly mention you, but is replying in a thread where you are the participant. Let's decide if you should reply or not. If the user is not directly addressing you or doesn't need a response from you, you may choose to not reply. To choose not to reply, respond with exactly and only the text: __NO_REPLY__.`
@@ -103,17 +123,18 @@ export async function aiChat(task: WorkflowTask): Promise<void> {
 
     const agentWorkerQueue = await executeActivity(TaskQueueAgent, getAgentWorkerQueueActivity)
 
-    const aiResult = await executeActivity(agentWorkerQueue, aiChatActivity, {
+    const aiResult = await executeActivity(agentWorkerQueue, agentChatActivity, {
       teamId,
-      agentId: payload.agentId,
+      agentId: agentId,
       message: userComment.message || '',
       imageUrls: attachmentImageUrls,
       projectId: payload.projectId,
       folderId,
       agentsInstruction: instruction,
       sessionId,
-      userId: payload.userId,
-      explicitMention: payload?.explicitMention,
+      userId: payload.agent?.userId,
+      explicitMention: payload.agent?.explicitMention,
+      context,
     })
 
     // 7. Update Placeholder Comment
@@ -146,7 +167,7 @@ export async function aiChat(task: WorkflowTask): Promise<void> {
       output: { sessionId: aiResult.sessionId },
     })
   } catch (err) {
-    console.error(`AiChat failed for task ${task.id}:`, err)
+    console.error(`AgentChat failed for task ${task.id}:`, err)
 
     // Update placeholder comment with error message
     if (placeholderCommentId) {
@@ -175,4 +196,4 @@ export async function aiChat(task: WorkflowTask): Promise<void> {
   }
 }
 
-export const aiChatWorkflow = aiChat
+export const agentChatWorkflow = agentChat

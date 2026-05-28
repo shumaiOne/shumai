@@ -1,3 +1,4 @@
+import { ApplicationFailure } from '@temporalio/workflow'
 import type { WorkflowTask } from '@/generated/prisma/client'
 import {
   getActivities,
@@ -7,12 +8,13 @@ import {
   TaskQueueTranscode,
 } from '@/workflow/workflow-utils'
 
-export async function aiAutofillMedia(task: WorkflowTask): Promise<void> {
+export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
   const {
     updateTaskStatusActivity,
     getAssetActivity,
     extractAiMetadataActivity,
     getProjectAutofillFieldsActivity,
+    getAgentAutofillContextActivity,
     autofillAiActivity,
     updateTaskUsageActivity,
     updateAssetMetadataActivity,
@@ -36,12 +38,12 @@ export async function aiAutofillMedia(task: WorkflowTask): Promise<void> {
     })
 
     // 0. Create Placeholder Comment
-    const payload = task.payload as Record<string, unknown>
+    const payload = task.payload
     const placeholder = await executeActivity(TaskQueueDb, createCommentActivity, {
       assetId: task.assetId,
       message: '__AUTOFILL__',
-      sessionId: (payload?.session_id as string) || task.id,
-      agentId: (payload?.agentId as string) || 'default',
+      sessionId: payload?.agent?.sessionId || task.id,
+      agentId: payload?.agent?.agentId || 'default',
     })
     placeholderCommentId = placeholder.id
 
@@ -49,7 +51,7 @@ export async function aiAutofillMedia(task: WorkflowTask): Promise<void> {
     const asset = await executeActivity(TaskQueueDb, getAssetActivity, task.assetId)
     const key = asset?.storageKey?.key
     if (!asset || !asset.project || !key) {
-      throw new Error('Asset or project not found')
+      throw ApplicationFailure.create({ message: 'Asset or project not found', nonRetryable: true })
     }
     const teamId = asset.project.teamId
     const projectId = asset.project.id
@@ -107,6 +109,11 @@ export async function aiAutofillMedia(task: WorkflowTask): Promise<void> {
       return
     }
 
+    // 3b. Fetch Agent Context (Database Activity on db_queue)
+    const context = await executeActivity(TaskQueueDb, getAgentAutofillContextActivity, {
+      teamId,
+    })
+
     // 4. Call AI Service
     const agentWorkerQueue = await executeActivity(TaskQueueAgent, getAgentWorkerQueueActivity)
 
@@ -118,6 +125,7 @@ export async function aiAutofillMedia(task: WorkflowTask): Promise<void> {
         config: f.config as unknown as PrismaJson.FieldConfig,
         description: f.description,
       })),
+      context,
     })
 
     if (aiResult.usage) {
@@ -159,7 +167,7 @@ export async function aiAutofillMedia(task: WorkflowTask): Promise<void> {
       status: 'completed',
     })
   } catch (err) {
-    console.error(`AiAutofillMedia failed for task ${task.id}:`, err)
+    console.error(`AgentAutofillMedia failed for task ${task.id}:`, err)
 
     // Update placeholder comment with error message
     if (placeholderCommentId) {
@@ -191,4 +199,4 @@ export async function aiAutofillMedia(task: WorkflowTask): Promise<void> {
   }
 }
 
-export const aiAutofillWorkflow = aiAutofillMedia
+export const agentAutofillWorkflow = agentAutofillMedia

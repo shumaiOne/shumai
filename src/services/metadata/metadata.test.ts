@@ -190,5 +190,18 @@ describe('MetadataService', () => {
     await expect(metadataService.updateAssetMetadata(asset.id, reqs)).rejects.toThrow(
       'Field readonly-field is read-only',
     )
+
+    // With allowReadOnly=true, it should successfully update
+    await metadataService.updateAssetMetadata(asset.id, reqs, true)
+    const val = await prisma.assetMetadataValue.findUnique({
+      where: {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        assetId_fieldId: {
+          assetId: asset.id,
+          fieldId: field.key,
+        },
+      },
+    })
+    expect(val?.stringValue).toBe('some value')
   })
 })

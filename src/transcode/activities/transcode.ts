@@ -2,6 +2,7 @@ import { prisma } from '@/db'
 import { s3Service } from '@/services/s3/s3'
 import { transcodeService } from '@/transcode/transcode'
 import { metadataService } from '@/services/metadata/metadata'
+import { ApplicationFailure } from '@temporalio/activity'
 import * as path from 'path'
 import * as fs from 'fs'
 
@@ -72,7 +73,7 @@ export async function getMediaInfoActivity(params: {
     if (info.audioBitDepth !== undefined)
       metadataUpdates.push({ key: 'audio_bit_depth', value: info.audioBitDepth })
 
-    await metadataService.updateAssetMetadata(params.assetId, metadataUpdates)
+    await metadataService.updateAssetMetadata(params.assetId, metadataUpdates, true)
   } else if (isImage) {
     const info = await transcodeService.getImageInfo(params.filePath)
     mediaInfo.metadata = {
@@ -84,10 +85,14 @@ export async function getMediaInfoActivity(params: {
       hasAudio: false,
       format: {},
     }
-    await metadataService.updateAssetMetadata(params.assetId, [
-      { key: 'resolution_width', value: info.originalWidth },
-      { key: 'resolution_height', value: info.originalHeight },
-    ])
+    await metadataService.updateAssetMetadata(
+      params.assetId,
+      [
+        { key: 'resolution_width', value: info.originalWidth },
+        { key: 'resolution_height', value: info.originalHeight },
+      ],
+      true,
+    )
   }
 
   return mediaInfo
@@ -275,7 +280,12 @@ export async function updateAssetMediaActivity(params: UpdateAssetMediaActivityP
     include: { storageKey: true },
   })
   const key = asset?.storageKey?.key
-  if (!asset || !key) throw new Error('Asset not found or has no key')
+  if (!asset || !key) {
+    throw ApplicationFailure.create({
+      message: 'Asset not found or has no key',
+      nonRetryable: true,
+    })
+  }
 
   const infoKey = path.join(path.dirname(key), 'info.json')
   const buffer = Buffer.from(JSON.stringify(params.mediaInfo))

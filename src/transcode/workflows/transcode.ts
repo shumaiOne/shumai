@@ -1,4 +1,5 @@
 import type { WorkflowTask } from '@/generated/prisma/client'
+import { ApplicationFailure } from '@temporalio/workflow'
 import {
   getActivities,
   executeActivity,
@@ -39,7 +40,12 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
     // 2. Get Asset
     const asset = await executeActivity(TaskQueueDb, getAssetActivity, task.assetId)
     const key = asset?.storageKey?.key
-    if (!asset || !key) throw new Error('Asset not found or has no key')
+    if (!asset || !key) {
+      throw ApplicationFailure.create({
+        message: 'Asset not found or has no key',
+        nonRetryable: true,
+      })
+    }
 
     // 3. Get Worker-Specific Queue for Transcode
     workerQueue = await executeActivity(TaskQueueTranscode, getTranscodeWorkerQueueActivity)
@@ -52,7 +58,7 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
     tmpDir = download.tmpDir
 
     // 5. Get Media Info
-    const spec = task.payload as PrismaJson.TaskSpec
+    const spec = task.payload?.transcode || {}
     const mediaInfo = await executeActivity(workerQueue, getMediaInfoActivity, {
       filePath,
       assetId: asset.id,

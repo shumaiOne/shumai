@@ -1,6 +1,10 @@
 import { prisma } from '@/db'
+import { ApplicationFailure } from '@temporalio/activity'
 import type { AgentMessage, SessionTreeEntry } from '@earendil-works/pi-agent-core'
 import { ulid } from 'ulid'
+import { metadataService } from '@/services/metadata/metadata'
+import { UpdateAssetMetadataRequest } from '@/dtos/metadata'
+import { WorkflowTaskStatus, AssetStatus } from '@/generated/prisma/client'
 
 export interface InitializeAgentSessionParams {
   teamId: string
@@ -207,7 +211,9 @@ export async function createCommentActivity(params: CreateCommentParams) {
       where: { id: params.assetId },
       include: { project: true },
     })
-    if (!asset || !asset.project) throw new Error('asset or project not found')
+    if (!asset || !asset.project) {
+      throw ApplicationFailure.create({ message: 'asset or project not found', nonRetryable: true })
+    }
     const teamId = asset.project.teamId
 
     // Ensure user exists for agent
@@ -275,6 +281,332 @@ export async function updateCommentActivity(params: UpdateCommentParams) {
     data: {
       message: params.message,
       ...(params.sessionId !== undefined ? { sessionId: params.sessionId } : {}),
+    },
+  })
+}
+
+// ==========================================
+// New Context-Fetching and Embedding DB Activities
+// ==========================================
+
+export interface GetAgentChatContextParams {
+  teamId: string
+  agentId: string
+}
+
+export async function getAgentChatContextActivity(params: GetAgentChatContextParams) {
+  const team = await prisma.team.findUnique({
+    where: { id: params.teamId },
+  })
+  if (!team) {
+    throw ApplicationFailure.create({ message: 'failed to get team', nonRetryable: true })
+  }
+
+  const agent = await prisma.agent.findUnique({
+    where: { id: params.agentId },
+    include: {
+      provider: true,
+      modelRef: true,
+    },
+  })
+  if (!agent) {
+    throw ApplicationFailure.create({
+      message: `agent ${params.agentId} not found`,
+      nonRetryable: true,
+    })
+  }
+
+  if (!agent.provider) {
+    throw ApplicationFailure.create({
+      message: 'agent has no provider configured',
+      nonRetryable: true,
+    })
+  }
+  if (!agent.modelRef) {
+    throw ApplicationFailure.create({
+      message: 'agent has no model configured',
+      nonRetryable: true,
+    })
+  }
+
+  const providerName = agent.provider.name
+
+  // Fetch the required provider configuration from database
+  const dbProviders = await prisma.provider.findMany({
+    where: { teamId: params.teamId, name: providerName },
+    include: { models: true },
+  })
+
+  // Fetch team skills
+  const teamSkills = await prisma.skill.findMany({
+    where: { teamId: params.teamId },
+  })
+
+  const sandbox = await prisma.sandbox.findUnique({
+    where: { teamId: params.teamId },
+  })
+  const allowedDomains = sandbox?.allowedDomains || []
+
+  return {
+    agent,
+    dbProviders,
+    teamSkills,
+    allowedDomains,
+  }
+}
+
+export interface GetAgentAutofillContextParams {
+  teamId: string
+}
+
+export async function getAgentAutofillContextActivity(params: GetAgentAutofillContextParams) {
+  const agent = await prisma.agent.findFirst({
+    where: {
+      type: 'autofill',
+      enabled: true,
+      teamId: params.teamId,
+    },
+  })
+  if (!agent) {
+    throw ApplicationFailure.create({
+      message: 'no autofill agent found for team',
+      nonRetryable: true,
+    })
+  }
+
+  const team = await prisma.team.findUnique({
+    where: { id: params.teamId },
+  })
+  if (!team) {
+    throw ApplicationFailure.create({ message: 'failed to get team', nonRetryable: true })
+  }
+
+  // Find provider/model configuration
+  const agentWithDetails = await prisma.agent.findUnique({
+    where: { id: agent.id },
+    include: {
+      provider: true,
+      modelRef: true,
+    },
+  })
+  if (!agentWithDetails) {
+    throw ApplicationFailure.create({ message: `agent ${agent.id} not found`, nonRetryable: true })
+  }
+  if (!agentWithDetails.provider) {
+    throw ApplicationFailure.create({
+      message: 'agent has no provider configured',
+      nonRetryable: true,
+    })
+  }
+  if (!agentWithDetails.modelRef) {
+    throw ApplicationFailure.create({
+      message: 'agent has no model configured',
+      nonRetryable: true,
+    })
+  }
+
+  const providerName = agentWithDetails.provider.name
+
+  // Fetch the required provider configuration from database
+  const dbProviders = await prisma.provider.findMany({
+    where: { teamId: params.teamId, name: providerName },
+    include: { models: true },
+  })
+
+  // Fetch team skills
+  const teamSkills = await prisma.skill.findMany({
+    where: { teamId: params.teamId },
+  })
+
+  const sandbox = await prisma.sandbox.findUnique({
+    where: { teamId: params.teamId },
+  })
+  const allowedDomains = sandbox?.allowedDomains || []
+
+  return {
+    agent: agentWithDetails,
+    dbProviders,
+    teamSkills,
+    allowedDomains,
+  }
+}
+
+export interface GetEmbeddingContextParams {
+  teamId: string
+  assetId: string
+}
+
+export async function getEmbeddingContextActivity(params: GetEmbeddingContextParams) {
+  const team = await prisma.team.findUnique({
+    where: { id: params.teamId },
+  })
+  if (!team) {
+    throw ApplicationFailure.create({ message: 'failed to get team', nonRetryable: true })
+  }
+
+  const agent = await prisma.agent.findFirst({
+    where: {
+      type: 'embedding',
+      enabled: true,
+      user: { teamMembers: { some: { teamId: params.teamId } } },
+    },
+  })
+  if (!agent) {
+    throw ApplicationFailure.create({
+      message: 'embedding feature is disabled or agent not found',
+      nonRetryable: true,
+    })
+  }
+
+  const config = agent.config as unknown as PrismaJson.AgentConfig
+  if (!config.provider) {
+    throw ApplicationFailure.create({
+      message: 'embedding provider not configured',
+      nonRetryable: true,
+    })
+  }
+  if (!config.model) {
+    throw ApplicationFailure.create({
+      message: 'embedding model not configured',
+      nonRetryable: true,
+    })
+  }
+
+  const asset = await prisma.asset.findUnique({
+    where: { id: params.assetId },
+    include: { storageKey: true },
+  })
+  if (!asset) {
+    throw ApplicationFailure.create({ message: 'failed to get asset', nonRetryable: true })
+  }
+  if (!asset.mediaType) {
+    throw ApplicationFailure.create({ message: 'asset has no media type', nonRetryable: true })
+  }
+
+  const dbProvider = await prisma.provider.findFirst({
+    where: { teamId: params.teamId, name: config.provider },
+  })
+  if (!dbProvider) {
+    throw ApplicationFailure.create({
+      message: `Provider ${config.provider} not found in database`,
+      nonRetryable: true,
+    })
+  }
+
+  return {
+    agent,
+    asset,
+    dbProvider,
+  }
+}
+
+export interface SaveAssetEmbeddingsParams {
+  assetId: string
+  embeddings: Array<{
+    embedding: number[]
+    startTime?: number
+    endTime?: number
+  }>
+}
+
+export async function saveAssetEmbeddingsActivity(params: SaveAssetEmbeddingsParams) {
+  for (const item of params.embeddings) {
+    const embVec = JSON.stringify(item.embedding)
+    if (item.startTime !== undefined && item.endTime !== undefined) {
+      await prisma.$executeRaw`
+        INSERT INTO asset_embeddings (id, asset_id, embedding, start_time, end_time, updated_at)
+        VALUES (gen_random_uuid()::text, ${params.assetId}, ${embVec}::vector, ${item.startTime}, ${item.endTime}, NOW())
+      `
+    } else {
+      await prisma.$executeRaw`
+        INSERT INTO asset_embeddings (id, asset_id, embedding, updated_at)
+        VALUES (gen_random_uuid()::text, ${params.assetId}, ${embVec}::vector, NOW())
+      `
+    }
+  }
+}
+
+// ==========================================
+// Moved Database Activities
+// ==========================================
+
+export async function getAssetActivity(assetId: string) {
+  return prisma.asset.findUnique({
+    where: { id: assetId },
+    include: {
+      storageKey: true,
+      project: {
+        include: {
+          team: true,
+        },
+      },
+    },
+  })
+}
+
+export async function getCommentActivity(commentId: string) {
+  return prisma.assetComment.findUnique({
+    where: { id: commentId },
+    include: { attachments: { include: { asset: { include: { storageKey: true } } } } },
+  })
+}
+
+export async function getProjectAutofillFieldsActivity(projectId: string) {
+  const fields = await metadataService.listProjectFields('', projectId)
+  return fields.filter((f) => f.field.aiAutofill).map((f) => f.field)
+}
+
+export interface UpdateAssetMetadataParams {
+  assetId: string
+  metadata: UpdateAssetMetadataRequest[]
+}
+
+export async function updateAssetMetadataActivity(params: UpdateAssetMetadataParams) {
+  return metadataService.updateAssetMetadata(params.assetId, params.metadata)
+}
+
+export interface UpdateTaskStatusParams {
+  taskId: string
+  status: WorkflowTaskStatus
+  output?: unknown
+}
+
+export async function updateTaskStatusActivity(params: UpdateTaskStatusParams): Promise<void> {
+  await prisma.workflowTask.update({
+    where: { id: params.taskId },
+    data: {
+      status: params.status,
+      output: params.output,
+    },
+  })
+}
+
+export interface UpdateAssetStatusParams {
+  assetId: string
+  status: AssetStatus
+}
+
+export async function updateAssetStatusActivity(params: UpdateAssetStatusParams): Promise<void> {
+  await prisma.asset.update({
+    where: { id: params.assetId },
+    data: { status: params.status },
+  })
+}
+
+export interface UpdateTaskUsageParams {
+  taskId: string
+  inputTokens: number
+  outputTokens: number
+  model: string
+}
+
+export async function updateTaskUsageActivity(params: UpdateTaskUsageParams): Promise<void> {
+  await prisma.workflowTask.update({
+    where: { id: params.taskId },
+    data: {
+      inputTokens: params.inputTokens,
+      outputTokens: params.outputTokens,
+      model: params.model,
     },
   })
 }

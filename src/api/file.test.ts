@@ -40,7 +40,6 @@ describe('file api', () => {
     vi.spyOn(assetService, 'deleteAssets').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'createComment').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'listComments').mockImplementation(vi.fn())
-    vi.spyOn(assetService, 'getComment').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'restoreAssets').mockImplementation(vi.fn())
     vi.spyOn(metadataService, 'updateAssetMetadata').mockImplementation(vi.fn())
     vi.spyOn(notificationService, 'create').mockImplementation(vi.fn())

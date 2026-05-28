@@ -233,6 +233,28 @@ describe('Team API', () => {
 - Generated Client: `src/generated/prisma`
 - Config: `prisma.config.ts` (Required for Prisma 7+)
 
+### Strict JSON Typing
+
+We use `prisma-json-types-generator` to enforce strict type-safety for Prisma `Json` columns, rather than typing them as generic `JsonValue`.
+
+- **Defining Types**: In `prisma/schema.prisma`, annotate the JSON column with a triple-slash comment specifying the type name from `src/prisma-json-types.ts`:
+  ```prisma
+  model WorkflowTask {
+    /// [WorkflowTaskPayload]
+    payload Json?
+  }
+  ```
+- **Declaring Types**: All typed JSON shapes must be defined in `src/prisma-json-types.ts` under the global `PrismaJson` namespace:
+  ```typescript
+  declare global {
+    namespace PrismaJson {
+      export type WorkflowTaskPayload = Record<string, unknown> | TaskSpec | AiTaskPayload
+    }
+  }
+  ```
+- **Usage**: When accessing these columns on the Prisma client (e.g. `task.payload`), the field will automatically be typed as the declared shape (e.g., `PrismaJson.WorkflowTaskPayload | null`).
+- **Accessing Properties**: When working with union types or custom structures in the JSON payload, use proper narrowing or type guards instead of casting to `any`. Direct `as any` casting should be avoided.
+
 ### Migration Workflow
 
 - Development: Use `bun --bun run prisma migrate dev` to create and apply migrations during development.
@@ -281,6 +303,26 @@ We use a custom workflow engine that supports both **Local** (polling-based) and
     - `LocalExecutor`: Polls the database for `pending` tasks and executes them directly.
     - `TemporalExecutor`: Submits tasks to a Temporal cluster.
 4.  **Automatic Submission**: New `WorkflowTask` records are automatically submitted to the `WorkflowService` via a Prisma Client Extension defined in `src/db.ts`.
+
+### Non-Retryable Error Handling
+
+To prevent Temporal from indefinitely retrying fatal, expected business validation failures (e.g., missing records, invalid configurations, missing parameters), **never throw standard `Error` objects from workflow or activity logic.** Instead, throw a non-retryable `ApplicationFailure`.
+
+**Mandatory Requirement**: You **MUST** set `nonRetryable: true` in the options object passed to `ApplicationFailure.create`. Standard errors or `ApplicationFailure` objects without `nonRetryable: true` will cause Temporal to retry the activity or workflow indefinitely.
+
+- **Workflow Boundary**: In workflows, import `ApplicationFailure` from `@temporalio/workflow`:
+  ```typescript
+  import { ApplicationFailure } from '@temporalio/workflow'
+  throw ApplicationFailure.create({ message: 'agentId missing in payload', nonRetryable: true })
+  ```
+- **Activity Boundary**: In activities, import `ApplicationFailure` from `@temporalio/activity`:
+  ```typescript
+  import { ApplicationFailure } from '@temporalio/activity'
+  throw ApplicationFailure.create({
+    message: 'no autofill agent found for team',
+    nonRetryable: true,
+  })
+  ```
 
 ### Temporal Workflow Patterns
 

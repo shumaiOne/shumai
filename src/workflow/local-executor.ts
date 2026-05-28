@@ -2,9 +2,9 @@ import { prisma } from '@/db'
 import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '@/generated/prisma/client'
 import { Executor } from './executor'
 import { aiTranscriptionMedia } from './workflows/ai-transcription'
-import { aiEmbeddingMedia } from './workflows/ai-embedding'
-import { aiAutofillMedia } from './workflows/ai-autofill'
-import { aiChat } from './workflows/ai-chat'
+import { agentEmbeddingMedia } from './workflows/agent-embedding'
+import { agentAutofillMedia } from './workflows/agent-autofill'
+import { agentChat } from './workflows/agent-chat'
 import { transcodeMedia } from '@/transcode/workflows/transcode'
 import { activities } from './activities/index'
 import { logger } from '@/logger'
@@ -87,13 +87,13 @@ export class LocalExecutor implements Executor {
           await aiTranscriptionMedia(task)
           break
         case WorkflowTaskType.ai_embedding:
-          await aiEmbeddingMedia(task)
+          await agentEmbeddingMedia(task)
           break
         case WorkflowTaskType.ai_metadata_autofill:
-          await aiAutofillMedia(task)
+          await agentAutofillMedia(task)
           break
         case WorkflowTaskType.chat:
-          await aiChat(task)
+          await agentChat(task)
           break
         case WorkflowTaskType.transcode:
           await transcodeMedia(task)

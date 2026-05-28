@@ -400,26 +400,32 @@ export class TranscodeService {
 
   // --- Task Creation Helpers ---
 
-  async createVideoTranscodeTask(assetId: string, spec: PrismaJson.TaskSpec) {
+  async createVideoTranscodeTask(assetId: string, projectId: string, spec: PrismaJson.TaskSpec) {
     return this.prismaClient.workflowTask.create({
       data: {
         assetId,
+        projectId,
         type: WorkflowTaskType.transcode,
         status: WorkflowTaskStatus.pending,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        payload: spec as any,
+        payload: {
+          projectId,
+          transcode: spec,
+        },
       },
     })
   }
 
-  async createImageTranscodeTask(assetId: string, spec: PrismaJson.TaskSpec) {
+  async createImageTranscodeTask(assetId: string, projectId: string, spec: PrismaJson.TaskSpec) {
     return this.prismaClient.workflowTask.create({
       data: {
         assetId,
+        projectId,
         type: WorkflowTaskType.transcode,
         status: WorkflowTaskStatus.pending,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        payload: spec as any,
+        payload: {
+          projectId,
+          transcode: spec,
+        },
       },
     })
   }

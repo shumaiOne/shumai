@@ -1,10 +1,13 @@
+import { ApplicationFailure } from '@temporalio/workflow'
 import type { WorkflowTask } from '@/generated/prisma/client'
 import { getActivities, executeActivity, TaskQueueDb, TaskQueueAgent } from '../workflow-utils'
 
-export async function aiEmbeddingMedia(task: WorkflowTask): Promise<void> {
+export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
   const {
     updateTaskStatusActivity,
+    getEmbeddingContextActivity,
     generateEmbeddingActivity,
+    saveAssetEmbeddingsActivity,
     updateTaskUsageActivity,
     createCommentActivity,
     updateCommentActivity,
@@ -21,16 +24,24 @@ export async function aiEmbeddingMedia(task: WorkflowTask): Promise<void> {
     })
 
     // 0. Create Placeholder Comment
-    const payload = task.payload as Record<string, unknown>
+    const payload = task.payload
     const placeholder = await executeActivity(TaskQueueDb, createCommentActivity, {
       assetId: task.assetId,
       message: '__EMBEDDING__',
-      sessionId: (payload?.session_id as string) || task.id,
-      agentId: (payload?.agentId as string) || 'default',
+      sessionId: payload?.agent?.sessionId || task.id,
+      agentId: payload?.agent?.agentId || 'default',
     })
     placeholderCommentId = placeholder.id
 
-    if (!task.teamId) throw new Error('Task has no teamId')
+    if (!task.teamId) {
+      throw ApplicationFailure.create({ message: 'Task has no teamId', nonRetryable: true })
+    }
+
+    // 1. Fetch Agent Context (Database Activity on db_queue)
+    const context = await executeActivity(TaskQueueDb, getEmbeddingContextActivity, {
+      teamId: task.teamId,
+      assetId: task.assetId,
+    })
 
     const agentWorkerQueue = await executeActivity(TaskQueueAgent, getAgentWorkerQueueActivity)
 
@@ -38,15 +49,24 @@ export async function aiEmbeddingMedia(task: WorkflowTask): Promise<void> {
     const result = await executeActivity(agentWorkerQueue, generateEmbeddingActivity, {
       teamId: task.teamId,
       assetId: task.assetId,
+      context,
     })
 
+    // Save computed embeddings
+    if (result.embeddings.length > 0) {
+      await executeActivity(TaskQueueDb, saveAssetEmbeddingsActivity, {
+        assetId: task.assetId,
+        embeddings: result.embeddings,
+      })
+    }
+
     // Update Usage
-    if (result) {
+    if (result.usage) {
       await executeActivity(TaskQueueDb, updateTaskUsageActivity, {
         taskId: task.id,
-        inputTokens: result.inputTokens,
-        outputTokens: result.outputTokens,
-        model: result.model,
+        inputTokens: result.usage.inputTokens,
+        outputTokens: result.usage.outputTokens,
+        model: result.usage.model,
       })
     }
 
@@ -64,7 +84,7 @@ export async function aiEmbeddingMedia(task: WorkflowTask): Promise<void> {
       status: 'completed',
     })
   } catch (err) {
-    console.error(`AiEmbeddingMedia failed for task ${task.id}:`, err)
+    console.error(`AgentEmbeddingMedia failed for task ${task.id}:`, err)
 
     // Update placeholder comment with error message
     if (placeholderCommentId) {
@@ -88,4 +108,4 @@ export async function aiEmbeddingMedia(task: WorkflowTask): Promise<void> {
   }
 }
 
-export const aiEmbeddingWorkflow = aiEmbeddingMedia
+export const agentEmbeddingWorkflow = agentEmbeddingMedia

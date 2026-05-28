@@ -1,3 +1,4 @@
+import { ApplicationFailure } from '@temporalio/workflow'
 import type { WorkflowTask } from '@/generated/prisma/client'
 import {
   getActivities,
@@ -31,12 +32,12 @@ export async function aiTranscriptionMedia(task: WorkflowTask): Promise<void> {
     })
 
     // 0. Create Placeholder Comment
-    const payload = task.payload as Record<string, unknown>
+    const payload = task.payload
     const placeholder = await executeActivity(TaskQueueDb, createCommentActivity, {
       assetId: task.assetId,
       message: '__TRANSCRIPTION__',
-      sessionId: (payload?.session_id as string) || task.id,
-      agentId: (payload?.agentId as string) || 'default',
+      sessionId: payload?.agent?.sessionId || task.id,
+      agentId: payload?.agent?.agentId || 'default',
     })
     placeholderCommentId = placeholder.id
 
@@ -44,7 +45,7 @@ export async function aiTranscriptionMedia(task: WorkflowTask): Promise<void> {
     const asset = await executeActivity(TaskQueueDb, getAssetActivity, task.assetId)
     const key = asset?.storageKey?.key
     if (!asset || !key) {
-      throw new Error('Asset not found')
+      throw ApplicationFailure.create({ message: 'Asset not found', nonRetryable: true })
     }
 
     // 2. Extract Audio (Requires FFmpeg)
@@ -67,7 +68,10 @@ export async function aiTranscriptionMedia(task: WorkflowTask): Promise<void> {
     })
 
     if (generatedFiles.length === 0) {
-      throw new Error('Failed to extract audio for transcription')
+      throw ApplicationFailure.create({
+        message: 'Failed to extract audio for transcription',
+        nonRetryable: true,
+      })
     }
 
     // Simulate work
