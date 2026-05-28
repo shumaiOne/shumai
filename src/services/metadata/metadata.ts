@@ -258,7 +258,11 @@ export class MetadataService {
     })
   }
 
-  async updateAssetMetadata(assetId: string, reqs: UpdateAssetMetadataRequest[]): Promise<void> {
+  async updateAssetMetadata(
+    assetId: string,
+    reqs: UpdateAssetMetadataRequest[],
+    allowReadOnly = false,
+  ): Promise<void> {
     const resolvedAssetId = await assetService.resolveLatestVersionId(assetId)
 
     await this.client.$transaction(async (tx) => {
@@ -266,7 +270,7 @@ export class MetadataService {
         const field = await tx.metadataField.findUnique({
           where: { key: req.key },
         })
-        if (field?.readOnly) {
+        if (field?.readOnly && !allowReadOnly) {
           throw new Error(`Field ${field.key} is read-only`)
         }
 

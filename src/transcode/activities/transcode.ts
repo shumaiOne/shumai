@@ -72,7 +72,7 @@ export async function getMediaInfoActivity(params: {
     if (info.audioBitDepth !== undefined)
       metadataUpdates.push({ key: 'audio_bit_depth', value: info.audioBitDepth })
 
-    await metadataService.updateAssetMetadata(params.assetId, metadataUpdates)
+    await metadataService.updateAssetMetadata(params.assetId, metadataUpdates, true)
   } else if (isImage) {
     const info = await transcodeService.getImageInfo(params.filePath)
     mediaInfo.metadata = {
@@ -84,10 +84,14 @@ export async function getMediaInfoActivity(params: {
       hasAudio: false,
       format: {},
     }
-    await metadataService.updateAssetMetadata(params.assetId, [
-      { key: 'resolution_width', value: info.originalWidth },
-      { key: 'resolution_height', value: info.originalHeight },
-    ])
+    await metadataService.updateAssetMetadata(
+      params.assetId,
+      [
+        { key: 'resolution_width', value: info.originalWidth },
+        { key: 'resolution_height', value: info.originalHeight },
+      ],
+      true,
+    )
   }
 
   return mediaInfo
