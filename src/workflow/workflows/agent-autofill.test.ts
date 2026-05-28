@@ -55,11 +55,21 @@ describe('Agent Autofill Workflow', () => {
     }
 
     mockActivities.createCommentActivity.mockResolvedValue({ id: 'comment-placeholder-id' })
-    mockActivities.getAssetActivity.mockResolvedValue({ id: 'a1', storageKey: { key: 'asset-key' }, project: { id: 'p1', teamId: 't1' }, mediaType: 'image/png' })
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'a1',
+      storageKey: { key: 'asset-key' },
+      project: { id: 'p1', teamId: 't1' },
+      mediaType: 'image/png',
+    })
     mockActivities.getTranscodeWorkerQueueActivity.mockResolvedValue('transcode_queue')
-    mockActivities.downloadMediaToTmpActivity.mockResolvedValue({ filePath: '/tmp/test.png', tmpDir: '/tmp' })
+    mockActivities.downloadMediaToTmpActivity.mockResolvedValue({
+      filePath: '/tmp/test.png',
+      tmpDir: '/tmp',
+    })
     mockActivities.extractAiMetadataActivity.mockResolvedValue(['/tmp/1.webp'])
-    mockActivities.getProjectAutofillFieldsActivity.mockResolvedValue([{ id: 'f1', config: { name: 'F1', type: 'text' } }])
+    mockActivities.getProjectAutofillFieldsActivity.mockResolvedValue([
+      { id: 'f1', config: { name: 'F1', type: 'text' } },
+    ])
     mockActivities.getAgentAutofillContextActivity.mockResolvedValue({ agent: { id: 'b1' } })
     mockActivities.getAgentWorkerQueueActivity.mockResolvedValue('agent_queue')
     mockActivities.autofillAiActivity.mockResolvedValue({

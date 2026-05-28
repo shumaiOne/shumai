@@ -241,7 +241,11 @@ declare global {
     // ----------------------------------------------------------------------
     // Workflow Task Payload
     // ----------------------------------------------------------------------
-    export type WorkflowTaskPayload = Record<string, unknown> | TaskSpec | AiTaskPayload
+    export interface WorkflowTaskPayload {
+      projectId: string
+      transcode?: TaskSpec
+      agent?: AgentTaskPayload
+    }
 
     // ----------------------------------------------------------------------
     // Task Spec & Payload
@@ -254,8 +258,12 @@ declare global {
       poster?: boolean
     }
 
-    export interface AiTaskPayload {
-      projectId: string
+    export interface AgentTaskPayload {
+      agentId?: string
+      userId?: string
+      sessionId?: string
+      userCommentId?: string
+      explicitMention?: boolean
     }
 
     // ----------------------------------------------------------------------

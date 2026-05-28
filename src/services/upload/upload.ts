@@ -254,7 +254,10 @@ export class UploadService {
             status: WorkflowTaskStatus.pending,
             teamId: team.id,
             projectId: asset.projectId,
-            payload: { projectId: asset.projectId, agentId: autofillAgent.id },
+            payload: {
+              projectId: asset.projectId!,
+              agent: { agentId: autofillAgent.id },
+            },
           },
         })
       }
@@ -275,7 +278,10 @@ export class UploadService {
             status: WorkflowTaskStatus.pending,
             teamId: team.id,
             projectId: asset.projectId,
-            payload: { projectId: asset.projectId, agentId: transcriptionAgent.id },
+            payload: {
+              projectId: asset.projectId!,
+              agent: { agentId: transcriptionAgent.id },
+            },
           },
         })
       }
@@ -298,7 +304,10 @@ export class UploadService {
               status: WorkflowTaskStatus.pending,
               teamId: team.id,
               projectId: asset.projectId,
-              payload: { projectId: asset.projectId, agentId: embeddingAgent.id },
+              payload: {
+                projectId: asset.projectId!,
+                agent: { agentId: embeddingAgent.id },
+              },
             },
           })
         }

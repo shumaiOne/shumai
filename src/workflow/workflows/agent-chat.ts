@@ -30,13 +30,16 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       status: 'processing',
     })
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const payload = task.payload as any
+    const payload = task.payload
+    if (!payload) throw new Error('Task payload is missing')
 
-    let sessionId = payload?.sessionId || payload?.session_id
+    const agentId = payload.agent?.agentId
+    if (!agentId) throw new Error('agentId missing in payload')
+
+    let sessionId = payload.agent?.sessionId
 
     // 1. Get User Comment
-    const userCommentId = payload?.userCommentId
+    const userCommentId = payload.agent?.userCommentId
     if (!userCommentId) throw new Error('userCommentId missing in payload')
     const userComment = await executeActivity(TaskQueueDb, getCommentActivity, userCommentId)
     if (!userComment) throw new Error('User comment not found')
@@ -46,7 +49,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       assetId: task.assetId,
       message: '__CHAT__',
       sessionId: sessionId || 'pending',
-      agentId: payload?.agentId,
+      agentId: agentId,
       replyToId: userComment.replyToId ?? userComment.id,
     })
     placeholderCommentId = placeholder.id
@@ -62,26 +65,24 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     if (!sessionId) {
       sessionId = await executeActivity(TaskQueueDb, initializeAgentSessionActivity, {
         teamId,
-        agentId: payload.agentId,
+        agentId: agentId,
         userCommentId,
-        userId: payload.userId,
+        userId: payload.agent?.userId,
       })
     }
 
     // 4b. Fetch Agent Context (Database Activity on db_queue)
     const context = await executeActivity(TaskQueueDb, getAgentChatContextActivity, {
       teamId,
-      agentId: payload.agentId,
+      agentId: agentId,
     })
 
     // 5. Prepare Images (Attachments only)
     const attachmentImageUrls: string[] = []
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userCommentWithAttachments = userComment as any
-    if (userCommentWithAttachments?.attachments) {
-      for (const att of userCommentWithAttachments.attachments) {
-        if (att.asset?.mediaType?.startsWith('image/') && att.asset?.key) {
-          attachmentImageUrls.push(att.asset.key)
+    if (userComment?.attachments) {
+      for (const att of userComment.attachments) {
+        if (att.asset?.mediaType?.startsWith('image/') && att.asset?.storageKey?.key) {
+          attachmentImageUrls.push(att.asset.storageKey.key)
         }
       }
     }
@@ -94,7 +95,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
 
     instruction += `\n\nIf you need to view the asset's media content (frames/images/video), call the 'analyze_asset_media' tool by passing the appropriate 'key' from the Asset Media Info above. Choose the most suitable format based on your capabilities and the user's request (e.g., use a poster or sprite for quick visual checks, or a transcode/raw file for detailed analysis).`
 
-    if (payload?.explicitMention) {
+    if (payload.agent?.explicitMention) {
       instruction += `\n\nThe user explicitly mentioned you in their message. You MUST reply to this message.`
     } else {
       instruction += `\n\nThe user did not explicitly mention you, but is replying in a thread where you are the participant. Let's decide if you should reply or not. If the user is not directly addressing you or doesn't need a response from you, you may choose to not reply. To choose not to reply, respond with exactly and only the text: __NO_REPLY__.`
@@ -112,15 +113,15 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
 
     const aiResult = await executeActivity(agentWorkerQueue, agentChatActivity, {
       teamId,
-      agentId: payload.agentId,
+      agentId: agentId,
       message: userComment.message || '',
       imageUrls: attachmentImageUrls,
       projectId: payload.projectId,
       folderId,
       agentsInstruction: instruction,
       sessionId,
-      userId: payload.userId,
-      explicitMention: payload?.explicitMention,
+      userId: payload.agent?.userId,
+      explicitMention: payload.agent?.explicitMention,
       context,
     })
 

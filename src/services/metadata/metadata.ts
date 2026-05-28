@@ -1,15 +1,14 @@
 import { prisma } from '@/db'
-import type { Prisma } from '@/generated/prisma/client.ts'
-import { systemFields } from './system_fields'
-import { ulid } from 'ulid'
 import {
   CreateFieldRequest,
-  UpdateFieldRequest,
   ProjectFieldOrder,
   UpdateAssetMetadataRequest,
+  UpdateFieldRequest,
 } from '@/dtos/metadata'
-import '@/prisma-json-types'
+import type { Prisma } from '@/generated/prisma/client.ts'
+import { ulid } from 'ulid'
 import { assetService } from '../asset/asset'
+import { systemFields } from './system_fields'
 
 export class MetadataService {
   constructor(private client: typeof prisma = prisma) {}

@@ -233,6 +233,28 @@ describe('Team API', () => {
 - Generated Client: `src/generated/prisma`
 - Config: `prisma.config.ts` (Required for Prisma 7+)
 
+### Strict JSON Typing
+
+We use `prisma-json-types-generator` to enforce strict type-safety for Prisma `Json` columns, rather than typing them as generic `JsonValue`.
+
+- **Defining Types**: In `prisma/schema.prisma`, annotate the JSON column with a triple-slash comment specifying the type name from `src/prisma-json-types.ts`:
+  ```prisma
+  model WorkflowTask {
+    /// [WorkflowTaskPayload]
+    payload Json?
+  }
+  ```
+- **Declaring Types**: All typed JSON shapes must be defined in `src/prisma-json-types.ts` under the global `PrismaJson` namespace:
+  ```typescript
+  declare global {
+    namespace PrismaJson {
+      export type WorkflowTaskPayload = Record<string, unknown> | TaskSpec | AiTaskPayload
+    }
+  }
+  ```
+- **Usage**: When accessing these columns on the Prisma client (e.g. `task.payload`), the field will automatically be typed as the declared shape (e.g., `PrismaJson.WorkflowTaskPayload | null`).
+- **Accessing Properties**: When working with union types or custom structures in the JSON payload, use proper narrowing or type guards instead of casting to `any`. Direct `as any` casting should be avoided.
+
 ### Migration Workflow
 
 - Development: Use `bun --bun run prisma migrate dev` to create and apply migrations during development.

@@ -43,7 +43,11 @@ describe('Agent Chat Workflow', () => {
       deleteCommentActivity: Object.assign(vi.fn(), { _activityName: 'deleteCommentActivity' }),
     }
 
-    mockActivities.getCommentActivity.mockResolvedValue({ id: 'c1', message: 'hello', replyToId: null })
+    mockActivities.getCommentActivity.mockResolvedValue({
+      id: 'c1',
+      message: 'hello',
+      replyToId: null,
+    })
     mockActivities.createCommentActivity.mockResolvedValue({ id: 'comment-placeholder-id' })
     mockActivities.getAssetActivity.mockResolvedValue({ id: 'a1', project: { teamId: 't1' } })
     mockActivities.initializeAgentSessionActivity.mockResolvedValue('session-123')
@@ -67,7 +71,10 @@ describe('Agent Chat Workflow', () => {
         type: 'chat',
         status: 'pending',
         assetId: 'a1',
-        payload: { userCommentId: 'c1', agentId: 'b1' },
+        payload: {
+          projectId: 'p1',
+          agent: { userCommentId: 'c1', agentId: 'b1' },
+        },
       },
     })
 

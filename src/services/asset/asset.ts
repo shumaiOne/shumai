@@ -1274,11 +1274,13 @@ export class AssetService {
               teamId: a.project.team.id,
               projectId: a.project.id,
               payload: {
-                userCommentId: comment.id,
-                agentId: rootAgentId,
                 projectId: a.project.id,
-                sessionId: rootSessionId || undefined,
-                explicitMention,
+                agent: {
+                  userCommentId: comment.id,
+                  agentId: rootAgentId,
+                  sessionId: rootSessionId || undefined,
+                  explicitMention,
+                },
               },
             },
           })
@@ -1307,10 +1309,12 @@ export class AssetService {
               teamId: a.project.team.id,
               projectId: a.project.id,
               payload: {
-                userCommentId: comment.id,
-                agentId: agentId,
                 projectId: a.project.id,
-                explicitMention: true,
+                agent: {
+                  userCommentId: comment.id,
+                  agentId: agentId,
+                  explicitMention: true,
+                },
               },
             },
           })

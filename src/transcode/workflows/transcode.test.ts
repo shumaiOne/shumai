@@ -74,8 +74,11 @@ describe('Transcode Workflow', () => {
       status: WorkflowTaskStatus.pending,
       output: null,
       payload: {
-        videoStrategy: 'single',
-        thumbnail: true,
+        projectId: 'proj-1',
+        transcode: {
+          videoStrategy: 'single',
+          thumbnail: true,
+        },
       },
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -138,7 +141,9 @@ describe('Transcode Workflow', () => {
       type: WorkflowTaskType.transcode,
       status: WorkflowTaskStatus.pending,
       output: null,
-      payload: {},
+      payload: {
+        projectId: 'proj-1',
+      },
       createdAt: new Date(),
       updatedAt: new Date(),
       heartbeat: null,

@@ -125,9 +125,12 @@ describe('UploadService', () => {
     })
     expect(workflowTask).toBeDefined()
     expect(workflowTask?.payload).toEqual({
-      videoStrategy: 'single',
-      sprite: true,
-      poster: true,
+      projectId: projectId,
+      transcode: {
+        videoStrategy: 'single',
+        sprite: true,
+        poster: true,
+      },
     })
   })
 
@@ -159,8 +162,11 @@ describe('UploadService', () => {
     })
     expect(workflowTask).toBeDefined()
     expect(workflowTask?.payload).toEqual({
-      imageStrategy: 'single',
-      thumbnail: true,
+      projectId: projectId,
+      transcode: {
+        imageStrategy: 'single',
+        thumbnail: true,
+      },
     })
   })
 

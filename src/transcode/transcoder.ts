@@ -40,7 +40,10 @@ export class VideoTranscoder {
         projectId: this.projectId,
         type: WorkflowTaskType.transcode,
         status: WorkflowTaskStatus.pending,
-        payload: this.spec,
+        payload: {
+          projectId: this.projectId,
+          transcode: this.spec,
+        },
       },
     })
     return task.id
@@ -75,7 +78,10 @@ export class ImageTranscoder {
         projectId: this.projectId,
         type: WorkflowTaskType.transcode,
         status: WorkflowTaskStatus.pending,
-        payload: this.spec,
+        payload: {
+          projectId: this.projectId,
+          transcode: this.spec,
+        },
       },
     })
     return task.id

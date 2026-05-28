@@ -37,12 +37,12 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
     })
 
     // 0. Create Placeholder Comment
-    const payload = task.payload as Record<string, unknown>
+    const payload = task.payload
     const placeholder = await executeActivity(TaskQueueDb, createCommentActivity, {
       assetId: task.assetId,
       message: '__AUTOFILL__',
-      sessionId: (payload?.session_id as string) || task.id,
-      agentId: (payload?.agentId as string) || 'default',
+      sessionId: payload?.agent?.sessionId || task.id,
+      agentId: payload?.agent?.agentId || 'default',
     })
     placeholderCommentId = placeholder.id
 

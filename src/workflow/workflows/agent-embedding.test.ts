@@ -43,7 +43,11 @@ describe('Agent Embedding Workflow', () => {
     }
 
     mockActivities.createCommentActivity.mockResolvedValue({ id: 'comment-placeholder-id' })
-    mockActivities.getEmbeddingContextActivity.mockResolvedValue({ agent: { id: 'b1' }, asset: { id: 'a1' }, dbProvider: { name: 'google' } })
+    mockActivities.getEmbeddingContextActivity.mockResolvedValue({
+      agent: { id: 'b1' },
+      asset: { id: 'a1' },
+      dbProvider: { name: 'google' },
+    })
     mockActivities.getAgentWorkerQueueActivity.mockResolvedValue('agent_queue')
     mockActivities.generateEmbeddingActivity.mockResolvedValue({
       embeddings: [{ embedding: [0.1, 0.2] }],
