@@ -122,7 +122,14 @@ describe('Transcode Workflow', () => {
       status: AssetStatus.processing,
     })
 
-    expect(mockActivities.updateAssetMediaActivity).toHaveBeenCalled()
+    expect(mockActivities.updateAssetMediaActivity).toHaveBeenCalledWith({
+      assetId: 'asset-1',
+      mediaInfo: expect.objectContaining({
+        thumbnail: expect.objectContaining({
+          key: 't.webp',
+        }),
+      }),
+    })
     expect(mockActivities.updateAssetStatusActivity).toHaveBeenCalledWith({
       assetId: 'asset-1',
       status: AssetStatus.processed,
@@ -131,6 +138,74 @@ describe('Transcode Workflow', () => {
     expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
       taskId: 'task-1',
       status: WorkflowTaskStatus.completed,
+    })
+  })
+
+  it('should process image transcode and thumbnail successfully', async () => {
+    const task: WorkflowTask = {
+      id: 'task-image',
+      assetId: 'asset-image',
+      type: WorkflowTaskType.transcode,
+      status: WorkflowTaskStatus.pending,
+      output: null,
+      payload: {
+        projectId: 'proj-1',
+        transcode: {
+          imageStrategy: 'single',
+          thumbnail: true,
+        },
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      heartbeat: null,
+      teamId: 'team-1',
+      projectId: 'proj-1',
+      uid: 'task-uid',
+      model: null,
+      inputTokens: 0,
+      outputTokens: 0,
+    }
+
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'asset-image',
+      storageKey: { key: 'image.jpg' },
+      mediaType: 'image/jpeg',
+    })
+
+    mockActivities.getMediaInfoActivity.mockResolvedValue({
+      mimeType: 'image/jpeg',
+      metadata: { originalWidth: 1000, originalHeight: 1000 },
+      videoTranscodes: [],
+      imageTranscodes: [],
+    })
+
+    mockActivities.transcodeImageActivity.mockResolvedValue({
+      key: 't.webp',
+      width: 480,
+      height: 480,
+      format: 'webp',
+    })
+
+    await transcodeMedia(task)
+
+    expect(mockActivities.updateAssetStatusActivity).toHaveBeenCalledWith({
+      assetId: 'asset-image',
+      status: AssetStatus.processing,
+    })
+
+    expect(mockActivities.updateAssetMediaActivity).toHaveBeenCalledWith({
+      assetId: 'asset-image',
+      mediaInfo: expect.objectContaining({
+        thumbnail: expect.objectContaining({
+          key: 't.webp',
+          width: 480,
+          height: 480,
+        }),
+      }),
+    })
+    expect(mockActivities.updateAssetStatusActivity).toHaveBeenCalledWith({
+      assetId: 'asset-image',
+      status: AssetStatus.processed,
     })
   })
 

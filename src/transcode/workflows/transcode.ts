@@ -52,7 +52,7 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
     tmpDir = download.tmpDir
 
     // 5. Get Media Info
-    const spec = task.payload as PrismaJson.TaskSpec
+    const spec = task.payload?.transcode || {}
     const mediaInfo = await executeActivity(workerQueue, getMediaInfoActivity, {
       filePath,
       assetId: asset.id,
