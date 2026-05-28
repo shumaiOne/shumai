@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const agentTypeSchema = z.enum(['chat', 'autofill', 'embedding', 'transcription'])
+export const agentTypeSchema = z.enum(['chat', 'autofill', 'embedding'])
 export type AgentType = z.infer<typeof agentTypeSchema>
 
 export const agentSkillSchema = z.object({

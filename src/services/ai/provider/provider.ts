@@ -13,8 +13,6 @@ export interface Provider {
     schema?: any,
   ): Promise<{ text: string; usage: Usage }>
 
-  transcribe(model: string, audioBuffer: Buffer): Promise<{ text: string; usage: Usage }>
-
   generateImageEmbedding(model: string, imageBuffer: Buffer): Promise<number[]>
 
   generateVideoEmbedding(model: string, videoBuffer: Buffer): Promise<number[]>

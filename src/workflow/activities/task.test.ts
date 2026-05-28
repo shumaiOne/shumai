@@ -11,7 +11,7 @@ describe('Task Activities', () => {
     const task = await prisma.workflowTask.create({
       data: {
         assetId: 'asset-1',
-        type: WorkflowTaskType.ai_transcription,
+        type: WorkflowTaskType.ai_embedding,
         status: WorkflowTaskStatus.pending,
       },
     })
@@ -48,7 +48,7 @@ describe('Task Activities', () => {
     const task = await prisma.workflowTask.create({
       data: {
         assetId: 'asset-1',
-        type: WorkflowTaskType.ai_transcription,
+        type: WorkflowTaskType.ai_embedding,
         status: WorkflowTaskStatus.pending,
       },
     })

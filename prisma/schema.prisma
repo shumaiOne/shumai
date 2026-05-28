@@ -101,7 +101,6 @@ enum TeamMemberScope {
 enum WorkflowTaskType {
   transcode
   ai_metadata_autofill
-  ai_transcription
   chat
   ai_embedding
 }
@@ -626,7 +625,6 @@ enum AgentType {
   chat
   autofill
   embedding
-  transcription
 }
 
 model Agent {

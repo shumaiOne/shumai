@@ -175,7 +175,7 @@ export async function generateEmbeddingActivity(params: GenerateEmbeddingParams)
 export interface ExtractAiMetadataParams {
   assetKey: string
   filePath: string
-  type: 'autofill' | 'transcription'
+  type: 'autofill'
   isImage: boolean
 }
 
@@ -190,21 +190,7 @@ export async function extractAiMetadataActivity(
   const tmpDir = path.dirname(params.filePath)
 
   try {
-    if (params.type === 'transcription') {
-      const targetKey = path.join(aiDir, 'audio.mp3')
-      try {
-        await s3Service.headObject(bucket, targetKey)
-        return [targetKey]
-      } catch {
-        // Not found
-      }
-
-      const outputFile = path.join(tmpDir, 'audio.mp3')
-      await transcodeService.extractAudio(params.filePath, outputFile, '16k')
-      const buffer = fs.readFileSync(outputFile)
-      await s3Service.putObject(bucket, targetKey, buffer, buffer.length, 'audio/mpeg')
-      generatedFiles.push(targetKey)
-    } else if (params.type === 'autofill') {
+    if (params.type === 'autofill') {
       const targetKey = path.join(aiDir, '1.webp')
       try {
         await s3Service.headObject(bucket, targetKey)

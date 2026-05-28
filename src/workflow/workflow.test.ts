@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { prisma } from '@/db'
 import { workflowService } from './workflow'
 import { WorkflowTaskStatus, WorkflowTaskType } from '@/generated/prisma/client'
-import { s3Service } from '@/services/s3/s3'
 
 vi.mock('@/services/s3/s3', () => ({
   s3Service: {
@@ -40,55 +39,6 @@ describe('WorkflowService', () => {
   afterEach(() => {
     workflowService.close()
   })
-
-  it('should process ai_transcription task locally', async () => {
-    vi.mocked(s3Service.getObject).mockResolvedValue({
-      buffer: Buffer.from('fake data'),
-      contentType: 'audio/mpeg',
-    })
-
-    const team = await prisma.team.create({
-      data: { name: 'Transcription Team' },
-    })
-    const project = await prisma.project.create({
-      data: { name: 'Transcription Project', teamId: team.id },
-    })
-    const asset = await prisma.asset.create({
-      data: {
-        name: 'test.mp3',
-        storageKey: { create: { key: 'test/test.mp3' } },
-        status: 'uploaded',
-        type: 'file',
-        project: { connect: { id: project.id } },
-      },
-    })
-
-    const task = await prisma.workflowTask.create({
-      data: {
-        assetId: asset.id,
-        type: WorkflowTaskType.ai_transcription,
-        status: WorkflowTaskStatus.pending,
-      },
-    })
-
-    expect(task.id).toBeDefined()
-
-    let completedTask = null
-    for (let i = 0; i < 20; i++) {
-      completedTask = await prisma.workflowTask.findUnique({
-        where: { id: task.id },
-      })
-      if (completedTask?.status === WorkflowTaskStatus.completed) {
-        break
-      }
-      if (completedTask?.status === WorkflowTaskStatus.failed) {
-        throw new Error(`Task failed: ${JSON.stringify(completedTask.output)}`)
-      }
-      await new Promise((resolve) => setTimeout(resolve, 500))
-    }
-
-    expect(completedTask?.status).toBe(WorkflowTaskStatus.completed)
-  }, 15000)
 
   it('should process ai_embedding task locally', async () => {
     const team = await prisma.team.create({

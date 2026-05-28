@@ -25,7 +25,7 @@ export class AgentService {
       skills,
     } = params
 
-    if (type === 'embedding' || type === 'transcription' || type === 'autofill') {
+    if (type === 'embedding' || type === 'autofill') {
       const existing = await this.prismaClient.agent.findFirst({
         where: {
           type,
@@ -129,7 +129,7 @@ export class AgentService {
 
     if (!agent) throw new Error('agent not found')
 
-    if (type === 'embedding' || type === 'transcription' || type === 'autofill') {
+    if (type === 'embedding' || type === 'autofill') {
       const existing = await this.prismaClient.agent.findFirst({
         where: {
           type,
