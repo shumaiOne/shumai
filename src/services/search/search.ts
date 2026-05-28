@@ -105,13 +105,15 @@ export class SearchService {
       }
 
       // 3. Fetch top 1000 unique asset IDs from asset_embeddings via pgvector
+      const vectorJson = JSON.stringify(queryVector)
       const semanticMatches = await this.prismaClient.$queryRaw<{ assetId: string }[]>`
-        SELECT asset_id as "assetId" FROM (
-          SELECT asset_id, MIN(embedding <=> ${JSON.stringify(queryVector)}::vector) as min_dist
+        SELECT DISTINCT ON (asset_id) asset_id as "assetId" FROM (
+          SELECT asset_id, embedding <=> ${vectorJson}::vector as dist
           FROM asset_embeddings 
-          GROUP BY asset_id
+          ORDER BY embedding <=> ${vectorJson}::vector
+          LIMIT 2000
         ) as sub 
-        ORDER BY min_dist 
+        ORDER BY asset_id, dist 
         LIMIT 1000
       `
       semanticIds = semanticMatches.map((m) => m.assetId)
