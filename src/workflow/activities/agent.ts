@@ -4,6 +4,7 @@ import { s3Service } from '@/services/s3/s3'
 import { type AgentTool } from '@earendil-works/pi-agent-core'
 import { type ImageContent } from '@earendil-works/pi-ai'
 import { type Usage } from '@/services/ai/provider/provider'
+import { ApplicationFailure } from '@temporalio/activity'
 
 interface AgentExecutionContext {
   agent: unknown
@@ -30,8 +31,18 @@ async function executeAgentPrompt(params: {
   const teamSkills = context.teamSkills
   const allowedDomains = context.allowedDomains
 
-  if (!agent.provider) throw new Error('agent has no provider configured')
-  if (!agent.modelRef) throw new Error('agent has no model configured')
+  if (!agent.provider) {
+    throw ApplicationFailure.create({
+      message: 'agent has no provider configured',
+      nonRetryable: true,
+    })
+  }
+  if (!agent.modelRef) {
+    throw ApplicationFailure.create({
+      message: 'agent has no model configured',
+      nonRetryable: true,
+    })
+  }
 
   const providerName = agent.provider.name
   const modelId = agent.modelRef.modelId

@@ -68,7 +68,10 @@ export async function aiTranscriptionMedia(task: WorkflowTask): Promise<void> {
     })
 
     if (generatedFiles.length === 0) {
-      throw new Error('Failed to extract audio for transcription')
+      throw ApplicationFailure.create({
+        message: 'Failed to extract audio for transcription',
+        nonRetryable: true,
+      })
     }
 
     // Simulate work

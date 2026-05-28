@@ -2,6 +2,7 @@ import { prisma } from '@/db'
 import { s3Service } from '@/services/s3/s3'
 import { transcodeService } from '@/transcode/transcode'
 import { metadataService } from '@/services/metadata/metadata'
+import { ApplicationFailure } from '@temporalio/activity'
 import * as path from 'path'
 import * as fs from 'fs'
 
@@ -279,7 +280,12 @@ export async function updateAssetMediaActivity(params: UpdateAssetMediaActivityP
     include: { storageKey: true },
   })
   const key = asset?.storageKey?.key
-  if (!asset || !key) throw new Error('Asset not found or has no key')
+  if (!asset || !key) {
+    throw ApplicationFailure.create({
+      message: 'Asset not found or has no key',
+      nonRetryable: true,
+    })
+  }
 
   const infoKey = path.join(path.dirname(key), 'info.json')
   const buffer = Buffer.from(JSON.stringify(params.mediaInfo))

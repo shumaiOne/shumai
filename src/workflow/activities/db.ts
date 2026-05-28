@@ -211,7 +211,9 @@ export async function createCommentActivity(params: CreateCommentParams) {
       where: { id: params.assetId },
       include: { project: true },
     })
-    if (!asset || !asset.project) throw new Error('asset or project not found')
+    if (!asset || !asset.project) {
+      throw ApplicationFailure.create({ message: 'asset or project not found', nonRetryable: true })
+    }
     const teamId = asset.project.teamId
 
     // Ensure user exists for agent

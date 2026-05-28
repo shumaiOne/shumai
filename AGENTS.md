@@ -308,6 +308,8 @@ We use a custom workflow engine that supports both **Local** (polling-based) and
 
 To prevent Temporal from indefinitely retrying fatal, expected business validation failures (e.g., missing records, invalid configurations, missing parameters), **never throw standard `Error` objects from workflow or activity logic.** Instead, throw a non-retryable `ApplicationFailure`.
 
+**Mandatory Requirement**: You **MUST** set `nonRetryable: true` in the options object passed to `ApplicationFailure.create`. Standard errors or `ApplicationFailure` objects without `nonRetryable: true` will cause Temporal to retry the activity or workflow indefinitely.
+
 - **Workflow Boundary**: In workflows, import `ApplicationFailure` from `@temporalio/workflow`:
   ```typescript
   import { ApplicationFailure } from '@temporalio/workflow'

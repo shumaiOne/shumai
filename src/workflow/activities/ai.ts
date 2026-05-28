@@ -10,6 +10,7 @@ import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
 import { promisify } from 'util'
+import { ApplicationFailure } from '@temporalio/activity'
 
 const execAsync = promisify(exec)
 
@@ -26,7 +27,10 @@ function providerFactory(providerName: string, config: PrismaJson.AiProviderSett
       pKey = AiProvider.ElevenLabs
       break
     default:
-      throw new Error(`Unsupported provider: ${providerName}`)
+      throw ApplicationFailure.create({
+        message: `Unsupported provider: ${providerName}`,
+        nonRetryable: true,
+      })
   }
 
   switch (pKey) {
@@ -40,7 +44,10 @@ function providerFactory(providerName: string, config: PrismaJson.AiProviderSett
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- provider config requires a broad casting since it is a JSON property of the provider model
       return new ElevenLabsProvider(config as any)
     default:
-      throw new Error(`Provider implementation for ${providerName} not found`)
+      throw ApplicationFailure.create({
+        message: `Provider implementation for ${providerName} not found`,
+        nonRetryable: true,
+      })
   }
 }
 
@@ -68,10 +75,22 @@ export async function generateEmbeddingActivity(params: GenerateEmbeddingParams)
   const { agent, asset, dbProvider } = params.context as any
 
   const config = agent.config as unknown as PrismaJson.AgentConfig
-  if (!config.provider) throw new Error('embedding provider not configured')
-  if (!config.model) throw new Error('embedding model not configured')
+  if (!config.provider) {
+    throw ApplicationFailure.create({
+      message: 'embedding provider not configured',
+      nonRetryable: true,
+    })
+  }
+  if (!config.model) {
+    throw ApplicationFailure.create({
+      message: 'embedding model not configured',
+      nonRetryable: true,
+    })
+  }
 
-  if (!asset.mediaType) throw new Error('asset has no media type')
+  if (!asset.mediaType) {
+    throw ApplicationFailure.create({ message: 'asset has no media type', nonRetryable: true })
+  }
 
   const p = providerFactory(config.provider, dbProvider.config as PrismaJson.AiProviderSettings)
 
@@ -85,12 +104,15 @@ export async function generateEmbeddingActivity(params: GenerateEmbeddingParams)
   const isVideo = asset.mediaType.startsWith('video/')
 
   if (!isImage && !isVideo) {
-    throw new Error(`unsupported media type for embeddings: ${asset.mediaType}`)
+    throw ApplicationFailure.create({
+      message: `unsupported media type for embeddings: ${asset.mediaType}`,
+      nonRetryable: true,
+    })
   }
 
   const key = asset.storageKey?.key
   if (!key) {
-    throw new Error(`asset has no key`)
+    throw ApplicationFailure.create({ message: 'asset has no key', nonRetryable: true })
   }
 
   const { buffer: data } = await s3Service.getObject(process.env.S3_BUCKET || 'shumai', key)
@@ -109,7 +131,12 @@ export async function generateEmbeddingActivity(params: GenerateEmbeddingParams)
         `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${tmpFile}"`,
       )
       const duration = parseFloat(stdout.trim())
-      if (isNaN(duration)) throw new Error('failed to parse video duration')
+      if (isNaN(duration)) {
+        throw ApplicationFailure.create({
+          message: 'failed to parse video duration',
+          nonRetryable: true,
+        })
+      }
 
       const chunkSize = 60.0
       for (let start = 0.0; start < duration; start += chunkSize) {
