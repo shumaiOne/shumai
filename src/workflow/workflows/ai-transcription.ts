@@ -1,3 +1,4 @@
+import { ApplicationFailure } from '@temporalio/workflow'
 import type { WorkflowTask } from '@/generated/prisma/client'
 import {
   getActivities,
@@ -44,7 +45,7 @@ export async function aiTranscriptionMedia(task: WorkflowTask): Promise<void> {
     const asset = await executeActivity(TaskQueueDb, getAssetActivity, task.assetId)
     const key = asset?.storageKey?.key
     if (!asset || !key) {
-      throw new Error('Asset not found')
+      throw ApplicationFailure.create({ message: 'Asset not found', nonRetryable: true })
     }
 
     // 2. Extract Audio (Requires FFmpeg)

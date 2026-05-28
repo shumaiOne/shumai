@@ -1,3 +1,4 @@
+import { ApplicationFailure } from '@temporalio/workflow'
 import type { WorkflowTask } from '@/generated/prisma/client'
 import {
   getActivities,
@@ -50,7 +51,7 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
     const asset = await executeActivity(TaskQueueDb, getAssetActivity, task.assetId)
     const key = asset?.storageKey?.key
     if (!asset || !asset.project || !key) {
-      throw new Error('Asset or project not found')
+      throw ApplicationFailure.create({ message: 'Asset or project not found', nonRetryable: true })
     }
     const teamId = asset.project.teamId
     const projectId = asset.project.id

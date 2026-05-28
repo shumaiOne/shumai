@@ -1,3 +1,4 @@
+import { ApplicationFailure } from '@temporalio/workflow'
 import type { WorkflowTask } from '@/generated/prisma/client'
 import {
   executeActivity,
@@ -31,18 +32,29 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     })
 
     const payload = task.payload
-    if (!payload) throw new Error('Task payload is missing')
+    if (!payload) {
+      throw ApplicationFailure.create({ message: 'Task payload is missing', nonRetryable: true })
+    }
 
     const agentId = payload.agent?.agentId
-    if (!agentId) throw new Error('agentId missing in payload')
+    if (!agentId) {
+      throw ApplicationFailure.create({ message: 'agentId missing in payload', nonRetryable: true })
+    }
 
     let sessionId = payload.agent?.sessionId
 
     // 1. Get User Comment
     const userCommentId = payload.agent?.userCommentId
-    if (!userCommentId) throw new Error('userCommentId missing in payload')
+    if (!userCommentId) {
+      throw ApplicationFailure.create({
+        message: 'userCommentId missing in payload',
+        nonRetryable: true,
+      })
+    }
     const userComment = await executeActivity(TaskQueueDb, getCommentActivity, userCommentId)
-    if (!userComment) throw new Error('User comment not found')
+    if (!userComment) {
+      throw ApplicationFailure.create({ message: 'User comment not found', nonRetryable: true })
+    }
 
     // 2. Create Placeholder Comment
     const placeholder = await executeActivity(TaskQueueDb, createCommentActivity, {
@@ -57,7 +69,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     // 3. Get Asset
     const asset = await executeActivity(TaskQueueDb, getAssetActivity, task.assetId)
     if (!asset || !asset.project) {
-      throw new Error('Asset or project not found')
+      throw ApplicationFailure.create({ message: 'Asset or project not found', nonRetryable: true })
     }
     const teamId = asset.project.teamId
 

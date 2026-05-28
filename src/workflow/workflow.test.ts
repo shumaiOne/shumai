@@ -139,4 +139,49 @@ describe('WorkflowService', () => {
     // Even if it fails due to missing API keys, the fact that it's no longer 'pending' means the workflow was triggered.
     expect(finishedTask?.status).not.toBe(WorkflowTaskStatus.pending)
   }, 15000)
+
+  it('should propagate ApplicationFailure correctly in local executor', async () => {
+    // Creating an ai_embedding task without any embedding agent configured for the team
+    const team = await prisma.team.create({
+      data: { name: 'Failure Team' },
+    })
+    const project = await prisma.project.create({
+      data: { name: 'Failure Project', teamId: team.id },
+    })
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'test.png',
+        storageKey: { create: { key: 'test/failure-test.png' } },
+        status: 'uploaded',
+        type: 'file',
+        mediaType: 'image/png',
+        project: { connect: { id: project.id } },
+      },
+    })
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        assetId: asset.id,
+        type: WorkflowTaskType.ai_embedding,
+        status: WorkflowTaskStatus.pending,
+        teamId: team.id,
+      },
+    })
+
+    let finishedTask = null
+    for (let i = 0; i < 20; i++) {
+      finishedTask = await prisma.workflowTask.findUnique({
+        where: { id: task.id },
+      })
+      if (finishedTask?.status === WorkflowTaskStatus.failed) {
+        break
+      }
+      await new Promise((resolve) => setTimeout(resolve, 500))
+    }
+
+    expect(finishedTask?.status).toBe(WorkflowTaskStatus.failed)
+    expect((finishedTask?.output as Record<string, unknown>)?.error).toBe(
+      'embedding feature is disabled or agent not found',
+    )
+  }, 15000)
 })

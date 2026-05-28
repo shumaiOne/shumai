@@ -304,6 +304,24 @@ We use a custom workflow engine that supports both **Local** (polling-based) and
     - `TemporalExecutor`: Submits tasks to a Temporal cluster.
 4.  **Automatic Submission**: New `WorkflowTask` records are automatically submitted to the `WorkflowService` via a Prisma Client Extension defined in `src/db.ts`.
 
+### Non-Retryable Error Handling
+
+To prevent Temporal from indefinitely retrying fatal, expected business validation failures (e.g., missing records, invalid configurations, missing parameters), **never throw standard `Error` objects from workflow or activity logic.** Instead, throw a non-retryable `ApplicationFailure`.
+
+- **Workflow Boundary**: In workflows, import `ApplicationFailure` from `@temporalio/workflow`:
+  ```typescript
+  import { ApplicationFailure } from '@temporalio/workflow'
+  throw ApplicationFailure.create({ message: 'agentId missing in payload', nonRetryable: true })
+  ```
+- **Activity Boundary**: In activities, import `ApplicationFailure` from `@temporalio/activity`:
+  ```typescript
+  import { ApplicationFailure } from '@temporalio/activity'
+  throw ApplicationFailure.create({
+    message: 'no autofill agent found for team',
+    nonRetryable: true,
+  })
+  ```
+
 ### Temporal Workflow Patterns
 
 - **Definition**: Define workflows as exported async functions.

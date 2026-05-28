@@ -1,4 +1,5 @@
 import { prisma } from '@/db'
+import { ApplicationFailure } from '@temporalio/activity'
 import type { AgentMessage, SessionTreeEntry } from '@earendil-works/pi-agent-core'
 import { ulid } from 'ulid'
 import { metadataService } from '@/services/metadata/metadata'
@@ -295,7 +296,9 @@ export async function getAgentChatContextActivity(params: GetAgentChatContextPar
   const team = await prisma.team.findUnique({
     where: { id: params.teamId },
   })
-  if (!team) throw new Error('failed to get team')
+  if (!team) {
+    throw ApplicationFailure.create({ message: 'failed to get team', nonRetryable: true })
+  }
 
   const agent = await prisma.agent.findUnique({
     where: { id: params.agentId },
@@ -305,11 +308,24 @@ export async function getAgentChatContextActivity(params: GetAgentChatContextPar
     },
   })
   if (!agent) {
-    throw new Error(`agent ${params.agentId} not found`)
+    throw ApplicationFailure.create({
+      message: `agent ${params.agentId} not found`,
+      nonRetryable: true,
+    })
   }
 
-  if (!agent.provider) throw new Error('agent has no provider configured')
-  if (!agent.modelRef) throw new Error('agent has no model configured')
+  if (!agent.provider) {
+    throw ApplicationFailure.create({
+      message: 'agent has no provider configured',
+      nonRetryable: true,
+    })
+  }
+  if (!agent.modelRef) {
+    throw ApplicationFailure.create({
+      message: 'agent has no model configured',
+      nonRetryable: true,
+    })
+  }
 
   const providerName = agent.provider.name
 
@@ -350,13 +366,18 @@ export async function getAgentAutofillContextActivity(params: GetAgentAutofillCo
     },
   })
   if (!agent) {
-    throw new Error('no autofill agent found for team')
+    throw ApplicationFailure.create({
+      message: 'no autofill agent found for team',
+      nonRetryable: true,
+    })
   }
 
   const team = await prisma.team.findUnique({
     where: { id: params.teamId },
   })
-  if (!team) throw new Error('failed to get team')
+  if (!team) {
+    throw ApplicationFailure.create({ message: 'failed to get team', nonRetryable: true })
+  }
 
   // Find provider/model configuration
   const agentWithDetails = await prisma.agent.findUnique({
@@ -366,9 +387,21 @@ export async function getAgentAutofillContextActivity(params: GetAgentAutofillCo
       modelRef: true,
     },
   })
-  if (!agentWithDetails) throw new Error(`agent ${agent.id} not found`)
-  if (!agentWithDetails.provider) throw new Error('agent has no provider configured')
-  if (!agentWithDetails.modelRef) throw new Error('agent has no model configured')
+  if (!agentWithDetails) {
+    throw ApplicationFailure.create({ message: `agent ${agent.id} not found`, nonRetryable: true })
+  }
+  if (!agentWithDetails.provider) {
+    throw ApplicationFailure.create({
+      message: 'agent has no provider configured',
+      nonRetryable: true,
+    })
+  }
+  if (!agentWithDetails.modelRef) {
+    throw ApplicationFailure.create({
+      message: 'agent has no model configured',
+      nonRetryable: true,
+    })
+  }
 
   const providerName = agentWithDetails.provider.name
 
@@ -405,7 +438,9 @@ export async function getEmbeddingContextActivity(params: GetEmbeddingContextPar
   const team = await prisma.team.findUnique({
     where: { id: params.teamId },
   })
-  if (!team) throw new Error('failed to get team')
+  if (!team) {
+    throw ApplicationFailure.create({ message: 'failed to get team', nonRetryable: true })
+  }
 
   const agent = await prisma.agent.findFirst({
     where: {
@@ -415,24 +450,46 @@ export async function getEmbeddingContextActivity(params: GetEmbeddingContextPar
     },
   })
   if (!agent) {
-    throw new Error('embedding feature is disabled or agent not found')
+    throw ApplicationFailure.create({
+      message: 'embedding feature is disabled or agent not found',
+      nonRetryable: true,
+    })
   }
 
   const config = agent.config as unknown as PrismaJson.AgentConfig
-  if (!config.provider) throw new Error('embedding provider not configured')
-  if (!config.model) throw new Error('embedding model not configured')
+  if (!config.provider) {
+    throw ApplicationFailure.create({
+      message: 'embedding provider not configured',
+      nonRetryable: true,
+    })
+  }
+  if (!config.model) {
+    throw ApplicationFailure.create({
+      message: 'embedding model not configured',
+      nonRetryable: true,
+    })
+  }
 
   const asset = await prisma.asset.findUnique({
     where: { id: params.assetId },
     include: { storageKey: true },
   })
-  if (!asset) throw new Error('failed to get asset')
-  if (!asset.mediaType) throw new Error('asset has no media type')
+  if (!asset) {
+    throw ApplicationFailure.create({ message: 'failed to get asset', nonRetryable: true })
+  }
+  if (!asset.mediaType) {
+    throw ApplicationFailure.create({ message: 'asset has no media type', nonRetryable: true })
+  }
 
   const dbProvider = await prisma.provider.findFirst({
     where: { teamId: params.teamId, name: config.provider },
   })
-  if (!dbProvider) throw new Error(`Provider ${config.provider} not found in database`)
+  if (!dbProvider) {
+    throw ApplicationFailure.create({
+      message: `Provider ${config.provider} not found in database`,
+      nonRetryable: true,
+    })
+  }
 
   return {
     agent,

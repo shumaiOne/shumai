@@ -1,3 +1,4 @@
+import { ApplicationFailure } from '@temporalio/workflow'
 import type { WorkflowTask } from '@/generated/prisma/client'
 import { getActivities, executeActivity, TaskQueueDb, TaskQueueAgent } from '../workflow-utils'
 
@@ -32,7 +33,9 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
     })
     placeholderCommentId = placeholder.id
 
-    if (!task.teamId) throw new Error('Task has no teamId')
+    if (!task.teamId) {
+      throw ApplicationFailure.create({ message: 'Task has no teamId', nonRetryable: true })
+    }
 
     // 1. Fetch Agent Context (Database Activity on db_queue)
     const context = await executeActivity(TaskQueueDb, getEmbeddingContextActivity, {
