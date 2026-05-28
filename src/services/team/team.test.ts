@@ -174,12 +174,12 @@ describe('TeamService', () => {
     })
 
     const settings = await teamService.getSettings(team.id)
-    expect(settings).toEqual({})
+    expect(settings).toEqual({ semanticSearchEnabled: false })
 
     await teamService.updateSettings(team.id, 'theme', 'dark')
 
     const newSettings = await teamService.getSettings(team.id)
-    expect(newSettings).toEqual({ theme: 'dark' })
+    expect(newSettings).toEqual({ theme: 'dark', semanticSearchEnabled: false })
   })
 
   it('should create sandbox when team is created', async () => {
