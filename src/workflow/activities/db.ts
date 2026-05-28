@@ -5,6 +5,7 @@ import { ulid } from 'ulid'
 import { metadataService } from '@/services/metadata/metadata'
 import { UpdateAssetMetadataRequest } from '@/dtos/metadata'
 import { WorkflowTaskStatus, AssetStatus } from '@/generated/prisma/client'
+import type { AgentExecutionContext } from './agent'
 
 export interface InitializeAgentSessionParams {
   teamId: string
@@ -294,7 +295,9 @@ export interface GetAgentChatContextParams {
   agentId: string
 }
 
-export async function getAgentChatContextActivity(params: GetAgentChatContextParams) {
+export async function getAgentChatContextActivity(
+  params: GetAgentChatContextParams,
+): Promise<AgentExecutionContext> {
   const team = await prisma.team.findUnique({
     where: { id: params.teamId },
   })
@@ -359,7 +362,9 @@ export interface GetAgentAutofillContextParams {
   teamId: string
 }
 
-export async function getAgentAutofillContextActivity(params: GetAgentAutofillContextParams) {
+export async function getAgentAutofillContextActivity(
+  params: GetAgentAutofillContextParams,
+): Promise<AgentExecutionContext> {
   const agent = await prisma.agent.findFirst({
     where: {
       type: 'autofill',

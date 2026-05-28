@@ -16,7 +16,7 @@ export interface DatabaseSessionMetadata extends SessionMetadata {
 }
 
 export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMetadata> {
-  constructor(private sessionId: string) {}
+  constructor(public readonly sessionId: string) {}
 
   async getMetadata(): Promise<DatabaseSessionMetadata> {
     const session = await prisma.agentSession.findUnique({
