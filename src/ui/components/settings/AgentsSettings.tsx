@@ -12,7 +12,6 @@ import {
   MessageSquare,
   Zap,
   Cpu,
-  Type,
   Puzzle,
 } from 'lucide-react'
 import { useState } from 'react'
@@ -51,7 +50,6 @@ const AGENT_TYPES: {
   { type: 'chat', label: 'Chat', icon: MessageSquare },
   { type: 'autofill', label: 'Autofill', icon: Zap },
   { type: 'embedding', label: 'Embedding', icon: Cpu },
-  { type: 'transcription', label: 'Transcription', icon: Type },
 ]
 
 export function AgentsSettings({ teamId }: AgentsSettingsProps) {
@@ -65,7 +63,6 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
     chat: true,
     autofill: true,
     embedding: true,
-    transcription: true,
   })
 
   const { data: agents = [], isLoading } = useQuery({
@@ -229,9 +226,7 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
                   </div>
                   <div className="flex items-center gap-2">
                     {!(
-                      (section.type === 'autofill' ||
-                        section.type === 'transcription' ||
-                        section.type === 'embedding') &&
+                      (section.type === 'autofill' || section.type === 'embedding') &&
                       typeAgents.length > 0
                     ) && (
                       <Button

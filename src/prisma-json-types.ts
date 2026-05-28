@@ -41,7 +41,6 @@ declare global {
       apiKey?: string
       baseUrl?: string
       chatModels?: string[]
-      transcribeModels?: string[]
     }
 
     // ----------------------------------------------------------------------

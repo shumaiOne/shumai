@@ -262,30 +262,6 @@ export class UploadService {
         })
       }
 
-      const transcriptionAgent = await tx.agent.findFirst({
-        where: {
-          type: 'transcription',
-          enabled: true,
-          user: { teamMembers: { some: { teamId: team.id } } },
-        },
-      })
-
-      if (transcriptionAgent) {
-        await tx.workflowTask.create({
-          data: {
-            assetId: asset.id,
-            type: WorkflowTaskType.ai_transcription,
-            status: WorkflowTaskStatus.pending,
-            teamId: team.id,
-            projectId: asset.projectId,
-            payload: {
-              projectId: asset.projectId!,
-              agent: { agentId: transcriptionAgent.id },
-            },
-          },
-        })
-      }
-
       // Ai Embedding if enabled via agent
       const embeddingAgent = await tx.agent.findFirst({
         where: {

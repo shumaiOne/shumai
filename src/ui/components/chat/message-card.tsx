@@ -40,7 +40,6 @@ const AI_PLACEHOLDERS: Record<string, string> = {
   __CHAT__: 'Generating...',
   __AUTOFILL__: 'Autofilling metadata...',
   __EMBEDDING__: 'Generating embeddings...',
-  __TRANSCRIPTION__: 'Transcribing...',
   __RUNNING__: 'Generating...',
 }
 

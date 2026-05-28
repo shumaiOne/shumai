@@ -11,7 +11,6 @@ export const aiProviderSettingsSchema = z.object({
   apiKey: z.string().optional(),
   baseUrl: z.string().optional(),
   chatModels: z.array(z.string()).optional(),
-  transcribeModels: z.array(z.string()).optional(),
 })
 
 export type AiProviderSettings = z.infer<typeof aiProviderSettingsSchema>

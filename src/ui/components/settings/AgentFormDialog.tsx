@@ -40,7 +40,7 @@ interface AgentFormDialogProps {
 
 const agentFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  type: z.enum(['chat', 'autofill', 'embedding', 'transcription']),
+  type: z.enum(['chat', 'autofill', 'embedding']),
   avatar: z.string().optional(),
   providerId: z.string().optional(),
   modelId: z.string().optional(),
@@ -268,7 +268,6 @@ export function AgentFormDialog({
                           <SelectItem value="chat">Chat</SelectItem>
                           <SelectItem value="autofill">Autofill</SelectItem>
                           <SelectItem value="embedding">Embedding</SelectItem>
-                          <SelectItem value="transcription">Transcription</SelectItem>
                         </SelectContent>
                       </Select>
                     </Field>

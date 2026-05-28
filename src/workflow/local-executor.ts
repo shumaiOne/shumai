@@ -1,7 +1,6 @@
 import { prisma } from '@/db'
 import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '@/generated/prisma/client'
 import { Executor } from './executor'
-import { aiTranscriptionMedia } from './workflows/ai-transcription'
 import { agentEmbeddingMedia } from './workflows/agent-embedding'
 import { agentAutofillMedia } from './workflows/agent-autofill'
 import { agentChat } from './workflows/agent-chat'
@@ -83,9 +82,6 @@ export class LocalExecutor implements Executor {
 
     try {
       switch (task.type) {
-        case WorkflowTaskType.ai_transcription:
-          await aiTranscriptionMedia(task)
-          break
         case WorkflowTaskType.ai_embedding:
           await agentEmbeddingMedia(task)
           break

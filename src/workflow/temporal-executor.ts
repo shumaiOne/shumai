@@ -16,9 +16,6 @@ export class TemporalExecutor implements Executor {
 
     let workflowName: string
     switch (task.type) {
-      case WorkflowTaskType.ai_transcription:
-        workflowName = 'aiTranscriptionWorkflow'
-        break
       case WorkflowTaskType.ai_embedding:
         workflowName = 'agentEmbeddingWorkflow'
         break

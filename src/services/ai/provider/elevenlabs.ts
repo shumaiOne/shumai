@@ -25,15 +25,6 @@ export class ElevenLabsProvider implements Provider {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async transcribe(model: string, _audioBuffer: Buffer): Promise<{ text: string; usage: Usage }> {
-    // TODO: Implement ElevenLabs transcribe
-    return {
-      text: 'elevenlabs transcription',
-      usage: { model, inputTokens: 0, outputTokens: 0 },
-    }
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async generateImageEmbedding(_model: string, _imageBuffer: Buffer): Promise<number[]> {
     throw new Error('Not implemented')
   }

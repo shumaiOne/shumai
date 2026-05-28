@@ -127,7 +127,6 @@ export type TeamMemberScope = (typeof TeamMemberScope)[keyof typeof TeamMemberSc
 export const WorkflowTaskType = {
   transcode: 'transcode',
   ai_metadata_autofill: 'ai_metadata_autofill',
-  ai_transcription: 'ai_transcription',
   chat: 'chat',
   ai_embedding: 'ai_embedding'
 } as const
@@ -148,8 +147,7 @@ export type WorkflowTaskStatus = (typeof WorkflowTaskStatus)[keyof typeof Workfl
 export const AgentType = {
   chat: 'chat',
   autofill: 'autofill',
-  embedding: 'embedding',
-  transcription: 'transcription'
+  embedding: 'embedding'
 } as const
 
 export type AgentType = (typeof AgentType)[keyof typeof AgentType]
