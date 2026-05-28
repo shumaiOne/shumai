@@ -4,8 +4,13 @@ import { logger } from '@/logger'
 import { s3Service } from '@/services/s3/s3'
 import { type AgentTool } from '@earendil-works/pi-agent-core'
 import { type ImageContent } from '@earendil-works/pi-ai'
-import { type Usage } from '@/services/ai/provider/provider'
 import { ApplicationFailure } from '@temporalio/activity'
+
+export interface Usage {
+  inputTokens: number
+  outputTokens: number
+  model: string
+}
 import type { Prisma, Skill } from '@/generated/prisma/client'
 
 export type AgentWithProviderAndModel = Prisma.AgentGetPayload<{
