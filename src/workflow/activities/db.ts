@@ -463,20 +463,6 @@ export async function getEmbeddingContextActivity(params: GetEmbeddingContextPar
     })
   }
 
-  const config = agent.config as unknown as PrismaJson.AgentConfig
-  if (!config.provider) {
-    throw ApplicationFailure.create({
-      message: 'embedding provider not configured',
-      nonRetryable: true,
-    })
-  }
-  if (!config.model) {
-    throw ApplicationFailure.create({
-      message: 'embedding model not configured',
-      nonRetryable: true,
-    })
-  }
-
   const asset = await prisma.asset.findUnique({
     where: { id: params.assetId },
     include: { storageKey: true },
@@ -489,11 +475,11 @@ export async function getEmbeddingContextActivity(params: GetEmbeddingContextPar
   }
 
   const dbProvider = await prisma.provider.findFirst({
-    where: { teamId: params.teamId, name: config.provider },
+    where: { teamId: params.teamId, name: 'google' },
   })
   if (!dbProvider) {
     throw ApplicationFailure.create({
-      message: `Provider ${config.provider} not found in database`,
+      message: 'Google provider not found in database',
       nonRetryable: true,
     })
   }
