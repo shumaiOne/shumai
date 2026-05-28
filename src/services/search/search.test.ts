@@ -81,7 +81,7 @@ describe('SearchService', () => {
     await prisma.assetMetadataValue.create({
       data: {
         assetId: file2.id,
-        fieldId: 'status',
+        fieldKey: 'status',
         stringValue: 'approved',
       },
     })

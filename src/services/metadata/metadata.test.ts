@@ -151,9 +151,9 @@ describe('MetadataService', () => {
       where: { assetId: asset.id },
     })
     expect(values).toHaveLength(2)
-    const width = values.find((v) => v.fieldId === 'resolution_width')
+    const width = values.find((v) => v.fieldKey === 'resolution_width')
     expect(width?.numberValue).toBe(1920)
-    const height = values.find((v) => v.fieldId === 'resolution_height')
+    const height = values.find((v) => v.fieldKey === 'resolution_height')
     expect(height?.numberValue).toBe(1080)
   })
 
@@ -196,9 +196,9 @@ describe('MetadataService', () => {
     const val = await prisma.assetMetadataValue.findUnique({
       where: {
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        assetId_fieldId: {
+        assetId_fieldKey: {
           assetId: asset.id,
-          fieldId: field.key,
+          fieldKey: field.key,
         },
       },
     })

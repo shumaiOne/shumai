@@ -3050,7 +3050,7 @@ export type StorageKeyScalarFieldEnum = (typeof StorageKeyScalarFieldEnum)[keyof
 export const AssetMetadataValueScalarFieldEnum = {
   id: 'id',
   assetId: 'assetId',
-  fieldId: 'fieldId',
+  fieldKey: 'fieldKey',
   stringValue: 'stringValue',
   numberValue: 'numberValue',
   booleanValue: 'booleanValue',

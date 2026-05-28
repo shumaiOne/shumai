@@ -121,7 +121,7 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
       teamId,
       images: generatedFiles,
       fields: fields.map((f) => ({
-        id: f.id,
+        id: f.key,
         config: f.config as unknown as PrismaJson.FieldConfig,
         description: f.description,
       })),

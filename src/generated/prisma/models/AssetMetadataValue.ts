@@ -39,7 +39,7 @@ export type AssetMetadataValueSumAggregateOutputType = {
 export type AssetMetadataValueMinAggregateOutputType = {
   id: string | null
   assetId: string | null
-  fieldId: string | null
+  fieldKey: string | null
   stringValue: string | null
   numberValue: number | null
   booleanValue: boolean | null
@@ -49,7 +49,7 @@ export type AssetMetadataValueMinAggregateOutputType = {
 export type AssetMetadataValueMaxAggregateOutputType = {
   id: string | null
   assetId: string | null
-  fieldId: string | null
+  fieldKey: string | null
   stringValue: string | null
   numberValue: number | null
   booleanValue: boolean | null
@@ -59,7 +59,7 @@ export type AssetMetadataValueMaxAggregateOutputType = {
 export type AssetMetadataValueCountAggregateOutputType = {
   id: number
   assetId: number
-  fieldId: number
+  fieldKey: number
   stringValue: number
   numberValue: number
   booleanValue: number
@@ -80,7 +80,7 @@ export type AssetMetadataValueSumAggregateInputType = {
 export type AssetMetadataValueMinAggregateInputType = {
   id?: true
   assetId?: true
-  fieldId?: true
+  fieldKey?: true
   stringValue?: true
   numberValue?: true
   booleanValue?: true
@@ -90,7 +90,7 @@ export type AssetMetadataValueMinAggregateInputType = {
 export type AssetMetadataValueMaxAggregateInputType = {
   id?: true
   assetId?: true
-  fieldId?: true
+  fieldKey?: true
   stringValue?: true
   numberValue?: true
   booleanValue?: true
@@ -100,7 +100,7 @@ export type AssetMetadataValueMaxAggregateInputType = {
 export type AssetMetadataValueCountAggregateInputType = {
   id?: true
   assetId?: true
-  fieldId?: true
+  fieldKey?: true
   stringValue?: true
   numberValue?: true
   booleanValue?: true
@@ -198,7 +198,7 @@ export type AssetMetadataValueGroupByArgs<ExtArgs extends runtime.Types.Extensio
 export type AssetMetadataValueGroupByOutputType = {
   id: string
   assetId: string
-  fieldId: string
+  fieldKey: string
   stringValue: string | null
   numberValue: number | null
   booleanValue: boolean | null
@@ -232,7 +232,7 @@ export type AssetMetadataValueWhereInput = {
   NOT?: Prisma.AssetMetadataValueWhereInput | Prisma.AssetMetadataValueWhereInput[]
   id?: Prisma.StringFilter<"AssetMetadataValue"> | string
   assetId?: Prisma.StringFilter<"AssetMetadataValue"> | string
-  fieldId?: Prisma.StringFilter<"AssetMetadataValue"> | string
+  fieldKey?: Prisma.StringFilter<"AssetMetadataValue"> | string
   stringValue?: Prisma.StringNullableFilter<"AssetMetadataValue"> | string | null
   numberValue?: Prisma.FloatNullableFilter<"AssetMetadataValue"> | number | null
   booleanValue?: Prisma.BoolNullableFilter<"AssetMetadataValue"> | boolean | null
@@ -244,7 +244,7 @@ export type AssetMetadataValueWhereInput = {
 export type AssetMetadataValueOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   assetId?: Prisma.SortOrder
-  fieldId?: Prisma.SortOrder
+  fieldKey?: Prisma.SortOrder
   stringValue?: Prisma.SortOrderInput | Prisma.SortOrder
   numberValue?: Prisma.SortOrderInput | Prisma.SortOrder
   booleanValue?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -255,24 +255,24 @@ export type AssetMetadataValueOrderByWithRelationInput = {
 
 export type AssetMetadataValueWhereUniqueInput = Prisma.AtLeast<{
   id?: string
-  assetId_fieldId?: Prisma.AssetMetadataValueAssetIdFieldIdCompoundUniqueInput
+  assetId_fieldKey?: Prisma.AssetMetadataValueAssetIdFieldKeyCompoundUniqueInput
   AND?: Prisma.AssetMetadataValueWhereInput | Prisma.AssetMetadataValueWhereInput[]
   OR?: Prisma.AssetMetadataValueWhereInput[]
   NOT?: Prisma.AssetMetadataValueWhereInput | Prisma.AssetMetadataValueWhereInput[]
   assetId?: Prisma.StringFilter<"AssetMetadataValue"> | string
-  fieldId?: Prisma.StringFilter<"AssetMetadataValue"> | string
+  fieldKey?: Prisma.StringFilter<"AssetMetadataValue"> | string
   stringValue?: Prisma.StringNullableFilter<"AssetMetadataValue"> | string | null
   numberValue?: Prisma.FloatNullableFilter<"AssetMetadataValue"> | number | null
   booleanValue?: Prisma.BoolNullableFilter<"AssetMetadataValue"> | boolean | null
   jsonValue?: Prisma.JsonNullableFilter<"AssetMetadataValue">
   dateValue?: Prisma.DateTimeNullableFilter<"AssetMetadataValue"> | Date | string | null
   asset?: Prisma.XOR<Prisma.AssetScalarRelationFilter, Prisma.AssetWhereInput>
-}, "id" | "assetId_fieldId">
+}, "id" | "assetId_fieldKey">
 
 export type AssetMetadataValueOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   assetId?: Prisma.SortOrder
-  fieldId?: Prisma.SortOrder
+  fieldKey?: Prisma.SortOrder
   stringValue?: Prisma.SortOrderInput | Prisma.SortOrder
   numberValue?: Prisma.SortOrderInput | Prisma.SortOrder
   booleanValue?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -291,7 +291,7 @@ export type AssetMetadataValueScalarWhereWithAggregatesInput = {
   NOT?: Prisma.AssetMetadataValueScalarWhereWithAggregatesInput | Prisma.AssetMetadataValueScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"AssetMetadataValue"> | string
   assetId?: Prisma.StringWithAggregatesFilter<"AssetMetadataValue"> | string
-  fieldId?: Prisma.StringWithAggregatesFilter<"AssetMetadataValue"> | string
+  fieldKey?: Prisma.StringWithAggregatesFilter<"AssetMetadataValue"> | string
   stringValue?: Prisma.StringNullableWithAggregatesFilter<"AssetMetadataValue"> | string | null
   numberValue?: Prisma.FloatNullableWithAggregatesFilter<"AssetMetadataValue"> | number | null
   booleanValue?: Prisma.BoolNullableWithAggregatesFilter<"AssetMetadataValue"> | boolean | null
@@ -301,7 +301,7 @@ export type AssetMetadataValueScalarWhereWithAggregatesInput = {
 
 export type AssetMetadataValueCreateInput = {
   id?: string
-  fieldId: string
+  fieldKey: string
   stringValue?: string | null
   numberValue?: number | null
   booleanValue?: boolean | null
@@ -313,7 +313,7 @@ export type AssetMetadataValueCreateInput = {
 export type AssetMetadataValueUncheckedCreateInput = {
   id?: string
   assetId: string
-  fieldId: string
+  fieldKey: string
   stringValue?: string | null
   numberValue?: number | null
   booleanValue?: boolean | null
@@ -323,7 +323,7 @@ export type AssetMetadataValueUncheckedCreateInput = {
 
 export type AssetMetadataValueUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  fieldId?: Prisma.StringFieldUpdateOperationsInput | string
+  fieldKey?: Prisma.StringFieldUpdateOperationsInput | string
   stringValue?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   numberValue?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   booleanValue?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -335,7 +335,7 @@ export type AssetMetadataValueUpdateInput = {
 export type AssetMetadataValueUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
-  fieldId?: Prisma.StringFieldUpdateOperationsInput | string
+  fieldKey?: Prisma.StringFieldUpdateOperationsInput | string
   stringValue?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   numberValue?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   booleanValue?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -346,7 +346,7 @@ export type AssetMetadataValueUncheckedUpdateInput = {
 export type AssetMetadataValueCreateManyInput = {
   id?: string
   assetId: string
-  fieldId: string
+  fieldKey: string
   stringValue?: string | null
   numberValue?: number | null
   booleanValue?: boolean | null
@@ -356,7 +356,7 @@ export type AssetMetadataValueCreateManyInput = {
 
 export type AssetMetadataValueUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  fieldId?: Prisma.StringFieldUpdateOperationsInput | string
+  fieldKey?: Prisma.StringFieldUpdateOperationsInput | string
   stringValue?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   numberValue?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   booleanValue?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -367,7 +367,7 @@ export type AssetMetadataValueUpdateManyMutationInput = {
 export type AssetMetadataValueUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
-  fieldId?: Prisma.StringFieldUpdateOperationsInput | string
+  fieldKey?: Prisma.StringFieldUpdateOperationsInput | string
   stringValue?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   numberValue?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   booleanValue?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -385,15 +385,15 @@ export type AssetMetadataValueOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
 }
 
-export type AssetMetadataValueAssetIdFieldIdCompoundUniqueInput = {
+export type AssetMetadataValueAssetIdFieldKeyCompoundUniqueInput = {
   assetId: string
-  fieldId: string
+  fieldKey: string
 }
 
 export type AssetMetadataValueCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   assetId?: Prisma.SortOrder
-  fieldId?: Prisma.SortOrder
+  fieldKey?: Prisma.SortOrder
   stringValue?: Prisma.SortOrder
   numberValue?: Prisma.SortOrder
   booleanValue?: Prisma.SortOrder
@@ -408,7 +408,7 @@ export type AssetMetadataValueAvgOrderByAggregateInput = {
 export type AssetMetadataValueMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   assetId?: Prisma.SortOrder
-  fieldId?: Prisma.SortOrder
+  fieldKey?: Prisma.SortOrder
   stringValue?: Prisma.SortOrder
   numberValue?: Prisma.SortOrder
   booleanValue?: Prisma.SortOrder
@@ -418,7 +418,7 @@ export type AssetMetadataValueMaxOrderByAggregateInput = {
 export type AssetMetadataValueMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   assetId?: Prisma.SortOrder
-  fieldId?: Prisma.SortOrder
+  fieldKey?: Prisma.SortOrder
   stringValue?: Prisma.SortOrder
   numberValue?: Prisma.SortOrder
   booleanValue?: Prisma.SortOrder
@@ -485,7 +485,7 @@ export type NullableBoolFieldUpdateOperationsInput = {
 
 export type AssetMetadataValueCreateWithoutAssetInput = {
   id?: string
-  fieldId: string
+  fieldKey: string
   stringValue?: string | null
   numberValue?: number | null
   booleanValue?: boolean | null
@@ -495,7 +495,7 @@ export type AssetMetadataValueCreateWithoutAssetInput = {
 
 export type AssetMetadataValueUncheckedCreateWithoutAssetInput = {
   id?: string
-  fieldId: string
+  fieldKey: string
   stringValue?: string | null
   numberValue?: number | null
   booleanValue?: boolean | null
@@ -535,7 +535,7 @@ export type AssetMetadataValueScalarWhereInput = {
   NOT?: Prisma.AssetMetadataValueScalarWhereInput | Prisma.AssetMetadataValueScalarWhereInput[]
   id?: Prisma.StringFilter<"AssetMetadataValue"> | string
   assetId?: Prisma.StringFilter<"AssetMetadataValue"> | string
-  fieldId?: Prisma.StringFilter<"AssetMetadataValue"> | string
+  fieldKey?: Prisma.StringFilter<"AssetMetadataValue"> | string
   stringValue?: Prisma.StringNullableFilter<"AssetMetadataValue"> | string | null
   numberValue?: Prisma.FloatNullableFilter<"AssetMetadataValue"> | number | null
   booleanValue?: Prisma.BoolNullableFilter<"AssetMetadataValue"> | boolean | null
@@ -545,7 +545,7 @@ export type AssetMetadataValueScalarWhereInput = {
 
 export type AssetMetadataValueCreateManyAssetInput = {
   id?: string
-  fieldId: string
+  fieldKey: string
   stringValue?: string | null
   numberValue?: number | null
   booleanValue?: boolean | null
@@ -555,7 +555,7 @@ export type AssetMetadataValueCreateManyAssetInput = {
 
 export type AssetMetadataValueUpdateWithoutAssetInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  fieldId?: Prisma.StringFieldUpdateOperationsInput | string
+  fieldKey?: Prisma.StringFieldUpdateOperationsInput | string
   stringValue?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   numberValue?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   booleanValue?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -565,7 +565,7 @@ export type AssetMetadataValueUpdateWithoutAssetInput = {
 
 export type AssetMetadataValueUncheckedUpdateWithoutAssetInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  fieldId?: Prisma.StringFieldUpdateOperationsInput | string
+  fieldKey?: Prisma.StringFieldUpdateOperationsInput | string
   stringValue?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   numberValue?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   booleanValue?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -575,7 +575,7 @@ export type AssetMetadataValueUncheckedUpdateWithoutAssetInput = {
 
 export type AssetMetadataValueUncheckedUpdateManyWithoutAssetInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  fieldId?: Prisma.StringFieldUpdateOperationsInput | string
+  fieldKey?: Prisma.StringFieldUpdateOperationsInput | string
   stringValue?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   numberValue?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   booleanValue?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
@@ -588,7 +588,7 @@ export type AssetMetadataValueUncheckedUpdateManyWithoutAssetInput = {
 export type AssetMetadataValueSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   assetId?: boolean
-  fieldId?: boolean
+  fieldKey?: boolean
   stringValue?: boolean
   numberValue?: boolean
   booleanValue?: boolean
@@ -600,7 +600,7 @@ export type AssetMetadataValueSelect<ExtArgs extends runtime.Types.Extensions.In
 export type AssetMetadataValueSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   assetId?: boolean
-  fieldId?: boolean
+  fieldKey?: boolean
   stringValue?: boolean
   numberValue?: boolean
   booleanValue?: boolean
@@ -612,7 +612,7 @@ export type AssetMetadataValueSelectCreateManyAndReturn<ExtArgs extends runtime.
 export type AssetMetadataValueSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   assetId?: boolean
-  fieldId?: boolean
+  fieldKey?: boolean
   stringValue?: boolean
   numberValue?: boolean
   booleanValue?: boolean
@@ -624,7 +624,7 @@ export type AssetMetadataValueSelectUpdateManyAndReturn<ExtArgs extends runtime.
 export type AssetMetadataValueSelectScalar = {
   id?: boolean
   assetId?: boolean
-  fieldId?: boolean
+  fieldKey?: boolean
   stringValue?: boolean
   numberValue?: boolean
   booleanValue?: boolean
@@ -632,7 +632,7 @@ export type AssetMetadataValueSelectScalar = {
   dateValue?: boolean
 }
 
-export type AssetMetadataValueOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "assetId" | "fieldId" | "stringValue" | "numberValue" | "booleanValue" | "jsonValue" | "dateValue", ExtArgs["result"]["assetMetadataValue"]>
+export type AssetMetadataValueOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "assetId" | "fieldKey" | "stringValue" | "numberValue" | "booleanValue" | "jsonValue" | "dateValue", ExtArgs["result"]["assetMetadataValue"]>
 export type AssetMetadataValueInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   asset?: boolean | Prisma.AssetDefaultArgs<ExtArgs>
 }
@@ -651,7 +651,7 @@ export type $AssetMetadataValuePayload<ExtArgs extends runtime.Types.Extensions.
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     assetId: string
-    fieldId: string
+    fieldKey: string
     stringValue: string | null
     numberValue: number | null
     booleanValue: boolean | null
@@ -1083,7 +1083,7 @@ export interface Prisma__AssetMetadataValueClient<T, Null = never, ExtArgs exten
 export interface AssetMetadataValueFieldRefs {
   readonly id: Prisma.FieldRef<"AssetMetadataValue", 'String'>
   readonly assetId: Prisma.FieldRef<"AssetMetadataValue", 'String'>
-  readonly fieldId: Prisma.FieldRef<"AssetMetadataValue", 'String'>
+  readonly fieldKey: Prisma.FieldRef<"AssetMetadataValue", 'String'>
   readonly stringValue: Prisma.FieldRef<"AssetMetadataValue", 'String'>
   readonly numberValue: Prisma.FieldRef<"AssetMetadataValue", 'Float'>
   readonly booleanValue: Prisma.FieldRef<"AssetMetadataValue", 'Boolean'>

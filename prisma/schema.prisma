@@ -424,7 +424,7 @@ model StorageKey {
 model AssetMetadataValue {
   id           String   @id @default(ulid())
   assetId      String   @map("asset_id")
-  fieldId      String   @map("field_id") // key from MetadataField
+  fieldKey     String   @map("field_key") // key from MetadataField
 
   stringValue  String?  @map("string_value")
   numberValue  Float?   @map("number_value")
@@ -434,7 +434,7 @@ model AssetMetadataValue {
 
   asset        Asset    @relation("AssetToMetadataValues", fields: [assetId], references: [id], onDelete: Cascade)
 
-  @@unique([assetId, fieldId])
+  @@unique([assetId, fieldKey])
   @@index([numberValue])
   @@index([stringValue])
   @@index([booleanValue])
