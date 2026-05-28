@@ -2,6 +2,7 @@ import { prisma } from '@/db'
 import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '@/generated/prisma/client'
 import { Executor } from './executor'
 import { agentEmbeddingMedia } from './workflows/agent-embedding'
+import { queryEmbeddingForSearch } from './workflows/query-embedding-for-search'
 import { agentAutofillMedia } from './workflows/agent-autofill'
 import { agentChat } from './workflows/agent-chat'
 import { transcodeMedia } from '@/transcode/workflows/transcode'
@@ -84,6 +85,9 @@ export class LocalExecutor implements Executor {
       switch (task.type) {
         case WorkflowTaskType.ai_embedding:
           await agentEmbeddingMedia(task)
+          break
+        case WorkflowTaskType.query_embedding_for_search:
+          await queryEmbeddingForSearch(task)
           break
         case WorkflowTaskType.ai_metadata_autofill:
           await agentAutofillMedia(task)

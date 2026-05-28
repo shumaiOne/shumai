@@ -19,6 +19,9 @@ export class TemporalExecutor implements Executor {
       case WorkflowTaskType.ai_embedding:
         workflowName = 'agentEmbeddingWorkflow'
         break
+      case WorkflowTaskType.query_embedding_for_search:
+        workflowName = 'queryEmbeddingForSearch'
+        break
       case WorkflowTaskType.ai_metadata_autofill:
         workflowName = 'agentAutofillWorkflow'
         break

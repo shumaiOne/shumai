@@ -376,6 +376,7 @@ describe('SearchService', () => {
         recursively: true,
         assetType: 'file',
         operator: 'AND',
+        searchMode: 'name',
       })
       const names = result.data.map((a) => a.name).sort()
       expect(names).toEqual(expected.sort())
@@ -390,6 +391,7 @@ describe('SearchService', () => {
       recursively: true,
       assetType: 'file',
       operator: 'AND',
+      searchMode: 'name',
     })
 
     expect(result.data).toHaveLength(1)
@@ -404,6 +406,7 @@ describe('SearchService', () => {
       recursively: true,
       assetType: 'file',
       operator: 'AND',
+      searchMode: 'name',
     })
 
     expect(result.data).toHaveLength(2)
@@ -420,6 +423,7 @@ describe('SearchService', () => {
       recursively: true,
       assetType: 'file',
       operator: 'AND',
+      searchMode: 'name',
     })
 
     expect(result.data).toHaveLength(1)
@@ -434,6 +438,7 @@ describe('SearchService', () => {
       recursively: false,
       assetType: 'file',
       operator: 'AND',
+      searchMode: 'name',
     })
 
     // Should only find file1, as file2 is in subfolder
@@ -454,6 +459,7 @@ describe('SearchService', () => {
       assetType: 'file',
       operator: 'AND',
       conditions: [],
+      searchMode: 'name',
     })
     expect(resultAsc.data[0].name).toBe('file1')
     expect(resultAsc.data[1].name).toBe('file2')
@@ -464,6 +470,7 @@ describe('SearchService', () => {
       assetType: 'file',
       operator: 'AND',
       conditions: [],
+      searchMode: 'name',
     })
     expect(resultDesc.data[0].name).toBe('file2')
     expect(resultDesc.data[1].name).toBe('file1')
@@ -479,6 +486,7 @@ describe('SearchService', () => {
       assetType: 'file',
       operator: 'AND',
       conditions: [],
+      searchMode: 'name',
     })
     expect(resultAsc.data[0].sizeByte).toBe(100)
     expect(resultAsc.data[1].sizeByte).toBe(200)
@@ -489,6 +497,7 @@ describe('SearchService', () => {
       assetType: 'file',
       operator: 'AND',
       conditions: [],
+      searchMode: 'name',
     })
     expect(resultDesc.data[0].sizeByte).toBe(200)
     expect(resultDesc.data[1].sizeByte).toBe(100)
@@ -515,6 +524,7 @@ describe('SearchService', () => {
       assetType: 'file',
       operator: 'AND',
       conditions: [],
+      searchMode: 'name',
     })
     expect(resultNormal.data.find((a) => a.id === symlink.id)).toBeUndefined()
 
@@ -525,6 +535,7 @@ describe('SearchService', () => {
       operator: 'AND',
       conditions: [],
       showSymlink: true,
+      searchMode: 'name',
     })
     expect(resultWithSymlink.data.find((a) => a.id === symlink.id)).toBeDefined()
   })

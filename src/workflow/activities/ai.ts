@@ -159,6 +159,56 @@ export async function generateEmbeddingActivity(params: GenerateEmbeddingParams)
   }
 }
 
+export interface GenerateTextEmbeddingParams {
+  text: string
+  teamId: string
+}
+
+export async function generateTextEmbeddingActivity(params: GenerateTextEmbeddingParams): Promise<{
+  embedding: number[]
+  usage: Usage
+}> {
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) {
+    throw ApplicationFailure.create({
+      message: 'GEMINI_API_KEY environment variable is not configured',
+      nonRetryable: true,
+    })
+  }
+
+  const resolvedApiKey = process.env[apiKey] || apiKey
+  const ai = new GoogleGenAI({ apiKey: resolvedApiKey })
+
+  const usage: Usage = {
+    model: 'gemini-embedding-2',
+    inputTokens: 0,
+    outputTokens: 0,
+  }
+
+  const response = await ai.models.embedContent({
+    model: 'gemini-embedding-2',
+    contents: [
+      {
+        parts: [{ text: params.text }],
+        role: 'user',
+      },
+    ],
+    config: {
+      outputDimensionality: 1536,
+    },
+  })
+
+  const values = response.embeddings?.[0]?.values
+  if (!values) {
+    throw new Error('No embedding values returned from gemini-embedding-2')
+  }
+
+  return {
+    embedding: values,
+    usage,
+  }
+}
+
 export interface ExtractAiMetadataParams {
   assetKey: string
   filePath: string

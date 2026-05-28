@@ -103,6 +103,7 @@ enum WorkflowTaskType {
   ai_metadata_autofill
   chat
   ai_embedding
+  query_embedding_for_search
 }
 
 enum WorkflowTaskStatus {

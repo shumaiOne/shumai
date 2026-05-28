@@ -60,6 +60,21 @@ export function SearchFilterDialog({
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(true)
   const [searchInput, setSearchInput] = useState(initialKeyword)
   const [debouncedSearchInput, setDebouncedSearchInput] = useState(initialKeyword)
+  const [searchMode, setSearchMode] = useState<'name' | 'content' | 'all'>('name')
+
+  const { data: teamSettings } = useQuery({
+    queryKey: ['team-settings', teamId],
+    queryFn: async () => {
+      const res = await client.api.teams[':teamId'].settings.$get({
+        param: { teamId },
+      })
+      if (!res.ok) throw new Error('Failed to fetch team settings')
+      return (await res.json()) as { semanticSearchEnabled: boolean }
+    },
+    enabled: open,
+  })
+
+  const semanticSearchEnabled = teamSettings?.semanticSearchEnabled ?? false
 
   // Sync back if changed from outside
   useEffect(() => {
@@ -67,6 +82,7 @@ export function SearchFilterDialog({
       setSearchInput(initialKeyword)
       setDebouncedSearchInput(initialKeyword)
       setConditions(initialOtherConditions)
+      setSearchMode('name')
     }
   }, [open, initialKeyword, initialOtherConditions])
 
@@ -80,7 +96,7 @@ export function SearchFilterDialog({
 
   const combinedConditions = useMemo(() => {
     const result: SearchCondition[] = [...conditions]
-    if (debouncedSearchInput.trim()) {
+    if (debouncedSearchInput.trim() && searchMode === 'name') {
       result.push({
         field: 'name',
         operator: 'contains',
@@ -88,7 +104,7 @@ export function SearchFilterDialog({
       })
     }
     return result
-  }, [debouncedSearchInput, conditions])
+  }, [debouncedSearchInput, conditions, searchMode])
 
   const hasActiveCriteria = useMemo(() => {
     return (
@@ -117,6 +133,8 @@ export function SearchFilterDialog({
             searchFilter: {
               conditions: combinedConditions,
               recursively: true,
+              query: debouncedSearchInput.trim(),
+              searchMode: searchMode,
             },
           },
         },
@@ -138,8 +156,19 @@ export function SearchFilterDialog({
     },
   })
 
-  const { data: searchResults, isLoading } = useQuery({
-    queryKey: ['search-preview', teamId, assetId, combinedConditions],
+  const {
+    data: searchResults,
+    isLoading,
+    error: searchError,
+  } = useQuery({
+    queryKey: [
+      'search-preview',
+      teamId,
+      assetId,
+      combinedConditions,
+      searchMode,
+      debouncedSearchInput,
+    ],
     queryFn: async () => {
       const res = await client.api.folders[':folderId'].search.$post({
         param: { folderId: assetId },
@@ -147,32 +176,31 @@ export function SearchFilterDialog({
           assetType: undefined,
           conditions: combinedConditions,
           recursively: true,
+          query: debouncedSearchInput.trim(),
+          searchMode: searchMode,
           first: 20,
         },
       })
-      if (!res.ok) throw new Error('Search failed')
+      if (!res.ok) {
+        const errorData = (await res.json().catch(() => ({}))) as Record<string, unknown>
+        throw new Error((errorData.message as string) || 'Search failed')
+      }
       return (await res.json()) as { data: AssetInfo[] }
     },
     enabled: open && hasActiveCriteria,
     staleTime: 500,
+    retry: false,
   })
 
   const handleApply = () => {
-    const finalConditions = [...conditions]
-    if (searchInput.trim()) {
-      finalConditions.push({
-        field: 'name',
-        operator: 'contains',
-        value: searchInput.trim(),
-      })
-    }
-    onApply(finalConditions)
+    onApply(combinedConditions)
     onOpenChange(false)
   }
 
   const handleClearFilters = () => {
     setConditions([])
     setSearchInput('')
+    setSearchMode('name')
   }
 
   const handleResultClick = (item: AssetInfo) => {
@@ -202,29 +230,85 @@ export function SearchFilterDialog({
               e.preventDefault()
               handleApply()
             }}
-            className="relative mt-2"
+            className="flex flex-col gap-3 mt-2"
           >
-            <Input
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search records by name..."
-              className="w-full pl-4 pr-24 py-3 bg-background border-border rounded-xl text-sm h-12 focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm"
-            />
-            {searchInput && (
+            <div className="relative">
+              <Input
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder={
+                  searchMode === 'name' ? 'Search records by name...' : 'Search by content...'
+                }
+                className="w-full pl-4 pr-24 py-3 bg-background border-border rounded-xl text-sm h-12 focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm"
+              />
+              {searchInput && (
+                <button
+                  type="button"
+                  onClick={() => setSearchInput('')}
+                  className="absolute right-20 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
               <button
-                type="button"
-                onClick={() => setSearchInput('')}
-                className="absolute right-20 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-foreground transition-colors"
+                type="submit"
+                className="absolute right-1.5 top-1.5 bottom-1.5 px-4 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold rounded-lg flex items-center justify-center transition-colors shadow-sm"
               >
-                <X className="w-4 h-4" />
+                Search
               </button>
-            )}
-            <button
-              type="submit"
-              className="absolute right-1.5 top-1.5 bottom-1.5 px-4 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold rounded-lg flex items-center justify-center transition-colors shadow-sm"
-            >
-              Search
-            </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex bg-background border border-border p-1 rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => setSearchMode('name')}
+                  className={cn(
+                    'px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
+                    searchMode === 'name'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'hover:bg-accent text-muted-foreground',
+                  )}
+                >
+                  Name
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSearchMode('content')}
+                  disabled={!semanticSearchEnabled}
+                  className={cn(
+                    'px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
+                    searchMode === 'content'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'hover:bg-accent text-muted-foreground',
+                    !semanticSearchEnabled && 'opacity-50 cursor-not-allowed',
+                  )}
+                  title={!semanticSearchEnabled ? 'Embedding agent is not enabled' : ''}
+                >
+                  Content
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSearchMode('all')}
+                  disabled={!semanticSearchEnabled}
+                  className={cn(
+                    'px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
+                    searchMode === 'all'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'hover:bg-accent text-muted-foreground',
+                    !semanticSearchEnabled && 'opacity-50 cursor-not-allowed',
+                  )}
+                  title={!semanticSearchEnabled ? 'Embedding agent is not enabled' : ''}
+                >
+                  All
+                </button>
+              </div>
+              {!semanticSearchEnabled && (
+                <span className="text-[10px] text-muted-foreground italic">
+                  * Semantic search requires an enabled embedding agent.
+                </span>
+              )}
+            </div>
           </form>
 
           <div
@@ -283,7 +367,9 @@ export function SearchFilterDialog({
             {isLoading && (
               <span className="inline-flex items-center gap-1.5 text-xs text-primary">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                Querying database...
+                {searchMode !== 'name'
+                  ? 'Semantic search using media intelligence might be slow...'
+                  : 'Querying database...'}
               </span>
             )}
           </div>
@@ -295,6 +381,16 @@ export function SearchFilterDialog({
                 <h3 className="text-sm font-semibold text-foreground/80">Ready to Search</h3>
                 <p className="text-xs text-muted-foreground max-w-sm mt-1 mx-auto">
                   Enter a name or add a filter rule to start discovering assets.
+                </p>
+              </div>
+            ) : searchError ? (
+              <div className="py-12 px-4 text-center flex flex-col items-center justify-center bg-muted/20">
+                <AlertCircle className="w-10 h-10 text-destructive/50 mb-2" />
+                <h3 className="text-sm font-semibold text-foreground/80">Search failed</h3>
+                <p className="text-xs text-muted-foreground max-w-sm mt-1 mx-auto">
+                  {searchError.message.includes('Embedding agent not configured')
+                    ? 'Please create and enable an embedding agent in the team settings to use semantic search.'
+                    : searchError.message}
                 </p>
               </div>
             ) : isLoading ? (

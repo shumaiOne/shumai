@@ -244,6 +244,9 @@ declare global {
       projectId: string
       transcode?: TaskSpec
       agent?: AgentTaskPayload
+      queryEmbeddingForSearch?: {
+        text: string
+      }
     }
 
     // ----------------------------------------------------------------------

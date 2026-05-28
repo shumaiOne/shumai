@@ -2,6 +2,7 @@ import { WorkflowTask } from '@/generated/prisma/client'
 import { Executor } from './executor'
 import { LocalExecutor } from './local-executor'
 import { TemporalExecutor } from './temporal-executor'
+import { prisma } from '@/db'
 
 export class WorkflowService {
   private executor: Executor
@@ -17,6 +18,35 @@ export class WorkflowService {
 
   async submit(task: WorkflowTask): Promise<string> {
     return this.executor.submit(task)
+  }
+
+  async executeWait(task: WorkflowTask, timeoutMs: number = 30000): Promise<WorkflowTask> {
+    await this.submit(task)
+
+    const start = Date.now()
+    while (Date.now() - start < timeoutMs) {
+      const updatedTask = await prisma.workflowTask.findUnique({
+        where: { id: task.id },
+      })
+
+      if (!updatedTask) {
+        throw new Error(`WorkflowTask ${task.id} not found`)
+      }
+
+      if (updatedTask.status === 'completed') {
+        return updatedTask
+      }
+
+      if (updatedTask.status === 'failed') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const error = (updatedTask.output as any)?.error || 'Workflow task failed'
+        throw new Error(error)
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 500))
+    }
+
+    throw new Error('Workflow task timed out')
   }
 
   start(): void {

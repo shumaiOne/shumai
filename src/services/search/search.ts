@@ -1,10 +1,12 @@
 import { prisma } from '@/db'
-import { Prisma, AssetType } from '@/generated/prisma/client.ts'
+import { Prisma, AssetType, WorkflowTaskType } from '@/generated/prisma/client.ts'
 import { AssetService, assetService } from '@/services/asset/asset'
 import { AssetInfo } from '@/dtos/asset'
 import { SearchRequest } from '@/dtos/search'
 import { paginateQuery, PaginatedData } from '@/services/pagination'
 import { generateSearchNgrams } from '@/utils/ngram'
+import { workflowService } from '@/workflow/workflow'
+import { HTTPException } from 'hono/http-exception'
 
 export class SearchService {
   constructor(
@@ -57,8 +59,75 @@ export class SearchService {
       Object.assign(where, typeCondition)
     }
 
-    // AI Semantic search is skipped for now, but in the future we'll check if req.query exists
-    // and if the team has embeddings enabled to do a vector search
+    // ----------------------------------------------------------------------
+    // AI Semantic search
+    // ----------------------------------------------------------------------
+    let semanticIds: string[] = []
+    if (req.query && (req.searchMode === 'content' || req.searchMode === 'all')) {
+      // 1. Check if embedding agent exists and is enabled
+      const team = await this.prismaClient.asset.findUnique({
+        where: { id: folderId },
+        select: { project: { select: { teamId: true } } },
+      })
+      const teamId = team?.project?.teamId
+      if (!teamId) throw new Error('Team ID not found for folder')
+
+      const embeddingAgent = await this.prismaClient.agent.findFirst({
+        where: { teamId, type: 'embedding', enabled: true },
+      })
+
+      if (!embeddingAgent) {
+        throw new HTTPException(422, {
+          message: 'Embedding agent not configured or disabled for this team.',
+        })
+      }
+
+      // 2. Generate query embedding via workflow
+      const task = await this.prismaClient.workflowTask.create({
+        data: {
+          type: WorkflowTaskType.query_embedding_for_search,
+          teamId,
+          assetId: folderId, // Just using folderId as a placeholder
+          payload: {
+            projectId: '', // Not used for this task type
+            queryEmbeddingForSearch: { text: req.query },
+          } as PrismaJson.WorkflowTaskPayload,
+          status: 'pending',
+        },
+      })
+
+      const completedTask = await workflowService.executeWait(task)
+      const output = completedTask.output as Record<string, unknown> | null
+      const queryVector = output?.embedding as number[] | undefined
+
+      if (!queryVector) {
+        throw new Error('Failed to generate query embedding')
+      }
+
+      // 3. Fetch top 1000 unique asset IDs from asset_embeddings via pgvector
+      const semanticMatches = await this.prismaClient.$queryRaw<{ assetId: string }[]>`
+        SELECT asset_id as "assetId" FROM (
+          SELECT asset_id, MIN(embedding <=> ${JSON.stringify(queryVector)}::vector) as min_dist
+          FROM asset_embeddings 
+          GROUP BY asset_id
+        ) as sub 
+        ORDER BY min_dist 
+        LIMIT 1000
+      `
+      semanticIds = semanticMatches.map((m) => m.assetId)
+
+      if (req.searchMode === 'content') {
+        where.id = { in: semanticIds }
+      } else if (req.searchMode === 'all') {
+        const keywordCondition: Prisma.AssetWhereInput = {
+          name: { contains: req.query, mode: 'insensitive' },
+        }
+        const semanticCondition: Prisma.AssetWhereInput = {
+          id: { in: semanticIds },
+        }
+        where.OR = [keywordCondition, semanticCondition]
+      }
+    }
 
     const orderBy: Prisma.AssetOrderByWithRelationInput = {}
     if (req.sort) {
