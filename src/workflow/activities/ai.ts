@@ -28,7 +28,6 @@ export interface GenerateEmbeddingParams {
   context: {
     agent: unknown
     asset: unknown
-    dbProvider: unknown
   }
 }
 
@@ -65,16 +64,16 @@ export async function generateEmbeddingActivity(params: GenerateEmbeddingParams)
   usage: Usage
 }> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- context properties are fetched as JSON from the DB activity
-  const { asset, dbProvider } = params.context as any
+  const { asset } = params.context as any
 
   if (!asset.mediaType) {
     throw ApplicationFailure.create({ message: 'asset has no media type', nonRetryable: true })
   }
 
-  const apiKey = dbProvider?.config?.apiKey
+  const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
     throw ApplicationFailure.create({
-      message: 'Google GenAI apiKey not found in provider config',
+      message: 'GEMINI_API_KEY environment variable is not configured',
       nonRetryable: true,
     })
   }

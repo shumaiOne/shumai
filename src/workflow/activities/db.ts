@@ -474,20 +474,9 @@ export async function getEmbeddingContextActivity(params: GetEmbeddingContextPar
     throw ApplicationFailure.create({ message: 'asset has no media type', nonRetryable: true })
   }
 
-  const dbProvider = await prisma.provider.findFirst({
-    where: { teamId: params.teamId, name: 'google' },
-  })
-  if (!dbProvider) {
-    throw ApplicationFailure.create({
-      message: 'Google provider not found in database',
-      nonRetryable: true,
-    })
-  }
-
   return {
     agent,
     asset,
-    dbProvider,
   }
 }
 

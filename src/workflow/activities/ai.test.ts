@@ -33,6 +33,7 @@ vi.mock('@google/genai', () => {
 describe('AI Activities', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    process.env.GEMINI_API_KEY = 'test-key'
   })
 
   it('should generate image embedding', async () => {
@@ -45,7 +46,6 @@ describe('AI Activities', () => {
     const context = {
       agent: { config: { provider: 'google', model: 'gemini' } },
       asset: { id: 'a1', mediaType: 'image/png', storageKey: { key: 'test.png' } },
-      dbProvider: { config: { apiKey: 'key' } },
     }
 
     const res = await generateEmbeddingActivity({
