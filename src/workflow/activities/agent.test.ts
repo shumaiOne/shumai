@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { agentChatActivity, autofillAiActivity } from './agent'
+import { agentChatActivity, autofillAiActivity, type AgentExecutionContext } from './agent'
 import * as piAgent from '@/agent'
+import { type AgentHarness, type Session } from '@earendil-works/pi-agent-core'
+import { type DatabaseSessionMetadata } from '@/agent/database-session-storage'
 
 vi.mock('@/agent', async () => {
   const actual = await vi.importActual('@/agent')
@@ -29,10 +31,8 @@ describe('Agent Activities', () => {
     }
 
     vi.mocked(piAgent.createAgentSession).mockResolvedValue({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock session type is not fully compatible with pi-agent-core Session
-      session: mockSession as any,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock harness type is not fully compatible with pi-agent-core Harness
-      harness: mockHarness as any,
+      session: mockSession as unknown as Session<DatabaseSessionMetadata>,
+      harness: mockHarness as unknown as AgentHarness,
     })
 
     const context = {
@@ -40,7 +40,7 @@ describe('Agent Activities', () => {
       dbProviders: [],
       teamSkills: [],
       allowedDomains: [],
-    }
+    } as unknown as AgentExecutionContext
 
     const res = await agentChatActivity({
       teamId: 't1',
@@ -71,19 +71,21 @@ describe('Agent Activities', () => {
       getStorage: vi.fn().mockReturnValue({ sessionId: 'mock-session-id' }),
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- config object is passed dynamically by test runner
-    vi.mocked(piAgent.createAgentSession).mockImplementation(async (config: any) => {
+    vi.mocked(piAgent.createAgentSession).mockImplementation(async (config: unknown) => {
       // Simulate tool execution
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- customTools type is dynamic and nested
-      const tool = config.customTools.find((t: any) => t.name === 'autofill_metadata')
+      const params = config as {
+        customTools: Array<{
+          name: string
+          execute: (id: string, args: Record<string, unknown>) => Promise<unknown>
+        }>
+      }
+      const tool = params.customTools.find((t) => t.name === 'autofill_metadata')
       if (tool) {
         await tool.execute('1', { f1: 'val' })
       }
       return {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock session type is not fully compatible with pi-agent-core Session
-        session: mockSession as any,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock harness type is not fully compatible with pi-agent-core Harness
-        harness: mockHarness as any,
+        session: mockSession as unknown as Session<DatabaseSessionMetadata>,
+        harness: mockHarness as unknown as AgentHarness,
       }
     })
 
@@ -92,7 +94,7 @@ describe('Agent Activities', () => {
       dbProviders: [],
       teamSkills: [],
       allowedDomains: [],
-    }
+    } as unknown as AgentExecutionContext
 
     const res = await autofillAiActivity({
       teamId: 't1',

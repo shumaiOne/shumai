@@ -1,15 +1,30 @@
 import { createAgentSession, fieldsToTypeBoxSchema, type AutofillField } from '@/agent'
+import { DatabaseSessionStorage } from '@/agent/database-session-storage'
 import { logger } from '@/logger'
 import { s3Service } from '@/services/s3/s3'
 import { type AgentTool } from '@earendil-works/pi-agent-core'
 import { type ImageContent } from '@earendil-works/pi-ai'
 import { type Usage } from '@/services/ai/provider/provider'
 import { ApplicationFailure } from '@temporalio/activity'
+import type { Prisma, Skill } from '@/generated/prisma/client'
 
-interface AgentExecutionContext {
-  agent: unknown
-  dbProviders: unknown[]
-  teamSkills: unknown[]
+export type AgentWithProviderAndModel = Prisma.AgentGetPayload<{
+  include: {
+    provider: true
+    modelRef: true
+  }
+}>
+
+export type DbProviderWithModels = Prisma.ProviderGetPayload<{
+  include: {
+    models: true
+  }
+}>
+
+export interface AgentExecutionContext {
+  agent: AgentWithProviderAndModel
+  dbProviders: DbProviderWithModels[]
+  teamSkills: Skill[]
   allowedDomains: string[]
 }
 
@@ -24,12 +39,7 @@ async function executeAgentPrompt(params: {
   tools?: AgentTool[]
   context: AgentExecutionContext
 }): Promise<{ text: string; usage: Usage; sessionId: string }> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- context is a serialized JSON object from db activity
-  const context = params.context as any
-  const agent = context.agent
-  const dbProviders = context.dbProviders
-  const teamSkills = context.teamSkills
-  const allowedDomains = context.allowedDomains
+  const { agent, dbProviders, teamSkills, allowedDomains } = params.context
 
   if (!agent.provider) {
     throw ApplicationFailure.create({
@@ -52,7 +62,7 @@ async function executeAgentPrompt(params: {
     systemPrompt = `${systemPrompt}\n\nContext and Instructions:\n${params.agentsInstruction}`
   }
 
-  const modelConfig = agent.modelRef?.config as unknown as PrismaJson.ModelConfig
+  const modelConfig = agent.modelRef?.config
   if (modelConfig?.input) {
     systemPrompt += `\n\nYour current model supports the following input types: ${modelConfig.input.join(', ')}.`
   }
@@ -62,8 +72,7 @@ async function executeAgentPrompt(params: {
     providerName,
     modelId,
     systemPrompt,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- s is typed as any because teamSkills is dynamically deserialized JSON
-    teamSkills: teamSkills.map((s: any) => ({
+    teamSkills: teamSkills.map((s) => ({
       id: s.id,
       name: s.name,
       description: s.description,
@@ -72,12 +81,10 @@ async function executeAgentPrompt(params: {
     sessionId: params.sessionId,
     userId: params.userId,
     customTools: params.tools || [],
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- p is typed as any because dbProviders is dynamically deserialized JSON
-    providers: dbProviders.map((p: any) => ({
+    providers: dbProviders.map((p) => ({
       name: p.name,
       config: p.config,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- m is typed as any because p.models is a generic dynamic JSON array from the DB context
-      models: p.models.map((m: any) => ({
+      models: p.models.map((m) => ({
         modelId: m.modelId,
         name: m.name,
         config: m.config,
@@ -119,8 +126,12 @@ async function executeAgentPrompt(params: {
 
     const text = assistantMessage.content
       .filter((c) => c.type === 'text')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- text property exists on text content items
-      .map((c) => (c as any).text)
+      .map((c) => {
+        if ('text' in c && typeof c.text === 'string') {
+          return c.text
+        }
+        return ''
+      })
       .join('\n')
 
     const usage: Usage = {
@@ -129,8 +140,12 @@ async function executeAgentPrompt(params: {
       outputTokens: assistantMessage.usage?.output || 0,
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- sessionId property added to DatabaseSessionStorage
-    return { text, usage, sessionId: (session.getStorage() as any).sessionId }
+    const storage = session.getStorage()
+    let sessionId = ''
+    if (storage instanceof DatabaseSessionStorage) {
+      sessionId = storage.sessionId
+    }
+    return { text, usage, sessionId }
   } finally {
     // Cleanup handled by agent session if needed
   }
@@ -176,8 +191,7 @@ export interface AutofillAiParams {
 export async function autofillAiActivity(params: AutofillAiParams) {
   const prompt = 'Analyze the provided images and extract metadata.'
   const toolSchema = fieldsToTypeBoxSchema(params.fields)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let capturedData: any = null
+  let capturedData: Record<string, unknown> | null = null
 
   const autofillTool: AgentTool = {
     name: 'autofill_metadata',
@@ -185,7 +199,7 @@ export async function autofillAiActivity(params: AutofillAiParams) {
     description: 'Extract metadata from the images.',
     parameters: toolSchema,
     execute: async (_toolCallId, toolParams) => {
-      capturedData = toolParams
+      capturedData = toolParams as Record<string, unknown>
       return {
         content: [{ type: 'text', text: 'Metadata captured successfully.' }],
         details: {},
@@ -195,9 +209,7 @@ export async function autofillAiActivity(params: AutofillAiParams) {
 
   const fullPrompt = `${prompt}\n\nPlease use the "autofill_metadata" tool to provide the extracted metadata.`
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- context is a serialized JSON object from db activity
-  const context = params.context as any
-  const agent = context.agent
+  const { agent } = params.context
 
   const { usage, sessionId } = await executeAgentPrompt({
     teamId: params.teamId,
