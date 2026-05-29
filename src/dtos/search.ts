@@ -53,6 +53,7 @@ export const searchFilterSchema = z.object({
   showSymlink: z.boolean().optional(),
   recursively: z.boolean().optional().default(true),
   query: z.string().optional(),
+  isSemantic: z.boolean().optional().default(false),
 })
 export type SearchFilter = z.infer<typeof searchFilterSchema>
 

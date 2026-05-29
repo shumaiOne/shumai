@@ -3,13 +3,14 @@ import { type FieldInfo as MetadataFieldInfo } from '@/dtos/metadata'
 import type { SearchCondition } from '@/dtos/search'
 import { client } from '@/ui/api/client'
 import { Button } from '@/ui/components/ui/button'
-import { Dialog, DialogContent } from '@/ui/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog'
 import { Input } from '@/ui/components/ui/input'
+import { Label } from '@/ui/components/ui/label'
+import { Switch } from '@/ui/components/ui/switch'
 import { formatSize } from '@/ui/lib/format'
 import { cn } from '@/ui/lib/utils'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { toast } from 'sonner'
 import {
   AlertCircle,
   ChevronDown,
@@ -21,6 +22,7 @@ import {
   X,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { FilterPanel } from './filter-panel'
 
 interface SearchFilterDialogProps {
@@ -59,47 +61,60 @@ export function SearchFilterDialog({
   const [conditions, setConditions] = useState<SearchCondition[]>(initialOtherConditions)
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(true)
   const [searchInput, setSearchInput] = useState(initialKeyword)
-  const [debouncedSearchInput, setDebouncedSearchInput] = useState(initialKeyword)
+  const [triggerQuery, setTriggerQuery] = useState(initialKeyword)
+  const [isSemantic, setIsSemantic] = useState<boolean>(false)
 
-  // Sync back if changed from outside
+  const { data: teamSettings } = useQuery({
+    queryKey: ['team-settings', teamId],
+    queryFn: async () => {
+      const res = await client.api.teams[':teamId'].settings.$get({
+        param: { teamId },
+      })
+      if (!res.ok) throw new Error('Failed to fetch team settings')
+      return (await res.json()) as { semanticSearchEnabled: boolean }
+    },
+    enabled: open,
+  })
+
+  const semanticSearchEnabled = teamSettings?.semanticSearchEnabled ?? false
+
+  // Sync back if changed from outside, clear on close
   useEffect(() => {
     if (open) {
       setSearchInput(initialKeyword)
-      setDebouncedSearchInput(initialKeyword)
+      setTriggerQuery(initialKeyword)
       setConditions(initialOtherConditions)
+      setIsSemantic(false)
+    } else {
+      setSearchInput('')
+      setTriggerQuery('')
+      setConditions([])
+      setIsSemantic(false)
     }
   }, [open, initialKeyword, initialOtherConditions])
 
-  // Debounce search input
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchInput(searchInput)
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [searchInput])
-
   const combinedConditions = useMemo(() => {
     const result: SearchCondition[] = [...conditions]
-    if (debouncedSearchInput.trim()) {
+    const activeText = triggerQuery
+    if (activeText.trim() && !isSemantic) {
       result.push({
         field: 'name',
         operator: 'contains',
-        value: debouncedSearchInput.trim(),
+        value: activeText.trim(),
       })
     }
     return result
-  }, [debouncedSearchInput, conditions])
+  }, [isSemantic, triggerQuery, conditions])
 
   const hasActiveCriteria = useMemo(() => {
-    return (
-      debouncedSearchInput.trim() !== '' ||
-      conditions.some((c) => String(c.value || '').trim() !== '')
-    )
-  }, [debouncedSearchInput, conditions])
+    const activeText = triggerQuery
+    return activeText.trim() !== '' || conditions.some((c) => String(c.value || '').trim() !== '')
+  }, [triggerQuery, conditions])
 
   const { mutate: saveAsCollection, isPending: isSaving } = useMutation({
     mutationFn: async () => {
-      let name = debouncedSearchInput.trim()
+      const activeText = triggerQuery
+      let name = activeText.trim()
       if (!name && conditions.length > 0) {
         const first = conditions[0]
         const field = fields.find((f) => f.id === first.field)
@@ -117,6 +132,8 @@ export function SearchFilterDialog({
             searchFilter: {
               conditions: combinedConditions,
               recursively: true,
+              query: activeText.trim(),
+              isSemantic: isSemantic,
             },
           },
         },
@@ -138,41 +155,52 @@ export function SearchFilterDialog({
     },
   })
 
-  const { data: searchResults, isLoading } = useQuery({
-    queryKey: ['search-preview', teamId, assetId, combinedConditions],
+  const {
+    data: searchResults,
+    isLoading,
+    error: searchError,
+  } = useQuery({
+    queryKey: ['search-preview', teamId, assetId, combinedConditions, isSemantic, triggerQuery],
     queryFn: async () => {
+      const activeText = triggerQuery
       const res = await client.api.folders[':folderId'].search.$post({
         param: { folderId: assetId },
         json: {
           assetType: undefined,
           conditions: combinedConditions,
           recursively: true,
+          query: activeText.trim(),
+          isSemantic: isSemantic,
           first: 20,
         },
       })
-      if (!res.ok) throw new Error('Search failed')
+      if (!res.ok) {
+        const errorData = (await res.json().catch(() => ({}))) as Record<string, unknown>
+        throw new Error((errorData.message as string) || 'Search failed')
+      }
       return (await res.json()) as { data: AssetInfo[] }
     },
     enabled: open && hasActiveCriteria,
     staleTime: 500,
+    retry: false,
   })
 
   const handleApply = () => {
-    const finalConditions = [...conditions]
-    if (searchInput.trim()) {
-      finalConditions.push({
-        field: 'name',
-        operator: 'contains',
-        value: searchInput.trim(),
-      })
-    }
-    onApply(finalConditions)
+    onApply(combinedConditions)
     onOpenChange(false)
   }
 
   const handleClearFilters = () => {
     setConditions([])
     setSearchInput('')
+    setTriggerQuery('')
+    setIsSemantic(false)
+  }
+
+  const formatTimestamp = (seconds: number) => {
+    const m = Math.floor(seconds / 60)
+    const s = Math.floor(seconds % 60)
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
   }
 
   const handleResultClick = (item: AssetInfo) => {
@@ -196,35 +224,76 @@ export function SearchFilterDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[900px] p-0 gap-0 overflow-hidden bg-background border-border rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
-        <div className="p-5 pt-8 border-b border-border bg-muted/30 flex flex-col gap-3">
+        <DialogHeader className="px-6 pt-3 pb-0 text-left">
+          <DialogTitle className="text-lg font-bold">Search</DialogTitle>
+        </DialogHeader>
+
+        <div className="px-6 pb-6 pt-4 border-b border-border bg-muted/30 flex flex-col gap-3">
           <form
             onSubmit={(e) => {
               e.preventDefault()
-              handleApply()
+              setTriggerQuery(searchInput.trim())
             }}
-            className="relative mt-2"
+            className="flex flex-col gap-3 mt-2"
           >
-            <Input
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search records by name..."
-              className="w-full pl-4 pr-24 py-3 bg-background border-border rounded-xl text-sm h-12 focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm"
-            />
-            {searchInput && (
+            <div className="relative">
+              <Input
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder={
+                  isSemantic ? 'Search records by content...' : 'Search records by name...'
+                }
+                className="w-full pl-4 pr-24 py-3 bg-background border-border rounded-xl text-sm h-12 focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm"
+              />
+              {searchInput && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchInput('')
+                    setTriggerQuery('')
+                  }}
+                  className="absolute right-20 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
               <button
-                type="button"
-                onClick={() => setSearchInput('')}
-                className="absolute right-20 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-foreground transition-colors"
+                type="submit"
+                className="absolute right-1.5 top-1.5 bottom-1.5 px-4 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold rounded-lg flex items-center justify-center transition-colors shadow-sm"
               >
-                <X className="w-4 h-4" />
+                Search
               </button>
-            )}
-            <button
-              type="submit"
-              className="absolute right-1.5 top-1.5 bottom-1.5 px-4 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold rounded-lg flex items-center justify-center transition-colors shadow-sm"
-            >
-              Search
-            </button>
+            </div>
+
+            <div className="flex items-center gap-3 py-1">
+              <div className="flex items-center gap-2 bg-background border border-border px-3 py-1.5 rounded-lg shadow-sm">
+                <Switch
+                  id="semantic-search-switch"
+                  checked={isSemantic}
+                  onCheckedChange={(checked) => {
+                    setIsSemantic(checked)
+                    setSearchInput('')
+                    setTriggerQuery('')
+                    setConditions([])
+                  }}
+                  disabled={!semanticSearchEnabled}
+                />
+                <Label
+                  htmlFor="semantic-search-switch"
+                  className={cn(
+                    'text-xs font-semibold select-none cursor-pointer',
+                    !semanticSearchEnabled && 'opacity-50 cursor-not-allowed',
+                  )}
+                >
+                  Semantic Search
+                </Label>
+              </div>
+              {!semanticSearchEnabled && (
+                <span className="text-[10px] text-muted-foreground italic">
+                  * Semantic search requires an enabled embedding agent.
+                </span>
+              )}
+            </div>
           </form>
 
           <div
@@ -283,18 +352,35 @@ export function SearchFilterDialog({
             {isLoading && (
               <span className="inline-flex items-center gap-1.5 text-xs text-primary">
                 <Loader2 className="h-3 w-3 animate-spin" />
-                Querying database...
+                {isSemantic
+                  ? 'Semantic search using media intelligence might be slow...'
+                  : 'Querying database...'}
               </span>
             )}
           </div>
 
           <div className="flex flex-col border border-border rounded-xl divide-y divide-border overflow-hidden">
             {!hasActiveCriteria ? (
-              <div className="py-20 text-center flex flex-col items-center justify-center bg-muted/20">
+              <div className="py-20 text-center flex flex-col items-center justify-center bg-muted/20 px-4">
                 <Search className="w-10 h-10 text-muted-foreground/30 mb-2" />
                 <h3 className="text-sm font-semibold text-foreground/80">Ready to Search</h3>
                 <p className="text-xs text-muted-foreground max-w-sm mt-1 mx-auto">
-                  Enter a name or add a filter rule to start discovering assets.
+                  Type your query above and click the Search button to display results.
+                </p>
+                {isSemantic && (
+                  <p className="text-xs text-muted-foreground/80 max-w-md mt-4 mx-auto border-t border-border/60 pt-3">
+                    Semantic search results will be ordered by their relevance to the search query text, but won't be strictly filtered. If you need accurate filtering, please add filter conditions to control that.
+                  </p>
+                )}
+              </div>
+            ) : searchError ? (
+              <div className="py-12 px-4 text-center flex flex-col items-center justify-center bg-muted/20">
+                <AlertCircle className="w-10 h-10 text-destructive/50 mb-2" />
+                <h3 className="text-sm font-semibold text-foreground/80">Search failed</h3>
+                <p className="text-xs text-muted-foreground max-w-sm mt-1 mx-auto">
+                  {searchError.message.includes('Embedding agent not configured')
+                    ? 'Please create and enable an embedding agent in the team settings to use semantic search.'
+                    : searchError.message}
                 </p>
               </div>
             ) : isLoading ? (
@@ -354,6 +440,15 @@ export function SearchFilterDialog({
                             ? 'Folder'
                             : `Size: ${formatSize(record.sizeByte || 0)}`}
                         </span>
+                        {record.startTime !== undefined &&
+                          record.startTime !== null &&
+                          record.endTime !== undefined &&
+                          record.endTime !== null && (
+                            <span className="text-[10px] font-semibold text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded mt-1 inline-block">
+                              Match found at {formatTimestamp(record.startTime)} -{' '}
+                              {formatTimestamp(record.endTime)}
+                            </span>
+                          )}
                       </div>
                       <span className="text-xs text-muted-foreground font-mono shrink-0">
                         {new Date(record.createdAt).toLocaleDateString(undefined, {
@@ -385,8 +480,8 @@ export function SearchFilterDialog({
             <Button
               variant="outline"
               size="xs"
-              className="h-8 text-[10px] font-semibold uppercase tracking-wider"
-              disabled={!hasActiveCriteria || isSaving}
+              className="h-8 text-[10px] font-semibold uppercase tracking-wider mr-1"
+              disabled={!hasActiveCriteria || isSaving || isSemantic}
               onClick={() => saveAsCollection()}
             >
               {isSaving ? (
@@ -397,6 +492,14 @@ export function SearchFilterDialog({
               ) : (
                 'Save as collection'
               )}
+            </Button>
+
+            <Button
+              size="xs"
+              className="h-8 text-[10px] font-semibold uppercase tracking-wider"
+              onClick={isSemantic ? () => onOpenChange(false) : handleApply}
+            >
+              {isSemantic ? 'Close' : 'Apply and Close'}
             </Button>
           </div>
         </div>

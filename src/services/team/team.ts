@@ -185,7 +185,15 @@ export class TeamService {
       where: { id: teamId },
     })
     if (!team) throw new Error('team not found')
-    return team.settings || {}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const settings = (team.settings || {}) as any
+
+    const embeddingAgent = await prisma.agent.findFirst({
+      where: { teamId, type: 'embedding', enabled: true },
+    })
+    settings.semanticSearchEnabled = !!embeddingAgent
+
+    return settings
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
