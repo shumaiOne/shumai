@@ -735,3 +735,100 @@ describe('SearchService', () => {
     })
   })
 })
+
+describe('SearchService — natural sort by name', () => {
+  setupTestDbHooks()
+
+  let searchService: SearchService
+
+  beforeEach(() => {
+    searchService = new SearchService()
+  })
+
+  const setupSearchNaturalSortAssets = async (names: string[]) => {
+    const user = await prisma.user.create({
+      data: {
+        name: 'search-natural-sort-user',
+        email: `search-natural-sort-${Date.now()}@example.com`,
+        type: 'human',
+      },
+    })
+    const team = await prisma.team.create({ data: { name: 'search-natural-sort-team' } })
+    const project = await prisma.project.create({
+      data: { name: 'search-natural-sort-proj', teamId: team.id },
+    })
+    const root = await prisma.asset.create({
+      data: {
+        name: 'root',
+        type: AssetType.folder,
+        projectId: project.id,
+        creatorId: user.id,
+        status: 'uploaded',
+      },
+    })
+    for (const name of names) {
+      await prisma.asset.create({
+        data: {
+          name,
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: root.id,
+          creatorId: user.id,
+          status: 'uploaded',
+          sizeByte: 0,
+        },
+      })
+    }
+    return { root }
+  }
+
+  it('returns results in natural name order (asc) via raw-SQL sort path', async () => {
+    const { root } = await setupSearchNaturalSortAssets(['clip10', 'clip2', 'clip20', 'clip1'])
+
+    const result = await searchService.search(root.id, {
+      recursively: false,
+      assetType: 'file',
+      operator: 'AND',
+      conditions: [],
+      isSemantic: false,
+      sort: { field: 'name', order: 'asc' },
+    })
+
+    expect(result.data.map((a) => a.name)).toEqual(['clip1', 'clip2', 'clip10', 'clip20'])
+  })
+
+  it('returns results in natural name order (desc) via raw-SQL sort path', async () => {
+    const { root } = await setupSearchNaturalSortAssets(['clip10', 'clip2', 'clip20', 'clip1'])
+
+    const result = await searchService.search(root.id, {
+      recursively: false,
+      assetType: 'file',
+      operator: 'AND',
+      conditions: [],
+      isSemantic: false,
+      sort: { field: 'name', order: 'desc' },
+    })
+
+    expect(result.data.map((a) => a.name)).toEqual(['clip20', 'clip10', 'clip2', 'clip1'])
+  })
+
+  it('sorts mixed alpha-numeric names naturally via search', async () => {
+    const { root } = await setupSearchNaturalSortAssets([
+      'scene 100',
+      'scene 9',
+      'scene 10',
+      'scene 2',
+    ])
+
+    const result = await searchService.search(root.id, {
+      recursively: false,
+      assetType: 'file',
+      operator: 'AND',
+      conditions: [],
+      isSemantic: false,
+      sort: { field: 'name', order: 'asc' },
+    })
+
+    expect(result.data.map((a) => a.name)).toEqual(['scene 2', 'scene 9', 'scene 10', 'scene 100'])
+  })
+})

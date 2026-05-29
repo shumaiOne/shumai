@@ -1482,3 +1482,108 @@ describe('AssetService', () => {
     })
   })
 })
+
+describe('AssetService — natural sort by name', () => {
+  setupTestDbHooks()
+
+  let assetService: AssetService
+
+  beforeEach(() => {
+    assetService = new AssetService()
+  })
+
+  const setupNaturalSortAssets = async (names: string[]) => {
+    const user = await prisma.user.create({
+      data: {
+        name: 'natural-sort-user',
+        email: `natural-sort-${Date.now()}@example.com`,
+        type: 'human',
+      },
+    })
+    const team = await prisma.team.create({ data: { name: 'natural-sort-team' } })
+    const project = await prisma.project.create({
+      data: { name: 'natural-sort-proj', teamId: team.id },
+    })
+    const root = await prisma.asset.create({
+      data: {
+        name: 'root',
+        type: AssetType.folder,
+        projectId: project.id,
+        creatorId: user.id,
+        status: 'uploaded',
+      },
+    })
+    // Create files in a shuffled order so we are not relying on insertion order
+    for (const name of names) {
+      await prisma.asset.create({
+        data: {
+          name,
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: root.id,
+          creatorId: user.id,
+          status: 'uploaded',
+          sizeByte: 0,
+        },
+      })
+    }
+    return { root }
+  }
+
+  it('sorts files with numeric suffixes in natural order (asc)', async () => {
+    // Insert in non-natural lexicographic order to prove the collation does the work
+    const { root } = await setupNaturalSortAssets(['file10', 'file2', 'file20', 'file1'])
+
+    const result = await assetService.listChildren({
+      assetId: root.id,
+      assetType: AssetType.file,
+      sort: 'name',
+      order: 'asc',
+      first: 20,
+    })
+
+    expect(result.data.map((a) => a.name)).toEqual(['file1', 'file2', 'file10', 'file20'])
+  })
+
+  it('sorts files with numeric suffixes in natural order (desc)', async () => {
+    const { root } = await setupNaturalSortAssets(['file10', 'file2', 'file20', 'file1'])
+
+    const result = await assetService.listChildren({
+      assetId: root.id,
+      assetType: AssetType.file,
+      sort: 'name',
+      order: 'desc',
+      first: 20,
+    })
+
+    expect(result.data.map((a) => a.name)).toEqual(['file20', 'file10', 'file2', 'file1'])
+  })
+
+  it('sorts mixed alpha-numeric names correctly', async () => {
+    const { root } = await setupNaturalSortAssets(['asset 100', 'asset 9', 'asset 10', 'asset 2'])
+
+    const result = await assetService.listChildren({
+      assetId: root.id,
+      assetType: AssetType.file,
+      sort: 'name',
+      order: 'asc',
+      first: 20,
+    })
+
+    expect(result.data.map((a) => a.name)).toEqual(['asset 2', 'asset 9', 'asset 10', 'asset 100'])
+  })
+
+  it('does not regress lexicographic ordering for purely alphabetical names', async () => {
+    const { root } = await setupNaturalSortAssets(['banana', 'apple', 'cherry', 'apricot'])
+
+    const result = await assetService.listChildren({
+      assetId: root.id,
+      assetType: AssetType.file,
+      sort: 'name',
+      order: 'asc',
+      first: 20,
+    })
+
+    expect(result.data.map((a) => a.name)).toEqual(['apple', 'apricot', 'banana', 'cherry'])
+  })
+})
