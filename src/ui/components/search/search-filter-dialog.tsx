@@ -369,7 +369,9 @@ export function SearchFilterDialog({
                 </p>
                 {isSemantic && (
                   <p className="text-xs text-muted-foreground/80 max-w-md mt-4 mx-auto border-t border-border/60 pt-3">
-                    Semantic search results will be ordered by their relevance to the search query text, but won't be strictly filtered. If you need accurate filtering, please add filter conditions to control that.
+                    Semantic search results will be ordered by their relevance to the search query
+                    text, but won't be strictly filtered. If you need accurate filtering, please add
+                    filter conditions to control that.
                   </p>
                 )}
               </div>
