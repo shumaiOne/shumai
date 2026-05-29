@@ -61,9 +61,8 @@ export function SearchFilterDialog({
   const [conditions, setConditions] = useState<SearchCondition[]>(initialOtherConditions)
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(true)
   const [searchInput, setSearchInput] = useState(initialKeyword)
-  const [debouncedSearchInput, setDebouncedSearchInput] = useState(initialKeyword)
+  const [triggerQuery, setTriggerQuery] = useState(initialKeyword)
   const [isSemantic, setIsSemantic] = useState<boolean>(false)
-  const [semanticSearchTriggerQuery, setSemanticSearchTriggerQuery] = useState('')
 
   const { data: teamSettings } = useQuery({
     queryKey: ['team-settings', teamId],
@@ -83,30 +82,20 @@ export function SearchFilterDialog({
   useEffect(() => {
     if (open) {
       setSearchInput(initialKeyword)
-      setDebouncedSearchInput(initialKeyword)
+      setTriggerQuery(initialKeyword)
       setConditions(initialOtherConditions)
       setIsSemantic(false)
-      setSemanticSearchTriggerQuery('')
     } else {
       setSearchInput('')
-      setDebouncedSearchInput('')
+      setTriggerQuery('')
       setConditions([])
       setIsSemantic(false)
-      setSemanticSearchTriggerQuery('')
     }
   }, [open, initialKeyword, initialOtherConditions])
 
-  // Debounce search input
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchInput(searchInput)
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [searchInput])
-
   const combinedConditions = useMemo(() => {
     const result: SearchCondition[] = [...conditions]
-    const activeText = isSemantic ? semanticSearchTriggerQuery : debouncedSearchInput
+    const activeText = triggerQuery
     if (activeText.trim() && !isSemantic) {
       result.push({
         field: 'name',
@@ -115,16 +104,16 @@ export function SearchFilterDialog({
       })
     }
     return result
-  }, [isSemantic, debouncedSearchInput, semanticSearchTriggerQuery, conditions])
+  }, [isSemantic, triggerQuery, conditions])
 
   const hasActiveCriteria = useMemo(() => {
-    const activeText = isSemantic ? semanticSearchTriggerQuery : debouncedSearchInput
+    const activeText = triggerQuery
     return activeText.trim() !== '' || conditions.some((c) => String(c.value || '').trim() !== '')
-  }, [isSemantic, debouncedSearchInput, semanticSearchTriggerQuery, conditions])
+  }, [triggerQuery, conditions])
 
   const { mutate: saveAsCollection, isPending: isSaving } = useMutation({
     mutationFn: async () => {
-      const activeText = isSemantic ? semanticSearchTriggerQuery : debouncedSearchInput
+      const activeText = triggerQuery
       let name = activeText.trim()
       if (!name && conditions.length > 0) {
         const first = conditions[0]
@@ -171,16 +160,9 @@ export function SearchFilterDialog({
     isLoading,
     error: searchError,
   } = useQuery({
-    queryKey: [
-      'search-preview',
-      teamId,
-      assetId,
-      combinedConditions,
-      isSemantic,
-      isSemantic ? semanticSearchTriggerQuery : debouncedSearchInput,
-    ],
+    queryKey: ['search-preview', teamId, assetId, combinedConditions, isSemantic, triggerQuery],
     queryFn: async () => {
-      const activeText = isSemantic ? semanticSearchTriggerQuery : debouncedSearchInput
+      const activeText = triggerQuery
       const res = await client.api.folders[':folderId'].search.$post({
         param: { folderId: assetId },
         json: {
@@ -211,7 +193,7 @@ export function SearchFilterDialog({
   const handleClearFilters = () => {
     setConditions([])
     setSearchInput('')
-    setSemanticSearchTriggerQuery('')
+    setTriggerQuery('')
     setIsSemantic(false)
   }
 
@@ -246,11 +228,7 @@ export function SearchFilterDialog({
           <form
             onSubmit={(e) => {
               e.preventDefault()
-              if (isSemantic) {
-                setSemanticSearchTriggerQuery(searchInput.trim())
-              } else {
-                handleApply()
-              }
+              setTriggerQuery(searchInput.trim())
             }}
             className="flex flex-col gap-3 mt-2"
           >
@@ -270,9 +248,7 @@ export function SearchFilterDialog({
                   type="button"
                   onClick={() => {
                     setSearchInput('')
-                    if (isSemantic) {
-                      setSemanticSearchTriggerQuery('')
-                    }
+                    setTriggerQuery('')
                   }}
                   className="absolute right-20 top-1/2 -translate-y-1/2 p-1 rounded-md text-muted-foreground hover:text-foreground transition-colors"
                 >
@@ -509,9 +485,9 @@ export function SearchFilterDialog({
             <Button
               size="xs"
               className="h-8 text-[10px] font-semibold uppercase tracking-wider"
-              onClick={handleApply}
+              onClick={isSemantic ? () => onOpenChange(false) : handleApply}
             >
-              {isSemantic ? 'Apply' : 'Apply and Close'}
+              {isSemantic ? 'Close' : 'Apply and Close'}
             </Button>
           </div>
         </div>
