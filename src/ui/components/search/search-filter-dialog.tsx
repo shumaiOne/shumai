@@ -361,12 +361,17 @@ export function SearchFilterDialog({
 
           <div className="flex flex-col border border-border rounded-xl divide-y divide-border overflow-hidden">
             {!hasActiveCriteria ? (
-              <div className="py-20 text-center flex flex-col items-center justify-center bg-muted/20">
+              <div className="py-20 text-center flex flex-col items-center justify-center bg-muted/20 px-4">
                 <Search className="w-10 h-10 text-muted-foreground/30 mb-2" />
                 <h3 className="text-sm font-semibold text-foreground/80">Ready to Search</h3>
                 <p className="text-xs text-muted-foreground max-w-sm mt-1 mx-auto">
                   Type your query above and click the Search button to display results.
                 </p>
+                {isSemantic && (
+                  <p className="text-xs text-muted-foreground/80 max-w-md mt-4 mx-auto border-t border-border/60 pt-3">
+                    Semantic search results will be ordered by their relevance to the search query text, but won't be strictly filtered. If you need accurate filtering, please add filter conditions to control that.
+                  </p>
+                )}
               </div>
             ) : searchError ? (
               <div className="py-12 px-4 text-center flex flex-col items-center justify-center bg-muted/20">
