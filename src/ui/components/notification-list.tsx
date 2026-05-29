@@ -8,6 +8,7 @@ import { CheckCheckIcon, Loader2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useInView } from 'react-intersection-observer'
 import type { InferResponseType } from 'hono/client'
+import type { GetMeResponse } from '@/dtos/team'
 
 export const NotificationList = () => {
   const { teamId } = useTeamContextStore()
@@ -83,13 +84,30 @@ export const NotificationList = () => {
     if (notifications.length > 0 && teamId) {
       const topId = notifications[0].id
       if (topId) {
-        await markReadMutation.mutateAsync({
-          teamId,
-          notificationId: topId,
+        // Optimistically clear the unread count in React Query cache instantly
+        queryClient.setQueryData(['teams', teamId, 'me'], (oldData: GetMeResponse | undefined) => {
+          if (!oldData) return oldData
+          return {
+            ...oldData,
+            unreadNotificationCount: 0,
+          }
         })
-        // Invalidate queries
+
+        try {
+          await markReadMutation.mutateAsync({
+            teamId,
+            notificationId: topId,
+          })
+        } catch (err) {
+          console.error('Failed to mark all as read:', err)
+        }
+
+        // Invalidate queries to trigger sync refetches
         queryClient.invalidateQueries({
           queryKey: ['notifications', teamId],
+        })
+        queryClient.invalidateQueries({
+          queryKey: ['teams', teamId, 'me'],
         })
         // Refetch to update UI state immediately
         refetch()

@@ -332,7 +332,13 @@ describe('NotificationService', () => {
       data: { id: '101', teamId: tm.id, type: NotificationType.comment_created, creatorId: u2.id },
     })
     const n2 = await prisma.notification.create({
-      data: { id: '102', teamId: tm.id, type: NotificationType.reply_created, userId: u1.id, creatorId: u2.id },
+      data: {
+        id: '102',
+        teamId: tm.id,
+        type: NotificationType.reply_created,
+        userId: u1.id,
+        creatorId: u2.id,
+      },
     })
 
     count = await notificationService.getUnreadCount(tm.id, u1.id)
