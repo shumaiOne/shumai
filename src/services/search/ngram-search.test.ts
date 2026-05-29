@@ -60,7 +60,7 @@ describe('N-gram Search Integration', () => {
     const result = await searchService.search(root.id, {
       operator: 'AND',
       recursively: true,
-      searchMode: 'name',
+      isSemantic: false,
       conditions: [
         {
           field: 'name',
@@ -88,7 +88,7 @@ describe('N-gram Search Integration', () => {
     const result = await searchService.search(root.id, {
       operator: 'AND',
       recursively: true,
-      searchMode: 'name',
+      isSemantic: false,
       conditions: [
         {
           field: 'name',
@@ -158,7 +158,7 @@ describe('N-gram Search Integration', () => {
       const result = await searchService.search(rootId, {
         operator: 'AND',
         recursively: true,
-        searchMode: 'name',
+        isSemantic: false,
         conditions: [
           {
             field: 'name',
@@ -191,7 +191,7 @@ describe('N-gram Search Integration', () => {
       await searchService.search(rootId, {
         operator: 'AND',
         recursively: true,
-        searchMode: 'name',
+        isSemantic: false,
         conditions: [{ field: 'name', operator: 'contains', value: 'rareterm' }],
       })
 
@@ -213,7 +213,7 @@ describe('N-gram Search Integration', () => {
       await searchService.search(rootId, {
         operator: 'AND',
         recursively: true,
-        searchMode: 'name',
+        isSemantic: false,
         conditions: [{ field: 'name', operator: 'contains', value: 'commonterm' }],
       })
 

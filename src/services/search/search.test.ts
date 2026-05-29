@@ -1,9 +1,10 @@
-import { describe, expect, it, beforeEach } from 'vitest'
+import { describe, expect, it, beforeEach, vi } from 'vitest'
 import { prisma } from '@/db'
 import { setupTestDbHooks } from '@/db-test-hooks'
 import { SearchService } from './search'
 import { SearchConditionOperator } from '@/dtos/search'
 import { metadataService } from '@/services/metadata/metadata'
+import { workflowService } from '@/workflow/workflow'
 
 import { AssetType } from '@/generated/prisma/client.ts'
 
@@ -376,7 +377,7 @@ describe('SearchService', () => {
         recursively: true,
         assetType: 'file',
         operator: 'AND',
-        searchMode: 'name',
+        isSemantic: false,
       })
       const names = result.data.map((a) => a.name).sort()
       expect(names).toEqual(expected.sort())
@@ -391,7 +392,7 @@ describe('SearchService', () => {
       recursively: true,
       assetType: 'file',
       operator: 'AND',
-      searchMode: 'name',
+      isSemantic: false,
     })
 
     expect(result.data).toHaveLength(1)
@@ -406,7 +407,7 @@ describe('SearchService', () => {
       recursively: true,
       assetType: 'file',
       operator: 'AND',
-      searchMode: 'name',
+      isSemantic: false,
     })
 
     expect(result.data).toHaveLength(2)
@@ -423,7 +424,7 @@ describe('SearchService', () => {
       recursively: true,
       assetType: 'file',
       operator: 'AND',
-      searchMode: 'name',
+      isSemantic: false,
     })
 
     expect(result.data).toHaveLength(1)
@@ -438,7 +439,7 @@ describe('SearchService', () => {
       recursively: false,
       assetType: 'file',
       operator: 'AND',
-      searchMode: 'name',
+      isSemantic: false,
     })
 
     // Should only find file1, as file2 is in subfolder
@@ -459,7 +460,7 @@ describe('SearchService', () => {
       assetType: 'file',
       operator: 'AND',
       conditions: [],
-      searchMode: 'name',
+      isSemantic: false,
     })
     expect(resultAsc.data[0].name).toBe('file1')
     expect(resultAsc.data[1].name).toBe('file2')
@@ -470,7 +471,7 @@ describe('SearchService', () => {
       assetType: 'file',
       operator: 'AND',
       conditions: [],
-      searchMode: 'name',
+      isSemantic: false,
     })
     expect(resultDesc.data[0].name).toBe('file2')
     expect(resultDesc.data[1].name).toBe('file1')
@@ -486,7 +487,7 @@ describe('SearchService', () => {
       assetType: 'file',
       operator: 'AND',
       conditions: [],
-      searchMode: 'name',
+      isSemantic: false,
     })
     expect(resultAsc.data[0].sizeByte).toBe(100)
     expect(resultAsc.data[1].sizeByte).toBe(200)
@@ -497,7 +498,7 @@ describe('SearchService', () => {
       assetType: 'file',
       operator: 'AND',
       conditions: [],
-      searchMode: 'name',
+      isSemantic: false,
     })
     expect(resultDesc.data[0].sizeByte).toBe(200)
     expect(resultDesc.data[1].sizeByte).toBe(100)
@@ -524,7 +525,7 @@ describe('SearchService', () => {
       assetType: 'file',
       operator: 'AND',
       conditions: [],
-      searchMode: 'name',
+      isSemantic: false,
     })
     expect(resultNormal.data.find((a) => a.id === symlink.id)).toBeUndefined()
 
@@ -535,8 +536,202 @@ describe('SearchService', () => {
       operator: 'AND',
       conditions: [],
       showSymlink: true,
-      searchMode: 'name',
+      isSemantic: false,
     })
     expect(resultWithSymlink.data.find((a) => a.id === symlink.id)).toBeDefined()
+  })
+
+  describe('Semantic Search with multiple chunks and distance ordering', () => {
+    it('returns multiple matching segments from the same asset and orders by distance', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'semantic-user', email: 'semantic-user@example.com', type: 'human' },
+      })
+
+      const team = await prisma.team.create({
+        data: { name: 'semantic-team' },
+      })
+
+      const project = await prisma.project.create({
+        data: { name: 'semantic-project', teamId: team.id },
+      })
+
+      // We need an embedding agent that is enabled for semantic search to be allowed
+      const botUser = await prisma.user.create({
+        data: { name: 'Embedding Bot', email: 'emb@example.com', type: 'agent' },
+      })
+      const provider = await prisma.provider.create({
+        data: {
+          name: 'google',
+          teamId: team.id,
+          config: { api: 'google', apiKey: 'key' } as unknown as PrismaJson.ProviderConfig,
+        },
+      })
+      const model = await prisma.model.create({
+        data: {
+          modelId: 'gemini',
+          name: 'Gemini',
+          providerId: provider.id,
+          config: {
+            reasoning: false,
+            input: ['text'],
+            contextWindow: 1000,
+            maxTokens: 1000,
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          } as unknown as PrismaJson.ModelConfig,
+        },
+      })
+      await prisma.agent.create({
+        data: {
+          id: botUser.id,
+          teamId: team.id,
+          type: 'embedding',
+          enabled: true,
+          providerId: provider.id,
+          modelId: model.id,
+          config: { provider: 'google', model: 'gemini' },
+        },
+      })
+
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'root',
+          type: AssetType.folder,
+          projectId: project.id,
+          creatorId: user.id,
+          status: 'uploaded',
+        },
+      })
+
+      const videoAssetA = await prisma.asset.create({
+        data: {
+          name: 'videoA.mp4',
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: rootFolder.id,
+          creatorId: user.id,
+          status: 'uploaded',
+        },
+      })
+
+      const videoAssetB = await prisma.asset.create({
+        data: {
+          name: 'videoB.mp4',
+          type: AssetType.file,
+          projectId: project.id,
+          parentId: rootFolder.id,
+          creatorId: user.id,
+          status: 'uploaded',
+        },
+      })
+
+      // Insert embedding chunks:
+      // We will insert 2 chunks for videoAssetA and 1 chunk for videoAssetB.
+      // Vector size is 1536. We use unit vectors to ensure distinct cosine distances:
+      // Chunk A1: startTime = 0.0, endTime = 10.0, embedding = [1, 0, 0...] (cosine similarity = 1.0, distance = 0.0)
+      // Chunk B1: startTime = 5.0, endTime = 15.0, embedding = [1, 1, 0...] (cosine similarity = 0.707, distance = 0.293)
+      // Chunk A2: startTime = 10.0, endTime = 20.0, embedding = [0, 1, 0...] (cosine similarity = 0.0, distance = 1.0)
+
+      const arrA1 = Array(1536).fill(0)
+      arrA1[0] = 1.0
+      const vectorA1 = JSON.stringify(arrA1)
+
+      const arrB1 = Array(1536).fill(0)
+      arrB1[0] = 1.0
+      arrB1[1] = 1.0
+      const vectorB1 = JSON.stringify(arrB1)
+
+      const arrA2 = Array(1536).fill(0)
+      arrA2[1] = 1.0
+      const vectorA2 = JSON.stringify(arrA2)
+
+      await prisma.$executeRaw`
+        INSERT INTO asset_embeddings (id, asset_id, embedding, start_time, end_time, created_at, updated_at)
+        VALUES (
+          'chunk-a1', 
+          ${videoAssetA.id}, 
+          ${vectorA1}::vector, 
+          0.0, 
+          10.0, 
+          NOW(), 
+          NOW()
+        )
+      `
+      await prisma.$executeRaw`
+        INSERT INTO asset_embeddings (id, asset_id, embedding, start_time, end_time, created_at, updated_at)
+        VALUES (
+          'chunk-a2', 
+          ${videoAssetA.id}, 
+          ${vectorA2}::vector, 
+          10.0, 
+          20.0, 
+          NOW(), 
+          NOW()
+        )
+      `
+      await prisma.$executeRaw`
+        INSERT INTO asset_embeddings (id, asset_id, embedding, start_time, end_time, created_at, updated_at)
+        VALUES (
+          'chunk-b1', 
+          ${videoAssetB.id}, 
+          ${vectorB1}::vector, 
+          5.0, 
+          15.0, 
+          NOW(), 
+          NOW()
+        )
+      `
+
+      // Mock the embedding generation workflow task.
+      // Our query vector points along the first dimension [1, 0, 0...]
+      const queryVector = Array(1536).fill(0)
+      queryVector[0] = 1.0
+      const mockExecuteWait = vi
+        .spyOn(workflowService, 'executeWait')
+        .mockImplementation(async (task) => {
+          return {
+            ...task,
+            status: 'completed',
+            output: {
+              embedding: queryVector,
+            },
+          } as unknown as typeof task
+        })
+
+      // Search using semantic mode
+      const result = await searchService.search(rootFolder.id, {
+        recursively: true,
+        assetType: 'file',
+        operator: 'AND',
+        conditions: [],
+        query: 'find some cute cat video segments',
+        isSemantic: true,
+      })
+
+      // We expect 3 distinct results because videoAssetA matches twice and videoAssetB matches once:
+      // Sorting should be based on vector distance:
+      // Distance from query (0.2) to:
+      // - Chunk A1 (0.1): |0.2 - 0.1| = 0.1 -> closest (1st)
+      // - Chunk B1 (0.5): |0.2 - 0.5| = 0.3 -> medium (2nd)
+      // - Chunk A2 (0.9): |0.2 - 0.9| = 0.7 -> farthest (3rd)
+
+      expect(result.data).toHaveLength(3)
+
+      // 1st: Chunk A1
+      expect(result.data[0].id).toBe(videoAssetA.id)
+      expect(result.data[0].startTime).toBe(0)
+      expect(result.data[0].endTime).toBe(10)
+
+      // 2nd: Chunk B1
+      expect(result.data[1].id).toBe(videoAssetB.id)
+      expect(result.data[1].startTime).toBe(5)
+      expect(result.data[1].endTime).toBe(15)
+
+      // 3rd: Chunk A2
+      expect(result.data[2].id).toBe(videoAssetA.id)
+      expect(result.data[2].startTime).toBe(10)
+      expect(result.data[2].endTime).toBe(20)
+
+      mockExecuteWait.mockRestore()
+    })
   })
 })

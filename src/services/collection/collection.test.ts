@@ -48,7 +48,7 @@ describe('CollectionService', () => {
           operator: 'AND',
           conditions: [{ field: 'name', operator: 'contains', value: 'test' }],
           recursively: true,
-          searchMode: 'name',
+          isSemantic: false,
         },
       },
     })
@@ -69,7 +69,7 @@ describe('CollectionService', () => {
           operator: 'AND',
           conditions: [{ field: 'rating', operator: 'eq', value: 5 }],
           recursively: true,
-          searchMode: 'name',
+          isSemantic: false,
         },
       },
     })
@@ -92,7 +92,7 @@ describe('CollectionService', () => {
         name: `Collection ${i}`,
         filter: {
           sourceFolderId: project.rootFolder!,
-          searchFilter: { operator: 'AND', conditions: [], recursively: true, searchMode: 'name' },
+          searchFilter: { operator: 'AND', conditions: [], recursively: true, isSemantic: false },
         },
       })
     }
@@ -130,7 +130,7 @@ describe('CollectionService', () => {
       name: 'To be deleted',
       filter: {
         sourceFolderId: project.rootFolder!,
-        searchFilter: { operator: 'AND', conditions: [], recursively: true, searchMode: 'name' },
+        searchFilter: { operator: 'AND', conditions: [], recursively: true, isSemantic: false },
       },
     })
 

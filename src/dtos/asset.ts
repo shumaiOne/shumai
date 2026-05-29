@@ -66,6 +66,8 @@ export const assetInfoSchema = z.object({
   creator: userInfoSchema.nullable().optional(),
   fieldValues: z.array(fieldValueInfoSchema).optional(),
   sortIndex: z.string().optional().nullable(),
+  startTime: z.number().optional().nullable(),
+  endTime: z.number().optional().nullable(),
 
   media: z
     .object({

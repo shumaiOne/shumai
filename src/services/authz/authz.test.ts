@@ -59,7 +59,7 @@ describe('AuthzService', () => {
         projectId: project.id,
         filter: {
           sourceFolderId: 'root',
-          searchFilter: { conditions: [], operator: 'AND', recursively: true, searchMode: 'name' },
+          searchFilter: { conditions: [], operator: 'AND', recursively: true, isSemantic: false },
         },
       },
     })
@@ -263,7 +263,7 @@ describe('AuthzService', () => {
         projectId: project.id,
         filter: {
           sourceFolderId: 'root',
-          searchFilter: { conditions: [], operator: 'AND', recursively: true, searchMode: 'name' },
+          searchFilter: { conditions: [], operator: 'AND', recursively: true, isSemantic: false },
         },
       },
     })
