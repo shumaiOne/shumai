@@ -12,14 +12,14 @@ import { cn } from '@/ui/lib/utils'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import {
-    AlertCircle,
-    ChevronDown,
-    ChevronUp,
-    FileIcon,
-    FolderIcon,
-    Loader2,
-    Search,
-    X,
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  FileIcon,
+  FolderIcon,
+  Loader2,
+  Search,
+  X,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
@@ -241,9 +241,7 @@ export function SearchFilterDialog({
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder={
-                  isSemantic
-                    ? "Describe what you're looking for and click Search..."
-                    : 'Search records by name...'
+                  isSemantic ? 'Search records by content...' : 'Search records by name...'
                 }
                 className="w-full pl-4 pr-24 py-3 bg-background border-border rounded-xl text-sm h-12 focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm"
               />
@@ -362,7 +360,7 @@ export function SearchFilterDialog({
                 <Search className="w-10 h-10 text-muted-foreground/30 mb-2" />
                 <h3 className="text-sm font-semibold text-foreground/80">Ready to Search</h3>
                 <p className="text-xs text-muted-foreground max-w-sm mt-1 mx-auto">
-                  Enter a name or add a filter rule to start discovering assets.
+                  Type your query above and click the Search button to display results.
                 </p>
               </div>
             ) : searchError ? (
@@ -473,7 +471,7 @@ export function SearchFilterDialog({
               variant="outline"
               size="xs"
               className="h-8 text-[10px] font-semibold uppercase tracking-wider mr-1"
-              disabled={!hasActiveCriteria || isSaving}
+              disabled={!hasActiveCriteria || isSaving || isSemantic}
               onClick={() => saveAsCollection()}
             >
               {isSaving ? (
