@@ -1,9 +1,8 @@
-import { WorkflowTask, WorkflowTaskStatus, Prisma } from '@/generated/prisma/client'
-import { getActivities } from '../workflow-utils'
-import { prisma } from '@/db'
+import type { WorkflowTask } from '@/generated/prisma/client'
+import { getActivities, executeActivity, TaskQueueDb } from '../workflow-utils'
 
 export async function queryEmbeddingForSearch(task: WorkflowTask): Promise<void> {
-  const { generateTextEmbeddingActivity } = getActivities()
+  const { generateTextEmbeddingActivity, updateWorkflowTaskActivity } = getActivities()
 
   const payload = task.payload as PrismaJson.WorkflowTaskPayload | null
   const text = payload?.queryEmbeddingForSearch?.text
@@ -14,9 +13,10 @@ export async function queryEmbeddingForSearch(task: WorkflowTask): Promise<void>
 
   try {
     // 1. Mark as processing
-    await prisma.workflowTask.update({
-      where: { id: task.id },
-      data: { status: WorkflowTaskStatus.processing, heartbeat: new Date() },
+    await executeActivity(TaskQueueDb, updateWorkflowTaskActivity, {
+      taskId: task.id,
+      status: 'processing',
+      heartbeat: true,
     })
 
     // 2. Generate embedding
@@ -26,25 +26,21 @@ export async function queryEmbeddingForSearch(task: WorkflowTask): Promise<void>
     })
 
     // 3. Save output and complete
-    await prisma.workflowTask.update({
-      where: { id: task.id },
-      data: {
-        status: WorkflowTaskStatus.completed,
-        output: { embedding: result.embedding } as Prisma.InputJsonValue,
-        inputTokens: result.usage.inputTokens,
-        outputTokens: result.usage.outputTokens,
-        model: result.usage.model,
-      },
+    await executeActivity(TaskQueueDb, updateWorkflowTaskActivity, {
+      taskId: task.id,
+      status: 'completed',
+      output: { embedding: result.embedding },
+      inputTokens: result.usage.inputTokens,
+      outputTokens: result.usage.outputTokens,
+      model: result.usage.model,
     })
   } catch (err) {
     console.error(`queryEmbeddingForSearch failed for task ${task.id}:`, err)
-    await prisma.workflowTask.update({
-      where: { id: task.id },
-      data: {
-        status: WorkflowTaskStatus.failed,
-        output: {
-          error: err instanceof Error ? err.message : String(err),
-        } as Prisma.InputJsonValue,
+    await executeActivity(TaskQueueDb, updateWorkflowTaskActivity, {
+      taskId: task.id,
+      status: 'failed',
+      output: {
+        error: err instanceof Error ? err.message : String(err),
       },
     })
     throw err

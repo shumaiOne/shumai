@@ -1,3 +1,6 @@
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
 -- CreateExtension
 CREATE EXTENSION IF NOT EXISTS "vector";
 
@@ -8,7 +11,10 @@ CREATE TYPE "UserType" AS ENUM ('human', 'agent');
 CREATE TYPE "AssetType" AS ENUM ('folder', 'file', 'share', 'root', 'attachment', 'version_stack', 'share_root', 'symlink');
 
 -- CreateEnum
-CREATE TYPE "AssetStatus" AS ENUM ('uploading', 'uploaded', 'processing', 'processed', 'trashed', 'removed');
+CREATE TYPE "AssetStatus" AS ENUM ('uploading', 'uploaded', 'processing', 'processed', 'trashed', 'pending_purge');
+
+-- CreateEnum
+CREATE TYPE "StorageKeyStatus" AS ENUM ('active', 'purging');
 
 -- CreateEnum
 CREATE TYPE "InviteRole" AS ENUM ('editor', 'reviewer');
@@ -35,13 +41,13 @@ CREATE TYPE "TeamMemberRole" AS ENUM ('owner', 'editor', 'reviewer');
 CREATE TYPE "TeamMemberScope" AS ENUM ('team', 'project');
 
 -- CreateEnum
-CREATE TYPE "WorkflowTaskType" AS ENUM ('transcode', 'ai_metadata_autofill', 'ai_transcription', 'chat', 'ai_embedding');
+CREATE TYPE "WorkflowTaskType" AS ENUM ('transcode', 'ai_metadata_autofill', 'chat', 'ai_embedding', 'query_embedding_for_search');
 
 -- CreateEnum
 CREATE TYPE "WorkflowTaskStatus" AS ENUM ('pending', 'processing', 'completed', 'failed');
 
 -- CreateEnum
-CREATE TYPE "AgentType" AS ENUM ('chat', 'autofill', 'embedding', 'transcription');
+CREATE TYPE "AgentType" AS ENUM ('chat', 'autofill', 'embedding');
 
 -- CreateTable
 CREATE TABLE "users" (
@@ -130,6 +136,17 @@ CREATE TABLE "teams" (
 );
 
 -- CreateTable
+CREATE TABLE "sandboxes" (
+    "id" TEXT NOT NULL,
+    "allowedDomains" TEXT[] DEFAULT ARRAY['npmjs.org', '*.npmjs.org', 'registry.npmjs.org', 'registry.yarnpkg.com', 'pypi.org', '*.pypi.org', 'github.com', '*.github.com', 'api.github.com', 'raw.githubusercontent.com']::TEXT[],
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+    "team_id" TEXT NOT NULL,
+
+    CONSTRAINT "sandboxes_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "skills" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -162,8 +179,6 @@ CREATE TABLE "projects" (
     "name" TEXT NOT NULL,
     "cover_image_key" TEXT,
     "metadata_overrides" JSONB,
-    "enable_ai_autofill" BOOLEAN NOT NULL DEFAULT false,
-    "enable_ai_transcription" BOOLEAN NOT NULL DEFAULT false,
     "enable_notification" BOOLEAN NOT NULL DEFAULT true,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
@@ -206,7 +221,6 @@ CREATE TABLE "assets" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL DEFAULT '',
     "name_ngram" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "key" TEXT,
     "type" "AssetType" NOT NULL,
     "media_type" TEXT,
     "file_count" INTEGER NOT NULL DEFAULT 0,
@@ -214,13 +228,14 @@ CREATE TABLE "assets" (
     "status" "AssetStatus" NOT NULL,
     "transcode_task_id" TEXT,
     "media" JSONB,
-    "removed" BOOLEAN NOT NULL DEFAULT false,
+    "is_deleted" BOOLEAN NOT NULL DEFAULT false,
     "deleted_at" TIMESTAMP(3),
     "sort_index" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
     "parent_id" TEXT,
     "target_id" TEXT,
+    "storage_key_id" TEXT,
     "creator_id" TEXT,
     "task_id" TEXT,
     "project_id" TEXT,
@@ -229,10 +244,21 @@ CREATE TABLE "assets" (
 );
 
 -- CreateTable
+CREATE TABLE "storage_keys" (
+    "id" TEXT NOT NULL,
+    "key" TEXT NOT NULL,
+    "status" "StorageKeyStatus" NOT NULL DEFAULT 'active',
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "storage_keys_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "asset_metadata_values" (
     "id" TEXT NOT NULL,
     "asset_id" TEXT NOT NULL,
-    "field_id" TEXT NOT NULL,
+    "field_key" TEXT NOT NULL,
     "string_value" TEXT,
     "number_value" DOUBLE PRECISION,
     "boolean_value" BOOLEAN,
@@ -248,8 +274,7 @@ CREATE TABLE "asset_comments" (
     "message" TEXT,
     "annotation" JSONB,
     "second" DOUBLE PRECISION,
-    "is_ai" BOOLEAN NOT NULL DEFAULT false,
-    "bot_id" TEXT,
+    "session_id" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
     "asset_id" TEXT NOT NULL,
@@ -384,6 +409,7 @@ CREATE TABLE "agents" (
     "soul" TEXT,
     "provider_id" TEXT,
     "model_id" TEXT,
+    "team_id" TEXT NOT NULL,
     "config" JSONB NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
@@ -463,6 +489,18 @@ CREATE TABLE "providers" (
     CONSTRAINT "providers_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "collections" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "filter" JSONB NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+    "project_id" TEXT NOT NULL,
+
+    CONSTRAINT "collections_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
@@ -477,6 +515,9 @@ CREATE UNIQUE INDEX "auth_tokens_refresh_token_key" ON "auth_tokens"("refresh_to
 
 -- CreateIndex
 CREATE UNIQUE INDEX "teams_root_folder_id_key" ON "teams"("root_folder_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "sandboxes_team_id_key" ON "sandboxes"("team_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "skills_team_id_name_key" ON "skills"("team_id", "name");
@@ -521,7 +562,7 @@ CREATE INDEX "assets_updated_at_idx" ON "assets"("updated_at");
 CREATE INDEX "assets_sort_index_idx" ON "assets"("sort_index");
 
 -- CreateIndex
-CREATE INDEX "assets_removed_idx" ON "assets"("removed");
+CREATE INDEX "assets_is_deleted_idx" ON "assets"("is_deleted");
 
 -- CreateIndex
 CREATE INDEX "assets_deleted_at_idx" ON "assets"("deleted_at");
@@ -531,6 +572,9 @@ CREATE INDEX "assets_name_ngram_idx" ON "assets" USING GIN ("name_ngram");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "assets_parent_id_target_id_key" ON "assets"("parent_id", "target_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "storage_keys_key_key" ON "storage_keys"("key");
 
 -- CreateIndex
 CREATE INDEX "asset_metadata_values_number_value_idx" ON "asset_metadata_values"("number_value");
@@ -548,7 +592,7 @@ CREATE INDEX "asset_metadata_values_date_value_idx" ON "asset_metadata_values"("
 CREATE INDEX "asset_metadata_values_json_value_idx" ON "asset_metadata_values" USING GIN ("json_value");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "asset_metadata_values_asset_id_field_id_key" ON "asset_metadata_values"("asset_id", "field_id");
+CREATE UNIQUE INDEX "asset_metadata_values_asset_id_field_key_key" ON "asset_metadata_values"("asset_id", "field_key");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "invites_code_key" ON "invites"("code");
@@ -592,6 +636,9 @@ CREATE UNIQUE INDEX "models_provider_id_model_id_key" ON "models"("provider_id",
 -- CreateIndex
 CREATE UNIQUE INDEX "providers_team_id_name_key" ON "providers"("team_id", "name");
 
+-- CreateIndex
+CREATE INDEX "collections_project_id_created_at_idx" ON "collections"("project_id", "created_at" DESC);
+
 -- AddForeignKey
 ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -603,6 +650,9 @@ ALTER TABLE "auth_tokens" ADD CONSTRAINT "auth_tokens_user_id_fkey" FOREIGN KEY 
 
 -- AddForeignKey
 ALTER TABLE "teams" ADD CONSTRAINT "teams_root_folder_id_fkey" FOREIGN KEY ("root_folder_id") REFERENCES "assets"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "sandboxes" ADD CONSTRAINT "sandboxes_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "teams"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "skills" ADD CONSTRAINT "skills_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "teams"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -626,13 +676,13 @@ ALTER TABLE "projects" ADD CONSTRAINT "projects_root_folder_id_fkey" FOREIGN KEY
 ALTER TABLE "projects" ADD CONSTRAINT "projects_share_root_id_fkey" FOREIGN KEY ("share_root_id") REFERENCES "assets"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "project_members" ADD CONSTRAINT "project_members_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "project_members" ADD CONSTRAINT "project_members_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "project_members" ADD CONSTRAINT "project_members_team_member_id_fkey" FOREIGN KEY ("team_member_id") REFERENCES "team_members"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "share_links" ADD CONSTRAINT "share_links_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "share_links" ADD CONSTRAINT "share_links_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "share_links" ADD CONSTRAINT "share_links_root_folder_id_fkey" FOREIGN KEY ("root_folder_id") REFERENCES "assets"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -641,7 +691,10 @@ ALTER TABLE "share_links" ADD CONSTRAINT "share_links_root_folder_id_fkey" FOREI
 ALTER TABLE "assets" ADD CONSTRAINT "assets_parent_id_fkey" FOREIGN KEY ("parent_id") REFERENCES "assets"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "assets" ADD CONSTRAINT "assets_target_id_fkey" FOREIGN KEY ("target_id") REFERENCES "assets"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "assets" ADD CONSTRAINT "assets_target_id_fkey" FOREIGN KEY ("target_id") REFERENCES "assets"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "assets" ADD CONSTRAINT "assets_storage_key_id_fkey" FOREIGN KEY ("storage_key_id") REFERENCES "storage_keys"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "assets" ADD CONSTRAINT "assets_creator_id_fkey" FOREIGN KEY ("creator_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -656,19 +709,22 @@ ALTER TABLE "assets" ADD CONSTRAINT "assets_project_id_fkey" FOREIGN KEY ("proje
 ALTER TABLE "asset_metadata_values" ADD CONSTRAINT "asset_metadata_values_asset_id_fkey" FOREIGN KEY ("asset_id") REFERENCES "assets"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "asset_comments" ADD CONSTRAINT "asset_comments_asset_id_fkey" FOREIGN KEY ("asset_id") REFERENCES "assets"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "asset_comments" ADD CONSTRAINT "asset_comments_session_id_fkey" FOREIGN KEY ("session_id") REFERENCES "agent_sessions"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "asset_comments" ADD CONSTRAINT "asset_comments_asset_id_fkey" FOREIGN KEY ("asset_id") REFERENCES "assets"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "asset_comments" ADD CONSTRAINT "asset_comments_creator_id_fkey" FOREIGN KEY ("creator_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "asset_comments" ADD CONSTRAINT "asset_comments_reply_to_id_fkey" FOREIGN KEY ("reply_to_id") REFERENCES "asset_comments"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "asset_comments" ADD CONSTRAINT "asset_comments_reply_to_id_fkey" FOREIGN KEY ("reply_to_id") REFERENCES "asset_comments"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "asset_comment_attachments" ADD CONSTRAINT "asset_comment_attachments_comment_id_fkey" FOREIGN KEY ("comment_id") REFERENCES "asset_comments"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "asset_comment_attachments" ADD CONSTRAINT "asset_comment_attachments_comment_id_fkey" FOREIGN KEY ("comment_id") REFERENCES "asset_comments"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "asset_comment_attachments" ADD CONSTRAINT "asset_comment_attachments_asset_id_fkey" FOREIGN KEY ("asset_id") REFERENCES "assets"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "asset_comment_attachments" ADD CONSTRAINT "asset_comment_attachments_asset_id_fkey" FOREIGN KEY ("asset_id") REFERENCES "assets"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "asset_embeddings" ADD CONSTRAINT "asset_embeddings_asset_id_fkey" FOREIGN KEY ("asset_id") REFERENCES "assets"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -677,7 +733,7 @@ ALTER TABLE "asset_embeddings" ADD CONSTRAINT "asset_embeddings_asset_id_fkey" F
 ALTER TABLE "invites" ADD CONSTRAINT "invites_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "teams"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "invites" ADD CONSTRAINT "invites_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "invites" ADD CONSTRAINT "invites_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "invites" ADD CONSTRAINT "invites_inviter_id_fkey" FOREIGN KEY ("inviter_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -686,19 +742,19 @@ ALTER TABLE "invites" ADD CONSTRAINT "invites_inviter_id_fkey" FOREIGN KEY ("inv
 ALTER TABLE "metadata_fields" ADD CONSTRAINT "metadata_fields_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "teams"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "metadata_fields" ADD CONSTRAINT "metadata_fields_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "metadata_fields" ADD CONSTRAINT "metadata_fields_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "notifications" ADD CONSTRAINT "notifications_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "teams"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "notifications" ADD CONSTRAINT "notifications_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "notifications" ADD CONSTRAINT "notifications_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "notifications" ADD CONSTRAINT "notifications_creator_id_fkey" FOREIGN KEY ("creator_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "notifications" ADD CONSTRAINT "notifications_asset_id_fkey" FOREIGN KEY ("asset_id") REFERENCES "assets"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "notifications" ADD CONSTRAINT "notifications_asset_id_fkey" FOREIGN KEY ("asset_id") REFERENCES "assets"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "notifications" ADD CONSTRAINT "notifications_task_id_fkey" FOREIGN KEY ("task_id") REFERENCES "tasks"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -717,6 +773,9 @@ ALTER TABLE "agents" ADD CONSTRAINT "agents_provider_id_fkey" FOREIGN KEY ("prov
 
 -- AddForeignKey
 ALTER TABLE "agents" ADD CONSTRAINT "agents_model_id_fkey" FOREIGN KEY ("model_id") REFERENCES "models"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "agents" ADD CONSTRAINT "agents_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "teams"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "agent_skills" ADD CONSTRAINT "agent_skills_agent_id_fkey" FOREIGN KEY ("agent_id") REFERENCES "agents"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -744,3 +803,7 @@ ALTER TABLE "models" ADD CONSTRAINT "models_provider_id_fkey" FOREIGN KEY ("prov
 
 -- AddForeignKey
 ALTER TABLE "providers" ADD CONSTRAINT "providers_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "teams"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "collections" ADD CONSTRAINT "collections_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+

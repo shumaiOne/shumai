@@ -4,7 +4,7 @@ import type { AgentMessage, SessionTreeEntry } from '@earendil-works/pi-agent-co
 import { ulid } from 'ulid'
 import { metadataService } from '@/services/metadata/metadata'
 import { UpdateAssetMetadataRequest } from '@/dtos/metadata'
-import { WorkflowTaskStatus, AssetStatus } from '@/generated/prisma/client'
+import { WorkflowTaskStatus, AssetStatus, Prisma } from '@/generated/prisma/client'
 import type { AgentExecutionContext } from './agent'
 
 export interface InitializeAgentSessionParams {
@@ -587,6 +587,30 @@ export async function updateTaskUsageActivity(params: UpdateTaskUsageParams): Pr
       inputTokens: params.inputTokens,
       outputTokens: params.outputTokens,
       model: params.model,
+    },
+  })
+}
+
+export interface UpdateWorkflowTaskParams {
+  taskId: string
+  status?: WorkflowTaskStatus
+  heartbeat?: boolean
+  output?: unknown
+  inputTokens?: number
+  outputTokens?: number
+  model?: string | null
+}
+
+export async function updateWorkflowTaskActivity(params: UpdateWorkflowTaskParams): Promise<void> {
+  await prisma.workflowTask.update({
+    where: { id: params.taskId },
+    data: {
+      ...(params.status !== undefined ? { status: params.status } : {}),
+      ...(params.heartbeat ? { heartbeat: new Date() } : {}),
+      ...(params.output !== undefined ? { output: params.output as Prisma.InputJsonValue } : {}),
+      ...(params.inputTokens !== undefined ? { inputTokens: params.inputTokens } : {}),
+      ...(params.outputTokens !== undefined ? { outputTokens: params.outputTokens } : {}),
+      ...(params.model !== undefined ? { model: params.model } : {}),
     },
   })
 }
