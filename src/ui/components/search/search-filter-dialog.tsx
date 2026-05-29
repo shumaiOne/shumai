@@ -3,26 +3,26 @@ import { type FieldInfo as MetadataFieldInfo } from '@/dtos/metadata'
 import type { SearchCondition } from '@/dtos/search'
 import { client } from '@/ui/api/client'
 import { Button } from '@/ui/components/ui/button'
-import { Dialog, DialogContent } from '@/ui/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog'
 import { Input } from '@/ui/components/ui/input'
-import { Switch } from '@/ui/components/ui/switch'
 import { Label } from '@/ui/components/ui/label'
+import { Switch } from '@/ui/components/ui/switch'
 import { formatSize } from '@/ui/lib/format'
 import { cn } from '@/ui/lib/utils'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { toast } from 'sonner'
 import {
-  AlertCircle,
-  ChevronDown,
-  ChevronUp,
-  FileIcon,
-  FolderIcon,
-  Loader2,
-  Search,
-  X,
+    AlertCircle,
+    ChevronDown,
+    ChevronUp,
+    FileIcon,
+    FolderIcon,
+    Loader2,
+    Search,
+    X,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { FilterPanel } from './filter-panel'
 
 interface SearchFilterDialogProps {
@@ -224,7 +224,11 @@ export function SearchFilterDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[900px] p-0 gap-0 overflow-hidden bg-background border-border rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
-        <div className="p-5 pt-8 border-b border-border bg-muted/30 flex flex-col gap-3">
+        <DialogHeader>
+          <DialogTitle>Search</DialogTitle>
+        </DialogHeader>
+
+        <div className="px-6 pb-6 pt-4 border-b border-border bg-muted/30 flex flex-col gap-3">
           <form
             onSubmit={(e) => {
               e.preventDefault()
