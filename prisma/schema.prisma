@@ -406,6 +406,7 @@ model Asset {
   @@index([sortIndex])
   @@index([isDeleted])
   @@index([deletedAt])
+  @@index([name], name: "assets_name_idx")
   @@index([nameNgram], type: Gin)
   @@unique([parentId, targetId], name: "parentIdTargetId")
 }
@@ -494,6 +495,7 @@ model AssetEmbedding {
   assetId     String   @map("asset_id")
   asset       Asset    @relation("AssetToEmbedding", fields: [assetId], references: [id], onDelete: Cascade)
 
+  @@index([embedding], name: "AssetEmbedding_embedding_idx")
   @@map("asset_embeddings")
 }
 
