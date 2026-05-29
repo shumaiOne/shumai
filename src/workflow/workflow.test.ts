@@ -134,4 +134,52 @@ describe('WorkflowService', () => {
       'embedding feature is disabled or agent not found',
     )
   }, 15000)
+
+  it('should not double-submit the task when executeWait is called', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'Test Team' },
+    })
+    const project = await prisma.project.create({
+      data: { name: 'Test Project', teamId: team.id },
+    })
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'test-double.png',
+        storageKey: { create: { key: 'test/test-double.png' } },
+        status: 'uploaded',
+        type: 'file',
+        mediaType: 'image/png',
+        project: { connect: { id: project.id } },
+      },
+    })
+
+    const submitSpy = vi.spyOn(workflowService, 'submit')
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        assetId: asset.id,
+        type: WorkflowTaskType.ai_embedding,
+        status: WorkflowTaskStatus.pending,
+        teamId: team.id,
+      },
+    })
+
+    // Wait briefly for the Prisma extension's async import/submit to fire
+    await new Promise((resolve) => setTimeout(resolve, 100))
+
+    expect(submitSpy).toHaveBeenCalledTimes(1)
+
+    // Complete the task in the database so executeWait returns immediately
+    await prisma.workflowTask.update({
+      where: { id: task.id },
+      data: { status: 'completed' },
+    })
+
+    await workflowService.executeWait(task)
+
+    // Verify it was not submitted a second time by executeWait
+    expect(submitSpy).toHaveBeenCalledTimes(1)
+
+    submitSpy.mockRestore()
+  })
 })

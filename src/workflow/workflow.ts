@@ -21,8 +21,6 @@ export class WorkflowService {
   }
 
   async executeWait(task: WorkflowTask, timeoutMs: number = 30000): Promise<WorkflowTask> {
-    await this.submit(task)
-
     const start = Date.now()
     while (Date.now() - start < timeoutMs) {
       const updatedTask = await prisma.workflowTask.findUnique({
