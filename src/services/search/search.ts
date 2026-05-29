@@ -3,13 +3,7 @@ import { Prisma, AssetType, WorkflowTaskType } from '@/generated/prisma/client.t
 import { AssetService, assetService } from '@/services/asset/asset'
 import { AssetInfo } from '@/dtos/asset'
 import { SearchRequest } from '@/dtos/search'
-import {
-  paginateQuery,
-  PaginatedData,
-  decodeCursor,
-  encodeCursor,
-  PageInfo,
-} from '@/services/pagination'
+import { PaginatedData, decodeCursor, encodeCursor, PageInfo } from '@/services/pagination'
 import { generateSearchNgrams } from '@/utils/ngram'
 import { workflowService } from '@/workflow/workflow'
 import { HTTPException } from 'hono/http-exception'
@@ -30,41 +24,8 @@ export class SearchService {
       targetFolderIds = await this.assetSvc.getDescendantFolderIds(folderId)
     }
 
-    const where: Prisma.AssetWhereInput = {
-      isDeleted: false,
-    }
-
-    if (targetFolderIds.length > 0) {
-      where.parentId = { in: targetFolderIds }
-    }
-
     const targetTypes =
       req.assetType === 'folder' ? [AssetType.folder] : [AssetType.file, AssetType.version_stack]
-    const typeCondition: Prisma.AssetWhereInput = req.showSymlink
-      ? {
-          OR: [
-            { type: { in: targetTypes } },
-            {
-              type: AssetType.symlink,
-              target: { type: { in: targetTypes } },
-            },
-          ],
-        }
-      : { type: { in: targetTypes } }
-
-    if (req.conditions && req.conditions.length > 0) {
-      const conditionPredicates: Prisma.AssetWhereInput[] = req.conditions.map((cond) => {
-        return this.buildConditionPredicate(cond.field, cond.operator as string, cond.value)
-      })
-
-      if (req.operator === 'OR') {
-        where.AND = [typeCondition, { OR: conditionPredicates }]
-      } else {
-        where.AND = [typeCondition, ...conditionPredicates]
-      }
-    } else {
-      Object.assign(where, typeCondition)
-    }
 
     // ----------------------------------------------------------------------
     // AI Semantic search
@@ -132,18 +93,7 @@ export class SearchService {
       }
 
       if (req.conditions && req.conditions.length > 0) {
-        const condSqls: Prisma.Sql[] = []
-        for (const cond of req.conditions) {
-          if (cond.field === 'name' && cond.operator === 'contains') continue
-          const sqlCond = this.buildSqlCondition(cond.field, cond.operator, cond.value)
-          if (sqlCond) {
-            condSqls.push(sqlCond)
-          }
-        }
-        if (condSqls.length > 0) {
-          const separator = req.operator === 'OR' ? ' OR ' : ' AND '
-          builder.addWhere(Prisma.sql`(${Prisma.join(condSqls, separator)})`)
-        }
+        builder.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
       }
 
       const nameCond = req.conditions?.find((c) => c.field === 'name' && c.operator === 'contains')
@@ -227,18 +177,7 @@ export class SearchService {
         }
 
         if (req.conditions && req.conditions.length > 0) {
-          const condSqls: Prisma.Sql[] = []
-          for (const cond of req.conditions) {
-            if (cond.field === 'name' && cond.operator === 'contains') continue
-            const sqlCond = this.buildSqlCondition(cond.field, cond.operator, cond.value)
-            if (sqlCond) {
-              condSqls.push(sqlCond)
-            }
-          }
-          if (condSqls.length > 0) {
-            const separator = req.operator === 'OR' ? ' OR ' : ' AND '
-            countBuilder.addWhere(Prisma.sql`(${Prisma.join(condSqls, separator)})`)
-          }
+          countBuilder.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
         }
 
         if (nameCond) {
@@ -265,629 +204,190 @@ export class SearchService {
       return { data, pageInfo }
     }
 
-    const orderBy: Prisma.AssetOrderByWithRelationInput = {}
-    if (req.sort) {
-      const direction = req.sort.order === 'desc' ? 'desc' : 'asc'
-      if (req.sort.field === 'custom') {
-        orderBy.sortIndex = 'asc'
-      } else if (req.sort.field === 'name') {
-        orderBy.name = direction
-      } else if (req.sort.field === 'created_at' || req.sort.field === 'createdAt') {
-        orderBy.createdAt = direction
-      } else if (req.sort.field === 'size_byte' || req.sort.field === 'sizeByte') {
-        orderBy.sizeByte = direction
-      } else {
-        orderBy.id = 'desc'
-      }
-    } else {
-      orderBy.sortIndex = 'asc'
+    // ----------------------------------------------------------------------
+    // Non-semantic search (using SqlQueryBuilder)
+    // ----------------------------------------------------------------------
+    const builder = new SqlQueryBuilder()
+      .select(Prisma.sql`a.id as "assetId"`)
+      .from(Prisma.sql`assets a`)
+      .addWhere(Prisma.sql`a.is_deleted = false`)
+
+    if (targetFolderIds.length > 0) {
+      builder.addWhere(Prisma.sql`a.parent_id = ANY(${targetFolderIds})`)
     }
 
-    // ----------------------------------------------------------------------
-    // Switching Search Implementation
-    // ----------------------------------------------------------------------
-    let finalWhere = where
+    if (req.showSymlink) {
+      builder.addWhere(Prisma.sql`
+        (a.type = ANY(${targetTypes}::"AssetType"[]) OR (a.type = 'symlink' AND a.target_id IN (SELECT id FROM assets WHERE type = ANY(${targetTypes}::"AssetType"[]))))
+      `)
+    } else {
+      builder.addWhere(Prisma.sql`a.type = ANY(${targetTypes}::"AssetType"[])`)
+    }
+
+    if (req.conditions && req.conditions.length > 0) {
+      builder.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
+    }
+
+    // name contains n-grams / Switching Search Optimization
     let countOverride: number | undefined
+    let useNgram = false
+    let valStr = ''
+    let ngrams: string[] = []
 
     const nameCond = req.conditions?.find((c) => c.field === 'name' && c.operator === 'contains')
 
     if (nameCond) {
-      const valStr = String(nameCond.value)
-      const ngrams = generateSearchNgrams(valStr)
+      valStr = String(nameCond.value)
+      ngrams = generateSearchNgrams(valStr)
 
       if (ngrams.length > 0) {
         const PROBE_LIMIT = 10001
-        // We need to build the probe WHERE clause manually since it's a mix of existing conditions and n-grams
-        // For the probe, we use both GIN and ILIKE to ensure correctness
-        const probeWhere = {
-          ...where,
-          nameNgram: { hasEvery: ngrams },
-          name: { contains: valStr, mode: 'insensitive' as const },
+
+        // Build SQL probe query to limit and fetch selective IDs
+        const probeBuilder = new SqlQueryBuilder()
+          .select(Prisma.sql`a.id`)
+          .from(Prisma.sql`assets a`)
+          .addWhere(Prisma.sql`a.is_deleted = false`)
+
+        if (targetFolderIds.length > 0) {
+          probeBuilder.addWhere(Prisma.sql`a.parent_id = ANY(${targetFolderIds})`)
         }
 
-        const probeCount = await this.prismaClient.asset.count({
-          where: probeWhere,
-          take: PROBE_LIMIT,
-        })
+        if (req.showSymlink) {
+          probeBuilder.addWhere(Prisma.sql`
+            (a.type = ANY(${targetTypes}::"AssetType"[]) OR (a.type = 'symlink' AND a.target_id IN (SELECT id FROM assets WHERE type = ANY(${targetTypes}::"AssetType"[]))))
+          `)
+        } else {
+          probeBuilder.addWhere(Prisma.sql`a.type = ANY(${targetTypes}::"AssetType"[])`)
+        }
+
+        if (req.conditions && req.conditions.length > 0) {
+          probeBuilder.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
+        }
+
+        probeBuilder.addWhere(Prisma.sql`a.name_ngram @> ${ngrams}::text[]`)
+        probeBuilder.addWhere(Prisma.sql`a.name ILIKE ${'%' + valStr + '%'}`)
+        probeBuilder.limit(PROBE_LIMIT)
+
+        const probeMatches = await this.prismaClient.$queryRaw<{ id: string }[]>(
+          probeBuilder.build(),
+        )
+        const probeCount = probeMatches.length
 
         if (probeCount < PROBE_LIMIT) {
-          // SELECTIVE CASE: The term is rare. Use GIN index for high performance.
-          finalWhere = {
-            ...where,
-            nameNgram: { hasEvery: ngrams },
-            name: { contains: valStr, mode: 'insensitive' },
-          }
+          useNgram = true
           countOverride = probeCount
         } else {
-          // NON-SELECTIVE CASE: The term is common.
-          // Revert to simple ILIKE to allow B-tree short-circuiting during pagination.
-          // We set countOverride to PROBE_LIMIT to avoid a full table scan for the count.
-          finalWhere = {
-            ...where,
-            name: { contains: valStr, mode: 'insensitive' },
-          }
           countOverride = PROBE_LIMIT
         }
+      }
+    }
+
+    if (nameCond) {
+      if (useNgram && ngrams.length > 0) {
+        builder.addWhere(Prisma.sql`a.name_ngram @> ${ngrams}::text[]`)
+        builder.addWhere(Prisma.sql`a.name ILIKE ${'%' + valStr + '%'}`)
       } else {
-        // Fallback for queries that yield no n-grams
-        finalWhere = {
-          ...where,
-          name: { contains: valStr, mode: 'insensitive' },
-        }
+        builder.addWhere(Prisma.sql`a.name ILIKE ${'%' + valStr + '%'}`)
       }
     }
 
-    const { data: assets, pageInfo } = await paginateQuery(
-      (skip, take) =>
-        this.prismaClient.asset.findMany({
-          where: finalWhere,
-          orderBy,
-          skip,
-          take,
-        }),
-      countOverride !== undefined
-        ? async () => countOverride!
-        : () => this.prismaClient.asset.count({ where: finalWhere }),
-      req,
-    )
+    // Sorting
+    let orderSql = Prisma.sql`a.sort_index ASC`
+    if (req.sort) {
+      const direction = req.sort.order === 'desc' ? Prisma.raw('DESC') : Prisma.raw('ASC')
+      if (req.sort.field === 'custom') {
+        orderSql = Prisma.sql`a.sort_index ASC`
+      } else if (req.sort.field === 'name') {
+        orderSql = Prisma.sql`a.name ${direction}`
+      } else if (req.sort.field === 'created_at' || req.sort.field === 'createdAt') {
+        orderSql = Prisma.sql`a.created_at ${direction}`
+      } else if (req.sort.field === 'size_byte' || req.sort.field === 'sizeByte') {
+        orderSql = Prisma.sql`a.size_byte ${direction}`
+      } else {
+        orderSql = Prisma.sql`a.id DESC`
+      }
+    }
+    builder.orderBy(orderSql)
 
-    const assetInfos = await this.assetSvc.listAssetsByIds(assets.map((a) => a.id))
+    // Paginate in SQL using limit/offset
+    let limit = req.first || 20
+    if (limit <= 0 || limit > 200) {
+      limit = 20
+    }
 
-    return { data: assetInfos, pageInfo }
-  }
+    let offset = 0
+    if (req.after) {
+      offset = decodeCursor(req.after)
+    }
 
-  private buildConditionPredicate(
-    field: string,
-    operator: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    value: any,
-  ): Prisma.AssetWhereInput {
-    if (field === 'name') {
-      const valStr = String(value)
-      switch (operator) {
-        case 'eq':
-          return { name: { equals: valStr } }
-        case 'neq':
-          return { name: { not: valStr } }
-        case 'contains':
-          // We handle 'contains' specially in the main search loop for Switching Search.
-          // Here we just return the simple condition as a fallback.
-          return { name: { contains: valStr, mode: 'insensitive' } }
-        case 'notContains':
-          return { NOT: { name: { contains: valStr, mode: 'insensitive' } } }
-        case 'isEmpty':
-          return { name: { equals: '' } }
-        case 'isNotEmpty':
-          return { name: { not: '' } }
-        default:
-          throw new Error(`Unsupported operator for name field: ${operator}`)
+    builder.limit(limit + 1).offset(offset)
+
+    // Execute raw SQL query
+    const query = builder.build()
+    const matches = await this.prismaClient.$queryRaw<{ assetId: string }[]>(query)
+
+    const hasNextPage = matches.length > limit
+    const finalMatches = hasNextPage ? matches.slice(0, limit) : matches
+
+    // Map back to full rich metadata
+    const uniqueIds = Array.from(new Set(finalMatches.map((m) => m.assetId)))
+    const fetchedInfos = await this.assetSvc.listAssetsByIds(uniqueIds)
+    const assetInfosMap = new Map<string, AssetInfo>()
+    for (const info of fetchedInfos) {
+      assetInfosMap.set(info.id, info)
+    }
+
+    const data: AssetInfo[] = []
+    for (const match of finalMatches) {
+      const baseInfo = assetInfosMap.get(match.assetId)
+      if (baseInfo) {
+        data.push(baseInfo)
       }
     }
 
-    if (field === 'sizeByte' || field === 'size_byte') {
-      const valNum = Number(value)
-      switch (operator) {
-        case 'eq':
-          return { sizeByte: { equals: valNum } }
-        case 'neq':
-          return { sizeByte: { not: valNum } }
-        case 'gt':
-          return { sizeByte: { gt: valNum } }
-        case 'gte':
-          return { sizeByte: { gte: valNum } }
-        case 'lt':
-          return { sizeByte: { lt: valNum } }
-        case 'lte':
-          return { sizeByte: { lte: valNum } }
-        default:
-          throw new Error(`Unsupported operator for sizeByte field: ${operator}`)
+    const pageInfo: PageInfo = {}
+    if (req.includeCount) {
+      if (countOverride !== undefined) {
+        pageInfo.total = countOverride
+      } else {
+        const countBuilder = new SqlQueryBuilder()
+          .select(Prisma.sql`COUNT(*)`)
+          .from(Prisma.sql`assets a`)
+          .addWhere(Prisma.sql`a.is_deleted = false`)
+
+        if (targetFolderIds.length > 0) {
+          countBuilder.addWhere(Prisma.sql`a.parent_id = ANY(${targetFolderIds})`)
+        }
+
+        if (req.showSymlink) {
+          countBuilder.addWhere(Prisma.sql`
+            (a.type = ANY(${targetTypes}::"AssetType"[]) OR (a.type = 'symlink' AND a.target_id IN (SELECT id FROM assets WHERE type = ANY(${targetTypes}::"AssetType"[]))))
+          `)
+        } else {
+          countBuilder.addWhere(Prisma.sql`a.type = ANY(${targetTypes}::"AssetType"[])`)
+        }
+
+        if (req.conditions && req.conditions.length > 0) {
+          countBuilder.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
+        }
+
+        if (nameCond) {
+          countBuilder.addWhere(Prisma.sql`a.name ILIKE ${'%' + valStr + '%'}`)
+        }
+
+        const countRes = await this.prismaClient.$queryRaw<{ count: bigint }[]>(
+          countBuilder.build(),
+        )
+        pageInfo.total = Number(countRes[0]?.count || 0)
       }
     }
 
-    if (
-      field === 'createdAt' ||
-      field === 'updatedAt' ||
-      field === 'created_at' ||
-      field === 'updated_at'
-    ) {
-      const col = field === 'createdAt' || field === 'created_at' ? 'createdAt' : 'updatedAt'
-      const valDate = this.toDate(value)
-      switch (operator) {
-        case 'eq':
-          return { [col]: { equals: valDate } }
-        case 'neq':
-          return { [col]: { not: valDate } }
-        case 'gt':
-          return { [col]: { gt: this.toDateBound(value, 'end') } }
-        case 'gte':
-          return { [col]: { gte: this.toDateBound(value, 'start') } }
-        case 'lt':
-          return { [col]: { lt: this.toDateBound(value, 'start') } }
-        case 'lte':
-          return { [col]: { lte: this.toDateBound(value, 'end') } }
-        case 'isWithin': {
-          const range = this.parseDateRange(value)
-          return {
-            [col]: {
-              gte: range.start,
-              lte: range.end,
-            },
-          }
-        }
-        default:
-          throw new Error(`Unsupported operator for ${field} field: ${operator}`)
-      }
+    if (hasNextPage) {
+      pageInfo.cursor = encodeCursor(offset + limit)
     }
 
-    // EAV queries on metadataValues
-    const baseFilter = { fieldKey: field }
-
-    // Handle Empty/NotEmpty globally for EAV
-    if (operator === 'isEmpty') {
-      return { metadataValues: { none: { fieldKey: field } } }
-    }
-    if (operator === 'isNotEmpty') {
-      return { metadataValues: { some: { fieldKey: field } } }
-    }
-
-    const valuePredicate = (): Prisma.AssetMetadataValueWhereInput => {
-      const or: Prisma.AssetMetadataValueWhereInput[] = []
-      if (typeof value === 'string' && !this.isDate(value)) {
-        or.push({ stringValue: value })
-      }
-      if (typeof value === 'number') {
-        or.push({ numberValue: value })
-      }
-      if (typeof value === 'boolean') {
-        or.push({ booleanValue: value })
-      }
-      if (this.isDate(value)) {
-        const d = this.parseRelativeDate(value)
-        if (d instanceof Date) {
-          or.push({ dateValue: d })
-        } else if (d && 'gte' in d) {
-          return {
-            dateValue: {
-              gte: d.gte,
-              lte: d.lte,
-            },
-          }
-        }
-      }
-      if (
-        Array.isArray(value) ||
-        (typeof value === 'object' && value !== null && !(value instanceof Date))
-      ) {
-        or.push({ jsonValue: { equals: value } })
-      }
-
-      if (or.length === 1) return or[0]
-      return { OR: or }
-    }
-
-    switch (operator) {
-      case 'eq':
-        return {
-          metadataValues: {
-            some: {
-              ...baseFilter,
-              ...valuePredicate(),
-            },
-          },
-        }
-      case 'neq':
-        return {
-          // "is not" in EAV context: either the field doesn't exist,
-          // OR it exists but has a different value.
-          OR: [
-            { metadataValues: { none: { fieldKey: field } } },
-            {
-              metadataValues: {
-                some: {
-                  fieldKey: field,
-                  NOT: valuePredicate(),
-                },
-              },
-            },
-          ],
-        }
-      case 'gt':
-        return {
-          metadataValues: {
-            some: {
-              ...baseFilter,
-              OR: [
-                { numberValue: { gt: Number(value) } },
-                { dateValue: { gt: this.toDateBound(value, 'end') } },
-              ],
-            },
-          },
-        }
-      case 'gte':
-        return {
-          metadataValues: {
-            some: {
-              ...baseFilter,
-              OR: [
-                { numberValue: { gte: Number(value) } },
-                { dateValue: { gte: this.toDateBound(value, 'start') } },
-              ],
-            },
-          },
-        }
-      case 'lt':
-        return {
-          metadataValues: {
-            some: {
-              ...baseFilter,
-              OR: [
-                { numberValue: { lt: Number(value) } },
-                { dateValue: { lt: this.toDateBound(value, 'start') } },
-              ],
-            },
-          },
-        }
-      case 'lte':
-        return {
-          metadataValues: {
-            some: {
-              ...baseFilter,
-              OR: [
-                { numberValue: { lte: Number(value) } },
-                { dateValue: { lte: this.toDateBound(value, 'end') } },
-              ],
-            },
-          },
-        }
-      case 'contains':
-        return {
-          metadataValues: {
-            some: {
-              ...baseFilter,
-              stringValue: { contains: String(value), mode: 'insensitive' },
-            },
-          },
-        }
-      case 'notContains':
-        return {
-          metadataValues: {
-            none: {
-              ...baseFilter,
-              stringValue: { contains: String(value), mode: 'insensitive' },
-            },
-          },
-        }
-      case 'in': // "is any of"
-        return {
-          metadataValues: {
-            some: {
-              ...baseFilter,
-              OR: [
-                { stringValue: { in: Array.isArray(value) ? value : [value] } },
-                {
-                  numberValue: { in: Array.isArray(value) ? (value as number[]) : [Number(value)] },
-                },
-              ],
-            },
-          },
-        }
-      case 'notIn': // "is none of"
-        return {
-          metadataValues: {
-            none: {
-              ...baseFilter,
-              OR: [
-                { stringValue: { in: Array.isArray(value) ? value : [value] } },
-                {
-                  numberValue: { in: Array.isArray(value) ? (value as number[]) : [Number(value)] },
-                },
-              ],
-            },
-          },
-        }
-      case 'hasAny':
-        return {
-          metadataValues: {
-            some: {
-              ...baseFilter,
-              // eslint-disable-next-line @typescript-eslint/naming-convention
-              jsonValue: { array_contains: value },
-            },
-          },
-        }
-      case 'hasAll':
-        return {
-          metadataValues: {
-            some: {
-              ...baseFilter,
-              AND: Array.isArray(value)
-                ? value.map((v) => ({
-                    // eslint-disable-next-line @typescript-eslint/naming-convention
-                    jsonValue: { array_contains: v },
-                  }))
-                : [
-                    {
-                      // eslint-disable-next-line @typescript-eslint/naming-convention
-                      jsonValue: { array_contains: value },
-                    },
-                  ],
-            },
-          },
-        }
-      case 'hasNone':
-        return {
-          metadataValues: {
-            none: {
-              ...baseFilter,
-              // eslint-disable-next-line @typescript-eslint/naming-convention
-              jsonValue: { array_contains: value },
-            },
-          },
-        }
-      case 'isWithin': {
-        const range = this.parseDateRange(value)
-        return {
-          metadataValues: {
-            some: {
-              ...baseFilter,
-              dateValue: {
-                gte: range.start,
-                lte: range.end,
-              },
-            },
-          },
-        }
-      }
-      default:
-        throw new Error(`Unsupported operator for metadata field: ${operator}`)
-    }
-  }
-
-  private isDate(value: unknown): boolean {
-    if (value instanceof Date) return true
-    if (typeof value !== 'string') return false
-    const valStr = value.toLowerCase()
-    const relativeKeywords = [
-      'today',
-      'yesterday',
-      'tomorrow',
-      'one week ago',
-      'one week from now',
-      'one month ago',
-      'one month from now',
-    ]
-    if (relativeKeywords.includes(valStr) || valStr.match(/\d+\s+days?\s+(ago|from\s+now)/)) {
-      return true
-    }
-    const d = new Date(value)
-    return !isNaN(d.getTime()) && value.includes('-')
-  }
-
-  private toDate(value: unknown): Date {
-    return this.toDateBound(value, 'start')
-  }
-
-  private toDateBound(value: unknown, bound: 'start' | 'end'): Date {
-    const d = this.parseRelativeDate(value)
-    if (d instanceof Date) return d
-    if (d && 'gte' in d && 'lte' in d) {
-      return bound === 'start' ? d.gte! : d.lte!
-    }
-    return new Date(value as string)
-  }
-
-  private parseDateRange(value: unknown): { start: Date; end: Date } {
-    const d = this.parseRelativeDate(value)
-    if (d && 'gte' in d && 'lte' in d) {
-      return { start: d.gte!, end: d.lte! }
-    }
-    const date = d instanceof Date ? d : new Date(value as string)
-    const start = new Date(date)
-    start.setHours(0, 0, 0, 0)
-    const end = new Date(date)
-    end.setHours(23, 59, 59, 999)
-    return { start, end }
-  }
-
-  private parseRelativeDate(value: unknown): { gte?: Date; lte?: Date } | Date | null {
-    if (value instanceof Date) return value
-    const valStr = String(value).toLowerCase()
-    const now = new Date()
-    const startOf = (d: Date) => {
-      const res = new Date(d)
-      res.setHours(0, 0, 0, 0)
-      return res
-    }
-    const endOf = (d: Date) => {
-      const res = new Date(d)
-      res.setHours(23, 59, 59, 999)
-      return res
-    }
-
-    if (valStr === 'today') {
-      return { gte: startOf(now), lte: endOf(now) }
-    }
-    if (valStr === 'yesterday') {
-      const d = new Date(now)
-      d.setDate(d.getDate() - 1)
-      return { gte: startOf(d), lte: endOf(d) }
-    }
-    if (valStr === 'tomorrow') {
-      const d = new Date(now)
-      d.setDate(d.getDate() + 1)
-      return { gte: startOf(d), lte: endOf(d) }
-    }
-    if (valStr === 'one week ago') {
-      const d = new Date(now)
-      d.setDate(d.getDate() - 7)
-      return d
-    }
-    if (valStr === 'one week from now') {
-      const d = new Date(now)
-      d.setDate(d.getDate() + 7)
-      return d
-    }
-    if (valStr === 'one month ago') {
-      const d = new Date(now)
-      d.setMonth(d.getMonth() - 1)
-      return d
-    }
-    if (valStr === 'one month from now') {
-      const d = new Date(now)
-      d.setMonth(d.getMonth() + 1)
-      return d
-    }
-
-    const daysAgoMatch = valStr.match(/(\d+)\s+days?\s+ago/)
-    if (daysAgoMatch) {
-      const d = new Date(now)
-      d.setDate(d.getDate() - parseInt(daysAgoMatch[1]))
-      return d
-    }
-    const daysFromNowMatch = valStr.match(/(\d+)\s+days?\s+from\s+now/)
-    if (daysFromNowMatch) {
-      const d = new Date(now)
-      d.setDate(d.getDate() + parseInt(daysFromNowMatch[1]))
-      return d
-    }
-
-    const parsed = new Date(value as string)
-    return isNaN(parsed.getTime()) ? null : parsed
-  }
-
-  private buildSqlCondition(
-    field: string,
-    operator: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    value: any,
-  ): Prisma.Sql | null {
-    const colName =
-      field === 'sizeByte' || field === 'size_byte'
-        ? 'size_byte'
-        : field === 'createdAt' || field === 'created_at'
-          ? 'created_at'
-          : field === 'updatedAt' || field === 'updated_at'
-            ? 'updated_at'
-            : field
-
-    const dbCol = Prisma.raw(`a."${colName}"`)
-
-    if (field === 'name') {
-      const valStr = String(value)
-      switch (operator) {
-        case 'eq':
-          return Prisma.sql`${dbCol} = ${valStr}`
-        case 'neq':
-          return Prisma.sql`${dbCol} != ${valStr}`
-        case 'contains':
-          return Prisma.sql`${dbCol} ILIKE ${'%' + valStr + '%'}`
-        case 'notContains':
-          return Prisma.sql`${dbCol} NOT ILIKE ${'%' + valStr + '%'}`
-        case 'isEmpty':
-          return Prisma.sql`${dbCol} = ''`
-        case 'isNotEmpty':
-          return Prisma.sql`${dbCol} != ''`
-        default:
-          throw new Error(`Unsupported operator for name field: ${operator}`)
-      }
-    }
-
-    if (field === 'sizeByte' || field === 'size_byte') {
-      const valNum = Number(value)
-      switch (operator) {
-        case 'eq':
-          return Prisma.sql`${dbCol} = ${valNum}`
-        case 'neq':
-          return Prisma.sql`${dbCol} != ${valNum}`
-        case 'gt':
-          return Prisma.sql`${dbCol} > ${valNum}`
-        case 'gte':
-          return Prisma.sql`${dbCol} >= ${valNum}`
-        case 'lt':
-          return Prisma.sql`${dbCol} < ${valNum}`
-        case 'lte':
-          return Prisma.sql`${dbCol} <= ${valNum}`
-        default:
-          throw new Error(`Unsupported operator for sizeByte field: ${operator}`)
-      }
-    }
-
-    if (
-      field === 'createdAt' ||
-      field === 'updatedAt' ||
-      field === 'created_at' ||
-      field === 'updated_at'
-    ) {
-      const valDate = this.toDate(value)
-      switch (operator) {
-        case 'eq':
-          return Prisma.sql`${dbCol} = ${valDate}`
-        case 'neq':
-          return Prisma.sql`${dbCol} != ${valDate}`
-        case 'gt':
-          return Prisma.sql`${dbCol} > ${this.toDateBound(value, 'end')}`
-        case 'gte':
-          return Prisma.sql`${dbCol} >= ${this.toDateBound(value, 'start')}`
-        case 'lt':
-          return Prisma.sql`${dbCol} < ${this.toDateBound(value, 'start')}`
-        case 'lte':
-          return Prisma.sql`${dbCol} <= ${this.toDateBound(value, 'end')}`
-        case 'isWithin': {
-          const range = this.parseDateRange(value)
-          return Prisma.sql`${dbCol} >= ${range.start} AND ${dbCol} <= ${range.end}`
-        }
-        default:
-          throw new Error(`Unsupported operator for date field: ${operator}`)
-      }
-    }
-
-    // Custom EAV metadata field query on asset_metadata_values
-    if (operator === 'isEmpty') {
-      return Prisma.sql`a.id NOT IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field})`
-    }
-    if (operator === 'isNotEmpty') {
-      return Prisma.sql`a.id IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field})`
-    }
-
-    // Standard EAV value matching based on type of value
-    if (typeof value === 'string') {
-      const valStr = String(value)
-      if (this.isDate(valStr)) {
-        const valDate = this.toDate(valStr)
-        return Prisma.sql`a.id IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field} AND date_value = ${valDate})`
-      }
-      return Prisma.sql`a.id IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field} AND string_value = ${valStr})`
-    }
-    if (typeof value === 'number') {
-      const valNum = Number(value)
-      return Prisma.sql`a.id IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field} AND number_value = ${valNum})`
-    }
-    if (typeof value === 'boolean') {
-      const valBool = Boolean(value)
-      return Prisma.sql`a.id IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field} AND boolean_value = ${valBool})`
-    }
-
-    return null
+    return { data, pageInfo }
   }
 }
 

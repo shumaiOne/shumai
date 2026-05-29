@@ -1,8 +1,8 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest'
+import { describe, expect, it, beforeEach } from 'vitest'
 import { prisma } from '@/db'
 import { setupTestDbHooks } from '@/db-test-hooks'
 import { SearchService } from './search'
-import { AssetType, Prisma } from '@/generated/prisma/client.ts'
+import { AssetType } from '@/generated/prisma/client.ts'
 
 describe('N-gram Search Integration', () => {
   setupTestDbHooks()
@@ -184,48 +184,103 @@ describe('N-gram Search Integration', () => {
     })
 
     it('should use GIN index when probe count is less than 10001', async () => {
-      // Mock count to return a rare count
-      const countSpy = vi.spyOn(prisma.asset, 'count').mockResolvedValue(5)
-      const findManySpy = vi.spyOn(prisma.asset, 'findMany').mockResolvedValue([])
+      const queries: string[] = []
+      const mockPrisma = new Proxy(prisma, {
+        get(target, prop) {
+          if (prop === '$queryRaw') {
+            return (prismaSql: unknown) => {
+              const sqlStr = (prismaSql as { text?: string })?.text || ''
+              if (sqlStr) {
+                queries.push(sqlStr)
+              }
+              let result: { id: string }[] = []
+              if (!sqlStr.includes('as "assetId"')) {
+                // Probe query: return 5 matches
+                result = Array(5).fill({ id: '1' })
+              }
+              const promise = Promise.resolve(result)
+              Object.defineProperty(promise, Symbol.toStringTag, {
+                value: 'PrismaPromise',
+                configurable: true,
+                writable: true,
+              })
+              return promise as unknown as ReturnType<typeof prisma.$queryRaw>
+            }
+          }
+          const val = Reflect.get(target, prop)
+          if (typeof val === 'function') {
+            return val.bind(target)
+          }
+          return val
+        },
+      })
 
-      await searchService.search(rootId, {
+      const localSearchService = new SearchService(mockPrisma)
+
+      await localSearchService.search(rootId, {
         operator: 'AND',
         recursively: true,
         isSemantic: false,
         conditions: [{ field: 'name', operator: 'contains', value: 'rareterm' }],
       })
 
-      // Check that findMany was called with nameNgram condition
-      const findManyArgs = findManySpy.mock.calls[0][0] as Prisma.AssetFindManyArgs
-      const where = findManyArgs.where as Prisma.AssetWhereInput
-      expect(where).toHaveProperty('nameNgram')
-      expect(where.nameNgram).toHaveProperty('hasEvery')
-
-      countSpy.mockRestore()
-      findManySpy.mockRestore()
+      // Verify probe and main query were executed
+      expect(queries).toHaveLength(2)
+      // Check that main query used GIN index
+      const mainQuery = queries.find((q) => q.includes('as "assetId"'))
+      expect(mainQuery).toBeDefined()
+      expect(mainQuery).toContain('name_ngram @>')
+      expect(mainQuery).toContain('name ILIKE')
     })
 
     it('should fallback to simple ILIKE when probe count is 10001 or more', async () => {
-      // Mock count to return a common count for the probe, and again for the full count
-      const countSpy = vi.spyOn(prisma.asset, 'count').mockResolvedValue(10001)
-      const findManySpy = vi.spyOn(prisma.asset, 'findMany').mockResolvedValue([])
+      const queries: string[] = []
+      const mockPrisma = new Proxy(prisma, {
+        get(target, prop) {
+          if (prop === '$queryRaw') {
+            return (prismaSql: unknown) => {
+              const sqlStr = (prismaSql as { text?: string })?.text || ''
+              if (sqlStr) {
+                queries.push(sqlStr)
+              }
+              let result: { id: string }[] = []
+              if (!sqlStr.includes('as "assetId"')) {
+                // Probe query: return 10001 matches
+                result = Array(10001).fill({ id: '1' })
+              }
+              const promise = Promise.resolve(result)
+              Object.defineProperty(promise, Symbol.toStringTag, {
+                value: 'PrismaPromise',
+                configurable: true,
+                writable: true,
+              })
+              return promise as unknown as ReturnType<typeof prisma.$queryRaw>
+            }
+          }
+          const val = Reflect.get(target, prop)
+          if (typeof val === 'function') {
+            return val.bind(target)
+          }
+          return val
+        },
+      })
 
-      await searchService.search(rootId, {
+      const localSearchService = new SearchService(mockPrisma)
+
+      await localSearchService.search(rootId, {
         operator: 'AND',
         recursively: true,
         isSemantic: false,
         conditions: [{ field: 'name', operator: 'contains', value: 'commonterm' }],
       })
 
-      // Check that findMany was called WITHOUT nameNgram condition, and WITH name contains
-      const findManyArgs = findManySpy.mock.calls[0][0] as Prisma.AssetFindManyArgs
-      const where = findManyArgs.where as Prisma.AssetWhereInput
-      expect(where).not.toHaveProperty('nameNgram')
-      expect(where).toHaveProperty('name')
-      expect(where.name).toHaveProperty('contains', 'commonterm')
-
-      countSpy.mockRestore()
-      findManySpy.mockRestore()
+      // Verify probe and main query were executed
+      expect(queries).toHaveLength(2)
+      // Check that main query did NOT use GIN index but used ILIKE
+      const mainQuery = queries.find((q) => q.includes('as "assetId"'))
+      expect(mainQuery).toBeDefined()
+      expect(mainQuery).not.toContain('name_ngram @>')
+      expect(mainQuery).toContain('name ILIKE')
     })
   })
 })
