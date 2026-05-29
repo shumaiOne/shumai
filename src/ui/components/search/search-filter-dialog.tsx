@@ -224,8 +224,8 @@ export function SearchFilterDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[900px] p-0 gap-0 overflow-hidden bg-background border-border rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
-        <DialogHeader>
-          <DialogTitle>Search</DialogTitle>
+        <DialogHeader className="px-6 pt-3 pb-0 text-left">
+          <DialogTitle className="text-lg font-bold">Search</DialogTitle>
         </DialogHeader>
 
         <div className="px-6 pb-6 pt-4 border-b border-border bg-muted/30 flex flex-col gap-3">
