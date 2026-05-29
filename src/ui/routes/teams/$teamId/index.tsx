@@ -1,6 +1,7 @@
 import type { ProjectInfo } from '@/dtos/project'
 import { client } from '@/ui/api/client'
 import { useMutation } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import type { InferRequestType, InferResponseType } from 'hono/client'
 import { MembersDialog } from '@/ui/components/members-dialog'
 import { ProjectDialog } from '@/ui/components/project-dialog'
@@ -117,6 +118,28 @@ function TeamPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'projects'] })
+    },
+  })
+
+  const toggleProjectNotificationsMutation = useMutation({
+    mutationFn: async (project: ProjectInfo) => {
+      const res = await client.api.projects[':projectId'].$put({
+        param: { projectId: project.id! },
+        json: {
+          enableNotification: !project.enableNotification,
+        },
+      })
+      if (!res.ok) throw new Error('Failed to update project notification settings')
+      return await res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'projects'] })
+      toast.success('Project notification settings updated')
+    },
+    onError: (err) => {
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to update project notification settings',
+      )
     },
   })
 
@@ -283,6 +306,16 @@ function TeamPage() {
                         }}
                       >
                         Project Settings
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleProjectNotificationsMutation.mutate(project)
+                        }}
+                      >
+                        {project.enableNotification
+                          ? 'Disable Notifications'
+                          : 'Enable Notifications'}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive focus:text-destructive"

@@ -32,7 +32,7 @@ export class ProjectService {
         data: {
           name: req.name,
           teamId: req.teamId,
-          enableNotification: req.enableNotification || false,
+          enableNotification: req.enableNotification ?? true,
           coverImageKey: req.coverImageKey,
         },
       })
@@ -304,7 +304,7 @@ export class ProjectService {
     const pi: ProjectInfo = {
       id: p.id,
       name: p.name,
-      enableNotification: p.enableNotification || false,
+      enableNotification: p.enableNotification ?? true,
       coverImageKey: p.coverImageKey || undefined,
       updatedAt: p.updatedAt,
     }

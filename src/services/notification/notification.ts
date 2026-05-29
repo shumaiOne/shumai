@@ -5,10 +5,12 @@ import {
   NotificationInfo,
   CreateNotificationRequest,
   ListNotificationParams,
+  NotificationSettings,
 } from '@/dtos/notification'
 import { paginateQuery, PaginatedData } from '@/services/pagination'
 import '@/prisma-json-types'
 import { s3Service } from '@/services/s3/s3'
+import { userMetadataService } from '@/services/user-metadata/user-metadata'
 
 const mentionRegex = /<@([^>]+)>/g
 
@@ -127,13 +129,76 @@ export class NotificationService {
       projectFilter = pms.filter((pm) => pm.project).map((pm) => pm.projectId)
     }
 
+    // Load notification settings
+    const settingsMeta = await userMetadataService.getMetadata(
+      userId,
+      teamId,
+      'notification_settings',
+    )
+    const settings: NotificationSettings = settingsMeta
+      ? (settingsMeta.value as NotificationSettings)
+      : {
+          comments: true,
+          replies: true,
+          mentions: true,
+          yourUploads: false,
+          otherUploads: true,
+          statusUpdates: true,
+        }
+
+    const typeConditions: Prisma.NotificationWhereInput[] = []
+
+    // 1. Comments
+    if (settings.comments) {
+      typeConditions.push({ type: NotificationType.comment_created, userId: null })
+    }
+
+    // 2. Replies
+    if (settings.replies) {
+      typeConditions.push({ type: NotificationType.reply_created, userId: userId })
+      typeConditions.push({ type: NotificationType.reply_created, userId: null })
+    }
+
+    // 3. Mentions
+    if (settings.mentions) {
+      typeConditions.push({ type: NotificationType.mention, userId: userId })
+    }
+
+    // 4. Uploads
+    if (settings.yourUploads && settings.otherUploads) {
+      typeConditions.push({ type: NotificationType.successful_file_uploaded })
+    } else if (settings.yourUploads) {
+      typeConditions.push({ type: NotificationType.successful_file_uploaded, creatorId: userId })
+    } else if (settings.otherUploads) {
+      typeConditions.push({
+        type: NotificationType.successful_file_uploaded,
+        creatorId: { not: userId },
+      })
+    }
+
+    // 5. Status Updates
+    if (settings.statusUpdates) {
+      typeConditions.push({ type: NotificationType.metadata_field_updated_status })
+    }
+
+    // 6. Always include team/project join notifications
+    typeConditions.push({ type: NotificationType.new_user_join_team })
+    typeConditions.push({ type: NotificationType.new_user_join_project })
+
     const where: Prisma.NotificationWhereInput = {
       teamId,
-      OR: [
-        { type: { not: NotificationType.mention } },
-        { type: NotificationType.mention, userId: userId },
+      OR: typeConditions,
+      AND: [
+        {
+          OR: [
+            ...(settings.yourUploads
+              ? [{ type: NotificationType.successful_file_uploaded, creatorId: userId }]
+              : []),
+            { creatorId: null },
+            { creatorId: { not: userId } },
+          ],
+        },
       ],
-      AND: [{ OR: [{ creatorId: null }, { creatorId: { not: userId } }] }],
     }
 
     if (teamMember.scope === 'project') {

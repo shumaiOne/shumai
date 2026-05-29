@@ -3,6 +3,7 @@ import { prisma } from '@/db'
 import { setupTestDbHooks } from '@/db-test-hooks'
 import { NotificationType } from '@/generated/prisma/client'
 import { notificationService } from './notification'
+import { userMetadataService } from '@/services/user-metadata/user-metadata'
 
 describe('NotificationService', () => {
   setupTestDbHooks()
@@ -246,5 +247,67 @@ describe('NotificationService', () => {
     expect(res.data).toHaveLength(2)
     const p2Notification = res.data.find((n) => n.id === '002')
     expect(p2Notification).toBeUndefined()
+  })
+
+  it('Respects user metadata notification settings', async () => {
+    const tm = await prisma.team.create({ data: { name: 'Team 1' } })
+    const u1 = await prisma.user.create({
+      data: { name: 'u1', email: `u1-${Date.now()}@example.com`, password: 'p' },
+    })
+    const u2 = await prisma.user.create({
+      data: { name: 'u2', email: `u2-${Date.now()}@example.com`, password: 'p' },
+    })
+    await prisma.teamMember.create({
+      data: { teamId: tm.id, userId: u1.id, role: 'owner' },
+    })
+
+    // Create comments, replies, mentions, uploads, etc.
+    const commentNotif = await prisma.notification.create({
+      data: { id: '001', teamId: tm.id, type: NotificationType.comment_created },
+    })
+    const replyNotif = await prisma.notification.create({
+      data: { id: '002', teamId: tm.id, type: NotificationType.reply_created, userId: u1.id },
+    })
+    const uploadNotifOther = await prisma.notification.create({
+      data: {
+        id: '003',
+        teamId: tm.id,
+        type: NotificationType.successful_file_uploaded,
+        creatorId: u2.id,
+      },
+    })
+    const uploadNotifSelf = await prisma.notification.create({
+      data: {
+        id: '004',
+        teamId: tm.id,
+        type: NotificationType.successful_file_uploaded,
+        creatorId: u1.id,
+      },
+    })
+
+    const svc = notificationService
+
+    // Default settings: comments=true, replies=true, mentions=true, yourUploads=false, otherUploads=true
+    const resDefault = await svc.list(tm.id, u1.id, {})
+    expect(resDefault.data.some((n) => n.id === commentNotif.id)).toBe(true)
+    expect(resDefault.data.some((n) => n.id === replyNotif.id)).toBe(true)
+    expect(resDefault.data.some((n) => n.id === uploadNotifOther.id)).toBe(true)
+    expect(resDefault.data.some((n) => n.id === uploadNotifSelf.id)).toBe(false) // yourUploads is false by default
+
+    // Disable comments and replies, but enable yourUploads
+    await userMetadataService.upsertMetadata(u1.id, tm.id, 'notification_settings', {
+      comments: false,
+      replies: false,
+      mentions: true,
+      yourUploads: true,
+      otherUploads: false,
+      statusUpdates: true,
+    })
+
+    const resCustom = await svc.list(tm.id, u1.id, {})
+    expect(resCustom.data.some((n) => n.id === commentNotif.id)).toBe(false)
+    expect(resCustom.data.some((n) => n.id === replyNotif.id)).toBe(false)
+    expect(resCustom.data.some((n) => n.id === uploadNotifOther.id)).toBe(false) // otherUploads is now false
+    expect(resCustom.data.some((n) => n.id === uploadNotifSelf.id)).toBe(true) // yourUploads is now true
   })
 })

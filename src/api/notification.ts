@@ -5,7 +5,9 @@ import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 import {
   listNotificationsRequestSchema,
   markNotificationReadRequestSchema,
+  notificationSettingsSchema,
 } from '@/dtos/notification'
+import { userMetadataService } from '@/services/user-metadata/user-metadata'
 import type { Prisma } from '@/generated/prisma/client'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
@@ -60,6 +62,51 @@ const route = new Hono<{ Variables: { user: User } }>()
       await notificationService.markRead(teamId, user.id, req.notificationId)
 
       return new Response(null, { status: 204 })
+    },
+  )
+  .get('/teams/:teamId/notifications/settings', async (c) => {
+    const teamId = c.req.param('teamId')
+    const user = c.get('user')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Team,
+      id: teamId,
+    })
+
+    const metadata = await userMetadataService.getMetadata(user.id, teamId, 'notification_settings')
+    const settings = metadata
+      ? metadata.value
+      : {
+          comments: true,
+          replies: true,
+          mentions: true,
+          yourUploads: false,
+          otherUploads: true,
+          statusUpdates: true,
+        }
+
+    return c.json(settings)
+  })
+  .post(
+    '/teams/:teamId/notifications/settings',
+    zValidator('json', notificationSettingsSchema),
+    async (c) => {
+      const teamId = c.req.param('teamId')
+      const user = c.get('user')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Read,
+        type: ResourceType.Team,
+        id: teamId,
+      })
+
+      await userMetadataService.upsertMetadata(user.id, teamId, 'notification_settings', req)
+
+      return c.json({ success: true })
     },
   )
 

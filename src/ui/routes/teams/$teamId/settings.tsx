@@ -4,15 +4,23 @@ import { AgentsSettings } from '@/ui/components/settings/AgentsSettings'
 import { ProvidersSettings } from '@/ui/components/settings/ProvidersSettings'
 import { SandboxSettings } from '@/ui/components/settings/SandboxSettings'
 import { SkillsConfigCard } from '@/ui/components/settings/SkillsConfigCard'
+import { NotificationSettings } from '@/ui/components/settings/NotificationSettings'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card'
 import { Switch } from '@/ui/components/ui/switch'
 import { cn } from '@/ui/lib/utils'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { Bot, Cpu, Film, Loader2, Puzzle, Shield, User } from 'lucide-react'
+import { Bot, Cpu, Film, Loader2, Puzzle, Shield, User, Bell } from 'lucide-react'
 import { useState } from 'react'
 
-type SettingsTab = 'general' | 'transcode' | 'skills' | 'providers' | 'agents' | 'sandbox'
+type SettingsTab =
+  | 'general'
+  | 'transcode'
+  | 'skills'
+  | 'providers'
+  | 'agents'
+  | 'sandbox'
+  | 'notifications'
 
 function TeamSettingsPage() {
   const { teamId } = Route.useParams()
@@ -145,6 +153,22 @@ function TeamSettingsPage() {
               )}
             </button>
 
+            <button
+              onClick={() => setActiveTab('notifications')}
+              className={cn(
+                'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
+                activeTab === 'notifications'
+                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 ring-1 ring-blue-200 dark:ring-blue-800'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white',
+              )}
+            >
+              <Bell className="w-5 h-5" />
+              Notifications
+              {activeTab === 'notifications' && (
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+              )}
+            </button>
+
             <div className="mt-6 mb-2 px-4 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider pt-4 border-t border-slate-100 dark:border-slate-800">
               AI
             </div>
@@ -227,6 +251,7 @@ function TeamSettingsPage() {
                   {activeTab === 'providers' && 'AI Providers'}
                   {activeTab === 'agents' && 'AI Agents'}
                   {activeTab === 'sandbox' && 'Agent Sandbox Settings'}
+                  {activeTab === 'notifications' && 'Notification Settings'}
                 </h2>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                   {activeTab === 'general' && 'View your personal information and team role.'}
@@ -238,6 +263,8 @@ function TeamSettingsPage() {
                   {activeTab === 'agents' && 'Manage AI agents and their personalities.'}
                   {activeTab === 'sandbox' &&
                     'Configure security and network restrictions for the AI agent.'}
+                  {activeTab === 'notifications' &&
+                    'Configure your personal notification preferences for this team.'}
                 </p>
               </div>
             </div>
@@ -422,6 +449,8 @@ function TeamSettingsPage() {
                   <SandboxSettings teamId={teamId} />
                 </div>
               )}
+
+              {activeTab === 'notifications' && <NotificationSettings teamId={teamId} />}
             </div>
           </div>
         </main>
