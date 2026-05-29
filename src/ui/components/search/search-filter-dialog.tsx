@@ -270,7 +270,12 @@ export function SearchFilterDialog({
                 <Switch
                   id="semantic-search-switch"
                   checked={isSemantic}
-                  onCheckedChange={setIsSemantic}
+                  onCheckedChange={(checked) => {
+                    setIsSemantic(checked)
+                    setSearchInput('')
+                    setTriggerQuery('')
+                    setConditions([])
+                  }}
                   disabled={!semanticSearchEnabled}
                 />
                 <Label
