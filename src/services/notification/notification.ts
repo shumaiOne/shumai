@@ -97,28 +97,12 @@ export class NotificationService {
     }
   }
 
-  async list(
+  private async getListWhere(
     teamId: string,
     userId: string,
-    params: ListNotificationParams,
-  ): Promise<PaginatedData<NotificationInfo[]>> {
-    // Get user's last read notification
-    const teamMember = await prisma.teamMember.findUnique({
-      where: {
-        teamIdUserId: {
-          teamId,
-          userId,
-        },
-      },
-      include: {
-        lastReadNotification: true,
-      },
-    })
-
-    if (!teamMember) {
-      throw new Error('failed to get team member')
-    }
-
+    teamMember: Prisma.TeamMemberGetPayload<{ include: { lastReadNotification: true } }>,
+    unreadOnly: boolean,
+  ): Promise<Prisma.NotificationWhereInput> {
     // Permission Filtering based on Scope
     let projectFilter: string[] = []
     if (teamMember.scope === 'project') {
@@ -215,7 +199,7 @@ export class NotificationService {
       ] as Prisma.NotificationWhereInput[]
     }
 
-    if (params.unreadOnly && teamMember.lastReadNotification) {
+    if (unreadOnly && teamMember.lastReadNotification) {
       // We want notifications NEWER than the last read one.
       // String comparison works for ULID/KSUID.
       const currentAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []
@@ -224,6 +208,54 @@ export class NotificationService {
         { id: { gt: teamMember.lastReadNotification.id } },
       ] as Prisma.NotificationWhereInput[]
     }
+
+    return where
+  }
+
+  async getUnreadCount(teamId: string, userId: string): Promise<number> {
+    const teamMember = await prisma.teamMember.findUnique({
+      where: {
+        teamIdUserId: {
+          teamId,
+          userId,
+        },
+      },
+      include: {
+        lastReadNotification: true,
+      },
+    })
+
+    if (!teamMember) {
+      return 0
+    }
+
+    const where = await this.getListWhere(teamId, userId, teamMember, true)
+    return prisma.notification.count({ where })
+  }
+
+  async list(
+    teamId: string,
+    userId: string,
+    params: ListNotificationParams,
+  ): Promise<PaginatedData<NotificationInfo[]>> {
+    // Get user's last read notification
+    const teamMember = await prisma.teamMember.findUnique({
+      where: {
+        teamIdUserId: {
+          teamId,
+          userId,
+        },
+      },
+      include: {
+        lastReadNotification: true,
+      },
+    })
+
+    if (!teamMember) {
+      throw new Error('failed to get team member')
+    }
+
+    const where = await this.getListWhere(teamId, userId, teamMember, !!params.unreadOnly)
 
     return paginateQuery<NotificationInfo>(
       async (skip, take) => {

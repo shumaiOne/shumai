@@ -35,6 +35,7 @@ export const getMeResponseSchema = z.object({
   name: z.string(),
   email: z.string().optional(),
   role: z.string(),
+  unreadNotificationCount: z.number().optional(),
 })
 export type GetMeResponse = z.infer<typeof getMeResponseSchema>
 

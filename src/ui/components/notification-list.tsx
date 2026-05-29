@@ -55,6 +55,14 @@ export const NotificationList = () => {
     [data],
   )
 
+  useEffect(() => {
+    if (teamId) {
+      queryClient.invalidateQueries({
+        queryKey: ['teams', teamId, 'me'],
+      })
+    }
+  }, [teamId, notifications.length, queryClient])
+
   const $post = client.api.teams[':teamId'].notifications.read.$post
   const markReadMutation = useMutation<
     InferResponseType<typeof $post>,

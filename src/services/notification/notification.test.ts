@@ -310,4 +310,50 @@ describe('NotificationService', () => {
     expect(resCustom.data.some((n) => n.id === uploadNotifOther.id)).toBe(false) // otherUploads is now false
     expect(resCustom.data.some((n) => n.id === uploadNotifSelf.id)).toBe(true) // yourUploads is now true
   })
+
+  it('getUnreadCount retrieves correct count of unread notifications', async () => {
+    const tm = await prisma.team.create({ data: { name: 'Team 2' } })
+    const u1 = await prisma.user.create({
+      data: { name: 'u3', email: `u3-${Date.now()}@example.com`, password: 'p' },
+    })
+    const u2 = await prisma.user.create({
+      data: { name: 'u4', email: `u4-${Date.now()}@example.com`, password: 'p' },
+    })
+    const member = await prisma.teamMember.create({
+      data: { teamId: tm.id, userId: u1.id, role: 'owner' },
+    })
+
+    // No notifications initially
+    let count = await notificationService.getUnreadCount(tm.id, u1.id)
+    expect(count).toBe(0)
+
+    // Create unread notifications from other user
+    const n1 = await prisma.notification.create({
+      data: { id: '101', teamId: tm.id, type: NotificationType.comment_created, creatorId: u2.id },
+    })
+    const n2 = await prisma.notification.create({
+      data: { id: '102', teamId: tm.id, type: NotificationType.reply_created, userId: u1.id, creatorId: u2.id },
+    })
+
+    count = await notificationService.getUnreadCount(tm.id, u1.id)
+    expect(count).toBe(2)
+
+    // Mark up to n1 as read
+    await prisma.teamMember.update({
+      where: { id: member.id },
+      data: { lastReadNotificationId: n1.id },
+    })
+
+    count = await notificationService.getUnreadCount(tm.id, u1.id)
+    expect(count).toBe(1) // n2 is still unread
+
+    // Mark all as read (up to n2)
+    await prisma.teamMember.update({
+      where: { id: member.id },
+      data: { lastReadNotificationId: n2.id },
+    })
+
+    count = await notificationService.getUnreadCount(tm.id, u1.id)
+    expect(count).toBe(0)
+  })
 })
