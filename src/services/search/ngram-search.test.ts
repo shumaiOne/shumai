@@ -186,7 +186,7 @@ describe('N-gram Search Integration', () => {
     it('should use GIN index when probe count is less than 10001', async () => {
       const queries: string[] = []
       const mockPrisma = new Proxy(prisma, {
-        get(target, prop, receiver) {
+        get(target, prop) {
           if (prop === '$queryRaw') {
             return (prismaSql: unknown) => {
               const sqlStr = (prismaSql as { text?: string })?.text || ''
@@ -236,7 +236,7 @@ describe('N-gram Search Integration', () => {
     it('should fallback to simple ILIKE when probe count is 10001 or more', async () => {
       const queries: string[] = []
       const mockPrisma = new Proxy(prisma, {
-        get(target, prop, receiver) {
+        get(target, prop) {
           if (prop === '$queryRaw') {
             return (prismaSql: unknown) => {
               const sqlStr = (prismaSql as { text?: string })?.text || ''
