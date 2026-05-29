@@ -31,6 +31,7 @@ import { useQuery, useSuspenseQuery, useQueryClient } from '@tanstack/react-quer
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { MoreHorizontal, PlusIcon } from 'lucide-react'
 import { useState } from 'react'
+import { Switch } from '@/ui/components/ui/switch'
 import { Input } from '@/ui/components/ui/input'
 
 function TeamPage() {
@@ -308,14 +309,17 @@ function TeamPage() {
                         Project Settings
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation()
+                        className="flex items-center justify-between gap-4 cursor-pointer"
+                        onSelect={(e) => {
+                          e.preventDefault()
                           toggleProjectNotificationsMutation.mutate(project)
                         }}
                       >
-                        {project.enableNotification
-                          ? 'Disable Notifications'
-                          : 'Enable Notifications'}
+                        <span>Notification</span>
+                        <Switch
+                          checked={project.enableNotification ?? true}
+                          className="pointer-events-none"
+                        />
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive focus:text-destructive"
