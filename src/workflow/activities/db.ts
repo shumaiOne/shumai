@@ -6,15 +6,11 @@ import { metadataService } from '@/services/metadata/metadata'
 import { UpdateAssetMetadataRequest } from '@/dtos/metadata'
 import { WorkflowTaskStatus, AssetStatus, Prisma, AssetType } from '@/generated/prisma/client'
 import type { AgentExecutionContext } from './agent'
-import { s3Service } from '@/services/s3/s3'
 import { assetService } from '@/services/asset/asset'
 import { VersionStackService } from '@/services/versionStack/versionStack'
 import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 import { generateKeyBetween } from 'jittered-fractional-indexing'
-import { detectSupportedMimeType } from '@/utils/mime'
 import { paginateQuery, encodeCursor } from '@/services/pagination'
-import * as fs from 'fs'
-import * as path from 'path'
 
 export interface InitializeAgentSessionParams {
   teamId: string
@@ -628,43 +624,6 @@ export async function updateWorkflowTaskActivity(params: UpdateWorkflowTaskParam
 // Agent System Tools & Context Activities
 // ==========================================
 
-function getMimeType(filePath: string): string {
-  try {
-    const fd = fs.openSync(filePath, 'r')
-    try {
-      const buffer = Buffer.alloc(4100)
-      const bytesRead = fs.readSync(fd, buffer, 0, 4100, 0)
-      const detected = detectSupportedMimeType(new Uint8Array(buffer.subarray(0, bytesRead)))
-      if (detected) return detected
-    } finally {
-      fs.closeSync(fd)
-    }
-  } catch {
-    /* Ignore S3 detection errors and fallback to extension mapping */
-  }
-
-  const ext = path.extname(filePath).toLowerCase()
-  const mimeTypes: Record<string, string> = {
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.gif': 'image/gif',
-    '.webp': 'image/webp',
-    '.svg': 'image/svg+xml',
-    '.mp4': 'video/mp4',
-    '.mov': 'video/quicktime',
-    '.pdf': 'application/pdf',
-    '.txt': 'text/plain',
-    '.json': 'application/json',
-    '.html': 'text/html',
-    '.css': 'text/css',
-    '.js': 'application/javascript',
-    '.ts': 'application/typescript',
-    '.zip': 'application/zip',
-  }
-  return mimeTypes[ext] || 'application/octet-stream'
-}
-
 function generateSortIndex(previous?: string | null): string {
   if (!previous) return generateKeyBetween(null, null)
   return generateKeyBetween(previous, null)
@@ -836,10 +795,13 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
 
     case 'create_file': {
       const parent = args.parent
-      const filePath = args.path
-      if (!parent || !filePath) {
+      const s3Key = args.s3Key as string
+      const name = args.name as string
+      const fileSize = args.size as number
+      const mimeType = args.contentType as string
+      if (!parent || !s3Key || !name || fileSize === undefined || !mimeType) {
         throw ApplicationFailure.create({
-          message: 'parent and path parameters are required',
+          message: 'parent, s3Key, name, size, and contentType parameters are required',
           nonRetryable: true,
         })
       }
@@ -852,25 +814,12 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
         id: parent,
       })
 
-      if (!fs.existsSync(filePath)) {
-        throw ApplicationFailure.create({
-          message: `Local file not found at path: ${filePath}`,
-          nonRetryable: true,
-        })
-      }
-
-      const fileSize = fs.statSync(filePath).size
-      const mimeType = getMimeType(filePath)
-
-      // Upload file to S3
-      const key = await s3Service.uploadFile(filePath, mimeType)
-
       // Create asset via assetService
       const newFile = await assetService.createAsset({
-        name: path.basename(filePath),
+        name,
         type: 'file',
         parentId: parent,
-        key,
+        key: s3Key,
         sizeByte: fileSize,
         contentType: mimeType,
         creatorId: userId,
@@ -896,10 +845,13 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
 
     case 'create_version': {
       const parent = args.parent // parent file id
-      const filePath = args.path
-      if (!parent || !filePath) {
+      const s3Key = args.s3Key as string
+      const name = args.name as string
+      const fileSize = args.size as number
+      const mimeType = args.contentType as string
+      if (!parent || !s3Key || !name || fileSize === undefined || !mimeType) {
         throw ApplicationFailure.create({
-          message: 'parent and path parameters are required',
+          message: 'parent, s3Key, name, size, and contentType parameters are required',
           nonRetryable: true,
         })
       }
@@ -923,29 +875,16 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
         id: parent,
       })
 
-      if (!fs.existsSync(filePath)) {
-        throw ApplicationFailure.create({
-          message: `Local file not found at path: ${filePath}`,
-          nonRetryable: true,
-        })
-      }
-
-      const fileSize = fs.statSync(filePath).size
-      const mimeType = getMimeType(filePath)
-
-      // Upload file to S3
-      const key = await s3Service.uploadFile(filePath, mimeType)
-
       // If already in a version stack
       if (parentFile.parentId && parentFile.parent?.type === AssetType.version_stack) {
         const stackId = parentFile.parentId
 
         // Create the new file asset
         const newFile = await assetService.createAsset({
-          name: path.basename(filePath),
+          name,
           type: 'file',
           parentId: stackId,
-          key,
+          key: s3Key,
           sizeByte: fileSize,
           contentType: mimeType,
           creatorId: userId,
@@ -998,10 +937,10 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
         // Create the new file asset under parent folder first (so that createVersionStack can run on them,
         // which enforces both files must have same parent initially)
         const newFile = await assetService.createAsset({
-          name: path.basename(filePath),
+          name,
           type: 'file',
           parentId: folderParentId,
-          key,
+          key: s3Key,
           sizeByte: fileSize,
           contentType: mimeType,
           creatorId: userId,

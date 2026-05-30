@@ -14,6 +14,7 @@ import {
   executeAgentToolActivity,
 } from './db'
 import type { SessionTreeEntry } from '@earendil-works/pi-agent-core'
+import { s3Service } from '@/services/s3/s3'
 
 describe('Database Activities', () => {
   setupTestDbHooks()
@@ -408,12 +409,16 @@ describe('Database Activities', () => {
       fs.writeFileSync(tempFilePath, 'hello Shumai!')
 
       try {
+        const s3Key = await s3Service.uploadFile(tempFilePath, 'text/plain')
         const fileResult = await executeAgentToolActivity({
           taskId: 'task2',
           toolName: 'create_file',
           args: {
             parent: parentFolder.id,
-            path: tempFilePath,
+            s3Key,
+            name: 'temp_test_file.txt',
+            size: fs.statSync(tempFilePath).size,
+            contentType: 'text/plain',
           },
           userId: user.id,
         })
@@ -446,12 +451,16 @@ describe('Database Activities', () => {
         fs.writeFileSync(versionTempPath, 'hello Shumai V2!')
 
         try {
+          const s3KeyV2 = await s3Service.uploadFile(versionTempPath, 'text/plain')
           const versionResult = await executeAgentToolActivity({
             taskId: 'task4',
             toolName: 'create_version',
             args: {
               parent: fileResult.id,
-              path: versionTempPath,
+              s3Key: s3KeyV2,
+              name: 'temp_version_file.txt',
+              size: fs.statSync(versionTempPath).size,
+              contentType: 'text/plain',
             },
             userId: user.id,
           })
