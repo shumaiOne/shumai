@@ -138,40 +138,51 @@ export function FileViewer({
     const webpUrl = bestUrl
     if (!webpUrl) return
     try {
-      const response = await fetch(webpUrl)
-      const blob = await response.blob()
+      // To support Safari and iOS, we must invoke navigator.clipboard.write
+      // synchronously inside the click handler. We can pass a promise to ClipboardItem
+      // which resolves to the Blob asynchronously.
+      const copyPromise = (async () => {
+        const response = await fetch(webpUrl)
+        const blob = await response.blob()
 
-      const img = new Image()
-      img.crossOrigin = 'anonymous'
-      img.src = URL.createObjectURL(blob)
-      await new Promise((resolve, reject) => {
-        img.onload = resolve
-        img.onerror = reject
-      })
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        const objectUrl = URL.createObjectURL(blob)
+        img.src = objectUrl
 
-      const canvas = document.createElement('canvas')
-      canvas.width = img.width
-      canvas.height = img.height
-      const ctx = canvas.getContext('2d')
-      if (!ctx) throw new Error('Could not get canvas context')
-      ctx.drawImage(img, 0, 0)
-
-      canvas.toBlob(async (pngBlob) => {
-        if (!pngBlob) return
         try {
-          await navigator.clipboard.write([
-            new ClipboardItem({
-              'image/png': pngBlob,
-            }),
-          ])
-          setCopied(true)
-          setTimeout(() => setCopied(false), 2000)
-        } catch (err) {
-          console.error('Failed to copy image to clipboard:', err)
+          await new Promise((resolve, reject) => {
+            img.onload = resolve
+            img.onerror = (e) => reject(new Error('Failed to load image: ' + String(e)))
+          })
+
+          const canvas = document.createElement('canvas')
+          canvas.width = img.width
+          canvas.height = img.height
+          const ctx = canvas.getContext('2d')
+          if (!ctx) throw new Error('Could not get canvas context')
+          ctx.drawImage(img, 0, 0)
+
+          const pngBlob = await new Promise<Blob | null>((resolve) => {
+            canvas.toBlob(resolve, 'image/png')
+          })
+
+          if (!pngBlob) throw new Error('Failed to convert image to PNG')
+          return pngBlob
+        } finally {
+          URL.revokeObjectURL(objectUrl)
         }
-      }, 'image/png')
+      })()
+
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'image/png': copyPromise,
+        }),
+      ])
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
     } catch (err) {
-      console.error('Failed to copy image:', err)
+      console.error('Failed to copy image to clipboard:', err)
     }
   }
 
