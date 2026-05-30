@@ -217,7 +217,7 @@ describe('TranscodeService', () => {
 
   it('should create transcode tasks correctly', async () => {
     const task = (await transcodeService.createVideoTranscodeTask('asset-123', 'proj-123', {
-      videoStrategy: 'single',
+      videoStrategy: 'best_match',
       thumbnail: true,
     })) as WorkflowTask
 
@@ -225,6 +225,6 @@ describe('TranscodeService', () => {
     expect(task.type).toBe('transcode')
     expect(task.status).toBe('pending')
     expect(task.payload?.projectId).toBe('proj-123')
-    expect(task.payload?.transcode?.videoStrategy).toBe('single')
+    expect(task.payload?.transcode?.videoStrategy).toBe('best_match')
   })
 })

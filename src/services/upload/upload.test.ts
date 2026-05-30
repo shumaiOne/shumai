@@ -127,7 +127,7 @@ describe('UploadService', () => {
     expect(workflowTask?.payload).toEqual({
       projectId: projectId,
       transcode: {
-        videoStrategy: 'single',
+        videoStrategy: 'best_match',
         sprite: true,
         poster: true,
       },
@@ -164,7 +164,6 @@ describe('UploadService', () => {
     expect(workflowTask?.payload).toEqual({
       projectId: projectId,
       transcode: {
-        imageStrategy: 'single',
         thumbnail: true,
       },
     })

@@ -16,7 +16,7 @@ describe('CollectionService', () => {
         name: 'Test Team',
         settings: {
           enablePublicSignup: true,
-          transcode: { videoStrategy: 'disable', imageStrategy: 'disable' },
+          transcode: { videoStrategy: 'best_match' },
         },
         sandbox: { create: {} },
       },

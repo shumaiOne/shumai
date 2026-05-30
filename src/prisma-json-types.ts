@@ -46,17 +46,15 @@ declare global {
     // ----------------------------------------------------------------------
     // Team Settings
     // ----------------------------------------------------------------------
-    export type VideoTranscodeStrategy = 'disable' | 'single' | 'full'
+    export type VideoTranscodeStrategy = 'best_match' | 'all'
 
     // ----------------------------------------------------------------------
     // Collection Filter
     // ----------------------------------------------------------------------
     export type CollectionFilter = import('./dtos/collection').CollectionFilter
-    export type ImageTranscodeStrategy = 'disable' | 'single'
 
     export interface TranscodeSettings {
       videoStrategy: VideoTranscodeStrategy
-      imageStrategy: ImageTranscodeStrategy
     }
 
     export interface Settings {
@@ -254,7 +252,6 @@ declare global {
     // ----------------------------------------------------------------------
     export interface TaskSpec {
       videoStrategy?: VideoTranscodeStrategy
-      imageStrategy?: ImageTranscodeStrategy
       thumbnail?: boolean
       sprite?: boolean
       poster?: boolean
