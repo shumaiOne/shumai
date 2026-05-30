@@ -245,11 +245,18 @@ declare global {
       queryEmbeddingForSearch?: {
         text: string
       }
+      agentToolCall?: AgentToolCallPayload
     }
 
     // ----------------------------------------------------------------------
     // Task Spec & Payload
     // ----------------------------------------------------------------------
+    export interface AgentToolCallPayload {
+      toolName: string
+      args: Record<string, unknown>
+      userId: string
+    }
+
     export interface TaskSpec {
       videoStrategy?: VideoTranscodeStrategy
       thumbnail?: boolean

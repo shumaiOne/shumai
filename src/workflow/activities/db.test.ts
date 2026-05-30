@@ -10,6 +10,8 @@ import {
   getAgentAutofillContextActivity,
   getEmbeddingContextActivity,
   saveAssetEmbeddingsActivity,
+  getAssetPathContextActivity,
+  executeAgentToolActivity,
 } from './db'
 import type { SessionTreeEntry } from '@earendil-works/pi-agent-core'
 
@@ -314,5 +316,165 @@ describe('Database Activities', () => {
       where: { assetId: asset.id },
     })
     expect(dbEmbeddings.length).toBe(1)
+  })
+
+  describe('Agent System Tools and Path Context Activities', () => {
+    it('should correctly format getAssetPathContextActivity', async () => {
+      const team = await prisma.team.create({ data: { name: 'Path Team' } })
+      const project = await prisma.project.create({
+        data: { name: 'Path Project', teamId: team.id },
+      })
+      const folder1 = await prisma.asset.create({
+        data: {
+          name: 'foo',
+          type: 'folder',
+          projectId: project.id,
+          status: 'uploaded',
+        },
+      })
+      const folder2 = await prisma.asset.create({
+        data: {
+          name: 'bar',
+          type: 'folder',
+          projectId: project.id,
+          parentId: folder1.id,
+          status: 'uploaded',
+        },
+      })
+      const file = await prisma.asset.create({
+        data: {
+          name: 'z.png',
+          type: 'file',
+          projectId: project.id,
+          parentId: folder2.id,
+          status: 'uploaded',
+        },
+      })
+
+      const pathCtx = await getAssetPathContextActivity(file.id)
+      expect(pathCtx).toContain('Path: foo/bar/z.png')
+      expect(pathCtx).toContain(`name: foo, id: ${folder1.id}`)
+      expect(pathCtx).toContain(`name: bar, id: ${folder2.id}`)
+      expect(pathCtx).toContain(`name: z.png, id: ${file.id}`)
+    })
+
+    it('should correctly list assets, create folders, create files, and create versions', async () => {
+      const fs = await import('fs')
+      const path = await import('path')
+
+      const team = await prisma.team.create({ data: { name: 'Tool Team' } })
+      const user = await prisma.user.create({
+        data: { name: 'Tool User', email: 'tooluser@example.com' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: user.id, role: 'owner' },
+      })
+
+      const project = await prisma.project.create({
+        data: { name: 'Tool Project', teamId: team.id },
+      })
+
+      const parentFolder = await prisma.asset.create({
+        data: {
+          name: 'Parent Folder',
+          type: 'folder',
+          projectId: project.id,
+          status: 'uploaded',
+          fileCount: 0,
+        },
+      })
+
+      // 1. Test create_folder via executeAgentToolActivity
+      const folderResult = await executeAgentToolActivity({
+        taskId: 'task1',
+        toolName: 'create_folder',
+        args: {
+          parent: parentFolder.id,
+          name: 'Child Folder',
+        },
+        userId: user.id,
+      })
+      expect(folderResult.id).toBeDefined()
+      expect(folderResult.name).toBe('Child Folder')
+      expect(folderResult.type).toBe('folder')
+
+      const updatedParent = await prisma.asset.findUnique({
+        where: { id: parentFolder.id },
+      })
+      expect(updatedParent?.fileCount).toBe(1)
+
+      // 2. Test create_file via executeAgentToolActivity
+      const tempFilePath = path.join(process.cwd(), 'temp_test_file.txt')
+      fs.writeFileSync(tempFilePath, 'hello Shumai!')
+
+      try {
+        const fileResult = await executeAgentToolActivity({
+          taskId: 'task2',
+          toolName: 'create_file',
+          args: {
+            parent: parentFolder.id,
+            path: tempFilePath,
+          },
+          userId: user.id,
+        })
+        expect(fileResult.id).toBeDefined()
+        expect(fileResult.name).toBe('temp_test_file.txt')
+        expect(fileResult.type).toBe('file')
+
+        const parentAfterFile = await prisma.asset.findUnique({
+          where: { id: parentFolder.id },
+        })
+        expect(parentAfterFile?.fileCount).toBe(2)
+
+        // 3. Test list_assets via executeAgentToolActivity
+        const listResult = await executeAgentToolActivity({
+          taskId: 'task3',
+          toolName: 'list_assets',
+          args: {
+            parent: parentFolder.id,
+            page: 1,
+            pageSize: 10,
+            type: 'all',
+          },
+          userId: user.id,
+        })
+        expect(listResult.assets).toBeDefined()
+        expect(listResult.assets.length).toBe(2) // folder and file
+
+        // 4. Test create_version via executeAgentToolActivity (regular file -> stack)
+        const versionTempPath = path.join(process.cwd(), 'temp_version_file.txt')
+        fs.writeFileSync(versionTempPath, 'hello Shumai V2!')
+
+        try {
+          const versionResult = await executeAgentToolActivity({
+            taskId: 'task4',
+            toolName: 'create_version',
+            args: {
+              parent: fileResult.id,
+              path: versionTempPath,
+            },
+            userId: user.id,
+          })
+          expect(versionResult.id).toBeDefined()
+          expect(versionResult.type).toBe('file')
+
+          // Check if parent (the original file) was stacked
+          const originalFile = await prisma.asset.findUnique({
+            where: { id: fileResult.id },
+            include: { parent: true },
+          })
+          expect(originalFile?.parentId).toBeDefined()
+          expect(originalFile?.parent?.type).toBe('version_stack')
+        } finally {
+          if (fs.existsSync(versionTempPath)) {
+            fs.unlinkSync(versionTempPath)
+          }
+        }
+      } finally {
+        if (fs.existsSync(tempFilePath)) {
+          fs.unlinkSync(tempFilePath)
+        }
+      }
+    })
   })
 })

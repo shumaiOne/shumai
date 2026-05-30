@@ -6,6 +6,7 @@ import { queryEmbeddingForSearch } from './workflows/query-embedding-for-search'
 import { agentAutofillMedia } from './workflows/agent-autofill'
 import { agentChat } from './workflows/agent-chat'
 import { transcodeMedia } from '@/transcode/workflows/transcode'
+import { agentToolCall } from './workflows/agent-tool-call'
 import { activities } from './activities/index'
 import { logger } from '@/logger'
 
@@ -249,6 +250,9 @@ export class LocalExecutor implements Executor {
           break
         case WorkflowTaskType.transcode:
           await transcodeMedia(task)
+          break
+        case WorkflowTaskType.agent_tool_call:
+          await agentToolCall(task)
           break
         default:
           console.warn(`Unknown task type: ${task.type}`)

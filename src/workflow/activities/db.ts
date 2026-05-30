@@ -4,8 +4,17 @@ import type { AgentMessage, SessionTreeEntry } from '@earendil-works/pi-agent-co
 import { ulid } from 'ulid'
 import { metadataService } from '@/services/metadata/metadata'
 import { UpdateAssetMetadataRequest } from '@/dtos/metadata'
-import { WorkflowTaskStatus, AssetStatus, Prisma } from '@/generated/prisma/client'
+import { WorkflowTaskStatus, AssetStatus, Prisma, AssetType } from '@/generated/prisma/client'
 import type { AgentExecutionContext } from './agent'
+import { s3Service } from '@/services/s3/s3'
+import { assetService } from '@/services/asset/asset'
+import { VersionStackService } from '@/services/versionStack/versionStack'
+import { authzService, Permission, ResourceType } from '@/services/authz/authz'
+import { generateKeyBetween } from 'jittered-fractional-indexing'
+import { detectSupportedMimeType } from '@/utils/mime'
+import { paginateQuery, encodeCursor } from '@/services/pagination'
+import * as fs from 'fs'
+import * as path from 'path'
 
 export interface InitializeAgentSessionParams {
   teamId: string
@@ -613,4 +622,411 @@ export async function updateWorkflowTaskActivity(params: UpdateWorkflowTaskParam
       ...(params.model !== undefined ? { model: params.model } : {}),
     },
   })
+}
+
+// ==========================================
+// Agent System Tools & Context Activities
+// ==========================================
+
+function getMimeType(filePath: string): string {
+  try {
+    const buffer = fs.readFileSync(filePath)
+    const detected = detectSupportedMimeType(new Uint8Array(buffer))
+    if (detected) return detected
+  } catch {
+    /* Ignore S3 detection errors and fallback to extension mapping */
+  }
+
+  const ext = path.extname(filePath).toLowerCase()
+  const mimeTypes: Record<string, string> = {
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.svg': 'image/svg+xml',
+    '.mp4': 'video/mp4',
+    '.mov': 'video/quicktime',
+    '.pdf': 'application/pdf',
+    '.txt': 'text/plain',
+    '.json': 'application/json',
+    '.html': 'text/html',
+    '.css': 'text/css',
+    '.js': 'application/javascript',
+    '.ts': 'application/typescript',
+    '.zip': 'application/zip',
+  }
+  return mimeTypes[ext] || 'application/octet-stream'
+}
+
+function generateSortIndex(previous?: string | null): string {
+  if (!previous) return generateKeyBetween(null, null)
+  return generateKeyBetween(previous, null)
+}
+
+export async function getAssetPathContextActivity(assetId: string): Promise<string> {
+  const parts: { name: string; id: string }[] = []
+  let currentId: string | null = assetId
+
+  while (currentId) {
+    /* prettier-ignore */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const assetNode: { id: string; name: string; parentId: string | null; type: AssetType } | null = (await prisma.asset.findUnique({ where: { id: currentId }, select: { id: true, name: true, parentId: true, type: true } })) as any
+    if (!assetNode) break
+
+    if (assetNode.name) {
+      parts.unshift({ name: assetNode.name, id: assetNode.id })
+    }
+
+    currentId = assetNode.parentId
+  }
+
+  if (parts.length === 0) return ''
+
+  const pathStr = parts.map((p) => p.name).join('/')
+  let contextStr = `Path: ${pathStr}\n\n`
+  for (const part of parts) {
+    contextStr += `name: ${part.name}, id: ${part.id}\n`
+  }
+
+  return contextStr
+}
+
+export interface ExecuteAgentToolParams {
+  taskId: string
+  toolName: string
+  // args are dynamic JSON arguments passed from the agent harness at runtime
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  args: any
+  userId?: string
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function executeAgentToolActivity(params: ExecuteAgentToolParams): Promise<any> {
+  const { toolName, args, userId } = params
+  if (!userId) {
+    throw ApplicationFailure.create({
+      message: 'User ID is required for tool authz',
+      nonRetryable: true,
+    })
+  }
+
+  // 1. Fetch User
+  const user = await prisma.user.findUnique({ where: { id: userId } })
+  if (!user) {
+    throw ApplicationFailure.create({
+      message: `User not found: ${userId}`,
+      nonRetryable: true,
+    })
+  }
+
+  // 2. Perform Authz and Action based on toolName
+  switch (toolName) {
+    case 'list_assets': {
+      const parent = args.parent
+      if (!parent) {
+        throw ApplicationFailure.create({
+          message: 'parent parameter is required',
+          nonRetryable: true,
+        })
+      }
+
+      // Authz check
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Read,
+        type: ResourceType.Asset,
+        id: parent,
+      })
+
+      const page = args.page || 1
+      const pageSize = args.pageSize || 20
+      const type = args.type || 'all'
+
+      // We need to list files and folders of parent dir
+      const where: Prisma.AssetWhereInput = {
+        parentId: parent,
+        isDeleted: false,
+      }
+      if (type === 'file') {
+        where.type = { in: ['file', 'version_stack'] }
+      } else if (type === 'folder') {
+        where.type = 'folder'
+      } else {
+        where.type = { in: ['file', 'folder', 'version_stack'] }
+      }
+
+      const limit = pageSize
+      const offset = (page - 1) * limit
+      const after = offset > 0 ? encodeCursor(offset) : undefined
+
+      const { data: assets, pageInfo } = await paginateQuery<
+        Prisma.AssetGetPayload<Record<string, never>>
+      >(
+        async (skip, take) => {
+          return prisma.asset.findMany({
+            where,
+            orderBy: { id: 'desc' }, // sort desc per ULID default in sorting guidelines!
+            skip,
+            take,
+          })
+        },
+        async () => prisma.asset.count({ where }),
+        { first: limit, after, includeCount: true },
+      )
+
+      // return asset id, asset name, asset type, asset size (sizeByte or size)
+      const results = assets.map((a) => ({
+        id: a.id,
+        name: a.name,
+        type: a.type,
+        size: a.sizeByte,
+      }))
+
+      return {
+        assets: results,
+        pageInfo,
+      }
+    }
+
+    case 'create_folder': {
+      const parent = args.parent
+      const name = args.name
+      if (!parent || !name) {
+        throw ApplicationFailure.create({
+          message: 'parent and name parameters are required',
+          nonRetryable: true,
+        })
+      }
+
+      // Authz check
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Edit,
+        type: ResourceType.Asset,
+        id: parent,
+      })
+
+      const newFolder = await assetService.createAsset({
+        name,
+        parentId: parent,
+        type: 'folder',
+        creatorId: userId,
+      })
+
+      // Increment fileCount of parent folder
+      await prisma.asset.update({
+        where: { id: parent },
+        data: { fileCount: { increment: 1 } },
+      })
+
+      return {
+        id: newFolder.id,
+        name: newFolder.name,
+        type: newFolder.type,
+        size: newFolder.sizeByte,
+      }
+    }
+
+    case 'create_file': {
+      const parent = args.parent
+      const filePath = args.path
+      if (!parent || !filePath) {
+        throw ApplicationFailure.create({
+          message: 'parent and path parameters are required',
+          nonRetryable: true,
+        })
+      }
+
+      // Authz check
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Edit,
+        type: ResourceType.Asset,
+        id: parent,
+      })
+
+      if (!fs.existsSync(filePath)) {
+        throw ApplicationFailure.create({
+          message: `Local file not found at path: ${filePath}`,
+          nonRetryable: true,
+        })
+      }
+
+      const fileSize = fs.statSync(filePath).size
+      const mimeType = getMimeType(filePath)
+
+      // Upload file to S3
+      const key = await s3Service.uploadFile(filePath, mimeType)
+
+      // Create asset via assetService
+      const newFile = await assetService.createAsset({
+        name: path.basename(filePath),
+        type: 'file',
+        parentId: parent,
+        key,
+        sizeByte: fileSize,
+        contentType: mimeType,
+        creatorId: userId,
+      })
+
+      // Increment fileCount of parent and update ancestor size
+      await prisma.$transaction(async (tx) => {
+        await tx.asset.update({
+          where: { id: parent },
+          data: { fileCount: { increment: 1 } },
+        })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await assetService.updateAncestorsSize(tx as any, parent, fileSize)
+      })
+
+      return {
+        id: newFile.id,
+        name: newFile.name,
+        type: newFile.type,
+        size: newFile.sizeByte,
+      }
+    }
+
+    case 'create_version': {
+      const parent = args.parent // parent file id
+      const filePath = args.path
+      if (!parent || !filePath) {
+        throw ApplicationFailure.create({
+          message: 'parent and path parameters are required',
+          nonRetryable: true,
+        })
+      }
+
+      // Fetch parent file and cast to any due to Prisma type resolution limits
+      /* prettier-ignore */
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const parentFile = (await prisma.asset.findUnique({ where: { id: parent }, include: { parent: true } })) as any
+      if (!parentFile) {
+        throw ApplicationFailure.create({
+          message: `Parent file not found with ID: ${parent}`,
+          nonRetryable: true,
+        })
+      }
+
+      // Authz check: verify Edit permission on the parent file (resource ID is parent file id)
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Edit,
+        type: ResourceType.Asset,
+        id: parent,
+      })
+
+      if (!fs.existsSync(filePath)) {
+        throw ApplicationFailure.create({
+          message: `Local file not found at path: ${filePath}`,
+          nonRetryable: true,
+        })
+      }
+
+      const fileSize = fs.statSync(filePath).size
+      const mimeType = getMimeType(filePath)
+
+      // Upload file to S3
+      const key = await s3Service.uploadFile(filePath, mimeType)
+
+      // If already in a version stack
+      if (parentFile.parentId && parentFile.parent?.type === AssetType.version_stack) {
+        const stackId = parentFile.parentId
+
+        // Create the new file asset
+        const newFile = await assetService.createAsset({
+          name: path.basename(filePath),
+          type: 'file',
+          parentId: stackId,
+          key,
+          sizeByte: fileSize,
+          contentType: mimeType,
+          creatorId: userId,
+        })
+
+        // Generate sort index for new version inside the stack
+        const lastChild = await prisma.asset.findFirst({
+          where: { parentId: stackId },
+          orderBy: { sortIndex: 'desc' },
+        })
+        const newSortIndex = generateSortIndex(lastChild?.sortIndex)
+
+        await prisma.$transaction(async (tx) => {
+          // Assign sort index
+          await tx.asset.update({
+            where: { id: newFile.id },
+            data: { sortIndex: newSortIndex },
+          })
+          // Increment stack's fileCount and size
+          const updatedStack = await tx.asset.update({
+            where: { id: stackId },
+            data: {
+              fileCount: { increment: 1 },
+              sizeByte: { increment: fileSize },
+            },
+          })
+          // Update ancestors' size of stack's parent
+          if (updatedStack.parentId) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await assetService.updateAncestorsSize(tx as any, updatedStack.parentId, fileSize)
+          }
+        })
+
+        return {
+          id: newFile.id,
+          name: newFile.name,
+          type: newFile.type,
+          size: newFile.sizeByte,
+        }
+      } else {
+        // Parent is a regular file. We must create a new version stack.
+        const folderParentId = parentFile.parentId
+        if (!folderParentId) {
+          throw ApplicationFailure.create({
+            message: `Parent file ${parent} has no parent folder`,
+            nonRetryable: true,
+          })
+        }
+
+        // Create the new file asset under parent folder first (so that createVersionStack can run on them,
+        // which enforces both files must have same parent initially)
+        const newFile = await assetService.createAsset({
+          name: path.basename(filePath),
+          type: 'file',
+          parentId: folderParentId,
+          key,
+          sizeByte: fileSize,
+          contentType: mimeType,
+          creatorId: userId,
+        })
+
+        await prisma.$transaction(async (tx) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const txVersionStackService = new VersionStackService(tx as any)
+          await txVersionStackService.createVersionStack({
+            fileIds: [parentFile.id, newFile.id],
+            projectId: parentFile.projectId!,
+            creatorId: userId,
+          })
+          // Update ancestors' size (add size of the new file version)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await assetService.updateAncestorsSize(tx as any, folderParentId!, fileSize)
+        })
+
+        return {
+          id: newFile.id,
+          name: newFile.name,
+          type: newFile.type,
+          size: newFile.sizeByte,
+        }
+      }
+    }
+
+    default:
+      throw ApplicationFailure.create({
+        message: `Unsupported tool name: ${toolName}`,
+        nonRetryable: true,
+      })
+  }
 }

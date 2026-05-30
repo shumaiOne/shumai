@@ -9,6 +9,10 @@ import { DatabaseSessionStorage } from './database-session-storage'
 import { analyzeAssetMediaTool } from './tools/analyze-asset-media'
 import { createReadSkillTool } from './tools/read-skill'
 import { createSandboxedBashTool } from './tools/sandboxed-bash'
+import { createListAssetsTool } from './tools/list-assets'
+import { createCreateFolderTool } from './tools/create-folder'
+import { createCreateFileTool } from './tools/create-file'
+import { createCreateVersionTool } from './tools/create-version'
 
 export interface CreateAgentSessionParams {
   agentId: string
@@ -128,6 +132,16 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
   const sandboxedBash = createSandboxedBashTool(process.cwd(), skillEnvs)
   const readSkill = createReadSkillTool(onEnvsAdded)
 
+  const systemTools: AgentTool[] = []
+  if (userId) {
+    systemTools.push(
+      createListAssetsTool(userId),
+      createCreateFolderTool(userId),
+      createCreateFileTool(userId),
+      createCreateVersionTool(userId),
+    )
+  }
+
   const harness = new AgentHarness({
     env: new NodeExecutionEnv({ cwd: process.cwd() }),
     session,
@@ -157,7 +171,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
 
       return undefined
     },
-    tools: [analyzeAssetMediaTool, readSkill, sandboxedBash, ...customTools],
+    tools: [analyzeAssetMediaTool, readSkill, sandboxedBash, ...systemTools, ...customTools],
   })
 
   return { session, harness }

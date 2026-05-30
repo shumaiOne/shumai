@@ -20,6 +20,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     getAgentWorkerQueueActivity,
     deleteCommentActivity,
     initializeAgentSessionActivity,
+    getAssetPathContextActivity,
   } = getActivities()
 
   let placeholderCommentId: string | undefined
@@ -99,7 +100,16 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       }
     }
 
+    const pathContext = await executeActivity(
+      TaskQueueDb,
+      getAssetPathContextActivity,
+      task.assetId,
+    )
+
     let instruction = `The user is discussing an asset with ID: ${asset.id}.`
+    if (pathContext) {
+      instruction += `\n\nAsset Path Context:\n${pathContext}`
+    }
 
     if (asset.media) {
       instruction += `\n\nAsset Media Info:\n${JSON.stringify(asset.media, null, 2)}`
