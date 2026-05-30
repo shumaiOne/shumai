@@ -630,9 +630,15 @@ export async function updateWorkflowTaskActivity(params: UpdateWorkflowTaskParam
 
 function getMimeType(filePath: string): string {
   try {
-    const buffer = fs.readFileSync(filePath)
-    const detected = detectSupportedMimeType(new Uint8Array(buffer))
-    if (detected) return detected
+    const fd = fs.openSync(filePath, 'r')
+    try {
+      const buffer = Buffer.alloc(4100)
+      const bytesRead = fs.readSync(fd, buffer, 0, 4100, 0)
+      const detected = detectSupportedMimeType(new Uint8Array(buffer.subarray(0, bytesRead)))
+      if (detected) return detected
+    } finally {
+      fs.closeSync(fd)
+    }
   } catch {
     /* Ignore S3 detection errors and fallback to extension mapping */
   }
