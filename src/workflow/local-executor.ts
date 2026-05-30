@@ -15,9 +15,48 @@ import { logger } from '@/logger'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ;(globalThis as any).__localLogger = logger
 
+export class ConcurrencyLimiter {
+  private activeCount = 0
+  private queue: (() => void)[] = []
+
+  constructor(private readonly limit: number) {}
+
+  async run<T>(fn: () => Promise<T>): Promise<T> {
+    if (this.activeCount >= this.limit) {
+      await new Promise<void>((resolve) => this.queue.push(resolve))
+    } else {
+      this.activeCount++
+    }
+
+    try {
+      return await fn()
+    } finally {
+      const next = this.queue.shift()
+      if (next) {
+        next()
+      } else {
+        this.activeCount--
+      }
+    }
+  }
+
+  // Exposed for testing concurrency status
+  getActiveCount(): number {
+    return this.activeCount
+  }
+
+  getQueueLength(): number {
+    return this.queue.length
+  }
+}
+
 export class LocalExecutor implements Executor {
   private interval: Timer | null = null
   private processingTasks = new Set<string>()
+
+  // 1 concurrency for transcode, 5 for other workflows
+  private transcodeLimiter = new ConcurrencyLimiter(1)
+  private generalLimiter = new ConcurrencyLimiter(5)
 
   async submit(task: WorkflowTask): Promise<string> {
     if (task.status !== WorkflowTaskStatus.pending) {
@@ -27,12 +66,17 @@ export class LocalExecutor implements Executor {
       })
     }
 
-    // In tests, we trigger processing immediately
+    // In tests, we trigger processing immediately using the appropriate limiter
     if (process.env.NODE_ENV === 'test') {
       setTimeout(() => {
-        this.processTaskWrapper(task).catch((err) => {
-          console.error(`[LocalExecutor] Failed to process task ${task.id}:`, err)
-        })
+        const limiter =
+          task.type === WorkflowTaskType.transcode ? this.transcodeLimiter : this.generalLimiter
+
+        limiter
+          .run(() => this.processTaskWrapper(task))
+          .catch((err) => {
+            console.error(`[LocalExecutor] Failed to process task ${task.id}:`, err)
+          })
       }, 0)
     }
     return task.id
@@ -50,7 +94,9 @@ export class LocalExecutor implements Executor {
     }
   }
 
-  private async tick() {
+  // Returns the array of task promises so tests can await them to avoid early rollback.
+  async tick(): Promise<Promise<void>[]> {
+    const promises: Promise<void>[] = []
     try {
       const staleTime = new Date(Date.now() - 30 * 1000)
       const tasks = await prisma.workflowTask.findMany({
@@ -68,18 +114,53 @@ export class LocalExecutor implements Executor {
 
       for (const task of tasks) {
         if (this.processingTasks.has(task.id)) continue
-        this.processTaskWrapper(task).catch((err) => {
-          console.error(`[LocalExecutor] Failed to process task ${task.id}:`, err)
-        })
+
+        const limiter =
+          task.type === WorkflowTaskType.transcode ? this.transcodeLimiter : this.generalLimiter
+
+        const promise = limiter
+          .run(() => this.processTaskWrapper(task))
+          .catch((err) => {
+            console.error(`[LocalExecutor] Failed to process task ${task.id}:`, err)
+          })
+        promises.push(promise)
       }
     } catch (err) {
       console.error('Failed to fetch tasks:', err)
     }
+    return promises
   }
 
   private async processTaskWrapper(task: WorkflowTask) {
     if (this.processingTasks.has(task.id)) return
     this.processingTasks.add(task.id)
+
+    // 1. Immediately mark task as processing and set initial heartbeat in DB
+    try {
+      await prisma.workflowTask.update({
+        where: { id: task.id },
+        data: {
+          status: WorkflowTaskStatus.processing,
+          heartbeat: new Date(),
+        },
+      })
+    } catch (err) {
+      console.error(`[LocalExecutor] Failed to mark task ${task.id} as processing:`, err)
+      this.processingTasks.delete(task.id)
+      return
+    }
+
+    // 2. Start heartbeat updater every 5 seconds
+    const heartbeatInterval = setInterval(async () => {
+      try {
+        await prisma.workflowTask.update({
+          where: { id: task.id },
+          data: { heartbeat: new Date() },
+        })
+      } catch (err) {
+        console.error(`[LocalExecutor] Failed to update heartbeat for task ${task.id}:`, err)
+      }
+    }, 5000)
 
     try {
       switch (task.type) {
@@ -115,6 +196,8 @@ export class LocalExecutor implements Executor {
         console.error(`Failed to set task ${task.id} to failed:`, updateErr)
       }
     } finally {
+      // 3. Clean up the heartbeat updater and processing set
+      clearInterval(heartbeatInterval)
       this.processingTasks.delete(task.id)
     }
   }
