@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { prisma } from '@/db'
 import { setupTestDbHooks } from '@/db-test-hooks'
 import { workflowService } from './workflow'
-import { LocalExecutor } from './local-executor'
+import { LocalExecutor, ConcurrencyLimiter } from './local-executor'
 import { WorkflowTaskStatus, WorkflowTaskType } from '@/generated/prisma/client'
 
 // Mock the individual workflows
@@ -194,6 +194,79 @@ describe('LocalExecutor Integration Tests', () => {
       // Clean up remaining tasks
       activeResolvers.slice(2).forEach((resolve) => resolve(undefined))
       await new Promise((resolve) => setTimeout(resolve, 50))
+    })
+  })
+
+  describe('ConcurrencyLimiter Unit Tests', () => {
+    it('should not allow concurrency limit violation during microtask race conditions', async () => {
+      const limiter = new ConcurrencyLimiter(1)
+
+      // Task A starts and runs
+      let resolveA: () => void = () => {}
+      const promiseA = limiter.run(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveA = resolve
+          }),
+      )
+
+      // Task B enters and is queued
+      let resolveB: () => void = () => {}
+      const promiseB = limiter.run(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveB = resolve
+          }),
+      )
+
+      // Wait briefly for Task B to queue up
+      await new Promise((resolve) => setTimeout(resolve, 10))
+
+      expect(limiter.getActiveCount()).toBe(1)
+      expect(limiter.getQueueLength()).toBe(1)
+
+      // Complete Task A (schedules Task A's body to resume)
+      resolveA()
+
+      // Wait exactly one microtask tick to let Task A exit and trigger finally block (resolving Task B)
+      // This positions us in the microtask gap before Task B resumes execution
+      await Promise.resolve()
+
+      // Task C immediately enters the limiter synchronously
+      let resolveC: () => void = () => {}
+      const promiseC = limiter.run(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveC = resolve
+          }),
+      )
+
+      // Under the buggy implementation:
+      // - Task A's finally block decremented activeCount to 0.
+      // - Task C sees activeCount = 0 and runs immediately instead of queueing.
+      // - So queue length would be 0, and Task C is active.
+      //
+      // Under the fixed implementation:
+      // - Task A's finally block transferred the slot to Task B without decrementing activeCount.
+      // - So activeCount remains 1.
+      // - Task C sees activeCount = 1 and is correctly queued.
+      // - So queue length is 1, and Task C is NOT active.
+      expect(limiter.getActiveCount()).toBe(1)
+      expect(limiter.getQueueLength()).toBe(1)
+
+      // Clean up by resolving the rest in order
+      // 1. Let Task B resume and run
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      resolveB()
+
+      // 2. Let Task C resume and run
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      resolveC()
+
+      await Promise.all([promiseA, promiseB, promiseC])
+
+      expect(limiter.getActiveCount()).toBe(0)
+      expect(limiter.getQueueLength()).toBe(0)
     })
   })
 })

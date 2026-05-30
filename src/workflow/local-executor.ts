@@ -15,7 +15,7 @@ import { logger } from '@/logger'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ;(globalThis as any).__localLogger = logger
 
-class ConcurrencyLimiter {
+export class ConcurrencyLimiter {
   private activeCount = 0
   private queue: (() => void)[] = []
 
@@ -24,15 +24,18 @@ class ConcurrencyLimiter {
   async run<T>(fn: () => Promise<T>): Promise<T> {
     if (this.activeCount >= this.limit) {
       await new Promise<void>((resolve) => this.queue.push(resolve))
+    } else {
+      this.activeCount++
     }
-    this.activeCount++
+
     try {
       return await fn()
     } finally {
-      this.activeCount--
       const next = this.queue.shift()
       if (next) {
         next()
+      } else {
+        this.activeCount--
       }
     }
   }
