@@ -72,6 +72,56 @@ describe('LocalExecutor Integration Tests', () => {
       await new Promise((resolve) => setTimeout(resolve, 50))
     })
 
+    it('should immediately lock task and start heartbeat updates in database even when queued in limiter', async () => {
+      let resolveFirstTranscode: (value: unknown) => void = () => {}
+      const firstTranscodePromise = new Promise((resolve) => {
+        resolveFirstTranscode = resolve
+      })
+      mocks.transcodeMedia.mockImplementationOnce(() => firstTranscodePromise)
+      mocks.transcodeMedia.mockImplementationOnce(() => Promise.resolve())
+
+      // 1. Create task 1 (will run immediately and hold the transcode limiter slot)
+      const task1 = await prisma.workflowTask.create({
+        data: {
+          assetId: 'asset-1',
+          type: WorkflowTaskType.transcode,
+          status: WorkflowTaskStatus.pending,
+        },
+      })
+
+      // 2. Create task 2 (will be blocked and queued in memory by transcode limiter)
+      const task2 = await prisma.workflowTask.create({
+        data: {
+          assetId: 'asset-2',
+          type: WorkflowTaskType.transcode,
+          status: WorkflowTaskStatus.pending,
+        },
+      })
+
+      // Wait briefly for Prisma Client Extension's async submits to queue task2
+      await new Promise((resolve) => setTimeout(resolve, 50))
+
+      // 3. Verify task 1 is running
+      expect(mocks.transcodeMedia).toHaveBeenCalledWith(expect.objectContaining({ id: task1.id }))
+
+      // 4. Verify task 2 has NOT started executing yet
+      expect(mocks.transcodeMedia).not.toHaveBeenCalledWith(
+        expect.objectContaining({ id: task2.id }),
+      )
+
+      // 5. BUT verify task 2 is already locked in database and has heartbeat set!
+      const dbTask2 = await prisma.workflowTask.findUnique({
+        where: { id: task2.id },
+      })
+
+      expect(dbTask2?.status).toBe(WorkflowTaskStatus.processing)
+      expect(dbTask2?.heartbeat).toBeInstanceOf(Date)
+
+      // Clean up
+      resolveFirstTranscode(undefined)
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    })
+
     it('should query and retry stale tasks in tick() but ignore non-stale processing tasks', async () => {
       mocks.agentChat.mockResolvedValue(undefined)
 
