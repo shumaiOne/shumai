@@ -376,10 +376,21 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     resolution: 'Original',
   } as DisplayTranscode
 
-  const resolutions: DisplayTranscode[] = (data.media.videoTranscodes ?? []).map((t) => ({
-    ...t,
-    resolution: t.isRaw ? 'Original' : `${t.height}p`,
-  }))
+  const resolutions: DisplayTranscode[] = (data.media.videoTranscodes ?? []).map((t) => {
+    const longSide = Math.max(t.width, t.height)
+    let resolution = `${t.height}p`
+    if (longSide >= 3840) resolution = '2160p'
+    else if (longSide >= 1920) resolution = '1080p'
+    else if (longSide >= 1280) resolution = '720p'
+    else if (longSide >= 960) resolution = '540p'
+    else if (longSide >= 640) resolution = '360p'
+    else if (longSide >= 320) resolution = '180p'
+
+    return {
+      ...t,
+      resolution: t.isRaw ? 'Original' : resolution,
+    }
+  })
 
   const previewResolutions = resolutions.filter((r) => !r.isRaw)
 

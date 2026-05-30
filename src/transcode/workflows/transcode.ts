@@ -265,9 +265,12 @@ const TARGET_RESOLUTIONS = [
   { name: '360p', longSide: 640 },
 ]
 
-function getBestMatchResolution(originalWidth: number, originalHeight: number): { name: string; longSide: number } {
+function getBestMatchResolution(
+  originalWidth: number,
+  originalHeight: number,
+): { name: string; longSide: number } {
   const rawLongSide = Math.max(originalWidth, originalHeight)
-  const lower = TARGET_RESOLUTIONS.filter((r) => r.longSide < rawLongSide)
+  const lower = TARGET_RESOLUTIONS.filter((r) => r.longSide <= rawLongSide)
   if (lower.length > 0) {
     lower.sort((a, b) => b.longSide - a.longSide)
     return lower[0]
