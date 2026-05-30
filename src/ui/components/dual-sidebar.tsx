@@ -144,11 +144,11 @@ export const DualSidebar: React.FC<DualSidebarProps> = ({ children }) => {
         <div
           className={`transition-all duration-300 ease-in-out bg-white dark:bg-slate-900/95 backdrop-blur-sm shadow-lg overflow-hidden ${
             activeItem !== null
-              ? 'w-[calc(100vw-4rem)] md:w-80 border-r border-slate-200 dark:border-slate-800'
+              ? 'w-[calc(100vw-4rem)] md:w-100 border-r border-slate-200 dark:border-slate-800'
               : 'w-0'
           }`}
         >
-          <div className="w-[calc(100vw-4rem)] md:w-80 h-full flex flex-col">
+          <div className="w-[calc(100vw-4rem)] md:w-100 h-full flex flex-col">
             {activeItemContent && (
               <>
                 <header className="h-16 flex items-center px-4 font-bold text-lg border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
