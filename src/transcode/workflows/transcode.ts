@@ -79,6 +79,7 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
     if (mimeType.startsWith('video/') && metadata) {
       const videoResolutions = getTargetVideoResolutions(
         spec.videoStrategy || 'best_match',
+        metadata.originalWidth,
         metadata.originalHeight,
       )
       for (const res of videoResolutions) {
@@ -219,44 +220,37 @@ function isMimePsd(mimeType: string): boolean {
   return false
 }
 
+const RESOLUTION_LONG_SIDES: Record<string, number> = {
+  '2160p': 3840,
+  '1080p': 1920,
+  '720p': 1280,
+  '540p': 960,
+  '360p': 640,
+  '180p': 320,
+}
+
 function resolutionToDimensions(
   resolution: string,
   originalWidth: number,
   originalHeight: number,
 ): [number, number] {
-  const aspectRatio = originalWidth / originalHeight
-  let height = 0
-  switch (resolution) {
-    case '2160p':
-      height = 2160
-      break
-    case '1440p':
-      height = 1440
-      break
-    case '1080p':
-      height = 1080
-      break
-    case '720p':
-      height = 720
-      break
-    case '540p':
-      height = 540
-      break
-    case '480p':
-      height = 480
-      break
-    case '360p':
-      height = 360
-      break
-    case '180p':
-      height = 180
-      break
-    default:
-      return [0, 0]
-  }
-  let width = Math.round(height * aspectRatio)
+  const targetLongSide = RESOLUTION_LONG_SIDES[resolution]
+  if (!targetLongSide) return [0, 0]
 
-  // Ensure even dimensions
+  let width = 0
+  let height = 0
+
+  if (originalWidth >= originalHeight) {
+    // Landscape or square: width is the long side
+    width = targetLongSide
+    height = Math.round(width * (originalHeight / originalWidth))
+  } else {
+    // Portrait: height is the long side
+    height = targetLongSide
+    width = Math.round(height * (originalWidth / originalHeight))
+  }
+
+  // Ensure even dimensions for H.264
   if (width % 2 !== 0) width++
   if (height % 2 !== 0) height++
 
@@ -264,24 +258,26 @@ function resolutionToDimensions(
 }
 
 const TARGET_RESOLUTIONS = [
-  { name: '2160p', height: 2160 },
-  { name: '1080p', height: 1080 },
-  { name: '720p', height: 720 },
-  { name: '540p', height: 540 },
-  { name: '360p', height: 360 },
+  { name: '2160p', longSide: 3840 },
+  { name: '1080p', longSide: 1920 },
+  { name: '720p', longSide: 1280 },
+  { name: '540p', longSide: 960 },
+  { name: '360p', longSide: 640 },
 ]
 
-function getBestMatchResolution(originalHeight: number): { name: string; height: number } {
-  const lower = TARGET_RESOLUTIONS.filter((r) => r.height < originalHeight)
+function getBestMatchResolution(originalWidth: number, originalHeight: number): { name: string; longSide: number } {
+  const rawLongSide = Math.max(originalWidth, originalHeight)
+  const lower = TARGET_RESOLUTIONS.filter((r) => r.longSide < rawLongSide)
   if (lower.length > 0) {
-    lower.sort((a, b) => b.height - a.height)
+    lower.sort((a, b) => b.longSide - a.longSide)
     return lower[0]
   }
-  return TARGET_RESOLUTIONS[TARGET_RESOLUTIONS.length - 1] // 360p
+  return TARGET_RESOLUTIONS[TARGET_RESOLUTIONS.length - 1] // 360p (longSide 640)
 }
 
 function getTargetVideoResolutions(
   strategy: PrismaJson.VideoTranscodeStrategy,
+  originalWidth: number,
   originalHeight: number,
 ): string[] {
   const resolutions = ['180p']
@@ -295,7 +291,7 @@ function getTargetVideoResolutions(
     normalizedStrategy = 'all'
   }
 
-  const bestMatch = getBestMatchResolution(originalHeight)
+  const bestMatch = getBestMatchResolution(originalWidth, originalHeight)
 
   if (normalizedStrategy === 'best_match') {
     resolutions.push(bestMatch.name)
