@@ -72,6 +72,87 @@ describe('LocalExecutor Integration Tests', () => {
       await new Promise((resolve) => setTimeout(resolve, 50))
     })
 
+    it('should immediately lock task and start heartbeat updates in database even when queued in limiter', async () => {
+      let resolveFirstTranscode: (value: unknown) => void = () => {}
+      const firstTranscodePromise = new Promise((resolve) => {
+        resolveFirstTranscode = resolve
+      })
+      mocks.transcodeMedia.mockImplementationOnce(() => firstTranscodePromise)
+      mocks.transcodeMedia.mockImplementationOnce(() => Promise.resolve())
+
+      // 1. Create task 1 (will run immediately and hold the transcode limiter slot)
+      const task1 = await prisma.workflowTask.create({
+        data: {
+          assetId: 'asset-1',
+          type: WorkflowTaskType.transcode,
+          status: WorkflowTaskStatus.pending,
+        },
+      })
+
+      // 2. Create task 2 (will be blocked and queued in memory by transcode limiter)
+      const task2 = await prisma.workflowTask.create({
+        data: {
+          assetId: 'asset-2',
+          type: WorkflowTaskType.transcode,
+          status: WorkflowTaskStatus.pending,
+        },
+      })
+
+      // Wait briefly for Prisma Client Extension's async submits to queue task2
+      await new Promise((resolve) => setTimeout(resolve, 50))
+
+      // 3. Verify task 1 is running
+      expect(mocks.transcodeMedia).toHaveBeenCalledWith(expect.objectContaining({ id: task1.id }))
+
+      // 4. Verify task 2 has NOT started executing yet
+      expect(mocks.transcodeMedia).not.toHaveBeenCalledWith(
+        expect.objectContaining({ id: task2.id }),
+      )
+
+      // 5. BUT verify task 2 is already locked in database and has heartbeat set!
+      const dbTask2 = await prisma.workflowTask.findUnique({
+        where: { id: task2.id },
+      })
+
+      expect(dbTask2?.status).toBe(WorkflowTaskStatus.processing)
+      expect(dbTask2?.heartbeat).toBeInstanceOf(Date)
+
+      // Clean up
+      resolveFirstTranscode(undefined)
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    })
+
+    it('should atomically claim tasks using CAS updateMany to prevent double-execution when tick() runs concurrently', async () => {
+      mocks.agentChat.mockResolvedValue(undefined)
+
+      // Mock submit to prevent automatic execution by the Prisma Client Extension
+      const submitSpy = vi.spyOn(workflowService, 'submit').mockResolvedValue('dummy-id')
+
+      // Create a single pending task (will NOT be run automatically because submit is mocked)
+      const task = await prisma.workflowTask.create({
+        data: {
+          assetId: 'asset-concurrent-test',
+          type: WorkflowTaskType.chat,
+          status: WorkflowTaskStatus.pending,
+        },
+      })
+
+      // We trigger two ticks concurrently to simulate overlapping polling cycles or multi-replica triggers.
+      // Both ticks will query the database at approximately the same time.
+      const tick1 = executor.tick()
+      const tick2 = executor.tick()
+
+      const [promises1, promises2] = await Promise.all([tick1, tick2])
+      await Promise.all([...promises1, ...promises2])
+
+      // Verify that the mock workflow is called EXACTLY ONCE for this task ID,
+      // proving that one tick successfully claimed the task and the other was atomically blocked.
+      expect(mocks.agentChat).toHaveBeenCalledTimes(1)
+      expect(mocks.agentChat).toHaveBeenCalledWith(expect.objectContaining({ id: task.id }))
+
+      submitSpy.mockRestore()
+    })
+
     it('should query and retry stale tasks in tick() but ignore non-stale processing tasks', async () => {
       mocks.agentChat.mockResolvedValue(undefined)
 

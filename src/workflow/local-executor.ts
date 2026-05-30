@@ -68,12 +68,61 @@ export class LocalExecutor implements Executor {
 
     // In tests, we trigger processing immediately using the appropriate limiter
     if (process.env.NODE_ENV === 'test') {
-      setTimeout(() => {
+      setTimeout(async () => {
+        if (this.processingTasks.has(task.id)) return
+        this.processingTasks.add(task.id)
+
+        // 1. Immediately mark task as processing and set initial heartbeat in DB
+        // atomically, only if the task is still pending.
+        try {
+          const affected = await prisma.workflowTask.updateMany({
+            where: {
+              id: task.id,
+              status: WorkflowTaskStatus.pending,
+            },
+            data: {
+              status: WorkflowTaskStatus.processing,
+              heartbeat: new Date(),
+            },
+          })
+          if (affected.count === 0) {
+            this.processingTasks.delete(task.id)
+            return
+          }
+        } catch (err) {
+          console.error(
+            `[LocalExecutor] Failed to mark task ${task.id} as processing in submit:`,
+            err,
+          )
+          this.processingTasks.delete(task.id)
+          return
+        }
+
+        // 2. Start heartbeat updater immediately
+        const heartbeatInterval = setInterval(async () => {
+          try {
+            await prisma.workflowTask.update({
+              where: { id: task.id },
+              data: { heartbeat: new Date() },
+            })
+          } catch (err) {
+            console.error(`[LocalExecutor] Failed to update heartbeat for task ${task.id}:`, err)
+          }
+        }, 5000)
+
         const limiter =
           task.type === WorkflowTaskType.transcode ? this.transcodeLimiter : this.generalLimiter
 
         limiter
-          .run(() => this.processTaskWrapper(task))
+          .run(async () => {
+            try {
+              await this.processTaskWrapper(task)
+            } finally {
+              // 3. Clean up the heartbeat updater and processing set when the task finishes
+              clearInterval(heartbeatInterval)
+              this.processingTasks.delete(task.id)
+            }
+          })
           .catch((err) => {
             console.error(`[LocalExecutor] Failed to process task ${task.id}:`, err)
           })
@@ -114,12 +163,64 @@ export class LocalExecutor implements Executor {
 
       for (const task of tasks) {
         if (this.processingTasks.has(task.id)) continue
+        this.processingTasks.add(task.id)
+
+        // 1. Immediately mark task as processing and set initial heartbeat in DB
+        // to guarantee no other ticks/replicas can double-query it.
+        // We use updateMany to atomically claim it only if it is still pending or stale.
+        try {
+          const affected = await prisma.workflowTask.updateMany({
+            where: {
+              id: task.id,
+              OR: [
+                { status: WorkflowTaskStatus.pending },
+                {
+                  status: WorkflowTaskStatus.processing,
+                  heartbeat: { lt: staleTime },
+                },
+              ],
+            },
+            data: {
+              status: WorkflowTaskStatus.processing,
+              heartbeat: new Date(),
+            },
+          })
+          if (affected.count === 0) {
+            this.processingTasks.delete(task.id)
+            continue
+          }
+        } catch (err) {
+          console.error(`[LocalExecutor] Failed to mark task ${task.id} as processing:`, err)
+          this.processingTasks.delete(task.id)
+          continue
+        }
+
+        // 2. Start heartbeat updater immediately so it updates heartbeat
+        // even while the task is queued waiting for limiter capacity.
+        const heartbeatInterval = setInterval(async () => {
+          try {
+            await prisma.workflowTask.update({
+              where: { id: task.id },
+              data: { heartbeat: new Date() },
+            })
+          } catch (err) {
+            console.error(`[LocalExecutor] Failed to update heartbeat for task ${task.id}:`, err)
+          }
+        }, 5000)
 
         const limiter =
           task.type === WorkflowTaskType.transcode ? this.transcodeLimiter : this.generalLimiter
 
         const promise = limiter
-          .run(() => this.processTaskWrapper(task))
+          .run(async () => {
+            try {
+              await this.processTaskWrapper(task)
+            } finally {
+              // 3. Clean up the heartbeat updater and processing set when the task finishes
+              clearInterval(heartbeatInterval)
+              this.processingTasks.delete(task.id)
+            }
+          })
           .catch((err) => {
             console.error(`[LocalExecutor] Failed to process task ${task.id}:`, err)
           })
@@ -132,36 +233,6 @@ export class LocalExecutor implements Executor {
   }
 
   private async processTaskWrapper(task: WorkflowTask) {
-    if (this.processingTasks.has(task.id)) return
-    this.processingTasks.add(task.id)
-
-    // 1. Immediately mark task as processing and set initial heartbeat in DB
-    try {
-      await prisma.workflowTask.update({
-        where: { id: task.id },
-        data: {
-          status: WorkflowTaskStatus.processing,
-          heartbeat: new Date(),
-        },
-      })
-    } catch (err) {
-      console.error(`[LocalExecutor] Failed to mark task ${task.id} as processing:`, err)
-      this.processingTasks.delete(task.id)
-      return
-    }
-
-    // 2. Start heartbeat updater every 5 seconds
-    const heartbeatInterval = setInterval(async () => {
-      try {
-        await prisma.workflowTask.update({
-          where: { id: task.id },
-          data: { heartbeat: new Date() },
-        })
-      } catch (err) {
-        console.error(`[LocalExecutor] Failed to update heartbeat for task ${task.id}:`, err)
-      }
-    }, 5000)
-
     try {
       switch (task.type) {
         case WorkflowTaskType.ai_embedding:
@@ -195,10 +266,6 @@ export class LocalExecutor implements Executor {
       } catch (updateErr) {
         console.error(`Failed to set task ${task.id} to failed:`, updateErr)
       }
-    } finally {
-      // 3. Clean up the heartbeat updater and processing set
-      clearInterval(heartbeatInterval)
-      this.processingTasks.delete(task.id)
     }
   }
 }
