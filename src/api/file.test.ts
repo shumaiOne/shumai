@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { Hono, type Context, type Next } from 'hono'
+import { prisma } from '@/db'
 import fileRoute from './file'
 import { assetService } from '@/services/asset/asset'
 import { metadataService } from '@/services/metadata/metadata'
@@ -200,6 +201,60 @@ describe('file api', () => {
       assetId: 'test-id',
       commentMessage: 'hello',
     })
+  })
+
+  it('POST /files/:fileId/comments - reply_created targets parent comment creator', async () => {
+    vi.mocked(assetService.createComment).mockResolvedValue({
+      id: 'comment-id',
+      assetId: 'file-id',
+      message: 'hello reply',
+      annotations: null,
+      second: null,
+      creator: { id: 'user-id', name: 'Test User' },
+      replies: [],
+      attachments: [],
+      mentions: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      sessionId: null,
+    })
+
+    // Mock assetService.getAsset to return teamId for notification
+    vi.mocked(assetService.getAsset).mockResolvedValue({
+      id: 'test-id',
+      project: { teamId: 'test-team' },
+    } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+
+    const mockFindUnique = vi.spyOn(prisma.assetComment, 'findUnique').mockResolvedValue({
+      id: 'parent-comment-id',
+      creatorId: 'parent-comment-creator-id',
+    } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+
+    const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+    const res = await app.request('/files/test-id/comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: 'hello reply',
+        replyToId: 'parent-comment-id',
+        attachmentIds: [],
+      }),
+    })
+
+    expect(res.status).toBe(201)
+    const json = await res.json()
+    expect(json.message).toBe('hello reply')
+
+    expect(notificationService.create).toHaveBeenCalledWith({
+      type: 'reply_created',
+      teamId: 'test-team',
+      creatorId: 'user1',
+      assetId: 'test-id',
+      userId: 'parent-comment-creator-id',
+      commentMessage: 'hello reply',
+    })
+
+    mockFindUnique.mockRestore()
   })
 
   it('GET /files/:fileId/comments', async () => {

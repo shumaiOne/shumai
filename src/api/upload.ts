@@ -92,8 +92,8 @@ const route = new Hono<{ Variables: { user: User } }>()
       await authzService.hasPermission({
         user,
         permission: Permission.Edit,
-        type: ResourceType.Team,
-        id: teamId,
+        type: ResourceType.Asset,
+        id: req.fileId,
       })
 
       await uploadService.confirmFileUpload(user.id, taskId, req)

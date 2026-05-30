@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
+import { prisma } from '@/db'
 import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 import { assetService } from '@/services/asset/asset'
 import { metadataService } from '@/services/metadata/metadata'
@@ -156,11 +157,22 @@ const route = new Hono<{ Variables: { user: User } }>()
       const context = await assetService.getAssetContext(fileId)
 
       if (context?.teamId) {
+        let targetUserId: string | undefined
+        if (req.replyToId) {
+          const parentComment = await prisma.assetComment.findUnique({
+            where: { id: req.replyToId },
+          })
+          if (parentComment?.creatorId) {
+            targetUserId = parentComment.creatorId
+          }
+        }
+
         notificationService.create({
           type: notifType,
           teamId: context.teamId,
           creatorId: user.id,
           assetId: fileId,
+          userId: targetUserId,
           commentMessage: req.message,
         })
       }

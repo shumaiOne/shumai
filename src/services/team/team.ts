@@ -2,6 +2,7 @@ import { prisma } from '@/db'
 import { Prisma } from '@/generated/prisma/client'
 import { PaginatedData, paginateQuery } from '@/services/pagination'
 import { ProviderService, providerService } from '@/services/provider/provider'
+import { notificationService } from '@/services/notification/notification'
 import {
   ServiceCreateTeamRequest,
   ServiceGetUserTeamsRequest,
@@ -138,11 +139,17 @@ export class TeamService {
 
     if (!member) throw new Error('user is not a team member')
 
+    const unreadNotificationCount = await notificationService.getUnreadCount(
+      req.teamId,
+      req.user.id,
+    )
+
     return {
       id: req.user.id,
       name: req.user.name,
       email: undefined,
       role: member.role,
+      unreadNotificationCount,
     }
   }
 

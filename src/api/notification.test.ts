@@ -3,6 +3,7 @@ import { Hono, type Context, type Next } from 'hono'
 import notificationRoute from './notification'
 import { notificationService } from '@/services/notification/notification'
 import { authzService, Permission, ResourceType } from '@/services/authz/authz'
+import { userMetadataService } from '@/services/user-metadata/user-metadata'
 
 vi.mock('@/api/middleware/auth', () => ({
   authMiddleware: async (
@@ -16,6 +17,7 @@ vi.mock('@/api/middleware/auth', () => ({
 
 vi.mock('@/services/authz/authz')
 vi.mock('@/services/notification/notification')
+vi.mock('@/services/user-metadata/user-metadata')
 
 describe('notification api', () => {
   const app = new Hono<{ Variables: { user: { id: string; name: string } } }>()
@@ -76,5 +78,79 @@ describe('notification api', () => {
       type: ResourceType.Team,
       id: 't1',
     })
+  })
+
+  it('GET /teams/:teamId/notifications/settings - returns default settings', async () => {
+    vi.mocked(userMetadataService.getMetadata).mockResolvedValue(null)
+
+    const res = await app.request('/teams/t1/notifications/settings')
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.comments).toBe(true)
+    expect(json.yourUploads).toBe(false)
+
+    expect(userMetadataService.getMetadata).toHaveBeenCalledWith(
+      'user1',
+      't1',
+      'notification_settings',
+    )
+  })
+
+  it('GET /teams/:teamId/notifications/settings - returns saved settings', async () => {
+    vi.mocked(userMetadataService.getMetadata).mockResolvedValue({
+      key: 'notification_settings',
+      value: {
+        comments: false,
+        replies: false,
+        mentions: true,
+        yourUploads: true,
+        otherUploads: false,
+        statusUpdates: true,
+      },
+    })
+
+    const res = await app.request('/teams/t1/notifications/settings')
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.comments).toBe(false)
+    expect(json.yourUploads).toBe(true)
+  })
+
+  it('POST /teams/:teamId/notifications/settings - saves settings', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(userMetadataService.upsertMetadata).mockResolvedValue(undefined as any)
+
+    const res = await app.request('/teams/t1/notifications/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        comments: false,
+        replies: false,
+        mentions: true,
+        yourUploads: true,
+        otherUploads: false,
+        statusUpdates: true,
+      }),
+    })
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.success).toBe(true)
+
+    expect(userMetadataService.upsertMetadata).toHaveBeenCalledWith(
+      'user1',
+      't1',
+      'notification_settings',
+      {
+        comments: false,
+        replies: false,
+        mentions: true,
+        yourUploads: true,
+        otherUploads: false,
+        statusUpdates: true,
+      },
+    )
   })
 })

@@ -13,6 +13,8 @@ import {
   useNavigate,
   useRouterState,
 } from '@tanstack/react-router'
+import { useQuery } from '@tanstack/react-query'
+import { client } from '@/ui/api/client'
 import { useEffect } from 'react'
 
 function RootComponent() {
@@ -45,6 +47,28 @@ function RootComponent() {
     }
   }, [teamId, projectId, setTeamId, ensureTeamIdForProject])
 
+  const { data: me } = useQuery({
+    queryKey: ['teams', storedTeamId, 'me'],
+    queryFn: async () => {
+      if (!storedTeamId) return null
+      const res = await client.api.teams[':teamId'].me.$get({
+        param: { teamId: storedTeamId },
+      })
+      if (!res.ok) throw new Error('Failed to fetch me')
+      return await res.json()
+    },
+    enabled: !!storedTeamId,
+  })
+
+  const unreadCount = me?.unreadNotificationCount ?? 0
+  const displayCount = unreadCount > 99 ? '99+' : unreadCount
+  const badge =
+    unreadCount > 0 ? (
+      <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-slate-100 dark:border-slate-900 animate-pulse">
+        {displayCount}
+      </div>
+    ) : null
+
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden">
       <Toaster />
@@ -61,7 +85,7 @@ function RootComponent() {
             }
           }}
         />
-        <DualSidebarItem icon={<NotificationFillIcon />} label="Notifications">
+        <DualSidebarItem icon={<NotificationFillIcon />} label="Notifications" badge={badge}>
           <NotificationList />
         </DualSidebarItem>
         <DualSidebarItem

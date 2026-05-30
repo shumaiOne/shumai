@@ -5,10 +5,12 @@ import {
   NotificationInfo,
   CreateNotificationRequest,
   ListNotificationParams,
+  NotificationSettings,
 } from '@/dtos/notification'
 import { paginateQuery, PaginatedData } from '@/services/pagination'
 import '@/prisma-json-types'
 import { s3Service } from '@/services/s3/s3'
+import { userMetadataService } from '@/services/user-metadata/user-metadata'
 
 const mentionRegex = /<@([^>]+)>/g
 
@@ -95,6 +97,142 @@ export class NotificationService {
     }
   }
 
+  private async getListWhere(
+    teamId: string,
+    userId: string,
+    teamMember: Prisma.TeamMemberGetPayload<{ include: { lastReadNotification: true } }>,
+    unreadOnly: boolean,
+  ): Promise<Prisma.NotificationWhereInput> {
+    // Permission Filtering based on Scope
+    let projectFilter: string[] = []
+    if (teamMember.scope === 'project') {
+      const pms = await prisma.projectMember.findMany({
+        where: { teamMemberId: teamMember.id },
+        include: { project: true },
+      })
+      projectFilter = pms.filter((pm) => pm.project).map((pm) => pm.projectId)
+    }
+
+    // Load notification settings
+    const settingsMeta = await userMetadataService.getMetadata(
+      userId,
+      teamId,
+      'notification_settings',
+    )
+    const settings: NotificationSettings = settingsMeta
+      ? (settingsMeta.value as NotificationSettings)
+      : {
+          comments: true,
+          replies: true,
+          mentions: true,
+          yourUploads: false,
+          otherUploads: true,
+          statusUpdates: true,
+        }
+
+    const typeConditions: Prisma.NotificationWhereInput[] = []
+
+    // 1. Comments
+    if (settings.comments) {
+      typeConditions.push({ type: NotificationType.comment_created, userId: null })
+    }
+
+    // 2. Replies
+    if (settings.replies) {
+      typeConditions.push({ type: NotificationType.reply_created, userId: userId })
+      typeConditions.push({ type: NotificationType.reply_created, userId: null })
+    }
+
+    // 3. Mentions
+    if (settings.mentions) {
+      typeConditions.push({ type: NotificationType.mention, userId: userId })
+    }
+
+    // 4. Uploads
+    if (settings.yourUploads && settings.otherUploads) {
+      typeConditions.push({ type: NotificationType.successful_file_uploaded })
+    } else if (settings.yourUploads) {
+      typeConditions.push({ type: NotificationType.successful_file_uploaded, creatorId: userId })
+    } else if (settings.otherUploads) {
+      typeConditions.push({
+        type: NotificationType.successful_file_uploaded,
+        creatorId: { not: userId },
+      })
+    }
+
+    // 5. Status Updates
+    if (settings.statusUpdates) {
+      typeConditions.push({ type: NotificationType.metadata_field_updated_status })
+    }
+
+    // 6. Always include team/project join notifications
+    typeConditions.push({ type: NotificationType.new_user_join_team })
+    typeConditions.push({ type: NotificationType.new_user_join_project })
+
+    const where: Prisma.NotificationWhereInput = {
+      teamId,
+      OR: typeConditions,
+      AND: [
+        {
+          OR: [
+            ...(settings.yourUploads
+              ? [{ type: NotificationType.successful_file_uploaded, creatorId: userId }]
+              : []),
+            { creatorId: null },
+            { creatorId: { not: userId } },
+          ],
+        },
+      ],
+    }
+
+    if (teamMember.scope === 'project') {
+      // Must be AND applied after the general rules
+      const currentAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []
+      where.AND = [
+        ...currentAnd,
+        {
+          OR: [
+            { type: NotificationType.mention }, // Always allow mentions (targeted)
+            { projectId: { in: projectFilter } }, // Only show notifications for projects user is member of
+          ],
+        },
+      ] as Prisma.NotificationWhereInput[]
+    }
+
+    if (unreadOnly && teamMember.lastReadNotification) {
+      // We want notifications NEWER than the last read one.
+      // String comparison works for ULID/KSUID.
+      const currentAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []
+      where.AND = [
+        ...currentAnd,
+        { id: { gt: teamMember.lastReadNotification.id } },
+      ] as Prisma.NotificationWhereInput[]
+    }
+
+    return where
+  }
+
+  async getUnreadCount(teamId: string, userId: string): Promise<number> {
+    const teamMember = await prisma.teamMember.findUnique({
+      where: {
+        teamIdUserId: {
+          teamId,
+          userId,
+        },
+      },
+      include: {
+        lastReadNotification: true,
+      },
+    })
+
+    if (!teamMember) {
+      return 0
+    }
+
+    const where = await this.getListWhere(teamId, userId, teamMember, true)
+    return prisma.notification.count({ where })
+  }
+
   async list(
     teamId: string,
     userId: string,
@@ -117,48 +255,7 @@ export class NotificationService {
       throw new Error('failed to get team member')
     }
 
-    // Permission Filtering based on Scope
-    let projectFilter: string[] = []
-    if (teamMember.scope === 'project') {
-      const pms = await prisma.projectMember.findMany({
-        where: { teamMemberId: teamMember.id },
-        include: { project: true },
-      })
-      projectFilter = pms.filter((pm) => pm.project).map((pm) => pm.projectId)
-    }
-
-    const where: Prisma.NotificationWhereInput = {
-      teamId,
-      OR: [
-        { type: { not: NotificationType.mention } },
-        { type: NotificationType.mention, userId: userId },
-      ],
-      AND: [{ OR: [{ creatorId: null }, { creatorId: { not: userId } }] }],
-    }
-
-    if (teamMember.scope === 'project') {
-      // Must be AND applied after the general rules
-      const currentAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []
-      where.AND = [
-        ...currentAnd,
-        {
-          OR: [
-            { type: NotificationType.mention }, // Always allow mentions (targeted)
-            { projectId: { in: projectFilter } }, // Only show notifications for projects user is member of
-          ],
-        },
-      ] as Prisma.NotificationWhereInput[]
-    }
-
-    if (params.unreadOnly && teamMember.lastReadNotification) {
-      // We want notifications NEWER than the last read one.
-      // String comparison works for ULID/KSUID.
-      const currentAnd = Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []
-      where.AND = [
-        ...currentAnd,
-        { id: { gt: teamMember.lastReadNotification.id } },
-      ] as Prisma.NotificationWhereInput[]
-    }
+    const where = await this.getListWhere(teamId, userId, teamMember, !!params.unreadOnly)
 
     return paginateQuery<NotificationInfo>(
       async (skip, take) => {

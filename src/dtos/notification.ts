@@ -73,3 +73,14 @@ export interface ListNotificationParams {
   after?: string
   pageSize?: number
 }
+
+export const notificationSettingsSchema = z.object({
+  comments: z.boolean().default(true),
+  replies: z.boolean().default(true),
+  mentions: z.boolean().default(true),
+  yourUploads: z.boolean().default(false),
+  otherUploads: z.boolean().default(true),
+  statusUpdates: z.boolean().default(true),
+})
+
+export type NotificationSettings = z.infer<typeof notificationSettingsSchema>

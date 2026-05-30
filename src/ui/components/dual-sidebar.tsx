@@ -7,6 +7,7 @@ import { UserMenu } from './user-menu'
 interface DualSidebarItemProps {
   icon: React.ReactNode
   label: string
+  badge?: React.ReactNode
   children?: React.ReactNode
   onItemClick?: () => void
 }
@@ -113,13 +114,14 @@ export const DualSidebar: React.FC<DualSidebarProps> = ({ children }) => {
                       onClick={() => handleItemClick(index)}
                       aria-label={item.props.label}
                       aria-expanded={activeItem === index}
-                      className={`w-12 h-12 [&_svg:not([class*='size-'])]:size-6 transition-all duration-200 ${
+                      className={`relative w-12 h-12 [&_svg:not([class*='size-'])]:size-6 transition-all duration-200 ${
                         activeItem === index
                           ? 'bg-blue-600 text-white shadow-lg hover:bg-blue-600 hover:text-white'
                           : 'text-slate-400 hover:text-slate-500 dark:hover:text-slate-400 dark:text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800'
                       }`}
                     >
                       {item.props.icon}
+                      {item.props.badge}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent

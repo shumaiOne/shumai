@@ -110,8 +110,8 @@ describe('Upload API', () => {
     expect(res.status).toBe(200)
     expect(authzService.hasPermission).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: ResourceType.Team,
-        id: 'team1',
+        type: ResourceType.Asset,
+        id: 'file1',
         permission: Permission.Edit,
       }),
     )

@@ -4,7 +4,7 @@ import { paginationPageInfoSchema, paginationParamsSchema } from './pagination'
 export const createProjectRequestSchema = z.object({
   name: z.string(),
   coverImageKey: z.string().optional(),
-  enableNotification: z.boolean().default(false),
+  enableNotification: z.boolean().default(true),
 })
 export type CreateProjectRequest = z.infer<typeof createProjectRequestSchema>
 
