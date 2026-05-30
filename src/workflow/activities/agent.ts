@@ -1,5 +1,6 @@
 import { createAgentSession, fieldsToTypeBoxSchema, type AutofillField } from '@/agent'
 import { DatabaseSessionStorage } from '@/agent/database-session-storage'
+import type { Prisma, Skill } from '@/generated/prisma/client'
 import { logger } from '@/logger'
 import { s3Service } from '@/services/s3/s3'
 import { type AgentTool } from '@earendil-works/pi-agent-core'
@@ -11,7 +12,6 @@ export interface Usage {
   outputTokens: number
   model: string
 }
-import type { Prisma, Skill } from '@/generated/prisma/client'
 
 export type AgentWithProviderAndModel = Prisma.AgentGetPayload<{
   include: {
@@ -65,7 +65,9 @@ async function executeAgentPrompt(params: {
   let systemPrompt = `You are the AI assistant for shumai.
 shumai is a professional creative collaboration platform similar to frame.io, where users can upload creative files, manage projects, assign tasks, get precise feedback, and share their work. As the agent, your role is to help users use and manage this platform.
 
-shumai has its own cloud file system. If a user asks you to perform file system operations (for example: creating a folder, creating a file, stacking a version, or listing assets), you MUST use the corresponding agent system tools (e.g., 'create_folder', 'create_file', 'create_version', 'list_assets'). Do NOT use local bash commands or the local bash tool to perform these operations locally on the host environment; all operations must be executed through the platform's cloud file system tools so they are correctly registered and visible within the platform.`
+shumai has its own cloud file system. If a user asks you to perform file system operations (for example: creating a folder, creating a file, stacking a version, or listing assets), you MUST use the corresponding agent system tools (e.g., 'create_folder', 'create_file', 'create_version', 'list_assets'). Do NOT use local bash commands or the local bash tool to perform these operations locally on the host environment; all operations must be executed through the platform's cloud file system tools so they are correctly registered and visible within the platform.
+
+If you need to create files in the local filesystem (for example, a temporary file for uploading), only the '.pi' folder in the current directory has write permissions. Do NOT attempt to create files in any other directories.`
 
   if (agent.soul) {
     systemPrompt = `${systemPrompt}\n\nAgent Personality and Core Instructions:\n${agent.soul}`
