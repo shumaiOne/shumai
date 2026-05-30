@@ -341,7 +341,7 @@ export function FileViewerRightSidebar({
           </TabsTrigger>
         </TabsList>
         <TabsContent value="comments" className="flex-1 flex flex-col overflow-hidden min-h-0 mt-0">
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 min-h-0 [&>div>div]:block!">
             <div className="space-y-4">
               {comments.map((comment) => (
                 <div key={comment.id}>
@@ -419,7 +419,7 @@ export function FileViewerRightSidebar({
           )}
         </TabsContent>
         <TabsContent value="fields" className="flex-1 flex flex-col overflow-hidden min-h-0 mt-4">
-          <ScrollArea className="flex-1 px-4">
+          <ScrollArea className="flex-1 px-4 min-h-0 [&>div>div]:block!">
             {sortedFields && sortedFields.length > 0 && (
               <div className="space-y-4 pb-4">
                 {sortedFields.map((field) => (
