@@ -25,7 +25,7 @@ export class TeamService {
           name: 'Default Team',
           settings: {
             enablePublicSignup: true,
-            transcode: { videoStrategy: 'disable', imageStrategy: 'disable' },
+            transcode: { videoStrategy: 'best_match' },
           },
           sandbox: { create: {} },
         },

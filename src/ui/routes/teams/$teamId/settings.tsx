@@ -1,4 +1,4 @@
-import { ImageTranscodeStrategy, VideoTranscodeStrategy } from '@/dtos/team'
+import { VideoTranscodeStrategy } from '@/dtos/team'
 import { client } from '@/ui/api/client'
 import { AgentsSettings } from '@/ui/components/settings/AgentsSettings'
 import { ProvidersSettings } from '@/ui/components/settings/ProvidersSettings'
@@ -81,16 +81,6 @@ function TeamSettingsPage() {
     })
   }
 
-  const handleImageStrategyChange = (value: ImageTranscodeStrategy) => {
-    updateSettings({
-      teamId,
-      data: {
-        key: 'transcode.imageStrategy',
-        value: value,
-      },
-    })
-  }
-
   if (isSettingsLoading || isMeLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -103,13 +93,14 @@ function TeamSettingsPage() {
     return <div className="p-8 text-center text-red-500">Failed to load settings.</div>
   }
 
-  const currentVideoStrategy =
+  let currentVideoStrategy =
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (settings as any)?.transcode?.videoStrategy || VideoTranscodeStrategy.single
-
-  const currentImageStrategy =
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (settings as any)?.transcode?.imageStrategy || ImageTranscodeStrategy.single
+    (settings as any)?.transcode?.videoStrategy || VideoTranscodeStrategy.best_match
+  if (currentVideoStrategy === 'single' || currentVideoStrategy === 'disable') {
+    currentVideoStrategy = VideoTranscodeStrategy.best_match
+  } else if (currentVideoStrategy === 'full') {
+    currentVideoStrategy = VideoTranscodeStrategy.all
+  }
 
   return (
     <div className="h-full bg-slate-50 dark:bg-slate-950 font-sans selection:bg-blue-100 dark:selection:bg-blue-900 transition-colors duration-300">
@@ -342,11 +333,13 @@ function TeamSettingsPage() {
                           <div
                             className={cn(
                               'cursor-pointer rounded-lg border p-4 transition-all hover:border-primary',
-                              currentVideoStrategy === VideoTranscodeStrategy.single
+                              currentVideoStrategy === VideoTranscodeStrategy.best_match
                                 ? 'border-primary bg-primary/5'
                                 : 'border-border',
                             )}
-                            onClick={() => handleVideoStrategyChange(VideoTranscodeStrategy.single)}
+                            onClick={() =>
+                              handleVideoStrategyChange(VideoTranscodeStrategy.best_match)
+                            }
                           >
                             <div className="font-semibold">Best match</div>
                             <div className="text-sm text-muted-foreground">
@@ -357,70 +350,15 @@ function TeamSettingsPage() {
                           <div
                             className={cn(
                               'cursor-pointer rounded-lg border p-4 transition-all hover:border-primary',
-                              currentVideoStrategy === VideoTranscodeStrategy.full
+                              currentVideoStrategy === VideoTranscodeStrategy.all
                                 ? 'border-primary bg-primary/5'
                                 : 'border-border',
                             )}
-                            onClick={() => handleVideoStrategyChange(VideoTranscodeStrategy.full)}
+                            onClick={() => handleVideoStrategyChange(VideoTranscodeStrategy.all)}
                           >
                             <div className="font-semibold">All resolutions</div>
                             <div className="text-sm text-muted-foreground">
                               Generates all supported resolutions up to the source quality.
-                            </div>
-                          </div>
-
-                          <div
-                            className={cn(
-                              'cursor-pointer rounded-lg border p-4 transition-all hover:border-primary',
-                              currentVideoStrategy === VideoTranscodeStrategy.disable
-                                ? 'border-primary bg-primary/5'
-                                : 'border-border',
-                            )}
-                            onClick={() =>
-                              handleVideoStrategyChange(VideoTranscodeStrategy.disable)
-                            }
-                          >
-                            <div className="font-semibold">Disable</div>
-                            <div className="text-sm text-muted-foreground">
-                              Transcoding is disabled. Only system artifacts are generated.
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Image Strategy */}
-                      <div className="space-y-3">
-                        <h3 className="text-lg font-medium">Image Strategy</h3>
-                        <div className="space-y-3">
-                          <div
-                            className={cn(
-                              'cursor-pointer rounded-lg border p-4 transition-all hover:border-primary',
-                              currentImageStrategy === ImageTranscodeStrategy.single
-                                ? 'border-primary bg-primary/5'
-                                : 'border-border',
-                            )}
-                            onClick={() => handleImageStrategyChange(ImageTranscodeStrategy.single)}
-                          >
-                            <div className="font-semibold">Best match</div>
-                            <div className="text-sm text-muted-foreground">
-                              Generates a single optimal resolution matching the source quality.
-                            </div>
-                          </div>
-
-                          <div
-                            className={cn(
-                              'cursor-pointer rounded-lg border p-4 transition-all hover:border-primary',
-                              currentImageStrategy === ImageTranscodeStrategy.disable
-                                ? 'border-primary bg-primary/5'
-                                : 'border-border',
-                            )}
-                            onClick={() =>
-                              handleImageStrategyChange(ImageTranscodeStrategy.disable)
-                            }
-                          >
-                            <div className="font-semibold">Disable</div>
-                            <div className="text-sm text-muted-foreground">
-                              Transcoding is disabled. Only system thumbnails are generated.
                             </div>
                           </div>
                         </div>

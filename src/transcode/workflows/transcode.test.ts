@@ -76,7 +76,7 @@ describe('Transcode Workflow', () => {
       payload: {
         projectId: 'proj-1',
         transcode: {
-          videoStrategy: 'single',
+          videoStrategy: 'best_match',
           thumbnail: true,
         },
       },
@@ -151,7 +151,6 @@ describe('Transcode Workflow', () => {
       payload: {
         projectId: 'proj-1',
         transcode: {
-          imageStrategy: 'single',
           thumbnail: true,
         },
       },

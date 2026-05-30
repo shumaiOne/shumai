@@ -60,11 +60,6 @@ export class ImageTranscoder {
     private readonly projectId: string,
   ) {}
 
-  setStrategy(strategy: PrismaJson.ImageTranscodeStrategy): this {
-    this.spec.imageStrategy = strategy
-    return this
-  }
-
   withThumbnail(): this {
     this.spec.thumbnail = true
     return this

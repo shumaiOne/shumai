@@ -62,19 +62,12 @@ export const updateTeamSettingsRequestSchema = z.object({
 export type UpdateTeamSettingsRequest = z.infer<typeof updateTeamSettingsRequestSchema>
 
 export const VideoTranscodeStrategy = {
-  disable: 'disable',
-  single: 'single',
-  full: 'full',
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  best_match: 'best_match',
+  all: 'all',
 } as const
 export type VideoTranscodeStrategy =
   (typeof VideoTranscodeStrategy)[keyof typeof VideoTranscodeStrategy]
-
-export const ImageTranscodeStrategy = {
-  disable: 'disable',
-  single: 'single',
-} as const
-export type ImageTranscodeStrategy =
-  (typeof ImageTranscodeStrategy)[keyof typeof ImageTranscodeStrategy]
 
 export const sandboxSettingsSchema = z.object({
   allowedDomains: z.array(z.string()),

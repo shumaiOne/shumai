@@ -99,6 +99,9 @@ const ControlBar: React.FC<ControlBarProps> = ({
   if (!data.media?.metadata) {
     return null
   }
+
+  const previewResolutions = resolutions.filter((r) => !r.isRaw)
+
   return (
     <div
       className={cn(
@@ -239,7 +242,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
 
             <DropdownMenuContent>
               <DropdownMenuLabel>Quality</DropdownMenuLabel>
-              {resolutions.map((res) => (
+              {previewResolutions.map((res) => (
                 <DropdownMenuItem
                   key={res.resolution}
                   onClick={() => changeResolution(res)}
@@ -378,33 +381,29 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     resolution: t.isRaw ? 'Original' : `${t.height}p`,
   }))
 
+  const previewResolutions = resolutions.filter((r) => !r.isRaw)
+
   // Logic to select best resolution based on screen size
   const getInitialResolution = (): DisplayTranscode => {
-    if (typeof window === 'undefined') return originalRes
+    if (previewResolutions.length === 0) return originalRes
+
+    if (typeof window === 'undefined') return previewResolutions[0]
 
     // Use device pixel ratio for high DPI screens
     const screenWidth = window.innerWidth * (window.devicePixelRatio || 1)
 
-    // Strategy: Find smallest resolution that is >= screenWidth.
-    // Filter out raw versions unless they are the only option.
-
-    const nonRaw = resolutions.filter((r) => !r.isRaw)
-    const candidates = nonRaw.length > 0 ? nonRaw : resolutions
-
     // 1. Sort by width ascending
-    const sortedResolutions = [...candidates].sort((a, b) => {
+    const sortedResolutions = [...previewResolutions].sort((a, b) => {
       const wA = a.width ?? 0
       const wB = b.width ?? 0
-      if (wA !== wB) return wA - wB
-      // If equal width, prefer non-raw (optimized)
-      return (a.isRaw ? 1 : 0) - (b.isRaw ? 1 : 0)
+      return wA - wB
     })
 
     // 2. Find first one >= screenWidth
     const bestFit = sortedResolutions.find((r) => (r.width ?? 0) >= screenWidth)
 
     // 3. If found, return it. If not (all are smaller), return the last one (largest).
-    return bestFit || sortedResolutions[sortedResolutions.length - 1] || originalRes
+    return bestFit || sortedResolutions[sortedResolutions.length - 1]
   }
 
   const initialRes = getInitialResolution()

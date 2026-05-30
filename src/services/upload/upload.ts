@@ -299,7 +299,7 @@ export class UploadService {
       } else {
         const settings = team.settings as PrismaJson.Settings | null
         if (isVideo) {
-          const strategy = settings?.transcode?.videoStrategy || 'single'
+          const strategy = settings?.transcode?.videoStrategy || 'best_match'
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await new VideoTranscoder(tx as any, asset.id, team.id, asset.projectId)
             .setStrategy(strategy)
@@ -307,10 +307,8 @@ export class UploadService {
             .withPoster()
             .submit()
         } else if (isImage) {
-          const strategy = settings?.transcode?.imageStrategy || 'single'
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await new ImageTranscoder(tx as any, asset.id, team.id, asset.projectId)
-            .setStrategy(strategy)
             .withThumbnail()
             .submit()
         }

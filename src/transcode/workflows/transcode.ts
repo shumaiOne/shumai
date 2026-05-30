@@ -78,7 +78,7 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
     // 6. Video Transcoding
     if (mimeType.startsWith('video/') && metadata) {
       const videoResolutions = getTargetVideoResolutions(
-        spec.videoStrategy || 'disable',
+        spec.videoStrategy || 'best_match',
         metadata.originalHeight,
       )
       for (const res of videoResolutions) {
@@ -87,7 +87,6 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
           metadata.originalWidth,
           metadata.originalHeight,
         )
-        if (width > metadata.originalWidth) continue
 
         const videoSpec: PrismaJson.VideoTranscode = {
           resolution: res,
@@ -122,27 +121,7 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
     // 7. Image Transcoding
     const isImage = mimeType.startsWith('image/')
     const isPsd = isMimePsd(mimeType)
-    if (isImage || isPsd) {
-      if (metadata) {
-        const imageSpecs = getTargetImageResolutions(
-          spec.imageStrategy || 'disable',
-          metadata.originalWidth,
-        )
-        for (const imageSpec of imageSpecs) {
-          if (imageSpec.width > metadata.originalWidth) continue
-
-          const imageTranscode = await executeActivity(workerQueue, transcodeImageActivity, {
-            assetKey: key,
-            filePath,
-            imageSpec,
-          })
-          mediaInfo.imageTranscodes.push(imageTranscode)
-        }
-      }
-    }
-
-    // 8. PSD / Raw fallback
-    if (mediaInfo.imageTranscodes.length === 0 && isPsd && metadata) {
+    if ((isImage || isPsd) && metadata) {
       const imageSpec: PrismaJson.ImageTranscode = {
         width: metadata.originalWidth,
         height: metadata.originalHeight,
@@ -154,18 +133,7 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
         filePath,
         imageSpec,
       })
-      imageTranscode.isRaw = true
       mediaInfo.imageTranscodes.push(imageTranscode)
-    } else if (isImage && metadata) {
-      // Always keep raw for image
-      mediaInfo.imageTranscodes.push({
-        key: mediaInfo.original?.key,
-        width: metadata.originalWidth,
-        height: metadata.originalHeight,
-        format: mimeType,
-        isRaw: true,
-        quality: 100,
-      })
     }
 
     // 9. System: Thumbnail
@@ -271,6 +239,9 @@ function resolutionToDimensions(
     case '720p':
       height = 720
       break
+    case '540p':
+      height = 540
+      break
     case '480p':
       height = 480
       break
@@ -292,57 +263,52 @@ function resolutionToDimensions(
   return [width, height]
 }
 
+const TARGET_RESOLUTIONS = [
+  { name: '2160p', height: 2160 },
+  { name: '1080p', height: 1080 },
+  { name: '720p', height: 720 },
+  { name: '540p', height: 540 },
+  { name: '360p', height: 360 },
+]
+
+function getBestMatchResolution(originalHeight: number): { name: string; height: number } {
+  const lower = TARGET_RESOLUTIONS.filter((r) => r.height < originalHeight)
+  if (lower.length > 0) {
+    lower.sort((a, b) => b.height - a.height)
+    return lower[0]
+  }
+  return TARGET_RESOLUTIONS[TARGET_RESOLUTIONS.length - 1] // 360p
+}
+
 function getTargetVideoResolutions(
   strategy: PrismaJson.VideoTranscodeStrategy,
   originalHeight: number,
 ): string[] {
   const resolutions = ['180p']
-  if (strategy === 'disable') return resolutions
 
-  const targets = [2160, 1440, 1080, 720, 480]
-  const targetMap: Record<number, string> = {
-    '2160': '2160p',
-    '1440': '1440p',
-    '1080': '1080p',
-    '720': '720p',
-    '480': '480p',
+  // Normalize legacy strategies for backward compatibility
+  let normalizedStrategy: string = strategy
+  const stratStr = strategy as string
+  if (stratStr === 'single' || stratStr === 'disable') {
+    normalizedStrategy = 'best_match'
+  } else if (stratStr === 'full') {
+    normalizedStrategy = 'all'
   }
 
-  const validTargets = targets.filter((t) => t <= originalHeight)
+  const bestMatch = getBestMatchResolution(originalHeight)
 
-  if (strategy === 'single') {
-    if (validTargets.length > 0) {
-      resolutions.push(targetMap[validTargets[0]])
-    }
-  } else if (strategy === 'full') {
-    for (const t of validTargets) {
-      resolutions.push(targetMap[t])
+  if (normalizedStrategy === 'best_match') {
+    resolutions.push(bestMatch.name)
+  } else if (normalizedStrategy === 'all') {
+    const bestMatchIndex = TARGET_RESOLUTIONS.findIndex((r) => r.name === bestMatch.name)
+    if (bestMatchIndex !== -1) {
+      for (let i = bestMatchIndex; i < TARGET_RESOLUTIONS.length; i++) {
+        resolutions.push(TARGET_RESOLUTIONS[i].name)
+      }
     }
   }
 
   return resolutions
-}
-
-function getTargetImageResolutions(
-  strategy: PrismaJson.ImageTranscodeStrategy,
-  originalWidth: number,
-): PrismaJson.ImageTranscode[] {
-  if (strategy === 'disable') return []
-
-  const targets = [
-    { width: 1920, quality: 80, format: 'webp' },
-    { width: 1280, quality: 80, format: 'webp' },
-    { width: 854, quality: 80, format: 'webp' },
-  ]
-
-  if (strategy === 'single') {
-    const valid = targets.filter((t) => t.width <= originalWidth)
-    if (valid.length > 0) {
-      return [{ ...valid[0], height: 0 }]
-    }
-  }
-
-  return []
 }
 
 export const transcodeWorkflow = transcodeMedia
