@@ -73,14 +73,22 @@ export class LocalExecutor implements Executor {
         this.processingTasks.add(task.id)
 
         // 1. Immediately mark task as processing and set initial heartbeat in DB
+        // atomically, only if the task is still pending.
         try {
-          await prisma.workflowTask.update({
-            where: { id: task.id },
+          const affected = await prisma.workflowTask.updateMany({
+            where: {
+              id: task.id,
+              status: WorkflowTaskStatus.pending,
+            },
             data: {
               status: WorkflowTaskStatus.processing,
               heartbeat: new Date(),
             },
           })
+          if (affected.count === 0) {
+            this.processingTasks.delete(task.id)
+            return
+          }
         } catch (err) {
           console.error(
             `[LocalExecutor] Failed to mark task ${task.id} as processing in submit:`,
@@ -159,14 +167,28 @@ export class LocalExecutor implements Executor {
 
         // 1. Immediately mark task as processing and set initial heartbeat in DB
         // to guarantee no other ticks/replicas can double-query it.
+        // We use updateMany to atomically claim it only if it is still pending or stale.
         try {
-          await prisma.workflowTask.update({
-            where: { id: task.id },
+          const affected = await prisma.workflowTask.updateMany({
+            where: {
+              id: task.id,
+              OR: [
+                { status: WorkflowTaskStatus.pending },
+                {
+                  status: WorkflowTaskStatus.processing,
+                  heartbeat: { lt: staleTime },
+                },
+              ],
+            },
             data: {
               status: WorkflowTaskStatus.processing,
               heartbeat: new Date(),
             },
           })
+          if (affected.count === 0) {
+            this.processingTasks.delete(task.id)
+            continue
+          }
         } catch (err) {
           console.error(`[LocalExecutor] Failed to mark task ${task.id} as processing:`, err)
           this.processingTasks.delete(task.id)

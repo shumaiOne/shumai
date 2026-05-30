@@ -122,6 +122,37 @@ describe('LocalExecutor Integration Tests', () => {
       await new Promise((resolve) => setTimeout(resolve, 50))
     })
 
+    it('should atomically claim tasks using CAS updateMany to prevent double-execution when tick() runs concurrently', async () => {
+      mocks.agentChat.mockResolvedValue(undefined)
+
+      // Mock submit to prevent automatic execution by the Prisma Client Extension
+      const submitSpy = vi.spyOn(workflowService, 'submit').mockResolvedValue('dummy-id')
+
+      // Create a single pending task (will NOT be run automatically because submit is mocked)
+      const task = await prisma.workflowTask.create({
+        data: {
+          assetId: 'asset-concurrent-test',
+          type: WorkflowTaskType.chat,
+          status: WorkflowTaskStatus.pending,
+        },
+      })
+
+      // We trigger two ticks concurrently to simulate overlapping polling cycles or multi-replica triggers.
+      // Both ticks will query the database at approximately the same time.
+      const tick1 = executor.tick()
+      const tick2 = executor.tick()
+
+      const [promises1, promises2] = await Promise.all([tick1, tick2])
+      await Promise.all([...promises1, ...promises2])
+
+      // Verify that the mock workflow is called EXACTLY ONCE for this task ID,
+      // proving that one tick successfully claimed the task and the other was atomically blocked.
+      expect(mocks.agentChat).toHaveBeenCalledTimes(1)
+      expect(mocks.agentChat).toHaveBeenCalledWith(expect.objectContaining({ id: task.id }))
+
+      submitSpy.mockRestore()
+    })
+
     it('should query and retry stale tasks in tick() but ignore non-stale processing tasks', async () => {
       mocks.agentChat.mockResolvedValue(undefined)
 
