@@ -126,17 +126,19 @@ export const MessageCard: React.FC<MessageCardProps> = ({
           : 'border-transparent bg-foreground/2 dark:bg-foreground/10 hover:bg-foreground/4 dark:hover:bg-foreground/15'
       }`}
     >
-      {hasReplies && !isReply && (
-        <div className="absolute left-[1.7rem] top-[2rem] bottom-[-1.8rem] w-0.5 bg-foreground/10 -translate-x-1/2 z-0" />
-      )}
+      {/* Left Column: Avatar & Thread Lines */}
+      <div className="flex flex-col items-center shrink-0 w-8 relative">
+        {/* Thread line above avatar (for replies) */}
+        {isReply && (
+          <div className="absolute top-[-1rem] h-8 w-0.5 bg-foreground/10 left-1/2 -translate-x-1/2 z-0" />
+        )}
 
-      {isReply && !isLastReply && (
-        <div className="absolute left-[1rem] top-[2rem] bottom-[-1.5rem] w-0.5 bg-foreground/10 -translate-x-1/2 z-0" />
-      )}
+        {/* Thread line under avatar (for parent comments with replies, or intermediate replies) */}
+        {((hasReplies && !isReply) || (isReply && !isLastReply)) && (
+          <div className="absolute top-4 bottom-[-1rem] w-0.5 bg-foreground/10 left-1/2 -translate-x-1/2 z-0" />
+        )}
 
-      {/* Avatar */}
-      <div>
-        <Avatar>
+        <Avatar className="z-10 relative">
           <AvatarFallback>{creator?.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
         </Avatar>
       </div>
