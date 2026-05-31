@@ -82,7 +82,10 @@ export const createSandboxedBashTool = (
         child.on('error', (err) => {
           if (timeoutHandle) clearTimeout(timeoutHandle)
           signal?.removeEventListener('abort', onAbort)
-          logger.error({ err, command, stdout, stderr }, 'Sandboxed bash command encountered process error')
+          logger.error(
+            { err, command, stdout, stderr },
+            'Sandboxed bash command encountered process error',
+          )
           reject(err)
         })
 
@@ -97,7 +100,10 @@ export const createSandboxedBashTool = (
             logger.error({ timeout, command, stdout, stderr }, 'Sandboxed bash command timed out')
             reject(new Error(`bash command timed out after ${timeout} seconds`))
           } else if (code !== 0 && code !== null) {
-            logger.error({ exitCode: code, command, stdout, stderr }, 'Sandboxed bash command exited with failure code')
+            logger.error(
+              { exitCode: code, command, stdout, stderr },
+              'Sandboxed bash command exited with failure code',
+            )
             reject(new Error(`bash command exited with code ${code}`))
           } else {
             const output = stdout + stderr
