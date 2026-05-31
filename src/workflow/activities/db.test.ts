@@ -567,5 +567,78 @@ describe('Database Activities', () => {
       expect(types).toContain('ai_metadata_autofill')
       expect(types).toContain('ai_embedding')
     })
+
+    it('should assign a lower sortIndex to newer versions so they are correctly marked as latest', async () => {
+      const team = await prisma.team.create({ data: { name: 'Version Team' } })
+      const user = await prisma.user.create({
+        data: { name: 'Version User', email: 'vuser@example.com' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: user.id, role: 'owner' },
+      })
+      const project = await prisma.project.create({
+        data: { name: 'Version Project', teamId: team.id },
+      })
+      const parentFolder = await prisma.asset.create({
+        data: {
+          name: 'Parent Folder',
+          type: 'folder',
+          projectId: project.id,
+          status: 'uploaded',
+        },
+      })
+
+      // Create file1 (V1)
+      const file1 = await prisma.asset.create({
+        data: {
+          name: 'file1.txt',
+          type: 'file',
+          parentId: parentFolder.id,
+          projectId: project.id,
+          status: 'uploaded',
+          sizeByte: 100,
+        },
+      })
+
+      // 1. Create file2 (V2) - Creates a new stack
+      const file2Result = await executeAgentToolActivity({
+        taskId: 'vstack-task-1',
+        toolName: 'create_version',
+        args: {
+          parent: file1.id,
+          s3Key: 'file/file2-key/raw',
+          name: 'file2.txt',
+          size: 150,
+          contentType: 'text/plain',
+        },
+        userId: user.id,
+      })
+
+      // Fetch from DB to check sortIndex
+      const updatedFile1 = await prisma.asset.findUnique({ where: { id: file1.id } })
+      const updatedFile2 = await prisma.asset.findUnique({ where: { id: file2Result.id } })
+
+      // Newest version (file2) must have a strictly lower sortIndex than older version (file1)
+      expect(updatedFile2!.sortIndex! < updatedFile1!.sortIndex!).toBe(true)
+
+      // 2. Create file3 (V3) - Appends to existing stack
+      const file3Result = await executeAgentToolActivity({
+        taskId: 'vstack-task-2',
+        toolName: 'create_version',
+        args: {
+          parent: file2Result.id,
+          s3Key: 'file/file3-key/raw',
+          name: 'file3.txt',
+          size: 200,
+          contentType: 'text/plain',
+        },
+        userId: user.id,
+      })
+
+      const updatedFile3 = await prisma.asset.findUnique({ where: { id: file3Result.id } })
+
+      // Newest version (file3) must have a strictly lower sortIndex than version 2 (file2)
+      expect(updatedFile3!.sortIndex! < updatedFile2!.sortIndex!).toBe(true)
+    })
   })
 })

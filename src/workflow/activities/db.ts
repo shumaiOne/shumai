@@ -625,11 +625,6 @@ export async function updateWorkflowTaskActivity(params: UpdateWorkflowTaskParam
 // Agent System Tools & Context Activities
 // ==========================================
 
-function generateSortIndex(previous?: string | null): string {
-  if (!previous) return generateKeyBetween(null, null)
-  return generateKeyBetween(previous, null)
-}
-
 export async function getAssetPathContextActivity(assetId: string): Promise<string> {
   const parts: { name: string; id: string }[] = []
   let currentId: string | null = assetId
@@ -924,12 +919,12 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
           creatorId: userId,
         })
 
-        // Generate sort index for new version inside the stack
-        const lastChild = await prisma.asset.findFirst({
+        // Generate sort index for new version inside the stack (newest gets the lowest sortIndex)
+        const firstChild = await prisma.asset.findFirst({
           where: { parentId: stackId },
-          orderBy: { sortIndex: 'desc' },
+          orderBy: { sortIndex: 'asc' },
         })
-        const newSortIndex = generateSortIndex(lastChild?.sortIndex)
+        const newSortIndex = generateKeyBetween(null, firstChild?.sortIndex || null)
 
         await prisma.$transaction(async (tx) => {
           // Assign sort index
@@ -992,7 +987,7 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const txVersionStackService = new VersionStackService(tx as any)
           await txVersionStackService.createVersionStack({
-            fileIds: [parentFile.id, newFile.id],
+            fileIds: [newFile.id, parentFile.id],
             projectId: parentFile.projectId!,
             creatorId: userId,
           })
