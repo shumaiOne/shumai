@@ -485,5 +485,87 @@ describe('Database Activities', () => {
         }
       }
     })
+
+    it('should trigger post-upload workflows (transcode, AI) when creating file or version via agent tool', async () => {
+      const team = await prisma.team.create({ data: { name: 'Workflow Team' } })
+      const user = await prisma.user.create({
+        data: { name: 'Workflow User', email: 'wfuser@example.com' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: user.id, role: 'owner' },
+      })
+      const project = await prisma.project.create({
+        data: { name: 'Workflow Project', teamId: team.id },
+      })
+      const parentFolder = await prisma.asset.create({
+        data: {
+          name: 'Parent Folder',
+          type: 'folder',
+          projectId: project.id,
+          status: 'uploaded',
+        },
+      })
+
+      // Setup agents
+      const bot1 = await prisma.user.create({
+        data: { name: 'Autofill Bot', email: 'autobot@example.com', type: 'agent' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: bot1.id, role: 'editor' },
+      })
+      await prisma.agent.create({
+        data: {
+          user: { connect: { id: bot1.id } },
+          type: 'autofill',
+          enabled: true,
+          team: { connect: { id: team.id } },
+          config: { provider: 'google', model: 'gemini' },
+        },
+      })
+
+      const bot2 = await prisma.user.create({
+        data: { name: 'Embedding Bot', email: 'emb@example.com', type: 'agent' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: bot2.id, role: 'editor' },
+      })
+      await prisma.agent.create({
+        data: {
+          user: { connect: { id: bot2.id } },
+          type: 'embedding',
+          enabled: true,
+          team: { connect: { id: team.id } },
+          config: { provider: 'google', model: 'gemini' },
+        },
+      })
+
+      // Execute create_file with a video file type
+      const fileResult = await executeAgentToolActivity({
+        taskId: 'wf-task-1',
+        toolName: 'create_file',
+        args: {
+          parent: parentFolder.id,
+          s3Key: 'video/some-key.mp4',
+          name: 'test-video.mp4',
+          size: 1024 * 1024,
+          contentType: 'video/mp4',
+        },
+        userId: user.id,
+      })
+
+      expect(fileResult.id).toBeDefined()
+
+      // Fetch WorkflowTasks created for the asset
+      const tasks = await prisma.workflowTask.findMany({
+        where: { assetId: fileResult.id },
+      })
+
+      // Assert post-upload workflows are triggered
+      expect(tasks.length).toBe(3)
+      const types = tasks.map((t) => t.type)
+      expect(types).toContain('transcode')
+      expect(types).toContain('ai_metadata_autofill')
+      expect(types).toContain('ai_embedding')
+    })
   })
 })

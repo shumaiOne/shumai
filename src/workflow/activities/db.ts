@@ -8,6 +8,7 @@ import { WorkflowTaskStatus, AssetStatus, Prisma, AssetType } from '@/generated/
 import type { AgentExecutionContext } from './agent'
 import { assetService } from '@/services/asset/asset'
 import { VersionStackService } from '@/services/versionStack/versionStack'
+import { uploadService } from '@/services/upload/upload'
 import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 import { generateKeyBetween } from 'jittered-fractional-indexing'
 import { paginateQuery, encodeCursor } from '@/services/pagination'
@@ -814,6 +815,24 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
         id: parent,
       })
 
+      // Fetch parent folder to resolve projectId and teamId
+      const parentAsset = await prisma.asset.findUnique({
+        where: { id: parent },
+        include: { project: true },
+      })
+      if (!parentAsset) {
+        throw ApplicationFailure.create({
+          message: `Parent folder not found with ID: ${parent}`,
+          nonRetryable: true,
+        })
+      }
+      if (!parentAsset.projectId || !parentAsset.project?.teamId) {
+        throw ApplicationFailure.create({
+          message: `Parent folder ${parent} has no project or team associated`,
+          nonRetryable: true,
+        })
+      }
+
       // Create asset via assetService
       const newFile = await assetService.createAsset({
         name,
@@ -833,6 +852,14 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
         })
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await assetService.updateAncestorsSize(tx as any, parent, fileSize)
+
+        // Trigger post-upload transcode and AI workflows
+        await uploadService.triggerPostUploadWorkflows(
+          tx,
+          newFile.id,
+          parentAsset.project!.teamId,
+          parentAsset.projectId!,
+        )
       })
 
       return {
@@ -859,10 +886,17 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
       // Fetch parent file and cast to any due to Prisma type resolution limits
       /* prettier-ignore */
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const parentFile = (await prisma.asset.findUnique({ where: { id: parent }, include: { parent: true } })) as any
+      const parentFile = (await prisma.asset.findUnique({ where: { id: parent }, include: { parent: true, project: true } })) as any
       if (!parentFile) {
         throw ApplicationFailure.create({
           message: `Parent file not found with ID: ${parent}`,
+          nonRetryable: true,
+        })
+      }
+
+      if (!parentFile.projectId || !parentFile.project?.teamId) {
+        throw ApplicationFailure.create({
+          message: `Parent file ${parent} has no project or team associated`,
           nonRetryable: true,
         })
       }
@@ -916,6 +950,14 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await assetService.updateAncestorsSize(tx as any, updatedStack.parentId, fileSize)
           }
+
+          // Trigger post-upload transcode and AI workflows
+          await uploadService.triggerPostUploadWorkflows(
+            tx,
+            newFile.id,
+            parentFile.project.teamId,
+            parentFile.projectId,
+          )
         })
 
         return {
@@ -957,6 +999,14 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
           // Update ancestors' size (add size of the new file version)
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await assetService.updateAncestorsSize(tx as any, folderParentId!, fileSize)
+
+          // Trigger post-upload transcode and AI workflows
+          await uploadService.triggerPostUploadWorkflows(
+            tx,
+            newFile.id,
+            parentFile.project.teamId,
+            parentFile.projectId!,
+          )
         })
 
         return {

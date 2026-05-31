@@ -237,83 +237,100 @@ export class UploadService {
       if (!team) return
       if (!asset.projectId) throw new Error('Asset project ID is missing')
 
-      // Ai Tasks
-      const autofillAgent = await tx.agent.findFirst({
-        where: {
-          type: 'autofill',
-          enabled: true,
-          user: { teamMembers: { some: { teamId: team.id } } },
+      await this.triggerPostUploadWorkflows(tx, asset.id, team.id, asset.projectId)
+    })
+  }
+
+  async triggerPostUploadWorkflows(
+    tx: Prisma.TransactionClient,
+    assetId: string,
+    teamId: string,
+    projectId: string,
+  ): Promise<void> {
+    const asset = await tx.asset.findUnique({
+      where: { id: assetId },
+    })
+    if (!asset) throw new Error('Asset not found')
+
+    const team = await tx.team.findUnique({
+      where: { id: teamId },
+    })
+    if (!team) throw new Error('Team not found')
+
+    // Ai Tasks
+    const autofillAgent = await tx.agent.findFirst({
+      where: {
+        type: 'autofill',
+        enabled: true,
+        user: { teamMembers: { some: { teamId: team.id } } },
+      },
+    })
+
+    if (autofillAgent) {
+      await tx.workflowTask.create({
+        data: {
+          assetId: asset.id,
+          type: WorkflowTaskType.ai_metadata_autofill,
+          status: WorkflowTaskStatus.pending,
+          teamId: team.id,
+          projectId,
+          payload: {
+            projectId,
+            agent: { agentId: autofillAgent.id },
+          },
         },
       })
+    }
 
-      if (autofillAgent) {
+    // Ai Embedding if enabled via agent
+    const embeddingAgent = await tx.agent.findFirst({
+      where: {
+        type: 'embedding',
+        enabled: true,
+        user: { teamMembers: { some: { teamId: team.id } } },
+      },
+    })
+
+    if (embeddingAgent) {
+      if (asset.mediaType?.startsWith('video/') || asset.mediaType?.startsWith('image/')) {
         await tx.workflowTask.create({
           data: {
             assetId: asset.id,
-            type: WorkflowTaskType.ai_metadata_autofill,
+            type: WorkflowTaskType.ai_embedding,
             status: WorkflowTaskStatus.pending,
             teamId: team.id,
-            projectId: asset.projectId,
+            projectId,
             payload: {
-              projectId: asset.projectId!,
-              agent: { agentId: autofillAgent.id },
+              projectId,
+              agent: { agentId: embeddingAgent.id },
             },
           },
         })
       }
+    }
 
-      // Ai Embedding if enabled via agent
-      const embeddingAgent = await tx.agent.findFirst({
-        where: {
-          type: 'embedding',
-          enabled: true,
-          user: { teamMembers: { some: { teamId: team.id } } },
-        },
+    const isVideo = asset.mediaType?.startsWith('video/')
+    const isImage = asset.mediaType?.startsWith('image/')
+    if (!isVideo && !isImage) {
+      await tx.asset.update({
+        where: { id: asset.id },
+        data: { status: AssetStatus.processed },
       })
-
-      if (embeddingAgent) {
-        if (asset.mediaType?.startsWith('video/') || asset.mediaType?.startsWith('image/')) {
-          await tx.workflowTask.create({
-            data: {
-              assetId: asset.id,
-              type: WorkflowTaskType.ai_embedding,
-              status: WorkflowTaskStatus.pending,
-              teamId: team.id,
-              projectId: asset.projectId,
-              payload: {
-                projectId: asset.projectId!,
-                agent: { agentId: embeddingAgent.id },
-              },
-            },
-          })
-        }
+    } else {
+      const settings = team.settings as PrismaJson.Settings | null
+      if (isVideo) {
+        const strategy = settings?.transcode?.videoStrategy || 'best_match'
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await new VideoTranscoder(tx as any, asset.id, team.id, projectId)
+          .setStrategy(strategy)
+          .withSprite()
+          .withPoster()
+          .submit()
+      } else if (isImage) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await new ImageTranscoder(tx as any, asset.id, team.id, projectId).withThumbnail().submit()
       }
-
-      const isVideo = asset.mediaType?.startsWith('video/')
-      const isImage = asset.mediaType?.startsWith('image/')
-      if (!isVideo && !isImage) {
-        await tx.asset.update({
-          where: { id: asset.id },
-          data: { status: AssetStatus.processed },
-        })
-      } else {
-        const settings = team.settings as PrismaJson.Settings | null
-        if (isVideo) {
-          const strategy = settings?.transcode?.videoStrategy || 'best_match'
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await new VideoTranscoder(tx as any, asset.id, team.id, asset.projectId)
-            .setStrategy(strategy)
-            .withSprite()
-            .withPoster()
-            .submit()
-        } else if (isImage) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await new ImageTranscoder(tx as any, asset.id, team.id, asset.projectId)
-            .withThumbnail()
-            .submit()
-        }
-      }
-    })
+    }
   }
 
   async listUploadTasks(
