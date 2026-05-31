@@ -5,6 +5,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { s3Service } from '@/services/s3/s3'
 import { detectSupportedMimeType } from '@/utils/mime'
+import { ulid } from 'ulid'
 
 function getMimeType(filePath: string): string {
   try {
@@ -62,8 +63,9 @@ export function createCreateFileTool(userId: string): AgentTool<typeof createFil
         const fileSize = fs.statSync(absolutePath).size
         const mimeType = getMimeType(absolutePath)
 
-        // Pre-upload the file to S3
-        const s3Key = await s3Service.uploadFile(absolutePath, mimeType)
+        // Generate compliant S3 key matching normal file upload format
+        const s3Key = `file/${ulid()}/raw`
+        await s3Service.uploadFileToKey(absolutePath, s3Key, mimeType)
 
         const result = await executeAgentToolWorkflow({
           toolName: 'create_file',
