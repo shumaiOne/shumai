@@ -1,8 +1,8 @@
+import { logger } from '@/logger'
 import { SandboxManager } from '@anthropic-ai/sandbox-runtime'
 import { type AgentTool, type AgentToolResult } from '@earendil-works/pi-agent-core'
 import { Type } from '@sinclair/typebox'
 import { spawn } from 'node:child_process'
-import { logger } from '@/logger'
 
 const BashParameters = Type.Object({
   command: Type.String({ description: 'The bash command to execute.' }),
@@ -37,7 +37,8 @@ export const createSandboxedBashTool = (
           detached: true,
           stdio: ['ignore', 'pipe', 'pipe'],
           env: {
-            ...process.env,
+            PATH: process.env.PATH || '',
+            HOME: process.env.HOME || '',
             ...skillEnvs,
           },
         })

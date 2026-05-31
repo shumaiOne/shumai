@@ -4,8 +4,8 @@ import { NodeExecutionEnv } from '@earendil-works/pi-agent-core/node'
 import { getModel } from '@earendil-works/pi-ai'
 import { Type, type TSchema } from '@sinclair/typebox'
 import * as fs from 'fs'
-import * as path from 'path'
 import * as os from 'os'
+import * as path from 'path'
 import { DatabaseSessionStorage } from './database-session-storage'
 import { analyzeAssetMediaTool } from './tools/analyze-asset-media'
 import { createCreateFileTool } from './tools/create-file'
@@ -119,8 +119,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
       deniedDomains: [],
     },
     filesystem: {
-      allowRead: [piDir],
-      denyRead: [os.homedir(), '.env', '.env.*', '*.pem', '*.key'],
+      denyRead: ['.env', '.env.*', '*.pem', '*.key'],
       allowWrite,
       denyWrite: ['.env', '.env.*', '*.pem', '*.key'],
     },
