@@ -3,11 +3,11 @@ import type { UserInfo } from '@/dtos/team'
 import { client } from '@/ui/api/client'
 import { Button } from '@/ui/components/ui/button'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
 } from '@/ui/components/ui/dialog'
 import { Separator } from '@/ui/components/ui/separator'
 import { formatTimeAgo } from '@/ui/lib/time'
@@ -147,7 +147,9 @@ export const MessageCard: React.FC<MessageCardProps> = ({
         )}
 
         <Avatar className="z-10 relative">
-          <AvatarFallback>{creator?.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+          <AvatarFallback className="bg-rose-400 text-black">
+            {creator?.name?.[0]?.toUpperCase() || 'U'}
+          </AvatarFallback>
         </Avatar>
       </div>
 
