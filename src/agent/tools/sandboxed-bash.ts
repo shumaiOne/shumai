@@ -2,6 +2,7 @@ import { SandboxManager } from '@anthropic-ai/sandbox-runtime'
 import { type AgentTool, type AgentToolResult } from '@earendil-works/pi-agent-core'
 import { Type } from '@sinclair/typebox'
 import { spawn } from 'node:child_process'
+import { logger } from '@/logger'
 
 const BashParameters = Type.Object({
   command: Type.String({ description: 'The bash command to execute.' }),
@@ -81,6 +82,7 @@ export const createSandboxedBashTool = (
         child.on('error', (err) => {
           if (timeoutHandle) clearTimeout(timeoutHandle)
           signal?.removeEventListener('abort', onAbort)
+          logger.error({ err, command, stdout, stderr }, 'Sandboxed bash command encountered process error')
           reject(err)
         })
 
@@ -89,10 +91,13 @@ export const createSandboxedBashTool = (
           signal?.removeEventListener('abort', onAbort)
 
           if (signal?.aborted) {
+            logger.error({ command, stdout, stderr }, 'Sandboxed bash command aborted')
             reject(new Error('aborted'))
           } else if (timedOut) {
+            logger.error({ timeout, command, stdout, stderr }, 'Sandboxed bash command timed out')
             reject(new Error(`bash command timed out after ${timeout} seconds`))
           } else if (code !== 0 && code !== null) {
+            logger.error({ exitCode: code, command, stdout, stderr }, 'Sandboxed bash command exited with failure code')
             reject(new Error(`bash command exited with code ${code}`))
           } else {
             const output = stdout + stderr
