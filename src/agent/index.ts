@@ -7,6 +7,10 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { DatabaseSessionStorage } from './database-session-storage'
 import { analyzeAssetMediaTool } from './tools/analyze-asset-media'
+import { createCreateFileTool } from './tools/create-file'
+import { createCreateFolderTool } from './tools/create-folder'
+import { createCreateVersionTool } from './tools/create-version'
+import { createListAssetsTool } from './tools/list-assets'
 import { createReadSkillTool } from './tools/read-skill'
 import { createSandboxedBashTool } from './tools/sandboxed-bash'
 
@@ -105,7 +109,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
   const piDir = path.join(process.cwd(), '.pi')
   if (!fs.existsSync(piDir)) fs.mkdirSync(piDir, { recursive: true })
 
-  const allowWrite = [piDir, '/tmp']
+  const allowWrite = [piDir]
 
   // SandboxManager.initialize is a global operation that applies to the entire process.
   await SandboxManager.initialize({
@@ -114,9 +118,9 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
       deniedDomains: [],
     },
     filesystem: {
+      denyRead: ['.env', '.env.*', '*.pem', '*.key'],
       allowWrite,
       denyWrite: ['.env', '.env.*', '*.pem', '*.key'],
-      denyRead: ['~/.ssh', '~/.aws', '~/.gnupg'],
     },
   })
 
@@ -128,19 +132,36 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
   const sandboxedBash = createSandboxedBashTool(process.cwd(), skillEnvs)
   const readSkill = createReadSkillTool(onEnvsAdded)
 
+  const systemTools: AgentTool[] = []
+  if (userId) {
+    systemTools.push(
+      createListAssetsTool(userId),
+      createCreateFolderTool(userId),
+      createCreateFileTool(userId),
+      createCreateVersionTool(userId),
+    )
+  }
+
   const harness = new AgentHarness({
     env: new NodeExecutionEnv({ cwd: process.cwd() }),
     session,
     model,
     systemPrompt: async () => {
       let prompt = systemPrompt
+
+      // Sandbox environment restrictions
+      prompt +=
+        '\n\n' +
+        [
+          '# Sandbox Environment Restrictions',
+          'Your shell environment (the `bash` tool) is highly sandboxed to protect the host system:',
+          '1. **Filesystem Isolation**: You only have read and write permissions to the `.pi` folder in the project root directory.',
+          '2. **Read/Write Restrictions**: All reading and writing to directories outside `.pi` (e.g. your home directory `~/`, `/tmp`, `/etc`, or the rest of the workspace) are strictly denied by the sandbox security policy.',
+          "3. **Avoid System Temp Directory Writes**: You must strictly avoid any commands or shell constructs that attempt to write to the system temporary directory `/tmp` or `/var/tmp`. For example, do not use Bash here documents (`<<EOF` or `<<'EOF'`) in your commands, as the bash shell internally implements here documents by writing temporary files to `/tmp`. If you need to create a file or write content, write it directly using file creation tools or write to files located inside the `.pi` directory without utilizing here documents.",
+        ].join('\n')
+
       if (teamSkills.length > 0) {
-        prompt += '\n\nAvailable Skills:\n'
-        for (const s of teamSkills) {
-          prompt += `- ${s.name} (ID: ${s.id}): ${s.description || 'No description'}\n`
-        }
-        prompt +=
-          '\nTo use a skill, first use the "read_skill" tool with the skill ID to read its instructions.'
+        prompt += formatSkillsForPrompt(teamSkills)
       }
       return prompt
     },
@@ -157,7 +178,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
 
       return undefined
     },
-    tools: [analyzeAssetMediaTool, readSkill, sandboxedBash, ...customTools],
+    tools: [analyzeAssetMediaTool, readSkill, sandboxedBash, ...systemTools, ...customTools],
   })
 
   return { session, harness }
@@ -201,4 +222,42 @@ export function fieldsToTypeBoxSchema(fields: AutofillField[]) {
   }
 
   return Type.Object(properties)
+}
+
+function escapeXml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+}
+
+export function formatSkillsForPrompt(
+  skills: Array<{ id: string; name: string; description?: string | null }>,
+): string {
+  if (skills.length === 0) {
+    return ''
+  }
+
+  const lines = [
+    '\n\nThe following skills provide specialized instructions for specific tasks.',
+    "Use the read_skill tool to load a skill's file when the task matches its description.",
+    'When a skill file references a relative path, resolve it against the skill directory (parent of SKILL.md / dirname of the path) and use that absolute path in tool commands.',
+    '',
+    '<available_skills>',
+  ]
+
+  for (const skill of skills) {
+    const filePath = path.join(process.cwd(), '.pi', 'skills', skill.id, 'SKILL.md')
+    lines.push('  <skill>')
+    lines.push(`    <name>${escapeXml(skill.name)}</name>`)
+    lines.push(`    <description>${escapeXml(skill.description || 'No description')}</description>`)
+    lines.push(`    <location>${escapeXml(filePath)}</location>`)
+    lines.push('  </skill>')
+  }
+
+  lines.push('</available_skills>')
+
+  return lines.join('\n')
 }

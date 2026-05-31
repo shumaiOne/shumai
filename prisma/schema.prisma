@@ -104,6 +104,7 @@ enum WorkflowTaskType {
   chat
   ai_embedding
   query_embedding_for_search
+  agent_tool_call
 }
 
 enum WorkflowTaskStatus {

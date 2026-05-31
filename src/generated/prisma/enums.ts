@@ -129,7 +129,8 @@ export const WorkflowTaskType = {
   ai_metadata_autofill: 'ai_metadata_autofill',
   chat: 'chat',
   ai_embedding: 'ai_embedding',
-  query_embedding_for_search: 'query_embedding_for_search'
+  query_embedding_for_search: 'query_embedding_for_search',
+  agent_tool_call: 'agent_tool_call'
 } as const
 
 export type WorkflowTaskType = (typeof WorkflowTaskType)[keyof typeof WorkflowTaskType]

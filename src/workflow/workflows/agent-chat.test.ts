@@ -41,6 +41,9 @@ describe('Agent Chat Workflow', () => {
       updateCommentActivity: Object.assign(vi.fn(), { _activityName: 'updateCommentActivity' }),
       updateTaskUsageActivity: Object.assign(vi.fn(), { _activityName: 'updateTaskUsageActivity' }),
       deleteCommentActivity: Object.assign(vi.fn(), { _activityName: 'deleteCommentActivity' }),
+      getAssetPathContextActivity: Object.assign(vi.fn(), {
+        _activityName: 'getAssetPathContextActivity',
+      }),
     }
 
     mockActivities.getCommentActivity.mockResolvedValue({
@@ -53,6 +56,9 @@ describe('Agent Chat Workflow', () => {
     mockActivities.initializeAgentSessionActivity.mockResolvedValue('session-123')
     mockActivities.getAgentChatContextActivity.mockResolvedValue({ agent: { id: 'b1' } })
     mockActivities.getAgentWorkerQueueActivity.mockResolvedValue('agent_queue')
+    mockActivities.getAssetPathContextActivity.mockResolvedValue(
+      'Path: foo/bar/z.png\n\nname: foo, id: foo-id',
+    )
     mockActivities.agentChatActivity.mockResolvedValue({
       text: 'arr matey!',
       sessionId: 'session-123',

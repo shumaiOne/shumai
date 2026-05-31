@@ -10,8 +10,11 @@ import {
   getAgentAutofillContextActivity,
   getEmbeddingContextActivity,
   saveAssetEmbeddingsActivity,
+  getAssetPathContextActivity,
+  executeAgentToolActivity,
 } from './db'
 import type { SessionTreeEntry } from '@earendil-works/pi-agent-core'
+import { s3Service } from '@/services/s3/s3'
 
 describe('Database Activities', () => {
   setupTestDbHooks()
@@ -314,5 +317,328 @@ describe('Database Activities', () => {
       where: { assetId: asset.id },
     })
     expect(dbEmbeddings.length).toBe(1)
+  })
+
+  describe('Agent System Tools and Path Context Activities', () => {
+    it('should correctly format getAssetPathContextActivity', async () => {
+      const team = await prisma.team.create({ data: { name: 'Path Team' } })
+      const project = await prisma.project.create({
+        data: { name: 'Path Project', teamId: team.id },
+      })
+      const folder1 = await prisma.asset.create({
+        data: {
+          name: 'foo',
+          type: 'folder',
+          projectId: project.id,
+          status: 'uploaded',
+        },
+      })
+      const folder2 = await prisma.asset.create({
+        data: {
+          name: 'bar',
+          type: 'folder',
+          projectId: project.id,
+          parentId: folder1.id,
+          status: 'uploaded',
+        },
+      })
+      const file = await prisma.asset.create({
+        data: {
+          name: 'z.png',
+          type: 'file',
+          projectId: project.id,
+          parentId: folder2.id,
+          status: 'uploaded',
+        },
+      })
+
+      const pathCtx = await getAssetPathContextActivity(file.id)
+      expect(pathCtx).toContain('Path: foo/bar/z.png')
+      expect(pathCtx).toContain(`name: foo, id: ${folder1.id}`)
+      expect(pathCtx).toContain(`name: bar, id: ${folder2.id}`)
+      expect(pathCtx).toContain(`name: z.png, id: ${file.id}`)
+    })
+
+    it('should correctly list assets, create folders, create files, and create versions', async () => {
+      const fs = await import('fs')
+      const path = await import('path')
+
+      const team = await prisma.team.create({ data: { name: 'Tool Team' } })
+      const user = await prisma.user.create({
+        data: { name: 'Tool User', email: 'tooluser@example.com' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: user.id, role: 'owner' },
+      })
+
+      const project = await prisma.project.create({
+        data: { name: 'Tool Project', teamId: team.id },
+      })
+
+      const parentFolder = await prisma.asset.create({
+        data: {
+          name: 'Parent Folder',
+          type: 'folder',
+          projectId: project.id,
+          status: 'uploaded',
+          fileCount: 0,
+        },
+      })
+
+      // 1. Test create_folder via executeAgentToolActivity
+      const folderResult = await executeAgentToolActivity({
+        taskId: 'task1',
+        toolName: 'create_folder',
+        args: {
+          parent: parentFolder.id,
+          name: 'Child Folder',
+        },
+        userId: user.id,
+      })
+      expect(folderResult.id).toBeDefined()
+      expect(folderResult.name).toBe('Child Folder')
+      expect(folderResult.type).toBe('folder')
+
+      const updatedParent = await prisma.asset.findUnique({
+        where: { id: parentFolder.id },
+      })
+      expect(updatedParent?.fileCount).toBe(1)
+
+      // 2. Test create_file via executeAgentToolActivity
+      const tempFilePath = path.join(process.cwd(), 'temp_test_file.txt')
+      fs.writeFileSync(tempFilePath, 'hello Shumai!')
+
+      try {
+        const s3Key = await s3Service.uploadFile(tempFilePath, 'text/plain')
+        const fileResult = await executeAgentToolActivity({
+          taskId: 'task2',
+          toolName: 'create_file',
+          args: {
+            parent: parentFolder.id,
+            s3Key,
+            name: 'temp_test_file.txt',
+            size: fs.statSync(tempFilePath).size,
+            contentType: 'text/plain',
+          },
+          userId: user.id,
+        })
+        expect(fileResult.id).toBeDefined()
+        expect(fileResult.name).toBe('temp_test_file.txt')
+        expect(fileResult.type).toBe('file')
+
+        const parentAfterFile = await prisma.asset.findUnique({
+          where: { id: parentFolder.id },
+        })
+        expect(parentAfterFile?.fileCount).toBe(2)
+
+        // 3. Test list_assets via executeAgentToolActivity
+        const listResult = await executeAgentToolActivity({
+          taskId: 'task3',
+          toolName: 'list_assets',
+          args: {
+            parent: parentFolder.id,
+            page: 1,
+            pageSize: 10,
+            type: 'all',
+          },
+          userId: user.id,
+        })
+        expect(listResult.assets).toBeDefined()
+        expect(listResult.assets.length).toBe(2) // folder and file
+
+        // 4. Test create_version via executeAgentToolActivity (regular file -> stack)
+        const versionTempPath = path.join(process.cwd(), 'temp_version_file.txt')
+        fs.writeFileSync(versionTempPath, 'hello Shumai V2!')
+
+        try {
+          const s3KeyV2 = await s3Service.uploadFile(versionTempPath, 'text/plain')
+          const versionResult = await executeAgentToolActivity({
+            taskId: 'task4',
+            toolName: 'create_version',
+            args: {
+              parent: fileResult.id,
+              s3Key: s3KeyV2,
+              name: 'temp_version_file.txt',
+              size: fs.statSync(versionTempPath).size,
+              contentType: 'text/plain',
+            },
+            userId: user.id,
+          })
+          expect(versionResult.id).toBeDefined()
+          expect(versionResult.type).toBe('file')
+
+          // Check if parent (the original file) was stacked
+          const originalFile = await prisma.asset.findUnique({
+            where: { id: fileResult.id },
+            include: { parent: true },
+          })
+          expect(originalFile?.parentId).toBeDefined()
+          expect(originalFile?.parent?.type).toBe('version_stack')
+        } finally {
+          if (fs.existsSync(versionTempPath)) {
+            fs.unlinkSync(versionTempPath)
+          }
+        }
+      } finally {
+        if (fs.existsSync(tempFilePath)) {
+          fs.unlinkSync(tempFilePath)
+        }
+      }
+    })
+
+    it('should trigger post-upload workflows (transcode, AI) when creating file or version via agent tool', async () => {
+      const team = await prisma.team.create({ data: { name: 'Workflow Team' } })
+      const user = await prisma.user.create({
+        data: { name: 'Workflow User', email: 'wfuser@example.com' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: user.id, role: 'owner' },
+      })
+      const project = await prisma.project.create({
+        data: { name: 'Workflow Project', teamId: team.id },
+      })
+      const parentFolder = await prisma.asset.create({
+        data: {
+          name: 'Parent Folder',
+          type: 'folder',
+          projectId: project.id,
+          status: 'uploaded',
+        },
+      })
+
+      // Setup agents
+      const bot1 = await prisma.user.create({
+        data: { name: 'Autofill Bot', email: 'autobot@example.com', type: 'agent' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: bot1.id, role: 'editor' },
+      })
+      await prisma.agent.create({
+        data: {
+          user: { connect: { id: bot1.id } },
+          type: 'autofill',
+          enabled: true,
+          team: { connect: { id: team.id } },
+          config: { provider: 'google', model: 'gemini' },
+        },
+      })
+
+      const bot2 = await prisma.user.create({
+        data: { name: 'Embedding Bot', email: 'emb@example.com', type: 'agent' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: bot2.id, role: 'editor' },
+      })
+      await prisma.agent.create({
+        data: {
+          user: { connect: { id: bot2.id } },
+          type: 'embedding',
+          enabled: true,
+          team: { connect: { id: team.id } },
+          config: { provider: 'google', model: 'gemini' },
+        },
+      })
+
+      // Execute create_file with a video file type
+      const fileResult = await executeAgentToolActivity({
+        taskId: 'wf-task-1',
+        toolName: 'create_file',
+        args: {
+          parent: parentFolder.id,
+          s3Key: 'video/some-key.mp4',
+          name: 'test-video.mp4',
+          size: 1024 * 1024,
+          contentType: 'video/mp4',
+        },
+        userId: user.id,
+      })
+
+      expect(fileResult.id).toBeDefined()
+
+      // Fetch WorkflowTasks created for the asset
+      const tasks = await prisma.workflowTask.findMany({
+        where: { assetId: fileResult.id },
+      })
+
+      // Assert post-upload workflows are triggered
+      expect(tasks.length).toBe(3)
+      const types = tasks.map((t) => t.type)
+      expect(types).toContain('transcode')
+      expect(types).toContain('ai_metadata_autofill')
+      expect(types).toContain('ai_embedding')
+    })
+
+    it('should assign a lower sortIndex to newer versions so they are correctly marked as latest', async () => {
+      const team = await prisma.team.create({ data: { name: 'Version Team' } })
+      const user = await prisma.user.create({
+        data: { name: 'Version User', email: 'vuser@example.com' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: user.id, role: 'owner' },
+      })
+      const project = await prisma.project.create({
+        data: { name: 'Version Project', teamId: team.id },
+      })
+      const parentFolder = await prisma.asset.create({
+        data: {
+          name: 'Parent Folder',
+          type: 'folder',
+          projectId: project.id,
+          status: 'uploaded',
+        },
+      })
+
+      // Create file1 (V1)
+      const file1 = await prisma.asset.create({
+        data: {
+          name: 'file1.txt',
+          type: 'file',
+          parentId: parentFolder.id,
+          projectId: project.id,
+          status: 'uploaded',
+          sizeByte: 100,
+        },
+      })
+
+      // 1. Create file2 (V2) - Creates a new stack
+      const file2Result = await executeAgentToolActivity({
+        taskId: 'vstack-task-1',
+        toolName: 'create_version',
+        args: {
+          parent: file1.id,
+          s3Key: 'file/file2-key/raw',
+          name: 'file2.txt',
+          size: 150,
+          contentType: 'text/plain',
+        },
+        userId: user.id,
+      })
+
+      // Fetch from DB to check sortIndex
+      const updatedFile1 = await prisma.asset.findUnique({ where: { id: file1.id } })
+      const updatedFile2 = await prisma.asset.findUnique({ where: { id: file2Result.id } })
+
+      // Newest version (file2) must have a strictly lower sortIndex than older version (file1)
+      expect(updatedFile2!.sortIndex! < updatedFile1!.sortIndex!).toBe(true)
+
+      // 2. Create file3 (V3) - Appends to existing stack
+      const file3Result = await executeAgentToolActivity({
+        taskId: 'vstack-task-2',
+        toolName: 'create_version',
+        args: {
+          parent: file2Result.id,
+          s3Key: 'file/file3-key/raw',
+          name: 'file3.txt',
+          size: 200,
+          contentType: 'text/plain',
+        },
+        userId: user.id,
+      })
+
+      const updatedFile3 = await prisma.asset.findUnique({ where: { id: file3Result.id } })
+
+      // Newest version (file3) must have a strictly lower sortIndex than version 2 (file2)
+      expect(updatedFile3!.sortIndex! < updatedFile2!.sortIndex!).toBe(true)
+    })
   })
 })

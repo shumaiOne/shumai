@@ -1,3 +1,4 @@
+import { logger } from '@/logger'
 import { SandboxManager } from '@anthropic-ai/sandbox-runtime'
 import { type AgentTool, type AgentToolResult } from '@earendil-works/pi-agent-core'
 import { Type } from '@sinclair/typebox'
@@ -36,7 +37,8 @@ export const createSandboxedBashTool = (
           detached: true,
           stdio: ['ignore', 'pipe', 'pipe'],
           env: {
-            ...process.env,
+            PATH: process.env.PATH || '',
+            HOME: process.env.HOME || '',
             ...skillEnvs,
           },
         })
@@ -81,6 +83,10 @@ export const createSandboxedBashTool = (
         child.on('error', (err) => {
           if (timeoutHandle) clearTimeout(timeoutHandle)
           signal?.removeEventListener('abort', onAbort)
+          logger.error(
+            { err, command, stdout, stderr },
+            'Sandboxed bash command encountered process error',
+          )
           reject(err)
         })
 
@@ -89,10 +95,16 @@ export const createSandboxedBashTool = (
           signal?.removeEventListener('abort', onAbort)
 
           if (signal?.aborted) {
+            logger.error({ command, stdout, stderr }, 'Sandboxed bash command aborted')
             reject(new Error('aborted'))
           } else if (timedOut) {
+            logger.error({ timeout, command, stdout, stderr }, 'Sandboxed bash command timed out')
             reject(new Error(`bash command timed out after ${timeout} seconds`))
           } else if (code !== 0 && code !== null) {
+            logger.error(
+              { exitCode: code, command, stdout, stderr },
+              'Sandboxed bash command exited with failure code',
+            )
             reject(new Error(`bash command exited with code ${code}`))
           } else {
             const output = stdout + stderr
