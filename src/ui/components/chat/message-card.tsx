@@ -120,10 +120,18 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   return (
     <div
       onClick={onSelect}
-      className={`relative flex gap-4 ${isReply ? 'mt-2' : 'mt-3'} mr-3 group p-3 py-4 border transition-all duration-200 cursor-pointer rounded-xl ${
+      className={`relative flex gap-4 ${isReply ? 'mt-[-1px]' : 'mt-3'} mr-3 group p-3 py-4 border transition-all duration-200 cursor-pointer ${
+        isReply
+          ? isLastReply
+            ? 'rounded-b-xl rounded-t-none'
+            : 'rounded-none'
+          : hasReplies
+            ? 'rounded-t-xl rounded-b-none'
+            : 'rounded-xl'
+      } ${
         isSelected
-          ? 'border-blue-500/40 dark:border-blue-400/40 bg-blue-500/10 dark:bg-blue-400/10 shadow-sm'
-          : 'border-transparent bg-foreground/2 dark:bg-foreground/10 hover:bg-foreground/4 dark:hover:bg-foreground/15'
+          ? 'z-20 border-blue-500/40 dark:border-blue-400/40 bg-blue-500/10 dark:bg-blue-400/10 shadow-sm'
+          : 'z-10 border-transparent bg-foreground/2 dark:bg-foreground/10 hover:bg-foreground/4 dark:hover:bg-foreground/15'
       }`}
     >
       {/* Left Column: Avatar & Thread Lines */}
