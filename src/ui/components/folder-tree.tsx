@@ -156,7 +156,7 @@ export function FolderTree({
       >
         <header className="group flex items-center justify-between px-2 mb-1 flex-none">
           <div
-            className="flex items-center gap-1.5 cursor-pointer select-none text-muted-foreground hover:text-foreground transition-colors"
+            className="flex-1 flex items-center gap-1.5 cursor-pointer select-none text-muted-foreground hover:text-foreground transition-colors"
             onClick={() => setIsAssetsExpanded(!isAssetsExpanded)}
           >
             <h3 className="text-xs font-semibold uppercase tracking-wider">Assets</h3>
@@ -224,7 +224,7 @@ export function FolderTree({
         >
           <header className="group flex items-center justify-between px-2 mb-1 flex-none">
             <div
-              className="flex items-center gap-1.5 cursor-pointer select-none text-muted-foreground hover:text-foreground transition-colors"
+              className="flex-1 flex items-center gap-1.5 cursor-pointer select-none text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setIsCollectionsExpanded(!isCollectionsExpanded)}
             >
               <h3 className="text-xs font-semibold uppercase tracking-wider">Collections</h3>
@@ -275,7 +275,7 @@ export function FolderTree({
         >
           <header className="group flex items-center justify-between px-2 mb-1 flex-none">
             <div
-              className="flex items-center gap-1.5 cursor-pointer select-none text-muted-foreground hover:text-foreground transition-colors"
+              className="flex-1 flex items-center gap-1.5 cursor-pointer select-none text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setIsSharesExpanded(!isSharesExpanded)}
             >
               <h3 className="text-xs font-semibold uppercase tracking-wider">Share Links</h3>
