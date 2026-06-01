@@ -1,3 +1,4 @@
+import { client } from '@/ui/api/client'
 import { DualSidebar, DualSidebarItem } from '@/ui/components/dual-sidebar'
 import { NotificationList } from '@/ui/components/notification-list'
 import { TopNav } from '@/ui/components/top-nav'
@@ -7,14 +8,13 @@ import { UploadTasks } from '@/ui/components/upload-tasks'
 import { useAuthStore } from '@/ui/stores/auth'
 import { useTeamContextStore } from '@/ui/stores/team-context'
 import { useUploadStore } from '@/ui/stores/upload'
+import { useQuery } from '@tanstack/react-query'
 import {
   createRootRouteWithContext,
   Outlet,
   useNavigate,
   useRouterState,
 } from '@tanstack/react-router'
-import { useQuery } from '@tanstack/react-query'
-import { client } from '@/ui/api/client'
 import { useEffect } from 'react'
 
 function RootComponent() {

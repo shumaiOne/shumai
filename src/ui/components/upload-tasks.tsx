@@ -10,15 +10,15 @@ function UploadTaskItem({ task }: { task: TaskInfo }) {
   const progress =
     task.total && task.total > 0 ? `${((task.uploaded ?? 0) / task.total) * 100}%` : '0%'
   return (
-    <div className="p-2 rounded-md transition-colors hover:bg-slate-100 dark:hover:bg-slate-800">
+    <div className="p-2 rounded-md transition-colors hover:bg-sidebar-accent">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium truncate">{task.name ?? 'unknown'}</span>
-        <span className="text-xs text-slate-500 dark:text-slate-400">
+        <span className="text-xs text-muted-foreground">
           {task.uploaded}/{task.total}
         </span>
       </div>
-      <div className="mt-1 h-1 w-full bg-slate-200 dark:bg-slate-700 rounded-full">
-        <div className="h-1 bg-blue-600 rounded-full" style={{ width: progress }} />
+      <div className="mt-1 h-1 w-full bg-muted rounded-full">
+        <div className="h-1 bg-primary rounded-full" style={{ width: progress }} />
       </div>
     </div>
   )

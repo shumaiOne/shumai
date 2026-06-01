@@ -1,10 +1,10 @@
-import { type FieldInfo as MetadataFieldInfo, type FieldInfo, FieldType } from '@/dtos/metadata'
+import { FieldType, type FieldInfo, type FieldInfo as MetadataFieldInfo } from '@/dtos/metadata'
 import { client } from '@/ui/api/client'
-import { useMutation } from '@tanstack/react-query'
-import { InferRequestType, InferResponseType } from 'hono/client'
 import { useFieldStore } from '@/ui/stores/fields'
 import { DragDropProvider, KeyboardSensor, PointerSensor, type DragEndEvent } from '@dnd-kit/react'
 import { useSortable } from '@dnd-kit/react/sortable'
+import { useMutation } from '@tanstack/react-query'
+import { InferRequestType, InferResponseType } from 'hono/client'
 
 import { Button } from '@/ui/components/ui/button'
 import {

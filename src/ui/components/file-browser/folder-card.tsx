@@ -1,4 +1,5 @@
 import type { AssetInfo, ChildPreview } from '@/dtos/asset'
+import { Checkbox } from '@/ui/components/ui/checkbox'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -6,14 +7,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu'
+import { EditableText } from '@/ui/components/ui/editable-text'
 import { cn } from '@/ui/lib/utils'
 import { useDraggable, useDroppable } from '@dnd-kit/react'
 import { Download, Edit, History, MoreHorizontal, Trash2 } from 'lucide-react'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { DragState } from '../dnd-types'
 import { FilePreview } from './file-preview'
-import { Checkbox } from '@/ui/components/ui/checkbox'
-import { EditableText } from '@/ui/components/ui/editable-text'
 
 interface FolderCardProps {
   item: AssetInfo
@@ -51,21 +51,17 @@ const FolderPreviewGrid = ({ items }: { items: ChildPreview[] }) => {
 
   // 1 Item
   if (count === 1) {
-    return (
-      <div className="w-full h-full bg-zinc-200 dark:bg-zinc-800/50 rounded-sm">
-        {renderItem(safeChildren[0])}
-      </div>
-    )
+    return <div className="w-full h-full bg-muted/50 rounded-sm">{renderItem(safeChildren[0])}</div>
   }
 
   // 2 Items
   if (count === 2) {
     return (
       <div className="grid grid-cols-2 gap-0.5 h-full w-full">
-        <div className="overflow-hidden h-full bg-zinc-200 dark:bg-zinc-800/50 rounded-sm">
+        <div className="overflow-hidden h-full bg-muted/50 rounded-sm">
           {renderItem(safeChildren[0])}
         </div>
-        <div className="overflow-hidden h-full bg-zinc-200 dark:bg-zinc-800/50 rounded-sm">
+        <div className="overflow-hidden h-full bg-muted/50 rounded-sm">
           {renderItem(safeChildren[1])}
         </div>
       </div>
@@ -75,14 +71,14 @@ const FolderPreviewGrid = ({ items }: { items: ChildPreview[] }) => {
   // 3 Items
   return (
     <div className="grid grid-cols-3 gap-0.5 h-full w-full">
-      <div className="col-span-1 overflow-hidden h-full relative bg-zinc-200 dark:bg-zinc-800/50 rounded-sm col-span-2">
+      <div className="col-span-1 overflow-hidden h-full relative bg-muted/50 rounded-sm col-span-2">
         <div className="absolute inset-0 w-full h-full">{renderItem(safeChildren[0])}</div>
       </div>
       <div className="col-span-1 grid grid-rows-2 gap-0.5 h-full col-span-1">
-        <div className="overflow-hidden h-full relative bg-zinc-200 dark:bg-zinc-800/50 rounded-sm">
+        <div className="overflow-hidden h-full relative bg-muted/50 rounded-sm">
           <div className="absolute inset-0 w-full h-full">{renderItem(safeChildren[1])}</div>
         </div>
-        <div className="overflow-hidden h-full relative bg-zinc-200 dark:bg-zinc-800/50 rounded-sm">
+        <div className="overflow-hidden h-full relative bg-muted/50 rounded-sm">
           <div className="absolute inset-0 w-full h-full">{renderItem(safeChildren[2])}</div>
         </div>
       </div>
@@ -195,8 +191,8 @@ export function FolderCard({
   const tabHeight = 8
   const config = {
     cornerRadius: 4,
-    tabRadius: 3,
-    tabSlope: 10,
+    tabRadius: 0,
+    tabSlope: 15,
     tabBaseWidth: 150,
   }
   const folderPath = useMemo(() => {
@@ -223,6 +219,27 @@ export function FolderCard({
         'group relative w-full max-w-[340px] select-none cursor-pointer isolate flex flex-col items-center h-full',
       )}
     >
+      <div className="absolute inset-0 z-10 pointer-events-none">
+        <svg
+          width="100%"
+          height="100%"
+          viewBox={`0 0 ${width} ${height}`}
+          preserveAspectRatio="none"
+          className="overflow-visible"
+        >
+          <path
+            d={folderPath}
+            vectorEffect="non-scaling-stroke"
+            strokeLinejoin="round"
+            strokeWidth={showDropFeedback ? 3 : 1}
+            className={cn(
+              'transition-colors duration-200 fill-none group-hover:stroke-primary',
+              (isSelected || isChecked || showDropFeedback) && 'stroke-primary',
+            )}
+          />
+        </svg>
+      </div>
+
       <div className="absolute inset-0 -z-10 drop-shadow-sm pointer-events-none">
         <svg
           width="100%"
@@ -235,23 +252,19 @@ export function FolderCard({
             d={folderPath}
             vectorEffect="non-scaling-stroke"
             strokeLinejoin="round"
-            strokeWidth={showDropFeedback ? 3 : 2}
-            className={cn(
-              'transition-colors duration-200 fill-foreground/10 dark:fill-slate-800 dark:stroke-slate-600 group-hover:stroke-indigo-400 dark:group-hover:stroke-indigo-400',
-              (isSelected || isChecked || showDropFeedback) &&
-                'stroke-indigo-500 dark:stroke-indigo-400',
-            )}
+            strokeWidth={showDropFeedback ? 3 : 1}
+            className={cn('transition-colors duration-200 fill-foreground/15')}
           />
         </svg>
       </div>
 
-      <div className="relative w-[calc(100%-0.2rem)] mb-[0.1rem] flex flex-1 flex-col p-2 mt-4 bg-secondary rounded-sm">
+      <div className="relative w-full flex flex-1 flex-col p-2 mt-5 bg-muted dark:bg-card rounded-sm">
         <div className="relative w-full aspect-video shrink-0 overflow-hidden">
           <div className="absolute top-1 left-1 z-30 transition-all duration-200">
             <Checkbox
               checked={isChecked}
               onClick={(e) => e.stopPropagation()} // Let parent handler deal with it
-              className="w-5 h-5 border-1 border-black/30 bg-black/5 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
+              className="w-5 h-5 border-1 border-foreground/20 bg-background/50 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
             />
           </div>
 
@@ -268,11 +281,11 @@ export function FolderCard({
             onBlur={handleRename}
             onKeyDown={handleKeyDown}
             disabled={!isEditing}
-            className="font-semibold text-slate-800 dark:text-slate-100 text-lg leading-tight truncate h-auto p-0"
+            className="font-semibold text-foreground text-lg leading-tight truncate h-auto p-0 !bg-transparent"
             title={name}
           />
 
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+          <div className="flex items-center justify-between text-muted-foreground">
             <span className="text-xs tracking-wide opacity-80">
               {item.fileCount || 0} {(item.fileCount || 0) === 1 ? 'Item' : 'Items'}
             </span>
@@ -280,7 +293,7 @@ export function FolderCard({
               <DropdownMenuTrigger asChild>
                 <button
                   onClick={(e) => e.stopPropagation()}
-                  className="p-1.5 -mr-2 rounded-full hover:bg-slate-200/50 dark:hover:bg-slate-700/50 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors cursor-pointer"
+                  className="p-1.5 -mr-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 >
                   <MoreHorizontal size={18} />
                 </button>

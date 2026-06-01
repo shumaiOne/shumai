@@ -89,10 +89,10 @@ export const SkillsConfigCard: React.FC<SkillsConfigCardProps> = ({ teamId }) =>
   const skills = data?.skills || []
 
   return (
-    <Card className="border-slate-200 dark:border-slate-800">
+    <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg">
+          <div className="p-2 bg-primary/10 text-primary rounded-lg">
             <Puzzle className="w-6 h-6" />
           </div>
           <div>
@@ -109,17 +109,15 @@ export const SkillsConfigCard: React.FC<SkillsConfigCardProps> = ({ teamId }) =>
       <CardContent>
         {isLoading ? (
           <div className="flex justify-center py-10">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         ) : skills.length === 0 ? (
-          <div className="text-center py-12 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
-            <div className="mx-auto w-12 h-12 bg-slate-50 dark:bg-slate-900 rounded-full flex items-center justify-center mb-4 text-slate-400">
+          <div className="text-center py-12 border-2 border-dashed border-border rounded-xl">
+            <div className="mx-auto w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-4 text-muted-foreground">
               <Puzzle className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-medium text-slate-900 dark:text-white">
-              No skills installed
-            </h3>
-            <p className="text-slate-500 dark:text-slate-400 mt-1 max-w-xs mx-auto">
+            <h3 className="text-lg font-medium text-foreground">No skills installed</h3>
+            <p className="text-muted-foreground mt-1 max-w-xs mx-auto">
               Add a skill via GitHub URL or upload a ZIP file to get started.
             </p>
           </div>
@@ -174,7 +172,7 @@ export const SkillsConfigCard: React.FC<SkillsConfigCardProps> = ({ teamId }) =>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-destructive hover:bg-destructive/90 text-white"
               onClick={() => {
                 if (selectedSkill) {
                   deleteMutation.mutate(selectedSkill.id)
@@ -206,14 +204,12 @@ const SkillItem = ({
 }) => {
   return (
     <div
-      className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col justify-between hover:shadow-md transition-all group cursor-pointer"
+      className="p-4 bg-card rounded-xl border border-border flex flex-col justify-between hover:shadow-md transition-all group cursor-pointer"
       onClick={onConfigure}
     >
       <div>
         <div className="flex items-start justify-between mb-2">
-          <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            {skill.name}
-          </h4>
+          <h4 className="font-bold text-foreground flex items-center gap-2">{skill.name}</h4>
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -233,15 +229,13 @@ const SkillItem = ({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2">
+        <p className="text-sm text-muted-foreground line-clamp-2">
           {skill.description || 'No description provided.'}
         </p>
       </div>
-      <div className="mt-4 flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold">
+      <div className="mt-4 flex items-center justify-between text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
         <span>Updated {new Date(skill.updatedAt).toLocaleDateString()}</span>
-        <div className="px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
-          Installed
-        </div>
+        <div className="px-2 py-0.5 rounded-full bg-primary/10 text-primary">Installed</div>
       </div>
     </div>
   )

@@ -171,7 +171,7 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90 text-white"
               onClick={(e) => {
                 if (deleteAgentMutation.isPending) {
                   e.preventDefault()
@@ -194,13 +194,13 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
 
       {isLoading && agents.length === 0 ? (
         <div className="flex items-center justify-center p-12">
-          <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
         <div className="space-y-6 max-w-5xl mx-auto relative">
           {isLoading && (
             <div className="absolute top-0 right-0 p-2">
-              <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
             </div>
           )}
           {AGENT_TYPES.map((section) => {
@@ -210,16 +210,14 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
             return (
               <div
                 key={section.type}
-                className="bg-white dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden"
+                className="bg-card rounded-xl border border-border overflow-hidden"
               >
                 <div
-                  className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                  className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors"
                   onClick={() => toggleSection(section.type)}
                 >
                   <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-slate-900 dark:text-white">
-                      {section.label} Agents
-                    </h3>
+                    <h3 className="font-semibold text-foreground">{section.label} Agents</h3>
                     <Badge variant="secondary" className="h-5 px-1.5 min-w-[1.25rem] text-[10px]">
                       {typeAgents.length}
                     </Badge>
@@ -232,7 +230,7 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40"
+                        className="h-8 w-8 rounded-full bg-primary/10 text-primary hover:bg-primary/20"
                         onClick={(e) => {
                           e.stopPropagation()
                           setCreateType(section.type)
@@ -244,7 +242,7 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
                     )}
                     <ChevronDown
                       className={cn(
-                        'w-5 h-5 text-slate-400 transition-transform duration-200',
+                        'w-5 h-5 text-muted-foreground transition-transform duration-200',
                         expandedSections[section.type] ? 'rotate-180' : '',
                       )}
                     />
@@ -257,12 +255,12 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
                       {typeAgents.map((agent) => (
                         <Card
                           key={agent.id}
-                          className="group relative overflow-hidden border-slate-200 dark:border-slate-800 hover:border-blue-500/50 dark:hover:border-blue-400/50 transition-all duration-200 cursor-pointer"
+                          className="group relative overflow-hidden border-border hover:border-primary/50 transition-all duration-200 cursor-pointer"
                           onClick={() => setAgentToEdit(agent)}
                         >
                           <CardContent className="p-4 flex items-center justify-between">
                             <div className="flex items-center gap-3 min-w-0 flex-1">
-                              <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden">
+                              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden">
                                 {agent.avatar ? (
                                   <img
                                     src={agent.avatar}
@@ -270,14 +268,14 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
                                     alt=""
                                   />
                                 ) : (
-                                  <Bot className="w-6 h-6 text-slate-400" />
+                                  <Bot className="w-6 h-6 text-muted-foreground" />
                                 )}
                               </div>
                               <div className="min-w-0 flex-1">
-                                <span className="font-bold text-slate-900 dark:text-white block truncate">
+                                <span className="font-bold text-foreground block truncate">
                                   {agent.name}
                                 </span>
-                                <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                                   <span className="flex items-center gap-1">
                                     <Puzzle className="w-3 h-3" />
                                     {agent.skills?.length || 0} Skills
@@ -312,7 +310,7 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
                                   >
                                     <MoreVertical className="w-4 h-4" />
                                   </Button>
@@ -335,15 +333,17 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
                         </Card>
                       ))}
                       {typeAgents.length === 0 && (
-                        <div className="col-span-full py-8 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/20">
-                          <div className="w-10 h-10 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center shadow-sm mb-3">
-                            <Icon className="w-5 h-5 text-slate-400" />
+                        <div className="col-span-full py-8 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-xl bg-muted/30">
+                          <div className="w-10 h-10 rounded-full bg-card flex items-center justify-center shadow-sm mb-3">
+                            <Icon className="w-5 h-5 text-muted-foreground" />
                           </div>
-                          <p className="text-sm text-slate-500">No {section.label} agents found</p>
+                          <p className="text-sm text-muted-foreground">
+                            No {section.label} agents found
+                          </p>
                           <Button
                             variant="link"
                             size="sm"
-                            className="text-blue-600 font-medium h-auto p-0 mt-1"
+                            className="text-primary font-medium h-auto p-0 mt-1"
                             onClick={() => {
                               setCreateType(section.type)
                               setIsCreateDialogOpen(true)

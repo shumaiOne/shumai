@@ -116,7 +116,7 @@ export const NotificationList = () => {
   }
 
   return (
-    <div className="flex flex-col h-full w-full bg-white dark:bg-slate-900">
+    <div className="flex flex-col h-full w-full bg-transparent">
       <div className="flex-none pb-1">
         <Tabs
           value={activeTab}
@@ -136,7 +136,7 @@ export const NotificationList = () => {
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 px-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+              className="h-8 px-2 text-muted-foreground hover:text-foreground"
               onClick={handleMarkAllRead}
               disabled={notifications.length === 0 || markReadMutation.isPending}
               title="Mark all as read"
@@ -150,12 +150,12 @@ export const NotificationList = () => {
       <div className="flex-1 overflow-y-auto p-2 min-h-0">
         {isLoading && (
           <div className="flex justify-center p-4">
-            <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
         )}
 
         {!isLoading && notifications.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-40 text-slate-500 dark:text-slate-400">
+          <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
             <p className="text-sm">No notifications</p>
           </div>
         )}
@@ -168,7 +168,7 @@ export const NotificationList = () => {
 
         {/* Infinite Scroll Trigger */}
         <div ref={ref} className="h-4 w-full flex justify-center p-1">
-          {isFetchingNextPage && <Loader2 className="w-4 h-4 animate-spin text-slate-400" />}
+          {isFetchingNextPage && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
         </div>
       </div>
     </div>
