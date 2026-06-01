@@ -746,7 +746,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
             className={`p-2 rounded-full transition-all duration-200 flex items-center justify-center shrink-0 ${
               canSend && !isUploading
                 ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700 hover:shadow-lg transform hover:-translate-y-0.5'
-                : 'bg-primary text-gray-400 cursor-not-allowed'
+                : 'bg-gray-400 cursor-not-allowed'
             }`}
           >
             <ArrowUp className="w-4 h-4" />

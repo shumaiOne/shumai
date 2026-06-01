@@ -5,6 +5,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { useMatch, useNavigate, useParams } from '@tanstack/react-router'
 import {
   ChevronDown,
+  ChevronUp,
   ChevronRight,
   Clapperboard,
   Folder,
@@ -52,6 +53,10 @@ export function FolderTree({
     from: '/projects/$projectId/recently-deleted',
     shouldThrow: false,
   })
+
+  const [isAssetsExpanded, setIsAssetsExpanded] = useState(true)
+  const [isCollectionsExpanded, setIsCollectionsExpanded] = useState(true)
+  const [isSharesExpanded, setIsSharesExpanded] = useState(true)
 
   const { data: shareLinksData } = useQuery({
     queryKey: ['shares', projectId],
@@ -141,72 +146,103 @@ export function FolderTree({
   const shareLinks = shareLinksData?.data ?? []
 
   return (
-    <div className="flex flex-col overflow-hidden h-full">
-      <div className="flex-1 overflow-y-auto p-3 space-y-4">
-        <div>
-          <header className="flex items-center justify-between px-2 mb-1">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Assets
-            </h3>
-            <button className="text-muted-foreground hover:text-foreground">
+    <div className="flex flex-col h-full overflow-hidden p-3 gap-4 bg-background">
+      <div
+        className={cn(
+          'flex flex-col overflow-hidden',
+          isAssetsExpanded ? 'flex-1 min-h-0' : 'flex-none',
+        )}
+      >
+        <header className="flex items-center justify-between px-2 mb-1 flex-none">
+          <div
+            className="flex items-center gap-1.5 cursor-pointer select-none text-muted-foreground hover:text-foreground transition-colors"
+            onClick={() => setIsAssetsExpanded(!isAssetsExpanded)}
+          >
+            <h3 className="text-xs font-semibold uppercase tracking-wider">Assets</h3>
+            {isAssetsExpanded ? (
+              <ChevronUp className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5" />
+            )}
+          </div>
+          <button className="text-muted-foreground hover:text-foreground">
+            <Plus className="h-3.5 w-3.5" />
+          </button>
+        </header>
+
+        {isAssetsExpanded && (
+          <div className="flex-1 overflow-y-auto min-h-0 space-y-0.5 pr-1">
+            <FolderTreeItem
+              key={rootFolderId}
+              teamId={teamId}
+              projectId={projectId}
+              folder={{
+                id: rootFolderId,
+                name: projectName,
+                type: 'folder',
+                sizeByte: 0,
+                fileCount: 0,
+                status: 'processed',
+                mediaType: null,
+                createdAt: '',
+                updatedAt: '',
+              }}
+              level={0}
+              isRoot={true}
+              dragState={dragState}
+              onSelect={onSelect}
+              selectedFolderId={selectedFolderId}
+            />
+            <div
+              className={cn(
+                'group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                isRecentlyDeleted && 'bg-sidebar-accent text-sidebar-accent-foreground font-medium',
+              )}
+              onClick={() =>
+                navigate({
+                  to: '/projects/$projectId/recently-deleted',
+                  params: { projectId },
+                })
+              }
+            >
+              <div className="flex h-4 w-4 items-center justify-center">
+                <Trash2 className="h-4 w-4 text-sidebar-primary" />
+              </div>
+              <span className="flex-1 truncate text-sidebar-foreground">Recently Deleted</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {!hideCollections && (
+        <div
+          className={cn(
+            'flex flex-col overflow-hidden',
+            isCollectionsExpanded ? 'flex-1 min-h-0' : 'flex-none',
+          )}
+        >
+          <header className="flex items-center justify-between px-2 mb-1 flex-none">
+            <div
+              className="flex items-center gap-1.5 cursor-pointer select-none text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => setIsCollectionsExpanded(!isCollectionsExpanded)}
+            >
+              <h3 className="text-xs font-semibold uppercase tracking-wider">Collections</h3>
+              {isCollectionsExpanded ? (
+                <ChevronUp className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" />
+              )}
+            </div>
+            <button
+              onClick={() => createCollection()}
+              className="text-muted-foreground hover:text-foreground"
+            >
               <Plus className="h-3.5 w-3.5" />
             </button>
           </header>
-          <FolderTreeItem
-            key={rootFolderId}
-            teamId={teamId}
-            projectId={projectId}
-            folder={{
-              id: rootFolderId,
-              name: projectName,
-              type: 'folder',
-              sizeByte: 0,
-              fileCount: 0,
-              status: 'processed',
-              mediaType: null,
-              createdAt: '',
-              updatedAt: '',
-            }}
-            level={0}
-            isRoot={true}
-            dragState={dragState}
-            onSelect={onSelect}
-            selectedFolderId={selectedFolderId}
-          />
-          <div
-            className={cn(
-              'group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-              isRecentlyDeleted && 'bg-sidebar-accent text-sidebar-accent-foreground font-medium',
-            )}
-            onClick={() =>
-              navigate({
-                to: '/projects/$projectId/recently-deleted',
-                params: { projectId },
-              })
-            }
-          >
-            <div className="flex h-4 w-4 items-center justify-center">
-              <Trash2 className="h-4 w-4 text-sidebar-primary" />
-            </div>
-            <span className="flex-1 truncate text-sidebar-foreground">Recently Deleted</span>
-          </div>
-        </div>
 
-        {!hideCollections && (
-          <div>
-            <header className="flex items-center justify-between px-2 mb-1">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Collections
-              </h3>
-              <button
-                onClick={() => createCollection()}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <Plus className="h-3.5 w-3.5" />
-              </button>
-            </header>
-
-            <div className="space-y-0.5">
+          {isCollectionsExpanded && (
+            <div className="flex-1 overflow-y-auto min-h-0 space-y-0.5 pr-1">
               {collectionsData?.data.map((collection) => (
                 <div
                   key={collection.id}
@@ -225,26 +261,41 @@ export function FolderTree({
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
+      )}
 
-        {!hideShares && (
-          <div>
-            <header className="flex items-center justify-between px-2 mb-1">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Share Links
-              </h3>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => createShareLink()}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </header>
+      {!hideShares && (
+        <div
+          className={cn(
+            'flex flex-col overflow-hidden',
+            isSharesExpanded ? 'flex-1 min-h-0' : 'flex-none',
+          )}
+        >
+          <header className="flex items-center justify-between px-2 mb-1 flex-none">
+            <div
+              className="flex items-center gap-1.5 cursor-pointer select-none text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => setIsSharesExpanded(!isSharesExpanded)}
+            >
+              <h3 className="text-xs font-semibold uppercase tracking-wider">Share Links</h3>
+              {isSharesExpanded ? (
+                <ChevronUp className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronDown className="h-3.5 w-3.5" />
+              )}
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => createShareLink()}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </header>
 
-            <div className="space-y-0.5">
+          {isSharesExpanded && (
+            <div className="flex-1 overflow-y-auto min-h-0 space-y-0.5 pr-1">
               <div className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
                 <div className="flex h-4 w-4 items-center justify-center">
                   <LayoutGrid className="h-4 w-4 text-sidebar-primary" />
@@ -263,9 +314,9 @@ export function FolderTree({
                 />
               ))}
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
