@@ -1,5 +1,6 @@
 import { type FieldInfo as MetadataFieldInfo } from '@/dtos/metadata'
 import type { SearchSort } from '@/dtos/search'
+import { ArrowDownUp } from 'lucide-react'
 import { Button } from '@/ui/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/ui/popover'
 import {
@@ -86,7 +87,7 @@ export function SortControl({ fields, sort, onSortChange, disabled }: SortContro
           <div className="grid gap-2">
             <span className="text-sm text-muted-foreground">Sort by</span>
             <Select value={currentFieldId} onValueChange={handleFieldChange}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent position="popper">
@@ -99,18 +100,19 @@ export function SortControl({ fields, sort, onSortChange, disabled }: SortContro
             </Select>
           </div>
 
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground w-8">from</span>
-            <Select value={isAsc ? 'asc' : 'desc'} onValueChange={handleOrderChange}>
-              <SelectTrigger className="flex-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent position="popper">
-                <SelectItem value="asc">{dirOptions.asc}</SelectItem>
-                <SelectItem value="desc">{dirOptions.desc}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {currentFieldId !== 'custom' && (
+            <div className="grid gap-2">
+              <span className="text-sm text-muted-foreground">Order</span>
+              <Button
+                variant="outline"
+                className="w-full justify-between font-normal"
+                onClick={() => handleOrderChange(isAsc ? 'desc' : 'asc')}
+              >
+                <span>{isAsc ? dirOptions.asc : dirOptions.desc}</span>
+                <ArrowDownUp className="size-4 opacity-50" />
+              </Button>
+            </div>
+          )}
         </div>
       </PopoverContent>
     </Popover>
