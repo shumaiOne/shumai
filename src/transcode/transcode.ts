@@ -1,5 +1,5 @@
 import { prisma } from '@shumai/db'
-import { WorkflowTaskStatus, WorkflowTaskType } from '@/generated/prisma/client'
+import { WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
 import '@shumai/db/src/prisma-json-types'
 import { exec } from 'child_process'
 import * as fs from 'fs'

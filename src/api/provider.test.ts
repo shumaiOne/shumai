@@ -1,8 +1,8 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { Hono, type Context, type Next } from 'hono'
 import providerRoute from './provider'
-import { providerService } from '@/services/provider/provider'
-import { authzService, Permission, ResourceType } from '@/services/authz/authz'
+import { providerService } from '@shumai/core/src/provider/provider'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 
 vi.mock('@/api/middleware/auth', () => ({
   authMiddleware: async (
@@ -14,8 +14,8 @@ vi.mock('@/api/middleware/auth', () => ({
   },
 }))
 
-vi.mock('@/services/authz/authz')
-vi.mock('@/services/provider/provider')
+vi.mock('@shumai/core/src/authz/authz')
+vi.mock('@shumai/core/src/provider/provider')
 
 describe('provider api', () => {
   const app = new Hono<{ Variables: { user: { id: string; name: string } } }>()

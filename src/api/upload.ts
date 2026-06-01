@@ -1,17 +1,17 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
-import { uploadService } from '@/services/upload/upload'
+import { uploadService } from '@shumai/core/src/upload/upload'
 import {
   confirmFileUploadRequestSchema,
   createUploadTaskRequestSchema,
   localUploadQuerySchema,
 } from '@shumai/dtos'
 import { paginationParamsSchema } from '@shumai/dtos'
-import { authzService, Permission, ResourceType } from '@/services/authz/authz'
-import { notificationService } from '@/services/notification/notification'
-import { NotificationType } from '@/generated/prisma/client'
-import { s3Service, verifyLocalUrlSignature } from '@/services/s3/s3'
-import type { Prisma } from '@/generated/prisma/client'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import { notificationService } from '@shumai/core/src/notification/notification'
+import { NotificationType } from '@shumai/db'
+import { s3Service, verifyLocalUrlSignature } from '@shumai/core/src/s3/s3'
+import type { Prisma } from '@shumai/db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 

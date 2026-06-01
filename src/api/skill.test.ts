@@ -1,9 +1,9 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest'
 import { Hono } from 'hono'
 import skillRoute from './skill'
-import { skillService } from '@/services/skill/skill'
+import { skillService } from '@shumai/core/src/skill/skill'
 import { authMiddleware } from '@/api/middleware/auth'
-import { authzService, ResourceType, Permission } from '@/services/authz/authz'
+import { authzService, ResourceType, Permission } from '@shumai/core/src/authz/authz'
 
 vi.mock('@/api/middleware/auth', () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -14,7 +14,7 @@ vi.mock('@/api/middleware/auth', () => ({
   },
 }))
 
-vi.mock('@/services/authz/authz', () => ({
+vi.mock('@shumai/core/src/authz/authz', () => ({
   authzService: {
     hasPermission: vi.fn().mockResolvedValue(undefined),
   },

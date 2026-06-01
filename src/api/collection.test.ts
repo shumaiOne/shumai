@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { collectionService } from '@/services/collection/collection'
-import { authzService, Permission, ResourceType } from '@/services/authz/authz'
+import { collectionService } from '@shumai/core/src/collection/collection'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { Hono, Context, Next } from 'hono'
 import collectionRoute from './collection'
 
@@ -11,7 +11,7 @@ vi.mock('@/api/middleware/auth', () => ({
   },
 }))
 
-vi.mock('@/services/authz/authz', () => ({
+vi.mock('@shumai/core/src/authz/authz', () => ({
   authzService: {
     hasPermission: vi.fn().mockResolvedValue(undefined),
   },

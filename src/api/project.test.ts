@@ -1,9 +1,9 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { Hono, type Context, type Next } from 'hono'
 import projectRoute from './project'
-import { authzService, Permission, ResourceType } from '@/services/authz/authz'
-import { projectService } from '@/services/project/project'
-import { assetService } from '@/services/asset/asset'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import { projectService } from '@shumai/core/src/project/project'
+import { assetService } from '@shumai/core/src/asset/asset'
 
 vi.mock('@/api/middleware/auth', () => ({
   authMiddleware: async (
@@ -15,9 +15,9 @@ vi.mock('@/api/middleware/auth', () => ({
   },
 }))
 
-vi.mock('@/services/authz/authz')
-vi.mock('@/services/project/project')
-vi.mock('@/services/asset/asset')
+vi.mock('@shumai/core/src/authz/authz')
+vi.mock('@shumai/core/src/project/project')
+vi.mock('@shumai/core/src/asset/asset')
 
 describe('project api', () => {
   const app = new Hono<{ Variables: { user: { id: string; name: string } } }>()

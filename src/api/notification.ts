@@ -1,14 +1,14 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
-import { notificationService } from '@/services/notification/notification'
-import { authzService, Permission, ResourceType } from '@/services/authz/authz'
+import { notificationService } from '@shumai/core/src/notification/notification'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import {
   listNotificationsRequestSchema,
   markNotificationReadRequestSchema,
   notificationSettingsSchema,
 } from '@shumai/dtos'
-import { userMetadataService } from '@/services/user-metadata/user-metadata'
-import type { Prisma } from '@/generated/prisma/client'
+import { userMetadataService } from '@shumai/core/src/user-metadata/user-metadata'
+import type { Prisma } from '@shumai/db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 

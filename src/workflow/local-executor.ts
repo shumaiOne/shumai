@@ -1,5 +1,5 @@
 import { prisma } from '@shumai/db'
-import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '@/generated/prisma/client'
+import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
 import { Executor } from './executor'
 import { agentEmbeddingMedia } from './workflows/agent-embedding'
 import { queryEmbeddingForSearch } from './workflows/query-embedding-for-search'

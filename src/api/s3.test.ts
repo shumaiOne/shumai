@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { s3Service } from '@/services/s3/s3'
+import { s3Service } from '@shumai/core/src/s3/s3'
 import { Hono } from 'hono'
 
 const { mockServeStatic } = vi.hoisted(() => ({

@@ -1,5 +1,5 @@
 import { Connection, Client } from '@temporalio/client'
-import { WorkflowTask, WorkflowTaskType } from '@/generated/prisma/client'
+import { WorkflowTask, WorkflowTaskType } from '@shumai/db'
 import { Executor } from './executor'
 
 export const TASK_QUEUE_DB = 'db_queue'

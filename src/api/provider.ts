@@ -1,9 +1,9 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
-import { authzService, Permission, ResourceType } from '@/services/authz/authz'
-import { providerService } from '@/services/provider/provider'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import { providerService } from '@shumai/core/src/provider/provider'
 import { createProviderRequestSchema, updateProviderRequestSchema } from '@shumai/dtos'
-import type { Prisma } from '@/generated/prisma/client'
+import type { Prisma } from '@shumai/db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 

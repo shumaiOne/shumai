@@ -2,11 +2,11 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { Hono } from 'hono'
 import versionStackRoute from './versionStack'
 import { authMiddleware } from '@/api/middleware/auth'
-import { versionStackService } from '@/services/versionStack/versionStack'
-import { assetService } from '@/services/asset/asset'
-import { authzService, ResourceType, Permission } from '@/services/authz/authz'
+import { versionStackService } from '@shumai/core/src/versionStack/versionStack'
+import { assetService } from '@shumai/core/src/asset/asset'
+import { authzService, ResourceType, Permission } from '@shumai/core/src/authz/authz'
 
-vi.mock('@/services/authz/authz', () => ({
+vi.mock('@shumai/core/src/authz/authz', () => ({
   authzService: {
     hasPermission: vi.fn().mockResolvedValue(undefined),
   },

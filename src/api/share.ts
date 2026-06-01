@@ -1,14 +1,14 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
-import { authzService, Permission, ResourceType } from '@/services/authz/authz'
-import { shareService } from '@/services/share/share'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import { shareService } from '@shumai/core/src/share/share'
 import {
   createShareLinkRequestSchema,
   updateShareLinkRequestSchema,
   listShareLinksRequestSchema,
   addAssetToShareRequestSchema,
 } from '@shumai/dtos'
-import type { Prisma } from '@/generated/prisma/client'
+import type { Prisma } from '@shumai/db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 

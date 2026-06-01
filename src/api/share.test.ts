@@ -3,9 +3,9 @@ import { Hono } from 'hono'
 import shareRoute from './share'
 import publicShareRoute from './public-share'
 import { authMiddleware } from '@/api/middleware/auth'
-import { shareService } from '@/services/share/share'
-import { assetService } from '@/services/asset/asset'
-import { authzService, Permission, ResourceType } from '@/services/authz/authz'
+import { shareService } from '@shumai/core/src/share/share'
+import { assetService } from '@shumai/core/src/asset/asset'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 
 vi.mock('@/api/middleware/auth', () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -16,7 +16,7 @@ vi.mock('@/api/middleware/auth', () => ({
   },
 }))
 
-vi.mock('@/services/authz/authz', () => ({
+vi.mock('@shumai/core/src/authz/authz', () => ({
   authzService: {
     hasPermission: vi.fn().mockResolvedValue(undefined),
   },

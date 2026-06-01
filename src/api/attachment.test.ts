@@ -1,10 +1,10 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { Hono } from 'hono'
 import attachmentRoute from './attachment'
-import { assetService } from '@/services/asset/asset'
-import { AssetType } from '@/generated/prisma/client'
+import { assetService } from '@shumai/core/src/asset/asset'
+import { AssetType } from '@shumai/db'
 import { authMiddleware } from '@/api/middleware/auth'
-import { authzService, Permission, ResourceType } from '@/services/authz/authz'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 
 vi.mock('@/api/middleware/auth', () => ({
   // any is used here because Hono's Context and Next types are complex to mock in vitest.mock
@@ -16,10 +16,10 @@ vi.mock('@/api/middleware/auth', () => ({
   },
 }))
 
-vi.mock('@/services/authz/authz')
-vi.mock('@/services/asset/asset')
+vi.mock('@shumai/core/src/authz/authz')
+vi.mock('@shumai/core/src/asset/asset')
 
-vi.mock('@/services/s3/s3', () => ({
+vi.mock('@shumai/core/src/s3/s3', () => ({
   s3Service: {
     presign: vi.fn().mockResolvedValue('http://mock-s3-url'),
   },

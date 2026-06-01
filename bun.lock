@@ -145,6 +145,22 @@
         "vitest": "^4.1.4",
       },
     },
+    "packages/core": {
+      "name": "@shumai/core",
+      "version": "0.1.0",
+      "dependencies": {
+        "@aws-sdk/client-s3": "^3.1031.0",
+        "@aws-sdk/s3-request-presigner": "^3.1031.0",
+        "@shumai/db": "workspace:*",
+        "@shumai/dtos": "workspace:*",
+        "adm-zip": "^0.5.17",
+        "better-auth": "^1.6.6",
+        "date-fns": "^4.4.0",
+        "jittered-fractional-indexing": "^1.0.1",
+        "pino": "^10.3.1",
+        "ulid": "^3.0.2",
+      },
+    },
     "packages/db": {
       "name": "@shumai/db",
       "version": "0.1.0",
@@ -941,6 +957,8 @@
     "@shikijs/types": ["@shikijs/types@3.23.0", "", { "dependencies": { "@shikijs/vscode-textmate": "^10.0.2", "@types/hast": "^3.0.4" } }, "sha512-3JZ5HXOZfYjsYSk0yPwBrkupyYSLpAE26Qc0HLghhZNGTZg/SKxXIIgoxOpmmeQP0RRSDJTk1/vPfw9tbw+jSQ=="],
 
     "@shikijs/vscode-textmate": ["@shikijs/vscode-textmate@10.0.2", "", {}, "sha512-83yeghZ2xxin3Nj8z1NMd/NCuca+gsYXswywDy5bHvwlWL8tpTQmzGeUuHd9FC3E/SBEMvzJRwWEOz5gGes9Qg=="],
+
+    "@shumai/core": ["@shumai/core@workspace:packages/core"],
 
     "@shumai/db": ["@shumai/db@workspace:packages/db"],
 

@@ -3,7 +3,7 @@ import { type AgentTool } from '@earendil-works/pi-agent-core'
 import { executeAgentToolWorkflow } from './utils'
 import * as fs from 'fs'
 import * as path from 'path'
-import { s3Service } from '@/services/s3/s3'
+import { s3Service } from '@shumai/core/src/s3/s3'
 import { detectSupportedMimeType } from '@/utils/mime'
 import { ulid } from 'ulid'
 

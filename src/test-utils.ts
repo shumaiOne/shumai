@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
-import { Prisma } from './generated/prisma/client'
+import { Prisma } from '@shumai/db'
 
 type PromiseResolveFunction = (value: void | PromiseLike<void>) => void
 const internalRollbackErrorSymbol = Symbol(

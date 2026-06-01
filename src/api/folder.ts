@@ -1,8 +1,8 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
-import { authzService, Permission, ResourceType } from '@/services/authz/authz'
-import { assetService } from '@/services/asset/asset'
-import { searchService } from '@/services/search/search'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import { assetService } from '@shumai/core/src/asset/asset'
+import { searchService } from '@shumai/core/src/search/search'
 import {
   createFolderRequestSchema,
   updateFolderRequestSchema,
@@ -11,7 +11,7 @@ import {
 } from '@shumai/dtos'
 import { listChildrenRequestSchema, updateAssetOrderRequestSchema } from '@shumai/dtos'
 import { searchRequestSchema } from '@shumai/dtos'
-import type { Prisma } from '@/generated/prisma/client'
+import type { Prisma } from '@shumai/db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 

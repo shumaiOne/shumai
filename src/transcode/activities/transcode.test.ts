@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db'
 import { getMediaInfoActivity, transcodeVideoActivity, updateAssetMediaActivity } from './transcode'
-import { s3Service } from '@/services/s3/s3'
+import { s3Service } from '@shumai/core/src/s3/s3'
 import { transcodeService } from '@/transcode/transcode'
 
-vi.mock('@/services/s3/s3', () => ({
+vi.mock('@shumai/core/src/s3/s3', () => ({
   s3Service: {
     getObject: vi.fn(),
     putObject: vi.fn(),

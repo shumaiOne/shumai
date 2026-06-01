@@ -1,4 +1,4 @@
-import type { WorkflowTask } from '@/generated/prisma/client'
+import type { WorkflowTask } from '@shumai/db'
 import { ApplicationFailure } from '@temporalio/workflow'
 import {
   getActivities,

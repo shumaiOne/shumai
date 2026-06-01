@@ -6,11 +6,11 @@ import {
   joinRequestSchema,
   InviteInfo,
 } from '@shumai/dtos'
-import { authzService, Permission, ResourceType } from '@/services/authz/authz'
-import { inviteService } from '@/services/invite/invite'
-import { notificationService } from '@/services/notification/notification'
-import { NotificationType } from '@/generated/prisma/client'
-import type { Prisma } from '@/generated/prisma/client'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import { inviteService } from '@shumai/core/src/invite/invite'
+import { notificationService } from '@shumai/core/src/notification/notification'
+import { NotificationType } from '@shumai/db'
+import type { Prisma } from '@shumai/db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 

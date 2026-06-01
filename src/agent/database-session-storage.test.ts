@@ -1,10 +1,10 @@
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db'
-import { s3Service } from '@/services/s3/s3'
+import { s3Service } from '@shumai/core/src/s3/s3'
 import { type SessionTreeEntry } from '@earendil-works/pi-agent-core'
 import { describe, expect, it, vi } from 'vitest'
 import { DatabaseSessionStorage } from './database-session-storage'
-import { agentService } from '@/services/agent/agent'
+import { agentService } from '@shumai/core/src/agent/agent'
 import { createAgentSession } from './index'
 import * as sandboxedBashModule from './tools/sandboxed-bash'
 

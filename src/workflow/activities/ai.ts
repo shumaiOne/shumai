@@ -1,5 +1,5 @@
 import { GoogleGenAI } from '@google/genai'
-import { s3Service } from '@/services/s3/s3'
+import { s3Service } from '@shumai/core/src/s3/s3'
 import { transcodeService } from '@/transcode/transcode'
 import { exec } from 'child_process'
 import * as fs from 'fs'

@@ -1,5 +1,5 @@
-import type { Prisma } from '@/generated/prisma/client'
-import { auth } from '@/services/auth/auth'
+import type { Prisma } from '@shumai/db'
+import { auth } from '@shumai/core/src/auth/auth'
 import { prisma } from '@shumai/db'
 import { createMiddleware } from 'hono/factory'
 

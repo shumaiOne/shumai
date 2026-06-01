@@ -1,12 +1,12 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { Hono } from 'hono'
 import folderRoute from './folder'
-import { assetService } from '@/services/asset/asset'
-import { searchService } from '@/services/search/search'
-import { authzService, ResourceType, Permission } from '@/services/authz/authz'
+import { assetService } from '@shumai/core/src/asset/asset'
+import { searchService } from '@shumai/core/src/search/search'
+import { authzService, ResourceType, Permission } from '@shumai/core/src/authz/authz'
 import { authMiddleware } from '@/api/middleware/auth'
 
-vi.mock('@/services/authz/authz', () => ({
+vi.mock('@shumai/core/src/authz/authz', () => ({
   authzService: {
     hasPermission: vi.fn().mockResolvedValue(undefined),
   },

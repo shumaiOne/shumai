@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
-import { teamService } from '@/services/team/team'
-import { auth } from '@/services/auth/auth'
+import { teamService } from '@shumai/core/src/team/team'
+import { auth } from '@shumai/core/src/auth/auth'
 import { z } from 'zod'
 import { zValidator } from '@hono/zod-validator'
 import { prisma } from '@shumai/db'

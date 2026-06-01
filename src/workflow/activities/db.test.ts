@@ -14,7 +14,7 @@ import {
   executeAgentToolActivity,
 } from './db'
 import type { SessionTreeEntry } from '@earendil-works/pi-agent-core'
-import { s3Service } from '@/services/s3/s3'
+import { s3Service } from '@shumai/core/src/s3/s3'
 
 describe('Database Activities', () => {
   setupTestDbHooks()

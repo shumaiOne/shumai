@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { s3Service } from '@/services/s3/s3'
+import { s3Service } from '@shumai/core/src/s3/s3'
 import { serveStatic } from 'hono/bun'
 
 const route = new Hono()

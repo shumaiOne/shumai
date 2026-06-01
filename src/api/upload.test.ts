@@ -2,10 +2,10 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { Hono } from 'hono'
 import uploadRoute from './upload'
 import { authMiddleware } from '@/api/middleware/auth'
-import { uploadService } from '@/services/upload/upload'
+import { uploadService } from '@shumai/core/src/upload/upload'
 import type { CreateUploadTaskResponse, TaskInfo } from '@shumai/dtos'
-import type { PaginatedData } from '@/services/pagination'
-import { authzService, ResourceType, Permission } from '@/services/authz/authz'
+import type { PaginatedData } from '@shumai/core/src/pagination'
+import { authzService, ResourceType, Permission } from '@shumai/core/src/authz/authz'
 
 vi.mock('@/api/middleware/auth', () => ({
   // We use any here because mocking Hono context and middleware
@@ -18,7 +18,7 @@ vi.mock('@/api/middleware/auth', () => ({
   },
 }))
 
-vi.mock('@/services/authz/authz', () => ({
+vi.mock('@shumai/core/src/authz/authz', () => ({
   authzService: {
     hasPermission: vi.fn().mockResolvedValue(undefined),
   },
@@ -33,7 +33,7 @@ vi.mock('@/services/authz/authz', () => ({
   },
 }))
 
-vi.mock('@/services/notification/notification', () => ({
+vi.mock('@shumai/core/src/notification/notification', () => ({
   notificationService: {
     create: vi.fn().mockResolvedValue(undefined),
   },

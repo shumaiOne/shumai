@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { paginationPageInfoSchema, paginationParamsSchema } from './pagination'
-import { UserType } from '@/generated/prisma/enums'
+import { UserType } from '@shumai/db'
 
 export const createTeamRequestSchema = z.object({
   name: z.string(),

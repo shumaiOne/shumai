@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { Hono } from 'hono'
 import authnRoute from './authn'
-import { teamService } from '@/services/team/team'
+import { teamService } from '@shumai/core/src/team/team'
 
 describe('authn api', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

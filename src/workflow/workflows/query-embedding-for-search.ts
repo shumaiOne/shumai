@@ -1,4 +1,4 @@
-import type { WorkflowTask } from '@/generated/prisma/client'
+import type { WorkflowTask } from '@shumai/db'
 import { getActivities, executeActivity, TaskQueueDb } from '../workflow-utils'
 
 export async function queryEmbeddingForSearch(task: WorkflowTask): Promise<void> {

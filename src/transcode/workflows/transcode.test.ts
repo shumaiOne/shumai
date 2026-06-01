@@ -5,7 +5,7 @@ import {
   WorkflowTaskStatus,
   WorkflowTaskType,
   AssetStatus,
-} from '@/generated/prisma/client'
+} from '@shumai/db'
 import * as workflowUtils from '@/workflow/workflow-utils'
 
 vi.mock('@/workflow/workflow-utils', async (importOriginal) => {

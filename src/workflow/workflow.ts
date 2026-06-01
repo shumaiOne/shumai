@@ -1,4 +1,4 @@
-import { WorkflowTask } from '@/generated/prisma/client'
+import { WorkflowTask } from '@shumai/db'
 import { Executor } from './executor'
 import { LocalExecutor } from './local-executor'
 import { TemporalExecutor } from './temporal-executor'

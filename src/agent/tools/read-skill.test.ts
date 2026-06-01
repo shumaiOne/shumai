@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db'
 import { createReadSkillTool } from './read-skill'
-import { s3Service } from '@/services/s3/s3'
+import { s3Service } from '@shumai/core/src/s3/s3'
 import * as fs from 'fs'
 
-vi.mock('@/services/s3/s3')
+vi.mock('@shumai/core/src/s3/s3')
 vi.mock('fs')
 vi.mock('adm-zip', () => {
   return {

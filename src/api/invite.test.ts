@@ -2,13 +2,13 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { Hono, type Context, type Next } from 'hono'
 import inviteRoute from './invite'
 import publicInviteRoute from './public-invite'
-import { authzService, Permission, ResourceType } from '@/services/authz/authz'
-import { inviteService } from '@/services/invite/invite'
-import { notificationService } from '@/services/notification/notification'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import { inviteService } from '@shumai/core/src/invite/invite'
+import { notificationService } from '@shumai/core/src/notification/notification'
 
-vi.mock('@/services/invite/invite')
-vi.mock('@/services/notification/notification')
-vi.mock('@/services/authz/authz')
+vi.mock('@shumai/core/src/invite/invite')
+vi.mock('@shumai/core/src/notification/notification')
+vi.mock('@shumai/core/src/authz/authz')
 
 vi.mock('@/api/middleware/auth', () => ({
   authMiddleware: async (

@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { inviteService } from '@/services/invite/invite'
+import { inviteService } from '@shumai/core/src/invite/invite'
 import { InviteInfo } from '@shumai/dtos'
 
 const app = new Hono()

@@ -1,8 +1,8 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
-import { authzService, Permission, ResourceType } from '@/services/authz/authz'
-import { projectService } from '@/services/project/project'
-import { assetService } from '@/services/asset/asset'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import { projectService } from '@shumai/core/src/project/project'
+import { assetService } from '@shumai/core/src/asset/asset'
 import { reparentAssetsRequestSchema, copyAssetsRequestSchema } from '@shumai/dtos'
 import {
   createProjectRequestSchema,
@@ -11,7 +11,7 @@ import {
   recentlyDeletedRequestSchema,
 } from '@shumai/dtos'
 import { listMembersQuerySchema } from '@shumai/dtos'
-import type { Prisma } from '@/generated/prisma/client'
+import type { Prisma } from '@shumai/db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 

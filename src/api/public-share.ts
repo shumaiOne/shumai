@@ -1,16 +1,16 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
-import { shareService } from '@/services/share/share'
-import { assetService } from '@/services/asset/asset'
+import { shareService } from '@shumai/core/src/share/share'
+import { assetService } from '@shumai/core/src/asset/asset'
 import { paginationParamsSchema } from '@shumai/dtos'
 import { z } from 'zod'
-import { metadataService } from '@/services/metadata/metadata'
+import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { FieldInfo } from '@shumai/dtos'
-import type { Prisma as PrismaType } from '@/generated/prisma/client'
-import { auth } from '@/services/auth/auth'
+import type { Prisma as PrismaType } from '@shumai/db'
+import { auth } from '@shumai/core/src/auth/auth'
 import { prisma } from '@shumai/db'
 import { createCommentRequestSchema } from '@shumai/dtos'
-import { notificationService } from '@/services/notification/notification'
+import { notificationService } from '@shumai/core/src/notification/notification'
 
 const app = new Hono()
 

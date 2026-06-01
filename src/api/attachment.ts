@@ -1,12 +1,12 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { postAttachmentRequestSchema } from '@shumai/dtos'
-import { assetService } from '@/services/asset/asset'
-import { s3Service } from '@/services/s3/s3'
-import { AssetType } from '@/generated/prisma/client'
+import { assetService } from '@shumai/core/src/asset/asset'
+import { s3Service } from '@shumai/core/src/s3/s3'
+import { AssetType } from '@shumai/db'
 import { ulid } from 'ulid'
-import { authzService, Permission, ResourceType } from '@/services/authz/authz'
-import type { Prisma } from '@/generated/prisma/client'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import type { Prisma } from '@shumai/db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 

@@ -1,10 +1,10 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
-import { versionStackService } from '@/services/versionStack/versionStack'
-import { assetService } from '@/services/asset/asset'
-import { authzService, Permission, ResourceType } from '@/services/authz/authz'
+import { versionStackService } from '@shumai/core/src/versionStack/versionStack'
+import { assetService } from '@shumai/core/src/asset/asset'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { createVersionStackRequestSchema, changeStackFileVersionRequestSchema } from '@shumai/dtos'
-import type { Prisma } from '@/generated/prisma/client'
+import type { Prisma } from '@shumai/db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 

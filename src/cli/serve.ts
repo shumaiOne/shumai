@@ -1,6 +1,6 @@
 import index from '@/ui/index.html'
 
-import type { Prisma } from '@/generated/prisma/client'
+import type { Prisma } from '@shumai/db'
 import { Hono } from 'hono'
 import agentRoute from '@/api/agent'
 import attachmentRoute from '@/api/attachment'
@@ -22,8 +22,8 @@ import skillRoute from '@/api/skill'
 import teamRoute from '@/api/team'
 import uploadRoute from '@/api/upload'
 import versionStackRoute from '@/api/versionStack'
-import { metadataService } from '@/services/metadata/metadata'
-import { assetService } from '@/services/asset/asset'
+import { metadataService } from '@shumai/core/src/metadata/metadata'
+import { assetService } from '@shumai/core/src/asset/asset'
 import { workflowService } from '@/workflow/workflow'
 
 type User = Prisma.UserGetPayload<Record<string, never>>

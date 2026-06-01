@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { agentService } from '@/services/agent/agent'
-import { authzService } from '@/services/authz/authz'
+import { agentService } from '@shumai/core/src/agent/agent'
+import { authzService } from '@shumai/core/src/authz/authz'
 import app from './agent'
 
-vi.mock('@/services/agent/agent')
-vi.mock('@/services/authz/authz')
+vi.mock('@shumai/core/src/agent/agent')
+vi.mock('@shumai/core/src/authz/authz')
 
 describe('Agent API', () => {
   beforeEach(() => {

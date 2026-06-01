@@ -2,14 +2,14 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { Hono, type Context, type Next } from 'hono'
 import { prisma } from '@shumai/db'
 import fileRoute from './file'
-import { assetService } from '@/services/asset/asset'
-import { metadataService } from '@/services/metadata/metadata'
-import { notificationService } from '@/services/notification/notification'
-import { s3Service } from '@/services/s3/s3'
+import { assetService } from '@shumai/core/src/asset/asset'
+import { metadataService } from '@shumai/core/src/metadata/metadata'
+import { notificationService } from '@shumai/core/src/notification/notification'
+import { s3Service } from '@shumai/core/src/s3/s3'
 import { authMiddleware } from '@/api/middleware/auth'
-import { authzService, ResourceType, Permission } from '@/services/authz/authz'
+import { authzService, ResourceType, Permission } from '@shumai/core/src/authz/authz'
 
-vi.mock('@/services/authz/authz', () => ({
+vi.mock('@shumai/core/src/authz/authz', () => ({
   authzService: {
     hasPermission: vi.fn().mockResolvedValue(undefined),
   },

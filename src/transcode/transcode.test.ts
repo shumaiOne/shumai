@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { transcodeService } from './transcode'
 import * as path from 'path'
 import * as child_process from 'child_process'
-import { WorkflowTask } from '@/generated/prisma/client'
+import { WorkflowTask } from '@shumai/db'
 import sharp from 'sharp'
 
 // Mock child_process

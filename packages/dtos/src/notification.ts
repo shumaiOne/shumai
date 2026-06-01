@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { NotificationType } from '@/generated/prisma/client'
+import { NotificationType } from '@shumai/db'
 
 export const teamUserInfoSchema = z.object({
   id: z.string().optional(),

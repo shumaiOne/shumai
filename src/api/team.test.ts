@@ -2,12 +2,12 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { Hono } from 'hono'
 import teamRoute from './team'
 import { authMiddleware } from '@/api/middleware/auth'
-import { teamService } from '@/services/team/team'
-import { userMetadataService } from '@/services/user-metadata/user-metadata'
-import { notificationService } from '@/services/notification/notification'
-import { authzService, ResourceType, Permission } from '@/services/authz/authz'
+import { teamService } from '@shumai/core/src/team/team'
+import { userMetadataService } from '@shumai/core/src/user-metadata/user-metadata'
+import { notificationService } from '@shumai/core/src/notification/notification'
+import { authzService, ResourceType, Permission } from '@shumai/core/src/authz/authz'
 
-vi.mock('@/services/authz/authz', () => ({
+vi.mock('@shumai/core/src/authz/authz', () => ({
   authzService: {
     hasPermission: vi.fn().mockResolvedValue(undefined),
   },

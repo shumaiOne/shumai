@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { prisma } from '@shumai/db'
 import { workflowService } from './workflow'
-import { WorkflowTaskStatus, WorkflowTaskType } from '@/generated/prisma/client'
+import { WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
 
-vi.mock('@/services/s3/s3', () => ({
+vi.mock('@shumai/core/src/s3/s3', () => ({
   s3Service: {
     getObject: vi.fn(),
     putObject: vi.fn(),

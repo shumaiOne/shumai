@@ -1,10 +1,10 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
-import { authzService, Permission, ResourceType } from '@/services/authz/authz'
-import { teamService } from '@/services/team/team'
-import { userMetadataService } from '@/services/user-metadata/user-metadata'
-import { notificationService } from '@/services/notification/notification'
-import { NotificationType } from '@/generated/prisma/client'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import { teamService } from '@shumai/core/src/team/team'
+import { userMetadataService } from '@shumai/core/src/user-metadata/user-metadata'
+import { notificationService } from '@shumai/core/src/notification/notification'
+import { NotificationType } from '@shumai/db'
 import {
   createTeamRequestSchema,
   getUserTeamsRequestSchema,
@@ -13,7 +13,7 @@ import {
   updateSandboxSettingsRequestSchema,
 } from '@shumai/dtos'
 import { updateUserMetadataRequestSchema } from '@shumai/dtos'
-import type { Prisma } from '@/generated/prisma/client'
+import type { Prisma } from '@shumai/db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 

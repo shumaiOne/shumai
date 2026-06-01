@@ -1,4 +1,4 @@
-import { WorkflowTask } from '@/generated/prisma/client'
+import { WorkflowTask } from '@shumai/db'
 
 export interface Executor {
   submit(task: WorkflowTask): Promise<string>

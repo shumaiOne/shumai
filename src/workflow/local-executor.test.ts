@@ -3,7 +3,7 @@ import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db'
 import { workflowService } from './workflow'
 import { LocalExecutor, ConcurrencyLimiter } from './local-executor'
-import { WorkflowTaskStatus, WorkflowTaskType } from '@/generated/prisma/client'
+import { WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
 
 // Mock the individual workflows
 const mocks = {

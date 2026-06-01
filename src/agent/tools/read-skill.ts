@@ -1,7 +1,7 @@
 import { prisma } from '@shumai/db'
 import { Type } from '@sinclair/typebox'
 import { type AgentTool } from '@earendil-works/pi-agent-core'
-import { agentService } from '@/services/agent/agent'
+import { agentService } from '@shumai/core/src/agent/agent'
 
 const readSkillSchema = Type.Object({
   skillId: Type.String({ description: 'The ID of the skill to read' }),

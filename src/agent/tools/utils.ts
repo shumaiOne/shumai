@@ -1,6 +1,6 @@
 import { prisma } from '@shumai/db'
 import { workflowService } from '@/workflow/workflow'
-import { WorkflowTaskType, WorkflowTaskStatus } from '@/generated/prisma/client'
+import { WorkflowTaskType, WorkflowTaskStatus } from '@shumai/db'
 
 export async function executeAgentToolWorkflow(params: {
   toolName: string

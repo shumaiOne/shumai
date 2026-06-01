@@ -1,11 +1,11 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { prisma } from '@shumai/db'
-import { authzService, Permission, ResourceType } from '@/services/authz/authz'
-import { assetService } from '@/services/asset/asset'
-import { metadataService } from '@/services/metadata/metadata'
-import { notificationService } from '@/services/notification/notification'
-import { s3Service } from '@/services/s3/s3'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import { assetService } from '@shumai/core/src/asset/asset'
+import { metadataService } from '@shumai/core/src/metadata/metadata'
+import { notificationService } from '@shumai/core/src/notification/notification'
+import { s3Service } from '@shumai/core/src/s3/s3'
 import {
   updateFileRequestSchema,
   updateAssetOrderRequestSchema,
@@ -18,7 +18,7 @@ import { updateAssetMetadataRequestSchema } from '@shumai/dtos'
 import { paginationParamsSchema } from '@shumai/dtos'
 import { ulid } from 'ulid'
 import { z } from 'zod'
-import type { Prisma } from '@/generated/prisma/client'
+import type { Prisma } from '@shumai/db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 

@@ -1,9 +1,9 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { Hono, type Context, type Next } from 'hono'
 import notificationRoute from './notification'
-import { notificationService } from '@/services/notification/notification'
-import { authzService, Permission, ResourceType } from '@/services/authz/authz'
-import { userMetadataService } from '@/services/user-metadata/user-metadata'
+import { notificationService } from '@shumai/core/src/notification/notification'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import { userMetadataService } from '@shumai/core/src/user-metadata/user-metadata'
 
 vi.mock('@/api/middleware/auth', () => ({
   authMiddleware: async (
@@ -15,9 +15,9 @@ vi.mock('@/api/middleware/auth', () => ({
   },
 }))
 
-vi.mock('@/services/authz/authz')
-vi.mock('@/services/notification/notification')
-vi.mock('@/services/user-metadata/user-metadata')
+vi.mock('@shumai/core/src/authz/authz')
+vi.mock('@shumai/core/src/notification/notification')
+vi.mock('@shumai/core/src/user-metadata/user-metadata')
 
 describe('notification api', () => {
   const app = new Hono<{ Variables: { user: { id: string; name: string } } }>()

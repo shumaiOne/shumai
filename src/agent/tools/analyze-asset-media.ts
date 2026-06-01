@@ -1,4 +1,4 @@
-import { s3Service } from '@/services/s3/s3'
+import { s3Service } from '@shumai/core/src/s3/s3'
 import { Type } from '@sinclair/typebox'
 import { type AgentTool } from '@earendil-works/pi-agent-core'
 import { type ImageContent, type TextContent } from '@earendil-works/pi-ai'

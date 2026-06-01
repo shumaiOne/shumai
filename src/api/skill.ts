@@ -1,9 +1,9 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
-import { authzService, Permission, ResourceType } from '@/services/authz/authz'
-import { skillService } from '@/services/skill/skill'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import { skillService } from '@shumai/core/src/skill/skill'
 import { upsertSkillRequestSchema, updateSkillConfigRequestSchema } from '@shumai/dtos'
-import type { Prisma } from '@/generated/prisma/client'
+import type { Prisma } from '@shumai/db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
