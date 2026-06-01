@@ -124,11 +124,7 @@ export const DualSidebar: React.FC<DualSidebarProps> = ({ children }) => {
                       {item.props.badge}
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent
-                    side="right"
-                    sideOffset={16}
-                    className="bg-popover text-popover-foreground border border-border"
-                  >
+                  <TooltipContent side="right">
                     <p>{item.props.label}</p>
                   </TooltipContent>
                 </Tooltip>

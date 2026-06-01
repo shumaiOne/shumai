@@ -1,8 +1,5 @@
 import type { ProjectInfo } from '@/dtos/project'
 import { client } from '@/ui/api/client'
-import { useMutation } from '@tanstack/react-query'
-import { toast } from 'sonner'
-import type { InferRequestType, InferResponseType } from 'hono/client'
 import { MembersDialog } from '@/ui/components/members-dialog'
 import { ProjectDialog } from '@/ui/components/project-dialog'
 import { SortDropdown } from '@/ui/components/sort-dropdown'
@@ -25,14 +22,16 @@ import {
   DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu'
 import { ShumaiLogo } from '@/ui/components/ui/icons'
+import { Input } from '@/ui/components/ui/input'
+import { Switch } from '@/ui/components/ui/switch'
 import { formatDateAgo } from '@/ui/lib/time'
 import { cn } from '@/ui/lib/utils'
-import { useQuery, useSuspenseQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import type { InferRequestType, InferResponseType } from 'hono/client'
 import { MoreHorizontal, PlusIcon } from 'lucide-react'
 import { useState } from 'react'
-import { Switch } from '@/ui/components/ui/switch'
-import { Input } from '@/ui/components/ui/input'
+import { toast } from 'sonner'
 
 function TeamPage() {
   const { teamId } = Route.useParams()
@@ -262,7 +261,7 @@ function TeamPage() {
           </Button>
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
         {projects.data?.map((project: ProjectInfo) => (
           <div
             key={project.id}
