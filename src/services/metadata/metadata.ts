@@ -1,10 +1,10 @@
-import { prisma } from '@/db'
+import { prisma } from '@shumai/db'
 import {
   CreateFieldRequest,
   ProjectFieldOrder,
   UpdateAssetMetadataRequest,
   UpdateFieldRequest,
-} from '@/dtos/metadata'
+} from '@shumai/dtos'
 import type { Prisma } from '@/generated/prisma/client.ts'
 import { ulid } from 'ulid'
 import { assetService } from '../asset/asset'

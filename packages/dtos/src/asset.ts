@@ -22,11 +22,11 @@ export const childPreviewSchema = z.object({
 })
 export type ChildPreview = z.infer<typeof childPreviewSchema>
 
-export const userInfoSchema = z.object({
+export const assetUserInfoSchema = z.object({
   id: z.string(),
   name: z.string(),
 })
-export type UserInfo = z.infer<typeof userInfoSchema>
+export type AssetUserInfo = z.infer<typeof assetUserInfoSchema>
 
 export const fieldValueInfoSchema = z.object({
   fieldId: z.string(),
@@ -63,7 +63,7 @@ export const assetInfoSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   deletedAt: z.string().nullable().optional(),
-  creator: userInfoSchema.nullable().optional(),
+  creator: assetUserInfoSchema.nullable().optional(),
   fieldValues: z.array(fieldValueInfoSchema).optional(),
   sortIndex: z.string().optional().nullable(),
   startTime: z.number().optional().nullable(),
@@ -192,10 +192,10 @@ export type CommentInfo = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   annotations: any
   second: number | null
-  creator: UserInfo
+  creator: AssetUserInfo
   replies: CommentInfo[]
   attachments: AttachmentInfo[]
-  mentions: UserInfo[]
+  mentions: AssetUserInfo[]
   createdAt: string
   updatedAt: string
   sessionId: string | null
@@ -208,10 +208,10 @@ export const commentInfoSchema: z.ZodType<CommentInfo> = z.object({
 
   annotations: z.any(),
   second: z.number().nullable(),
-  creator: userInfoSchema,
+  creator: assetUserInfoSchema,
   replies: z.array(z.lazy(() => commentInfoSchema)),
   attachments: z.array(attachmentInfoSchema),
-  mentions: z.array(userInfoSchema),
+  mentions: z.array(assetUserInfoSchema),
   createdAt: z.string(),
   updatedAt: z.string(),
   sessionId: z.string().nullable(),

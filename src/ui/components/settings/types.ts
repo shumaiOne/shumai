@@ -1,4 +1,4 @@
-import type { AiProviderSettings } from '@/dtos/ai'
+import type { AiProviderSettings } from '@shumai/dtos'
 
 export const AiProvider = {
   GEMINI: 'google',
@@ -31,7 +31,7 @@ export const ThinkingLevel = {
 } as const
 export type ThinkingLevel = (typeof ThinkingLevel)[keyof typeof ThinkingLevel]
 
-import type { AgentInfo } from '@/dtos/agent'
+import type { AgentInfo } from '@shumai/dtos'
 
 export type ProviderSettings = AiProviderSettings
 export type Agent = AgentInfo

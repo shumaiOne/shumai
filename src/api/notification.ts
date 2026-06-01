@@ -6,7 +6,7 @@ import {
   listNotificationsRequestSchema,
   markNotificationReadRequestSchema,
   notificationSettingsSchema,
-} from '@/dtos/notification'
+} from '@shumai/dtos'
 import { userMetadataService } from '@/services/user-metadata/user-metadata'
 import type { Prisma } from '@/generated/prisma/client'
 

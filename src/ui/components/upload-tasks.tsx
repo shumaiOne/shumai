@@ -1,5 +1,5 @@
 import { client } from '@/ui/api/client'
-import type { TaskInfo } from '@/dtos/upload'
+import type { TaskInfo } from '@shumai/dtos'
 import { useTeamId } from '@/ui/hooks/use-team-id'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Loader2, CheckCircle2, Clock, UploadCloud } from 'lucide-react'

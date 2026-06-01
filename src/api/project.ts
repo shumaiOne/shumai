@@ -3,14 +3,14 @@ import { zValidator } from '@hono/zod-validator'
 import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 import { projectService } from '@/services/project/project'
 import { assetService } from '@/services/asset/asset'
-import { reparentAssetsRequestSchema, copyAssetsRequestSchema } from '@/dtos/asset'
+import { reparentAssetsRequestSchema, copyAssetsRequestSchema } from '@shumai/dtos'
 import {
   createProjectRequestSchema,
   updateProjectRequestSchema,
   listProjectsRequestSchema,
   recentlyDeletedRequestSchema,
-} from '@/dtos/project'
-import { listMembersQuerySchema } from '@/dtos/team'
+} from '@shumai/dtos'
+import { listMembersQuerySchema } from '@shumai/dtos'
 import type { Prisma } from '@/generated/prisma/client'
 
 type User = Prisma.UserGetPayload<Record<string, never>>

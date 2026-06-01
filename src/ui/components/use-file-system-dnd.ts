@@ -2,7 +2,7 @@
 
 import { client } from '@/ui/api/client'
 import type { InferRequestType, InferResponseType } from 'hono/client'
-import type { AssetInfo } from '@/dtos/asset'
+import type { AssetInfo } from '@shumai/dtos'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { toast } from 'sonner'

@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
-import { prisma } from '@/db'
+import { prisma } from '@shumai/db'
 import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 import { assetService } from '@/services/asset/asset'
 import { metadataService } from '@/services/metadata/metadata'
@@ -13,9 +13,9 @@ import {
   restoreFilesRequestSchema,
   createCommentRequestSchema,
   uploadFileRequestSchema,
-} from '@/dtos/asset'
-import { updateAssetMetadataRequestSchema } from '@/dtos/metadata'
-import { paginationParamsSchema } from '@/dtos/pagination'
+} from '@shumai/dtos'
+import { updateAssetMetadataRequestSchema } from '@shumai/dtos'
+import { paginationParamsSchema } from '@shumai/dtos'
 import { ulid } from 'ulid'
 import { z } from 'zod'
 import type { Prisma } from '@/generated/prisma/client'

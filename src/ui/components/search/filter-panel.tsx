@@ -1,5 +1,5 @@
-import type { SearchCondition, SearchConditionOperator } from '@/dtos/search'
-import { type FieldInfo } from '@/dtos/metadata'
+import type { SearchCondition, SearchConditionOperator } from '@shumai/dtos'
+import { type FieldInfo } from '@shumai/dtos'
 import { Button } from '@/ui/components/ui/button'
 import { Input } from '@/ui/components/ui/input'
 import { DebouncedInput } from '@/ui/components/ui/debounced-input'

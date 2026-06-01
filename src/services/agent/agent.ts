@@ -1,11 +1,11 @@
-import { prisma } from '@/db'
+import { prisma } from '@shumai/db'
 import {
   CreateAgentParams,
   DeleteAgentParams,
   ListAgentsParams,
   UpdateAgentParams,
-} from '@/dtos/agent'
-import '@/prisma-json-types'
+} from '@shumai/dtos'
+import '@shumai/db/src/prisma-json-types'
 import { s3Service } from '@/services/s3/s3'
 import AdmZip from 'adm-zip'
 import * as fs from 'fs'

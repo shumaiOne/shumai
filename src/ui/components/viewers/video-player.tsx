@@ -1,4 +1,4 @@
-import type { AssetInfo, VideoTranscode } from '@/dtos/asset'
+import type { AssetInfo, VideoTranscode } from '@shumai/dtos'
 import { cn } from '@/ui/lib/utils'
 import {
   Download,

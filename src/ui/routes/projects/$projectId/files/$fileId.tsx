@@ -11,7 +11,7 @@ import { type Annotation } from '@/ui/types'
 import { useMutation } from '@tanstack/react-query'
 import { InferRequestType, InferResponseType } from 'hono/client'
 
-import type { AssetInfo, CommentInfo } from '@/dtos/asset'
+import type { AssetInfo, CommentInfo } from '@shumai/dtos'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'

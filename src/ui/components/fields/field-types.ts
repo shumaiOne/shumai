@@ -1,4 +1,4 @@
-import type { FieldInfo as MetadataFieldInfo } from '@/dtos/metadata'
+import type { FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
 
 export type FieldConfig = MetadataFieldInfo['config']
 

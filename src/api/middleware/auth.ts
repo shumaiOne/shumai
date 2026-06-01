@@ -1,6 +1,6 @@
 import type { Prisma } from '@/generated/prisma/client'
 import { auth } from '@/services/auth/auth'
-import { prisma } from '@/db'
+import { prisma } from '@shumai/db'
 import { createMiddleware } from 'hono/factory'
 
 type User = Prisma.UserGetPayload<Record<string, never>>

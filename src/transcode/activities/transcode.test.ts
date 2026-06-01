@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { prisma } from '@/db'
-import { setupTestDbHooks } from '@/db-test-hooks'
+import { prisma } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db'
 import { getMediaInfoActivity, transcodeVideoActivity, updateAssetMediaActivity } from './transcode'
 import { s3Service } from '@/services/s3/s3'
 import { transcodeService } from '@/transcode/transcode'

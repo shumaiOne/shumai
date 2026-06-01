@@ -1,8 +1,8 @@
 'use client'
 
-import type { AssetInfo } from '@/dtos/asset'
-import type { FieldInfo } from '@/dtos/metadata'
-import type { SearchSort } from '@/dtos/search'
+import type { AssetInfo } from '@shumai/dtos'
+import type { FieldInfo } from '@shumai/dtos'
+import type { SearchSort } from '@shumai/dtos'
 import { useDroppable } from '@dnd-kit/react'
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from '@tanstack/react-table'
 import { ChevronDown, ChevronRight } from 'lucide-react'

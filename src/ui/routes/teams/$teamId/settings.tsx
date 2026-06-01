@@ -1,4 +1,4 @@
-import { VideoTranscodeStrategy } from '@/dtos/team'
+import { VideoTranscodeStrategy } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
 import { AgentsSettings } from '@/ui/components/settings/AgentsSettings'
 import { ProvidersSettings } from '@/ui/components/settings/ProvidersSettings'

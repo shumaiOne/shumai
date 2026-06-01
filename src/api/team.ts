@@ -11,8 +11,8 @@ import {
   updateTeamSettingsRequestSchema,
   listMembersQuerySchema,
   updateSandboxSettingsRequestSchema,
-} from '@/dtos/team'
-import { updateUserMetadataRequestSchema } from '@/dtos/user-metadata'
+} from '@shumai/dtos'
+import { updateUserMetadataRequestSchema } from '@shumai/dtos'
 import type { Prisma } from '@/generated/prisma/client'
 
 type User = Prisma.UserGetPayload<Record<string, never>>

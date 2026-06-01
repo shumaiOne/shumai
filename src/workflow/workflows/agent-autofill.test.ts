@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { agentAutofillMedia } from './agent-autofill'
-import { prisma } from '@/db'
-import { setupTestDbHooks } from '@/db-test-hooks'
+import { prisma } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db'
 import * as workflowUtils from '@/workflow/workflow-utils'
 
 vi.mock('@/workflow/workflow-utils', async () => {

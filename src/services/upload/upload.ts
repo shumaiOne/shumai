@@ -1,4 +1,4 @@
-import { prisma } from '@/db'
+import { prisma } from '@shumai/db'
 import { ulid } from 'ulid'
 import { generateKeyBetween } from 'jittered-fractional-indexing'
 import { s3Service } from '@/services/s3/s3'
@@ -10,7 +10,7 @@ import {
   FileNode,
   PresignedUrl,
   TaskInfo,
-} from '@/dtos/upload'
+} from '@shumai/dtos'
 import {
   AssetStatus,
   AssetType,

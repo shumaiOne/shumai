@@ -1,4 +1,4 @@
-import type { AssetInfo } from '@/dtos/asset'
+import type { AssetInfo } from '@shumai/dtos'
 import { cn } from '@/ui/lib/utils'
 import { Link } from '@tanstack/react-router'
 import React from 'react'

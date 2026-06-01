@@ -7,7 +7,7 @@ import {
   updateShareLinkRequestSchema,
   listShareLinksRequestSchema,
   addAssetToShareRequestSchema,
-} from '@/dtos/share'
+} from '@shumai/dtos'
 import type { Prisma } from '@/generated/prisma/client'
 
 type User = Prisma.UserGetPayload<Record<string, never>>

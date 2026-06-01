@@ -1,4 +1,4 @@
-import type { AssetInfoPaginatedList, AssetInfo } from '@/dtos/asset'
+import type { AssetInfoPaginatedList, AssetInfo } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
 import { cn } from '@/ui/lib/utils'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -22,8 +22,8 @@ import { useInView } from 'react-intersection-observer'
 import { useDraggable, useDroppable } from '@dnd-kit/react'
 import type { DragState } from './dnd-types'
 import { toast } from 'sonner'
-import type { ShareLinkInfo } from '@/dtos/share'
-import type { CollectionInfo } from '@/dtos/collection'
+import type { ShareLinkInfo } from '@shumai/dtos'
+import type { CollectionInfo } from '@shumai/dtos'
 
 interface FolderTreeProps {
   teamId: string

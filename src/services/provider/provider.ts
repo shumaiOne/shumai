@@ -1,5 +1,5 @@
-import { prisma } from '@/db'
-import { ProviderConfigSerializable, providerModelSchema } from '@/dtos/provider'
+import { prisma } from '@shumai/db'
+import { ProviderConfigSerializable, providerModelSchema } from '@shumai/dtos'
 import { builtinProviders } from '@/generated/providers.generated'
 import { z } from 'zod'
 

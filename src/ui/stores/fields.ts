@@ -1,4 +1,4 @@
-import type { FieldInfo as FieldInfo } from '@/dtos/metadata'
+import type { FieldInfo as FieldInfo } from '@shumai/dtos'
 import { create } from 'zustand'
 
 interface FieldState {

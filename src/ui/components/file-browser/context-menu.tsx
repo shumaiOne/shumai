@@ -1,5 +1,5 @@
-import type { AssetInfo } from '@/dtos/asset'
-import type { ShareLinkInfo } from '@/dtos/share'
+import type { AssetInfo } from '@shumai/dtos'
+import type { ShareLinkInfo } from '@shumai/dtos'
 import {
   ContextMenuContent,
   ContextMenuItem,

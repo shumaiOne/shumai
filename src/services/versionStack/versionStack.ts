@@ -1,7 +1,7 @@
 import { generateKeyBetween } from 'jittered-fractional-indexing'
-import { prisma } from '@/db'
+import { prisma } from '@shumai/db'
 import { Asset, AssetType } from '@/generated/prisma/client.ts'
-import { ChangeStackFileVersionParams, CreateVersionStackParams } from '@/dtos/versionStack'
+import { ChangeStackFileVersionParams, CreateVersionStackParams } from '@shumai/dtos'
 
 function generateSortIndex(previous?: string | null): string {
   if (!previous) return generateKeyBetween(null, null)

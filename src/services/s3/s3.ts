@@ -1,4 +1,4 @@
-import { ObjectInfo } from '@/dtos/s3'
+import { ObjectInfo } from '@shumai/dtos'
 import {
   CopyObjectCommand,
   DeleteObjectCommand,

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { prisma } from '@/db'
-import { setupTestDbHooks } from '@/db-test-hooks'
+import { prisma } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db'
 import { createReadSkillTool } from './read-skill'
 import { s3Service } from '@/services/s3/s3'
 import * as fs from 'fs'

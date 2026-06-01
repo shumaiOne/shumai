@@ -1,4 +1,4 @@
-import { prisma } from '@/db'
+import { prisma } from '@shumai/db'
 import { s3Service } from '@/services/s3/s3'
 import { transcodeService } from '@/transcode/transcode'
 import { metadataService } from '@/services/metadata/metadata'

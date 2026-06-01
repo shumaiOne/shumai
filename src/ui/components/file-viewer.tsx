@@ -1,4 +1,4 @@
-import type { AssetInfo } from '@/dtos/asset'
+import type { AssetInfo } from '@shumai/dtos'
 import { useScreenSize } from '@/ui/hooks/useScreenSize'
 import { getBestTranscode } from '@/ui/lib/media'
 import { Minus, Plus, Copy, Download, Check } from 'lucide-react'

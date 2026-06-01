@@ -1,4 +1,4 @@
-import { prisma } from '@/db'
+import { prisma } from '@shumai/db'
 import { InviteRole, ProjectMemberRole, TeamMemberRole } from '@/generated/prisma/client'
 import { ulid } from 'ulid'
 

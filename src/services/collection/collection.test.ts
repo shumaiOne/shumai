@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { prisma } from '@/db'
-import { setupTestDbHooks } from '@/db-test-hooks'
+import { prisma } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db'
 import { collectionService } from './collection'
 import { projectService } from '../project/project'
 

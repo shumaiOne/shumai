@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { MetadataService } from './metadata'
-import { prisma } from '@/db'
-import { setupTestDbHooks } from '@/db-test-hooks'
+import { prisma } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db'
 
 describe('MetadataService', () => {
   setupTestDbHooks()

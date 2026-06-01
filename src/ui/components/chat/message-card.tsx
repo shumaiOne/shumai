@@ -1,5 +1,5 @@
-import type { AttachmentInfo, CommentInfo } from '@/dtos/asset'
-import type { UserInfo } from '@/dtos/team'
+import type { AttachmentInfo, CommentInfo } from '@shumai/dtos'
+import type { UserInfo } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
 import { Button } from '@/ui/components/ui/button'
 import {

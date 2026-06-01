@@ -1,10 +1,10 @@
-import { prisma } from '@/db'
+import { prisma } from '@shumai/db'
 import { paginateQuery } from '../pagination'
 import {
   CreateCollectionRequest,
   UpdateCollectionRequest,
   ListCollectionsRequest,
-} from '@/dtos/collection'
+} from '@shumai/dtos'
 
 export class CollectionService {
   async createCollection(projectId: string, req: CreateCollectionRequest) {

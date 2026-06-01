@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { AgentInfo, AgentType } from '@/dtos/agent'
+import { AgentInfo, AgentType } from '@shumai/dtos'
 import { AgentFormDialog } from './AgentFormDialog'
 import {
   DropdownMenu,

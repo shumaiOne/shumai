@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 import { client } from '@/ui/api/client'
-import type { UserInfo } from '@/dtos/team'
+import type { UserInfo } from '@shumai/dtos'
 
 interface MemberState {
   members: UserInfo[]

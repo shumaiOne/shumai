@@ -1,4 +1,4 @@
-import { prisma } from '@/db'
+import { prisma } from '@shumai/db'
 import { Prisma } from '@/generated/prisma/client'
 import { PaginatedData, paginateQuery } from '@/services/pagination'
 import { ProviderService, providerService } from '@/services/provider/provider'
@@ -13,11 +13,13 @@ import {
   GetMeResponse,
   UserInfo,
   SandboxSettings,
-} from '@/dtos/team'
+} from '@shumai/dtos'
 
 export class TeamService {
   async ensureDefaultTeam() {
-    let team = await prisma.team.findFirst()
+    let team = await prisma.team.findFirst({
+      where: { name: 'Default Team' },
+    })
 
     if (!team) {
       team = await prisma.team.create({

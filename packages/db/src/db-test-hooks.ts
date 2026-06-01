@@ -1,5 +1,5 @@
 import { afterEach, beforeEach } from 'vitest'
-import { getPrismaTestingHelper } from '@/db'
+import { getPrismaTestingHelper } from './index'
 
 export function setupTestDbHooks() {
   beforeEach(async () => {

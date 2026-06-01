@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { Hono, type Context, type Next } from 'hono'
-import { prisma } from '@/db'
+import { prisma } from '@shumai/db'
 import fileRoute from './file'
 import { assetService } from '@/services/asset/asset'
 import { metadataService } from '@/services/metadata/metadata'

@@ -1,8 +1,16 @@
-import { PrismaClient } from '@/generated/prisma/client'
-import { PrismaTestingHelper } from '@/test-utils'
+import { PrismaClient, WorkflowTask } from './generated/prisma/client'
+import { PrismaTestingHelper } from './prisma-testing-helper'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { Pool } from 'pg'
-import { generateNgrams } from '@/utils/ngram'
+import { generateNgrams } from './utils/ngram'
+
+// Global callback for workflow task creation (decouples db package from workflow engine)
+type WorkflowTriggerCallback = (task: WorkflowTask) => Promise<void>
+let onWorkflowTaskCreated: WorkflowTriggerCallback | null = null
+
+export function registerWorkflowTrigger(cb: WorkflowTriggerCallback) {
+  onWorkflowTaskCreated = cb
+}
 
 const isTest = process.env.NODE_ENV === 'test'
 
@@ -10,7 +18,6 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// We use any here because PrismaTestingHelper is generic and the extended client type is complex
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let prismaTestingHelper: PrismaTestingHelper<any> | null = null
 
@@ -24,16 +31,9 @@ function createPrismaClient() {
       workflowTask: {
         async create({ args, query }) {
           const result = await query(args)
-          // Lazy load workflowService to avoid circular dependency
-          import('@/workflow/workflow').then((mod) => {
-            const service = mod?.workflowService
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const task = result as any
-            if (service && task.status === 'pending') {
-              // result is the created task, but the extension types are complex
-              service.submit(task).catch(console.error)
-            }
-          })
+          if (onWorkflowTaskCreated && (result as WorkflowTask).status === 'pending') {
+            onWorkflowTaskCreated(result as WorkflowTask).catch(console.error)
+          }
           return result
         },
       },
@@ -94,3 +94,10 @@ export function getPrismaTestingHelper() {
   }
   return prismaTestingHelper
 }
+
+export * from './utils/ngram'
+export * from './db-test-hooks'
+export * from './prisma-testing-helper'
+export * from './generated/prisma/models'
+export * from './generated/prisma/enums'
+export { PrismaClient } from './generated/prisma/client'

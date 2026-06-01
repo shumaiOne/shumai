@@ -1,4 +1,4 @@
-import { prisma } from '@/db'
+import { prisma } from '@shumai/db'
 import type { Prisma } from '@/generated/prisma/client'
 import { NotificationType } from '@/generated/prisma/client'
 import {
@@ -6,9 +6,9 @@ import {
   CreateNotificationRequest,
   ListNotificationParams,
   NotificationSettings,
-} from '@/dtos/notification'
+} from '@shumai/dtos'
 import { paginateQuery, PaginatedData } from '@/services/pagination'
-import '@/prisma-json-types'
+import '@shumai/db/src/prisma-json-types'
 import { s3Service } from '@/services/s3/s3'
 import { userMetadataService } from '@/services/user-metadata/user-metadata'
 

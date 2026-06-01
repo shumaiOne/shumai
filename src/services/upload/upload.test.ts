@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { prisma } from '@/db'
-import { setupTestDbHooks } from '@/db-test-hooks'
+import { prisma } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db'
 import { uploadService } from './upload'
 import { s3Service } from '@/services/s3/s3'
 import { AssetStatus, AssetType, WorkflowTaskType } from '@/generated/prisma/client'

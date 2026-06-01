@@ -1,10 +1,19 @@
 import { z } from 'zod'
 
+export interface SkillEnvironmentVariable {
+  name: string
+  default?: string
+}
+
+export interface SkillConfig {
+  environmentVariables: SkillEnvironmentVariable[]
+}
+
 export interface SkillInfo {
   id: string
   name: string
   description: string | null
-  config: PrismaJson.SkillConfig | null
+  config: SkillConfig | null
   assetId: string
   hash: string
   createdAt: string

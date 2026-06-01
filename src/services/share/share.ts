@@ -1,4 +1,4 @@
-import { prisma } from '@/db'
+import { prisma } from '@shumai/db'
 import { AssetType, Prisma } from '@/generated/prisma/client'
 import {
   ShareLinkInfo,
@@ -6,7 +6,7 @@ import {
   UpdateShareLinkRequest,
   ListShareLinksRequest,
   AddAssetToShareRequest,
-} from '@/dtos/share'
+} from '@shumai/dtos'
 import { PaginatedData, paginateQuery } from '@/services/pagination'
 
 export class ShareService {

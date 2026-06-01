@@ -3,7 +3,7 @@ import { teamService } from '@/services/team/team'
 import { auth } from '@/services/auth/auth'
 import { z } from 'zod'
 import { zValidator } from '@hono/zod-validator'
-import { prisma } from '@/db'
+import { prisma } from '@shumai/db'
 import { ulid } from 'ulid'
 
 const app = new Hono()

@@ -5,7 +5,7 @@ import {
   createTeamInviteRequestSchema,
   joinRequestSchema,
   InviteInfo,
-} from '@/dtos/invite'
+} from '@shumai/dtos'
 import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 import { inviteService } from '@/services/invite/invite'
 import { notificationService } from '@/services/notification/notification'

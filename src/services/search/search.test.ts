@@ -1,8 +1,8 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest'
-import { prisma } from '@/db'
-import { setupTestDbHooks } from '@/db-test-hooks'
+import { prisma } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db'
 import { SearchService } from './search'
-import { SearchConditionOperator } from '@/dtos/search'
+import { SearchConditionOperator } from '@shumai/dtos'
 import { metadataService } from '@/services/metadata/metadata'
 import { workflowService } from '@/workflow/workflow'
 

@@ -5,8 +5,8 @@ import {
   confirmFileUploadRequestSchema,
   createUploadTaskRequestSchema,
   localUploadQuerySchema,
-} from '@/dtos/upload'
-import { paginationParamsSchema } from '@/dtos/pagination'
+} from '@shumai/dtos'
+import { paginationParamsSchema } from '@shumai/dtos'
 import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 import { notificationService } from '@/services/notification/notification'
 import { NotificationType } from '@/generated/prisma/client'

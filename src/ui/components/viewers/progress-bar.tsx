@@ -1,4 +1,4 @@
-import type { MediaMetadata } from '@/dtos/asset'
+import type { MediaMetadata } from '@shumai/dtos'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 
 const formatTime = (seconds: number): string => {

@@ -1,4 +1,4 @@
-import { prisma } from '@/db'
+import { prisma } from '@shumai/db'
 import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '@/generated/prisma/client'
 import { Executor } from './executor'
 import { agentEmbeddingMedia } from './workflows/agent-embedding'

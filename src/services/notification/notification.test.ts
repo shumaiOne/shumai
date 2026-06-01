@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { prisma } from '@/db'
-import { setupTestDbHooks } from '@/db-test-hooks'
+import { prisma } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db'
 import { NotificationType } from '@/generated/prisma/client'
 import { notificationService } from './notification'
 import { userMetadataService } from '@/services/user-metadata/user-metadata'

@@ -1,4 +1,4 @@
-import type { AncestorFolder } from '@/dtos/asset'
+import type { AncestorFolder } from '@shumai/dtos'
 import { Badge } from '@/ui/components/ui/badge'
 import {
   DropdownMenu,

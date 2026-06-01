@@ -1,5 +1,5 @@
-import { prisma } from '@/db'
-import { UserMetadataItem } from '@/dtos/user-metadata'
+import { prisma } from '@shumai/db'
+import { UserMetadataItem } from '@shumai/dtos'
 
 export class UserMetadataService {
   async upsertMetadata(userId: string, teamId: string, key: string, value: unknown) {

@@ -51,7 +51,7 @@ declare global {
     // ----------------------------------------------------------------------
     // Collection Filter
     // ----------------------------------------------------------------------
-    export type CollectionFilter = import('./dtos/collection').CollectionFilter
+    export type CollectionFilter = import('@shumai/dtos').CollectionFilter
 
     export interface TranscodeSettings {
       videoStrategy: VideoTranscodeStrategy
@@ -231,9 +231,9 @@ declare global {
     // Provider Config
     // ----------------------------------------------------------------------
     export type ModelConfig = import('zod').z.infer<
-      typeof import('@/dtos/provider').providerModelConfigSchema
+      typeof import('@shumai/dtos').providerModelConfigSchema
     >
-    export type ProviderConfig = import('@/dtos/provider').ProviderConfigSerializable
+    export type ProviderConfig = import('@shumai/dtos').ProviderConfigSerializable
 
     // ----------------------------------------------------------------------
     // Workflow Task Payload
@@ -284,13 +284,7 @@ declare global {
     // ----------------------------------------------------------------------
     // Skill Config
     // ----------------------------------------------------------------------
-    export interface SkillEnvironmentVariable {
-      name: string
-      default?: string
-    }
-
-    export interface SkillConfig {
-      environmentVariables: SkillEnvironmentVariable[]
-    }
+    export type SkillEnvironmentVariable = import('@shumai/dtos').SkillEnvironmentVariable
+    export type SkillConfig = import('@shumai/dtos').SkillConfig
   }
 }

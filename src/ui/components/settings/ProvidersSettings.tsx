@@ -56,7 +56,7 @@ import {
 import { useState, useMemo, useEffect } from 'react'
 import { toast } from 'sonner'
 import { InferResponseType } from 'hono/client'
-import { providerConfigSchema, providerModelSchema } from '@/dtos/provider'
+import { providerConfigSchema, providerModelSchema } from '@shumai/dtos'
 import { z } from 'zod'
 
 const providerFormSchemaBase = z.object({

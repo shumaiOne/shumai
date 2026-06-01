@@ -1,4 +1,4 @@
-import type { SelectOption } from '@/dtos/metadata'
+import type { SelectOption } from '@shumai/dtos'
 import { ChevronDown, X } from 'lucide-react'
 import React, { useEffect, useRef, useState } from 'react'
 import type { FieldProps } from './field-types'

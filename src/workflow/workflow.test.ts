@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { prisma } from '@/db'
+import { prisma } from '@shumai/db'
 import { workflowService } from './workflow'
 import { WorkflowTaskStatus, WorkflowTaskType } from '@/generated/prisma/client'
 

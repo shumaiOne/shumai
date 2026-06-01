@@ -1,4 +1,4 @@
-import type { AssetInfo, FieldValueInfo } from '@/dtos/asset'
+import type { AssetInfo, FieldValueInfo } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
 import { useQuery } from '@tanstack/react-query'
 
@@ -12,7 +12,7 @@ import { Badge } from '@/ui/components/ui/badge'
 import { Checkbox } from '@/ui/components/ui/checkbox'
 import { EditableText } from '@/ui/components/ui/editable-text'
 
-import { type FieldInfo as MetadataFieldInfo } from '@/dtos/metadata'
+import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
 
 interface FileListItemProps {
   teamId?: string

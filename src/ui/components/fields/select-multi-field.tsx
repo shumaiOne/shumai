@@ -1,7 +1,7 @@
 import { Check } from 'lucide-react'
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { FieldProps } from './field-types'
-import type { SelectOption } from '@/dtos/metadata'
+import type { SelectOption } from '@shumai/dtos'
 
 const SelectMultiField: React.FC<FieldProps<string[]>> = ({
   value = [],

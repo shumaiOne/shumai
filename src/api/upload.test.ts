@@ -3,7 +3,7 @@ import { Hono } from 'hono'
 import uploadRoute from './upload'
 import { authMiddleware } from '@/api/middleware/auth'
 import { uploadService } from '@/services/upload/upload'
-import type { CreateUploadTaskResponse, TaskInfo } from '@/dtos/upload'
+import type { CreateUploadTaskResponse, TaskInfo } from '@shumai/dtos'
 import type { PaginatedData } from '@/services/pagination'
 import { authzService, ResourceType, Permission } from '@/services/authz/authz'
 

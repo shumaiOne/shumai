@@ -1,4 +1,4 @@
-import type { AncestorFolder, AssetInfo, AssetInfoPaginatedList } from '@/dtos/asset'
+import type { AncestorFolder, AssetInfo, AssetInfoPaginatedList } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
 import { useMutation, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState, useMemo } from 'react'
@@ -13,7 +13,7 @@ import { SnapToPointer } from './dnd-modifiers'
 import { useUiStore } from '@/ui/stores/ui'
 import { useUserMetadataStore } from '@/ui/stores/user-metadata'
 import { useTopNavStore } from '@/ui/stores/top-nav'
-import type { ShareLinkInfo } from '@/dtos/share'
+import type { ShareLinkInfo } from '@shumai/dtos'
 import { toast } from 'sonner'
 
 type ShareManagerProps = {

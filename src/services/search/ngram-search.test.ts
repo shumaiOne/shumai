@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from 'vitest'
-import { prisma } from '@/db'
-import { setupTestDbHooks } from '@/db-test-hooks'
+import { prisma } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db'
 import { SearchService } from './search'
 import { AssetType } from '@/generated/prisma/client.ts'
 

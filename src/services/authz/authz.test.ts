@@ -1,7 +1,7 @@
-import { setupTestDbHooks } from '@/db-test-hooks'
+import { setupTestDbHooks } from '@shumai/db'
 import { describe, expect, it } from 'vitest'
 
-import { prisma } from '@/db'
+import { prisma } from '@shumai/db'
 import { authzService, Permission, ResourceType } from '@/services/authz/authz'
 
 describe('AuthzService', () => {

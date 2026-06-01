@@ -1,7 +1,7 @@
 'use client'
 
 import { client } from '@/ui/api/client'
-import type { AssetInfo } from '@/dtos/asset'
+import type { AssetInfo } from '@shumai/dtos'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { InferRequestType, InferResponseType } from 'hono/client'
 import { useState } from 'react'

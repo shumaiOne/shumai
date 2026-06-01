@@ -18,8 +18,8 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { client } from '@/ui/api/client'
 import { FolderTree } from './folder-tree'
-import { AssetInfo } from '@/dtos/asset'
-import { ProjectInfo } from '@/dtos/project'
+import { AssetInfo } from '@shumai/dtos'
+import { ProjectInfo } from '@shumai/dtos'
 import { ScrollArea } from './ui/scroll-area'
 import { Loader2 } from 'lucide-react'
 

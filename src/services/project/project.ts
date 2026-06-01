@@ -1,4 +1,4 @@
-import { prisma } from '@/db'
+import { prisma } from '@shumai/db'
 import { Prisma } from '@/generated/prisma/client'
 import { s3Service } from '@/services/s3/s3'
 import { paginateQuery, PaginatedData } from '@/services/pagination'
@@ -10,7 +10,7 @@ import {
   ServiceListProjectMembersRequest,
   ProjectInfo,
   ProjectUserInfo,
-} from '@/dtos/project'
+} from '@shumai/dtos'
 
 export class ProjectService {
   async createProject(

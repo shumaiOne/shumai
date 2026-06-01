@@ -1,4 +1,4 @@
-import type { AssetInfo, ChildPreview } from '@/dtos/asset'
+import type { AssetInfo, ChildPreview } from '@shumai/dtos'
 import { Checkbox } from '@/ui/components/ui/checkbox'
 import {
   DropdownMenu,

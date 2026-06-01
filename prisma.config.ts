@@ -4,9 +4,9 @@ import { loadEnvConfig } from './src/env-loader'
 loadEnvConfig(process.cwd())
 
 export default defineConfig({
-  schema: 'prisma/schema.prisma',
+  schema: 'packages/db/prisma/schema.prisma',
   migrations: {
-    path: 'prisma/migrations',
+    path: 'packages/db/prisma/migrations',
   },
   datasource: {
     url: process.env.DATABASE_URL,

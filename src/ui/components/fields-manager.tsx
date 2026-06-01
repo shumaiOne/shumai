@@ -1,4 +1,4 @@
-import { FieldType, type FieldInfo, type FieldInfo as MetadataFieldInfo } from '@/dtos/metadata'
+import { FieldType, type FieldInfo, type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
 import { useFieldStore } from '@/ui/stores/fields'
 import { DragDropProvider, KeyboardSensor, PointerSensor, type DragEndEvent } from '@dnd-kit/react'

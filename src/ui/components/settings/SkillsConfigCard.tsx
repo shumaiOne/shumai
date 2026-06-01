@@ -31,7 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/ui/components/ui/alert-dialog'
-import { SkillInfo } from '@/dtos/skill'
+import { SkillInfo } from '@shumai/dtos'
 
 const Github = (props: React.SVGProps<SVGSVGElement>) => (
   <svg

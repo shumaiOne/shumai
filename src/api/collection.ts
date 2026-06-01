@@ -8,7 +8,7 @@ import {
   listCollectionsRequestSchema,
   CollectionInfo,
   CollectionFilter,
-} from '@/dtos/collection'
+} from '@shumai/dtos'
 import type { Prisma } from '@/generated/prisma/client'
 
 type User = Prisma.UserGetPayload<Record<string, never>>

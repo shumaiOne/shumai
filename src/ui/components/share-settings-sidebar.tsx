@@ -1,5 +1,5 @@
-import { ShareLinkInfo, UpdateShareLinkRequest } from '@/dtos/share'
-import { type FieldInfo as MetadataFieldInfo } from '@/dtos/metadata'
+import { ShareLinkInfo, UpdateShareLinkRequest } from '@shumai/dtos'
+import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
 import { Button } from '@/ui/components/ui/button'
 import { Input } from '@/ui/components/ui/input'

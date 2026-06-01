@@ -1,7 +1,7 @@
 'use client'
 
-import type { AssetInfo } from '@/dtos/asset'
-import type { SearchSort } from '@/dtos/search'
+import type { AssetInfo } from '@shumai/dtos'
+import type { SearchSort } from '@shumai/dtos'
 import { useDroppable } from '@dnd-kit/react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import React from 'react'

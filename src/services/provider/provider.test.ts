@@ -1,8 +1,8 @@
-import { setupTestDbHooks } from '@/db-test-hooks'
+import { setupTestDbHooks } from '@shumai/db'
 import { teamService } from '@/services/team/team'
 import { providerService } from './provider'
 import { describe, expect, it } from 'vitest'
-import { ProviderConfigSerializable, providerModelSchema } from '@/dtos/provider'
+import { ProviderConfigSerializable, providerModelSchema } from '@shumai/dtos'
 import { builtinProviders } from '@/generated/providers.generated'
 import { z } from 'zod'
 

@@ -1,5 +1,5 @@
-import { prisma } from '@/db'
-import { SkillInfo, UpsertSkillRequest } from '@/dtos/skill'
+import { prisma } from '@shumai/db'
+import { SkillInfo, UpsertSkillRequest } from '@shumai/dtos'
 import { s3Service } from '@/services/s3/s3'
 import AdmZip from 'adm-zip'
 import * as crypto from 'crypto'

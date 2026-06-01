@@ -1,5 +1,5 @@
-import { prisma } from '@/db'
-import { setupTestDbHooks } from '@/db-test-hooks'
+import { prisma } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db'
 import { teamService } from '@/services/team/team'
 import { describe, expect, it } from 'vitest'
 

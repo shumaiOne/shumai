@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
-import { postAttachmentRequestSchema } from '@/dtos/asset'
+import { postAttachmentRequestSchema } from '@shumai/dtos'
 import { assetService } from '@/services/asset/asset'
 import { s3Service } from '@/services/s3/s3'
 import { AssetType } from '@/generated/prisma/client'

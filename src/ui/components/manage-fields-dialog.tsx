@@ -3,7 +3,7 @@ import {
   type FieldInfo,
   FieldType,
   type SelectOption,
-} from '@/dtos/metadata'
+} from '@shumai/dtos'
 import { client } from '@/ui/api/client'
 import { useMutation } from '@tanstack/react-query'
 import { InferRequestType, InferResponseType } from 'hono/client'

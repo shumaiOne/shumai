@@ -12,7 +12,7 @@ import {
   Bell,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { NotificationSettings as Settings } from '@/dtos/notification'
+import type { NotificationSettings as Settings } from '@shumai/dtos'
 
 export function NotificationSettings({ teamId }: { teamId: string }) {
   const queryClient = useQueryClient()

@@ -1,4 +1,4 @@
-import { prisma } from '@/db'
+import { prisma } from '@shumai/db'
 import {
   AncestorFolder,
   AssetInfo,
@@ -15,8 +15,8 @@ import {
   ReparentAssetsRequest,
   UpdateAssetNameRequest,
   UpdateAssetOrderRequest,
-  UserInfo,
-} from '@/dtos/asset'
+  AssetUserInfo,
+} from '@shumai/dtos'
 import { Asset, AssetStatus, AssetType, Prisma, StorageKey } from '@/generated/prisma/client.ts'
 import { logger } from '@/logger'
 import { PaginatedData, paginateQuery, PaginationParams } from '@/services/pagination'
@@ -1670,7 +1670,7 @@ export class AssetService {
       }
     }
 
-    const mentions: UserInfo[] = []
+    const mentions: AssetUserInfo[] = []
     const botMentionMatch = (c.message || '').match(/<@([^>]+)>/g)
     if (botMentionMatch) {
       const userIds = botMentionMatch.map((m: string) => m.replace('<@', '').replace('>', ''))
@@ -1682,7 +1682,7 @@ export class AssetService {
       }
     }
 
-    const creator: UserInfo = { id: '', name: '' }
+    const creator: AssetUserInfo = { id: '', name: '' }
     if (c.sessionId) {
       creator.id = c.creatorId || ''
       creator.name = c.creator?.name || 'Ai Bot'

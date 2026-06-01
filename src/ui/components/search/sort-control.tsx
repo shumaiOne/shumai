@@ -1,5 +1,5 @@
-import { type FieldInfo as MetadataFieldInfo } from '@/dtos/metadata'
-import type { SearchSort } from '@/dtos/search'
+import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
+import type { SearchSort } from '@shumai/dtos'
 import { ArrowDownUp } from 'lucide-react'
 import { Button } from '@/ui/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/ui/popover'

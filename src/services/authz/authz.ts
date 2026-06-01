@@ -1,4 +1,4 @@
-import { prisma } from '@/db'
+import { prisma } from '@shumai/db'
 import type { Prisma } from '@/generated/prisma/client.ts'
 type User = Prisma.UserGetPayload<Record<string, never>>
 

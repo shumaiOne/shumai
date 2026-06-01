@@ -7,7 +7,7 @@ import {
   updateAgentRequestSchema,
   AgentInfo,
   AgentType,
-} from '@/dtos/agent'
+} from '@shumai/dtos'
 
 import type { Prisma } from '@/generated/prisma/client'
 

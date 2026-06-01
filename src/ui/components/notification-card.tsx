@@ -1,4 +1,4 @@
-import type { NotificationInfo } from '@/dtos/notification'
+import type { NotificationInfo } from '@shumai/dtos'
 import { formatTimeAgo } from '@/ui/lib/time'
 import { cn } from '@/ui/lib/utils'
 

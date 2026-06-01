@@ -7,7 +7,7 @@ import {
   updateFieldRequestSchema,
   updateProjectFieldsOrderRequestSchema,
   FieldInfo,
-} from '@/dtos/metadata'
+} from '@shumai/dtos'
 import type { Prisma } from '@/generated/prisma/client'
 
 type User = Prisma.UserGetPayload<Record<string, never>>

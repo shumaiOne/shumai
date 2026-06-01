@@ -8,9 +8,9 @@ import {
   updateFolderRequestSchema,
   deleteFoldersRequestSchema,
   restoreFoldersRequestSchema,
-} from '@/dtos/folder'
-import { listChildrenRequestSchema, updateAssetOrderRequestSchema } from '@/dtos/asset'
-import { searchRequestSchema } from '@/dtos/search'
+} from '@shumai/dtos'
+import { listChildrenRequestSchema, updateAssetOrderRequestSchema } from '@shumai/dtos'
+import { searchRequestSchema } from '@shumai/dtos'
 import type { Prisma } from '@/generated/prisma/client'
 
 type User = Prisma.UserGetPayload<Record<string, never>>

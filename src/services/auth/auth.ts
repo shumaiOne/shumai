@@ -1,6 +1,6 @@
 import { betterAuth } from 'better-auth'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
-import { prisma } from '@/db'
+import { prisma } from '@shumai/db'
 import { teamService } from '@/services/team/team'
 import { inviteService } from '@/services/invite/invite'
 import { createAuthMiddleware } from 'better-auth/api'

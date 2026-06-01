@@ -1,5 +1,5 @@
 import { Prisma } from '@/generated/prisma/client.ts'
-import { SearchCondition } from '@/dtos/search'
+import { SearchCondition } from '@shumai/dtos'
 
 export class SqlQueryBuilder {
   private selectSql: Prisma.Sql = Prisma.sql`*`

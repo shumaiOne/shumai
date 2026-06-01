@@ -1,4 +1,4 @@
-import { prisma } from '@/db'
+import { prisma } from '@shumai/db'
 import { workflowService } from '@/workflow/workflow'
 import { WorkflowTaskType, WorkflowTaskStatus } from '@/generated/prisma/client'
 

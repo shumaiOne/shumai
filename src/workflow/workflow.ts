@@ -2,7 +2,7 @@ import { WorkflowTask } from '@/generated/prisma/client'
 import { Executor } from './executor'
 import { LocalExecutor } from './local-executor'
 import { TemporalExecutor } from './temporal-executor'
-import { prisma } from '@/db'
+import { prisma, registerWorkflowTrigger } from '@shumai/db'
 
 export class WorkflowService {
   private executor: Executor
@@ -122,3 +122,6 @@ export class WorkflowService {
 }
 
 export const workflowService = new WorkflowService()
+registerWorkflowTrigger(async (task) => {
+  await workflowService.submit(task)
+})
