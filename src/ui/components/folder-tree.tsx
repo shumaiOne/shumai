@@ -151,19 +151,19 @@ export function FolderTree({
       <div
         className={cn(
           'flex flex-col overflow-hidden',
-          isAssetsExpanded ? 'h-1/2 min-h-0' : 'flex-none',
+          isAssetsExpanded ? 'flex-1 min-h-[50%]' : 'flex-none',
         )}
       >
-        <header className="flex items-center justify-between px-2 mb-1 flex-none">
+        <header className="group flex items-center justify-between px-2 mb-1 flex-none">
           <div
             className="flex items-center gap-1.5 cursor-pointer select-none text-muted-foreground hover:text-foreground transition-colors"
             onClick={() => setIsAssetsExpanded(!isAssetsExpanded)}
           >
             <h3 className="text-xs font-semibold uppercase tracking-wider">Assets</h3>
             {isAssetsExpanded ? (
-              <ChevronsDownUp className="h-3.5 w-3.5" />
+              <ChevronsDownUp className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
             ) : (
-              <ChevronsUpDown className="h-3.5 w-3.5" />
+              <ChevronsUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
             )}
           </div>
           <button className="text-muted-foreground hover:text-foreground">
@@ -222,16 +222,16 @@ export function FolderTree({
             isCollectionsExpanded ? 'flex-1 min-h-0' : 'flex-none',
           )}
         >
-          <header className="flex items-center justify-between px-2 mb-1 flex-none">
+          <header className="group flex items-center justify-between px-2 mb-1 flex-none">
             <div
               className="flex items-center gap-1.5 cursor-pointer select-none text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setIsCollectionsExpanded(!isCollectionsExpanded)}
             >
               <h3 className="text-xs font-semibold uppercase tracking-wider">Collections</h3>
               {isCollectionsExpanded ? (
-                <ChevronsDownUp className="h-3.5 w-3.5" />
+                <ChevronsDownUp className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
               ) : (
-                <ChevronsUpDown className="h-3.5 w-3.5" />
+                <ChevronsUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
               )}
             </div>
             <button
@@ -273,16 +273,16 @@ export function FolderTree({
             isSharesExpanded ? 'flex-1 min-h-0' : 'flex-none',
           )}
         >
-          <header className="flex items-center justify-between px-2 mb-1 flex-none">
+          <header className="group flex items-center justify-between px-2 mb-1 flex-none">
             <div
               className="flex items-center gap-1.5 cursor-pointer select-none text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setIsSharesExpanded(!isSharesExpanded)}
             >
               <h3 className="text-xs font-semibold uppercase tracking-wider">Share Links</h3>
               {isSharesExpanded ? (
-                <ChevronsDownUp className="h-3.5 w-3.5" />
+                <ChevronsDownUp className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
               ) : (
-                <ChevronsUpDown className="h-3.5 w-3.5" />
+                <ChevronsUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
               )}
             </div>
             <div className="flex items-center gap-1">
