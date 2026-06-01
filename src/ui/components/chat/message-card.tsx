@@ -3,11 +3,11 @@ import type { UserInfo } from '@/dtos/team'
 import { client } from '@/ui/api/client'
 import { Button } from '@/ui/components/ui/button'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
 } from '@/ui/components/ui/dialog'
 import { Separator } from '@/ui/components/ui/separator'
 import { formatTimeAgo } from '@/ui/lib/time'
@@ -120,24 +120,36 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   return (
     <div
       onClick={onSelect}
-      className={`relative flex gap-4 ${isReply ? 'mt-2' : 'mt-3'} mr-3 group p-3 py-4 border transition-all duration-200 cursor-pointer rounded-xl ${
+      className={`relative flex gap-4 ${isReply ? 'mt-[-1px]' : 'mt-3'} mr-3 group p-3 py-4 border transition-all duration-200 cursor-pointer ${
+        isReply
+          ? isLastReply
+            ? 'rounded-b-xl rounded-t-none'
+            : 'rounded-none'
+          : hasReplies
+            ? 'rounded-t-xl rounded-b-none'
+            : 'rounded-xl'
+      } ${
         isSelected
-          ? 'border-blue-500/40 dark:border-blue-400/40 bg-blue-500/10 dark:bg-blue-400/10 shadow-sm'
-          : 'border-transparent bg-foreground/2 dark:bg-foreground/10 hover:bg-foreground/4 dark:hover:bg-foreground/15'
+          ? 'z-20 border-blue-500/40 dark:border-blue-400/40 bg-blue-500/10 dark:bg-blue-400/10 shadow-sm'
+          : 'z-10 border-transparent bg-foreground/2 dark:bg-foreground/10 hover:bg-foreground/4 dark:hover:bg-foreground/15'
       }`}
     >
-      {hasReplies && !isReply && (
-        <div className="absolute left-[1.7rem] top-[2rem] bottom-[-1.8rem] w-0.5 bg-foreground/10 -translate-x-1/2 z-0" />
-      )}
+      {/* Left Column: Avatar & Thread Lines */}
+      <div className="flex flex-col items-center shrink-0 w-8 relative">
+        {/* Thread line above avatar (for replies) */}
+        {isReply && (
+          <div className="absolute top-[-1rem] h-8 w-0.5 bg-foreground/10 left-1/2 -translate-x-1/2 z-0" />
+        )}
 
-      {isReply && !isLastReply && (
-        <div className="absolute left-[1rem] top-[2rem] bottom-[-1.5rem] w-0.5 bg-foreground/10 -translate-x-1/2 z-0" />
-      )}
+        {/* Thread line under avatar (for parent comments with replies, or intermediate replies) */}
+        {((hasReplies && !isReply) || (isReply && !isLastReply)) && (
+          <div className="absolute top-4 bottom-[-1rem] w-0.5 bg-foreground/10 left-1/2 -translate-x-1/2 z-0" />
+        )}
 
-      {/* Avatar */}
-      <div>
-        <Avatar>
-          <AvatarFallback>{creator?.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+        <Avatar className="z-10 relative">
+          <AvatarFallback className="bg-rose-400 text-black">
+            {creator?.name?.[0]?.toUpperCase() || 'U'}
+          </AvatarFallback>
         </Avatar>
       </div>
 

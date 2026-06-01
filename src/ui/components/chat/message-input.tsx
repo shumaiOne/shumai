@@ -529,16 +529,15 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
         {showUpperPart && (
           <div className="flex flex-col gap-2 p-3 pb-0 animate-in fade-in slide-in-from-bottom-2 duration-200">
             {replyingTo && (
-              <div className="flex items-start justify-between bg-gray-50 p-2 rounded-xl border border-l-4 border-gray-200 border-l-blue-500">
-                <div className="flex flex-col text-sm">
-                  <span className="font-semibold text-blue-600 mb-0.5">Replying to thread</span>
-                  <span className="text-gray-600 line-clamp-1">{replyingTo.message}</span>
+              <div className="flex items-center justify-between bg-muted p-2 px-3 rounded-lg border border-border">
+                <div className="text-xs text-muted-foreground truncate mr-2">
+                  reply to: {replyingTo.message}
                 </div>
                 <button
                   onClick={onCancelReply}
-                  className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-200/50"
+                  className="text-muted-foreground hover:text-foreground p-1 rounded-full hover:bg-muted-foreground/10 shrink-0"
                 >
-                  <XIcon className="w-4 h-4" />
+                  <XIcon className="w-3.5 h-3.5" />
                 </button>
               </div>
             )}
