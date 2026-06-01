@@ -150,8 +150,8 @@ export function FolderTree({
     <div className="flex flex-col h-full overflow-hidden p-3 gap-4 bg-background">
       <div
         className={cn(
-          'flex flex-col overflow-hidden transition-all duration-300 ease-in-out',
-          isAssetsExpanded ? 'flex-1 min-h-[50%] h-full' : 'flex-none h-[28px] max-h-[28px]',
+          'flex flex-col overflow-hidden transition-all duration-300 ease-in-out border-b border-border pb-4',
+          isAssetsExpanded ? 'flex-1 min-h-[50%] h-full' : 'flex-none h-[44px] max-h-[44px]',
         )}
       >
         <header className="group flex items-center justify-between px-2 mb-1 flex-none">
@@ -223,8 +223,8 @@ export function FolderTree({
       {!hideCollections && (
         <div
           className={cn(
-            'flex flex-col overflow-hidden transition-all duration-300 ease-in-out',
-            isCollectionsExpanded ? 'flex-1 min-h-0 h-full' : 'flex-none h-[28px] max-h-[28px]',
+            'flex flex-col overflow-hidden transition-all duration-300 ease-in-out border-b border-border pb-4',
+            isCollectionsExpanded ? 'flex-1 min-h-0 h-full' : 'flex-none h-[44px] max-h-[44px]',
           )}
         >
           <header className="group flex items-center justify-between px-2 mb-1 flex-none">
@@ -279,8 +279,8 @@ export function FolderTree({
       {!hideShares && (
         <div
           className={cn(
-            'flex flex-col overflow-hidden transition-all duration-300 ease-in-out',
-            isSharesExpanded ? 'flex-1 min-h-0 h-full' : 'flex-none h-[28px] max-h-[28px]',
+            'flex flex-col overflow-hidden transition-all duration-300 ease-in-out border-b border-border pb-4',
+            isSharesExpanded ? 'flex-1 min-h-0 h-full' : 'flex-none h-[44px] max-h-[44px]',
           )}
         >
           <header className="group flex items-center justify-between px-2 mb-1 flex-none">
