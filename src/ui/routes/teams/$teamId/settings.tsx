@@ -103,12 +103,12 @@ function TeamSettingsPage() {
   }
 
   return (
-    <div className="h-full bg-slate-50 dark:bg-slate-950 font-sans selection:bg-blue-100 dark:selection:bg-blue-900 transition-colors duration-300">
+    <div className="h-full bg-background font-sans selection:bg-primary/20 transition-colors duration-300">
       <div className="flex flex-col md:flex-row h-full">
         {/* Sidebar */}
-        <div className="w-full h-full md:w-72 bg-white dark:bg-slate-900 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 z-10 md:left-16 overflow-y-auto transition-colors duration-300">
+        <div className="w-full h-full md:w-72 bg-sidebar border-b md:border-b-0 md:border-r border-sidebar-border z-10 md:left-16 overflow-y-auto transition-colors duration-300">
           <nav className="p-4 space-y-1 mt-4">
-            <div className="mb-2 px-4 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+            <div className="mb-2 px-4 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
               Settings
             </div>
 
@@ -117,14 +117,14 @@ function TeamSettingsPage() {
               className={cn(
                 'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
                 activeTab === 'general'
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 ring-1 ring-blue-200 dark:ring-blue-800'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white',
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
+                  : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
               )}
             >
               <User className="w-5 h-5" />
               General
               {activeTab === 'general' && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
               )}
             </button>
 
@@ -133,14 +133,14 @@ function TeamSettingsPage() {
               className={cn(
                 'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
                 activeTab === 'transcode'
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 ring-1 ring-blue-200 dark:ring-blue-800'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white',
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
+                  : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
               )}
             >
               <Film className="w-5 h-5" />
               Media Processing
               {activeTab === 'transcode' && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
               )}
             </button>
 
@@ -149,18 +149,18 @@ function TeamSettingsPage() {
               className={cn(
                 'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
                 activeTab === 'notifications'
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 ring-1 ring-blue-200 dark:ring-blue-800'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white',
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
+                  : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
               )}
             >
               <Bell className="w-5 h-5" />
               Notifications
               {activeTab === 'notifications' && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
               )}
             </button>
 
-            <div className="mt-6 mb-2 px-4 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider pt-4 border-t border-slate-100 dark:border-slate-800">
+            <div className="mt-6 mb-2 px-4 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider pt-4 border-t border-sidebar-border">
               AI
             </div>
 
@@ -169,14 +169,14 @@ function TeamSettingsPage() {
               className={cn(
                 'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
                 activeTab === 'providers'
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 ring-1 ring-blue-200 dark:ring-blue-800'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white',
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
+                  : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
               )}
             >
               <Cpu className="w-5 h-5" />
               Providers
               {activeTab === 'providers' && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
               )}
             </button>
 
@@ -185,14 +185,14 @@ function TeamSettingsPage() {
               className={cn(
                 'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
                 activeTab === 'skills'
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 ring-1 ring-blue-200 dark:ring-blue-800'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white',
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
+                  : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
               )}
             >
               <Puzzle className="w-5 h-5" />
               Skills
               {activeTab === 'skills' && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
               )}
             </button>
 
@@ -201,14 +201,14 @@ function TeamSettingsPage() {
               className={cn(
                 'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
                 activeTab === 'agents'
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 ring-1 ring-blue-200 dark:ring-blue-800'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white',
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
+                  : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
               )}
             >
               <Bot className="w-5 h-5" />
               Agents
               {activeTab === 'agents' && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
               )}
             </button>
 
@@ -217,25 +217,25 @@ function TeamSettingsPage() {
               className={cn(
                 'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
                 activeTab === 'sandbox'
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 ring-1 ring-blue-200 dark:ring-blue-800'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white',
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
+                  : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
               )}
             >
               <Shield className="w-5 h-5" />
               Agent Sandbox
               {activeTab === 'sandbox' && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
               )}
             </button>
           </nav>
         </div>
 
         {/* Main Content Area */}
-        <main className="flex-1 bg-slate-50/50 dark:bg-slate-950 h-full flex flex-col transition-colors duration-300 overflow-y-hidden">
+        <main className="flex-1 bg-background/50 h-full flex flex-col transition-colors duration-300 overflow-y-hidden">
           <div className="flex-1 flex flex-col max-w-4xl w-full mx-auto p-6 md:p-10 overflow-hidden">
             <div className="flex-none flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                <h2 className="text-2xl font-bold text-foreground">
                   {activeTab === 'general' && 'General Settings'}
                   {activeTab === 'transcode' && 'Media Processing'}
                   {activeTab === 'skills' && 'Skills Management'}
@@ -244,7 +244,7 @@ function TeamSettingsPage() {
                   {activeTab === 'sandbox' && 'Agent Sandbox Settings'}
                   {activeTab === 'notifications' && 'Notification Settings'}
                 </h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   {activeTab === 'general' && 'View your personal information and team role.'}
                   {activeTab === 'transcode' &&
                     "Manage your team's media transcoding configurations."}

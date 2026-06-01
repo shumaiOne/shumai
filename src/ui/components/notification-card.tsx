@@ -85,21 +85,19 @@ export const NotificationCard = ({ notification }: NotificationCardProps) => {
       <div
         className={cn(
           'w-1.5 h-1.5 rounded-full shadow-xs',
-          isRead ? 'bg-transparent' : 'bg-red-500',
+          isRead ? 'bg-transparent' : 'bg-destructive',
         )}
       />
 
       <div className="flex-1 min-w-0 flex flex-col justify-center pl-2">
-        <div className="text-sm text-slate-800 dark:text-slate-200 break-all leading-snug">
-          {message}
-        </div>
-        <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+        <div className="text-sm text-foreground break-all leading-snug">{message}</div>
+        <div className="text-[11px] text-muted-foreground mt-1">
           {formatTimeAgo(createdAt || '')}
         </div>
       </div>
 
       {hasPreview && (
-        <div className="w-18 h-18 ml-2 rounded-md overflow-hidden flex-shrink-0 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center mt-0.5">
+        <div className="w-18 h-18 ml-2 rounded-md overflow-hidden flex-shrink-0 bg-muted border border-border flex items-center justify-center mt-0.5">
           <img src={asset!.preview} alt={asset!.name} className="w-full h-full object-cover" />
         </div>
       )}

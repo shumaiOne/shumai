@@ -72,7 +72,7 @@ export const DualSidebar: React.FC<DualSidebarProps> = ({ children }) => {
         variant="ghost"
         size="icon"
         onClick={toggleMobileMenu}
-        className="md:hidden fixed top-4 left-4 z-50 rounded-md bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm text-slate-800 dark:text-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+        className="md:hidden fixed top-4 left-4 z-50 rounded-md bg-sidebar/50 backdrop-blur-sm text-sidebar-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
         aria-label="Open navigation menu"
         aria-expanded={isMobileMenuOpen}
       >
@@ -100,9 +100,9 @@ export const DualSidebar: React.FC<DualSidebarProps> = ({ children }) => {
       <aside
         className={`fixed inset-y-0 left-0 z-40 flex transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
       >
-        <div className="absolute bottom-0 w-full h-[70dvh] bg-linear-to-t from-orange-400/10 to-transparent"></div>
+        <div className="absolute bottom-0 w-full h-[70dvh] bg-linear-to-t from-sidebar-primary/10 to-transparent"></div>
         {/* Level 1: Icon Bar */}
-        <nav className="w-16 bg-slate-100 dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col items-center pb-4 pt-0 space-y-2 flex-shrink-0">
+        <nav className="w-16 bg-sidebar border-r border-sidebar-border flex flex-col items-center pb-4 pt-0 space-y-2 flex-shrink-0">
           <div className="flex-1 w-full flex flex-col items-center space-y-5 pt-1">
             <TooltipProvider>
               {sidebarItems.map((item, index) => (
@@ -116,8 +116,8 @@ export const DualSidebar: React.FC<DualSidebarProps> = ({ children }) => {
                       aria-expanded={activeItem === index}
                       className={`relative w-12 h-12 [&_svg:not([class*='size-'])]:size-6 transition-all duration-200 ${
                         activeItem === index
-                          ? 'bg-blue-600 text-white shadow-lg hover:bg-blue-600 hover:text-white'
-                          : 'text-slate-400 hover:text-slate-500 dark:hover:text-slate-400 dark:text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800'
+                          ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-lg hover:bg-sidebar-primary hover:text-sidebar-primary-foreground'
+                          : 'text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent'
                       }`}
                     >
                       {item.props.icon}
@@ -127,7 +127,7 @@ export const DualSidebar: React.FC<DualSidebarProps> = ({ children }) => {
                   <TooltipContent
                     side="right"
                     sideOffset={16}
-                    className="bg-slate-800 text-white border-slate-700"
+                    className="bg-popover text-popover-foreground border border-border"
                   >
                     <p>{item.props.label}</p>
                   </TooltipContent>
@@ -142,16 +142,16 @@ export const DualSidebar: React.FC<DualSidebarProps> = ({ children }) => {
 
         {/* Level 2: Content Panel */}
         <div
-          className={`transition-all duration-300 ease-in-out bg-white dark:bg-slate-900/95 backdrop-blur-sm shadow-lg overflow-hidden ${
+          className={`transition-all duration-300 ease-in-out bg-sidebar/95 backdrop-blur-sm shadow-lg overflow-hidden ${
             activeItem !== null
-              ? 'w-[calc(100vw-4rem)] md:w-100 border-r border-slate-200 dark:border-slate-800'
+              ? 'w-[calc(100vw-4rem)] md:w-100 border-r border-sidebar-border'
               : 'w-0'
           }`}
         >
           <div className="w-[calc(100vw-4rem)] md:w-100 h-full flex flex-col">
             {activeItemContent && (
               <>
-                <header className="h-16 flex items-center px-4 font-bold text-lg border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
+                <header className="h-16 flex items-center px-4 font-bold text-lg border-b border-sidebar-border flex-shrink-0">
                   <h2>{activeItemContent.label}</h2>
                 </header>
                 <div className="flex-1 overflow-y-auto p-2">{activeItemContent.children}</div>
