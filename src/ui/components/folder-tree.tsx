@@ -5,7 +5,8 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { useMatch, useNavigate, useParams } from '@tanstack/react-router'
 import {
   ChevronDown,
-  ChevronUp,
+  ChevronsDownUp,
+  ChevronsUpDown,
   ChevronRight,
   Clapperboard,
   Folder,
@@ -150,7 +151,7 @@ export function FolderTree({
       <div
         className={cn(
           'flex flex-col overflow-hidden',
-          isAssetsExpanded ? 'flex-1 min-h-0' : 'flex-none',
+          isAssetsExpanded ? 'h-1/2 min-h-0' : 'flex-none',
         )}
       >
         <header className="flex items-center justify-between px-2 mb-1 flex-none">
@@ -160,9 +161,9 @@ export function FolderTree({
           >
             <h3 className="text-xs font-semibold uppercase tracking-wider">Assets</h3>
             {isAssetsExpanded ? (
-              <ChevronUp className="h-3.5 w-3.5" />
+              <ChevronsDownUp className="h-3.5 w-3.5" />
             ) : (
-              <ChevronDown className="h-3.5 w-3.5" />
+              <ChevronsUpDown className="h-3.5 w-3.5" />
             )}
           </div>
           <button className="text-muted-foreground hover:text-foreground">
@@ -228,9 +229,9 @@ export function FolderTree({
             >
               <h3 className="text-xs font-semibold uppercase tracking-wider">Collections</h3>
               {isCollectionsExpanded ? (
-                <ChevronUp className="h-3.5 w-3.5" />
+                <ChevronsDownUp className="h-3.5 w-3.5" />
               ) : (
-                <ChevronDown className="h-3.5 w-3.5" />
+                <ChevronsUpDown className="h-3.5 w-3.5" />
               )}
             </div>
             <button
@@ -279,9 +280,9 @@ export function FolderTree({
             >
               <h3 className="text-xs font-semibold uppercase tracking-wider">Share Links</h3>
               {isSharesExpanded ? (
-                <ChevronUp className="h-3.5 w-3.5" />
+                <ChevronsDownUp className="h-3.5 w-3.5" />
               ) : (
-                <ChevronDown className="h-3.5 w-3.5" />
+                <ChevronsUpDown className="h-3.5 w-3.5" />
               )}
             </div>
             <div className="flex items-center gap-1">
