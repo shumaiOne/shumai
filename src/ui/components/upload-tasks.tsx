@@ -33,12 +33,12 @@ function UploadTaskItem({ task }: { task: TaskInfo }) {
   }
 
   return (
-    <div className="group relative flex flex-col p-4 rounded-xl border border-border bg-card text-card-foreground shadow-xs transition-all duration-200 hover:shadow-md hover:border-accent-foreground/20 hover:bg-accent/5">
+    <div className="group relative flex flex-col p-4 rounded-xl border border-sidebar-border bg-sidebar-accent/30 text-sidebar-foreground shadow-xs transition-all duration-200 hover:shadow-md hover:border-sidebar-foreground/20 hover:bg-sidebar-accent/50">
       {/* Top row: Name & Status Badge */}
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="min-w-0 flex-1">
           <span
-            className="text-sm font-semibold tracking-tight text-foreground truncate block"
+            className="text-sm font-semibold tracking-tight text-sidebar-foreground truncate block"
             title={task.name}
           >
             {task.name || 'Untitled Upload'}
@@ -46,12 +46,12 @@ function UploadTaskItem({ task }: { task: TaskInfo }) {
         </div>
         <div className="flex-shrink-0">
           {isCompleted ? (
-            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 dark:text-emerald-400 px-2 py-0.5 rounded-full transition-colors">
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-full transition-colors">
               <CheckCircle2 className="w-3.5 h-3.5" />
               Done
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 bg-blue-50 dark:bg-blue-500/10 dark:text-blue-400 px-2 py-0.5 rounded-full animate-pulse">
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-sidebar-primary bg-sidebar-primary/10 px-2 py-0.5 rounded-full animate-pulse">
               <Loader2 className="w-3 h-3 animate-spin" />
               Uploading
             </span>
@@ -82,17 +82,13 @@ function UploadTaskItem({ task }: { task: TaskInfo }) {
             {task.uploaded} / {task.total} {task.total === 1 ? 'file' : 'files'}
           </span>
           {!isCompleted && (
-            <span className="text-blue-600 dark:text-blue-400 font-mono font-bold">
-              {Math.round(percent)}%
-            </span>
+            <span className="text-sidebar-primary font-mono font-bold">{Math.round(percent)}%</span>
           )}
         </div>
-        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+        <div className="h-1.5 w-full bg-muted/60 rounded-full overflow-hidden">
           <div
             className={`h-full rounded-full transition-all duration-300 ${
-              isCompleted
-                ? 'bg-emerald-500 dark:bg-emerald-600'
-                : 'bg-blue-500 dark:bg-blue-600 animate-pulse'
+              isCompleted ? 'bg-muted-foreground/40' : 'bg-sidebar-primary animate-pulse'
             }`}
             style={{ width: `${percent}%` }}
           />
