@@ -311,7 +311,7 @@ describe('UploadService', () => {
     expect(parentFolder?.sizeByte).toBe(3000)
   })
 
-  it('should list upload tasks and include the creator name as uploaderName', async () => {
+  it('should list upload tasks', async () => {
     const task = await prisma.task.create({
       data: {
         creatorId: userId,
@@ -326,6 +326,5 @@ describe('UploadService', () => {
     expect(result.data).toHaveLength(1)
     expect(result.data[0].id).toBe(task.id)
     expect(result.data[0].name).toBe('test-upload-task')
-    expect(result.data[0].uploaderName).toBe('test')
   })
 })

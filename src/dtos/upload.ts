@@ -51,7 +51,6 @@ export const taskInfoSchema = z.object({
   total: z.number(),
   uploaded: z.number(),
   createdAt: z.string(),
-  uploaderName: z.string().optional(),
 })
 export type TaskInfo = z.infer<typeof taskInfoSchema>
 

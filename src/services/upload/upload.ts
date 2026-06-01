@@ -346,7 +346,6 @@ export class UploadService {
       async (skip, take) => {
         return this.prismaClient.task.findMany({
           where,
-          include: { creator: true },
           orderBy: { id: 'desc' },
           skip,
           take,
@@ -362,7 +361,6 @@ export class UploadService {
       total: t.total || 0,
       uploaded: t.uploaded,
       createdAt: t.createdAt.toISOString(),
-      uploaderName: t.creator?.name || undefined,
     }))
 
     return { data: infos, pageInfo }

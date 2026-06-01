@@ -2,11 +2,12 @@ import { client } from '@/ui/api/client'
 import type { TaskInfo } from '@/dtos/upload'
 import { useTeamId } from '@/ui/hooks/use-team-id'
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { Loader2, CheckCircle2, Clock, User, UploadCloud } from 'lucide-react'
+import { Loader2, CheckCircle2, Clock, UploadCloud } from 'lucide-react'
 import { useEffect } from 'react'
 import { useInView } from 'react-intersection-observer'
 import { format, parseISO, isToday, isYesterday } from 'date-fns'
 import { Progress } from '@/ui/components/ui/progress'
+import { formatTimeAgo } from '@/ui/lib/time'
 
 function formatDayHeader(dateString: string): string {
   const date = parseISO(dateString)
@@ -28,7 +29,7 @@ function UploadTaskItem({ task }: { task: TaskInfo }) {
 
   let formattedTime = ''
   try {
-    formattedTime = format(parseISO(task.createdAt), 'h:mm a')
+    formattedTime = formatTimeAgo(task.createdAt)
   } catch {
     formattedTime = 'unknown'
   }
@@ -60,20 +61,10 @@ function UploadTaskItem({ task }: { task: TaskInfo }) {
         </div>
       </div>
 
-      {/* Middle row: Uploader Name & Created Time */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mb-3 font-medium">
-        {task.uploaderName && (
-          <div className="flex items-center gap-1">
-            <User className="w-3.5 h-3.5 text-muted-foreground/75" />
-            <span className="truncate max-w-[120px]" title={task.uploaderName}>
-              {task.uploaderName}
-            </span>
-          </div>
-        )}
-        <div className="flex items-center gap-1">
-          <Clock className="w-3.5 h-3.5 text-muted-foreground/75" />
-          <span>{formattedTime}</span>
-        </div>
+      {/* Middle row: Created Time (Date & Time together) */}
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3 font-medium">
+        <Clock className="w-3.5 h-3.5 text-muted-foreground/75" />
+        <span>{formattedTime}</span>
       </div>
 
       {/* Bottom row: Progress Bar and Fraction */}
