@@ -310,4 +310,21 @@ describe('UploadService', () => {
     const parentFolder = await prisma.asset.findUnique({ where: { id: parentId } })
     expect(parentFolder?.sizeByte).toBe(3000)
   })
+
+  it('should list upload tasks', async () => {
+    const task = await prisma.task.create({
+      data: {
+        creatorId: userId,
+        total: 3,
+        uploaded: 1,
+        type: 'upload',
+        name: 'test-upload-task',
+      },
+    })
+
+    const result = await uploadService.listUploadTasks(userId, { first: 10 })
+    expect(result.data).toHaveLength(1)
+    expect(result.data[0].id).toBe(task.id)
+    expect(result.data[0].name).toBe('test-upload-task')
+  })
 })

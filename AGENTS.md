@@ -155,6 +155,10 @@ The frontend is built with:
 - **Framework**: React
 - **Styling**: Tailwind CSS + Shadcn UI (Components)
 
+### UI Rules
+
+- **Prefer System Colors**: Always prefer using semantic system color design tokens (e.g., `bg-background`, `text-foreground`, `text-sidebar-primary`, `text-muted-foreground`, etc.) over hardcoded color utilities (e.g., `bg-blue-50`, `text-emerald-600`, `bg-emerald-500`). This ensures seamless compatibility with light and dark themes.
+
 ### Development
 
 - **Run Dev**: `bun --hot src/index.ts` (Runs on port 3000)
