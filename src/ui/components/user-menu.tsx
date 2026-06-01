@@ -7,6 +7,10 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
 } from '@/ui/components/ui/dropdown-menu'
 import { useTeamId } from '@/ui/hooks/use-team-id'
 import { signOut } from '@/ui/lib/auth-client'
@@ -14,6 +18,7 @@ import { useAuthStore } from '@/ui/stores/auth'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useTheme } from './theme-provider'
+import { Check } from 'lucide-react'
 
 export function UserMenu() {
   const { clearAuth } = useAuthStore()
@@ -30,7 +35,7 @@ export function UserMenu() {
     },
     enabled: !!teamId,
   })
-  const { setTheme } = useTheme()
+  const { setTheme, theme } = useTheme()
   const navigate = useNavigate()
 
   const handleLogout = async () => {
@@ -69,10 +74,34 @@ export function UserMenu() {
             <DropdownMenuSeparator />
           </>
         )}
-        <DropdownMenuLabel>Theme</DropdownMenuLabel>
-        <DropdownMenuItem onClick={() => setTheme('light')}>Light</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('dark')}>Dark</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme('system')}>System</DropdownMenuItem>
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>Theme</DropdownMenuSubTrigger>
+          <DropdownMenuPortal>
+            <DropdownMenuSubContent>
+              <DropdownMenuItem
+                className="justify-between flex items-center"
+                onClick={() => setTheme('light')}
+              >
+                <span>Light</span>
+                {theme === 'light' && <Check className="size-4" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="justify-between flex items-center"
+                onClick={() => setTheme('dark')}
+              >
+                <span>Dark</span>
+                {theme === 'dark' && <Check className="size-4" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="justify-between flex items-center"
+                onClick={() => setTheme('system')}
+              >
+                <span>System</span>
+                {theme === 'system' && <Check className="size-4" />}
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuPortal>
+        </DropdownMenuSub>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={() =>
