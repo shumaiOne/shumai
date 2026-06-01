@@ -4,7 +4,7 @@ import { s3Service } from '@shumai/core/src/s3/s3'
 import AdmZip from 'adm-zip'
 import * as crypto from 'crypto'
 import { ulid } from 'ulid'
-import { parseFrontmatter } from '@/utils/frontmatter'
+import { parseFrontmatter } from '@shumai/core/src/utils/frontmatter'
 
 interface SkillFrontmatter extends Record<string, unknown> {
   name?: string

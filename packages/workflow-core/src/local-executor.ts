@@ -2,7 +2,7 @@ import { prisma } from '@shumai/db'
 import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
 import { Executor } from './executor'
 import * as taskActivities from './activities/task'
-import { logger } from '@/logger'
+import { logger } from '@shumai/core/src/logger'
 
 type WorkflowFn = (task: WorkflowTask) => Promise<void>
 

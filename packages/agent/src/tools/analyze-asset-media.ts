@@ -2,7 +2,7 @@ import { s3Service } from '@shumai/core/src/s3/s3'
 import { Type } from '@sinclair/typebox'
 import { type AgentTool } from '@earendil-works/pi-agent-core'
 import { type ImageContent, type TextContent } from '@earendil-works/pi-ai'
-import { detectSupportedMimeType } from '@/utils/mime'
+import { detectSupportedMimeType } from '@shumai/core/src/utils/mime'
 
 const analyzeAssetMediaSchema = Type.Object({
   key: Type.String({

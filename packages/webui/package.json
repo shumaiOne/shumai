@@ -1,0 +1,10 @@
+{
+  "name": "@shumai/webui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./index.html",
+  "dependencies": {
+    "@shumai/api": "workspace:*"
+  }
+}

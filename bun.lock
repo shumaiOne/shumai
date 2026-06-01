@@ -162,6 +162,24 @@
         "@temporalio/workflow": "^1.16.1",
       },
     },
+    "packages/api": {
+      "name": "@shumai/api",
+      "version": "0.1.0",
+      "dependencies": {
+        "@hono/zod-validator": "^0.7.6",
+        "@shumai/agent": "workspace:*",
+        "@shumai/core": "workspace:*",
+        "@shumai/db": "workspace:*",
+        "@shumai/dtos": "workspace:*",
+        "@shumai/transcode": "workspace:*",
+        "@shumai/worker-db": "workspace:*",
+        "@shumai/workflow-core": "workspace:*",
+        "better-auth": "^1.6.6",
+        "hono": "^4.12.14",
+        "pino": "^10.3.1",
+        "zod": "^4.4.3",
+      },
+    },
     "packages/core": {
       "name": "@shumai/core",
       "version": "0.1.0",
@@ -207,6 +225,13 @@
         "@temporalio/worker": "^1.16.1",
         "@temporalio/workflow": "^1.16.1",
         "sharp": "^0.34.5",
+      },
+    },
+    "packages/webui": {
+      "name": "@shumai/webui",
+      "version": "0.1.0",
+      "dependencies": {
+        "@shumai/api": "workspace:*",
       },
     },
     "packages/worker-db": {
@@ -1015,6 +1040,8 @@
 
     "@shumai/agent": ["@shumai/agent@workspace:packages/agent"],
 
+    "@shumai/api": ["@shumai/api@workspace:packages/api"],
+
     "@shumai/core": ["@shumai/core@workspace:packages/core"],
 
     "@shumai/db": ["@shumai/db@workspace:packages/db"],
@@ -1022,6 +1049,8 @@
     "@shumai/dtos": ["@shumai/dtos@workspace:packages/dtos"],
 
     "@shumai/transcode": ["@shumai/transcode@workspace:packages/transcode"],
+
+    "@shumai/webui": ["@shumai/webui@workspace:packages/webui"],
 
     "@shumai/worker-db": ["@shumai/worker-db@workspace:packages/worker-db"],
 

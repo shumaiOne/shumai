@@ -1,0 +1,22 @@
+{
+  "name": "@shumai/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@shumai/core": "workspace:*",
+    "@shumai/db": "workspace:*",
+    "@shumai/dtos": "workspace:*",
+    "@shumai/workflow-core": "workspace:*",
+    "@shumai/agent": "workspace:*",
+    "@shumai/transcode": "workspace:*",
+    "@shumai/worker-db": "workspace:*",
+    "hono": "^4.12.14",
+    "@hono/zod-validator": "^0.7.6",
+    "zod": "^4.4.3",
+    "better-auth": "^1.6.6",
+    "pino": "^10.3.1"
+  }
+}

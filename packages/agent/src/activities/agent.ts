@@ -1,7 +1,7 @@
 import { createAgentSession, fieldsToTypeBoxSchema, type AutofillField } from '../index'
 import { DatabaseSessionStorage } from '../database-session-storage'
 import type { Prisma, Skill } from '@shumai/db'
-import { logger } from '@/logger'
+import { logger } from '@shumai/core/src/logger'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { type AgentTool } from '@earendil-works/pi-agent-core'
 import { type ImageContent } from '@earendil-works/pi-ai'

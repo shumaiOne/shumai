@@ -18,7 +18,7 @@ import {
   AssetUserInfo,
 } from '@shumai/dtos'
 import { type Asset, AssetStatus, AssetType, Prisma, type StorageKey } from '@shumai/db'
-import { logger } from '@/logger'
+import { logger } from '@shumai/core/src/logger'
 import { PaginatedData, paginateQuery, PaginationParams } from '@shumai/core/src/pagination'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { generateKeyBetween } from 'jittered-fractional-indexing'

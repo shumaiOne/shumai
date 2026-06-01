@@ -1,5 +1,5 @@
 import { defineConfig } from 'prisma/config'
-import { loadEnvConfig } from './src/env-loader'
+import { loadEnvConfig } from './packages/core/src/env-loader'
 
 loadEnvConfig(process.cwd())
 

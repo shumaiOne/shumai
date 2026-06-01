@@ -71,9 +71,10 @@ export default tseslint.config(
     ignores: [
       '**/dist/**',
       '**/node_modules/**',
-      '**/src/generated/**',
+      '**/packages/db/src/generated/**',
+      '**/packages/core/src/generated/**',
       '**/data/**',
-      '**/src/ui/components/ui/**',
+      '**/packages/webui/components/ui/**',
     ],
   },
   js.configs.recommended,

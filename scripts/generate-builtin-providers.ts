@@ -115,7 +115,7 @@ async function sync() {
       }
     }
 
-    const generatedDir = path.join(process.cwd(), 'src', 'generated')
+    const generatedDir = path.join(process.cwd(), 'packages', 'core', 'src', 'generated')
     if (!fs.existsSync(generatedDir)) {
       fs.mkdirSync(generatedDir, { recursive: true })
     }

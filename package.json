@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "bun run --hot src/index.ts serve",
+    "dev": "bun run --hot packages/api/src/index.ts serve",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "test": "bun --bun vitest run",
@@ -15,7 +15,7 @@
     "db:migrate": "bun run prisma migrate dev",
     "db:deploy": "bun run prisma migrate deploy",
     "generate-providers": "bun run scripts/generate-builtin-providers.ts",
-    "worker": "bun src/index.ts worker",
+    "worker": "bun packages/api/src/index.ts worker",
     "build": "bun run build.ts"
   },
   "dependencies": {

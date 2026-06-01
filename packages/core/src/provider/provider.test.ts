@@ -3,7 +3,7 @@ import { teamService } from '@shumai/core/src/team/team'
 import { providerService } from './provider'
 import { describe, expect, it } from 'vitest'
 import { ProviderConfigSerializable, providerModelSchema } from '@shumai/dtos'
-import { builtinProviders } from '@/generated/providers.generated'
+import { builtinProviders } from '@shumai/core/src/generated/providers.generated'
 import { z } from 'zod'
 
 type ProviderModel = z.infer<typeof providerModelSchema>

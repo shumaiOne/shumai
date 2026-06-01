@@ -12,7 +12,7 @@
     "baseUrl": ".",
     "types": ["bun"],
     "paths": {
-      "@/*": ["src/*"]
+      "@/ui/*": ["packages/webui/*"]
     }
   },
   "exclude": ["node_modules"]

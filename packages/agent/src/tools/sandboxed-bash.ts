@@ -1,4 +1,4 @@
-import { logger } from '@/logger'
+import { logger } from '@shumai/core/src/logger'
 import { SandboxManager } from '@anthropic-ai/sandbox-runtime'
 import { type AgentTool, type AgentToolResult } from '@earendil-works/pi-agent-core'
 import { Type } from '@sinclair/typebox'
