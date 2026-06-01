@@ -150,8 +150,8 @@ export function FolderTree({
     <div className="flex flex-col h-full overflow-hidden p-3 gap-4 bg-background">
       <div
         className={cn(
-          'flex flex-col overflow-hidden',
-          isAssetsExpanded ? 'flex-1 min-h-[50%]' : 'flex-none',
+          'flex flex-col overflow-hidden transition-all duration-300 ease-in-out',
+          isAssetsExpanded ? 'flex-1 min-h-[50%] h-full' : 'flex-none h-[28px] max-h-[28px]',
         )}
       >
         <header className="group flex items-center justify-between px-2 mb-1 flex-none">
@@ -166,60 +166,65 @@ export function FolderTree({
               <ChevronsUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
             )}
           </div>
-          <button className="text-muted-foreground hover:text-foreground">
+          <button className="text-muted-foreground hover:text-foreground flex-none">
             <Plus className="h-3.5 w-3.5" />
           </button>
         </header>
 
-        {isAssetsExpanded && (
-          <div className="flex-1 overflow-y-auto min-h-0 space-y-0.5 pr-1">
-            <FolderTreeItem
-              key={rootFolderId}
-              teamId={teamId}
-              projectId={projectId}
-              folder={{
-                id: rootFolderId,
-                name: projectName,
-                type: 'folder',
-                sizeByte: 0,
-                fileCount: 0,
-                status: 'processed',
-                mediaType: null,
-                createdAt: '',
-                updatedAt: '',
-              }}
-              level={0}
-              isRoot={true}
-              dragState={dragState}
-              onSelect={onSelect}
-              selectedFolderId={selectedFolderId}
-            />
-            <div
-              className={cn(
-                'group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                isRecentlyDeleted && 'bg-sidebar-accent text-sidebar-accent-foreground font-medium',
-              )}
-              onClick={() =>
-                navigate({
-                  to: '/projects/$projectId/recently-deleted',
-                  params: { projectId },
-                })
-              }
-            >
-              <div className="flex h-4 w-4 items-center justify-center">
-                <Trash2 className="h-4 w-4 text-sidebar-primary" />
-              </div>
-              <span className="flex-1 truncate text-sidebar-foreground">Recently Deleted</span>
+        <div
+          className={cn(
+            'flex-1 overflow-y-auto min-h-0 space-y-0.5 pr-1 transition-all duration-300 ease-in-out',
+            isAssetsExpanded
+              ? 'opacity-100 visible pointer-events-auto'
+              : 'opacity-0 invisible pointer-events-none h-0',
+          )}
+        >
+          <FolderTreeItem
+            key={rootFolderId}
+            teamId={teamId}
+            projectId={projectId}
+            folder={{
+              id: rootFolderId,
+              name: projectName,
+              type: 'folder',
+              sizeByte: 0,
+              fileCount: 0,
+              status: 'processed',
+              mediaType: null,
+              createdAt: '',
+              updatedAt: '',
+            }}
+            level={0}
+            isRoot={true}
+            dragState={dragState}
+            onSelect={onSelect}
+            selectedFolderId={selectedFolderId}
+          />
+          <div
+            className={cn(
+              'group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+              isRecentlyDeleted && 'bg-sidebar-accent text-sidebar-accent-foreground font-medium',
+            )}
+            onClick={() =>
+              navigate({
+                to: '/projects/$projectId/recently-deleted',
+                params: { projectId },
+              })
+            }
+          >
+            <div className="flex h-4 w-4 items-center justify-center">
+              <Trash2 className="h-4 w-4 text-sidebar-primary" />
             </div>
+            <span className="flex-1 truncate text-sidebar-foreground">Recently Deleted</span>
           </div>
-        )}
+        </div>
       </div>
 
       {!hideCollections && (
         <div
           className={cn(
-            'flex flex-col overflow-hidden',
-            isCollectionsExpanded ? 'flex-1 min-h-0' : 'flex-none',
+            'flex flex-col overflow-hidden transition-all duration-300 ease-in-out',
+            isCollectionsExpanded ? 'flex-1 min-h-0 h-full' : 'flex-none h-[28px] max-h-[28px]',
           )}
         >
           <header className="group flex items-center justify-between px-2 mb-1 flex-none">
@@ -236,41 +241,46 @@ export function FolderTree({
             </div>
             <button
               onClick={() => createCollection()}
-              className="text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground flex-none"
             >
               <Plus className="h-3.5 w-3.5" />
             </button>
           </header>
 
-          {isCollectionsExpanded && (
-            <div className="flex-1 overflow-y-auto min-h-0 space-y-0.5 pr-1">
-              {collectionsData?.data.map((collection) => (
-                <div
-                  key={collection.id}
-                  className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                  onClick={() =>
-                    navigate({
-                      to: '/projects/$projectId/collections/$collectionId',
-                      params: { projectId, collectionId: collection.id },
-                    })
-                  }
-                >
-                  <div className="flex h-4 w-4 items-center justify-center">
-                    <Bookmark className="h-4 w-4 text-sidebar-primary" />
-                  </div>
-                  <span className="flex-1 truncate text-sidebar-foreground">{collection.name}</span>
+          <div
+            className={cn(
+              'flex-1 overflow-y-auto min-h-0 space-y-0.5 pr-1 transition-all duration-300 ease-in-out',
+              isCollectionsExpanded
+                ? 'opacity-100 visible pointer-events-auto'
+                : 'opacity-0 invisible pointer-events-none h-0',
+            )}
+          >
+            {collectionsData?.data.map((collection) => (
+              <div
+                key={collection.id}
+                className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                onClick={() =>
+                  navigate({
+                    to: '/projects/$projectId/collections/$collectionId',
+                    params: { projectId, collectionId: collection.id },
+                  })
+                }
+              >
+                <div className="flex h-4 w-4 items-center justify-center">
+                  <Bookmark className="h-4 w-4 text-sidebar-primary" />
                 </div>
-              ))}
-            </div>
-          )}
+                <span className="flex-1 truncate text-sidebar-foreground">{collection.name}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
       {!hideShares && (
         <div
           className={cn(
-            'flex flex-col overflow-hidden',
-            isSharesExpanded ? 'flex-1 min-h-0' : 'flex-none',
+            'flex flex-col overflow-hidden transition-all duration-300 ease-in-out',
+            isSharesExpanded ? 'flex-1 min-h-0 h-full' : 'flex-none h-[28px] max-h-[28px]',
           )}
         >
           <header className="group flex items-center justify-between px-2 mb-1 flex-none">
@@ -285,7 +295,7 @@ export function FolderTree({
                 <ChevronsUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
               )}
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 flex-none">
               <button
                 onClick={() => createShareLink()}
                 className="text-muted-foreground hover:text-foreground"
@@ -295,27 +305,32 @@ export function FolderTree({
             </div>
           </header>
 
-          {isSharesExpanded && (
-            <div className="flex-1 overflow-y-auto min-h-0 space-y-0.5 pr-1">
-              <div className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
-                <div className="flex h-4 w-4 items-center justify-center">
-                  <LayoutGrid className="h-4 w-4 text-sidebar-primary" />
-                </div>
-                <span className="flex-1 truncate text-sidebar-foreground">
-                  All Share Links ({shareLinks.length})
-                </span>
+          <div
+            className={cn(
+              'flex-1 overflow-y-auto min-h-0 space-y-0.5 pr-1 transition-all duration-300 ease-in-out',
+              isSharesExpanded
+                ? 'opacity-100 visible pointer-events-auto'
+                : 'opacity-0 invisible pointer-events-none h-0',
+            )}
+          >
+            <div className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+              <div className="flex h-4 w-4 items-center justify-center">
+                <LayoutGrid className="h-4 w-4 text-sidebar-primary" />
               </div>
-
-              {shareLinks.map((link) => (
-                <ShareLinkItem
-                  key={link.id}
-                  link={link}
-                  projectId={projectId}
-                  dragState={dragState}
-                />
-              ))}
+              <span className="flex-1 truncate text-sidebar-foreground">
+                All Share Links ({shareLinks.length})
+              </span>
             </div>
-          )}
+
+            {shareLinks.map((link) => (
+              <ShareLinkItem
+                key={link.id}
+                link={link}
+                projectId={projectId}
+                dragState={dragState}
+              />
+            ))}
+          </div>
         </div>
       )}
     </div>
