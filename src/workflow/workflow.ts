@@ -60,7 +60,18 @@ export class WorkflowService {
     const type = process.env.WORKFLOW_EXECUTOR || 'local'
     if (type === 'temporal') {
       const { Worker, NativeConnection } = await import('@temporalio/worker')
-      const { activities } = await import('./activities/index')
+
+      let activities
+      if (queue === 'agent_queue') {
+        const module = await import('./activities/agent-index')
+        activities = module.activities
+      } else if (queue === 'transcode_queue') {
+        const module = await import('./activities/transcode-index')
+        activities = module.activities
+      } else {
+        const module = await import('./activities/index')
+        activities = module.activities
+      }
 
       const connection = await NativeConnection.connect({
         address: process.env.TEMPORAL_ADDRESS || 'localhost:7233',

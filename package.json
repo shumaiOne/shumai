@@ -13,7 +13,8 @@
     "db:deploy": "bun run prisma migrate deploy",
     "generate-providers": "bun run scripts/generate-builtin-providers.ts",
     "worker": "bun src/index.ts worker",
-    "build": "bun run build.ts"
+    "build": "bun run build.ts",
+    "build:agent": "bun run build-agent.ts"
   },
   "dependencies": {
     "@anthropic-ai/sandbox-runtime": "^0.0.52",
