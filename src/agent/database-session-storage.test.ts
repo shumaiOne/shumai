@@ -4,6 +4,9 @@ import { s3Service } from '@/services/s3/s3'
 import { type SessionTreeEntry } from '@earendil-works/pi-agent-core'
 import { describe, expect, it, vi } from 'vitest'
 import { DatabaseSessionStorage } from './database-session-storage'
+import { agentService } from '@/services/agent/agent'
+import { createAgentSession } from './index'
+import * as sandboxedBashModule from './tools/sandboxed-bash'
 
 describe('DatabaseSessionStorage', () => {
   setupTestDbHooks()
@@ -227,6 +230,108 @@ describe('DatabaseSessionStorage', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((retrieved as any).message.content[0].data).toBe(
       Buffer.from('reinjected-data').toString('base64'),
+    )
+  })
+
+  it('should strip and reinject skill content', async () => {
+    const { agent } = await setupTestData()
+    const storage = await DatabaseSessionStorage.create({ agentId: agent.id })
+
+    const getSkillContentSpy = vi
+      .spyOn(agentService, 'getSkillContent')
+      .mockResolvedValue('# Mocked Skill Content')
+
+    const entry: SessionTreeEntry = {
+      type: 'message',
+      id: 'msg-skill',
+      parentId: null,
+      timestamp: new Date().toISOString(),
+      message: {
+        role: 'toolResult',
+        toolCallId: 'call-2',
+        toolName: 'read_skill',
+        isError: false,
+        timestamp: Date.now(),
+        content: [{ type: 'text', text: 'original-skill-content' }],
+        details: {
+          skillId: 'some-skill-id',
+        },
+      },
+    }
+
+    await storage.appendEntry(entry)
+
+    // Verify saved entry is stripped
+    const record = await prisma.agentSessionEntry.findUnique({ where: { id: 'msg-skill' } })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const savedEntry = record?.entry as any
+    expect(savedEntry.message.content[0].text).toBe('__SKILL_CONTENT__')
+
+    // Verify retrieval reinjects data
+    const retrieved = await storage.getEntry('msg-skill')
+    expect(getSkillContentSpy).toHaveBeenCalledWith('some-skill-id')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((retrieved as any).message.content[0].text).toBe('# Mocked Skill Content')
+  })
+
+  it('should restore environment variables when resuming session', async () => {
+    const { agent, user } = await setupTestData()
+
+    // 1. Create a session first to get a sessionId
+    const initialStorage = await DatabaseSessionStorage.create({ agentId: agent.id })
+    const sessionId = initialStorage.sessionId
+
+    // 2. Append a successful read_skill entry
+    const entry: SessionTreeEntry = {
+      type: 'message',
+      id: 'msg-skill-env',
+      parentId: null,
+      timestamp: new Date().toISOString(),
+      message: {
+        role: 'toolResult',
+        toolCallId: 'call-env-1',
+        toolName: 'read_skill',
+        isError: false,
+        timestamp: Date.now(),
+        content: [{ type: 'text', text: 'skill content' }],
+        details: {
+          skillId: 'env-skill-id',
+        },
+      },
+    }
+    await initialStorage.appendEntry(entry)
+
+    // 3. Mock getSkillEnvs to return environment variables
+    const getSkillEnvsSpy = vi.spyOn(agentService, 'getSkillEnvs').mockResolvedValue({
+      MOCK_ENV_VAR: 'mocked-value',
+    })
+
+    // 4. Mock agentService.getSkillContent to avoid actual download throws
+    vi.spyOn(agentService, 'getSkillContent').mockResolvedValue('# Skill')
+
+    // 5. Spy on createSandboxedBashTool
+    const createSandboxedBashToolSpy = vi.spyOn(sandboxedBashModule, 'createSandboxedBashTool')
+
+    // 6. Resume the session via createAgentSession
+    await createAgentSession({
+      agentId: agent.id,
+      providerName: 'test-provider',
+      modelId: 'test-model',
+      systemPrompt: 'Test prompt',
+      teamSkills: [],
+      allowedDomains: [],
+      sessionId: sessionId,
+      userId: user.id,
+      providers: [],
+    })
+
+    // 7. Verify skill environment variables are restored.
+    expect(getSkillEnvsSpy).toHaveBeenCalledWith('env-skill-id')
+    expect(createSandboxedBashToolSpy).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        MOCK_ENV_VAR: 'mocked-value',
+      }),
     )
   })
 

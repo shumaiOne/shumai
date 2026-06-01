@@ -1,10 +1,7 @@
 import { prisma } from '@/db'
-import { s3Service } from '@/services/s3/s3'
 import { Type } from '@sinclair/typebox'
 import { type AgentTool } from '@earendil-works/pi-agent-core'
-import * as path from 'path'
-import * as fs from 'fs'
-import AdmZip from 'adm-zip'
+import { agentService } from '@/services/agent/agent'
 
 const readSkillSchema = Type.Object({
   skillId: Type.String({ description: 'The ID of the skill to read' }),
@@ -30,78 +27,13 @@ export const createReadSkillTool = (
         }
       }
 
-      // Capture environment variables if present in config
-      const config = skill.config as unknown as PrismaJson.SkillConfig
-      if (config?.environmentVariables && Array.isArray(config.environmentVariables)) {
-        const envs: Record<string, string> = {}
-        for (const envVar of config.environmentVariables) {
-          const value =
-            envVar.default !== undefined && envVar.default !== null && envVar.default !== ''
-              ? envVar.default
-              : process.env[envVar.name]
-          if (value !== undefined) {
-            envs[envVar.name] = value
-          }
-        }
-        onEnvsAdded(envs)
-      }
+      // Capture environment variables using agentService
+      const envs = await agentService.getSkillEnvs(params.skillId)
+      onEnvsAdded(envs)
 
-      const skillDir = path.join(process.cwd(), '.pi', 'skills', skill.id)
-      const hashFile = path.join(skillDir, '.hash')
-      let needsDownload = true
+      // Retrieve skill content using agentService
+      const skillMdContent = await agentService.getSkillContent(params.skillId)
 
-      if (fs.existsSync(hashFile)) {
-        const localHash = fs.readFileSync(hashFile, 'utf8')
-        if (localHash === skill.hash) {
-          needsDownload = false
-        }
-      }
-
-      if (needsDownload) {
-        if (fs.existsSync(skillDir)) {
-          fs.rmSync(skillDir, { recursive: true, force: true })
-        }
-        fs.mkdirSync(skillDir, { recursive: true })
-
-        const asset = await prisma.asset.findUnique({
-          where: { id: skill.assetId },
-          include: { storageKey: true },
-        })
-
-        if (!asset || !asset.storageKey?.key) {
-          throw new Error('Skill asset not found or has no key')
-        }
-
-        const { buffer: zipBuffer } = await s3Service.getObject(
-          process.env.S3_BUCKET || 'shumai',
-          asset.storageKey.key,
-        )
-
-        const zip = new AdmZip(zipBuffer)
-        zip.extractAllTo(skillDir, true)
-
-        fs.writeFileSync(hashFile, skill.hash)
-      }
-
-      // Read SKILL.md
-      let skillMdPath = path.join(skillDir, 'SKILL.md')
-      if (!fs.existsSync(skillMdPath)) {
-        skillMdPath = path.join(skillDir, 'skill.md')
-      }
-
-      if (!fs.existsSync(skillMdPath)) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Skill downloaded but SKILL.md not found in ${skillDir}`,
-            },
-          ],
-          details: { skillId: params.skillId },
-        }
-      }
-
-      const skillMdContent = fs.readFileSync(skillMdPath, 'utf8')
       return {
         content: [{ type: 'text', text: skillMdContent }],
         details: { skillId: params.skillId },

@@ -6,9 +6,94 @@ import {
   UpdateAgentParams,
 } from '@/dtos/agent'
 import '@/prisma-json-types'
+import { s3Service } from '@/services/s3/s3'
+import AdmZip from 'adm-zip'
+import * as fs from 'fs'
+import * as path from 'path'
 
 export class AgentService {
   constructor(private readonly prismaClient: typeof prisma = prisma) {}
+
+  async getSkillContent(skillId: string): Promise<string> {
+    const skill = await this.prismaClient.skill.findUnique({
+      where: { id: skillId },
+    })
+
+    if (!skill) {
+      throw new Error(`Skill with ID ${skillId} not found.`)
+    }
+
+    const skillDir = path.join(process.cwd(), '.pi', 'skills', skill.id)
+    const hashFile = path.join(skillDir, '.hash')
+    let needsDownload = true
+
+    if (fs.existsSync(hashFile)) {
+      const localHash = fs.readFileSync(hashFile, 'utf8')
+      if (localHash === skill.hash) {
+        needsDownload = false
+      }
+    }
+
+    if (needsDownload) {
+      if (fs.existsSync(skillDir)) {
+        fs.rmSync(skillDir, { recursive: true, force: true })
+      }
+      fs.mkdirSync(skillDir, { recursive: true })
+
+      const asset = await this.prismaClient.asset.findUnique({
+        where: { id: skill.assetId },
+        include: { storageKey: true },
+      })
+
+      if (!asset || !asset.storageKey?.key) {
+        throw new Error('Skill asset not found or has no key')
+      }
+
+      const { buffer: zipBuffer } = await s3Service.getObject(
+        process.env.S3_BUCKET || 'shumai',
+        asset.storageKey.key,
+      )
+
+      const zip = new AdmZip(zipBuffer)
+      zip.extractAllTo(skillDir, true)
+
+      fs.writeFileSync(hashFile, skill.hash)
+    }
+
+    // Read SKILL.md
+    let skillMdPath = path.join(skillDir, 'SKILL.md')
+    if (!fs.existsSync(skillMdPath)) {
+      skillMdPath = path.join(skillDir, 'skill.md')
+    }
+
+    if (!fs.existsSync(skillMdPath)) {
+      throw new Error(`Skill downloaded but SKILL.md not found in ${skillDir}`)
+    }
+
+    return fs.readFileSync(skillMdPath, 'utf8')
+  }
+
+  async getSkillEnvs(skillId: string): Promise<Record<string, string>> {
+    const skill = await this.prismaClient.skill.findUnique({
+      where: { id: skillId },
+    })
+    if (!skill) return {}
+
+    const config = skill.config as unknown as PrismaJson.SkillConfig
+    const envs: Record<string, string> = {}
+    if (config?.environmentVariables && Array.isArray(config.environmentVariables)) {
+      for (const envVar of config.environmentVariables) {
+        const value =
+          envVar.default !== undefined && envVar.default !== null && envVar.default !== ''
+            ? envVar.default
+            : process.env[envVar.name]
+        if (value !== undefined) {
+          envs[envVar.name] = value
+        }
+      }
+    }
+    return envs
+  }
 
   async createAgent(params: CreateAgentParams) {
     const {

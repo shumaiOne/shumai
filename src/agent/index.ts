@@ -5,6 +5,7 @@ import { getModel } from '@earendil-works/pi-ai'
 import { Type, type TSchema } from '@sinclair/typebox'
 import * as fs from 'fs'
 import * as path from 'path'
+import { agentService } from '@/services/agent/agent'
 import { DatabaseSessionStorage } from './database-session-storage'
 import { analyzeAssetMediaTool } from './tools/analyze-asset-media'
 import { createCreateFileTool } from './tools/create-file'
@@ -127,6 +128,29 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
   const skillEnvs: Record<string, string> = {}
   const onEnvsAdded = (envs: Record<string, string>) => {
     Object.assign(skillEnvs, envs)
+  }
+
+  // Restore env variables from previously loaded skills in this session
+  if (sessionId) {
+    try {
+      const entries = await storage.getEntries()
+      for (const entry of entries) {
+        if (
+          entry.type === 'message' &&
+          entry.message.role === 'toolResult' &&
+          entry.message.toolName === 'read_skill' &&
+          !entry.message.isError
+        ) {
+          const details = entry.message.details as { skillId?: string } | undefined
+          if (details?.skillId) {
+            const envs = await agentService.getSkillEnvs(details.skillId)
+            onEnvsAdded(envs)
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to restore skill environment variables:', err)
+    }
   }
 
   const sandboxedBash = createSandboxedBashTool(process.cwd(), skillEnvs)
