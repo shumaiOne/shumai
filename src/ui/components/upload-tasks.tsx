@@ -2,26 +2,109 @@ import { client } from '@/ui/api/client'
 import type { TaskInfo } from '@/dtos/upload'
 import { useTeamId } from '@/ui/hooks/use-team-id'
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { Loader2 } from 'lucide-react'
+import { Loader2, CheckCircle2, Clock, User, UploadCloud } from 'lucide-react'
 import { useEffect } from 'react'
 import { useInView } from 'react-intersection-observer'
+import { format, parseISO, isToday, isYesterday } from 'date-fns'
+
+function formatDayHeader(dateString: string): string {
+  const date = parseISO(dateString)
+  if (isNaN(date.getTime())) {
+    return 'Unknown Date'
+  }
+  if (isToday(date)) {
+    return 'Today'
+  }
+  if (isYesterday(date)) {
+    return 'Yesterday'
+  }
+  return format(date, 'MMMM d, yyyy')
+}
 
 function UploadTaskItem({ task }: { task: TaskInfo }) {
-  const progress =
-    task.total && task.total > 0 ? `${((task.uploaded ?? 0) / task.total) * 100}%` : '0%'
+  const isCompleted = task.uploaded === task.total
+  const percent = task.total > 0 ? (task.uploaded / task.total) * 100 : 0
+
+  let formattedTime = ''
+  try {
+    formattedTime = format(parseISO(task.createdAt), 'h:mm a')
+  } catch {
+    formattedTime = 'unknown'
+  }
+
   return (
-    <div className="p-2 rounded-md transition-colors hover:bg-sidebar-accent">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium truncate">{task.name ?? 'unknown'}</span>
-        <span className="text-xs text-muted-foreground">
-          {task.uploaded}/{task.total}
-        </span>
+    <div className="group relative flex flex-col p-4 rounded-xl border border-border bg-card text-card-foreground shadow-xs transition-all duration-200 hover:shadow-md hover:border-accent-foreground/20 hover:bg-accent/5">
+      {/* Top row: Name & Status Badge */}
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="min-w-0 flex-1">
+          <span
+            className="text-sm font-semibold tracking-tight text-foreground truncate block"
+            title={task.name}
+          >
+            {task.name || 'Untitled Upload'}
+          </span>
+        </div>
+        <div className="flex-shrink-0">
+          {isCompleted ? (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 dark:text-emerald-400 px-2 py-0.5 rounded-full transition-colors">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Done
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 bg-blue-50 dark:bg-blue-500/10 dark:text-blue-400 px-2 py-0.5 rounded-full animate-pulse">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Uploading
+            </span>
+          )}
+        </div>
       </div>
-      <div className="mt-1 h-1 w-full bg-muted rounded-full">
-        <div className="h-1 bg-primary rounded-full" style={{ width: progress }} />
+
+      {/* Middle row: Uploader Name & Created Time */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground mb-3 font-medium">
+        {task.uploaderName && (
+          <div className="flex items-center gap-1">
+            <User className="w-3.5 h-3.5 text-muted-foreground/75" />
+            <span className="truncate max-w-[120px]" title={task.uploaderName}>
+              {task.uploaderName}
+            </span>
+          </div>
+        )}
+        <div className="flex items-center gap-1">
+          <Clock className="w-3.5 h-3.5 text-muted-foreground/75" />
+          <span>{formattedTime}</span>
+        </div>
+      </div>
+
+      {/* Bottom row: Progress Bar and Fraction */}
+      <div className="space-y-1.5 mt-auto">
+        <div className="flex items-center justify-between text-xs font-semibold">
+          <span className="text-muted-foreground/80">
+            {task.uploaded} / {task.total} {task.total === 1 ? 'file' : 'files'}
+          </span>
+          {!isCompleted && (
+            <span className="text-blue-600 dark:text-blue-400 font-mono font-bold">
+              {Math.round(percent)}%
+            </span>
+          )}
+        </div>
+        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-300 ${
+              isCompleted
+                ? 'bg-emerald-500 dark:bg-emerald-600'
+                : 'bg-blue-500 dark:bg-blue-600 animate-pulse'
+            }`}
+            style={{ width: `${percent}%` }}
+          />
+        </div>
       </div>
     </div>
   )
+}
+
+interface TaskGroup {
+  day: string
+  tasks: TaskInfo[]
 }
 
 export function UploadTasks() {
@@ -61,20 +144,61 @@ export function UploadTasks() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-4">
-        <Loader2 className="h-6 w-6 animate-spin" />
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     )
   }
 
+  if (tasks.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center border border-dashed border-border rounded-xl bg-muted/10 my-4">
+        <UploadCloud className="h-8 w-8 text-muted-foreground/50 mb-3" />
+        <p className="text-sm font-semibold text-muted-foreground">No uploads yet</p>
+        <p className="text-xs text-muted-foreground/60 mt-1 max-w-[180px]">
+          Upload files in the project view to track progress here.
+        </p>
+      </div>
+    )
+  }
+
+  // Group tasks by day (maintaining desc ordering)
+  const taskGroups: TaskGroup[] = []
+  tasks.forEach((task) => {
+    const day = formatDayHeader(task.createdAt)
+    let group = taskGroups.find((g) => g.day === day)
+    if (!group) {
+      group = { day, tasks: [] }
+      taskGroups.push(group)
+    }
+    group.tasks.push(task)
+  })
+
   return (
-    <div className="flex flex-col space-y-2">
-      {tasks?.map((task) => (
-        <UploadTaskItem key={task.id} task={task} />
+    <div className="flex flex-col space-y-4">
+      {taskGroups.map((group) => (
+        <div key={group.day} className="relative flex flex-col">
+          {/* Day Sticky Header */}
+          <div className="sticky top-0 bg-sidebar/95 backdrop-blur-sm z-10 py-2 px-1 flex items-center justify-between border-b border-border/40">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">
+              {group.day}
+            </span>
+            <span className="text-[10px] font-semibold text-muted-foreground/60 bg-muted px-2 py-0.5 rounded-full">
+              {group.tasks.length} {group.tasks.length === 1 ? 'task' : 'tasks'}
+            </span>
+          </div>
+          {/* Tasks in Day */}
+          <div className="mt-3 space-y-3">
+            {group.tasks.map((task) => (
+              <UploadTaskItem key={task.id} task={task} />
+            ))}
+          </div>
+        </div>
       ))}
+
       {hasNextPage && (
-        <div ref={ref} className="flex items-center justify-center p-2">
-          {isFetchingNextPage && <Loader2 className="h-4 w-4 animate-spin" />}
+        <div ref={ref} className="flex items-center justify-center p-4">
+          {isFetchingNextPage && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
         </div>
       )}
     </div>
