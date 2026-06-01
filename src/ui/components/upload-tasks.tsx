@@ -6,6 +6,7 @@ import { Loader2, CheckCircle2, Clock, User, UploadCloud } from 'lucide-react'
 import { useEffect } from 'react'
 import { useInView } from 'react-intersection-observer'
 import { format, parseISO, isToday, isYesterday } from 'date-fns'
+import { Progress } from '@/ui/components/ui/progress'
 
 function formatDayHeader(dateString: string): string {
   const date = parseISO(dateString)
@@ -52,7 +53,7 @@ function UploadTaskItem({ task }: { task: TaskInfo }) {
             </span>
           ) : (
             <span className="inline-flex items-center gap-1 text-xs font-semibold text-sidebar-primary bg-sidebar-primary/10 px-2 py-0.5 rounded-full animate-pulse">
-              <Loader2 className="w-3 h-3 animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
               Uploading
             </span>
           )}
@@ -85,14 +86,7 @@ function UploadTaskItem({ task }: { task: TaskInfo }) {
             <span className="text-sidebar-primary font-mono font-bold">{Math.round(percent)}%</span>
           )}
         </div>
-        <div className="h-1.5 w-full bg-muted/60 rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all duration-300 ${
-              isCompleted ? 'bg-muted-foreground/40' : 'bg-sidebar-primary animate-pulse'
-            }`}
-            style={{ width: `${percent}%` }}
-          />
-        </div>
+        <Progress value={percent} className="h-1.5 w-full bg-muted" />
       </div>
     </div>
   )
