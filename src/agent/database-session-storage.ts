@@ -8,6 +8,7 @@ import {
   type SessionTreeEntry,
   type SessionTreeEntryBase,
 } from '@earendil-works/pi-agent-core'
+import { agentService } from '@/services/agent/agent'
 
 export interface DatabaseSessionMetadata extends SessionMetadata {
   agentId: string
@@ -54,11 +55,13 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
   async appendEntry(entry: SessionTreeEntry): Promise<void> {
     const strippedEntry = structuredClone(entry)
 
-    // Strip image data before saving to DB
+    // Strip image data and skill content before saving to DB
     if (strippedEntry.type === 'message') {
       const msg = strippedEntry.message
       if (msg.role === 'toolResult') {
-        const details = msg.details as { sourceKeys?: string[] } | undefined
+        const details = msg.details as { sourceKeys?: string[]; skillId?: string } | undefined
+
+        // Strip S3 image data
         if (Array.isArray(msg.content) && details?.sourceKeys) {
           const sourceKeys = details.sourceKeys
           let keyIdx = 0
@@ -68,6 +71,23 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
               keyIdx++
             }
           })
+        }
+
+        // Strip skill content
+        if (msg.toolName === 'read_skill' && !msg.isError) {
+          if (details?.skillId && Array.isArray(msg.content)) {
+            msg.content.forEach((item: { type: string; text?: string }) => {
+              if (
+                item.type === 'text' &&
+                item.text &&
+                !item.text.startsWith('Skill with ID') &&
+                !item.text.startsWith('Skill downloaded but') &&
+                !item.text.startsWith('Error reading skill')
+              ) {
+                item.text = '__SKILL_CONTENT__'
+              }
+            })
+          }
         }
       }
     }
@@ -91,6 +111,7 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
     if (!record) return undefined
     const entry = record.entry as unknown as SessionTreeEntry
     await this.reinjectImageDataAsync(entry)
+    await this.reinjectSkillContentAsync(entry)
     return entry
   }
 
@@ -112,6 +133,7 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
     >
     for (const entry of entries) {
       await this.reinjectImageDataAsync(entry)
+      await this.reinjectSkillContentAsync(entry)
     }
     return entries
   }
@@ -158,6 +180,7 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
     // Only reinject image data (which may involve S3 calls) for the entries in the path
     for (const entry of pathEntries) {
       await this.reinjectImageDataAsync(entry)
+      await this.reinjectSkillContentAsync(entry)
     }
 
     return pathEntries
@@ -171,6 +194,7 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
     const entries = records.map((r) => r.entry as unknown as SessionTreeEntry)
     for (const entry of entries) {
       await this.reinjectImageDataAsync(entry)
+      await this.reinjectSkillContentAsync(entry)
     }
     return entries
   }
@@ -193,6 +217,30 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
                 console.error(`Failed to re-inject image data for key ${key}:`, err)
               }
               keyIdx++
+            }
+          }
+        }
+      }
+    }
+  }
+
+  private async reinjectSkillContentAsync(entry: SessionTreeEntry) {
+    if (entry.type === 'message') {
+      const msg = entry.message as AgentMessage
+      if (msg.role === 'toolResult' && msg.toolName === 'read_skill') {
+        const details = msg.details as { skillId?: string } | undefined
+        if (details?.skillId && Array.isArray(msg.content)) {
+          for (const item of msg.content) {
+            if (item.type === 'text' && item.text === '__SKILL_CONTENT__') {
+              try {
+                const content = await agentService.getSkillContent(details.skillId)
+                item.text = content
+              } catch (err) {
+                console.error(
+                  `Failed to re-inject skill content for skill ${details.skillId}:`,
+                  err,
+                )
+              }
             }
           }
         }
