@@ -921,7 +921,10 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
 
         // Generate sort index for new version inside the stack (newest gets the lowest sortIndex)
         const firstChild = await prisma.asset.findFirst({
-          where: { parentId: stackId },
+          where: {
+            parentId: stackId,
+            NOT: { id: newFile.id },
+          },
           orderBy: { sortIndex: 'asc' },
         })
         const newSortIndex = generateKeyBetween(null, firstChild?.sortIndex || null)
