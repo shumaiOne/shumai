@@ -24,7 +24,10 @@ import uploadRoute from '@/api/upload'
 import versionStackRoute from '@/api/versionStack'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { assetService } from '@shumai/core/src/asset/asset'
-import { workflowService } from '@/workflow/workflow'
+import { workflowService } from '@shumai/workflow-core'
+import { initAgentWorkflows } from '@shumai/agent'
+import { initTranscodeWorkflows } from '@shumai/transcode'
+import { initDbWorkflows } from '@shumai/worker-db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -62,6 +65,11 @@ const apiAppRoute = app.route('/api', apiRoute)
 export type AppType = typeof apiAppRoute
 
 export async function run() {
+  // Initialize workflows and activities for local executor mode
+  initAgentWorkflows()
+  initTranscodeWorkflows()
+  initDbWorkflows()
+
   // Start services
   await metadataService.syncSystemFields().catch(console.error)
   assetService.startCleanupJob()

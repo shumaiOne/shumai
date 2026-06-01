@@ -4,7 +4,7 @@ import { setupTestDbHooks } from '@shumai/db'
 import { SearchService } from './search'
 import { SearchConditionOperator } from '@shumai/dtos'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
-import { workflowService } from '@/workflow/workflow'
+import { workflowService } from '@shumai/workflow-core'
 
 import { AssetType } from '@shumai/db'
 

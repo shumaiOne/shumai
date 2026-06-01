@@ -5,7 +5,7 @@ import { AssetInfo } from '@shumai/dtos'
 import { SearchRequest } from '@shumai/dtos'
 import { PaginatedData, decodeCursor, encodeCursor, PageInfo } from '@shumai/core/src/pagination'
 import { generateSearchNgrams } from '@/utils/ngram'
-import { workflowService } from '@/workflow/workflow'
+import { workflowService } from '@shumai/workflow-core'
 import { HTTPException } from 'hono/http-exception'
 import { SqlQueryBuilder } from './sql-query-builder'
 

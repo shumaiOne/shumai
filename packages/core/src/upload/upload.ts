@@ -20,7 +20,7 @@ import {
   WorkflowTaskType,
 } from '@shumai/db'
 import { PaginationParams, paginateQuery, PaginatedData } from '@shumai/core/src/pagination'
-import { VideoTranscoder, ImageTranscoder } from '@/transcode/transcoder'
+import { VideoTranscoder, ImageTranscoder } from '@shumai/transcode'
 
 export class UploadService {
   constructor(private readonly prismaClient: typeof prisma = prisma) {}

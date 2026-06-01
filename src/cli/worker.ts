@@ -1,7 +1,15 @@
-import { workflowService } from '@/workflow/workflow'
-import { TaskQueueAgent, TaskQueueTranscode } from '@/workflow/workflow-utils'
+import { workflowService } from '@shumai/workflow-core'
+import { TaskQueueAgent, TaskQueueTranscode } from '@shumai/workflow-core'
+import { initAgentWorkflows } from '@shumai/agent'
+import { initTranscodeWorkflows } from '@shumai/transcode'
+import { initDbWorkflows } from '@shumai/worker-db'
 
 export async function run() {
+  // Initialize workflows and activities
+  initAgentWorkflows()
+  initTranscodeWorkflows()
+  initDbWorkflows()
+
   const domain = process.argv[3]
 
   if (!domain) {
