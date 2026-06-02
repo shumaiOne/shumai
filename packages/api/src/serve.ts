@@ -1,6 +1,12 @@
-import index from '../../webui/index.html'
+import index from '@shumai/webui/index.html'
 
+import { initAgentWorkflows } from '@shumai/agent'
+import { assetService } from '@shumai/core/src/asset/asset'
+import { metadataService } from '@shumai/core/src/metadata/metadata'
 import type { Prisma } from '@shumai/db'
+import { initTranscodeWorkflows } from '@shumai/transcode'
+import { initDbWorkflows } from '@shumai/worker-db'
+import { workflowService } from '@shumai/workflow-core'
 import { Hono } from 'hono'
 import agentRoute from './api/agent'
 import attachmentRoute from './api/attachment'
@@ -22,12 +28,6 @@ import skillRoute from './api/skill'
 import teamRoute from './api/team'
 import uploadRoute from './api/upload'
 import versionStackRoute from './api/versionStack'
-import { metadataService } from '@shumai/core/src/metadata/metadata'
-import { assetService } from '@shumai/core/src/asset/asset'
-import { workflowService } from '@shumai/workflow-core'
-import { initAgentWorkflows } from '@shumai/agent'
-import { initTranscodeWorkflows } from '@shumai/transcode'
-import { initDbWorkflows } from '@shumai/worker-db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 

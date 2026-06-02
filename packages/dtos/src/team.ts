@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import { paginationPageInfoSchema, paginationParamsSchema } from './pagination'
-import { UserType } from '@shumai/db'
 
 export const createTeamRequestSchema = z.object({
   name: z.string(),
@@ -44,7 +43,7 @@ export const userInfoSchema = z.object({
   name: z.string(),
   role: z.string(),
   email: z.string().optional(),
-  type: z.nativeEnum(UserType).optional(),
+  type: z.enum(['human', 'agent']).optional(),
 })
 export type UserInfo = z.infer<typeof userInfoSchema>
 

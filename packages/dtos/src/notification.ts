@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { NotificationType } from '@shumai/db'
+import type { NotificationType } from '@shumai/db'
 
 export const teamUserInfoSchema = z.object({
   id: z.string().optional(),

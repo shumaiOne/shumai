@@ -1,19 +1,15 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { vi } from 'vitest'
+
+vi.mock('@shumai/core/src/s3/s3')
+vi.mock('fs')
+
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db'
 import { createReadSkillTool } from './read-skill'
 import { s3Service } from '@shumai/core/src/s3/s3'
+import AdmZip from 'adm-zip'
 import * as fs from 'fs'
-
-vi.mock('@shumai/core/src/s3/s3')
-vi.mock('fs')
-vi.mock('adm-zip', () => {
-  return {
-    default: class {
-      extractAllTo = vi.fn()
-    },
-  }
-})
 
 describe('readSkillTool', () => {
   setupTestDbHooks()
@@ -95,9 +91,13 @@ describe('readSkillTool', () => {
       return ''
     })
 
+    const zip = new AdmZip()
+    zip.addFile('SKILL.md', Buffer.from('# Extracted Content'))
+    const zipBuffer = zip.toBuffer()
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking s3Service return
     ;(s3Service.getObject as any).mockResolvedValue({
-      buffer: Buffer.from('zipdata'),
+      buffer: zipBuffer,
       contentType: 'application/zip',
     })
 

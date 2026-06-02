@@ -23,7 +23,10 @@
     "@testcontainers/postgresql": "^11.14.0",
     "@types/bun": "^1.3.12",
     "@types/node": "^22",
+    "bun-plugin-pino": "^1.5.0",
+    "bun-plugin-tailwind": "^0.1.2",
     "bun-types": "^1.3.12",
+    "pino-pretty": "^13.1.3",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
@@ -33,6 +36,7 @@
     "testcontainers": "^11.14.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.4",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.4",
+    "vite-tsconfig-paths": "^6.1.1"
   }
 }

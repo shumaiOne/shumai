@@ -12,6 +12,9 @@
     "@shumai/workflow-core": "workspace:*",
     "@temporalio/activity": "^1.16.1",
     "@temporalio/worker": "^1.16.1",
-    "@temporalio/workflow": "^1.16.1"
+    "@temporalio/workflow": "^1.16.1",
+    "ulid": "^3.0.2",
+    "jittered-fractional-indexing": "^1.0.1",
+    "@earendil-works/pi-agent-core": "0.78.0"
   }
 }

@@ -8,7 +8,9 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.7.0",
     "@prisma/client": "^7.7.0",
-    "pg": "^8.20.0"
+    "pg": "^8.20.0",
+    "@earendil-works/pi-agent-core": "0.78.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/pg": "^8.20.0",

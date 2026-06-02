@@ -10,6 +10,7 @@
     "@shumai/dtos": "workspace:*",
     "@shumai/core": "workspace:*",
     "@temporalio/client": "^1.16.1",
-    "@temporalio/workflow": "^1.16.1"
+    "@temporalio/workflow": "^1.16.1",
+    "@temporalio/worker": "^1.16.1"
   }
 }
