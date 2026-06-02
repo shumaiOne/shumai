@@ -109,14 +109,38 @@ The backend is built with:
 - **ORM**: Prisma (with Pgvector18)
 - **Database**: Pgvector18
 
-### Layered Architecture
+## Workspace Architecture
 
-We follow a strict layered architecture:
+The project is a monorepo managed by **Bun Workspaces**. It follows a strictly decoupled architecture where each domain or layer is its own package:
 
-1.  **API Layer (`packages/api/src/api`)**: Handles HTTP requests, validation, and calls Core layer. **Do not access DB directly.** **Do not return prisma object directly in api, use dto to avoid leak.**
-2.  **DTO Layer (`packages/dtos/src`)**: All dtos used in api, which are also used by webui for type-safety.
-3.  **Service Layer (`packages/core/src`)**: Contains business logic and interacts with the Database via Prisma.
-4.  **Data Layer (`packages/db/src`)**: Exports the Prisma Client instance.
+-   **WebUI (`packages/webui`)**: React-based frontend.
+-   **API (`packages/api`)**: Hono-based HTTP entry point. Handles requests and calls Core services.
+-   **Core (`packages/core`)**: Business logic, services, and infrastructure utilities.
+-   **Database (`packages/db`)**: Prisma client, schema, and migrations.
+-   **DTOs (`packages/dtos`)**: Shared type definitions and Zod schemas used by both API and WebUI.
+-   **Workers**: Specialized packages for background task execution:
+    -   `@shumai/workflow-core`: Common workflow engine logic.
+    -   `@shumai/agent`: AI agent workflows and activities.
+    -   `@shumai/transcode`: Media processing workflows and activities.
+    -   `@shumai/worker-db`: Shared database activities.
+
+### Layered Communication Rules
+
+1.  **API Layer** calls **Core Layer**. Do not access the database directly in the API layer.
+2.  **Core Layer** calls **Database Layer** and other Core services.
+3.  **DTO Layer** is imported by all layers to ensure end-to-end type safety.
+4.  **No Direct DB Leak**: Do not return Prisma objects directly from the API; always map them to DTOs.
+
+## Dependency Management
+
+We follow Bun's monorepo conventions for dependency management:
+
+1.  **Self-Contained Packages**: Every workspace package MUST declare its own runtime `dependencies` in its local `package.json`. Do not rely on dependencies being available via the root.
+2.  **Shared DevDependencies**: Common development tools (e.g., `typescript`, `eslint`, `vitest`, `prettier`, `prisma`) MUST be declared in the root `package.json` to ensure version consistency across the workspace.
+3.  **Local DevDependencies**: Tools specific to a single package (e.g., `@vitejs/plugin-react` for `webui`) should be declared in that package's local `package.json`.
+4.  **Workspace Imports**: Use `workspace:*` for internal package dependencies.
+5.  **Clean Root**: The root `package.json` must not contain runtime `dependencies`. It is reserved for shared `devDependencies` and workspace-wide `scripts`.
+6.  **Installation**: Always run `bun install` from the root. Use the `--filter` flag if you only want to update a specific package (e.g., `bun install --filter @shumai/webui`).
 
 ### Service Layer Patterns
 
