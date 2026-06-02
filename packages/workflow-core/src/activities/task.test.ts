@@ -5,7 +5,7 @@ import {
   updateTaskStatusActivity,
   updateAssetStatusActivity,
   updateTaskUsageActivity,
-} from '@shumai/worker-db'
+} from './task'
 import { WorkflowTaskStatus, WorkflowTaskType, AssetStatus } from '@shumai/db'
 
 describe('Task Activities', () => {

@@ -4,7 +4,6 @@ import { workflowService } from './workflow'
 import { WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
 import { initAgentWorkflows } from '@shumai/agent'
 import { initTranscodeWorkflows } from '@shumai/transcode'
-import { initDbWorkflows } from '@shumai/worker-db'
 
 vi.mock('@shumai/core/src/s3/s3', () => ({
   s3Service: {
@@ -38,7 +37,6 @@ describe('WorkflowService', () => {
   beforeEach(async () => {
     initAgentWorkflows()
     initTranscodeWorkflows()
-    initDbWorkflows()
     await prisma.workflowTask.deleteMany()
     await prisma.assetComment.deleteMany()
     await prisma.asset.deleteMany()

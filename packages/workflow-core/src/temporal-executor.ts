@@ -1,8 +1,7 @@
 import { Connection, Client } from '@temporalio/client'
 import { WorkflowTask, WorkflowTaskType } from '@shumai/db'
 import { Executor } from './executor'
-
-export const TASK_QUEUE_DB = 'db_queue'
+import { TaskQueueAgent, TaskQueueTranscode } from './workflow-utils'
 
 export class TemporalExecutor implements Executor {
   private client: Client | null = null
@@ -15,28 +14,35 @@ export class TemporalExecutor implements Executor {
     const workflowId = `${task.type}-${task.id}`
 
     let workflowName: string
+    let taskQueue: string
+
     switch (task.type) {
       case WorkflowTaskType.ai_embedding:
         workflowName = 'agentEmbeddingWorkflow'
+        taskQueue = TaskQueueAgent
         break
       case WorkflowTaskType.query_embedding_for_search:
         workflowName = 'queryEmbeddingForSearch'
+        taskQueue = TaskQueueAgent
         break
       case WorkflowTaskType.ai_metadata_autofill:
         workflowName = 'agentAutofillWorkflow'
+        taskQueue = TaskQueueAgent
         break
       case WorkflowTaskType.chat:
         workflowName = 'agentChatWorkflow'
+        taskQueue = TaskQueueAgent
         break
       case WorkflowTaskType.transcode:
         workflowName = 'transcodeWorkflow'
+        taskQueue = TaskQueueTranscode
         break
       default:
         throw new Error(`Unknown task type: ${task.type}`)
     }
 
     const handle = await client.workflow.start(workflowName, {
-      taskQueue: TASK_QUEUE_DB,
+      taskQueue,
       workflowId,
       args: [task],
     })

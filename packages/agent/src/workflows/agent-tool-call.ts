@@ -1,13 +1,13 @@
 import { ApplicationFailure } from '@temporalio/workflow'
 import type { WorkflowTask } from '@shumai/db'
-import { getActivities, executeActivity, TaskQueueDb } from '@shumai/workflow-core'
+import { getActivities, executeActivity, TaskQueueAgent } from '@shumai/workflow-core'
 
 export async function agentToolCall(task: WorkflowTask): Promise<void> {
   const { updateTaskStatusActivity, executeAgentToolActivity } = getActivities()
 
   try {
     // Update status to processing
-    await executeActivity(TaskQueueDb, updateTaskStatusActivity, {
+    await executeActivity(TaskQueueAgent, updateTaskStatusActivity, {
       taskId: task.id,
       status: 'processing',
     })
@@ -22,8 +22,8 @@ export async function agentToolCall(task: WorkflowTask): Promise<void> {
 
     const { toolName, args, userId } = payload.agentToolCall
 
-    // Execute the database activity on db_queue
-    const result = await executeActivity(TaskQueueDb, executeAgentToolActivity, {
+    // Execute the agent activity on agent_queue
+    const result = await executeActivity(TaskQueueAgent, executeAgentToolActivity, {
       taskId: task.id,
       toolName,
       args,
@@ -31,7 +31,7 @@ export async function agentToolCall(task: WorkflowTask): Promise<void> {
     })
 
     // Update status to completed with output
-    await executeActivity(TaskQueueDb, updateTaskStatusActivity, {
+    await executeActivity(TaskQueueAgent, updateTaskStatusActivity, {
       taskId: task.id,
       status: 'completed',
       output: result,
@@ -40,7 +40,7 @@ export async function agentToolCall(task: WorkflowTask): Promise<void> {
     console.error(`AgentToolCall failed for task ${task.id}:`, err)
 
     // Update status to failed
-    await executeActivity(TaskQueueDb, updateTaskStatusActivity, {
+    await executeActivity(TaskQueueAgent, updateTaskStatusActivity, {
       taskId: task.id,
       status: 'failed',
       output: { error: err instanceof Error ? err.message : String(err) },

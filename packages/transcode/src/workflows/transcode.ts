@@ -3,7 +3,6 @@ import { ApplicationFailure } from '@temporalio/workflow'
 import {
   getActivities,
   executeActivity,
-  TaskQueueDb,
   TaskQueueTranscode,
 } from '@shumai/workflow-core'
 
@@ -27,18 +26,18 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
 
   try {
     // 1. Update status to processing
-    await executeActivity(TaskQueueDb, updateTaskStatusActivity, {
+    await executeActivity(TaskQueueTranscode, updateTaskStatusActivity, {
       taskId: task.id,
       status: 'processing',
     })
 
-    await executeActivity(TaskQueueDb, updateAssetStatusActivity, {
+    await executeActivity(TaskQueueTranscode, updateAssetStatusActivity, {
       assetId: task.assetId,
       status: 'processing',
     })
 
     // 2. Get Asset
-    const asset = await executeActivity(TaskQueueDb, getAssetActivity, task.assetId)
+    const asset = await executeActivity(TaskQueueTranscode, getAssetActivity, task.assetId)
     const key = asset?.storageKey?.key
     if (!asset || !key) {
       throw ApplicationFailure.create({
@@ -174,25 +173,25 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
     }
 
     // 11. Update Asset Media and Status
-    await executeActivity(TaskQueueDb, updateAssetMediaActivity, {
+    await executeActivity(TaskQueueTranscode, updateAssetMediaActivity, {
       assetId: asset.id,
       mediaInfo,
     })
 
-    await executeActivity(TaskQueueDb, updateAssetStatusActivity, {
+    await executeActivity(TaskQueueTranscode, updateAssetStatusActivity, {
       assetId: asset.id,
       status: 'processed',
     })
 
     // 12. Update Task Status
-    await executeActivity(TaskQueueDb, updateTaskStatusActivity, {
+    await executeActivity(TaskQueueTranscode, updateTaskStatusActivity, {
       taskId: task.id,
       status: 'completed',
     })
   } catch (err) {
     console.error(`TranscodeMedia failed for task ${task.id}:`, err)
     // Update status to failed
-    await executeActivity(TaskQueueDb, updateTaskStatusActivity, {
+    await executeActivity(TaskQueueTranscode, updateTaskStatusActivity, {
       taskId: task.id,
       status: 'failed',
       output: { error: err instanceof Error ? err.message : String(err) },
