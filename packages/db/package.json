@@ -6,9 +6,13 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
-    "@prisma/client": "^7.7.0"
+    "@prisma/adapter-pg": "^7.7.0",
+    "@prisma/client": "^7.7.0",
+    "pg": "^8.20.0"
   },
   "devDependencies": {
-    "prisma": "^7.7.0"
+    "@types/pg": "^8.20.0",
+    "prisma": "^7.7.0",
+    "prisma-json-types-generator": "^4.1.1"
   }
 }

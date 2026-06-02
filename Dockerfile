@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Copy package files
 COPY package.json bun.lock ./
-COPY prisma ./prisma
+COPY --parents packages/*/package.json ./
 
 # Install dependencies (including devDependencies for build tools)
 RUN bun install --frozen-lockfile
@@ -39,7 +39,7 @@ RUN bun add @temporalio/activity @temporalio/client @temporalio/worker @temporal
 
 # Copy build artifacts and prisma config
 COPY --from=builder /app/dist ./
-COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/packages/db/prisma ./packages/db/prisma
 COPY --from=builder /app/prisma.config.ts.prod ./prisma.config.ts
 
 # Expose port (Bun Hono defaults to 3000)
