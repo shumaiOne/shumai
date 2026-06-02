@@ -1,4 +1,4 @@
-import { setupTestDbHooks } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db/test'
 import { describe, expect, it } from 'vitest'
 
 import { prisma } from '@shumai/db'

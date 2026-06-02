@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { prisma } from '@shumai/db'
-import { setupTestDbHooks } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db/test'
 import { shareService } from './share'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { projectService } from '@shumai/core/src/project/project'

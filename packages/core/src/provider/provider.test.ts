@@ -1,4 +1,4 @@
-import { setupTestDbHooks } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db/test'
 import { teamService } from '@shumai/core/src/team/team'
 import { providerService } from './provider'
 import { describe, expect, it } from 'vitest'

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { agentChat } from './agent-chat'
 import { prisma } from '@shumai/db'
-import { setupTestDbHooks } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db/test'
 import * as workflowUtils from '@shumai/workflow-core'
 
 vi.mock('@shumai/workflow-core', async () => {

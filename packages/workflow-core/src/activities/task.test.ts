@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { prisma } from '@shumai/db'
-import { setupTestDbHooks } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db/test'
 import {
   updateTaskStatusActivity,
   updateAssetStatusActivity,

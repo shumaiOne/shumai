@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest'
 import { prisma } from '@shumai/db'
-import { setupTestDbHooks } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db/test'
 import { SearchService } from './search'
 import { SearchConditionOperator } from '@shumai/dtos'
 import { metadataService } from '@shumai/core/src/metadata/metadata'

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prisma } from '@shumai/db'
-import { setupTestDbHooks } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db/test'
 import { ProjectService } from './project'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { assetService } from '@shumai/core/src/asset/asset'

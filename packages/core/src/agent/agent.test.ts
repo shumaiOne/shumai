@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { AgentService } from './agent'
 import { prisma } from '@shumai/db'
-import { setupTestDbHooks } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db/test'
 
 describe('AgentService', () => {
   setupTestDbHooks()

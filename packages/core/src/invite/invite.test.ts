@@ -1,5 +1,5 @@
 import { prisma } from '@shumai/db'
-import { setupTestDbHooks } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db/test'
 import { inviteService } from '@shumai/core/src/invite/invite'
 import { beforeEach, describe, expect, it } from 'vitest'
 

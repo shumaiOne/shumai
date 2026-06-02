@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { prisma } from '@shumai/db'
-import { setupTestDbHooks } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db/test'
 import { workflowService } from './workflow'
 import { LocalExecutor, ConcurrencyLimiter, registerWorkflow } from './local-executor'
 import { WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'

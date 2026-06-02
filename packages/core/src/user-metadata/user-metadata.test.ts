@@ -1,5 +1,5 @@
 import { prisma } from '@shumai/db'
-import { setupTestDbHooks } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db/test'
 import { userMetadataService } from './user-metadata'
 import { describe, expect, it } from 'vitest'
 

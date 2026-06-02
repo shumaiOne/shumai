@@ -56,15 +56,7 @@ export class WorkflowService {
   }
 
   // Starts Temporal workers for specific task queues
-  async startWorkers(
-    queue: string,
-    options?: {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      workflowBundle?: any
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      activities?: any
-    },
-  ): Promise<void> {
+  async startWorkers(queue: string): Promise<void> {
     const type = process.env.WORKFLOW_EXECUTOR || 'local'
     if (type === 'temporal') {
       const { Worker, NativeConnection } = await import('@temporalio/worker')
@@ -74,8 +66,7 @@ export class WorkflowService {
       })
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const activities = options?.activities || (globalThis as any).__localActivities
-      const workflowBundle = options?.workflowBundle
+      const activities = (globalThis as any).__localActivities
 
       // For agent_queue and transcode_queue, use worker-specific unique queues
       const crypto = await import('crypto')
@@ -96,7 +87,6 @@ export class WorkflowService {
 
       const sharedWorker = await Worker.create({
         connection,
-        workflowBundle,
         activities: sharedActivities,
         taskQueue: queue,
       })

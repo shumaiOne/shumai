@@ -1,5 +1,5 @@
 import { prisma } from '@shumai/db'
-import { setupTestDbHooks } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db/test'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { type SessionTreeEntry } from '@earendil-works/pi-agent-core'
 import { describe, expect, it, vi } from 'vitest'

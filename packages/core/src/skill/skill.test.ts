@@ -1,5 +1,5 @@
 import { prisma } from '@shumai/db'
-import { setupTestDbHooks } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db/test'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { skillService } from '@shumai/core/src/skill/skill'
 import AdmZip from 'adm-zip'

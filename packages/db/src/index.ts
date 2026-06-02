@@ -96,6 +96,4 @@ export function getPrismaTestingHelper() {
 }
 
 export * from './utils/ngram'
-export * from './db-test-hooks'
-export * from './prisma-testing-helper'
 export * from './generated/prisma/client'

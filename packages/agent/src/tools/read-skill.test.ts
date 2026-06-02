@@ -5,7 +5,7 @@ vi.mock('fs')
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { prisma } from '@shumai/db'
-import { setupTestDbHooks } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db/test'
 import { createReadSkillTool } from './read-skill'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import AdmZip from 'adm-zip'
