@@ -26,6 +26,46 @@
         "vitest": "^4.1.4",
       },
     },
+    "apps/agent": {
+      "name": "@shumai/agent-app",
+      "version": "0.1.0",
+      "bin": {
+        "shumai-agent": "./src/index.ts",
+      },
+      "dependencies": {
+        "@shumai/agent": "workspace:*",
+        "@shumai/core": "workspace:*",
+        "@shumai/workflow-core": "workspace:*",
+      },
+    },
+    "apps/transcode": {
+      "name": "@shumai/transcode-app",
+      "version": "0.1.0",
+      "bin": {
+        "shumai-transcode": "./src/index.ts",
+      },
+      "dependencies": {
+        "@shumai/core": "workspace:*",
+        "@shumai/transcode": "workspace:*",
+        "@shumai/workflow-core": "workspace:*",
+      },
+    },
+    "apps/web": {
+      "name": "@shumai/web-app",
+      "version": "0.1.0",
+      "dependencies": {
+        "@shumai/agent": "workspace:*",
+        "@shumai/api": "workspace:*",
+        "@shumai/core": "workspace:*",
+        "@shumai/db": "workspace:*",
+        "@shumai/dtos": "workspace:*",
+        "@shumai/transcode": "workspace:*",
+        "@shumai/webui": "workspace:*",
+        "@shumai/worker-db": "workspace:*",
+        "@shumai/workflow-core": "workspace:*",
+        "hono": "^4.12.14",
+      },
+    },
     "packages/agent": {
       "name": "@shumai/agent",
       "version": "0.1.0",
@@ -55,14 +95,9 @@
       "version": "0.1.0",
       "dependencies": {
         "@hono/zod-validator": "^0.7.6",
-        "@shumai/agent": "workspace:*",
         "@shumai/core": "workspace:*",
         "@shumai/db": "workspace:*",
         "@shumai/dtos": "workspace:*",
-        "@shumai/transcode": "workspace:*",
-        "@shumai/webui": "workspace:*",
-        "@shumai/worker-db": "workspace:*",
-        "@shumai/workflow-core": "workspace:*",
         "hono": "^4.12.14",
         "pino": "^10.3.1",
         "ulid": "^3.0.2",
@@ -964,6 +999,8 @@
 
     "@shumai/agent": ["@shumai/agent@workspace:packages/agent"],
 
+    "@shumai/agent-app": ["@shumai/agent-app@workspace:apps/agent"],
+
     "@shumai/api": ["@shumai/api@workspace:packages/api"],
 
     "@shumai/core": ["@shumai/core@workspace:packages/core"],
@@ -973,6 +1010,10 @@
     "@shumai/dtos": ["@shumai/dtos@workspace:packages/dtos"],
 
     "@shumai/transcode": ["@shumai/transcode@workspace:packages/transcode"],
+
+    "@shumai/transcode-app": ["@shumai/transcode-app@workspace:apps/transcode"],
+
+    "@shumai/web-app": ["@shumai/web-app@workspace:apps/web"],
 
     "@shumai/webui": ["@shumai/webui@workspace:packages/webui"],
 

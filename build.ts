@@ -16,8 +16,8 @@ if (existsSync(outdir)) {
 }
 
 await Bun.build({
-  entrypoints: ['./packages/api/src/index.ts'],
-  root: 'packages',
+  entrypoints: ['./apps/web/src/index.ts'],
+  root: '.',
   target: 'bun',
   outdir: outdir,
   minify: false,

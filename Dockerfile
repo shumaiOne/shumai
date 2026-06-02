@@ -6,6 +6,7 @@ WORKDIR /app
 # Copy package files
 COPY package.json bun.lock ./
 COPY --parents packages/*/package.json ./
+COPY --parents apps/*/package.json ./
 
 # Install dependencies (including devDependencies for build tools)
 RUN bun install --frozen-lockfile
@@ -48,5 +49,4 @@ COPY --from=builder /app/prisma.config.ts.prod ./prisma.config.ts
 EXPOSE 3000
 
 # Default command: run migrations and start API server
-# Can be overridden to run workers: bun worker-cli.js [domain]
-CMD ["sh", "-c", "bun prisma migrate deploy && bun api/src/index.js serve"]
+CMD ["sh", "-c", "bun prisma migrate deploy && bun apps/web/src/index.js"]

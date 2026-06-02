@@ -4,10 +4,11 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
-    "dev": "bun run --hot packages/api/src/index.ts serve",
+    "dev": "bun run --hot apps/web/src/index.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "test": "bun --bun vitest run",
@@ -15,7 +16,8 @@
     "db:migrate": "bun run prisma migrate dev",
     "db:deploy": "bun run prisma migrate deploy",
     "generate-providers": "bun run scripts/generate-builtin-providers.ts",
-    "worker": "bun packages/api/src/index.ts worker",
+    "worker:agent": "bun apps/agent/src/index.ts",
+    "worker:transcode": "bun apps/transcode/src/index.ts",
     "build": "bun run build.ts"
   },
   "devDependencies": {
