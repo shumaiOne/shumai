@@ -1,5 +1,5 @@
 import type { WorkflowTask } from '@shumai/db'
-import { getActivities, executeActivity, TaskQueueDb } from '@shumai/workflow-core'
+import { getActivities, executeActivity, TaskQueueAgent } from '@shumai/workflow-core'
 
 export async function queryEmbeddingForSearch(task: WorkflowTask): Promise<void> {
   const { generateTextEmbeddingActivity, updateWorkflowTaskActivity } = getActivities()
@@ -13,20 +13,20 @@ export async function queryEmbeddingForSearch(task: WorkflowTask): Promise<void>
 
   try {
     // 1. Mark as processing
-    await executeActivity(TaskQueueDb, updateWorkflowTaskActivity, {
+    await executeActivity(TaskQueueAgent, updateWorkflowTaskActivity, {
       taskId: task.id,
       status: 'processing',
       heartbeat: true,
     })
 
     // 2. Generate embedding
-    const result = await generateTextEmbeddingActivity({
+    const result = await executeActivity(TaskQueueAgent, generateTextEmbeddingActivity, {
       text,
       teamId: task.teamId!,
     })
 
     // 3. Save output and complete
-    await executeActivity(TaskQueueDb, updateWorkflowTaskActivity, {
+    await executeActivity(TaskQueueAgent, updateWorkflowTaskActivity, {
       taskId: task.id,
       status: 'completed',
       output: { embedding: result.embedding },
@@ -36,7 +36,7 @@ export async function queryEmbeddingForSearch(task: WorkflowTask): Promise<void>
     })
   } catch (err) {
     console.error(`queryEmbeddingForSearch failed for task ${task.id}:`, err)
-    await executeActivity(TaskQueueDb, updateWorkflowTaskActivity, {
+    await executeActivity(TaskQueueAgent, updateWorkflowTaskActivity, {
       taskId: task.id,
       status: 'failed',
       output: {

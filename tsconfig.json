@@ -21,8 +21,7 @@
       "@shumai/dtos": ["packages/dtos/src/index.ts"],
       "@shumai/workflow-core": ["packages/workflow-core/src/index.ts"],
       "@shumai/agent": ["packages/agent/src/index.ts"],
-      "@shumai/transcode": ["packages/transcode/src/index.ts"],
-      "@shumai/worker-db": ["packages/worker-db/src/index.ts"]
+      "@shumai/transcode": ["packages/transcode/src/index.ts"]
     }
   },
   "exclude": ["node_modules"]

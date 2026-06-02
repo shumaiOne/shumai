@@ -11,7 +11,6 @@
     "@shumai/workflow-core": "workspace:*",
     "@shumai/agent": "workspace:*",
     "@shumai/transcode": "workspace:*",
-    "@shumai/worker-db": "workspace:*",
     "@shumai/webui": "workspace:*",
     "hono": "^4.12.14"
   }

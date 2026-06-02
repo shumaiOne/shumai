@@ -3,7 +3,6 @@ import { bunPluginPino } from 'bun-plugin-pino'
 import tailwindPlugin from 'bun-plugin-tailwind'
 import { existsSync } from 'fs'
 import { rm } from 'fs/promises'
-import { resolve } from 'path'
 import { temporalWorkflow } from './packages/workflow-core/src/bun-temporal-plugin'
 
 console.log('\n🚀 Starting build process...\n')

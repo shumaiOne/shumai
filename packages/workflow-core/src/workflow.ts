@@ -57,7 +57,7 @@ export class WorkflowService {
 
   // Starts Temporal workers for specific task queues
   async startWorkers(
-    queue: string = 'db_queue',
+    queue: string,
     options?: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       workflowBundle?: any
@@ -76,18 +76,6 @@ export class WorkflowService {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const activities = options?.activities || (globalThis as any).__localActivities
       const workflowBundle = options?.workflowBundle
-
-      if (queue === 'db_queue') {
-        console.log(`Starting Temporal worker for queue: ${queue}`)
-        const worker = await Worker.create({
-          connection,
-          workflowBundle,
-          activities,
-          taskQueue: queue,
-        })
-        await worker.run()
-        return
-      }
 
       // For agent_queue and transcode_queue, use worker-specific unique queues
       const crypto = await import('crypto')

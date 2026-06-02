@@ -7,14 +7,12 @@ import { initAgentWorkflows } from '@shumai/agent'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { initTranscodeWorkflows } from '@shumai/transcode'
-import { initDbWorkflows } from '@shumai/worker-db'
 import { workflowService } from '@shumai/workflow-core'
 import { app } from '@shumai/api'
 
 // Initialize workflows and activities for local executor mode
 initAgentWorkflows()
 initTranscodeWorkflows()
-initDbWorkflows()
 
 // Start services
 await metadataService.syncSystemFields().catch(console.error)
@@ -31,7 +29,7 @@ if (process.env.WORKFLOW_EXECUTOR === 'temporal') {
     }
   }
 
-  const queuesToStart = ['db_queue']
+  const queuesToStart: string[] = []
   if (workersOption === 'agent' || workersOption === 'ai') {
     queuesToStart.push('agent_queue')
   } else if (workersOption === 'transcode') {

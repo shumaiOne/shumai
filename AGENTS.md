@@ -122,7 +122,6 @@ The project is a monorepo managed by **Bun Workspaces**. It follows a strictly d
     -   `@shumai/workflow-core`: Common workflow engine logic.
     -   `@shumai/agent`: AI agent workflows and activities.
     -   `@shumai/transcode`: Media processing workflows and activities.
-    -   `@shumai/worker-db`: Shared database activities.
 
 ### Layered Communication Rules
 
@@ -339,7 +338,7 @@ We use a custom workflow engine that supports both **Local** (polling-based) and
 ### Architecture
 
 1.  **Workflows**: Orchestrate multiple activities. They must be deterministic and compatible with Temporal's V8 isolate. Defined in worker packages (e.g., `@shumai/agent/src/workflows`, `@shumai/transcode/src/workflows`).
-2.  **Activities**: Perform the actual work (DB updates, API calls, media processing). Grouped by domain in worker packages (e.g., `@shumai/agent/src/activities`, `@shumai/transcode/src/activities`, `@shumai/worker-db/src/activities`).
+2.  **Activities**: Perform the actual work (DB updates, API calls, media processing). Grouped by domain in worker packages (e.g., `@shumai/agent/src/activities`, `@shumai/transcode/src/activities`).
 3.  **Executors**:
     - `LocalExecutor` (in `@shumai/workflow-core`): Polls the database for `pending` tasks and executes them directly.
     - `TemporalExecutor` (in `@shumai/workflow-core`): Submits tasks to a Temporal cluster.
@@ -347,7 +346,7 @@ We use a custom workflow engine that supports both **Local** (polling-based) and
 
 ### Dynamic Registration
 
-To avoid circular dependencies, workflows and activities are dynamically registered onto the `LocalExecutor` registry at bootstrap time via initializer functions (e.g., `initAgentWorkflows()`, `initTranscodeWorkflows()`, `initDbWorkflows()`).
+To avoid circular dependencies, workflows and activities are dynamically registered onto the `LocalExecutor` registry at bootstrap time via initializer functions (e.g., `initAgentWorkflows()`, `initTranscodeWorkflows()`).
 
 ### Non-Retryable Error Handling
 

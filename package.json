@@ -40,5 +40,8 @@
     "typescript-eslint": "^8.46.4",
     "vitest": "^4.1.4",
     "vite-tsconfig-paths": "^6.1.1"
+  },
+  "dependencies": {
+    "jittered-fractional-indexing": "^1.0.1"
   }
 }

@@ -1,6 +1,6 @@
 import { ApplicationFailure } from '@temporalio/workflow'
 import type { WorkflowTask } from '@shumai/db'
-import { getActivities, executeActivity, TaskQueueDb, TaskQueueAgent } from '@shumai/workflow-core'
+import { getActivities, executeActivity, TaskQueueAgent } from '@shumai/workflow-core'
 
 export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
   const {
@@ -18,14 +18,14 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
 
   try {
     // Update status to processing
-    await executeActivity(TaskQueueDb, updateTaskStatusActivity, {
+    await executeActivity(TaskQueueAgent, updateTaskStatusActivity, {
       taskId: task.id,
       status: 'processing',
     })
 
     // 0. Create Placeholder Comment
     const payload = task.payload
-    const placeholder = await executeActivity(TaskQueueDb, createCommentActivity, {
+    const placeholder = await executeActivity(TaskQueueAgent, createCommentActivity, {
       assetId: task.assetId,
       message: '__EMBEDDING__',
       sessionId: payload?.agent?.sessionId || task.id,
@@ -37,8 +37,8 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
       throw ApplicationFailure.create({ message: 'Task has no teamId', nonRetryable: true })
     }
 
-    // 1. Fetch Agent Context (Database Activity on db_queue)
-    const context = await executeActivity(TaskQueueDb, getEmbeddingContextActivity, {
+    // 1. Fetch Agent Context
+    const context = await executeActivity(TaskQueueAgent, getEmbeddingContextActivity, {
       teamId: task.teamId,
       assetId: task.assetId,
     })
@@ -54,7 +54,7 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
 
     // Save computed embeddings
     if (result.embeddings.length > 0) {
-      await executeActivity(TaskQueueDb, saveAssetEmbeddingsActivity, {
+      await executeActivity(TaskQueueAgent, saveAssetEmbeddingsActivity, {
         assetId: task.assetId,
         embeddings: result.embeddings,
       })
@@ -62,7 +62,7 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
 
     // Update Usage
     if (result.usage) {
-      await executeActivity(TaskQueueDb, updateTaskUsageActivity, {
+      await executeActivity(TaskQueueAgent, updateTaskUsageActivity, {
         taskId: task.id,
         inputTokens: result.usage.inputTokens,
         outputTokens: result.usage.outputTokens,
@@ -72,14 +72,14 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
 
     // 7. Update Placeholder Comment
     if (placeholderCommentId) {
-      await executeActivity(TaskQueueDb, updateCommentActivity, {
+      await executeActivity(TaskQueueAgent, updateCommentActivity, {
         commentId: placeholderCommentId,
         message: 'Embedding completed successfully.',
       })
     }
 
     // Update status to completed
-    await executeActivity(TaskQueueDb, updateTaskStatusActivity, {
+    await executeActivity(TaskQueueAgent, updateTaskStatusActivity, {
       taskId: task.id,
       status: 'completed',
     })
@@ -89,7 +89,7 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
     // Update placeholder comment with error message
     if (placeholderCommentId) {
       try {
-        await executeActivity(TaskQueueDb, updateCommentActivity, {
+        await executeActivity(TaskQueueAgent, updateCommentActivity, {
           commentId: placeholderCommentId,
           message: `Embedding failed: ${err instanceof Error ? err.message : String(err)}`,
         })
@@ -99,7 +99,7 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
     }
 
     // Update status to failed
-    await executeActivity(TaskQueueDb, updateTaskStatusActivity, {
+    await executeActivity(TaskQueueAgent, updateTaskStatusActivity, {
       taskId: task.id,
       status: 'failed',
       output: { error: err instanceof Error ? err.message : String(err) },

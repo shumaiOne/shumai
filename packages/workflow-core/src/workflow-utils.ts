@@ -4,7 +4,6 @@ import * as wf from '@temporalio/workflow'
 /**
  * Task queue constants.
  */
-export const TaskQueueDb = 'db_queue'
 export const TaskQueueAgent = 'agent_queue'
 export const TaskQueueTranscode = 'transcode_queue'
 

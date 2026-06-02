@@ -7,6 +7,7 @@ import * as os from 'os'
 import * as path from 'path'
 import { promisify } from 'util'
 import { ApplicationFailure } from '@temporalio/activity'
+import { prisma } from '@shumai/db'
 
 const execAsync = promisify(exec)
 
@@ -258,4 +259,70 @@ export async function extractAiMetadataActivity(
   }
 
   return generatedFiles
+}
+
+export async function getEmbeddingContextActivity(params: {
+  teamId: string
+  assetId: string
+}) {
+  const team = await prisma.team.findUnique({
+    where: { id: params.teamId },
+  })
+  if (!team) {
+    throw ApplicationFailure.create({ message: 'failed to get team', nonRetryable: true })
+  }
+
+  const agent = await prisma.agent.findFirst({
+    where: {
+      type: 'embedding',
+      enabled: true,
+      user: { teamMembers: { some: { teamId: params.teamId } } },
+    },
+  })
+  if (!agent) {
+    throw ApplicationFailure.create({
+      message: 'embedding feature is disabled or agent not found',
+      nonRetryable: true,
+    })
+  }
+
+  const asset = await prisma.asset.findUnique({
+    where: { id: params.assetId },
+    include: { storageKey: true },
+  })
+  if (!asset) {
+    throw ApplicationFailure.create({ message: 'failed to get asset', nonRetryable: true })
+  }
+  if (!asset.mediaType) {
+    throw ApplicationFailure.create({ message: 'asset has no media type', nonRetryable: true })
+  }
+
+  return {
+    agent,
+    asset,
+  }
+}
+
+export async function saveAssetEmbeddingsActivity(params: {
+  assetId: string
+  embeddings: Array<{
+    embedding: number[]
+    startTime?: number
+    endTime?: number
+  }>
+}) {
+  for (const item of params.embeddings) {
+    const embVec = JSON.stringify(item.embedding)
+    if (item.startTime !== undefined && item.endTime !== undefined) {
+      await prisma.$executeRaw`
+        INSERT INTO asset_embeddings (id, asset_id, embedding, start_time, end_time, updated_at)
+        VALUES (gen_random_uuid()::text, ${params.assetId}, ${embVec}::vector, ${item.startTime}, ${item.endTime}, NOW())
+      `
+    } else {
+      await prisma.$executeRaw`
+        INSERT INTO asset_embeddings (id, asset_id, embedding, updated_at)
+        VALUES (gen_random_uuid()::text, ${params.assetId}, ${embVec}::vector, NOW())
+      `
+    }
+  }
 }
