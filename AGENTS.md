@@ -142,6 +142,20 @@ We follow Bun's monorepo conventions for dependency management:
 5.  **Clean Root**: The root `package.json` must not contain runtime `dependencies`. It is reserved for shared `devDependencies` and workspace-wide `scripts`.
 6.  **Installation**: Always run `bun install` from the root. Use the `--filter` flag if you only want to update a specific package (e.g., `bun install --filter @shumai/webui`).
 
+## TypeScript Configuration
+
+We use a root-level `tsconfig.json` to manage path mappings for the entire workspace. This ensures that imports across packages resolve correctly during typechecking and in the IDE.
+
+1.  **Path Mappings**: All workspace packages MUST have an entry in the `paths` object in the root `tsconfig.json`.
+    ```json
+    "paths": {
+      "@shumai/core": ["packages/core/src/index.ts"],
+      "@shumai/core/src/*": ["packages/core/src/*"]
+    }
+    ```
+2.  **Package tsconfig**: Each package should have its own `tsconfig.json` that extends the root configuration and defines its specific `include`/`exclude` rules.
+3.  **Cross-Package Resolution**: When adding a new package, you MUST update the root `tsconfig.json` path mappings to ensure it can be imported by other packages.
+
 ### Service Layer Patterns
 
 - **Instance Methods**: Define service logic as instance methods on a class, not static methods.
