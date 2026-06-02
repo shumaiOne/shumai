@@ -113,10 +113,10 @@ The backend is built with:
 
 We follow a strict layered architecture:
 
-1.  **API Layer (`src/api`)**: Handles HTTP requests, validation, and calls Service layer. **Do not access DB directly.**, **Do not return prisma object directly in api, use dto to avoid leak**
-2.  **DTO Layer (`src/dtos`)**: All dtos used in api, which also used by ui for type-safty.
-3.  **Service Layer (`src/services`)**: Contains business logic and interacts with the Database via Prisma.
-4.  **Data Layer (`src/db.ts`)**: Exports the Prisma Client instance.
+1.  **API Layer (`packages/api/src/api`)**: Handles HTTP requests, validation, and calls Core layer. **Do not access DB directly.** **Do not return prisma object directly in api, use dto to avoid leak.**
+2.  **DTO Layer (`packages/dtos/src`)**: All dtos used in api, which are also used by webui for type-safety.
+3.  **Service Layer (`packages/core/src`)**: Contains business logic and interacts with the Database via Prisma.
+4.  **Data Layer (`packages/db/src`)**: Exports the Prisma Client instance.
 
 ### Service Layer Patterns
 
@@ -130,7 +130,7 @@ We follow a strict layered architecture:
   ```
 - **Usage**: Import and use the exported instance.
   ```typescript
-  import { myService } from '../services/myService'
+  import { myService } from '@shumai/core/src/services/myService'
   await myService.doSomething()
   ```
 
@@ -161,7 +161,7 @@ The frontend is built with:
 
 ### Development
 
-- **Run Dev**: `bun --hot src/index.ts` (Runs on port 3000)
+- **Run Dev**: `bun run dev` (Runs on port 3000)
 
 ## Testing
 
@@ -179,16 +179,15 @@ We use **Vitest** for testing (via `bun run test`). **Do not use `bun test`** as
 
 ### Service Tests
 
-- Located in `src/services/*.test.ts`.
+- Located in `packages/core/src/**/*.test.ts`.
 - For comprehensive testing against a real database instance, we use `Testcontainers` alongside a `PrismaTestingHelper` which wraps each test within an automatic PostgreSQL transaction rollback boundary.
-- All service tests must use `setupTestDbHooks()` to initialize the database boundaries for each test suite inside the `describe` block. This automatically registers `beforeEach` and `afterEach` hooks to manage transaction state.
-- Import `prisma` from `@/db` directly to interact with the database in tests. The testing helper automatically proxies it.
+- All service tests must use `setupTestDbHooks()` from `@shumai/db` to initialize the database boundaries for each test suite inside the `describe` block. This automatically registers `beforeEach` and `afterEach` hooks to manage transaction state.
+- Import `prisma` from `@shumai/db` directly to interact with the database in tests. The testing helper automatically proxies it.
 
 ```typescript
 import { describe, it, expect } from 'vitest'
-import { prisma } from '@/db'
-import { setupTestDbHooks } from '@/db-test-hooks'
-import { teamService } from './team'
+import { prisma, setupTestDbHooks } from '@shumai/db'
+import { teamService } from '@shumai/core/src/team/team'
 
 describe('TeamService', () => {
   setupTestDbHooks()
@@ -208,13 +207,13 @@ The `bunfig.toml` is configured to run `setup-tests.ts` automatically as a prelo
 
 ### API Tests
 
-- Located in `src/api/*.test.ts`.
-- Mock the Service layer using `vi.spyOn(service, 'method')` or `vi.mock('@/services/myService')`.
+- Located in `packages/api/src/api/**/*.test.ts`.
+- Mock the Service layer using `vi.spyOn(service, 'method')` or `vi.mock('@shumai/core/src/team/team')`.
 - Verify that the API calls the Service methods correctly.
 
 ```typescript
 import { describe, it, expect, vi } from 'vitest'
-import { teamService } from '@/services/team/team'
+import { teamService } from '@shumai/core/src/team/team'
 import app from './team'
 
 describe('Team API', () => {
@@ -233,22 +232,22 @@ describe('Team API', () => {
 
 ## Prisma Configuration & Migrations
 
-- Schema: `prisma/schema.prisma`
-- Generated Client: `src/generated/prisma`
+- Schema: `packages/db/prisma/schema.prisma`
+- Generated Client: `packages/db/src/generated/prisma`
 - Config: `prisma.config.ts` (Required for Prisma 7+)
 
 ### Strict JSON Typing
 
 We use `prisma-json-types-generator` to enforce strict type-safety for Prisma `Json` columns, rather than typing them as generic `JsonValue`.
 
-- **Defining Types**: In `prisma/schema.prisma`, annotate the JSON column with a triple-slash comment specifying the type name from `src/prisma-json-types.ts`:
+- **Defining Types**: In `packages/db/prisma/schema.prisma`, annotate the JSON column with a triple-slash comment specifying the type name from `packages/db/src/prisma-json-types.ts`:
   ```prisma
   model WorkflowTask {
     /// [WorkflowTaskPayload]
     payload Json?
   }
   ```
-- **Declaring Types**: All typed JSON shapes must be defined in `src/prisma-json-types.ts` under the global `PrismaJson` namespace:
+- **Declaring Types**: All typed JSON shapes must be defined in `packages/db/src/prisma-json-types.ts` under the global `PrismaJson` namespace:
   ```typescript
   declare global {
     namespace PrismaJson {
@@ -280,20 +279,20 @@ model Example {
 }
 ```
 
-- **No Manual Assignment**: Do not manually generate or assign ULIDs in application code (e.g., `src/services/*.ts`) for creating database records. Let Prisma handle it via the schema default.
+- **No Manual Assignment**: Do not manually generate or assign ULIDs in application code (e.g., `packages/core/src/*.ts`) for creating database records. Let Prisma handle it via the schema default.
   - Exception: File names generated by `FileService` may still use `ulid()` internally, but this is separate from the database ID.
 - **Sorting**: All list APIs must order results by `id` descending (`orderBy: { id: 'desc' }`) to ensure consistent, time-based sorting (since ULIDs are sortable). Do not sort by `createdAt` as it is not indexed.
 
 ## Infinite Scroll & Pagination
 
 - **Frontend**: Use the `useInfiniteScroll` hook for all list UIs.
-  - Located in `src/ui/hooks/use-infinite-scroll.ts`.
+  - Located in `packages/webui/hooks/use-infinite-scroll.ts`.
   - Pass a `fetchData` function that accepts `page` and `limit`.
 - **Backend**:
   - Most list APIs support cursor pagination using opaque tokens (via `hyrumtoken` logic) using the `paginateQuery` helper function.
   - Pass `PaginationParams` containing `first` (limit) and `after` (cursor).
   - The default `limit` should be **20**.
-  - Always use the `paginateQuery` helper function from `src/services/pagination.ts` for consistent cursor pagination.
+  - Always use the `paginateQuery` helper function from `packages/core/src/pagination.ts` for consistent cursor pagination.
 
 ## Temporal Workflow & Activities
 
@@ -301,12 +300,16 @@ We use a custom workflow engine that supports both **Local** (polling-based) and
 
 ### Architecture
 
-1.  **Workflows (`src/services/workflow/workflows`)**: Orchestrate multiple activities. They must be deterministic and compatible with Temporal's V8 isolate. Use `src/services/workflow/workflow-utils.ts` for environment-aware functions like `sleep` and `getActivities`.
-2.  **Activities (`src/services/workflow/activities`)**: Perform the actual work (DB updates, API calls, media processing). Grouped by domain (e.g., `ai.ts`, `transcode.ts`).
+1.  **Workflows**: Orchestrate multiple activities. They must be deterministic and compatible with Temporal's V8 isolate. Defined in worker packages (e.g., `@shumai/agent/src/workflows`, `@shumai/transcode/src/workflows`).
+2.  **Activities**: Perform the actual work (DB updates, API calls, media processing). Grouped by domain in worker packages (e.g., `@shumai/agent/src/activities`, `@shumai/transcode/src/activities`, `@shumai/worker-db/src/activities`).
 3.  **Executors**:
-    - `LocalExecutor`: Polls the database for `pending` tasks and executes them directly.
-    - `TemporalExecutor`: Submits tasks to a Temporal cluster.
-4.  **Automatic Submission**: New `WorkflowTask` records are automatically submitted to the `WorkflowService` via a Prisma Client Extension defined in `src/db.ts`.
+    - `LocalExecutor` (in `@shumai/workflow-core`): Polls the database for `pending` tasks and executes them directly.
+    - `TemporalExecutor` (in `@shumai/workflow-core`): Submits tasks to a Temporal cluster.
+4.  **Automatic Submission**: New `WorkflowTask` records are automatically submitted to the `WorkflowService` via a Prisma Client Extension defined in `@shumai/db`.
+
+### Dynamic Registration
+
+To avoid circular dependencies, workflows and activities are dynamically registered onto the `LocalExecutor` registry at bootstrap time via initializer functions (e.g., `initAgentWorkflows()`, `initTranscodeWorkflows()`, `initDbWorkflows()`).
 
 ### Non-Retryable Error Handling
 
@@ -338,21 +341,16 @@ To prevent Temporal from indefinitely retrying fatal, expected business validati
     await activityB({ ... })
   }
   ```
-- **Registration**: All workflows must be exported from `src/services/workflow/workflows/index.ts` for Temporal worker registration.
-- **Environment Compatibility**: Always use `getActivities()` from `workflow-utils.ts` to ensure the code works in both Local and Temporal environments.
+- **Environment Compatibility**: Always use `getActivities()` from `@shumai/workflow-core` to ensure the code works in both Local and Temporal environments.
 - **Activity Access**: Activities should be accessed via `getActivities()` within a workflow. Do not call services directly inside a workflow function to maintain Temporal compatibility.
 
 ### Activity Patterns
 
-- **Location**: Defined in `src/services/workflow/activities/<domain>.ts`.
-- **Export**: Export individual activity functions and re-export them in `src/services/workflow/activities/index.ts`.
-- **Implementation**: Activities _can_ and _should_ call other services (e.g., `aiService`, `transcodeService`) or interact with the database.
-- **Database Access Restriction**: **Agent activities (or other non-database activities) are strictly prohibited from calling the database directly.** All database queries or updates must be isolated within dedicated database activities defined in `src/workflow/activities/db.ts` (running on `db_queue` / `TaskQueueDb`). Workflow functions coordinate execution by first invoking the database activity to resolve and store state, then passing the resolved data to the agent/non-database activity.
+- **Implementation**: Activities _can_ and _should_ call other services (e.g., `aiService`, `transcodeService`) or interact with the database directly. Database (Prisma) queries or updates are allowed in all activity types (e.g., agent or transcode) for simplicity.
 
 ## Import conventions
 
-- When importing across layers, always use absolute paths with the `@` alias for the root of the project (e.g. `import { AssetInfo } from '@/services/asset/models'`).
-- For types that have been migrated from `@/ui/api/api`, use the equivalent types from the `src/services/<domain>/models.ts` instead.
+- When importing across workspace packages, always use absolute workspace imports (e.g. `import { prisma } from '@shumai/db'`, `import { teamService } from '@shumai/core/src/team/team'`).
 - **DTO Naming**: Do not append the `Dto` suffix to types or interfaces (e.g. use `JoinRequest` instead of `JoinRequestDto`).
 
 ## Radix UI / Shadcn UI Patterns
@@ -363,7 +361,7 @@ To prevent Temporal from indefinitely retrying fatal, expected business validati
 
 We use **pino** for logging. Always use **structured logging** to ensure logs are easily searchable and machine-readable.
 
-- **Import**: `import { logger } from '@/logger'`
+- **Import**: `import { logger } from '@shumai/core/src/logger'`
 - **Usage**: Pass an object as the first argument containing the metadata, and a string as the second argument for the descriptive message.
   ```typescript
   logger.info({ userId: user.id, projectId }, 'Project deleted successfully')
