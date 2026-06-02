@@ -1,0 +1,32 @@
+{
+  "name": "@shumai/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@shumai/db": "workspace:*",
+    "@shumai/dtos": "workspace:*",
+    "@aws-sdk/client-s3": "^3.1031.0",
+    "@aws-sdk/s3-request-presigner": "^3.1031.0",
+    "@sinclair/typebox": "^0.34.49",
+    "adm-zip": "^0.5.17",
+    "better-auth": "1.6.11",
+    "date-fns": "^4.4.0",
+    "dotenv": "^16.4.7",
+    "dotenv-expand": "^13.0.0",
+    "extract-zip": "^2.0.1",
+    "jittered-fractional-indexing": "^1.0.1",
+    "pino": "^10.3.1",
+    "tweetnacl": "^1.0.3",
+    "ulid": "^3.0.2",
+    "yaml": "^2.7.0",
+    "hono": "^4.12.14",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.8",
+    "@types/extract-zip": "^2.0.3"
+  }
+}

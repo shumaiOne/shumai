@@ -1,0 +1,11 @@
+{
+  "name": "@shumai/dtos",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "zod": "^4.4.3"
+  }
+}

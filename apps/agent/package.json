@@ -1,0 +1,14 @@
+{
+  "name": "@shumai/agent-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "shumai-agent": "./src/index.ts"
+  },
+  "dependencies": {
+    "@shumai/agent": "workspace:*",
+    "@shumai/core": "workspace:*",
+    "@shumai/workflow-core": "workspace:*"
+  }
+}

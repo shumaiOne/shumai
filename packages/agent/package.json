@@ -1,0 +1,28 @@
+{
+  "name": "@shumai/agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@shumai/db": "workspace:*",
+    "@shumai/dtos": "workspace:*",
+    "@shumai/core": "workspace:*",
+    "@shumai/workflow-core": "workspace:*",
+    "@google/genai": "^1.50.1",
+    "@anthropic-ai/sandbox-runtime": "^0.0.52",
+    "@earendil-works/pi-agent-core": "0.78.0",
+    "@earendil-works/pi-ai": "0.75.4",
+    "@temporalio/activity": "^1.16.1",
+    "@temporalio/worker": "^1.16.1",
+    "@temporalio/workflow": "^1.16.1",
+    "@sinclair/typebox": "^0.34.49",
+    "ulid": "^3.0.2",
+    "adm-zip": "^0.5.17",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.8"
+  }
+}

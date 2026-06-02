@@ -1,0 +1,18 @@
+{
+  "name": "@shumai/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@shumai/core": "workspace:*",
+    "@shumai/db": "workspace:*",
+    "@shumai/dtos": "workspace:*",
+    "hono": "^4.12.14",
+    "@hono/zod-validator": "^0.7.6",
+    "zod": "^4.4.3",
+    "pino": "^10.3.1",
+    "ulid": "^3.0.2"
+  }
+}

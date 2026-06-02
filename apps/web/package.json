@@ -1,0 +1,17 @@
+{
+  "name": "@shumai/web-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@shumai/api": "workspace:*",
+    "@shumai/core": "workspace:*",
+    "@shumai/db": "workspace:*",
+    "@shumai/dtos": "workspace:*",
+    "@shumai/workflow-core": "workspace:*",
+    "@shumai/agent": "workspace:*",
+    "@shumai/transcode": "workspace:*",
+    "@shumai/webui": "workspace:*",
+    "hono": "^4.12.14"
+  }
+}
