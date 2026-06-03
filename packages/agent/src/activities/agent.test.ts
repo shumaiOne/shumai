@@ -19,7 +19,15 @@ import {
 import * as piAgent from '../index'
 import { type AgentHarness, type Session } from '@earendil-works/pi-agent-core'
 import { type DatabaseSessionMetadata } from '../database-session-storage'
-import { prisma, AssetType, AssetStatus } from '@shumai/db'
+import {
+  prisma,
+  AssetType,
+  AssetStatus,
+  type Team,
+  type User,
+  type Project,
+  type Asset,
+} from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { authzService } from '@shumai/core/src/authz/authz'
 import { uploadService } from '@shumai/core/src/upload/upload'
@@ -170,14 +178,10 @@ describe('Agent Activities', () => {
 describe('Agent Database Activities Integration', () => {
   setupTestDbHooks()
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- variables hold Prisma model output types that are difficult to type explicitly in tests
-  let team: any
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- variables hold Prisma model output types that are difficult to type explicitly in tests
-  let user: any
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- variables hold Prisma model output types that are difficult to type explicitly in tests
-  let project: any
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- variables hold Prisma model output types that are difficult to type explicitly in tests
-  let asset: any
+  let team: Team
+  let user: User
+  let project: Project
+  let asset: Asset
 
   beforeEach(async () => {
     vi.restoreAllMocks()
