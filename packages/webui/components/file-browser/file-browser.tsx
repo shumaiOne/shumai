@@ -356,25 +356,29 @@ export function FileBrowser({
       if (!res.ok) throw new Error('Failed to create upload task')
       return (await res.json()) as InferResponseType<typeof $createUploadTask>
     },
-    onSuccess: async (data) => {
-      const newLocalFiles: AssetInfo[] = filesToUpload.map((f) => {
-        const urlInfo = (
-          data.presignedUrls as { id?: string; url?: string; fileId?: string }[] | undefined
-        )?.find((p) => p.id === f.id)
-        const hasUrl = !!urlInfo && !!urlInfo.url
-        return {
-          id: urlInfo?.fileId || f.id,
-          name: f.file.name,
-          sizeByte: f.file.size,
-          fileCount: 0,
-          type: 'file',
-          status: hasUrl ? 'uploading' : 'error',
-          mediaType: f.file.type || null,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }
-      })
-      setLocalUploadingFiles((prev) => [...newLocalFiles, ...prev])
+    onSuccess: async (data, variables) => {
+      const isCurrentFolderUpload = variables.json.parentId === assetId
+
+      if (isCurrentFolderUpload) {
+        const newLocalFiles: AssetInfo[] = filesToUpload.map((f) => {
+          const urlInfo = (
+            data.presignedUrls as { id?: string; url?: string; fileId?: string }[] | undefined
+          )?.find((p) => p.id === f.id)
+          const hasUrl = !!urlInfo && !!urlInfo.url
+          return {
+            id: urlInfo?.fileId || f.id,
+            name: f.file.name,
+            sizeByte: f.file.size,
+            fileCount: 0,
+            type: 'file',
+            status: hasUrl ? 'uploading' : 'error',
+            mediaType: f.file.type || null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }
+        })
+        setLocalUploadingFiles((prev) => [...newLocalFiles, ...prev])
+      }
 
       // The RPC client returns an object that we cast to the expected type
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
