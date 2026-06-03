@@ -28,6 +28,14 @@ import { AgentInfo, AgentType } from '@shumai/dtos'
 import { Textarea } from '@/ui/components/ui/textarea'
 import { ScrollArea } from '@/ui/components/ui/scroll-area'
 import { z } from 'zod'
+import { cn } from '@/ui/lib/utils'
+
+const AVAILABLE_AVATARS = [
+  '/avatars/gpt_top_left.webp',
+  '/avatars/gpt_top_right.webp',
+  '/avatars/gpt_bottom_left.webp',
+  '/avatars/gpt_bottom_right.webp',
+]
 
 interface AgentFormDialogProps {
   isOpen: boolean
@@ -115,7 +123,7 @@ export function AgentFormDialog({
     defaultValues: {
       name: initialValues?.name || '',
       type: type || initialValues?.type || 'chat',
-      avatar: initialValues?.avatar || '',
+      avatar: initialValues?.avatar || '/avatars/gpt_top_left.webp',
       providerId: initialValues?.providerId || '',
       modelId: initialValues?.modelId || '',
       soul: initialValues?.soul || '',
@@ -128,10 +136,34 @@ export function AgentFormDialog({
     },
     onSubmit: async ({ value }) => {
       try {
+        let avatarKey = value.avatar
+        if (avatarKey && avatarKey.startsWith('/avatars/')) {
+          try {
+            const response = await fetch(avatarKey)
+            const blob = await response.blob()
+            const fileToUpload = new File([blob], 'avatar.webp', { type: 'image/webp' })
+            const uploadRes = await client.api.teams[':teamId'].files.$post({
+              param: { teamId },
+              form: { file: fileToUpload },
+            })
+            if (!uploadRes.ok) throw new Error('Failed to upload avatar')
+            const uploadData = await uploadRes.json()
+            avatarKey = (uploadData as { key: string }).key
+          } catch (err) {
+            toast.error('Failed to upload agent avatar')
+            throw err
+          }
+        }
+
+        const payload = {
+          ...value,
+          avatar: avatarKey || undefined,
+        }
+
         if (initialValues?.id) {
-          await updateMutation.mutateAsync({ id: initialValues.id, values: value })
+          await updateMutation.mutateAsync({ id: initialValues.id, values: payload })
         } else {
-          await createMutation.mutateAsync(value)
+          await createMutation.mutateAsync(payload)
         }
       } catch {
         // Error handled by mutation
@@ -270,6 +302,51 @@ export function AgentFormDialog({
                           <SelectItem value="embedding">Embedding</SelectItem>
                         </SelectContent>
                       </Select>
+                    </Field>
+                  )}
+                />
+
+                <form.Field
+                  name="avatar"
+                  children={(field) => (
+                    <Field className="md:col-span-2">
+                      <FieldLabel>Agent Avatar</FieldLabel>
+                      <div className="flex gap-4 mt-2">
+                        {AVAILABLE_AVATARS.map((avatarPath) => {
+                          const isSelected = field.state.value === avatarPath
+                          return (
+                            <button
+                              key={avatarPath}
+                              type="button"
+                              onClick={() => field.handleChange(avatarPath)}
+                              className={cn(
+                                'relative w-14 h-14 rounded-full overflow-hidden border-2 transition-all hover:scale-105',
+                                isSelected
+                                  ? 'border-primary ring-2 ring-primary ring-offset-2'
+                                  : 'border-border hover:border-muted-foreground',
+                              )}
+                            >
+                              <img
+                                src={avatarPath}
+                                className="w-full h-full object-cover"
+                                alt="Preset Avatar Option"
+                              />
+                            </button>
+                          )
+                        })}
+                        {field.state.value && !AVAILABLE_AVATARS.includes(field.state.value) && (
+                          <button
+                            type="button"
+                            className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-primary ring-2 ring-primary ring-offset-2 scale-105"
+                          >
+                            <img
+                              src={field.state.value}
+                              className="w-full h-full object-cover"
+                              alt="Current Custom Avatar"
+                            />
+                          </button>
+                        )}
+                      </div>
                     </Field>
                   )}
                 />
