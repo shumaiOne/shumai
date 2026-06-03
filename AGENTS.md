@@ -380,6 +380,10 @@ To prevent Temporal from indefinitely retrying fatal, expected business validati
   ```
 - **Environment Compatibility**: Always use `getActivities()` from `@shumai/workflow-core` to ensure the code works in both Local and Temporal environments.
 - **Activity Access**: Activities should be accessed via `getActivities()` within a workflow. Do not call services directly inside a workflow function to maintain Temporal compatibility.
+- **Queue Redirection**: Production Temporal workers use worker-specific unique queues for data locality (e.g., local disk access) and consistent state.
+  - Every workflow MUST first call `getAgentWorkerQueueActivity` or `getTranscodeWorkerQueueActivity` via the shared domain queue (e.g., `TaskQueueAgent` or `TaskQueueTranscode`) to obtain the specific queue name for that worker instance.
+  - ALL subsequent activities (including shared DB activities like updating task status) MUST be executed on that specific discovered queue.
+  - The shared domain worker ONLY registers the queue discovery activities. All other activities (shared and domain-specific) are registered on the specific worker.
 
 ### Activity Patterns
 

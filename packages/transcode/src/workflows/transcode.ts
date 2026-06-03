@@ -1,8 +1,8 @@
 import type { WorkflowTask } from '@shumai/db'
 import {
-    executeActivity,
-    getActivities,
-    TaskQueueTranscode,
+  executeActivity,
+  getActivities,
+  TaskQueueTranscode,
 } from '@shumai/workflow-core/src/workflow-utils'
 import { ApplicationFailure } from '@temporalio/workflow'
 
@@ -25,19 +25,22 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
   let workerQueue = ''
 
   try {
+    // 0. Get Worker-Specific Queue for Transcode
+    workerQueue = await executeActivity(TaskQueueTranscode, getTranscodeWorkerQueueActivity)
+
     // 1. Update status to processing
-    await executeActivity(TaskQueueTranscode, updateTaskStatusActivity, {
+    await executeActivity(workerQueue, updateTaskStatusActivity, {
       taskId: task.id,
       status: 'processing',
     })
 
-    await executeActivity(TaskQueueTranscode, updateAssetStatusActivity, {
+    await executeActivity(workerQueue, updateAssetStatusActivity, {
       assetId: task.assetId,
       status: 'processing',
     })
 
     // 2. Get Asset
-    const asset = await executeActivity(TaskQueueTranscode, getAssetActivity, task.assetId)
+    const asset = await executeActivity(workerQueue, getAssetActivity, task.assetId)
     const key = asset?.storageKey?.key
     if (!asset || !key) {
       throw ApplicationFailure.create({
@@ -45,9 +48,6 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
         nonRetryable: true,
       })
     }
-
-    // 3. Get Worker-Specific Queue for Transcode
-    workerQueue = await executeActivity(TaskQueueTranscode, getTranscodeWorkerQueueActivity)
 
     // 4. Download Media to Tmp
     const download = await executeActivity(workerQueue, downloadMediaToTmpActivity, {
@@ -173,29 +173,31 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
     }
 
     // 11. Update Asset Media and Status
-    await executeActivity(TaskQueueTranscode, updateAssetMediaActivity, {
+    await executeActivity(workerQueue, updateAssetMediaActivity, {
       assetId: asset.id,
       mediaInfo,
     })
 
-    await executeActivity(TaskQueueTranscode, updateAssetStatusActivity, {
+    await executeActivity(workerQueue, updateAssetStatusActivity, {
       assetId: asset.id,
       status: 'processed',
     })
 
     // 12. Update Task Status
-    await executeActivity(TaskQueueTranscode, updateTaskStatusActivity, {
+    await executeActivity(workerQueue, updateTaskStatusActivity, {
       taskId: task.id,
       status: 'completed',
     })
   } catch (err) {
     console.error(`TranscodeMedia failed for task ${task.id}:`, err)
     // Update status to failed
-    await executeActivity(TaskQueueTranscode, updateTaskStatusActivity, {
-      taskId: task.id,
-      status: 'failed',
-      output: { error: err instanceof Error ? err.message : String(err) },
-    })
+    if (workerQueue) {
+      await executeActivity(workerQueue, updateTaskStatusActivity, {
+        taskId: task.id,
+        status: 'failed',
+        output: { error: err instanceof Error ? err.message : String(err) },
+      })
+    }
     throw err
   } finally {
     if (tmpDir && workerQueue) {

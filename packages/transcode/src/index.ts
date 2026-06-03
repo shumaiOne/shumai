@@ -7,3 +7,8 @@ export function initTranscodeWorkflows() {
   registerWorkflow(WorkflowTaskType.transcode, transcodeMedia)
   registerActivities(transcodeActivities)
 }
+
+export * from './transcoder'
+export * from './transcode'
+export * from './workflows/transcode'
+export * from './activities/transcode'

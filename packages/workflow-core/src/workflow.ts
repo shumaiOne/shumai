@@ -1,5 +1,6 @@
 import { prisma, registerWorkflowTrigger, WorkflowTask } from '@shumai/db'
 import path from 'path'
+import * as taskActivities from './activities/task'
 import { Executor } from './executor'
 import { LocalExecutor } from './local-executor'
 import { TemporalExecutor } from './temporal-executor'
@@ -117,8 +118,8 @@ export class WorkflowService {
 
       const specificWorker = await Worker.create({
         connection,
-        // No workflows needed for the unique queue
-        activities,
+        // Register both domain-specific activities and shared task activities
+        activities: { ...activities, ...taskActivities },
         taskQueue: workerSpecificQueue,
         bundlerOptions: {
           webpackConfigHook: (config) => {
