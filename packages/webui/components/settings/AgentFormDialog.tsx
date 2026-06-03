@@ -29,13 +29,7 @@ import { Textarea } from '@/ui/components/ui/textarea'
 import { ScrollArea } from '@/ui/components/ui/scroll-area'
 import { z } from 'zod'
 import { cn } from '@/ui/lib/utils'
-
-const AVAILABLE_AVATARS = [
-  '/avatars/gpt_top_left.webp',
-  '/avatars/gpt_top_right.webp',
-  '/avatars/gpt_bottom_left.webp',
-  '/avatars/gpt_bottom_right.webp',
-]
+import { AVAILABLE_AVATARS } from './avatars'
 
 interface AgentFormDialogProps {
   isOpen: boolean
@@ -123,7 +117,7 @@ export function AgentFormDialog({
     defaultValues: {
       name: initialValues?.name || '',
       type: type || initialValues?.type || 'chat',
-      avatar: initialValues?.avatar || '/avatars/gpt_top_left.webp',
+      avatar: initialValues?.avatar || AVAILABLE_AVATARS[0],
       providerId: initialValues?.providerId || '',
       modelId: initialValues?.modelId || '',
       soul: initialValues?.soul || '',
@@ -136,34 +130,10 @@ export function AgentFormDialog({
     },
     onSubmit: async ({ value }) => {
       try {
-        let avatarKey = value.avatar
-        if (avatarKey && avatarKey.startsWith('/avatars/')) {
-          try {
-            const response = await fetch(avatarKey)
-            const blob = await response.blob()
-            const fileToUpload = new File([blob], 'avatar.webp', { type: 'image/webp' })
-            const uploadRes = await client.api.teams[':teamId'].files.$post({
-              param: { teamId },
-              form: { file: fileToUpload },
-            })
-            if (!uploadRes.ok) throw new Error('Failed to upload avatar')
-            const uploadData = await uploadRes.json()
-            avatarKey = (uploadData as { key: string }).key
-          } catch (err) {
-            toast.error('Failed to upload agent avatar')
-            throw err
-          }
-        }
-
-        const payload = {
-          ...value,
-          avatar: avatarKey || undefined,
-        }
-
         if (initialValues?.id) {
-          await updateMutation.mutateAsync({ id: initialValues.id, values: payload })
+          await updateMutation.mutateAsync({ id: initialValues.id, values: value })
         } else {
-          await createMutation.mutateAsync(payload)
+          await createMutation.mutateAsync(value)
         }
       } catch {
         // Error handled by mutation
