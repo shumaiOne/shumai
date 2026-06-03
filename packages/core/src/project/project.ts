@@ -2,6 +2,7 @@ import { prisma } from '@shumai/db'
 import { Prisma } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { paginateQuery, PaginatedData } from '@shumai/core/src/pagination'
+import { getAvatarUrl } from '@shumai/core/src/user/avatar'
 import {
   ServiceCreateProjectRequest,
   ServiceUpdateProjectRequest,
@@ -215,13 +216,16 @@ export class ProjectService {
       },
     })
 
-    return members
-      .filter((pm) => pm.teamMember && pm.teamMember.user)
-      .map((pm) => ({
-        id: pm.teamMember.user.id,
-        name: pm.teamMember.user.name,
-        role: pm.role,
-      }))
+    return Promise.all(
+      members
+        .filter((pm) => pm.teamMember && pm.teamMember.user)
+        .map(async (pm) => ({
+          id: pm.teamMember.user.id,
+          name: pm.teamMember.user.name,
+          role: pm.role,
+          image: await getAvatarUrl(pm.teamMember.user.image),
+        })),
+    )
   }
 
   async deleteProject(projectId: string): Promise<void> {

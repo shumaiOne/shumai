@@ -43,6 +43,7 @@ describe('team api', () => {
   let mockCreateNotification: any // eslint-disable-line @typescript-eslint/no-explicit-any
   let mockGetSandboxSettings: any // eslint-disable-line @typescript-eslint/no-explicit-any
   let mockUpdateSandboxSettings: any // eslint-disable-line @typescript-eslint/no-explicit-any
+  let mockUpdateMe: any // eslint-disable-line @typescript-eslint/no-explicit-any
 
   beforeEach(() => {
     mockCreateTeam = vi.spyOn(teamService, 'createTeam')
@@ -57,6 +58,7 @@ describe('team api', () => {
     mockCreateNotification = vi.spyOn(notificationService, 'create').mockResolvedValue()
     mockGetSandboxSettings = vi.spyOn(teamService, 'getSandboxSettings')
     mockUpdateSandboxSettings = vi.spyOn(teamService, 'updateSandboxSettings')
+    mockUpdateMe = vi.spyOn(teamService, 'updateMe')
     vi.mocked(authzService.hasPermission).mockResolvedValue(undefined)
   })
 
@@ -131,6 +133,31 @@ describe('team api', () => {
       }),
     )
     expect(mockGetMe).toHaveBeenCalledWith({ teamId: 't1', user: expect.any(Object) })
+  })
+
+  it('PATCH /teams/:teamId/me updates user info', async () => {
+    mockUpdateMe.mockResolvedValue(undefined)
+
+    const res = await app.request('/teams/t1/me', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'New Name', imageKey: 'avatar-s3-key' }),
+    })
+
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.success).toBe(true)
+    expect(authzService.hasPermission).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: ResourceType.Team,
+        id: 't1',
+        permission: Permission.Read,
+      }),
+    )
+    expect(mockUpdateMe).toHaveBeenCalledWith('user1', {
+      name: 'New Name',
+      imageKey: 'avatar-s3-key',
+    })
   })
 
   it('GET /teams/:teamId/members returns members', async () => {

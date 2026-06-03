@@ -15,7 +15,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Download, File, Terminal } from 'lucide-react'
 import React from 'react'
 import Markdown from 'react-markdown'
-import { Avatar, AvatarFallback } from '../ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { DrawAnnotation } from '../ui/icons'
 import { Skeleton } from '../ui/skeleton'
 import { formatTimestamp } from '../viewers/utils'
@@ -147,6 +147,9 @@ export const MessageCard: React.FC<MessageCardProps> = ({
         )}
 
         <Avatar className="z-10 relative">
+          {creator?.image && (
+            <AvatarImage src={creator.image} alt={creator.name || ''} className="object-cover" />
+          )}
           <AvatarFallback className="bg-rose-400 text-black">
             {creator?.name?.[0]?.toUpperCase() || 'U'}
           </AvatarFallback>

@@ -10,7 +10,12 @@ import { cn } from '@/ui/lib/utils'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { Bot, Cpu, Film, Loader2, Puzzle, Shield, User, Bell } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/ui/avatar'
+import { Input } from '@/ui/components/ui/input'
+import { Button } from '@/ui/components/ui/button'
+import { AvatarCropDialog } from '@/ui/components/settings/AvatarCropDialog'
+import { toast } from 'sonner'
 
 type SettingsTab =
   | 'general'
@@ -25,6 +30,11 @@ function TeamSettingsPage() {
   const { teamId } = Route.useParams()
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<SettingsTab>('general')
+  const [profileName, setProfileName] = useState('')
+  const [isCropOpen, setIsCropOpen] = useState(false)
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false)
 
   const {
     data: settings,
@@ -52,6 +62,102 @@ function TeamSettingsPage() {
     },
     enabled: !!teamId,
   })
+
+  useEffect(() => {
+    if (me?.name) {
+      setProfileName(me.name)
+    }
+  }, [me])
+
+  const getInitials = (name?: string) => {
+    if (!name) return 'U'
+    const names = name.split(' ')
+    if (names.length > 1) {
+      return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase()
+    }
+    return name.substring(0, 2).toUpperCase()
+  }
+
+  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = () => {
+        setCropImageSrc(reader.result as string)
+        setIsCropOpen(true)
+      }
+      reader.readAsDataURL(file)
+      e.target.value = ''
+    }
+  }
+
+  const handleConfirmCrop = async (blob: Blob) => {
+    setIsUpdatingProfile(true)
+    try {
+      const fileToUpload = new File([blob], 'avatar.jpg', { type: 'image/jpeg' })
+      const uploadRes = await client.api.teams[':teamId'].files.$post({
+        param: { teamId },
+        form: { file: fileToUpload },
+      })
+      if (!uploadRes.ok) throw new Error('Failed to upload avatar')
+      const uploadData = await uploadRes.json()
+      const key = (uploadData as { key: string }).key
+
+      const patchRes = await client.api.teams[':teamId'].me.$patch({
+        param: { teamId },
+        json: { imageKey: key },
+      })
+      if (!patchRes.ok) throw new Error('Failed to save profile')
+
+      toast.success('Avatar updated successfully')
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'me'] })
+      setIsCropOpen(false)
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to update avatar')
+    } finally {
+      setIsUpdatingProfile(false)
+    }
+  }
+
+  const handleRemoveAvatar = async () => {
+    setIsUpdatingProfile(true)
+    try {
+      const patchRes = await client.api.teams[':teamId'].me.$patch({
+        param: { teamId },
+        json: { imageKey: null },
+      })
+      if (!patchRes.ok) throw new Error('Failed to remove avatar')
+
+      toast.success('Avatar removed successfully')
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'me'] })
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to remove avatar')
+    } finally {
+      setIsUpdatingProfile(false)
+    }
+  }
+
+  const handleUpdateProfile = async () => {
+    if (!profileName.trim()) return
+    setIsUpdatingProfile(true)
+    try {
+      const patchRes = await client.api.teams[':teamId'].me.$patch({
+        param: { teamId },
+        json: { name: profileName.trim() },
+      })
+      if (!patchRes.ok) throw new Error('Failed to update name')
+
+      toast.success('Profile updated successfully')
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'me'] })
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to update profile')
+    } finally {
+      setIsUpdatingProfile(false)
+    }
+  }
 
   const { mutate: updateSettings } = useMutation({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -265,15 +371,106 @@ function TeamSettingsPage() {
                   <Card>
                     <CardHeader>
                       <CardTitle>Personal Info</CardTitle>
-                      <CardDescription>View your personal information.</CardDescription>
+                      <CardDescription>Manage your profile name and avatar image.</CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      <div className="flex flex-col space-y-2">
-                        <span className="text-sm font-medium text-muted-foreground">Name</span>
-                        <span className="text-lg">{me?.name}</span>
+                    <CardContent className="space-y-6">
+                      <div className="flex flex-col md:flex-row gap-8 items-start">
+                        {/* Avatar Column */}
+                        <div className="flex flex-col items-center gap-3">
+                          <span className="text-sm font-medium text-muted-foreground">Avatar</span>
+                          <div
+                            className="group relative cursor-pointer overflow-hidden rounded-full w-24 h-24 border border-border/60 shadow-md transition-all hover:opacity-90"
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            <Avatar className="w-24 h-24">
+                              {me?.image && (
+                                <AvatarImage
+                                  src={me.image}
+                                  alt={me.name}
+                                  className="object-cover w-24 h-24"
+                                />
+                              )}
+                              <AvatarFallback className="text-2xl bg-primary/40 text-foreground">
+                                {getInitials(me?.name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <span className="text-white text-xs font-semibold">Change</span>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => fileInputRef.current?.click()}
+                            >
+                              Upload
+                            </Button>
+                            {me?.image && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-red-500 hover:text-red-600"
+                                onClick={handleRemoveAvatar}
+                              >
+                                Remove
+                              </Button>
+                            )}
+                          </div>
+                          <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            accept="image/*"
+                            onChange={handleAvatarFileChange}
+                          />
+                        </div>
+
+                        {/* Details Column */}
+                        <div className="flex-1 space-y-4 w-full">
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-muted-foreground">
+                              Name
+                            </label>
+                            <Input
+                              value={profileName}
+                              onChange={(e) => setProfileName(e.target.value)}
+                              placeholder="Enter your name"
+                              className="max-w-md"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-muted-foreground">
+                              Email
+                            </label>
+                            <Input
+                              value={me?.email || ''}
+                              disabled
+                              className="max-w-md bg-muted/50 cursor-not-allowed"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Email address is managed by authentication provider.
+                            </p>
+                          </div>
+                          <Button
+                            onClick={handleUpdateProfile}
+                            disabled={isUpdatingProfile || !profileName.trim()}
+                            className="mt-2"
+                          >
+                            {isUpdatingProfile && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                            Save Changes
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
+
+                  <AvatarCropDialog
+                    isOpen={isCropOpen}
+                    onClose={() => setIsCropOpen(false)}
+                    imageSrc={cropImageSrc}
+                    onConfirm={handleConfirmCrop}
+                  />
                 </div>
               )}
 

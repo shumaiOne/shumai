@@ -92,6 +92,22 @@ describe('TeamService', () => {
     expect(me.role).toBe('owner')
   })
 
+  it('should update me', async () => {
+    const user = await prisma.user.create({
+      data: { name: 'Old Name', email: `test-${Date.now()}@example.com`, password: 'pw' },
+    })
+    await teamService.updateMe(user.id, {
+      name: 'New Name',
+      imageKey: 'avatar-s3-key',
+    })
+
+    const updatedUser = await prisma.user.findUnique({
+      where: { id: user.id },
+    })
+    expect(updatedUser?.name).toBe('New Name')
+    expect(updatedUser?.image).toBe('avatar-s3-key')
+  })
+
   it('should get team members', async () => {
     const user1 = await prisma.user.create({
       data: { name: 'Test User 1', email: `test1-${Date.now()}@example.com`, password: 'pw' },

@@ -1,4 +1,4 @@
-import { Avatar, AvatarFallback } from '@/ui/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/ui/avatar'
 import { Button } from '@/ui/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog'
 import {
@@ -17,6 +17,7 @@ export interface Member {
   id?: string
   name?: string
   role?: string
+  image?: string
 }
 
 interface MembersDialogProps {
@@ -99,6 +100,9 @@ export function MembersDialog({
               >
                 <div className="flex items-center gap-3">
                   <Avatar>
+                    {member.image && (
+                      <AvatarImage src={member.image} alt={member.name} className="object-cover" />
+                    )}
                     <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col">

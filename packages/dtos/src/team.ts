@@ -34,9 +34,16 @@ export const getMeResponseSchema = z.object({
   name: z.string(),
   email: z.string().optional(),
   role: z.string(),
+  image: z.string().optional(),
   unreadNotificationCount: z.number().optional(),
 })
 export type GetMeResponse = z.infer<typeof getMeResponseSchema>
+
+export const updateMeRequestSchema = z.object({
+  name: z.string().optional(),
+  imageKey: z.string().nullable().optional(),
+})
+export type UpdateMeRequest = z.infer<typeof updateMeRequestSchema>
 
 export const userInfoSchema = z.object({
   id: z.string(),
@@ -44,6 +51,7 @@ export const userInfoSchema = z.object({
   role: z.string(),
   email: z.string().optional(),
   type: z.enum(['human', 'agent']).optional(),
+  image: z.string().optional(),
 })
 export type UserInfo = z.infer<typeof userInfoSchema>
 

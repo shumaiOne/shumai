@@ -11,6 +11,7 @@ import {
   updateTeamSettingsRequestSchema,
   listMembersQuerySchema,
   updateSandboxSettingsRequestSchema,
+  updateMeRequestSchema,
 } from '@shumai/dtos'
 import { updateUserMetadataRequestSchema } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
@@ -76,6 +77,21 @@ const route = new Hono<{ Variables: { user: User } }>()
     })
 
     return c.json(me)
+  })
+  .patch('/teams/:teamId/me', zValidator('json', updateMeRequestSchema), async (c) => {
+    const user = c.get('user')
+    const teamId = c.req.param('teamId')
+    const req = c.req.valid('json')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Team,
+      id: teamId,
+    })
+
+    await teamService.updateMe(user.id, req)
+    return c.json({ success: true })
   })
   .get('/teams/:teamId/members', zValidator('query', listMembersQuerySchema), async (c) => {
     const user = c.get('user')

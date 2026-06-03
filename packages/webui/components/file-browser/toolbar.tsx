@@ -13,7 +13,7 @@ import { MembersDialog } from '../members-dialog'
 import { FilterPanel } from '../search/filter-panel'
 import { SearchFilterDialog } from '../search/search-filter-dialog'
 import { SortControl } from '../search/sort-control'
-import { Avatar, AvatarFallback } from '../ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { Button } from '../ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { Separator } from '../ui/separator'
@@ -280,6 +280,9 @@ export function FileBrowserToolbar({
           >
             {members?.slice(0, 3).map((member) => (
               <Avatar key={member.id} className="border-2 border-background w-8 h-8">
+                {member.image && (
+                  <AvatarImage src={member.image} alt={member.name} className="object-cover" />
+                )}
                 <AvatarFallback className="text-[10px]">{getInitials(member.name)}</AvatarFallback>
               </Avatar>
             ))}
