@@ -113,15 +113,15 @@ The backend is built with:
 
 The project is a monorepo managed by **Bun Workspaces**. It follows a strictly decoupled architecture where each domain or layer is its own package:
 
--   **WebUI (`packages/webui`)**: React-based frontend.
--   **API (`packages/api`)**: Hono-based HTTP entry point. Handles requests and calls Core services.
--   **Core (`packages/core`)**: Business logic, services, and infrastructure utilities.
--   **Database (`packages/db`)**: Prisma client, schema, and migrations.
--   **DTOs (`packages/dtos`)**: Shared type definitions and Zod schemas used by both API and WebUI.
--   **Workers**: Specialized packages for background task execution:
-    -   `@shumai/workflow-core`: Common workflow engine logic.
-    -   `@shumai/agent`: AI agent workflows and activities.
-    -   `@shumai/transcode`: Media processing workflows and activities.
+- **WebUI (`packages/webui`)**: React-based frontend.
+- **API (`packages/api`)**: Hono-based HTTP entry point. Handles requests and calls Core services.
+- **Core (`packages/core`)**: Business logic, services, and infrastructure utilities.
+- **Database (`packages/db`)**: Prisma client, schema, and migrations.
+- **DTOs (`packages/dtos`)**: Shared type definitions and Zod schemas used by both API and WebUI.
+- **Workers**: Specialized packages for background task execution:
+  - `@shumai/workflow-core`: Common workflow engine logic.
+  - `@shumai/agent`: AI agent workflows and activities.
+  - `@shumai/transcode`: Media processing workflows and activities.
 
 ### Layered Communication Rules
 

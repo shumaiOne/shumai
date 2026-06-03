@@ -9,7 +9,9 @@ export async function getAgentWorkerQueueActivity(): Promise<string> {
   return 'agent_queue'
 }
 
-export async function getAssetStatusActivity(params: { assetId: string }): Promise<AssetStatus | null> {
+export async function getAssetStatusActivity(params: {
+  assetId: string
+}): Promise<AssetStatus | null> {
   const asset = await prisma.asset.findUnique({
     where: { id: params.assetId },
     select: { status: true },

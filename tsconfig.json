@@ -21,8 +21,11 @@
       "@shumai/db/test": ["packages/db/src/test.ts"],
       "@shumai/dtos": ["packages/dtos/src/index.ts"],
       "@shumai/workflow-core": ["packages/workflow-core/src/index.ts"],
+      "@shumai/workflow-core/src/*": ["packages/workflow-core/src/*"],
       "@shumai/agent": ["packages/agent/src/index.ts"],
-      "@shumai/transcode": ["packages/transcode/src/index.ts"]
+      "@shumai/agent/src/*": ["packages/agent/src/*"],
+      "@shumai/transcode": ["packages/transcode/src/index.ts"],
+      "@shumai/transcode/src/*": ["packages/transcode/src/*"]
     }
   },
   "exclude": ["node_modules"]

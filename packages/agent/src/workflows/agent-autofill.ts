@@ -93,7 +93,11 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
     }
 
     // 3. Get Project Autofill Fields
-    const fields = await executeActivity(TaskQueueAgent, getProjectAutofillFieldsActivity, projectId)
+    const fields = await executeActivity(
+      TaskQueueAgent,
+      getProjectAutofillFieldsActivity,
+      projectId,
+    )
     if (fields.length === 0) {
       if (placeholderCommentId) {
         await executeActivity(TaskQueueAgent, updateCommentActivity, {

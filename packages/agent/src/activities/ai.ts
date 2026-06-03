@@ -261,10 +261,7 @@ export async function extractAiMetadataActivity(
   return generatedFiles
 }
 
-export async function getEmbeddingContextActivity(params: {
-  teamId: string
-  assetId: string
-}) {
+export async function getEmbeddingContextActivity(params: { teamId: string; assetId: string }) {
   const team = await prisma.team.findUnique({
     where: { id: params.teamId },
   })
