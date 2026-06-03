@@ -42,6 +42,18 @@ export const auth = betterAuth({
               },
             )
           }
+
+          const isValid = await inviteService.validateInvite(inviteCode)
+          if (!isValid) {
+            return ctx.json(
+              {
+                error: 'Invalid or expired invite code',
+              },
+              {
+                status: 400,
+              },
+            )
+          }
         }
       }
     }),
