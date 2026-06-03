@@ -65,7 +65,7 @@ const server = Bun.serve({
       return new Response(Bun.file(publicFilePath))
     }
 
-    return index as unknown as Response
+    return new Response(index as unknown as BodyInit)
   },
   development: process.env.NODE_ENV !== 'production',
 })
