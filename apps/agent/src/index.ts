@@ -10,7 +10,17 @@ async function run() {
   initAgentWorkflows()
 
   console.log('🚀 Starting Agent Worker...')
-  await workflowService.startWorkers(TaskQueueAgent)
+
+  const options: { workflowBundle?: unknown; workflowsPath?: string } = {}
+  if (process.env.NODE_ENV === 'production') {
+    // @ts-ignore: Bun temporal plugin macro
+    const { default: workflowBundle } = await import('./workflows:::workflow')
+    options.workflowBundle = workflowBundle
+  } else {
+    options.workflowsPath = new URL('./workflows.ts', import.meta.url).pathname
+  }
+
+  await workflowService.startWorkers(TaskQueueAgent, options)
 }
 
 run().catch((err) => {

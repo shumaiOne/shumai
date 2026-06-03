@@ -19,10 +19,14 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
   } = getActivities()
 
   let placeholderCommentId: string | undefined
+  let agentWorkerQueue = ''
 
   try {
+    // 0. Discover queue
+    agentWorkerQueue = await executeActivity(TaskQueueAgent, getAgentWorkerQueueActivity)
+
     // Update status to processing
-    await executeActivity(TaskQueueAgent, updateTaskStatusActivity, {
+    await executeActivity(agentWorkerQueue, updateTaskStatusActivity, {
       taskId: task.id,
       status: 'processing',
     })
@@ -47,13 +51,13 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
         nonRetryable: true,
       })
     }
-    const userComment = await executeActivity(TaskQueueAgent, getCommentActivity, userCommentId)
+    const userComment = await executeActivity(agentWorkerQueue, getCommentActivity, userCommentId)
     if (!userComment) {
       throw ApplicationFailure.create({ message: 'User comment not found', nonRetryable: true })
     }
 
     // 2. Create Placeholder Comment
-    const placeholder = await executeActivity(TaskQueueAgent, createCommentActivity, {
+    const placeholder = await executeActivity(agentWorkerQueue, createCommentActivity, {
       assetId: task.assetId,
       message: '__CHAT__',
       sessionId: sessionId || 'pending',
@@ -63,7 +67,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     placeholderCommentId = placeholder.id
 
     // 3. Get Asset
-    const asset = await executeActivity(TaskQueueAgent, getAssetActivity, task.assetId)
+    const asset = await executeActivity(agentWorkerQueue, getAssetActivity, task.assetId)
     if (!asset || !asset.project) {
       throw ApplicationFailure.create({ message: 'Asset or project not found', nonRetryable: true })
     }
@@ -71,7 +75,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
 
     // 4. Initialize Session if missing
     if (!sessionId) {
-      sessionId = await executeActivity(TaskQueueAgent, initializeAgentSessionActivity, {
+      sessionId = await executeActivity(agentWorkerQueue, initializeAgentSessionActivity, {
         teamId,
         agentId: agentId,
         userCommentId,
@@ -80,7 +84,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     }
 
     // 4b. Fetch Agent Context
-    const context = await executeActivity(TaskQueueAgent, getAgentChatContextActivity, {
+    const context = await executeActivity(agentWorkerQueue, getAgentChatContextActivity, {
       teamId,
       agentId: agentId,
     })
@@ -96,7 +100,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     }
 
     const pathContext = await executeActivity(
-      TaskQueueAgent,
+      agentWorkerQueue,
       getAssetPathContextActivity,
       task.assetId,
     )
@@ -126,8 +130,6 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       folderId = asset.parentId
     }
 
-    const agentWorkerQueue = await executeActivity(TaskQueueAgent, getAgentWorkerQueueActivity)
-
     const aiResult = await executeActivity(agentWorkerQueue, agentChatActivity, {
       teamId,
       agentId: agentId,
@@ -145,9 +147,9 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     // 7. Update Placeholder Comment
     if (placeholderCommentId) {
       if (aiResult.text.trim() === '__NO_REPLY__') {
-        await executeActivity(TaskQueueAgent, deleteCommentActivity, placeholderCommentId)
+        await executeActivity(agentWorkerQueue, deleteCommentActivity, placeholderCommentId)
       } else {
-        await executeActivity(TaskQueueAgent, updateCommentActivity, {
+        await executeActivity(agentWorkerQueue, updateCommentActivity, {
           commentId: placeholderCommentId,
           message: aiResult.text,
           sessionId: aiResult.sessionId,
@@ -157,7 +159,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
 
     // 8. Update Usage
     if (aiResult.usage) {
-      await executeActivity(TaskQueueAgent, updateTaskUsageActivity, {
+      await executeActivity(agentWorkerQueue, updateTaskUsageActivity, {
         taskId: task.id,
         inputTokens: aiResult.usage.inputTokens,
         outputTokens: aiResult.usage.outputTokens,
@@ -166,7 +168,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     }
 
     // Update status to completed
-    await executeActivity(TaskQueueAgent, updateTaskStatusActivity, {
+    await executeActivity(agentWorkerQueue, updateTaskStatusActivity, {
       taskId: task.id,
       status: 'completed',
       output: { sessionId: aiResult.sessionId },
@@ -175,14 +177,14 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     console.error(`AgentChat failed for task ${task.id}:`, err)
 
     // Update placeholder comment with error message
-    if (placeholderCommentId) {
+    if (placeholderCommentId && agentWorkerQueue) {
       try {
         const errorMessage =
           err instanceof Error && err.message.startsWith('AI error:')
             ? `AI error: ${err.message.substring(9)}`
             : 'Sorry, I encountered an error while processing your request.'
 
-        await executeActivity(TaskQueueAgent, updateCommentActivity, {
+        await executeActivity(agentWorkerQueue, updateCommentActivity, {
           commentId: placeholderCommentId,
           message: errorMessage,
         })
@@ -192,11 +194,13 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     }
 
     // Update status to failed
-    await executeActivity(TaskQueueAgent, updateTaskStatusActivity, {
-      taskId: task.id,
-      status: 'failed',
-      output: { error: err instanceof Error ? err.message : String(err) },
-    })
+    if (agentWorkerQueue) {
+      await executeActivity(agentWorkerQueue, updateTaskStatusActivity, {
+        taskId: task.id,
+        status: 'failed',
+        output: { error: err instanceof Error ? err.message : String(err) },
+      })
+    }
     throw err
   }
 }

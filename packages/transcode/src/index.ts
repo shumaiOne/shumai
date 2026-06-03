@@ -1,7 +1,7 @@
-import { registerWorkflow, registerActivities } from '@shumai/workflow-core'
 import { WorkflowTaskType } from '@shumai/db'
-import { transcodeMedia } from './workflows/transcode'
+import { registerActivities, registerWorkflow } from '@shumai/workflow-core'
 import * as transcodeActivities from './activities/transcode'
+import { transcodeMedia } from './workflows/transcode'
 
 export function initTranscodeWorkflows() {
   registerWorkflow(WorkflowTaskType.transcode, transcodeMedia)

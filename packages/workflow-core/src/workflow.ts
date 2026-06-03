@@ -1,8 +1,9 @@
-import { WorkflowTask } from '@shumai/db'
+import { prisma, registerWorkflowTrigger, WorkflowTask } from '@shumai/db'
+import path from 'path'
+import * as taskActivities from './activities/task'
 import { Executor } from './executor'
 import { LocalExecutor } from './local-executor'
 import { TemporalExecutor } from './temporal-executor'
-import { prisma, registerWorkflowTrigger } from '@shumai/db'
 
 export class WorkflowService {
   private executor: Executor
@@ -56,7 +57,10 @@ export class WorkflowService {
   }
 
   // Starts Temporal workers for specific task queues
-  async startWorkers(queue: string): Promise<void> {
+  async startWorkers(
+    queue: string,
+    options: { workflowBundle?: unknown; workflowsPath?: string } = {},
+  ): Promise<void> {
     const type = process.env.WORKFLOW_EXECUTOR || 'local'
     if (type === 'temporal') {
       const { Worker, NativeConnection } = await import('@temporalio/worker')
@@ -85,17 +89,51 @@ export class WorkflowService {
         sharedActivities.getTranscodeWorkerQueueActivity = async () => workerSpecificQueue
       }
 
+      const { workflowBundle, workflowsPath } = options
+
       const sharedWorker = await Worker.create({
         connection,
+        // The workflowBundle is a pre-bundled set of workflows, its internal structure
+        // is managed by the Temporal worker and doesn't need explicit typing here.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ...(workflowBundle ? { workflowBundle: workflowBundle as any } : {}),
+        ...(workflowsPath ? { workflowsPath } : {}),
         activities: sharedActivities,
         taskQueue: queue,
+
+        bundlerOptions: {
+          webpackConfigHook: (config) => {
+            config.resolve = config.resolve || {}
+            config.resolve.alias = {
+              ...config.resolve.alias,
+              // Find the exact absolute path to the package directory
+              '@temporalio/workflow': path.dirname(
+                require.resolve('@temporalio/workflow/package.json'),
+              ),
+            }
+            return config
+          },
+        },
       })
 
       const specificWorker = await Worker.create({
         connection,
-        // No workflows needed for the unique queue
-        activities,
+        // Register both domain-specific activities and shared task activities
+        activities: { ...activities, ...taskActivities },
         taskQueue: workerSpecificQueue,
+        bundlerOptions: {
+          webpackConfigHook: (config) => {
+            config.resolve = config.resolve || {}
+            config.resolve.alias = {
+              ...config.resolve.alias,
+              // Find the exact absolute path to the package directory
+              '@temporalio/workflow': path.dirname(
+                require.resolve('@temporalio/workflow/package.json'),
+              ),
+            }
+            return config
+          },
+        },
       })
 
       await Promise.all([sharedWorker.run(), specificWorker.run()])

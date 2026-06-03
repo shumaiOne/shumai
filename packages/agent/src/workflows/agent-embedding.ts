@@ -15,17 +15,21 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
   } = getActivities()
 
   let placeholderCommentId: string | undefined
+  let agentWorkerQueue = ''
 
   try {
+    // 0. Discover queue
+    agentWorkerQueue = await executeActivity(TaskQueueAgent, getAgentWorkerQueueActivity)
+
     // Update status to processing
-    await executeActivity(TaskQueueAgent, updateTaskStatusActivity, {
+    await executeActivity(agentWorkerQueue, updateTaskStatusActivity, {
       taskId: task.id,
       status: 'processing',
     })
 
     // 0. Create Placeholder Comment
     const payload = task.payload
-    const placeholder = await executeActivity(TaskQueueAgent, createCommentActivity, {
+    const placeholder = await executeActivity(agentWorkerQueue, createCommentActivity, {
       assetId: task.assetId,
       message: '__EMBEDDING__',
       sessionId: payload?.agent?.sessionId || task.id,
@@ -38,12 +42,10 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
     }
 
     // 1. Fetch Agent Context
-    const context = await executeActivity(TaskQueueAgent, getEmbeddingContextActivity, {
+    const context = await executeActivity(agentWorkerQueue, getEmbeddingContextActivity, {
       teamId: task.teamId,
       assetId: task.assetId,
     })
-
-    const agentWorkerQueue = await executeActivity(TaskQueueAgent, getAgentWorkerQueueActivity)
 
     // Call the activity to generate embeddings
     const result = await executeActivity(agentWorkerQueue, generateEmbeddingActivity, {
@@ -54,7 +56,7 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
 
     // Save computed embeddings
     if (result.embeddings.length > 0) {
-      await executeActivity(TaskQueueAgent, saveAssetEmbeddingsActivity, {
+      await executeActivity(agentWorkerQueue, saveAssetEmbeddingsActivity, {
         assetId: task.assetId,
         embeddings: result.embeddings,
       })
@@ -62,7 +64,7 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
 
     // Update Usage
     if (result.usage) {
-      await executeActivity(TaskQueueAgent, updateTaskUsageActivity, {
+      await executeActivity(agentWorkerQueue, updateTaskUsageActivity, {
         taskId: task.id,
         inputTokens: result.usage.inputTokens,
         outputTokens: result.usage.outputTokens,
@@ -72,14 +74,14 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
 
     // 7. Update Placeholder Comment
     if (placeholderCommentId) {
-      await executeActivity(TaskQueueAgent, updateCommentActivity, {
+      await executeActivity(agentWorkerQueue, updateCommentActivity, {
         commentId: placeholderCommentId,
         message: 'Embedding completed successfully.',
       })
     }
 
     // Update status to completed
-    await executeActivity(TaskQueueAgent, updateTaskStatusActivity, {
+    await executeActivity(agentWorkerQueue, updateTaskStatusActivity, {
       taskId: task.id,
       status: 'completed',
     })
@@ -87,9 +89,9 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
     console.error(`AgentEmbeddingMedia failed for task ${task.id}:`, err)
 
     // Update placeholder comment with error message
-    if (placeholderCommentId) {
+    if (placeholderCommentId && agentWorkerQueue) {
       try {
-        await executeActivity(TaskQueueAgent, updateCommentActivity, {
+        await executeActivity(agentWorkerQueue, updateCommentActivity, {
           commentId: placeholderCommentId,
           message: `Embedding failed: ${err instanceof Error ? err.message : String(err)}`,
         })
@@ -99,11 +101,13 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
     }
 
     // Update status to failed
-    await executeActivity(TaskQueueAgent, updateTaskStatusActivity, {
-      taskId: task.id,
-      status: 'failed',
-      output: { error: err instanceof Error ? err.message : String(err) },
-    })
+    if (agentWorkerQueue) {
+      await executeActivity(agentWorkerQueue, updateTaskStatusActivity, {
+        taskId: task.id,
+        status: 'failed',
+        output: { error: err instanceof Error ? err.message : String(err) },
+      })
+    }
     throw err
   }
 }

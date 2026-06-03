@@ -113,15 +113,15 @@ The backend is built with:
 
 The project is a monorepo managed by **Bun Workspaces**. It follows a strictly decoupled architecture where each domain or layer is its own package:
 
--   **WebUI (`packages/webui`)**: React-based frontend.
--   **API (`packages/api`)**: Hono-based HTTP entry point. Handles requests and calls Core services.
--   **Core (`packages/core`)**: Business logic, services, and infrastructure utilities.
--   **Database (`packages/db`)**: Prisma client, schema, and migrations.
--   **DTOs (`packages/dtos`)**: Shared type definitions and Zod schemas used by both API and WebUI.
--   **Workers**: Specialized packages for background task execution:
-    -   `@shumai/workflow-core`: Common workflow engine logic.
-    -   `@shumai/agent`: AI agent workflows and activities.
-    -   `@shumai/transcode`: Media processing workflows and activities.
+- **WebUI (`packages/webui`)**: React-based frontend.
+- **API (`packages/api`)**: Hono-based HTTP entry point. Handles requests and calls Core services.
+- **Core (`packages/core`)**: Business logic, services, and infrastructure utilities.
+- **Database (`packages/db`)**: Prisma client, schema, and migrations.
+- **DTOs (`packages/dtos`)**: Shared type definitions and Zod schemas used by both API and WebUI.
+- **Workers**: Specialized packages for background task execution:
+  - `@shumai/workflow-core`: Common workflow engine logic.
+  - `@shumai/agent`: AI agent workflows and activities.
+  - `@shumai/transcode`: Media processing workflows and activities.
 
 ### Layered Communication Rules
 
@@ -380,6 +380,10 @@ To prevent Temporal from indefinitely retrying fatal, expected business validati
   ```
 - **Environment Compatibility**: Always use `getActivities()` from `@shumai/workflow-core` to ensure the code works in both Local and Temporal environments.
 - **Activity Access**: Activities should be accessed via `getActivities()` within a workflow. Do not call services directly inside a workflow function to maintain Temporal compatibility.
+- **Queue Redirection**: Production Temporal workers use worker-specific unique queues for data locality (e.g., local disk access) and consistent state.
+  - Every workflow MUST first call `getAgentWorkerQueueActivity` or `getTranscodeWorkerQueueActivity` via the shared domain queue (e.g., `TaskQueueAgent` or `TaskQueueTranscode`) to obtain the specific queue name for that worker instance.
+  - ALL subsequent activities (including shared DB activities like updating task status) MUST be executed on that specific discovered queue.
+  - The shared domain worker ONLY registers the queue discovery activities. All other activities (shared and domain-specific) are registered on the specific worker.
 
 ### Activity Patterns
 
