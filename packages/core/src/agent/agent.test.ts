@@ -204,6 +204,7 @@ describe('AgentService', () => {
         avatar: avatarPresigned,
         providerId: provider.id,
         modelId: model.id,
+        thinkingLevel: 'medium',
       })
 
       expect(agent?.id).toBeDefined()
@@ -224,6 +225,7 @@ describe('AgentService', () => {
         avatar: avatarPresigned,
         providerId: agent.providerId!,
         modelId: agent.modelId!,
+        thinkingLevel: 'medium',
       })
 
       expect(updated.user.image).toBe('files/01JK23456789ABCDEF01234567')

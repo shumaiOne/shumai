@@ -9,6 +9,8 @@ import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { initTranscodeWorkflows } from '@shumai/transcode'
 import { workflowService } from '@shumai/workflow-core'
 import { app } from '@shumai/api'
+import * as fs from 'fs'
+import * as path from 'path'
 
 // Initialize workflows and activities for local executor mode
 initAgentWorkflows()
@@ -43,17 +45,27 @@ if (process.env.WORKFLOW_EXECUTOR === 'temporal') {
 
 const server = Bun.serve({
   port: 3000,
-  fetch: app.fetch,
-  routes: {
-    // Serve index.html for root
-    '/': index,
+  async fetch(req) {
+    const url = new URL(req.url)
+    const pathname = url.pathname
 
-    // Proxy API requests to Hono
-    '/api/*': app.fetch,
-    '/files/*': app.fetch,
+    if (pathname.startsWith('/api/') || pathname.startsWith('/files/')) {
+      return app.fetch(req)
+    }
 
-    // Catch-all for SPA routing (fallback to index.html)
-    '/*': index,
+    // Try serving from public folder
+    let publicFilePath = ''
+    if (pathname.startsWith('/public/')) {
+      publicFilePath = path.join(process.cwd(), 'packages/webui/public', pathname.substring(8))
+    } else {
+      publicFilePath = path.join(process.cwd(), 'packages/webui/public', pathname)
+    }
+
+    if (fs.existsSync(publicFilePath) && fs.statSync(publicFilePath).isFile()) {
+      return new Response(Bun.file(publicFilePath))
+    }
+
+    return index as unknown as Response
   },
   development: process.env.NODE_ENV !== 'production',
 })
