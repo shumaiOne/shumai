@@ -94,10 +94,7 @@ export function AvatarCropDialog({ isOpen, onClose, imageSrc, onConfirm }: Avata
         // Clear canvas
         ctx.clearRect(0, 0, CROP_RESOLUTION, CROP_RESOLUTION)
 
-        // Draw a circular clipping path
-        ctx.beginPath()
-        ctx.arc(CROP_RESOLUTION / 2, CROP_RESOLUTION / 2, CROP_RESOLUTION / 2, 0, Math.PI * 2)
-        ctx.clip()
+        // Draw square crop (no circular clipping path to allow square renders)
 
         // Calculate translation and scaling factors
         // Rendered image center in container coordinates:
@@ -184,7 +181,8 @@ export function AvatarCropDialog({ isOpen, onClose, imageSrc, onConfirm }: Avata
               style={{
                 clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
                 maskImage: 'radial-gradient(circle, transparent 122px, black 123px)',
-                webkitMaskImage: 'radial-gradient(circle, transparent 122px, black 123px)',
+                // eslint-disable-next-line @typescript-eslint/naming-convention
+                WebkitMaskImage: 'radial-gradient(circle, transparent 122px, black 123px)',
               }}
             />
           </div>
