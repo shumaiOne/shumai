@@ -318,7 +318,7 @@ describe('Agent Database Activities Integration', () => {
             input: ['text'],
             contextWindow: 8192,
             maxTokens: 2048,
-            cost: { input: 0.01, output: 0.03, cacheRead: 0, cacheWrite: 0 }
+            cost: { input: 0.01, output: 0.03, cacheRead: 0, cacheWrite: 0 },
           },
         },
       })

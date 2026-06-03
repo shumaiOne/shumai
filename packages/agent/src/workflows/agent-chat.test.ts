@@ -3,6 +3,7 @@ import { agentChat } from './agent-chat'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import * as workflowUtils from '@shumai/workflow-core'
+import { AgentChatPromptBuilder } from './agent-chat-prompt-builder'
 
 vi.mock('@shumai/workflow-core', async () => {
   const actual = await vi.importActual('@shumai/workflow-core')
@@ -124,12 +125,17 @@ describe('Agent Chat Workflow', () => {
     })
 
     // Verify agent instruction composition
+    const expectedInstruction1 = new AgentChatPromptBuilder('a1')
+      .withPathContext('Path: folder/subfolder/file.png')
+      .withExplicitMention(true)
+      .build()
+
     expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
       expect.objectContaining({
         teamId: 't1',
         agentId: 'b1',
         message: 'hello agent',
-        agentsInstruction: expect.stringContaining('explicitly mentioned you'),
+        agentsInstruction: expectedInstruction1,
         sessionId: 'session-123',
         folderId: 'parent-folder-id',
       }),
@@ -174,9 +180,15 @@ describe('Agent Chat Workflow', () => {
     await agentChat(task)
 
     expect(mockActivities.initializeAgentSessionActivity).not.toHaveBeenCalled()
+    const expectedInstruction2 = new AgentChatPromptBuilder('a1')
+      .withPathContext('Path: folder/subfolder/file.png')
+      .withExplicitMention(false)
+      .build()
+
     expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
       expect.objectContaining({
         sessionId: 'existing-session-456',
+        agentsInstruction: expectedInstruction2,
       }),
     )
   })
@@ -202,9 +214,14 @@ describe('Agent Chat Workflow', () => {
     await agentChat(task)
 
     // Verify instruction contains not explicitly mentioned instructions
+    const expectedInstruction3 = new AgentChatPromptBuilder('a1')
+      .withPathContext('Path: folder/subfolder/file.png')
+      .withExplicitMention(false)
+      .build()
+
     expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
       expect.objectContaining({
-        agentsInstruction: expect.stringContaining('did not explicitly mention you'),
+        agentsInstruction: expectedInstruction3,
       }),
     )
 
@@ -261,9 +278,15 @@ describe('Agent Chat Workflow', () => {
 
     await agentChat(task)
 
+    const expectedInstruction4 = new AgentChatPromptBuilder('a1')
+      .withPathContext('Path: folder/subfolder/file.png')
+      .withExplicitMention(false)
+      .build()
+
     expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
       expect.objectContaining({
         imageUrls: ['attachments/image1.png', 'attachments/image2.jpg'],
+        agentsInstruction: expectedInstruction4,
       }),
     )
   })
@@ -294,9 +317,19 @@ describe('Agent Chat Workflow', () => {
 
     await agentChat(task)
 
+    const expectedInstruction5 = new AgentChatPromptBuilder('a1')
+      .withPathContext('Path: folder/subfolder/file.png')
+      .withMediaInfo({
+        duration: 10,
+        height: 1080,
+        width: 1920,
+      })
+      .withExplicitMention(false)
+      .build()
+
     expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
       expect.objectContaining({
-        agentsInstruction: expect.stringContaining('Asset Media Info:'),
+        agentsInstruction: expectedInstruction5,
       }),
     )
   })

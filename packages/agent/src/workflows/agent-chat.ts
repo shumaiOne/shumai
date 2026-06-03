@@ -1,6 +1,7 @@
 import { ApplicationFailure } from '@temporalio/workflow'
 import type { WorkflowTask } from '@shumai/db'
 import { executeActivity, getActivities, TaskQueueAgent } from '@shumai/workflow-core'
+import { AgentChatPromptBuilder } from './agent-chat-prompt-builder'
 
 export async function agentChat(task: WorkflowTask): Promise<void> {
   const {
@@ -105,22 +106,11 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       task.assetId,
     )
 
-    let instruction = `The user is discussing an asset with ID: ${asset.id}.`
-    if (pathContext) {
-      instruction += `\n\nAsset Path Context:\n${pathContext}`
-    }
-
-    if (asset.media) {
-      instruction += `\n\nAsset Media Info:\n${JSON.stringify(asset.media, null, 2)}`
-    }
-
-    instruction += `\n\nIf you need to view the asset's media content (frames/images/video), call the 'analyze_asset_media' tool by passing the appropriate 'key' from the Asset Media Info above. Choose the most suitable format based on your capabilities and the user's request (e.g., use a poster or sprite for quick visual checks, or a transcode/raw file for detailed analysis).`
-
-    if (payload.agent?.explicitMention) {
-      instruction += `\n\nThe user explicitly mentioned you in their message. You MUST reply to this message.`
-    } else {
-      instruction += `\n\nThe user did not explicitly mention you, but is replying in a thread where you are the participant. Let's decide if you should reply or not. If the user is not directly addressing you or doesn't need a response from you, you may choose to not reply. To choose not to reply, respond with exactly and only the text: __NO_REPLY__.`
-    }
+    const instruction = new AgentChatPromptBuilder(asset.id)
+      .withPathContext(pathContext)
+      .withMediaInfo(asset.media)
+      .withExplicitMention(payload.agent?.explicitMention)
+      .build()
 
     // 6. Call AI Chat
     let folderId = ''
