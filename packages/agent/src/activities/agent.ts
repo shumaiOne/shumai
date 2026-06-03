@@ -153,7 +153,7 @@ If you need to create files in the local filesystem (for example, a temporary fi
       }
     })
 
-    const text = assistantMessage.content
+    let text = assistantMessage.content
       .filter((c) => c.type === 'text')
       .map((c) => {
         if ('text' in c && typeof c.text === 'string') {
@@ -162,6 +162,13 @@ If you need to create files in the local filesystem (for example, a temporary fi
         return ''
       })
       .join('\n')
+
+    if (assistantMessage.stopReason === 'error' && assistantMessage.errorMessage) {
+      if (text) {
+        text += '\n\n'
+      }
+      text += `Error: ${assistantMessage.errorMessage}`
+    }
 
     const usage: Usage = {
       model: modelId,
