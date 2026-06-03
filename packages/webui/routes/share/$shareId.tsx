@@ -1,4 +1,5 @@
 import { client } from '@/ui/api/client'
+import { ProjectFolderSkeleton } from '@/ui/components/loading-skeletons'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, Outlet } from '@tanstack/react-router'
 
@@ -20,7 +21,8 @@ function ShareLayout() {
     },
   })
 
-  if (isLoading) return <div className="flex h-screen items-center justify-center">Loading...</div>
+  if (isLoading) return <ProjectFolderSkeleton />
+
   if (error || !shareInfo)
     return (
       <div className="flex h-screen items-center justify-center text-destructive">

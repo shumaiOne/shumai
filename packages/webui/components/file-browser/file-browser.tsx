@@ -125,6 +125,14 @@ export function FileBrowser({
   const queryClient = useQueryClient()
   const navigate = useNavigate()
 
+  const [localUploadingFiles, setLocalUploadingFiles] = useState<AssetInfo[]>([])
+
+  const displayedFiles = useMemo(() => {
+    const existingIds = new Set(files.map((f) => f.id))
+    const filteredLocal = localUploadingFiles.filter((f) => !existingIds.has(f.id))
+    return [...filteredLocal, ...files]
+  }, [files, localUploadingFiles])
+
   const { data: shareLinksData } = useQuery({
     queryKey: ['shares', teamId, projectId],
     queryFn: async () => {
@@ -320,7 +328,7 @@ export function FileBrowser({
     projectId,
     assetId,
     folders,
-    files,
+    files: displayedFiles,
     selectedIds,
   })
 
@@ -349,6 +357,24 @@ export function FileBrowser({
       return (await res.json()) as InferResponseType<typeof $createUploadTask>
     },
     onSuccess: async (data) => {
+      const newLocalFiles: AssetInfo[] = filesToUpload.map((f) => {
+        const urlInfo = (
+          data.presignedUrls as { id?: string; url?: string; fileId?: string }[] | undefined
+        )?.find((p) => p.id === f.id)
+        return {
+          id: urlInfo?.fileId || f.id,
+          name: f.file.name,
+          sizeByte: f.file.size,
+          fileCount: 0,
+          type: 'file',
+          status: 'uploading',
+          mediaType: f.file.type || null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+      })
+      setLocalUploadingFiles((prev) => [...newLocalFiles, ...prev])
+
       // The RPC client returns an object that we cast to the expected type
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await uploadFiles(filesToUpload, data.presignedUrls as any, data.taskId!)
@@ -392,7 +418,7 @@ export function FileBrowser({
   }, [filesInView, hasNextFilesPage, isFetchingNextFilesPage, fetchNextFilesPage])
 
   const foldersSize = folders.reduce((acc, f) => acc + (f.sizeByte || 0), 0)
-  const filesSize = files.reduce((acc, f) => acc + (f.sizeByte || 0), 0)
+  const filesSize = displayedFiles.reduce((acc, f) => acc + (f.sizeByte || 0), 0)
 
   const formatCount = (count: number, isFile: boolean) => {
     const isNameFilter = filterConditions?.some(
@@ -496,7 +522,7 @@ export function FileBrowser({
     folders.find((item) => item.id === id),
   ).length
   const selectedFiles = Array.from(selectedIds).filter((id) =>
-    files.find((item) => item.id === id),
+    displayedFiles.find((item) => item.id === id),
   ).length
 
   const handleUploadFilesClick = () => {
@@ -565,9 +591,6 @@ export function FileBrowser({
                       errorMessage: `upload failed with status: ${resp.status}`,
                     },
                   })
-                  queryClient.invalidateQueries({
-                    queryKey: ['search', teamId, assetId],
-                  })
                   return
                 }
               } catch (error) {
@@ -579,13 +602,14 @@ export function FileBrowser({
                     errorMessage: `upload failed with error: ${error instanceof Error ? error.message : String(error)}`,
                   },
                 })
-                queryClient.invalidateQueries({
-                  queryKey: ['search', teamId, assetId],
-                })
                 return
               }
             } finally {
               decrementUploading()
+              setLocalUploadingFiles((prev) => prev.filter((f) => f.id !== uploadInfo.fileId))
+              queryClient.invalidateQueries({
+                queryKey: ['search', teamId, assetId],
+              })
             }
           }
         }
@@ -764,7 +788,7 @@ export function FileBrowser({
               {displayStyle === 'list' ? (
                 <FileBrowserListView
                   folders={folders}
-                  files={files}
+                  files={displayedFiles}
                   totalFolders={totalFolders}
                   totalFiles={totalFiles}
                   selectedItem={selectedItem}
@@ -792,7 +816,7 @@ export function FileBrowser({
               ) : (
                 <FileBrowserGridView
                   folders={folders}
-                  files={files}
+                  files={displayedFiles}
                   totalFolders={totalFolders}
                   totalFiles={totalFiles}
                   renderItem={renderItem}
@@ -821,7 +845,7 @@ export function FileBrowser({
               )}
 
               {folders.length === 0 &&
-                files.length === 0 &&
+                displayedFiles.length === 0 &&
                 !isFetchingNextFoldersPage &&
                 !isFetchingNextFilesPage && (
                   <div className="empty-area flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -856,7 +880,9 @@ export function FileBrowser({
                   variant="ghost"
                   size="sm"
                   onClick={() =>
-                    handleDownload([...folders, ...files].filter((i) => selectedIds.has(i.id!)))
+                    handleDownload(
+                      [...folders, ...displayedFiles].filter((i) => selectedIds.has(i.id!)),
+                    )
                   }
                   className="gap-2"
                 >
@@ -871,7 +897,7 @@ export function FileBrowser({
           item={contextMenuItem}
           selectedIds={selectedIds}
           folders={folders}
-          files={files}
+          files={displayedFiles}
           onRename={handleRename}
           onDelete={handleDelete}
           onDownload={handleDownload}
