@@ -18,7 +18,6 @@ const route = app
     const info = await teamService.getSignupInfo()
     return c.json({
       userCount: info.userCount,
-      enablePublicSignup: info.enablePublicSignup,
     })
   })
   .get('/me', async (c) => {
