@@ -361,13 +361,14 @@ export function FileBrowser({
         const urlInfo = (
           data.presignedUrls as { id?: string; url?: string; fileId?: string }[] | undefined
         )?.find((p) => p.id === f.id)
+        const hasUrl = !!urlInfo && !!urlInfo.url
         return {
           id: urlInfo?.fileId || f.id,
           name: f.file.name,
           sizeByte: f.file.size,
           fileCount: 0,
           type: 'file',
-          status: 'uploading',
+          status: hasUrl ? 'uploading' : 'error',
           mediaType: f.file.type || null,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -606,10 +607,12 @@ export function FileBrowser({
               }
             } finally {
               decrementUploading()
-              setLocalUploadingFiles((prev) => prev.filter((f) => f.id !== uploadInfo.fileId))
-              queryClient.invalidateQueries({
+              await queryClient.invalidateQueries({
                 queryKey: ['search', teamId, assetId],
               })
+              setLocalUploadingFiles((prev) =>
+                prev.filter((f) => f.id !== uploadInfo.fileId && f.id !== file.id),
+              )
             }
           }
         }
