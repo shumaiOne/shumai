@@ -1,9 +1,6 @@
 import type { WorkflowTask } from '@shumai/db'
-import {
-  executeActivity,
-  getActivities,
-  TaskQueueTranscode,
-} from '@shumai/workflow-core/src/workflow-utils'
+import { executeActivity, getActivities, TaskQueueTranscode } from '@shumai/workflow-core'
+
 import { ApplicationFailure } from '@temporalio/workflow'
 
 export async function transcodeMedia(task: WorkflowTask): Promise<void> {
