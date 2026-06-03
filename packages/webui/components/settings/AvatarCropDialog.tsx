@@ -164,6 +164,7 @@ export function AvatarCropDialog({ isOpen, onClose, imageSrc, onConfirm }: Avata
                 ref={imageRef}
                 src={imageSrc}
                 alt="Avatar Source"
+                crossOrigin="anonymous"
                 className="absolute origin-center max-w-none pointer-events-none transition-transform duration-75 select-none"
                 style={{
                   top: '50%',
