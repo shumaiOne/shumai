@@ -61,6 +61,22 @@ export class InviteService {
     return inv
   }
 
+  async validateInvite(code: string): Promise<boolean> {
+    const inv = await prisma.invite.findUnique({
+      where: { code },
+    })
+
+    if (!inv) {
+      return false
+    }
+
+    if (inv.used) {
+      return false
+    }
+
+    return true
+  }
+
   async consumeInvite(code: string, userId: string): Promise<void> {
     await prisma.$transaction(async (tx) => {
       const inv = await tx.invite.findUniqueOrThrow({

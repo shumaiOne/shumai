@@ -6,7 +6,6 @@ import { SandboxSettings } from '@/ui/components/settings/SandboxSettings'
 import { SkillsConfigCard } from '@/ui/components/settings/SkillsConfigCard'
 import { NotificationSettings } from '@/ui/components/settings/NotificationSettings'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card'
-import { Switch } from '@/ui/components/ui/switch'
 import { cn } from '@/ui/lib/utils'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
@@ -275,38 +274,6 @@ function TeamSettingsPage() {
                       </div>
                     </CardContent>
                   </Card>
-
-                  {me?.role === 'owner' && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Team Settings</CardTitle>
-                        <CardDescription>Manage your team&apos;s general settings.</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-0.5">
-                            <h3 className="text-base font-medium">Enable Public Signup</h3>
-                            <p className="text-sm text-muted-foreground">
-                              Allow users to sign up without an invite code.
-                            </p>
-                          </div>
-                          <Switch
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            checked={(settings as any)?.enablePublicSignup || false}
-                            onCheckedChange={(checked) =>
-                              updateSettings({
-                                teamId,
-                                data: {
-                                  key: 'enablePublicSignup',
-                                  value: checked,
-                                },
-                              })
-                            }
-                          />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
                 </div>
               )}
 

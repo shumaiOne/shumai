@@ -31,7 +31,7 @@ export const auth = betterAuth({
         const info = await teamService.getSignupInfo()
 
         if (info.userCount > 0) {
-          if (!inviteCode && !info.enablePublicSignup) {
+          if (!inviteCode) {
             console.log('[Better Auth Hook] Public signup is disabled')
             return ctx.json(
               {
@@ -39,6 +39,18 @@ export const auth = betterAuth({
               },
               {
                 status: 403,
+              },
+            )
+          }
+
+          const isValid = await inviteService.validateInvite(inviteCode)
+          if (!isValid) {
+            return ctx.json(
+              {
+                error: 'Invalid or expired invite code',
+              },
+              {
+                status: 400,
               },
             )
           }

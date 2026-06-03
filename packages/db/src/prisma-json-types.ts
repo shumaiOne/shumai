@@ -59,7 +59,6 @@ declare global {
 
     export interface Settings {
       transcode: TranscodeSettings
-      enablePublicSignup: boolean
     }
 
     // ----------------------------------------------------------------------

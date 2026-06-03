@@ -26,7 +26,6 @@ export class TeamService {
         data: {
           name: 'Default Team',
           settings: {
-            enablePublicSignup: true,
             transcode: { videoStrategy: 'best_match' },
           },
           sandbox: { create: {} },
@@ -249,14 +248,9 @@ export class TeamService {
 
   async getSignupInfo() {
     const count = await prisma.user.count()
-    const defaultTeam = await this.ensureDefaultTeam()
-    const settings = defaultTeam.settings as {
-      enablePublicSignup?: boolean
-    } | null
 
     return {
       userCount: count,
-      enablePublicSignup: settings?.enablePublicSignup ?? false,
     }
   }
 
