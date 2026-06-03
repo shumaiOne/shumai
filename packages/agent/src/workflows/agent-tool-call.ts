@@ -3,11 +3,17 @@ import type { WorkflowTask } from '@shumai/db'
 import { getActivities, executeActivity, TaskQueueAgent } from '@shumai/workflow-core'
 
 export async function agentToolCall(task: WorkflowTask): Promise<void> {
-  const { updateTaskStatusActivity, executeAgentToolActivity } = getActivities()
+  const { updateTaskStatusActivity, executeAgentToolActivity, getAgentWorkerQueueActivity } =
+    getActivities()
+
+  let agentWorkerQueue = ''
 
   try {
+    // 0. Discover queue
+    agentWorkerQueue = await executeActivity(TaskQueueAgent, getAgentWorkerQueueActivity)
+
     // Update status to processing
-    await executeActivity(TaskQueueAgent, updateTaskStatusActivity, {
+    await executeActivity(agentWorkerQueue, updateTaskStatusActivity, {
       taskId: task.id,
       status: 'processing',
     })
@@ -22,8 +28,8 @@ export async function agentToolCall(task: WorkflowTask): Promise<void> {
 
     const { toolName, args, userId } = payload.agentToolCall
 
-    // Execute the agent activity on agent_queue
-    const result = await executeActivity(TaskQueueAgent, executeAgentToolActivity, {
+    // Execute the agent activity on specific queue
+    const result = await executeActivity(agentWorkerQueue, executeAgentToolActivity, {
       taskId: task.id,
       toolName,
       args,
@@ -31,7 +37,7 @@ export async function agentToolCall(task: WorkflowTask): Promise<void> {
     })
 
     // Update status to completed with output
-    await executeActivity(TaskQueueAgent, updateTaskStatusActivity, {
+    await executeActivity(agentWorkerQueue, updateTaskStatusActivity, {
       taskId: task.id,
       status: 'completed',
       output: result,
@@ -40,11 +46,13 @@ export async function agentToolCall(task: WorkflowTask): Promise<void> {
     console.error(`AgentToolCall failed for task ${task.id}:`, err)
 
     // Update status to failed
-    await executeActivity(TaskQueueAgent, updateTaskStatusActivity, {
-      taskId: task.id,
-      status: 'failed',
-      output: { error: err instanceof Error ? err.message : String(err) },
-    })
+    if (agentWorkerQueue) {
+      await executeActivity(agentWorkerQueue, updateTaskStatusActivity, {
+        taskId: task.id,
+        status: 'failed',
+        output: { error: err instanceof Error ? err.message : String(err) },
+      })
+    }
     throw err
   }
 }
