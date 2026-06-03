@@ -216,6 +216,12 @@ export function FileListItem({
             disabled={!isEditing}
             className="h-auto p-0 text-sm font-medium text-foreground truncate"
           />
+          {displayItem.status === 'error' && (
+            <span className="text-xs text-destructive font-semibold shrink-0">
+              (Failed to upload)
+            </span>
+          )}
+
           {displayItem.versionStack && (
             <Badge variant="outline" className="px-1 py-0 text-xs shrink-0">
               v

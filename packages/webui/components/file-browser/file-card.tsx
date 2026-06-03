@@ -238,11 +238,25 @@ export function FileCard({
       <div className="relative aspect-square overflow-hidden bg-muted/30">
         {displayItem.status === 'uploading' ||
         displayItem.status === 'processing' ||
-        displayItem.status === 'uploaded' ? (
+        displayItem.status === 'uploaded' ||
+        displayItem.status === 'error' ? (
           <div className="flex h-full w-full items-center justify-center bg-background/50">
-            <Skeleton className="absolute inset-0 h-full w-full" />
-            <span className="z-10 font-medium capitalize text-muted-foreground">
-              {displayItem.status === 'uploaded' ? 'Processing' : displayItem.status}
+            {displayItem.status !== 'error' && (
+              <Skeleton className="absolute inset-0 h-full w-full" />
+            )}
+            <span
+              className={cn(
+                'z-10 font-medium px-2 text-center text-sm',
+                displayItem.status === 'error'
+                  ? 'text-destructive font-semibold'
+                  : 'text-muted-foreground capitalize',
+              )}
+            >
+              {displayItem.status === 'uploaded'
+                ? 'Processing'
+                : displayItem.status === 'error'
+                  ? 'Failed to upload'
+                  : displayItem.status}
             </span>
           </div>
         ) : (

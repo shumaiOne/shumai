@@ -3,6 +3,7 @@ import { FileViewer } from '@/ui/components/file-viewer'
 import { FileViewerLeftSidebar } from '@/ui/components/file-viewer-left-sidebar'
 import { FileViewerRightSidebar } from '@/ui/components/file-viewer-right-sidebar'
 import { ResizeHandle } from '@/ui/components/resize-handle'
+import { FileDetailSkeleton } from '@/ui/components/loading-skeletons'
 import { useMemberStore } from '@/ui/stores/members'
 import { useTeamContextStore } from '@/ui/stores/team-context'
 import { useTopNavStore } from '@/ui/stores/top-nav'
@@ -171,7 +172,7 @@ function FileViewPage() {
   ])
 
   if (isLoading && !fileData) {
-    return <div>Loading...</div>
+    return <FileDetailSkeleton />
   }
 
   if (isError || !fileData || !projectInfo || !teamId) {

@@ -1,5 +1,6 @@
 import { client } from '@/ui/api/client'
 import FileSystemManager from '@/ui/components/file-system-manager'
+import { ProjectFolderSkeleton } from '@/ui/components/loading-skeletons'
 import { useTeamContextStore } from '@/ui/stores/team-context'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
@@ -41,7 +42,7 @@ function RecentlyDeletedPage() {
   })
 
   if (!teamId || !rootFolderId || !rootFolder) {
-    return <div>Loading project...</div>
+    return <ProjectFolderSkeleton />
   }
 
   return (
@@ -59,5 +60,5 @@ export const Route = createFileRoute('/projects/$projectId/recently-deleted')({
   component: RecentlyDeletedPage,
   loader: ({ context: { queryClient }, params: { projectId } }) =>
     queryClient.ensureQueryData(projectInfoQueryOptions(projectId)),
-  pendingComponent: () => <div>Loading project...</div>,
+  pendingComponent: () => <ProjectFolderSkeleton />,
 })
