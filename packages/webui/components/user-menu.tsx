@@ -1,5 +1,5 @@
 import { client } from '@/ui/api/client'
-import { Avatar, AvatarFallback } from '@/ui/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,6 +57,13 @@ export function UserMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Avatar className="rounded-lg w-10 h-10">
+          {me?.image && (
+            <AvatarImage
+              src={me.image}
+              alt={me.name}
+              className="object-cover rounded-lg w-10 h-10"
+            />
+          )}
           <AvatarFallback className="rounded-lg bg-primary/40 text-foreground">
             {getInitials(me?.name)}
           </AvatarFallback>

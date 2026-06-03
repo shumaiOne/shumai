@@ -3,6 +3,7 @@ import { Prisma } from '@shumai/db'
 import { PaginatedData, paginateQuery } from '@shumai/core/src/pagination'
 import { ProviderService, providerService } from '@shumai/core/src/provider/provider'
 import { notificationService } from '@shumai/core/src/notification/notification'
+import { getAvatarUrl } from '@shumai/core/src/user/avatar'
 import {
   ServiceCreateTeamRequest,
   ServiceGetUserTeamsRequest,
@@ -136,6 +137,7 @@ export class TeamService {
           userId: req.user.id,
         },
       },
+      include: { user: true },
     })
 
     if (!member) throw new Error('user is not a team member')
@@ -146,12 +148,27 @@ export class TeamService {
     )
 
     return {
-      id: req.user.id,
-      name: req.user.name,
-      email: undefined,
+      id: member.user.id,
+      name: member.user.name,
+      email: member.user.email || undefined,
       role: member.role,
+      image: await getAvatarUrl(member.user.image),
       unreadNotificationCount,
     }
+  }
+
+  async updateMe(userId: string, req: { name?: string; imageKey?: string | null }): Promise<void> {
+    const data: Prisma.UserUpdateInput = {}
+    if (req.name !== undefined) {
+      data.name = req.name
+    }
+    if (req.imageKey !== undefined) {
+      data.image = req.imageKey
+    }
+    await prisma.user.update({
+      where: { id: userId },
+      data,
+    })
   }
 
   async getTeamMembers(req: ServiceGetTeamMembersRequest): Promise<UserInfo[]> {
@@ -178,13 +195,16 @@ export class TeamService {
       include: { user: true },
     })
 
-    return members.map((m) => ({
-      id: m.user.id,
-      name: m.user.name,
-      email: undefined,
-      role: m.role,
-      type: m.user.type || undefined,
-    }))
+    return Promise.all(
+      members.map(async (m) => ({
+        id: m.user.id,
+        name: m.user.name,
+        email: undefined,
+        role: m.role,
+        type: m.user.type || undefined,
+        image: await getAvatarUrl(m.user.image),
+      })),
+    )
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

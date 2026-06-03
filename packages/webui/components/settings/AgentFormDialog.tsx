@@ -261,7 +261,7 @@ export function AgentFormDialog({
                         onValueChange={(val) => field.handleChange(val as AgentType)}
                         disabled={true}
                       >
-                        <SelectTrigger className="bg-slate-50 dark:bg-slate-900/50">
+                        <SelectTrigger className="bg-muted/50">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -277,7 +277,7 @@ export function AgentFormDialog({
 
               {isAiType && (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-muted/50 rounded-xl border border-border">
                     <form.Field
                       name="providerId"
                       children={(field) => {
@@ -387,7 +387,7 @@ export function AgentFormDialog({
 
                   <div className="space-y-4">
                     <Label className="text-base font-bold flex items-center gap-2">
-                      <Puzzle className="w-5 h-5 text-blue-600" />
+                      <Puzzle className="w-5 h-5 text-primary" />
                       Skills
                     </Label>
 
@@ -401,21 +401,21 @@ export function AgentFormDialog({
                               return (
                                 <div
                                   key={skill.id}
-                                  className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg"
+                                  className="flex items-center justify-between p-3 bg-muted/30 border border-border rounded-lg"
                                 >
                                   <div className="flex items-center gap-3">
-                                    <Puzzle className="w-4 h-4 text-slate-400" />
+                                    <Puzzle className="w-4 h-4 text-muted-foreground" />
                                     <div className="flex flex-col">
                                       <span className="text-sm font-medium">{skill.name}</span>
                                       {skill.description && (
-                                        <span className="text-[10px] text-slate-500 line-clamp-1">
+                                        <span className="text-[10px] text-muted-foreground line-clamp-1">
                                           {skill.description}
                                         </span>
                                       )}
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <span className="text-xs text-slate-500">
+                                    <span className="text-xs text-muted-foreground">
                                       {isEnabled ? 'Enabled' : 'Disabled'}
                                     </span>
                                     <Switch
@@ -440,8 +440,10 @@ export function AgentFormDialog({
                               )
                             })}
                             {allSkills.length === 0 && (
-                              <div className="text-center py-8 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
-                                <p className="text-sm text-slate-400">No skills available.</p>
+                              <div className="text-center py-8 border-2 border-dashed border-border rounded-xl">
+                                <p className="text-sm text-muted-foreground">
+                                  No skills available.
+                                </p>
                               </div>
                             )}
                           </>
@@ -454,7 +456,7 @@ export function AgentFormDialog({
             </div>
           </ScrollArea>
 
-          <DialogFooter className="p-6 pt-4 border-t dark:border-slate-800 flex-shrink-0">
+          <DialogFooter className="p-6 pt-4 border-t border-border flex-shrink-0">
             <Button variant="outline" onClick={onClose} type="button">
               Cancel
             </Button>
@@ -463,7 +465,7 @@ export function AgentFormDialog({
               children={([canSubmit, isSubmitting]) => (
                 <Button
                   type="submit"
-                  className="bg-blue-600 hover:bg-blue-700 text-white min-w-[120px]"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground min-w-[120px]"
                   disabled={
                     !canSubmit ||
                     isSubmitting ||

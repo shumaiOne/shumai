@@ -22,6 +22,7 @@ import { logger } from '@shumai/core/src/logger'
 import { PaginatedData, paginateQuery, PaginationParams } from '@shumai/core/src/pagination'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { generateKeyBetween } from 'jittered-fractional-indexing'
+import { getAvatarUrl } from '@shumai/core/src/user/avatar'
 
 type AssetWithIncludes = Prisma.AssetGetPayload<{
   include: {
@@ -1459,7 +1460,13 @@ export class AssetService {
                   id: v.id,
                   name: v.name,
                   previewUrl: preview?.thumbnailUrl || null,
-                  creator: v.creator ? { id: v.creator.id, name: v.creator.name } : null,
+                  creator: v.creator
+                    ? {
+                        id: v.creator.id,
+                        name: v.creator.name,
+                        image: await getAvatarUrl(v.creator.image),
+                      }
+                    : null,
                 }
               }),
             ),
@@ -1504,7 +1511,11 @@ export class AssetService {
       const preview = await this.toPreviewInfo(latestVersion as Asset)
 
       const creator = latestVersion.creator
-        ? { id: latestVersion.creator.id, name: latestVersion.creator.name }
+        ? {
+            id: latestVersion.creator.id,
+            name: latestVersion.creator.name,
+            image: await getAvatarUrl(latestVersion.creator.image),
+          }
         : null
 
       const fieldValues: FieldValueInfo[] = []
@@ -1599,7 +1610,13 @@ export class AssetService {
           version: versions.length - i,
           name: v.name,
           previewUrl: preview?.thumbnailUrl || null,
-          creator: v.creator ? { id: v.creator.id, name: v.creator.name } : null,
+          creator: v.creator
+            ? {
+                id: v.creator.id,
+                name: v.creator.name,
+                image: await getAvatarUrl(v.creator.image),
+              }
+            : null,
         }
       }),
     )
@@ -1678,7 +1695,11 @@ export class AssetService {
         where: { id: { in: userIds } },
       })
       for (const u of users) {
-        mentions.push({ id: u.id, name: u.name })
+        mentions.push({
+          id: u.id,
+          name: u.name,
+          image: await getAvatarUrl(u.image),
+        })
       }
     }
 
@@ -1686,9 +1707,11 @@ export class AssetService {
     if (c.sessionId) {
       creator.id = c.creatorId || ''
       creator.name = c.creator?.name || 'Ai Bot'
+      creator.image = await getAvatarUrl(c.creator?.image)
     } else if (c.creator) {
       creator.id = c.creator.id
       creator.name = c.creator.name
+      creator.image = await getAvatarUrl(c.creator.image)
     }
 
     return {

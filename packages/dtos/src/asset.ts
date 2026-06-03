@@ -25,6 +25,7 @@ export type ChildPreview = z.infer<typeof childPreviewSchema>
 export const assetUserInfoSchema = z.object({
   id: z.string(),
   name: z.string(),
+  image: z.string().optional(),
 })
 export type AssetUserInfo = z.infer<typeof assetUserInfoSchema>
 

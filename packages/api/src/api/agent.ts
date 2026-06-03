@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { agentService } from '@shumai/core/src/agent/agent'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import { getAvatarUrl } from '@shumai/core/src/user/avatar'
 import {
   createAgentRequestSchema,
   updateAgentRequestSchema,
@@ -27,26 +28,28 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     const agents = await agentService.listAgents({ teamId })
 
-    const res: AgentInfo[] = agents.map((agent) => {
-      const config = agent.config as unknown as PrismaJson.AgentConfig
-      return {
-        id: agent.id,
-        name: agent.user.name,
-        type: agent.type as AgentType,
-        enabled: agent.enabled,
-        avatar: agent.user.image || undefined,
-        providerId: agent.providerId || undefined,
-        modelId: agent.modelId || undefined,
-        thinkingLevel: config.thinkingLevel || '',
-        systemPrompt: config.systemPrompt,
-        soul: agent.soul || undefined,
-        skills: agent.skills.map((s) => ({
-          id: s.id,
-          skillId: s.skillId,
-          skill: s.skill,
-        })),
-      }
-    })
+    const res: AgentInfo[] = await Promise.all(
+      agents.map(async (agent) => {
+        const config = agent.config as unknown as PrismaJson.AgentConfig
+        return {
+          id: agent.id,
+          name: agent.user.name,
+          type: agent.type as AgentType,
+          enabled: agent.enabled,
+          avatar: (await getAvatarUrl(agent.user.image)) || undefined,
+          providerId: agent.providerId || undefined,
+          modelId: agent.modelId || undefined,
+          thinkingLevel: config.thinkingLevel || '',
+          systemPrompt: config.systemPrompt,
+          soul: agent.soul || undefined,
+          skills: agent.skills.map((s) => ({
+            id: s.id,
+            skillId: s.skillId,
+            skill: s.skill,
+          })),
+        }
+      }),
+    )
 
     return c.json(res, 200)
   })
@@ -75,7 +78,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       name: agent.user.name,
       type: agent.type as AgentType,
       enabled: agent.enabled,
-      avatar: agent.user.image || undefined,
+      avatar: (await getAvatarUrl(agent.user.image)) || undefined,
       providerId: agent.providerId || undefined,
       modelId: agent.modelId || undefined,
       thinkingLevel: config.thinkingLevel || '',
@@ -113,7 +116,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       name: agent.user.name,
       type: agent.type as AgentType,
       enabled: agent.enabled,
-      avatar: agent.user.image || undefined,
+      avatar: (await getAvatarUrl(agent.user.image)) || undefined,
       providerId: agent.providerId || undefined,
       modelId: agent.modelId || undefined,
       thinkingLevel: config.thinkingLevel || '',

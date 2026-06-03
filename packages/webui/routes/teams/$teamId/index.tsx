@@ -13,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/ui/components/ui/alert-dialog'
-import { Avatar, AvatarFallback } from '@/ui/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/ui/avatar'
 import { Button } from '@/ui/components/ui/button'
 import {
   DropdownMenu,
@@ -238,6 +238,9 @@ function TeamPage() {
           >
             {safeMembers.slice(0, 3).map((member) => (
               <Avatar key={member.id} className="border-2 border-background w-8 h-8">
+                {member.image && (
+                  <AvatarImage src={member.image} alt={member.name} className="object-cover" />
+                )}
                 <AvatarFallback className="text-[10px]">{getInitials(member.name)}</AvatarFallback>
               </Avatar>
             ))}
