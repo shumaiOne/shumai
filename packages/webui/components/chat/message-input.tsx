@@ -279,6 +279,8 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
     }
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.nativeEvent.isComposing) return
+
       if (showMentionList && filteredEntities.length > 0) {
         if (e.key === 'ArrowUp') {
           e.preventDefault()

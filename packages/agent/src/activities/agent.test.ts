@@ -59,6 +59,46 @@ describe('Agent Activities', () => {
     expect(piAgent.createAgentSession).toHaveBeenCalled()
   })
 
+  it('should include error message in text when stopReason is error', async () => {
+    const mockHarness = {
+      prompt: vi.fn().mockResolvedValue({
+        content: [],
+        usage: { input: 0, output: 0 },
+        stopReason: 'error',
+        errorMessage: 'API key not valid',
+      }),
+    }
+    const mockSession = {
+      getEntries: vi.fn().mockResolvedValue([]),
+      getStorage: vi.fn().mockReturnValue({ sessionId: 'mock-session-id' }),
+    }
+
+    vi.mocked(piAgent.createAgentSession).mockResolvedValue({
+      session: mockSession as unknown as Session<DatabaseSessionMetadata>,
+      harness: mockHarness as unknown as AgentHarness,
+    })
+
+    const context = {
+      agent: { id: 'b1', provider: { name: 'google' }, modelRef: { modelId: 'gemini' } },
+      dbProviders: [],
+      teamSkills: [],
+      allowedDomains: [],
+    } as unknown as AgentExecutionContext
+
+    const res = await agentChatActivity({
+      teamId: 't1',
+      agentId: 'b1',
+      message: 'Hi',
+      imageUrls: [],
+      projectId: 'p1',
+      folderId: 'f1',
+      sessionId: 'mock-session-id',
+      context,
+    })
+
+    expect(res.text).toBe('Error: API key not valid')
+  })
+
   it('should call autofillAiActivity and run autofill tool', async () => {
     const mockHarness = {
       prompt: vi.fn().mockResolvedValue({
