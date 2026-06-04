@@ -28,5 +28,5 @@
       "@shumai/transcode/src/*": ["packages/transcode/src/*"]
     }
   },
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "dist", "**/dist"]
 }

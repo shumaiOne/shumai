@@ -27,12 +27,6 @@ await Bun.build({
     tailwindPlugin,
     bunPluginPino({ transports: ['pino-pretty'] }),
   ],
-  external: [
-    '@temporalio/activity',
-    '@temporalio/client',
-    '@temporalio/worker',
-    '@temporalio/workflow',
-  ],
   // compile: {
   //   outfile: 'Shumai',
   //   autoloadBunfig: true,
