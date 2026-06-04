@@ -190,6 +190,47 @@ describe('AgentService', () => {
       expect(reUpdated.skills?.length).toBe(1)
     })
 
+    test('Create Agent with presigned URL extracts S3 key', async () => {
+      const db = prisma
+      const svc = new AgentService()
+      const { team, provider, model } = await setupTestData(db)
+
+      const avatarPresigned = 'https://shumai.s3.amazonaws.com/files/01JK23456789ABCDEF01234567?AWSAccessKeyId=foo'
+      const agent = await svc.createAgent({
+        teamId: team.id,
+        name: 'Agent with URL',
+        type: 'chat',
+        enabled: true,
+        avatar: avatarPresigned,
+        providerId: provider.id,
+        modelId: model.id,
+        thinkingLevel: 'medium',
+      })
+
+      expect(agent?.id).toBeDefined()
+      expect(agent?.user.image).toBe('files/01JK23456789ABCDEF01234567')
+    })
+
+    test('Update Agent with presigned URL extracts S3 key', async () => {
+      const db = prisma
+      const svc = new AgentService()
+      const { agent } = await setupTestData(db)
+
+      const avatarPresigned = 'https://shumai.s3.amazonaws.com/files/01JK23456789ABCDEF01234567?AWSAccessKeyId=foo'
+      const updated = await svc.updateAgent({
+        agentId: agent.id,
+        name: 'Updated with URL',
+        type: 'chat',
+        enabled: true,
+        avatar: avatarPresigned,
+        providerId: agent.providerId!,
+        modelId: agent.modelId!,
+        thinkingLevel: 'medium',
+      })
+
+      expect(updated.user.image).toBe('files/01JK23456789ABCDEF01234567')
+    })
+
     test('Delete Agent', async () => {
       const db = prisma
       const svc = new AgentService()

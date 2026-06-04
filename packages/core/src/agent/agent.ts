@@ -11,6 +11,12 @@ import AdmZip from 'adm-zip'
 import * as fs from 'fs'
 import * as path from 'path'
 
+function extractS3Key(urlOrKey?: string | null): string | null | undefined {
+  if (!urlOrKey) return urlOrKey
+  const match = urlOrKey.match(/files\/[A-Z0-9]{26}/)
+  return match ? match[0] : urlOrKey
+}
+
 export class AgentService {
   constructor(private readonly prismaClient: typeof prisma = prisma) {}
 
@@ -153,7 +159,7 @@ export class AgentService {
           name,
           email: `agent-${Date.now()}-${Math.random().toString(36).substring(7)}@shumai.ai`,
           type: 'agent',
-          image: avatar,
+          image: extractS3Key(avatar),
         },
       })
 
@@ -252,7 +258,7 @@ export class AgentService {
         where: { id: agentId },
         data: {
           name,
-          image: avatar,
+          image: extractS3Key(avatar),
         },
       })
 
