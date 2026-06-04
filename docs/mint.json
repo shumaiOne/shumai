@@ -2,8 +2,8 @@
   "$schema": "https://mintlify.com/schema.json",
   "name": "Shumai",
   "logo": {
-    "light": "/logo.svg",
-    "dark": "/logo.svg"
+    "light": "/logo.png",
+    "dark": "/logo.png"
   },
   "favicon": "/favicon.ico",
   "colors": {
