@@ -1,0 +1,20 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "Shumai",
+  "logo": {
+    "light": "/logo.svg",
+    "dark": "/logo.svg"
+  },
+  "favicon": "/favicon.ico",
+  "colors": {
+    "primary": "#D95A66",
+    "light": "#F5B895",
+    "dark": "#A8384D"
+  },
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": ["introduction", "getting-started/docker"]
+    }
+  ]
+}

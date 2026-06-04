@@ -1,0 +1,98 @@
+---
+title: Get Started with Docker
+description: Learn how to spin up the Shumai stack using Docker Compose.
+---
+
+We support two Docker Compose setups depending on your environment and use case:
+
+1. **Local Pre-built Stack**: A lightweight setup to run the core API and frontend using pre-built images.
+2. **Temporal Stack**: A production-like environment with full background worker orchestration (Agent and Transcode workers) and Temporal services, built from your local source code.
+
+---
+
+## Prerequisites
+
+Before starting, ensure you have the following installed on your machine:
+
+- **Docker**: [Install Docker Desktop](https://docs.docker.com/get-docker/) or Docker Engine.
+- **Docker Compose**: Included in Docker Desktop, or [installed separately](https://docs.docker.com/compose/install/).
+- **Git**: To clone and manage the repository.
+
+---
+
+## 1. Local Pre-built Stack
+
+This setup runs a PostgreSQL database (with `pgvector`) and the Shumai application container.
+
+### Step 1: Navigate to the local docker-compose folder
+
+From the root of your Shumai workspace, run:
+
+```bash
+cd docker-compose/local
+```
+
+### Step 2: Start the services
+
+Spin up the containers in detached mode:
+
+```bash
+docker compose up -d
+```
+
+### Step 3: Access the application
+
+Once all containers are running and healthy:
+
+- Open your browser and navigate to **`http://localhost:3000`** to access the Shumai Web UI.
+
+### Step 4: Tear down
+
+To stop and remove the containers, run:
+
+```bash
+docker compose down
+```
+
+---
+
+## 2. Temporal Stack (Recommended for Development)
+
+This setup builds the containers from your local workspace source code and starts the API, workers, and Temporal scheduler.
+
+### Step 1: Navigate to the temporal docker-compose folder
+
+From the root of your Shumai workspace, run:
+
+```bash
+cd docker-compose/temporal
+```
+
+### Step 2: Start the services
+
+Build the images and run the full stack:
+
+```bash
+docker compose up -d --build
+```
+
+### Step 3: Access the services
+
+- **Web UI**: Access the Shumai application at **`http://localhost:3000`**.
+- **Temporal Dashboard**: View active workflows and orchestration logs at **`http://localhost:8080`**.
+
+### Step 4: Tear down
+
+To stop the services and clean up volumes, run:
+
+```bash
+docker compose down -v
+```
+
+---
+
+## Troubleshooting
+
+### Port Conflicts
+
+If you receive port conflict errors, ensure that port `3000` (Web UI), `5432` (PostgreSQL), `7233` (Temporal), or `8080` (Temporal UI) are not currently being used by other processes on your machine.

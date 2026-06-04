@@ -195,7 +195,8 @@ describe('AgentService', () => {
       const svc = new AgentService()
       const { team, provider, model } = await setupTestData(db)
 
-      const avatarPresigned = 'https://shumai.s3.amazonaws.com/files/01JK23456789ABCDEF01234567?AWSAccessKeyId=foo'
+      const avatarPresigned =
+        'https://shumai.s3.amazonaws.com/files/01JK23456789ABCDEF01234567?AWSAccessKeyId=foo'
       const agent = await svc.createAgent({
         teamId: team.id,
         name: 'Agent with URL',
@@ -216,7 +217,8 @@ describe('AgentService', () => {
       const svc = new AgentService()
       const { agent } = await setupTestData(db)
 
-      const avatarPresigned = 'https://shumai.s3.amazonaws.com/files/01JK23456789ABCDEF01234567?AWSAccessKeyId=foo'
+      const avatarPresigned =
+        'https://shumai.s3.amazonaws.com/files/01JK23456789ABCDEF01234567?AWSAccessKeyId=foo'
       const updated = await svc.updateAgent({
         agentId: agent.id,
         name: 'Updated with URL',
