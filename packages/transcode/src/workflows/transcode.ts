@@ -16,6 +16,8 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
     getTranscodeWorkerQueueActivity,
     downloadMediaToTmpActivity,
     cleanupTmpDirActivity,
+    takeScreenshotsActivity,
+    overlayAnnotationsActivity,
   } = getActivities()
 
   let tmpDir: string | undefined
@@ -30,6 +32,69 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
       taskId: task.id,
       status: 'processing',
     })
+
+    const payload = task.payload
+
+    if (payload?.screenshot) {
+      const asset = await executeActivity(workerQueue, getAssetActivity, task.assetId)
+      const key = asset?.storageKey?.key
+      if (!asset || !key) {
+        throw ApplicationFailure.create({
+          message: 'Asset not found or has no key',
+          nonRetryable: true,
+        })
+      }
+
+      const screenshots = await executeActivity(workerQueue, takeScreenshotsActivity, {
+        assetKey: key,
+        assetId: asset.id,
+        start: payload.screenshot.start,
+        end: payload.screenshot.end,
+        count: payload.screenshot.count,
+        commentTimestamp: payload.screenshot.commentTimestamp,
+        annotations: payload.screenshot.annotations,
+      })
+
+      // Update Task Status to completed with output
+      await executeActivity(workerQueue, updateTaskStatusActivity, {
+        taskId: task.id,
+        status: 'completed',
+        output: { screenshots },
+      })
+      return
+    }
+
+    if (payload?.imageAnnotation) {
+      const asset = await executeActivity(workerQueue, getAssetActivity, task.assetId)
+      let key = asset?.storageKey?.key
+      if (asset?.media) {
+        const mediaInfo = asset.media as unknown as PrismaJson.MediaInfo
+        if (mediaInfo.imageTranscodes && mediaInfo.imageTranscodes.length > 0) {
+          key = mediaInfo.imageTranscodes[0].key || key
+        }
+      }
+
+      if (!asset || !key) {
+        throw ApplicationFailure.create({
+          message: 'Asset not found or has no key',
+          nonRetryable: true,
+        })
+      }
+
+      const keyWithOverlay = await executeActivity(workerQueue, overlayAnnotationsActivity, {
+        assetKey: key,
+        assetId: asset.id,
+        annotations: payload.imageAnnotation.annotations,
+      })
+
+      // Update Task Status to completed with output
+      await executeActivity(workerQueue, updateTaskStatusActivity, {
+        taskId: task.id,
+        status: 'completed',
+        output: { key: keyWithOverlay },
+      })
+      return
+    }
 
     await executeActivity(workerQueue, updateAssetStatusActivity, {
       assetId: task.assetId,

@@ -1,21 +1,26 @@
-export const PROMPT_ASSET_BASE = (assetId: string) =>
-  `The user is discussing an asset with ID: ${assetId}.`
-
-export const PROMPT_PATH_CONTEXT = (pathContext: string) =>
-  `\n\nAsset Path Context:\n${pathContext}`
-
-export const PROMPT_MEDIA_INFO = (mediaJson: string) => `\n\nAsset Media Info:\n${mediaJson}`
-
-export const PROMPT_MEDIA_TOOL_INSTRUCTION = `\n\nIf you need to view the asset's media content (frames/images/video), call the 'analyze_asset_media' tool by passing the appropriate 'key' from the Asset Media Info above. Choose the most suitable format based on your capabilities and the user's request (e.g., use a poster or sprite for quick visual checks, or a transcode/raw file for detailed analysis).`
-
-export const PROMPT_EXPLICIT_MENTION = `\n\nThe user explicitly mentioned you in their message. You MUST reply to this message.`
-
-export const PROMPT_IMPLICIT_MENTION = `\n\nThe user did not explicitly mention you, but is replying in a thread where you are the participant. Let's decide if you should reply or not. If the user is not directly addressing you or doesn't need a response from you, you may choose to not reply. To choose not to reply, respond with exactly and only the text: __NO_REPLY__.`
+export function getSimpleMediaType(mediaType?: string): 'image' | 'video' | 'other' {
+  if (!mediaType) return 'other'
+  const lower = mediaType.toLowerCase()
+  if (
+    lower.startsWith('image/') ||
+    lower === 'application/x-photoshop' ||
+    lower === 'image/vnd.adobe.photoshop'
+  ) {
+    return 'image'
+  }
+  if (lower.startsWith('video/')) {
+    return 'video'
+  }
+  return 'other'
+}
 
 export class AgentChatPromptBuilder {
   private assetId: string
+  private assetName?: string
+  private mediaType?: string
+  private videoDuration?: number
+  private commentTimestamp?: number
   private pathContext?: string
-  private mediaInfo?: unknown
   private explicitMention = false
 
   constructor(assetId: string) {
@@ -27,8 +32,17 @@ export class AgentChatPromptBuilder {
     return this
   }
 
-  withMediaInfo(mediaInfo?: unknown): this {
-    this.mediaInfo = mediaInfo
+  withAssetDetails(name: string, mediaType: string | null, duration?: number): this {
+    this.assetName = name
+    this.mediaType = mediaType || undefined
+    this.videoDuration = duration
+    return this
+  }
+
+  withCommentTimestamp(second?: number | null): this {
+    if (second !== undefined && second !== null) {
+      this.commentTimestamp = second
+    }
     return this
   }
 
@@ -38,19 +52,39 @@ export class AgentChatPromptBuilder {
   }
 
   build(): string {
-    let instruction = PROMPT_ASSET_BASE(this.assetId)
+    let instruction = `The user is discussing an asset with ID: ${this.assetId}.`
+    if (this.assetName) {
+      instruction += `\nFile Name: ${this.assetName}`
+    }
+    if (this.mediaType) {
+      const type = getSimpleMediaType(this.mediaType)
+      instruction += `\nFile Type: ${type}`
+      if (type === 'video' && this.videoDuration !== undefined) {
+        instruction += `\nVideo Length: ${this.videoDuration.toFixed(2)} seconds`
+      }
+    }
+    if (this.commentTimestamp !== undefined) {
+      instruction += `\nComment Timestamp: ${this.commentTimestamp.toFixed(2)} seconds`
+    }
     if (this.pathContext) {
-      instruction += PROMPT_PATH_CONTEXT(this.pathContext)
+      instruction += `\n\nAsset Path Context:\n${this.pathContext}`
     }
-    if (this.mediaInfo) {
-      instruction += PROMPT_MEDIA_INFO(JSON.stringify(this.mediaInfo, null, 2))
+
+    if (this.mediaType) {
+      const type = getSimpleMediaType(this.mediaType)
+      if (type === 'image') {
+        instruction += `\n\nIf you need to view the image data, call the 'analyze_image' tool. It does not require any parameters.`
+      } else if (type === 'video') {
+        instruction += `\n\nIf you need to view visual frames or take screenshots of the video, call the 'screenshot' tool. You must specify the 'start' (seconds), 'end' (seconds), and 'count' (number of screenshots) parameters.`
+      }
     }
-    instruction += PROMPT_MEDIA_TOOL_INSTRUCTION
+
     if (this.explicitMention) {
-      instruction += PROMPT_EXPLICIT_MENTION
+      instruction += `\n\nThe user explicitly mentioned you in their message. You MUST reply to this message.`
     } else {
-      instruction += PROMPT_IMPLICIT_MENTION
+      instruction += `\n\nThe user did not explicitly mention you, but is replying in a thread where you are the participant. Let's decide if you should reply or not. If the user is not directly addressing you or doesn't need a response from you, you may choose to not reply. To choose not to reply, respond with exactly and only the text: __NO_REPLY__.`
     }
+
     return instruction
   }
 }

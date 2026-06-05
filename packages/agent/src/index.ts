@@ -7,7 +7,8 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { agentService } from '@shumai/core/src/agent/agent'
 import { DatabaseSessionStorage } from './database-session-storage'
-import { analyzeAssetMediaTool } from './tools/analyze-asset-media'
+import { createAnalyzeImageTool } from './tools/analyze-image'
+import { createScreenshotTool } from './tools/screenshot'
 import { createCreateFileTool } from './tools/create-file'
 import { createCreateFolderTool } from './tools/create-folder'
 import { createCreateVersionTool } from './tools/create-version'
@@ -24,6 +25,7 @@ export interface CreateAgentSessionParams {
   allowedDomains: string[]
   sessionId?: string
   userId?: string
+  userCommentId?: string | null
   customTools?: AgentTool[]
   providers: Array<{
     name: string
@@ -46,6 +48,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     allowedDomains,
     sessionId,
     userId,
+    userCommentId: passedUserCommentId,
     customTools = [],
   } = params
 
@@ -153,6 +156,19 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     }
   }
 
+  const metadata = await storage.getMetadata()
+  const assetId = metadata.assetId
+  const userCommentId =
+    passedUserCommentId !== undefined ? passedUserCommentId : metadata.userCommentId
+
+  const mediaTools: AgentTool[] = []
+  if (assetId) {
+    mediaTools.push(
+      createAnalyzeImageTool(assetId, userCommentId),
+      createScreenshotTool(assetId, userCommentId),
+    )
+  }
+
   const sandboxedBash = createSandboxedBashTool(process.cwd(), skillEnvs)
   const readSkill = createReadSkillTool(onEnvsAdded)
 
@@ -202,7 +218,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
 
       return undefined
     },
-    tools: [analyzeAssetMediaTool, readSkill, sandboxedBash, ...systemTools, ...customTools],
+    tools: [...mediaTools, readSkill, sandboxedBash, ...systemTools, ...customTools],
   })
 
   return { session, harness }

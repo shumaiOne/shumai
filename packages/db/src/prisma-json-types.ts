@@ -234,9 +234,18 @@ declare global {
     >
     export type ProviderConfig = import('@shumai/dtos').ProviderConfigSerializable
 
-    // ----------------------------------------------------------------------
-    // Workflow Task Payload
-    // ----------------------------------------------------------------------
+    export interface ScreenshotSpec {
+      start: number
+      end: number
+      count: number
+      commentTimestamp?: number | null
+      annotations?: AnnotationList | null
+    }
+
+    export interface ImageAnnotationSpec {
+      annotations?: AnnotationList | null
+    }
+
     export interface WorkflowTaskPayload {
       projectId: string
       transcode?: TaskSpec
@@ -245,6 +254,8 @@ declare global {
         text: string
       }
       agentToolCall?: AgentToolCallPayload
+      screenshot?: ScreenshotSpec
+      imageAnnotation?: ImageAnnotationSpec
     }
 
     // ----------------------------------------------------------------------

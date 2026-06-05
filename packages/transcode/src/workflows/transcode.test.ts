@@ -37,6 +37,10 @@ describe('Transcode Workflow', () => {
       _activityName: 'downloadMediaToTmpActivity',
     }),
     cleanupTmpDirActivity: Object.assign(vi.fn(), { _activityName: 'cleanupTmpDirActivity' }),
+    takeScreenshotsActivity: Object.assign(vi.fn(), { _activityName: 'takeScreenshotsActivity' }),
+    overlayAnnotationsActivity: Object.assign(vi.fn(), {
+      _activityName: 'overlayAnnotationsActivity',
+    }),
   }
 
   beforeEach(() => {
@@ -232,6 +236,121 @@ describe('Transcode Workflow', () => {
       taskId: 'task-fail',
       status: WorkflowTaskStatus.failed,
       output: { error: 'FFmpeg failed' },
+    })
+  })
+
+  it('should run screenshot workflow successfully', async () => {
+    const task: WorkflowTask = {
+      id: 'task-screenshot',
+      assetId: 'asset-video',
+      type: WorkflowTaskType.transcode,
+      status: WorkflowTaskStatus.pending,
+      output: null,
+      payload: {
+        projectId: 'proj-1',
+        screenshot: {
+          start: 0,
+          end: 10,
+          count: 2,
+          commentTimestamp: 5.0,
+          annotations: [],
+        },
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      heartbeat: null,
+      teamId: 'team-1',
+      projectId: 'proj-1',
+      uid: 'task-uid',
+      model: null,
+      inputTokens: 0,
+      outputTokens: 0,
+    }
+
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'asset-video',
+      storageKey: { key: 'video.mp4' },
+      mediaType: 'video/mp4',
+    })
+
+    mockActivities.takeScreenshotsActivity.mockResolvedValue([
+      { key: 'file/asset-video/screenshots/shot1.webp', timestamp: 0.0 },
+      { key: 'file/asset-video/screenshots/shot2.webp', timestamp: 5.0 },
+    ])
+
+    await transcodeMedia(task)
+
+    expect(mockActivities.takeScreenshotsActivity).toHaveBeenCalledWith({
+      assetKey: 'video.mp4',
+      assetId: 'asset-video',
+      start: 0,
+      end: 10,
+      count: 2,
+      commentTimestamp: 5.0,
+      annotations: [],
+    })
+
+    expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
+      taskId: 'task-screenshot',
+      status: WorkflowTaskStatus.completed,
+      output: {
+        screenshots: [
+          { key: 'file/asset-video/screenshots/shot1.webp', timestamp: 0.0 },
+          { key: 'file/asset-video/screenshots/shot2.webp', timestamp: 5.0 },
+        ],
+      },
+    })
+  })
+
+  it('should run image annotation overlay workflow successfully', async () => {
+    const task: WorkflowTask = {
+      id: 'task-image-ann',
+      assetId: 'asset-image',
+      type: WorkflowTaskType.transcode,
+      status: WorkflowTaskStatus.pending,
+      output: null,
+      payload: {
+        projectId: 'proj-1',
+        imageAnnotation: {
+          annotations: [{ type: 'box', color: '#ff0000', points: [] }],
+        },
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      heartbeat: null,
+      teamId: 'team-1',
+      projectId: 'proj-1',
+      uid: 'task-uid',
+      model: null,
+      inputTokens: 0,
+      outputTokens: 0,
+    }
+
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'asset-image',
+      storageKey: { key: 'image.png' },
+      mediaType: 'image/png',
+      media: {
+        imageTranscodes: [{ key: 'image-transcoded.webp' }],
+      },
+    })
+
+    mockActivities.overlayAnnotationsActivity.mockResolvedValue(
+      'file/asset-image/annotations/ann1.webp',
+    )
+
+    await transcodeMedia(task)
+
+    expect(mockActivities.overlayAnnotationsActivity).toHaveBeenCalledWith({
+      assetKey: 'image-transcoded.webp',
+      assetId: 'asset-image',
+      annotations: [{ type: 'box', color: '#ff0000', points: [] }],
+    })
+
+    expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
+      taskId: 'task-image-ann',
+      status: WorkflowTaskStatus.completed,
+      output: { key: 'file/asset-image/annotations/ann1.webp' },
     })
   })
 })

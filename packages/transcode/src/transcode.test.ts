@@ -7,7 +7,7 @@ import sharp from 'sharp'
 
 // Mock child_process
 vi.mock('child_process', () => ({
-  exec: vi.fn(),
+  execFile: vi.fn(),
 }))
 
 // Mock sharp
@@ -66,7 +66,7 @@ describe('TranscodeService', () => {
     /* eslint-enable @typescript-eslint/naming-convention */
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(child_process.exec as any).mockImplementation((cmd: string, cb: any) => {
+    ;(child_process.execFile as any).mockImplementation((file: string, args: string[], cb: any) => {
       cb(null, { stdout: mockOutput, stderr: '' })
     })
 
@@ -83,8 +83,9 @@ describe('TranscodeService', () => {
     expect(info.audioSampleRate).toBe(48000)
     expect(info.audioBitDepth).toBe(16)
 
-    expect(child_process.exec).toHaveBeenCalledWith(
-      expect.stringContaining('ffprobe'),
+    expect(child_process.execFile).toHaveBeenCalledWith(
+      'ffprobe',
+      expect.any(Array),
       expect.any(Function),
     )
   })
@@ -110,7 +111,7 @@ describe('TranscodeService', () => {
 
   it('should construct correct ffmpeg arguments for video transcoding', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(child_process.exec as any).mockImplementation((cmd: string, cb: any) => {
+    ;(child_process.execFile as any).mockImplementation((file: string, args: string[], cb: any) => {
       cb(null, { stdout: '', stderr: '' })
     })
 
@@ -124,17 +125,20 @@ describe('TranscodeService', () => {
       disableAudio: true,
     })
 
-    expect(child_process.exec).toHaveBeenCalledWith(
-      expect.stringContaining('scale=w=1280:h=720'),
+    expect(child_process.execFile).toHaveBeenCalledWith(
+      'ffmpeg',
+      expect.arrayContaining(['-filter_complex', expect.stringContaining('scale=w=1280:h=720')]),
       expect.any(Function),
     )
-    expect(child_process.exec).toHaveBeenCalledWith(
-      expect.stringContaining('fps=24'),
+    expect(child_process.execFile).toHaveBeenCalledWith(
+      'ffmpeg',
+      expect.arrayContaining(['-filter_complex', expect.stringContaining('fps=24')]),
       expect.any(Function),
     )
     // Should NOT have audio maps if disabled
-    expect(child_process.exec).not.toHaveBeenCalledWith(
-      expect.stringContaining('-map 0:a?'),
+    expect(child_process.execFile).not.toHaveBeenCalledWith(
+      'ffmpeg',
+      expect.arrayContaining(['-map', '0:a?']),
       expect.any(Function),
     )
   })
@@ -197,7 +201,7 @@ describe('TranscodeService', () => {
       mimeType: 'video/mp4',
     })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(child_process.exec as any).mockImplementation((cmd: string, cb: any) => {
+    ;(child_process.execFile as any).mockImplementation((file: string, args: string[], cb: any) => {
       cb(null, { stdout: '', stderr: '' })
     })
 
@@ -209,8 +213,9 @@ describe('TranscodeService', () => {
       isImage: false,
     })
 
-    expect(child_process.exec).toHaveBeenCalledWith(
-      expect.stringContaining('-c:v libwebp'),
+    expect(child_process.execFile).toHaveBeenCalledWith(
+      'ffmpeg',
+      expect.arrayContaining(['-c:v', 'libwebp']),
       expect.any(Function),
     )
   })

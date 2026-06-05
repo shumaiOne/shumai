@@ -14,6 +14,8 @@ export interface DatabaseSessionMetadata extends SessionMetadata {
   agentId: string
   userId?: string
   cwd: string
+  assetId?: string
+  userCommentId?: string
 }
 
 export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMetadata> {
@@ -30,6 +32,8 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
       agentId: session.agentId,
       userId: session.userId || undefined,
       cwd: session.cwd,
+      assetId: session.assetId || undefined,
+      userCommentId: session.userCommentId || undefined,
     }
   }
 
@@ -253,6 +257,8 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
     userId?: string
     sessionId?: string
     cwd?: string
+    assetId?: string
+    userCommentId?: string
   }): Promise<DatabaseSessionStorage> {
     if (params.sessionId) {
       return new DatabaseSessionStorage(params.sessionId)
@@ -262,6 +268,8 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
           agentId: params.agentId,
           userId: params.userId,
           cwd: params.cwd || process.cwd(),
+          assetId: params.assetId || null,
+          userCommentId: params.userCommentId || null,
         },
       })
       return new DatabaseSessionStorage(session.id)
