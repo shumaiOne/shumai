@@ -33,9 +33,32 @@ export function temporalWorkflow(options: TemporalWorkflowPluginOptions = {}): B
       build.onLoad({ filter: /.*/, namespace: 'temporal-workflow' }, async (args) => {
         const workflowsPath = args.path
 
+        // The bundleOptions contains raw parameters for Temporal bundleWorkflowCode which uses Webpack.
+        // We cast options.bundleOptions to any to check for webpackConfigHook.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const originalHook = (options.bundleOptions as any)?.webpackConfigHook
+        const bundleOptions = {
+          ...options.bundleOptions,
+          // Webpack config is untyped inside Temporal's webpackConfigHook callback.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          webpackConfigHook: (config: any) => {
+            config.resolve = config.resolve || {}
+            config.resolve.alias = {
+              ...config.resolve.alias,
+              '@shumai/workflow-core':
+                require.resolve('@shumai/workflow-core/src/workflow-utils.ts'),
+            }
+            console.log('Webpack config aliases:', config.resolve.alias)
+            if (originalHook) {
+              return originalHook(config)
+            }
+            return config
+          },
+        }
+
         const bundle = await bundleWorkflowCode({
           workflowsPath,
-          ...options.bundleOptions,
+          ...bundleOptions,
         })
 
         return {
