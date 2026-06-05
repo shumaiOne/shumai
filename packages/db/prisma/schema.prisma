@@ -398,6 +398,7 @@ model Asset {
   projectRootFolder    Project?     @relation("ProjectToRootFolder")
   projectShareRoot     Project?     @relation("ProjectToShareRoot")
   shareLinkRootFolder  ShareLink?   @relation("ShareLinkToRootFolder")
+  agentSessions        AgentSession[] @relation("AssetToAgentSession")
 
   @@map("assets")
   @@index([type])
@@ -669,17 +670,20 @@ model AgentSkill {
 }
 
 model AgentSession {
-  id        String   @id @default(ulid())
-  agentId   String   @map("agent_id")
-  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  userId    String?  @map("user_id")
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  cwd       String
-  leafId    String?  @map("leaf_id")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  entries   AgentSessionEntry[]
-  comments  AssetComment[]
+  id            String   @id @default(ulid())
+  agentId       String   @map("agent_id")
+  agent         Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  userId        String?  @map("user_id")
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  cwd           String
+  leafId        String?  @map("leaf_id")
+  assetId       String?  @map("asset_id")
+  asset         Asset?   @relation("AssetToAgentSession", fields: [assetId], references: [id], onDelete: Cascade)
+  userCommentId String?  @map("user_comment_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  entries       AgentSessionEntry[]
+  comments      AssetComment[]
 
   @@map("agent_sessions")
 }

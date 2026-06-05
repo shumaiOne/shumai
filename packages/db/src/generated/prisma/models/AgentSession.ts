@@ -31,6 +31,8 @@ export type AgentSessionMinAggregateOutputType = {
   userId: string | null
   cwd: string | null
   leafId: string | null
+  assetId: string | null
+  userCommentId: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -41,6 +43,8 @@ export type AgentSessionMaxAggregateOutputType = {
   userId: string | null
   cwd: string | null
   leafId: string | null
+  assetId: string | null
+  userCommentId: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -51,6 +55,8 @@ export type AgentSessionCountAggregateOutputType = {
   userId: number
   cwd: number
   leafId: number
+  assetId: number
+  userCommentId: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -62,6 +68,8 @@ export type AgentSessionMinAggregateInputType = {
   userId?: true
   cwd?: true
   leafId?: true
+  assetId?: true
+  userCommentId?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -72,6 +80,8 @@ export type AgentSessionMaxAggregateInputType = {
   userId?: true
   cwd?: true
   leafId?: true
+  assetId?: true
+  userCommentId?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -82,6 +92,8 @@ export type AgentSessionCountAggregateInputType = {
   userId?: true
   cwd?: true
   leafId?: true
+  assetId?: true
+  userCommentId?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -170,6 +182,8 @@ export type AgentSessionGroupByOutputType = {
   userId: string | null
   cwd: string
   leafId: string | null
+  assetId: string | null
+  userCommentId: string | null
   createdAt: Date
   updatedAt: Date
   _count: AgentSessionCountAggregateOutputType | null
@@ -198,10 +212,13 @@ export type AgentSessionWhereInput = {
   userId?: Prisma.StringNullableFilter<'AgentSession'> | string | null
   cwd?: Prisma.StringFilter<'AgentSession'> | string
   leafId?: Prisma.StringNullableFilter<'AgentSession'> | string | null
+  assetId?: Prisma.StringNullableFilter<'AgentSession'> | string | null
+  userCommentId?: Prisma.StringNullableFilter<'AgentSession'> | string | null
   createdAt?: Prisma.DateTimeFilter<'AgentSession'> | Date | string
   updatedAt?: Prisma.DateTimeFilter<'AgentSession'> | Date | string
   agent?: Prisma.XOR<Prisma.AgentScalarRelationFilter, Prisma.AgentWhereInput>
   user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
+  asset?: Prisma.XOR<Prisma.AssetNullableScalarRelationFilter, Prisma.AssetWhereInput> | null
   entries?: Prisma.AgentSessionEntryListRelationFilter
   comments?: Prisma.AssetCommentListRelationFilter
 }
@@ -212,10 +229,13 @@ export type AgentSessionOrderByWithRelationInput = {
   userId?: Prisma.SortOrderInput | Prisma.SortOrder
   cwd?: Prisma.SortOrder
   leafId?: Prisma.SortOrderInput | Prisma.SortOrder
+  assetId?: Prisma.SortOrderInput | Prisma.SortOrder
+  userCommentId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   agent?: Prisma.AgentOrderByWithRelationInput
   user?: Prisma.UserOrderByWithRelationInput
+  asset?: Prisma.AssetOrderByWithRelationInput
   entries?: Prisma.AgentSessionEntryOrderByRelationAggregateInput
   comments?: Prisma.AssetCommentOrderByRelationAggregateInput
 }
@@ -230,10 +250,13 @@ export type AgentSessionWhereUniqueInput = Prisma.AtLeast<
     userId?: Prisma.StringNullableFilter<'AgentSession'> | string | null
     cwd?: Prisma.StringFilter<'AgentSession'> | string
     leafId?: Prisma.StringNullableFilter<'AgentSession'> | string | null
+    assetId?: Prisma.StringNullableFilter<'AgentSession'> | string | null
+    userCommentId?: Prisma.StringNullableFilter<'AgentSession'> | string | null
     createdAt?: Prisma.DateTimeFilter<'AgentSession'> | Date | string
     updatedAt?: Prisma.DateTimeFilter<'AgentSession'> | Date | string
     agent?: Prisma.XOR<Prisma.AgentScalarRelationFilter, Prisma.AgentWhereInput>
     user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
+    asset?: Prisma.XOR<Prisma.AssetNullableScalarRelationFilter, Prisma.AssetWhereInput> | null
     entries?: Prisma.AgentSessionEntryListRelationFilter
     comments?: Prisma.AssetCommentListRelationFilter
   },
@@ -246,6 +269,8 @@ export type AgentSessionOrderByWithAggregationInput = {
   userId?: Prisma.SortOrderInput | Prisma.SortOrder
   cwd?: Prisma.SortOrder
   leafId?: Prisma.SortOrderInput | Prisma.SortOrder
+  assetId?: Prisma.SortOrderInput | Prisma.SortOrder
+  userCommentId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.AgentSessionCountOrderByAggregateInput
@@ -266,6 +291,8 @@ export type AgentSessionScalarWhereWithAggregatesInput = {
   userId?: Prisma.StringNullableWithAggregatesFilter<'AgentSession'> | string | null
   cwd?: Prisma.StringWithAggregatesFilter<'AgentSession'> | string
   leafId?: Prisma.StringNullableWithAggregatesFilter<'AgentSession'> | string | null
+  assetId?: Prisma.StringNullableWithAggregatesFilter<'AgentSession'> | string | null
+  userCommentId?: Prisma.StringNullableWithAggregatesFilter<'AgentSession'> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<'AgentSession'> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<'AgentSession'> | Date | string
 }
@@ -274,10 +301,12 @@ export type AgentSessionCreateInput = {
   id?: string
   cwd: string
   leafId?: string | null
+  userCommentId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   agent: Prisma.AgentCreateNestedOneWithoutAgentSessionsInput
   user?: Prisma.UserCreateNestedOneWithoutAgentSessionsInput
+  asset?: Prisma.AssetCreateNestedOneWithoutAgentSessionsInput
   entries?: Prisma.AgentSessionEntryCreateNestedManyWithoutSessionInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutSessionInput
 }
@@ -288,6 +317,8 @@ export type AgentSessionUncheckedCreateInput = {
   userId?: string | null
   cwd: string
   leafId?: string | null
+  assetId?: string | null
+  userCommentId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   entries?: Prisma.AgentSessionEntryUncheckedCreateNestedManyWithoutSessionInput
@@ -298,10 +329,12 @@ export type AgentSessionUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   cwd?: Prisma.StringFieldUpdateOperationsInput | string
   leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   agent?: Prisma.AgentUpdateOneRequiredWithoutAgentSessionsNestedInput
   user?: Prisma.UserUpdateOneWithoutAgentSessionsNestedInput
+  asset?: Prisma.AssetUpdateOneWithoutAgentSessionsNestedInput
   entries?: Prisma.AgentSessionEntryUpdateManyWithoutSessionNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutSessionNestedInput
 }
@@ -312,6 +345,8 @@ export type AgentSessionUncheckedUpdateInput = {
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cwd?: Prisma.StringFieldUpdateOperationsInput | string
   leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   entries?: Prisma.AgentSessionEntryUncheckedUpdateManyWithoutSessionNestedInput
@@ -324,6 +359,8 @@ export type AgentSessionCreateManyInput = {
   userId?: string | null
   cwd: string
   leafId?: string | null
+  assetId?: string | null
+  userCommentId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -332,6 +369,7 @@ export type AgentSessionUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   cwd?: Prisma.StringFieldUpdateOperationsInput | string
   leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -342,6 +380,8 @@ export type AgentSessionUncheckedUpdateManyInput = {
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cwd?: Prisma.StringFieldUpdateOperationsInput | string
   leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -367,6 +407,8 @@ export type AgentSessionCountOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   cwd?: Prisma.SortOrder
   leafId?: Prisma.SortOrder
+  assetId?: Prisma.SortOrder
+  userCommentId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -377,6 +419,8 @@ export type AgentSessionMaxOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   cwd?: Prisma.SortOrder
   leafId?: Prisma.SortOrder
+  assetId?: Prisma.SortOrder
+  userCommentId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -387,6 +431,8 @@ export type AgentSessionMinOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   cwd?: Prisma.SortOrder
   leafId?: Prisma.SortOrder
+  assetId?: Prisma.SortOrder
+  userCommentId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -479,6 +525,92 @@ export type AgentSessionUncheckedUpdateManyWithoutUserNestedInput = {
   updateMany?:
     | Prisma.AgentSessionUpdateManyWithWhereWithoutUserInput
     | Prisma.AgentSessionUpdateManyWithWhereWithoutUserInput[]
+  deleteMany?: Prisma.AgentSessionScalarWhereInput | Prisma.AgentSessionScalarWhereInput[]
+}
+
+export type AgentSessionCreateNestedManyWithoutAssetInput = {
+  create?:
+    | Prisma.XOR<
+        Prisma.AgentSessionCreateWithoutAssetInput,
+        Prisma.AgentSessionUncheckedCreateWithoutAssetInput
+      >
+    | Prisma.AgentSessionCreateWithoutAssetInput[]
+    | Prisma.AgentSessionUncheckedCreateWithoutAssetInput[]
+  connectOrCreate?:
+    | Prisma.AgentSessionCreateOrConnectWithoutAssetInput
+    | Prisma.AgentSessionCreateOrConnectWithoutAssetInput[]
+  createMany?: Prisma.AgentSessionCreateManyAssetInputEnvelope
+  connect?: Prisma.AgentSessionWhereUniqueInput | Prisma.AgentSessionWhereUniqueInput[]
+}
+
+export type AgentSessionUncheckedCreateNestedManyWithoutAssetInput = {
+  create?:
+    | Prisma.XOR<
+        Prisma.AgentSessionCreateWithoutAssetInput,
+        Prisma.AgentSessionUncheckedCreateWithoutAssetInput
+      >
+    | Prisma.AgentSessionCreateWithoutAssetInput[]
+    | Prisma.AgentSessionUncheckedCreateWithoutAssetInput[]
+  connectOrCreate?:
+    | Prisma.AgentSessionCreateOrConnectWithoutAssetInput
+    | Prisma.AgentSessionCreateOrConnectWithoutAssetInput[]
+  createMany?: Prisma.AgentSessionCreateManyAssetInputEnvelope
+  connect?: Prisma.AgentSessionWhereUniqueInput | Prisma.AgentSessionWhereUniqueInput[]
+}
+
+export type AgentSessionUpdateManyWithoutAssetNestedInput = {
+  create?:
+    | Prisma.XOR<
+        Prisma.AgentSessionCreateWithoutAssetInput,
+        Prisma.AgentSessionUncheckedCreateWithoutAssetInput
+      >
+    | Prisma.AgentSessionCreateWithoutAssetInput[]
+    | Prisma.AgentSessionUncheckedCreateWithoutAssetInput[]
+  connectOrCreate?:
+    | Prisma.AgentSessionCreateOrConnectWithoutAssetInput
+    | Prisma.AgentSessionCreateOrConnectWithoutAssetInput[]
+  upsert?:
+    | Prisma.AgentSessionUpsertWithWhereUniqueWithoutAssetInput
+    | Prisma.AgentSessionUpsertWithWhereUniqueWithoutAssetInput[]
+  createMany?: Prisma.AgentSessionCreateManyAssetInputEnvelope
+  set?: Prisma.AgentSessionWhereUniqueInput | Prisma.AgentSessionWhereUniqueInput[]
+  disconnect?: Prisma.AgentSessionWhereUniqueInput | Prisma.AgentSessionWhereUniqueInput[]
+  delete?: Prisma.AgentSessionWhereUniqueInput | Prisma.AgentSessionWhereUniqueInput[]
+  connect?: Prisma.AgentSessionWhereUniqueInput | Prisma.AgentSessionWhereUniqueInput[]
+  update?:
+    | Prisma.AgentSessionUpdateWithWhereUniqueWithoutAssetInput
+    | Prisma.AgentSessionUpdateWithWhereUniqueWithoutAssetInput[]
+  updateMany?:
+    | Prisma.AgentSessionUpdateManyWithWhereWithoutAssetInput
+    | Prisma.AgentSessionUpdateManyWithWhereWithoutAssetInput[]
+  deleteMany?: Prisma.AgentSessionScalarWhereInput | Prisma.AgentSessionScalarWhereInput[]
+}
+
+export type AgentSessionUncheckedUpdateManyWithoutAssetNestedInput = {
+  create?:
+    | Prisma.XOR<
+        Prisma.AgentSessionCreateWithoutAssetInput,
+        Prisma.AgentSessionUncheckedCreateWithoutAssetInput
+      >
+    | Prisma.AgentSessionCreateWithoutAssetInput[]
+    | Prisma.AgentSessionUncheckedCreateWithoutAssetInput[]
+  connectOrCreate?:
+    | Prisma.AgentSessionCreateOrConnectWithoutAssetInput
+    | Prisma.AgentSessionCreateOrConnectWithoutAssetInput[]
+  upsert?:
+    | Prisma.AgentSessionUpsertWithWhereUniqueWithoutAssetInput
+    | Prisma.AgentSessionUpsertWithWhereUniqueWithoutAssetInput[]
+  createMany?: Prisma.AgentSessionCreateManyAssetInputEnvelope
+  set?: Prisma.AgentSessionWhereUniqueInput | Prisma.AgentSessionWhereUniqueInput[]
+  disconnect?: Prisma.AgentSessionWhereUniqueInput | Prisma.AgentSessionWhereUniqueInput[]
+  delete?: Prisma.AgentSessionWhereUniqueInput | Prisma.AgentSessionWhereUniqueInput[]
+  connect?: Prisma.AgentSessionWhereUniqueInput | Prisma.AgentSessionWhereUniqueInput[]
+  update?:
+    | Prisma.AgentSessionUpdateWithWhereUniqueWithoutAssetInput
+    | Prisma.AgentSessionUpdateWithWhereUniqueWithoutAssetInput[]
+  updateMany?:
+    | Prisma.AgentSessionUpdateManyWithWhereWithoutAssetInput
+    | Prisma.AgentSessionUpdateManyWithWhereWithoutAssetInput[]
   deleteMany?: Prisma.AgentSessionScalarWhereInput | Prisma.AgentSessionScalarWhereInput[]
 }
 
@@ -626,9 +758,11 @@ export type AgentSessionCreateWithoutUserInput = {
   id?: string
   cwd: string
   leafId?: string | null
+  userCommentId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   agent: Prisma.AgentCreateNestedOneWithoutAgentSessionsInput
+  asset?: Prisma.AssetCreateNestedOneWithoutAgentSessionsInput
   entries?: Prisma.AgentSessionEntryCreateNestedManyWithoutSessionInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutSessionInput
 }
@@ -638,6 +772,8 @@ export type AgentSessionUncheckedCreateWithoutUserInput = {
   agentId: string
   cwd: string
   leafId?: string | null
+  assetId?: string | null
+  userCommentId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   entries?: Prisma.AgentSessionEntryUncheckedCreateNestedManyWithoutSessionInput
@@ -694,18 +830,89 @@ export type AgentSessionScalarWhereInput = {
   userId?: Prisma.StringNullableFilter<'AgentSession'> | string | null
   cwd?: Prisma.StringFilter<'AgentSession'> | string
   leafId?: Prisma.StringNullableFilter<'AgentSession'> | string | null
+  assetId?: Prisma.StringNullableFilter<'AgentSession'> | string | null
+  userCommentId?: Prisma.StringNullableFilter<'AgentSession'> | string | null
   createdAt?: Prisma.DateTimeFilter<'AgentSession'> | Date | string
   updatedAt?: Prisma.DateTimeFilter<'AgentSession'> | Date | string
+}
+
+export type AgentSessionCreateWithoutAssetInput = {
+  id?: string
+  cwd: string
+  leafId?: string | null
+  userCommentId?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  agent: Prisma.AgentCreateNestedOneWithoutAgentSessionsInput
+  user?: Prisma.UserCreateNestedOneWithoutAgentSessionsInput
+  entries?: Prisma.AgentSessionEntryCreateNestedManyWithoutSessionInput
+  comments?: Prisma.AssetCommentCreateNestedManyWithoutSessionInput
+}
+
+export type AgentSessionUncheckedCreateWithoutAssetInput = {
+  id?: string
+  agentId: string
+  userId?: string | null
+  cwd: string
+  leafId?: string | null
+  userCommentId?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  entries?: Prisma.AgentSessionEntryUncheckedCreateNestedManyWithoutSessionInput
+  comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutSessionInput
+}
+
+export type AgentSessionCreateOrConnectWithoutAssetInput = {
+  where: Prisma.AgentSessionWhereUniqueInput
+  create: Prisma.XOR<
+    Prisma.AgentSessionCreateWithoutAssetInput,
+    Prisma.AgentSessionUncheckedCreateWithoutAssetInput
+  >
+}
+
+export type AgentSessionCreateManyAssetInputEnvelope = {
+  data: Prisma.AgentSessionCreateManyAssetInput | Prisma.AgentSessionCreateManyAssetInput[]
+  skipDuplicates?: boolean
+}
+
+export type AgentSessionUpsertWithWhereUniqueWithoutAssetInput = {
+  where: Prisma.AgentSessionWhereUniqueInput
+  update: Prisma.XOR<
+    Prisma.AgentSessionUpdateWithoutAssetInput,
+    Prisma.AgentSessionUncheckedUpdateWithoutAssetInput
+  >
+  create: Prisma.XOR<
+    Prisma.AgentSessionCreateWithoutAssetInput,
+    Prisma.AgentSessionUncheckedCreateWithoutAssetInput
+  >
+}
+
+export type AgentSessionUpdateWithWhereUniqueWithoutAssetInput = {
+  where: Prisma.AgentSessionWhereUniqueInput
+  data: Prisma.XOR<
+    Prisma.AgentSessionUpdateWithoutAssetInput,
+    Prisma.AgentSessionUncheckedUpdateWithoutAssetInput
+  >
+}
+
+export type AgentSessionUpdateManyWithWhereWithoutAssetInput = {
+  where: Prisma.AgentSessionScalarWhereInput
+  data: Prisma.XOR<
+    Prisma.AgentSessionUpdateManyMutationInput,
+    Prisma.AgentSessionUncheckedUpdateManyWithoutAssetInput
+  >
 }
 
 export type AgentSessionCreateWithoutCommentsInput = {
   id?: string
   cwd: string
   leafId?: string | null
+  userCommentId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   agent: Prisma.AgentCreateNestedOneWithoutAgentSessionsInput
   user?: Prisma.UserCreateNestedOneWithoutAgentSessionsInput
+  asset?: Prisma.AssetCreateNestedOneWithoutAgentSessionsInput
   entries?: Prisma.AgentSessionEntryCreateNestedManyWithoutSessionInput
 }
 
@@ -715,6 +922,8 @@ export type AgentSessionUncheckedCreateWithoutCommentsInput = {
   userId?: string | null
   cwd: string
   leafId?: string | null
+  assetId?: string | null
+  userCommentId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   entries?: Prisma.AgentSessionEntryUncheckedCreateNestedManyWithoutSessionInput
@@ -752,10 +961,12 @@ export type AgentSessionUpdateWithoutCommentsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   cwd?: Prisma.StringFieldUpdateOperationsInput | string
   leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   agent?: Prisma.AgentUpdateOneRequiredWithoutAgentSessionsNestedInput
   user?: Prisma.UserUpdateOneWithoutAgentSessionsNestedInput
+  asset?: Prisma.AssetUpdateOneWithoutAgentSessionsNestedInput
   entries?: Prisma.AgentSessionEntryUpdateManyWithoutSessionNestedInput
 }
 
@@ -765,6 +976,8 @@ export type AgentSessionUncheckedUpdateWithoutCommentsInput = {
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cwd?: Prisma.StringFieldUpdateOperationsInput | string
   leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   entries?: Prisma.AgentSessionEntryUncheckedUpdateManyWithoutSessionNestedInput
@@ -774,9 +987,11 @@ export type AgentSessionCreateWithoutAgentInput = {
   id?: string
   cwd: string
   leafId?: string | null
+  userCommentId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user?: Prisma.UserCreateNestedOneWithoutAgentSessionsInput
+  asset?: Prisma.AssetCreateNestedOneWithoutAgentSessionsInput
   entries?: Prisma.AgentSessionEntryCreateNestedManyWithoutSessionInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutSessionInput
 }
@@ -786,6 +1001,8 @@ export type AgentSessionUncheckedCreateWithoutAgentInput = {
   userId?: string | null
   cwd: string
   leafId?: string | null
+  assetId?: string | null
+  userCommentId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   entries?: Prisma.AgentSessionEntryUncheckedCreateNestedManyWithoutSessionInput
@@ -837,10 +1054,12 @@ export type AgentSessionCreateWithoutEntriesInput = {
   id?: string
   cwd: string
   leafId?: string | null
+  userCommentId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   agent: Prisma.AgentCreateNestedOneWithoutAgentSessionsInput
   user?: Prisma.UserCreateNestedOneWithoutAgentSessionsInput
+  asset?: Prisma.AssetCreateNestedOneWithoutAgentSessionsInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutSessionInput
 }
 
@@ -850,6 +1069,8 @@ export type AgentSessionUncheckedCreateWithoutEntriesInput = {
   userId?: string | null
   cwd: string
   leafId?: string | null
+  assetId?: string | null
+  userCommentId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutSessionInput
@@ -887,10 +1108,12 @@ export type AgentSessionUpdateWithoutEntriesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   cwd?: Prisma.StringFieldUpdateOperationsInput | string
   leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   agent?: Prisma.AgentUpdateOneRequiredWithoutAgentSessionsNestedInput
   user?: Prisma.UserUpdateOneWithoutAgentSessionsNestedInput
+  asset?: Prisma.AssetUpdateOneWithoutAgentSessionsNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutSessionNestedInput
 }
 
@@ -900,6 +1123,8 @@ export type AgentSessionUncheckedUpdateWithoutEntriesInput = {
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cwd?: Prisma.StringFieldUpdateOperationsInput | string
   leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutSessionNestedInput
@@ -910,6 +1135,8 @@ export type AgentSessionCreateManyUserInput = {
   agentId: string
   cwd: string
   leafId?: string | null
+  assetId?: string | null
+  userCommentId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -918,9 +1145,11 @@ export type AgentSessionUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   cwd?: Prisma.StringFieldUpdateOperationsInput | string
   leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   agent?: Prisma.AgentUpdateOneRequiredWithoutAgentSessionsNestedInput
+  asset?: Prisma.AssetUpdateOneWithoutAgentSessionsNestedInput
   entries?: Prisma.AgentSessionEntryUpdateManyWithoutSessionNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutSessionNestedInput
 }
@@ -930,6 +1159,8 @@ export type AgentSessionUncheckedUpdateWithoutUserInput = {
   agentId?: Prisma.StringFieldUpdateOperationsInput | string
   cwd?: Prisma.StringFieldUpdateOperationsInput | string
   leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   entries?: Prisma.AgentSessionEntryUncheckedUpdateManyWithoutSessionNestedInput
@@ -941,6 +1172,56 @@ export type AgentSessionUncheckedUpdateManyWithoutUserInput = {
   agentId?: Prisma.StringFieldUpdateOperationsInput | string
   cwd?: Prisma.StringFieldUpdateOperationsInput | string
   leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type AgentSessionCreateManyAssetInput = {
+  id?: string
+  agentId: string
+  userId?: string | null
+  cwd: string
+  leafId?: string | null
+  userCommentId?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type AgentSessionUpdateWithoutAssetInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  cwd?: Prisma.StringFieldUpdateOperationsInput | string
+  leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  agent?: Prisma.AgentUpdateOneRequiredWithoutAgentSessionsNestedInput
+  user?: Prisma.UserUpdateOneWithoutAgentSessionsNestedInput
+  entries?: Prisma.AgentSessionEntryUpdateManyWithoutSessionNestedInput
+  comments?: Prisma.AssetCommentUpdateManyWithoutSessionNestedInput
+}
+
+export type AgentSessionUncheckedUpdateWithoutAssetInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  agentId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cwd?: Prisma.StringFieldUpdateOperationsInput | string
+  leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  entries?: Prisma.AgentSessionEntryUncheckedUpdateManyWithoutSessionNestedInput
+  comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutSessionNestedInput
+}
+
+export type AgentSessionUncheckedUpdateManyWithoutAssetInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  agentId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cwd?: Prisma.StringFieldUpdateOperationsInput | string
+  leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -950,6 +1231,8 @@ export type AgentSessionCreateManyAgentInput = {
   userId?: string | null
   cwd: string
   leafId?: string | null
+  assetId?: string | null
+  userCommentId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -958,9 +1241,11 @@ export type AgentSessionUpdateWithoutAgentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   cwd?: Prisma.StringFieldUpdateOperationsInput | string
   leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneWithoutAgentSessionsNestedInput
+  asset?: Prisma.AssetUpdateOneWithoutAgentSessionsNestedInput
   entries?: Prisma.AgentSessionEntryUpdateManyWithoutSessionNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutSessionNestedInput
 }
@@ -970,6 +1255,8 @@ export type AgentSessionUncheckedUpdateWithoutAgentInput = {
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cwd?: Prisma.StringFieldUpdateOperationsInput | string
   leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   entries?: Prisma.AgentSessionEntryUncheckedUpdateManyWithoutSessionNestedInput
@@ -981,6 +1268,8 @@ export type AgentSessionUncheckedUpdateManyWithoutAgentInput = {
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   cwd?: Prisma.StringFieldUpdateOperationsInput | string
   leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1040,10 +1329,13 @@ export type AgentSessionSelect<
     userId?: boolean
     cwd?: boolean
     leafId?: boolean
+    assetId?: boolean
+    userCommentId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     agent?: boolean | Prisma.AgentDefaultArgs<ExtArgs>
     user?: boolean | Prisma.AgentSession$userArgs<ExtArgs>
+    asset?: boolean | Prisma.AgentSession$assetArgs<ExtArgs>
     entries?: boolean | Prisma.AgentSession$entriesArgs<ExtArgs>
     comments?: boolean | Prisma.AgentSession$commentsArgs<ExtArgs>
     _count?: boolean | Prisma.AgentSessionCountOutputTypeDefaultArgs<ExtArgs>
@@ -1060,10 +1352,13 @@ export type AgentSessionSelectCreateManyAndReturn<
     userId?: boolean
     cwd?: boolean
     leafId?: boolean
+    assetId?: boolean
+    userCommentId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     agent?: boolean | Prisma.AgentDefaultArgs<ExtArgs>
     user?: boolean | Prisma.AgentSession$userArgs<ExtArgs>
+    asset?: boolean | Prisma.AgentSession$assetArgs<ExtArgs>
   },
   ExtArgs['result']['agentSession']
 >
@@ -1077,10 +1372,13 @@ export type AgentSessionSelectUpdateManyAndReturn<
     userId?: boolean
     cwd?: boolean
     leafId?: boolean
+    assetId?: boolean
+    userCommentId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     agent?: boolean | Prisma.AgentDefaultArgs<ExtArgs>
     user?: boolean | Prisma.AgentSession$userArgs<ExtArgs>
+    asset?: boolean | Prisma.AgentSession$assetArgs<ExtArgs>
   },
   ExtArgs['result']['agentSession']
 >
@@ -1091,6 +1389,8 @@ export type AgentSessionSelectScalar = {
   userId?: boolean
   cwd?: boolean
   leafId?: boolean
+  assetId?: boolean
+  userCommentId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
@@ -1098,7 +1398,15 @@ export type AgentSessionSelectScalar = {
 export type AgentSessionOmit<
   ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
 > = runtime.Types.Extensions.GetOmit<
-  'id' | 'agentId' | 'userId' | 'cwd' | 'leafId' | 'createdAt' | 'updatedAt',
+  | 'id'
+  | 'agentId'
+  | 'userId'
+  | 'cwd'
+  | 'leafId'
+  | 'assetId'
+  | 'userCommentId'
+  | 'createdAt'
+  | 'updatedAt',
   ExtArgs['result']['agentSession']
 >
 export type AgentSessionInclude<
@@ -1106,6 +1414,7 @@ export type AgentSessionInclude<
 > = {
   agent?: boolean | Prisma.AgentDefaultArgs<ExtArgs>
   user?: boolean | Prisma.AgentSession$userArgs<ExtArgs>
+  asset?: boolean | Prisma.AgentSession$assetArgs<ExtArgs>
   entries?: boolean | Prisma.AgentSession$entriesArgs<ExtArgs>
   comments?: boolean | Prisma.AgentSession$commentsArgs<ExtArgs>
   _count?: boolean | Prisma.AgentSessionCountOutputTypeDefaultArgs<ExtArgs>
@@ -1115,12 +1424,14 @@ export type AgentSessionIncludeCreateManyAndReturn<
 > = {
   agent?: boolean | Prisma.AgentDefaultArgs<ExtArgs>
   user?: boolean | Prisma.AgentSession$userArgs<ExtArgs>
+  asset?: boolean | Prisma.AgentSession$assetArgs<ExtArgs>
 }
 export type AgentSessionIncludeUpdateManyAndReturn<
   ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
 > = {
   agent?: boolean | Prisma.AgentDefaultArgs<ExtArgs>
   user?: boolean | Prisma.AgentSession$userArgs<ExtArgs>
+  asset?: boolean | Prisma.AgentSession$assetArgs<ExtArgs>
 }
 
 export type $AgentSessionPayload<
@@ -1130,6 +1441,7 @@ export type $AgentSessionPayload<
   objects: {
     agent: Prisma.$AgentPayload<ExtArgs>
     user: Prisma.$UserPayload<ExtArgs> | null
+    asset: Prisma.$AssetPayload<ExtArgs> | null
     entries: Prisma.$AgentSessionEntryPayload<ExtArgs>[]
     comments: Prisma.$AssetCommentPayload<ExtArgs>[]
   }
@@ -1140,6 +1452,8 @@ export type $AgentSessionPayload<
       userId: string | null
       cwd: string
       leafId: string | null
+      assetId: string | null
+      userCommentId: string | null
       createdAt: Date
       updatedAt: Date
     },
@@ -1707,6 +2021,19 @@ export interface Prisma__AgentSessionClient<
     ExtArgs,
     GlobalOmitOptions
   >
+  asset<T extends Prisma.AgentSession$assetArgs<ExtArgs> = {}>(
+    args?: Prisma.Subset<T, Prisma.AgentSession$assetArgs<ExtArgs>>,
+  ): Prisma.Prisma__AssetClient<
+    runtime.Types.Result.GetResult<
+      Prisma.$AssetPayload<ExtArgs>,
+      T,
+      'findUniqueOrThrow',
+      GlobalOmitOptions
+    > | null,
+    null,
+    ExtArgs,
+    GlobalOmitOptions
+  >
   entries<T extends Prisma.AgentSession$entriesArgs<ExtArgs> = {}>(
     args?: Prisma.Subset<T, Prisma.AgentSession$entriesArgs<ExtArgs>>,
   ): Prisma.PrismaPromise<
@@ -1765,6 +2092,8 @@ export interface AgentSessionFieldRefs {
   readonly userId: Prisma.FieldRef<'AgentSession', 'String'>
   readonly cwd: Prisma.FieldRef<'AgentSession', 'String'>
   readonly leafId: Prisma.FieldRef<'AgentSession', 'String'>
+  readonly assetId: Prisma.FieldRef<'AgentSession', 'String'>
+  readonly userCommentId: Prisma.FieldRef<'AgentSession', 'String'>
   readonly createdAt: Prisma.FieldRef<'AgentSession', 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<'AgentSession', 'DateTime'>
 }
@@ -2225,6 +2554,27 @@ export type AgentSession$userArgs<
    */
   include?: Prisma.UserInclude<ExtArgs> | null
   where?: Prisma.UserWhereInput
+}
+
+/**
+ * AgentSession.asset
+ */
+export type AgentSession$assetArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
+> = {
+  /**
+   * Select specific fields to fetch from the Asset
+   */
+  select?: Prisma.AssetSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Asset
+   */
+  omit?: Prisma.AssetOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AssetInclude<ExtArgs> | null
+  where?: Prisma.AssetWhereInput
 }
 
 /**

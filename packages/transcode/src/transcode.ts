@@ -7,6 +7,8 @@ import * as os from 'os'
 import * as path from 'path'
 import sharp from 'sharp'
 import { promisify } from 'util'
+import { s3Service } from '@shumai/core/src/s3/s3'
+import { ulid } from 'ulid'
 
 const execAsync = promisify(exec)
 
@@ -429,6 +431,219 @@ export class TranscodeService {
       },
     })
   }
+
+  async takeScreenshots(params: {
+    assetKey: string
+    assetId: string
+    start: number
+    end: number
+    count: number
+    commentTimestamp?: number | null
+    annotations?: PrismaJson.AnnotationList | null
+  }): Promise<Array<{ key: string; timestamp: number }>> {
+    const bucket = process.env.S3_BUCKET || 'shumai'
+    const tmpDir = this.createTempDir('screenshot-')
+    const videoPath = path.join(tmpDir, path.basename(params.assetKey))
+
+    try {
+      // 1. Download video
+      await s3Service.downloadToFile(bucket, params.assetKey, videoPath)
+
+      // 2. Generate timestamps
+      let timestamps: number[] = []
+      if (params.count <= 1) {
+        timestamps = [params.start]
+      } else {
+        const step = (params.end - params.start) / params.count
+        timestamps = Array.from({ length: params.count }, (_, i) => params.start + i * step)
+      }
+
+      // 3. Snap closest timestamp to commentTimestamp if within range
+      const commentTimestamp = params.commentTimestamp
+      if (commentTimestamp !== undefined && commentTimestamp !== null) {
+        if (commentTimestamp >= params.start && commentTimestamp <= params.end) {
+          let closestIdx = 0
+          let minDiff = Math.abs(timestamps[0] - commentTimestamp)
+          for (let i = 1; i < timestamps.length; i++) {
+            const diff = Math.abs(timestamps[i] - commentTimestamp)
+            if (diff < minDiff) {
+              minDiff = diff
+              closestIdx = i
+            }
+          }
+          timestamps[closestIdx] = commentTimestamp
+        }
+      }
+
+      const results: Array<{ key: string; timestamp: number }> = []
+
+      // 4. Extract each screenshot
+      for (const t of timestamps) {
+        const outName = `shot-${t.toFixed(3)}-${ulid()}.webp`
+        const localShotPath = path.join(tmpDir, outName)
+
+        const args = [
+          '-ss',
+          t.toFixed(3),
+          '-i',
+          `"${videoPath}"`,
+          '-vframes',
+          '1',
+          '-vf',
+          'scale=-2:720',
+          '-c:v',
+          'libwebp',
+          '-q:v',
+          '80',
+          `"${localShotPath}"`,
+        ]
+        await execAsync(`ffmpeg -y ${args.join(' ')}`)
+
+        // 5. Overlay annotations if timestamp matches commentTimestamp exactly
+        if (
+          commentTimestamp !== undefined &&
+          commentTimestamp !== null &&
+          t === commentTimestamp &&
+          params.annotations &&
+          params.annotations.length > 0
+        ) {
+          const meta = await sharp(localShotPath).metadata()
+          const width = meta.width || 1280
+          const height = meta.height || 720
+
+          const svgStr = renderAnnotationsToSvg(width, height, params.annotations)
+          const tempCompositedPath = path.join(tmpDir, `composite-${outName}`)
+
+          await sharp(localShotPath)
+            .composite([{ input: Buffer.from(svgStr), top: 0, left: 0 }])
+            .toFile(tempCompositedPath)
+
+          fs.renameSync(tempCompositedPath, localShotPath)
+        }
+
+        // 6. Upload to S3
+        const s3Key = `file/${params.assetId}/screenshots/${outName}`
+        const fileBuffer = fs.readFileSync(localShotPath)
+        await s3Service.putObject(bucket, s3Key, fileBuffer, fileBuffer.length, 'image/webp')
+
+        results.push({ key: s3Key, timestamp: t })
+      }
+
+      return results
+    } finally {
+      this.removeDir(tmpDir)
+    }
+  }
+
+  async overlayAnnotations(params: {
+    assetKey: string
+    assetId: string
+    annotations: PrismaJson.AnnotationList
+  }): Promise<string> {
+    const bucket = process.env.S3_BUCKET || 'shumai'
+    const tmpDir = this.createTempDir('annotation-')
+    const imgPath = path.join(tmpDir, path.basename(params.assetKey))
+
+    try {
+      // 1. Download image
+      await s3Service.downloadToFile(bucket, params.assetKey, imgPath)
+
+      // 2. Read dimensions
+      const meta = await sharp(imgPath).metadata()
+      const width = meta.width || 1920
+      const height = meta.height || 1080
+
+      // 3. Render SVG
+      const svgStr = renderAnnotationsToSvg(width, height, params.annotations)
+
+      // 4. Composite
+      const outName = `annotation-${ulid()}.webp`
+      const localOutPath = path.join(tmpDir, outName)
+
+      await sharp(imgPath)
+        .composite([{ input: Buffer.from(svgStr), top: 0, left: 0 }])
+        .webp({ quality: 90 })
+        .toFile(localOutPath)
+
+      // 5. Upload to S3
+      const s3Key = `file/${params.assetId}/annotations/${outName}`
+      const fileBuffer = fs.readFileSync(localOutPath)
+      await s3Service.putObject(bucket, s3Key, fileBuffer, fileBuffer.length, 'image/webp')
+
+      return s3Key
+    } finally {
+      this.removeDir(tmpDir)
+    }
+  }
+}
+
+function renderAnnotationsToSvg(
+  width: number,
+  height: number,
+  annotations: PrismaJson.AnnotationList,
+): string {
+  const strokeWidth = Math.max(2, Math.round(Math.max(width, height) * 0.004))
+  const svgElements: string[] = []
+
+  for (const ann of annotations) {
+    const color = ann.color || '#ff0000'
+    const type = ann.type
+
+    switch (type) {
+      case 'box': {
+        if (ann.points.length < 2) continue
+        const [start, end] = ann.points
+        const x = Math.min(start[0], end[0]) * width
+        const y = Math.min(start[1], end[1]) * height
+        const boxWidth = Math.abs(end[0] - start[0]) * width
+        const boxHeight = Math.abs(end[1] - start[1]) * height
+
+        svgElements.push(
+          `<rect x="${x}" y="${y}" width="${boxWidth}" height="${boxHeight}" stroke="${color}" stroke-width="${strokeWidth}" fill="none" />`,
+        )
+        break
+      }
+      case 'line':
+      case 'freehand': {
+        if (ann.points.length < 2) continue
+        const pointsStr = ann.points.map(([px, py]) => `${px * width},${py * height}`).join(' ')
+        svgElements.push(
+          `<polyline points="${pointsStr}" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" fill="none" />`,
+        )
+        break
+      }
+      case 'arrow': {
+        if (ann.points.length < 2) continue
+        const pts = ann.points.map(([px, py]) => [px * width, py * height])
+        const pointsStr = pts.map(([x, y]) => `${x},${y}`).join(' ')
+
+        svgElements.push(
+          `<polyline points="${pointsStr}" stroke="${color}" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" fill="none" />`,
+        )
+
+        const endPt = pts[pts.length - 1]
+        const prevPt = pts[pts.length - 2]
+        const dx = endPt[0] - prevPt[0]
+        const dy = endPt[1] - prevPt[1]
+        const angle = Math.atan2(dy, dx)
+
+        const pointerLength = Math.max(12, Math.max(width, height) * 0.015)
+        const x1 = endPt[0] - pointerLength * Math.cos(angle - Math.PI / 6)
+        const y1 = endPt[1] - pointerLength * Math.sin(angle - Math.PI / 6)
+        const x2 = endPt[0] - pointerLength * Math.cos(angle + Math.PI / 6)
+        const y2 = endPt[1] - pointerLength * Math.sin(angle + Math.PI / 6)
+
+        svgElements.push(
+          `<polygon points="${endPt[0]},${endPt[1]} ${x1},${y1} ${x2},${y2}" fill="${color}" />`,
+        )
+        break
+      }
+    }
+  }
+
+  return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">${svgElements.join(
+    '\n',
+  )}</svg>`
 }
 
 export const transcodeService = new TranscodeService()

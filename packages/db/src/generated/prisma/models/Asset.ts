@@ -367,6 +367,7 @@ export type AssetWhereInput = {
     Prisma.ShareLinkNullableScalarRelationFilter,
     Prisma.ShareLinkWhereInput
   > | null
+  agentSessions?: Prisma.AgentSessionListRelationFilter
 }
 
 export type AssetOrderByWithRelationInput = {
@@ -408,6 +409,7 @@ export type AssetOrderByWithRelationInput = {
   projectRootFolder?: Prisma.ProjectOrderByWithRelationInput
   projectShareRoot?: Prisma.ProjectOrderByWithRelationInput
   shareLinkRootFolder?: Prisma.ShareLinkOrderByWithRelationInput
+  agentSessions?: Prisma.AgentSessionOrderByRelationAggregateInput
 }
 
 export type AssetWhereUniqueInput = Prisma.AtLeast<
@@ -472,6 +474,7 @@ export type AssetWhereUniqueInput = Prisma.AtLeast<
       Prisma.ShareLinkNullableScalarRelationFilter,
       Prisma.ShareLinkWhereInput
     > | null
+    agentSessions?: Prisma.AgentSessionListRelationFilter
   },
   'id' | 'parentIdTargetId'
 >
@@ -565,6 +568,7 @@ export type AssetCreateInput = {
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAssetInput
 }
 
 export type AssetUncheckedCreateInput = {
@@ -600,6 +604,7 @@ export type AssetUncheckedCreateInput = {
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAssetInput
 }
 
 export type AssetUpdateInput = {
@@ -635,6 +640,7 @@ export type AssetUpdateInput = {
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUncheckedUpdateInput = {
@@ -670,6 +676,7 @@ export type AssetUncheckedUpdateInput = {
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetCreateManyInput = {
@@ -1668,6 +1675,34 @@ export type AssetUncheckedUpdateManyWithoutTaskNestedInput = {
   deleteMany?: Prisma.AssetScalarWhereInput | Prisma.AssetScalarWhereInput[]
 }
 
+export type AssetCreateNestedOneWithoutAgentSessionsInput = {
+  create?: Prisma.XOR<
+    Prisma.AssetCreateWithoutAgentSessionsInput,
+    Prisma.AssetUncheckedCreateWithoutAgentSessionsInput
+  >
+  connectOrCreate?: Prisma.AssetCreateOrConnectWithoutAgentSessionsInput
+  connect?: Prisma.AssetWhereUniqueInput
+}
+
+export type AssetUpdateOneWithoutAgentSessionsNestedInput = {
+  create?: Prisma.XOR<
+    Prisma.AssetCreateWithoutAgentSessionsInput,
+    Prisma.AssetUncheckedCreateWithoutAgentSessionsInput
+  >
+  connectOrCreate?: Prisma.AssetCreateOrConnectWithoutAgentSessionsInput
+  upsert?: Prisma.AssetUpsertWithoutAgentSessionsInput
+  disconnect?: Prisma.AssetWhereInput | boolean
+  delete?: Prisma.AssetWhereInput | boolean
+  connect?: Prisma.AssetWhereUniqueInput
+  update?: Prisma.XOR<
+    Prisma.XOR<
+      Prisma.AssetUpdateToOneWithWhereWithoutAgentSessionsInput,
+      Prisma.AssetUpdateWithoutAgentSessionsInput
+    >,
+    Prisma.AssetUncheckedUpdateWithoutAgentSessionsInput
+  >
+}
+
 export type AssetCreateWithoutCreatorInput = {
   id?: string
   name?: string
@@ -1700,6 +1735,7 @@ export type AssetCreateWithoutCreatorInput = {
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAssetInput
 }
 
 export type AssetUncheckedCreateWithoutCreatorInput = {
@@ -1734,6 +1770,7 @@ export type AssetUncheckedCreateWithoutCreatorInput = {
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAssetInput
 }
 
 export type AssetCreateOrConnectWithoutCreatorInput = {
@@ -1836,6 +1873,7 @@ export type AssetCreateWithoutTeamRootFolderInput = {
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAssetInput
 }
 
 export type AssetUncheckedCreateWithoutTeamRootFolderInput = {
@@ -1870,6 +1908,7 @@ export type AssetUncheckedCreateWithoutTeamRootFolderInput = {
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAssetInput
 }
 
 export type AssetCreateOrConnectWithoutTeamRootFolderInput = {
@@ -1932,6 +1971,7 @@ export type AssetUpdateWithoutTeamRootFolderInput = {
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUncheckedUpdateWithoutTeamRootFolderInput = {
@@ -1966,6 +2006,7 @@ export type AssetUncheckedUpdateWithoutTeamRootFolderInput = {
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetCreateWithoutProjectRootFolderInput = {
@@ -2000,6 +2041,7 @@ export type AssetCreateWithoutProjectRootFolderInput = {
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAssetInput
 }
 
 export type AssetUncheckedCreateWithoutProjectRootFolderInput = {
@@ -2034,6 +2076,7 @@ export type AssetUncheckedCreateWithoutProjectRootFolderInput = {
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAssetInput
 }
 
 export type AssetCreateOrConnectWithoutProjectRootFolderInput = {
@@ -2076,6 +2119,7 @@ export type AssetCreateWithoutProjectShareRootInput = {
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   shareLinkRootFolder?: Prisma.ShareLinkCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAssetInput
 }
 
 export type AssetUncheckedCreateWithoutProjectShareRootInput = {
@@ -2110,6 +2154,7 @@ export type AssetUncheckedCreateWithoutProjectShareRootInput = {
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAssetInput
 }
 
 export type AssetCreateOrConnectWithoutProjectShareRootInput = {
@@ -2152,6 +2197,7 @@ export type AssetCreateWithoutProjectInput = {
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAssetInput
 }
 
 export type AssetUncheckedCreateWithoutProjectInput = {
@@ -2186,6 +2232,7 @@ export type AssetUncheckedCreateWithoutProjectInput = {
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAssetInput
 }
 
 export type AssetCreateOrConnectWithoutProjectInput = {
@@ -2253,6 +2300,7 @@ export type AssetUpdateWithoutProjectRootFolderInput = {
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUncheckedUpdateWithoutProjectRootFolderInput = {
@@ -2287,6 +2335,7 @@ export type AssetUncheckedUpdateWithoutProjectRootFolderInput = {
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUpsertWithoutProjectShareRootInput = {
@@ -2341,6 +2390,7 @@ export type AssetUpdateWithoutProjectShareRootInput = {
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUncheckedUpdateWithoutProjectShareRootInput = {
@@ -2375,6 +2425,7 @@ export type AssetUncheckedUpdateWithoutProjectShareRootInput = {
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUpsertWithWhereUniqueWithoutProjectInput = {
@@ -2437,6 +2488,7 @@ export type AssetCreateWithoutShareLinkRootFolderInput = {
   teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAssetInput
 }
 
 export type AssetUncheckedCreateWithoutShareLinkRootFolderInput = {
@@ -2471,6 +2523,7 @@ export type AssetUncheckedCreateWithoutShareLinkRootFolderInput = {
   teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAssetInput
 }
 
 export type AssetCreateOrConnectWithoutShareLinkRootFolderInput = {
@@ -2533,6 +2586,7 @@ export type AssetUpdateWithoutShareLinkRootFolderInput = {
   teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUncheckedUpdateWithoutShareLinkRootFolderInput = {
@@ -2567,6 +2621,7 @@ export type AssetUncheckedUpdateWithoutShareLinkRootFolderInput = {
   teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetCreateWithoutChildrenInput = {
@@ -2601,6 +2656,7 @@ export type AssetCreateWithoutChildrenInput = {
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAssetInput
 }
 
 export type AssetUncheckedCreateWithoutChildrenInput = {
@@ -2635,6 +2691,7 @@ export type AssetUncheckedCreateWithoutChildrenInput = {
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAssetInput
 }
 
 export type AssetCreateOrConnectWithoutChildrenInput = {
@@ -2677,6 +2734,7 @@ export type AssetCreateWithoutParentInput = {
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAssetInput
 }
 
 export type AssetUncheckedCreateWithoutParentInput = {
@@ -2711,6 +2769,7 @@ export type AssetUncheckedCreateWithoutParentInput = {
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAssetInput
 }
 
 export type AssetCreateOrConnectWithoutParentInput = {
@@ -2758,6 +2817,7 @@ export type AssetCreateWithoutSymlinksInput = {
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAssetInput
 }
 
 export type AssetUncheckedCreateWithoutSymlinksInput = {
@@ -2792,6 +2852,7 @@ export type AssetUncheckedCreateWithoutSymlinksInput = {
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAssetInput
 }
 
 export type AssetCreateOrConnectWithoutSymlinksInput = {
@@ -2834,6 +2895,7 @@ export type AssetCreateWithoutTargetInput = {
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAssetInput
 }
 
 export type AssetUncheckedCreateWithoutTargetInput = {
@@ -2868,6 +2930,7 @@ export type AssetUncheckedCreateWithoutTargetInput = {
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAssetInput
 }
 
 export type AssetCreateOrConnectWithoutTargetInput = {
@@ -2935,6 +2998,7 @@ export type AssetUpdateWithoutChildrenInput = {
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUncheckedUpdateWithoutChildrenInput = {
@@ -2969,6 +3033,7 @@ export type AssetUncheckedUpdateWithoutChildrenInput = {
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUpsertWithWhereUniqueWithoutParentInput = {
@@ -3051,6 +3116,7 @@ export type AssetUpdateWithoutSymlinksInput = {
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUncheckedUpdateWithoutSymlinksInput = {
@@ -3085,6 +3151,7 @@ export type AssetUncheckedUpdateWithoutSymlinksInput = {
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUpsertWithWhereUniqueWithoutTargetInput = {
@@ -3147,6 +3214,7 @@ export type AssetCreateWithoutStorageKeyInput = {
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAssetInput
 }
 
 export type AssetUncheckedCreateWithoutStorageKeyInput = {
@@ -3181,6 +3249,7 @@ export type AssetUncheckedCreateWithoutStorageKeyInput = {
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAssetInput
 }
 
 export type AssetCreateOrConnectWithoutStorageKeyInput = {
@@ -3256,6 +3325,7 @@ export type AssetCreateWithoutMetadataValuesInput = {
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAssetInput
 }
 
 export type AssetUncheckedCreateWithoutMetadataValuesInput = {
@@ -3290,6 +3360,7 @@ export type AssetUncheckedCreateWithoutMetadataValuesInput = {
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAssetInput
 }
 
 export type AssetCreateOrConnectWithoutMetadataValuesInput = {
@@ -3352,6 +3423,7 @@ export type AssetUpdateWithoutMetadataValuesInput = {
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUncheckedUpdateWithoutMetadataValuesInput = {
@@ -3386,6 +3458,7 @@ export type AssetUncheckedUpdateWithoutMetadataValuesInput = {
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetCreateWithoutCommentsInput = {
@@ -3420,6 +3493,7 @@ export type AssetCreateWithoutCommentsInput = {
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAssetInput
 }
 
 export type AssetUncheckedCreateWithoutCommentsInput = {
@@ -3454,6 +3528,7 @@ export type AssetUncheckedCreateWithoutCommentsInput = {
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAssetInput
 }
 
 export type AssetCreateOrConnectWithoutCommentsInput = {
@@ -3516,6 +3591,7 @@ export type AssetUpdateWithoutCommentsInput = {
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUncheckedUpdateWithoutCommentsInput = {
@@ -3550,6 +3626,7 @@ export type AssetUncheckedUpdateWithoutCommentsInput = {
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetCreateWithoutCommentAttachmentsInput = {
@@ -3584,6 +3661,7 @@ export type AssetCreateWithoutCommentAttachmentsInput = {
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAssetInput
 }
 
 export type AssetUncheckedCreateWithoutCommentAttachmentsInput = {
@@ -3618,6 +3696,7 @@ export type AssetUncheckedCreateWithoutCommentAttachmentsInput = {
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAssetInput
 }
 
 export type AssetCreateOrConnectWithoutCommentAttachmentsInput = {
@@ -3680,6 +3759,7 @@ export type AssetUpdateWithoutCommentAttachmentsInput = {
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUncheckedUpdateWithoutCommentAttachmentsInput = {
@@ -3714,6 +3794,7 @@ export type AssetUncheckedUpdateWithoutCommentAttachmentsInput = {
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetCreateWithoutEmbeddingsInput = {
@@ -3748,6 +3829,7 @@ export type AssetCreateWithoutEmbeddingsInput = {
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAssetInput
 }
 
 export type AssetUncheckedCreateWithoutEmbeddingsInput = {
@@ -3782,6 +3864,7 @@ export type AssetUncheckedCreateWithoutEmbeddingsInput = {
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAssetInput
 }
 
 export type AssetCreateOrConnectWithoutEmbeddingsInput = {
@@ -3844,6 +3927,7 @@ export type AssetUpdateWithoutEmbeddingsInput = {
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUncheckedUpdateWithoutEmbeddingsInput = {
@@ -3878,6 +3962,7 @@ export type AssetUncheckedUpdateWithoutEmbeddingsInput = {
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetCreateWithoutNotificationsInput = {
@@ -3912,6 +3997,7 @@ export type AssetCreateWithoutNotificationsInput = {
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAssetInput
 }
 
 export type AssetUncheckedCreateWithoutNotificationsInput = {
@@ -3946,6 +4032,7 @@ export type AssetUncheckedCreateWithoutNotificationsInput = {
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAssetInput
 }
 
 export type AssetCreateOrConnectWithoutNotificationsInput = {
@@ -4008,6 +4095,7 @@ export type AssetUpdateWithoutNotificationsInput = {
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUncheckedUpdateWithoutNotificationsInput = {
@@ -4042,6 +4130,7 @@ export type AssetUncheckedUpdateWithoutNotificationsInput = {
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetCreateWithoutTaskInput = {
@@ -4076,6 +4165,7 @@ export type AssetCreateWithoutTaskInput = {
   projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutAssetInput
 }
 
 export type AssetUncheckedCreateWithoutTaskInput = {
@@ -4110,6 +4200,7 @@ export type AssetUncheckedCreateWithoutTaskInput = {
   projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
   projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedCreateNestedOneWithoutRootFolderInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutAssetInput
 }
 
 export type AssetCreateOrConnectWithoutTaskInput = {
@@ -4148,6 +4239,174 @@ export type AssetUpdateManyWithWhereWithoutTaskInput = {
     Prisma.AssetUpdateManyMutationInput,
     Prisma.AssetUncheckedUpdateManyWithoutTaskInput
   >
+}
+
+export type AssetCreateWithoutAgentSessionsInput = {
+  id?: string
+  name?: string
+  nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
+  type: $Enums.AssetType
+  mediaType?: string | null
+  fileCount?: number
+  sizeByte?: number
+  status: $Enums.AssetStatus
+  transcodeTaskId?: string | null
+  media?: PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  isDeleted?: boolean
+  deletedAt?: Date | string | null
+  sortIndex?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  parent?: Prisma.AssetCreateNestedOneWithoutChildrenInput
+  children?: Prisma.AssetCreateNestedManyWithoutParentInput
+  target?: Prisma.AssetCreateNestedOneWithoutSymlinksInput
+  symlinks?: Prisma.AssetCreateNestedManyWithoutTargetInput
+  storageKey?: Prisma.StorageKeyCreateNestedOneWithoutAssetsInput
+  metadataValues?: Prisma.AssetMetadataValueCreateNestedManyWithoutAssetInput
+  creator?: Prisma.UserCreateNestedOneWithoutAssetsInput
+  task?: Prisma.TaskCreateNestedOneWithoutAssetsInput
+  project?: Prisma.ProjectCreateNestedOneWithoutAssetsInput
+  comments?: Prisma.AssetCommentCreateNestedManyWithoutAssetInput
+  commentAttachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutAssetInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutAssetInput
+  embeddings?: Prisma.AssetEmbeddingCreateNestedManyWithoutAssetInput
+  teamRootFolder?: Prisma.TeamCreateNestedOneWithoutRootFolderInput
+  projectRootFolder?: Prisma.ProjectCreateNestedOneWithoutRootFolderInput
+  projectShareRoot?: Prisma.ProjectCreateNestedOneWithoutShareRootInput
+  shareLinkRootFolder?: Prisma.ShareLinkCreateNestedOneWithoutRootFolderInput
+}
+
+export type AssetUncheckedCreateWithoutAgentSessionsInput = {
+  id?: string
+  name?: string
+  nameNgram?: Prisma.AssetCreatenameNgramInput | string[]
+  type: $Enums.AssetType
+  mediaType?: string | null
+  fileCount?: number
+  sizeByte?: number
+  status: $Enums.AssetStatus
+  transcodeTaskId?: string | null
+  media?: PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  isDeleted?: boolean
+  deletedAt?: Date | string | null
+  sortIndex?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  parentId?: string | null
+  targetId?: string | null
+  storageKeyId?: string | null
+  creatorId?: string | null
+  taskId?: string | null
+  projectId?: string | null
+  children?: Prisma.AssetUncheckedCreateNestedManyWithoutParentInput
+  symlinks?: Prisma.AssetUncheckedCreateNestedManyWithoutTargetInput
+  metadataValues?: Prisma.AssetMetadataValueUncheckedCreateNestedManyWithoutAssetInput
+  comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutAssetInput
+  commentAttachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutAssetInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutAssetInput
+  embeddings?: Prisma.AssetEmbeddingUncheckedCreateNestedManyWithoutAssetInput
+  teamRootFolder?: Prisma.TeamUncheckedCreateNestedOneWithoutRootFolderInput
+  projectRootFolder?: Prisma.ProjectUncheckedCreateNestedOneWithoutRootFolderInput
+  projectShareRoot?: Prisma.ProjectUncheckedCreateNestedOneWithoutShareRootInput
+  shareLinkRootFolder?: Prisma.ShareLinkUncheckedCreateNestedOneWithoutRootFolderInput
+}
+
+export type AssetCreateOrConnectWithoutAgentSessionsInput = {
+  where: Prisma.AssetWhereUniqueInput
+  create: Prisma.XOR<
+    Prisma.AssetCreateWithoutAgentSessionsInput,
+    Prisma.AssetUncheckedCreateWithoutAgentSessionsInput
+  >
+}
+
+export type AssetUpsertWithoutAgentSessionsInput = {
+  update: Prisma.XOR<
+    Prisma.AssetUpdateWithoutAgentSessionsInput,
+    Prisma.AssetUncheckedUpdateWithoutAgentSessionsInput
+  >
+  create: Prisma.XOR<
+    Prisma.AssetCreateWithoutAgentSessionsInput,
+    Prisma.AssetUncheckedCreateWithoutAgentSessionsInput
+  >
+  where?: Prisma.AssetWhereInput
+}
+
+export type AssetUpdateToOneWithWhereWithoutAgentSessionsInput = {
+  where?: Prisma.AssetWhereInput
+  data: Prisma.XOR<
+    Prisma.AssetUpdateWithoutAgentSessionsInput,
+    Prisma.AssetUncheckedUpdateWithoutAgentSessionsInput
+  >
+}
+
+export type AssetUpdateWithoutAgentSessionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
+  type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
+  mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fileCount?: Prisma.IntFieldUpdateOperationsInput | number
+  sizeByte?: Prisma.IntFieldUpdateOperationsInput | number
+  status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
+  transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  media?: PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  parent?: Prisma.AssetUpdateOneWithoutChildrenNestedInput
+  children?: Prisma.AssetUpdateManyWithoutParentNestedInput
+  target?: Prisma.AssetUpdateOneWithoutSymlinksNestedInput
+  symlinks?: Prisma.AssetUpdateManyWithoutTargetNestedInput
+  storageKey?: Prisma.StorageKeyUpdateOneWithoutAssetsNestedInput
+  metadataValues?: Prisma.AssetMetadataValueUpdateManyWithoutAssetNestedInput
+  creator?: Prisma.UserUpdateOneWithoutAssetsNestedInput
+  task?: Prisma.TaskUpdateOneWithoutAssetsNestedInput
+  project?: Prisma.ProjectUpdateOneWithoutAssetsNestedInput
+  comments?: Prisma.AssetCommentUpdateManyWithoutAssetNestedInput
+  commentAttachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutAssetNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutAssetNestedInput
+  embeddings?: Prisma.AssetEmbeddingUpdateManyWithoutAssetNestedInput
+  teamRootFolder?: Prisma.TeamUpdateOneWithoutRootFolderNestedInput
+  projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
+  projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
+  shareLinkRootFolder?: Prisma.ShareLinkUpdateOneWithoutRootFolderNestedInput
+}
+
+export type AssetUncheckedUpdateWithoutAgentSessionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  nameNgram?: Prisma.AssetUpdatenameNgramInput | string[]
+  type?: Prisma.EnumAssetTypeFieldUpdateOperationsInput | $Enums.AssetType
+  mediaType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fileCount?: Prisma.IntFieldUpdateOperationsInput | number
+  sizeByte?: Prisma.IntFieldUpdateOperationsInput | number
+  status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
+  transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  media?: PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
+  isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  storageKeyId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  taskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  children?: Prisma.AssetUncheckedUpdateManyWithoutParentNestedInput
+  symlinks?: Prisma.AssetUncheckedUpdateManyWithoutTargetNestedInput
+  metadataValues?: Prisma.AssetMetadataValueUncheckedUpdateManyWithoutAssetNestedInput
+  comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutAssetNestedInput
+  commentAttachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutAssetNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutAssetNestedInput
+  embeddings?: Prisma.AssetEmbeddingUncheckedUpdateManyWithoutAssetNestedInput
+  teamRootFolder?: Prisma.TeamUncheckedUpdateOneWithoutRootFolderNestedInput
+  projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
+  projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
+  shareLinkRootFolder?: Prisma.ShareLinkUncheckedUpdateOneWithoutRootFolderNestedInput
 }
 
 export type AssetCreateManyCreatorInput = {
@@ -4205,6 +4464,7 @@ export type AssetUpdateWithoutCreatorInput = {
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUncheckedUpdateWithoutCreatorInput = {
@@ -4239,6 +4499,7 @@ export type AssetUncheckedUpdateWithoutCreatorInput = {
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUncheckedUpdateManyWithoutCreatorInput = {
@@ -4319,6 +4580,7 @@ export type AssetUpdateWithoutProjectInput = {
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUncheckedUpdateWithoutProjectInput = {
@@ -4353,6 +4615,7 @@ export type AssetUncheckedUpdateWithoutProjectInput = {
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUncheckedUpdateManyWithoutProjectInput = {
@@ -4456,6 +4719,7 @@ export type AssetUpdateWithoutParentInput = {
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUncheckedUpdateWithoutParentInput = {
@@ -4490,6 +4754,7 @@ export type AssetUncheckedUpdateWithoutParentInput = {
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUncheckedUpdateManyWithoutParentInput = {
@@ -4547,6 +4812,7 @@ export type AssetUpdateWithoutTargetInput = {
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUncheckedUpdateWithoutTargetInput = {
@@ -4581,6 +4847,7 @@ export type AssetUncheckedUpdateWithoutTargetInput = {
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUncheckedUpdateManyWithoutTargetInput = {
@@ -4661,6 +4928,7 @@ export type AssetUpdateWithoutStorageKeyInput = {
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUncheckedUpdateWithoutStorageKeyInput = {
@@ -4695,6 +4963,7 @@ export type AssetUncheckedUpdateWithoutStorageKeyInput = {
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUncheckedUpdateManyWithoutStorageKeyInput = {
@@ -4775,6 +5044,7 @@ export type AssetUpdateWithoutTaskInput = {
   projectRootFolder?: Prisma.ProjectUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUncheckedUpdateWithoutTaskInput = {
@@ -4809,6 +5079,7 @@ export type AssetUncheckedUpdateWithoutTaskInput = {
   projectRootFolder?: Prisma.ProjectUncheckedUpdateOneWithoutRootFolderNestedInput
   projectShareRoot?: Prisma.ProjectUncheckedUpdateOneWithoutShareRootNestedInput
   shareLinkRootFolder?: Prisma.ShareLinkUncheckedUpdateOneWithoutRootFolderNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutAssetNestedInput
 }
 
 export type AssetUncheckedUpdateManyWithoutTaskInput = {
@@ -4846,6 +5117,7 @@ export type AssetCountOutputType = {
   commentAttachments: number
   notifications: number
   embeddings: number
+  agentSessions: number
 }
 
 export type AssetCountOutputTypeSelect<
@@ -4858,6 +5130,7 @@ export type AssetCountOutputTypeSelect<
   commentAttachments?: boolean | AssetCountOutputTypeCountCommentAttachmentsArgs
   notifications?: boolean | AssetCountOutputTypeCountNotificationsArgs
   embeddings?: boolean | AssetCountOutputTypeCountEmbeddingsArgs
+  agentSessions?: boolean | AssetCountOutputTypeCountAgentSessionsArgs
 }
 
 /**
@@ -4935,6 +5208,15 @@ export type AssetCountOutputTypeCountEmbeddingsArgs<
   where?: Prisma.AssetEmbeddingWhereInput
 }
 
+/**
+ * AssetCountOutputType without action
+ */
+export type AssetCountOutputTypeCountAgentSessionsArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
+> = {
+  where?: Prisma.AgentSessionWhereInput
+}
+
 export type AssetSelect<
   ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
 > = runtime.Types.Extensions.GetSelect<
@@ -4977,6 +5259,7 @@ export type AssetSelect<
     projectRootFolder?: boolean | Prisma.Asset$projectRootFolderArgs<ExtArgs>
     projectShareRoot?: boolean | Prisma.Asset$projectShareRootArgs<ExtArgs>
     shareLinkRootFolder?: boolean | Prisma.Asset$shareLinkRootFolderArgs<ExtArgs>
+    agentSessions?: boolean | Prisma.Asset$agentSessionsArgs<ExtArgs>
     _count?: boolean | Prisma.AssetCountOutputTypeDefaultArgs<ExtArgs>
   },
   ExtArgs['result']['asset']
@@ -5122,6 +5405,7 @@ export type AssetInclude<
   projectRootFolder?: boolean | Prisma.Asset$projectRootFolderArgs<ExtArgs>
   projectShareRoot?: boolean | Prisma.Asset$projectShareRootArgs<ExtArgs>
   shareLinkRootFolder?: boolean | Prisma.Asset$shareLinkRootFolderArgs<ExtArgs>
+  agentSessions?: boolean | Prisma.Asset$agentSessionsArgs<ExtArgs>
   _count?: boolean | Prisma.AssetCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type AssetIncludeCreateManyAndReturn<
@@ -5167,6 +5451,7 @@ export type $AssetPayload<
     projectRootFolder: Prisma.$ProjectPayload<ExtArgs> | null
     projectShareRoot: Prisma.$ProjectPayload<ExtArgs> | null
     shareLinkRootFolder: Prisma.$ShareLinkPayload<ExtArgs> | null
+    agentSessions: Prisma.$AgentSessionPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<
     {
@@ -5910,6 +6195,17 @@ export interface Prisma__AssetClient<
     null,
     ExtArgs,
     GlobalOmitOptions
+  >
+  agentSessions<T extends Prisma.Asset$agentSessionsArgs<ExtArgs> = {}>(
+    args?: Prisma.Subset<T, Prisma.Asset$agentSessionsArgs<ExtArgs>>,
+  ): Prisma.PrismaPromise<
+    | runtime.Types.Result.GetResult<
+        Prisma.$AgentSessionPayload<ExtArgs>,
+        T,
+        'findMany',
+        GlobalOmitOptions
+      >
+    | Null
   >
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -6792,6 +7088,34 @@ export type Asset$shareLinkRootFolderArgs<
    */
   include?: Prisma.ShareLinkInclude<ExtArgs> | null
   where?: Prisma.ShareLinkWhereInput
+}
+
+/**
+ * Asset.agentSessions
+ */
+export type Asset$agentSessionsArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
+> = {
+  /**
+   * Select specific fields to fetch from the AgentSession
+   */
+  select?: Prisma.AgentSessionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AgentSession
+   */
+  omit?: Prisma.AgentSessionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AgentSessionInclude<ExtArgs> | null
+  where?: Prisma.AgentSessionWhereInput
+  orderBy?:
+    | Prisma.AgentSessionOrderByWithRelationInput
+    | Prisma.AgentSessionOrderByWithRelationInput[]
+  cursor?: Prisma.AgentSessionWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AgentSessionScalarFieldEnum | Prisma.AgentSessionScalarFieldEnum[]
 }
 
 /**

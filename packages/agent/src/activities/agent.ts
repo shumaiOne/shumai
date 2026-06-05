@@ -303,12 +303,19 @@ export async function initializeAgentSessionActivity(params: {
     })
   }
 
+  const userComment = await prisma.assetComment.findUnique({
+    where: { id: params.userCommentId },
+    include: { creator: true },
+  })
+
   // Create a new AgentSession
   const newSession = await prisma.agentSession.create({
     data: {
       agentId,
       userId: params.userId || null,
       cwd: process.cwd(),
+      assetId: userComment ? userComment.assetId : null,
+      userCommentId: params.userCommentId,
     },
   })
   const sessionId = newSession.id
@@ -322,11 +329,6 @@ export async function initializeAgentSessionActivity(params: {
     creator: { type: string; name: string } | null
     sessionId: string | null
   }> = []
-
-  const userComment = await prisma.assetComment.findUnique({
-    where: { id: params.userCommentId },
-    include: { creator: true },
-  })
 
   if (userComment) {
     if (!userComment.replyToId) {

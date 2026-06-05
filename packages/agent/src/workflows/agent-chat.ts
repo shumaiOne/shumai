@@ -106,9 +106,14 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       task.assetId,
     )
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mediaInfo = asset.media as any
+    const duration = mediaInfo?.duration
+
     const instruction = new AgentChatPromptBuilder(asset.id)
       .withPathContext(pathContext)
-      .withMediaInfo(asset.media)
+      .withAssetDetails(asset.name, asset.mediaType, duration)
+      .withCommentTimestamp(userComment.second)
       .withExplicitMention(payload.agent?.explicitMention)
       .build()
 

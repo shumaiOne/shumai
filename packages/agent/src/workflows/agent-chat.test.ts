@@ -55,6 +55,8 @@ describe('Agent Chat Workflow', () => {
       id: 'a1',
       project: { teamId: 't1' },
       type: 'file',
+      name: 'test-file.png',
+      mediaType: 'image/png',
       parentId: 'parent-folder-id',
     })
     mockActivities.getCommentActivity.mockResolvedValue({
@@ -127,6 +129,8 @@ describe('Agent Chat Workflow', () => {
     // Verify agent instruction composition
     const expectedInstruction1 = new AgentChatPromptBuilder('a1')
       .withPathContext('Path: folder/subfolder/file.png')
+      .withAssetDetails('test-file.png', 'image/png', undefined)
+      .withCommentTimestamp(null)
       .withExplicitMention(true)
       .build()
 
@@ -182,6 +186,8 @@ describe('Agent Chat Workflow', () => {
     expect(mockActivities.initializeAgentSessionActivity).not.toHaveBeenCalled()
     const expectedInstruction2 = new AgentChatPromptBuilder('a1')
       .withPathContext('Path: folder/subfolder/file.png')
+      .withAssetDetails('test-file.png', 'image/png', undefined)
+      .withCommentTimestamp(null)
       .withExplicitMention(false)
       .build()
 
@@ -216,6 +222,8 @@ describe('Agent Chat Workflow', () => {
     // Verify instruction contains not explicitly mentioned instructions
     const expectedInstruction3 = new AgentChatPromptBuilder('a1')
       .withPathContext('Path: folder/subfolder/file.png')
+      .withAssetDetails('test-file.png', 'image/png', undefined)
+      .withCommentTimestamp(null)
       .withExplicitMention(false)
       .build()
 
@@ -280,6 +288,8 @@ describe('Agent Chat Workflow', () => {
 
     const expectedInstruction4 = new AgentChatPromptBuilder('a1')
       .withPathContext('Path: folder/subfolder/file.png')
+      .withAssetDetails('test-file.png', 'image/png', undefined)
+      .withCommentTimestamp(null)
       .withExplicitMention(false)
       .build()
 
@@ -296,6 +306,8 @@ describe('Agent Chat Workflow', () => {
       id: 'a1',
       project: { teamId: 't1' },
       type: 'file',
+      name: 'test-asset',
+      mediaType: 'video/mp4',
       media: {
         duration: 10,
         height: 1080,
@@ -319,11 +331,8 @@ describe('Agent Chat Workflow', () => {
 
     const expectedInstruction5 = new AgentChatPromptBuilder('a1')
       .withPathContext('Path: folder/subfolder/file.png')
-      .withMediaInfo({
-        duration: 10,
-        height: 1080,
-        width: 1920,
-      })
+      .withAssetDetails('test-asset', 'video/mp4', 10)
+      .withCommentTimestamp(null)
       .withExplicitMention(false)
       .build()
 

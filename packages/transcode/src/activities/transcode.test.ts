@@ -1,7 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
-import { getMediaInfoActivity, transcodeVideoActivity, updateAssetMediaActivity } from './transcode'
+import {
+  getMediaInfoActivity,
+  transcodeVideoActivity,
+  updateAssetMediaActivity,
+  takeScreenshotsActivity,
+  overlayAnnotationsActivity,
+} from './transcode'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { transcodeService } from '../transcode'
 
@@ -21,6 +27,8 @@ vi.mock('../transcode', () => ({
     transcodeVideo: vi.fn(),
     createTempDir: vi.fn().mockReturnValue('/tmp'),
     removeDir: vi.fn(),
+    takeScreenshots: vi.fn(),
+    overlayAnnotations: vi.fn(),
   },
 }))
 
@@ -118,7 +126,6 @@ describe('Transcode Activities', () => {
     expect((updated?.media as any).duration).toBe(123)
     expect(s3Service.putObject).toHaveBeenCalled()
   })
-
   it('should call transcodeService.transcodeVideo', async () => {
     vi.mocked(s3Service.headObject).mockRejectedValue(new Error('Not found'))
 
@@ -131,5 +138,49 @@ describe('Transcode Activities', () => {
     })
 
     expect(transcodeService.transcodeVideo).toHaveBeenCalled()
+  })
+
+  it('should call transcodeService.takeScreenshots', async () => {
+    vi.mocked(transcodeService.takeScreenshots).mockResolvedValue([
+      { key: 'screenshots/shot1.webp', timestamp: 1.0 },
+    ])
+
+    const result = await takeScreenshotsActivity({
+      assetKey: 'v.mp4',
+      assetId: 'asset-1',
+      start: 0,
+      end: 10,
+      count: 1,
+      commentTimestamp: 1.0,
+      annotations: [],
+    })
+
+    expect(transcodeService.takeScreenshots).toHaveBeenCalledWith({
+      assetKey: 'v.mp4',
+      assetId: 'asset-1',
+      start: 0,
+      end: 10,
+      count: 1,
+      commentTimestamp: 1.0,
+      annotations: [],
+    })
+    expect(result).toEqual([{ key: 'screenshots/shot1.webp', timestamp: 1.0 }])
+  })
+
+  it('should call transcodeService.overlayAnnotations', async () => {
+    vi.mocked(transcodeService.overlayAnnotations).mockResolvedValue('annotations/ann.webp')
+
+    const result = await overlayAnnotationsActivity({
+      assetKey: 'i.png',
+      assetId: 'asset-2',
+      annotations: [],
+    })
+
+    expect(transcodeService.overlayAnnotations).toHaveBeenCalledWith({
+      assetKey: 'i.png',
+      assetId: 'asset-2',
+      annotations: [],
+    })
+    expect(result).toBe('annotations/ann.webp')
   })
 })

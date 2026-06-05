@@ -297,3 +297,23 @@ export async function updateAssetMediaActivity(params: UpdateAssetMediaActivityP
     data: { media: params.mediaInfo as any },
   })
 }
+
+export async function takeScreenshotsActivity(params: {
+  assetKey: string
+  assetId: string
+  start: number
+  end: number
+  count: number
+  commentTimestamp?: number | null
+  annotations?: PrismaJson.AnnotationList | null
+}): Promise<Array<{ key: string; timestamp: number }>> {
+  return transcodeService.takeScreenshots(params)
+}
+
+export async function overlayAnnotationsActivity(params: {
+  assetKey: string
+  assetId: string
+  annotations: PrismaJson.AnnotationList
+}): Promise<string> {
+  return transcodeService.overlayAnnotations(params)
+}
