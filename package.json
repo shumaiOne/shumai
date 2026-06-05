@@ -18,7 +18,8 @@
     "generate-providers": "bun run scripts/generate-builtin-providers.ts",
     "worker:agent": "bun apps/agent/src/index.ts",
     "worker:transcode": "bun apps/transcode/src/index.ts",
-    "build": "bun run build.ts"
+    "build": "bun run build.ts",
+    "build-npm": "bun scripts/build-npm.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
