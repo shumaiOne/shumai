@@ -19,7 +19,14 @@
     "worker:agent": "bun apps/agent/src/index.ts",
     "worker:transcode": "bun apps/transcode/src/index.ts",
     "build": "bun run build.ts",
-    "build-npm": "bun scripts/build-npm.ts"
+    "build-npm": "bun scripts/build-npm.ts",
+    "prepublishOnly": "bun run build-npm && bun run lint && bun run typecheck",
+    "publish": "bun run prepublishOnly && bun run scripts/publish.ts",
+    "publish:dry": "bun run prepublishOnly && bun run scripts/publish.ts --dry-run",
+    "release:local": "bun run scripts/release-local.ts",
+    "release:patch": "bun run scripts/release.ts patch",
+    "release:minor": "bun run scripts/release.ts minor",
+    "release:major": "bun run scripts/release.ts major"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
