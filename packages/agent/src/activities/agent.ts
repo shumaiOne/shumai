@@ -55,6 +55,7 @@ async function executeAgentPrompt(params: {
   agentsInstruction: string
   sessionId?: string
   userId?: string
+  userCommentId?: string | null
   tools?: AgentTool[]
   context: AgentExecutionContext
 }): Promise<{ text: string; usage: Usage; sessionId: string }> {
@@ -109,6 +110,7 @@ If you need to create files in the local filesystem (for example, a temporary fi
     allowedDomains,
     sessionId: params.sessionId,
     userId: params.userId,
+    userCommentId: params.userCommentId,
     customTools: params.tools || [],
     providers: dbProviders.map((p) => ({
       name: p.name,
@@ -197,6 +199,7 @@ export interface AgentChatParams {
   agentsInstruction?: string
   sessionId: string
   userId?: string
+  userCommentId?: string | null
   explicitMention?: boolean
   context: AgentExecutionContext
 }
@@ -213,6 +216,7 @@ export async function agentChatActivity(params: AgentChatParams) {
     agentsInstruction: params.agentsInstruction || '',
     sessionId,
     userId: params.userId,
+    userCommentId: params.userCommentId,
     context: params.context,
   })
 }

@@ -135,6 +135,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       agentsInstruction: instruction,
       sessionId,
       userId: payload.agent?.userId,
+      userCommentId,
       explicitMention: payload.agent?.explicitMention,
       context,
     })

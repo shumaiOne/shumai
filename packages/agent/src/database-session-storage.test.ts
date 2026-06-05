@@ -7,6 +7,8 @@ import { DatabaseSessionStorage } from './database-session-storage'
 import { agentService } from '@shumai/core/src/agent/agent'
 import { createAgentSession } from './index'
 import * as sandboxedBashModule from './tools/sandboxed-bash'
+import * as analyzeImageModule from './tools/analyze-image'
+import * as screenshotModule from './tools/screenshot'
 
 describe('DatabaseSessionStorage', () => {
   setupTestDbHooks()
@@ -386,5 +388,56 @@ describe('DatabaseSessionStorage', () => {
     expect(entries[0].id).toBe('01A')
     expect(entries[1].id).toBe('01B')
     expect(entries[2].id).toBe('01C')
+  })
+
+  it('should use the current comment ID for media tools in subsequent turns', async () => {
+    const { agent, user, team } = await setupTestData()
+
+    // Create a project and asset to satisfy FK constraints
+    const project = await prisma.project.create({
+      data: { name: 'Test Project', teamId: team.id },
+    })
+    const asset = await prisma.asset.create({
+      data: {
+        id: 'asset-123',
+        name: 'test.png',
+        type: 'file',
+        mediaType: 'image/png',
+        projectId: project.id,
+        status: 'uploaded',
+      },
+    })
+
+    // 1. Create a session with an original comment ID and an asset ID using the storage class
+    const initialStorage = await DatabaseSessionStorage.create({
+      agentId: agent.id,
+      userId: user.id,
+      cwd: '/test/cwd',
+      assetId: asset.id,
+      userCommentId: 'original-comment-123',
+    })
+    const sessionId = initialStorage.sessionId
+
+    // 2. Spy on media tools constructors
+    const createAnalyzeImageToolSpy = vi.spyOn(analyzeImageModule, 'createAnalyzeImageTool')
+    const createScreenshotToolSpy = vi.spyOn(screenshotModule, 'createScreenshotTool')
+
+    // 3. Resume the session via createAgentSession with a NEW comment ID
+    await createAgentSession({
+      agentId: agent.id,
+      providerName: 'test-provider',
+      modelId: 'test-model',
+      systemPrompt: 'Test prompt',
+      teamSkills: [],
+      allowedDomains: [],
+      sessionId: sessionId,
+      userId: user.id,
+      userCommentId: 'new-comment-456',
+      providers: [],
+    })
+
+    // 4. Assert that the tools were instantiated using the new comment ID, not the original one
+    expect(createAnalyzeImageToolSpy).toHaveBeenCalledWith(asset.id, 'new-comment-456')
+    expect(createScreenshotToolSpy).toHaveBeenCalledWith(asset.id, 'new-comment-456')
   })
 })

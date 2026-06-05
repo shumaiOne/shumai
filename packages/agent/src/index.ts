@@ -25,6 +25,7 @@ export interface CreateAgentSessionParams {
   allowedDomains: string[]
   sessionId?: string
   userId?: string
+  userCommentId?: string | null
   customTools?: AgentTool[]
   providers: Array<{
     name: string
@@ -47,6 +48,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     allowedDomains,
     sessionId,
     userId,
+    userCommentId: passedUserCommentId,
     customTools = [],
   } = params
 
@@ -156,7 +158,8 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
 
   const metadata = await storage.getMetadata()
   const assetId = metadata.assetId
-  const userCommentId = metadata.userCommentId
+  const userCommentId =
+    passedUserCommentId !== undefined ? passedUserCommentId : metadata.userCommentId
 
   const mediaTools: AgentTool[] = []
   if (assetId) {
