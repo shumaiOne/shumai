@@ -110,6 +110,7 @@ export class WorkflowService {
               '@temporalio/workflow': path.dirname(
                 require.resolve('@temporalio/workflow/package.json'),
               ),
+              '@shumai/workflow-core': require.resolve('./workflow-utils'),
             }
             return config
           },
@@ -130,6 +131,7 @@ export class WorkflowService {
               '@temporalio/workflow': path.dirname(
                 require.resolve('@temporalio/workflow/package.json'),
               ),
+              '@shumai/workflow-core': require.resolve('./workflow-utils'),
             }
             return config
           },
