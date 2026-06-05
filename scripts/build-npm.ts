@@ -36,7 +36,9 @@ const commonExternal = [
 const targets = [
   { platform: 'darwin', arch: 'arm64', bunTarget: 'bun-darwin-arm64', suffix: '' },
   { platform: 'darwin', arch: 'x64', bunTarget: 'bun-darwin-x64', suffix: '' },
+  { platform: 'linux', arch: 'arm64', bunTarget: 'bun-linux-arm64', suffix: '' },
   { platform: 'linux', arch: 'x64', bunTarget: 'bun-linux-x64', suffix: '' },
+  { platform: 'win32', arch: 'arm64', bunTarget: 'bun-windows-arm64', suffix: '.exe' },
   { platform: 'win32', arch: 'x64', bunTarget: 'bun-windows-x64', suffix: '.exe' },
 ]
 
@@ -184,11 +186,17 @@ if (platform === 'darwin' && arch === 'arm64') {
 } else if (platform === 'darwin' && arch === 'x64') {
   pkgName = '@shumai-one/${appName}-darwin-x64'
   binaryName = '${appName}'
+} else if (platform === 'linux' && arch === 'arm64') {
+  pkgName = '@shumai-one/${appName}-linux-arm64'
+  binaryName = '${appName}'
 } else if (platform === 'linux' && arch === 'x64') {
   pkgName = '@shumai-one/${appName}-linux-x64'
   binaryName = '${appName}'
+} else if (platform === 'win32' && arch === 'arm64') {
+  pkgName = '@shumai-one/${appName}-win32-arm64'
+  binaryName = '${appName}.exe'
 } else if (platform === 'win32' && arch === 'x64') {
-  pkgName = '@shumai-one/${appName}-windows-x64'
+  pkgName = '@shumai-one/${appName}-win32-x64'
   binaryName = '${appName}.exe'
 } else {
   console.error(\`Unsupported platform/architecture: \${platform}/\${arch}\`)

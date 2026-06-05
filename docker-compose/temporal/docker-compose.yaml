@@ -19,7 +19,6 @@ services:
 
   shumai:
     image: shumaione/shumai:latest
-    build: ../../
     container_name: shumai_app
     ports:
       - '3000:3000'
@@ -27,47 +26,17 @@ services:
       - shumai_data:/app/data
     environment:
       DATABASE_URL: postgres://shumai:shumai_password@postgres:5432/shumai_db?search_path=public&sslmode=disable
-      STORAGE_BACKEND: local
+      STORAGE_BACKEND: s3
+      AWS_ENDPOINT_URL_S3: S3_ENDPOINT_URL
+      S3_REGION: S3_REGION
+      S3_BUCKET: BUCKET_NAME
+      S3_ACCESS_KEY_ID: ID
+      S3_SECRET_ACCESS_KEY: KEY
       BETTER_AUTH_SECRET: qSxs9DxzHDZBbeeTNPEwBuspYwipBqz5Gk5XdBjNhWw=
       BETTER_AUTH_URL: http://localhost:3000
       WORKFLOW_EXECUTOR: temporal
       TEMPORAL_ADDRESS: temporal:7233
-    depends_on:
-      postgres:
-        condition: service_healthy
-      temporal:
-        condition: service_healthy
-
-  shumai-agent:
-    image: shumaione/shumai:latest
-    build: ../../
-    container_name: shumai_agent_worker
-    command: ['bun', 'index.js', 'worker', 'agent']
-    volumes:
-      - shumai_data:/app/data
-    environment:
-      DATABASE_URL: postgres://shumai:shumai_password@postgres:5432/shumai_db?search_path=public&sslmode=disable
-      STORAGE_BACKEND: local
-      WORKFLOW_EXECUTOR: temporal
-      TEMPORAL_ADDRESS: temporal:7233
-    depends_on:
-      postgres:
-        condition: service_healthy
-      temporal:
-        condition: service_healthy
-
-  shumai-transcode:
-    image: shumaione/shumai:latest
-    build: ../../
-    container_name: shumai_transcode_worker
-    command: ['bun', 'index.js', 'worker', 'transcode']
-    volumes:
-      - shumai_data:/app/data
-    environment:
-      DATABASE_URL: postgres://shumai:shumai_password@postgres:5432/shumai_db?search_path=public&sslmode=disable
-      STORAGE_BACKEND: local
-      WORKFLOW_EXECUTOR: temporal
-      TEMPORAL_ADDRESS: temporal:7233
+      GEMINI_API_KEY: KEY
     depends_on:
       postgres:
         condition: service_healthy
