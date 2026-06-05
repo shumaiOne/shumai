@@ -1,7 +1,7 @@
 import { GoogleGenAI } from '@google/genai'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { transcodeService } from '@shumai/transcode'
-import { exec } from 'child_process'
+import { execFile } from 'child_process'
 import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
@@ -9,7 +9,7 @@ import { promisify } from 'util'
 import { ApplicationFailure } from '@temporalio/activity'
 import { prisma } from '@shumai/db'
 
-const execAsync = promisify(exec)
+const execFileAsync = promisify(execFile)
 
 export interface Usage {
   inputTokens: number
@@ -115,9 +115,15 @@ export async function generateEmbeddingActivity(params: GenerateEmbeddingParams)
     fs.writeFileSync(tmpFile, data)
 
     try {
-      const { stdout } = await execAsync(
-        `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${tmpFile}"`,
-      )
+      const { stdout } = await execFileAsync('ffprobe', [
+        '-v',
+        'error',
+        '-show_entries',
+        'format=duration',
+        '-of',
+        'default=noprint_wrappers=1:nokey=1',
+        tmpFile,
+      ])
       const duration = parseFloat(stdout.trim())
       if (isNaN(duration)) {
         throw ApplicationFailure.create({
@@ -132,9 +138,18 @@ export async function generateEmbeddingActivity(params: GenerateEmbeddingParams)
         if (end > duration) end = duration
 
         const chunkTmp = path.join(os.tmpdir(), `video-chunk-${Date.now()}.mp4`)
-        await execAsync(
-          `ffmpeg -y -i "${tmpFile}" -ss ${start} -t ${end - start} -c copy "${chunkTmp}"`,
-        )
+        await execFileAsync('ffmpeg', [
+          '-y',
+          '-i',
+          tmpFile,
+          '-ss',
+          start.toString(),
+          '-t',
+          (end - start).toString(),
+          '-c',
+          'copy',
+          chunkTmp,
+        ])
 
         const chunkData = fs.readFileSync(chunkTmp)
         fs.unlinkSync(chunkTmp)

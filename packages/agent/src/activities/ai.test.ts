@@ -46,19 +46,19 @@ vi.mock('@shumai/transcode', () => ({
 
 vi.mock('child_process', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock functions dynamically return varying types based on test command calls
-  const execMock: any = vi.fn((cmd: any, cb: any) => {
+  const execFileMock: any = vi.fn((file: any, args: any, cb: any) => {
     cb(null, '120.0\n', '')
   })
   // Setup custom promisify behavior to return { stdout, stderr }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock functions dynamically return varying types based on test command calls
-  execMock[Symbol.for('nodejs.util.promisify.custom')] = vi.fn(async (cmd: any) => {
-    if (cmd.includes('ffprobe')) {
+  execFileMock[Symbol.for('nodejs.util.promisify.custom')] = vi.fn(async (file: any) => {
+    if (file === 'ffprobe') {
       return { stdout: '120.0\n', stderr: '' }
     }
     return { stdout: '', stderr: '' }
   })
   return {
-    exec: execMock,
+    execFile: execFileMock,
   }
 })
 

@@ -1,7 +1,7 @@
 import { prisma } from '@shumai/db'
 import { WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
 import '@shumai/db/src/prisma-json-types'
-import { exec } from 'child_process'
+import { execFile } from 'child_process'
 import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
@@ -10,7 +10,7 @@ import { promisify } from 'util'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { ulid } from 'ulid'
 
-const execAsync = promisify(exec)
+const execFileAsync = promisify(execFile)
 
 const dataFormatNames: Record<string, string> = {
   // additional codecs
@@ -187,9 +187,15 @@ export class TranscodeService {
   }
 
   async getVideoInfo(inputFile: string): Promise<MediaMetadata> {
-    const { stdout } = await execAsync(
-      `ffprobe -v quiet -print_format json -show_format -show_streams "${inputFile}"`,
-    )
+    const { stdout } = await execFileAsync('ffprobe', [
+      '-v',
+      'quiet',
+      '-print_format',
+      'json',
+      '-show_format',
+      '-show_streams',
+      inputFile,
+    ])
     const info = JSON.parse(stdout)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const videoStream = info.streams.find((s: any) => s.codec_type === 'video')
@@ -250,14 +256,7 @@ export class TranscodeService {
     }
     filterComplex += '[vout]'
 
-    const args = [
-      '-i',
-      `"${params.inputFile}"`,
-      '-filter_complex',
-      `"${filterComplex}"`,
-      '-map',
-      '[vout]',
-    ]
+    const args = ['-i', params.inputFile, '-filter_complex', filterComplex, '-map', '[vout]']
 
     if (!params.disableAudio) {
       args.push('-map', '0:a?')
@@ -269,9 +268,9 @@ export class TranscodeService {
       args.push('-c:a', 'aac', '-b:a', '128k')
     }
 
-    args.push('-movflags', '+faststart', '-max_muxing_queue_size', '1024', `"${params.outputFile}"`)
+    args.push('-movflags', '+faststart', '-max_muxing_queue_size', '1024', params.outputFile)
 
-    await execAsync(`ffmpeg -y ${args.join(' ')}`)
+    await execFileAsync('ffmpeg', ['-y', ...args])
   }
 
   async transcodeImage(
@@ -316,9 +315,9 @@ export class TranscodeService {
 
     const args = [
       '-i',
-      `"${inputFile}"`,
+      inputFile,
       '-filter_complex',
-      `"${filterComplex}"`,
+      filterComplex,
       '-map',
       '[sprite_out]',
       '-frames:v',
@@ -327,7 +326,7 @@ export class TranscodeService {
       'libwebp',
       '-q:v',
       '75',
-      `"${outputSprite}"`,
+      outputSprite,
       '-map',
       '[thumb_out]',
       '-c:v',
@@ -338,23 +337,14 @@ export class TranscodeService {
       '1',
       '-max_muxing_queue_size',
       '1024',
-      `"${outputPoster}"`,
+      outputPoster,
     ]
-    await execAsync(`ffmpeg -y ${args.join(' ')}`)
+    await execFileAsync('ffmpeg', ['-y', ...args])
   }
 
   async extractAudio(inputFile: string, outputFile: string, bitrate: string): Promise<void> {
-    const args = [
-      '-i',
-      `"${inputFile}"`,
-      '-vn',
-      '-acodec',
-      'libmp3lame',
-      '-b:a',
-      bitrate,
-      `"${outputFile}"`,
-    ]
-    await execAsync(`ffmpeg -y ${args.join(' ')}`)
+    const args = ['-i', inputFile, '-vn', '-acodec', 'libmp3lame', '-b:a', bitrate, outputFile]
+    await execFileAsync('ffmpeg', ['-y', ...args])
   }
 
   async extractVideoFrames(params: ExtractVideoFramesParams): Promise<string[]> {
@@ -370,16 +360,16 @@ export class TranscodeService {
 
     const args = [
       '-i',
-      `"${params.inputFile}"`,
+      params.inputFile,
       '-vf',
       `fps=${fps},scale=-2:${params.frameHeight}`,
       '-c:v',
       'libwebp',
       '-q:v',
       '80',
-      `"${outputPattern}"`,
+      outputPattern,
     ]
-    await execAsync(`ffmpeg -y ${args.join(' ')}`)
+    await execFileAsync('ffmpeg', ['-y', ...args])
 
     const files = fs.readdirSync(params.outputDir)
     return files
@@ -486,7 +476,7 @@ export class TranscodeService {
           '-ss',
           t.toFixed(3),
           '-i',
-          `"${videoPath}"`,
+          videoPath,
           '-vframes',
           '1',
           '-vf',
@@ -495,9 +485,9 @@ export class TranscodeService {
           'libwebp',
           '-q:v',
           '80',
-          `"${localShotPath}"`,
+          localShotPath,
         ]
-        await execAsync(`ffmpeg -y ${args.join(' ')}`)
+        await execFileAsync('ffmpeg', ['-y', ...args])
 
         // 5. Overlay annotations if timestamp matches commentTimestamp exactly
         if (
