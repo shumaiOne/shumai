@@ -145,6 +145,8 @@ model User {
   agent                Agent?
   agentSessions        AgentSession[]
   userMetadata         UserMetadata[]   @relation("UserToUserMetadata")
+  collections          Collection[]     @relation("UserToCollection")
+  shareLinks           ShareLink[]      @relation("UserToShareLink")
 
   @@map("users")
 }
@@ -345,6 +347,9 @@ model ShareLink {
 
   rootFolderId     String    @unique @map("root_folder_id")
   rootFolder       Asset     @relation("ShareLinkToRootFolder", fields: [rootFolderId], references: [id])
+
+  creatorId        String?   @map("creator_id")
+  creator          User?     @relation("UserToShareLink", fields: [creatorId], references: [id])
 
   @@map("share_links")
 }
@@ -764,6 +769,9 @@ model Collection {
 
   projectId String   @map("project_id")
   project   Project  @relation("ProjectToCollection", fields: [projectId], references: [id], onDelete: Cascade)
+
+  creatorId String?  @map("creator_id")
+  creator   User?    @relation("UserToCollection", fields: [creatorId], references: [id])
 
   @@index([projectId, createdAt(sort: Desc)])
   @@map("collections")

@@ -16,6 +16,14 @@ export const collectionSchema = z.object({
   projectId: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  creator: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+      image: z.string().optional().nullable(),
+    })
+    .optional()
+    .nullable(),
 })
 
 export type CollectionInfo = z.infer<typeof collectionSchema>

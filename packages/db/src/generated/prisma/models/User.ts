@@ -237,6 +237,8 @@ export type UserWhereInput = {
   agent?: Prisma.XOR<Prisma.AgentNullableScalarRelationFilter, Prisma.AgentWhereInput> | null
   agentSessions?: Prisma.AgentSessionListRelationFilter
   userMetadata?: Prisma.UserMetadataListRelationFilter
+  collections?: Prisma.CollectionListRelationFilter
+  shareLinks?: Prisma.ShareLinkListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -264,6 +266,8 @@ export type UserOrderByWithRelationInput = {
   agent?: Prisma.AgentOrderByWithRelationInput
   agentSessions?: Prisma.AgentSessionOrderByRelationAggregateInput
   userMetadata?: Prisma.UserMetadataOrderByRelationAggregateInput
+  collections?: Prisma.CollectionOrderByRelationAggregateInput
+  shareLinks?: Prisma.ShareLinkOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<
@@ -295,6 +299,8 @@ export type UserWhereUniqueInput = Prisma.AtLeast<
     agent?: Prisma.XOR<Prisma.AgentNullableScalarRelationFilter, Prisma.AgentWhereInput> | null
     agentSessions?: Prisma.AgentSessionListRelationFilter
     userMetadata?: Prisma.UserMetadataListRelationFilter
+    collections?: Prisma.CollectionListRelationFilter
+    shareLinks?: Prisma.ShareLinkListRelationFilter
   },
   'id' | 'email'
 >
@@ -358,6 +364,8 @@ export type UserCreateInput = {
   agent?: Prisma.AgentCreateNestedOneWithoutUserInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutCreatorInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -385,6 +393,8 @@ export type UserUncheckedCreateInput = {
   agent?: Prisma.AgentUncheckedCreateNestedOneWithoutUserInput
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutCreatorInput
 }
 
 export type UserUpdateInput = {
@@ -412,6 +422,8 @@ export type UserUpdateInput = {
   agent?: Prisma.AgentUpdateOneWithoutUserNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   userMetadata?: Prisma.UserMetadataUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -439,6 +451,8 @@ export type UserUncheckedUpdateInput = {
   agent?: Prisma.AgentUncheckedUpdateOneWithoutUserNestedInput
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -654,6 +668,34 @@ export type UserUpdateOneRequiredWithoutTeamMembersNestedInput = {
       Prisma.UserUpdateWithoutTeamMembersInput
     >,
     Prisma.UserUncheckedUpdateWithoutTeamMembersInput
+  >
+}
+
+export type UserCreateNestedOneWithoutShareLinksInput = {
+  create?: Prisma.XOR<
+    Prisma.UserCreateWithoutShareLinksInput,
+    Prisma.UserUncheckedCreateWithoutShareLinksInput
+  >
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutShareLinksInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneWithoutShareLinksNestedInput = {
+  create?: Prisma.XOR<
+    Prisma.UserCreateWithoutShareLinksInput,
+    Prisma.UserUncheckedCreateWithoutShareLinksInput
+  >
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutShareLinksInput
+  upsert?: Prisma.UserUpsertWithoutShareLinksInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<
+    Prisma.XOR<
+      Prisma.UserUpdateToOneWithWhereWithoutShareLinksInput,
+      Prisma.UserUpdateWithoutShareLinksInput
+    >,
+    Prisma.UserUncheckedUpdateWithoutShareLinksInput
   >
 }
 
@@ -903,6 +945,34 @@ export type UserUpdateOneRequiredWithoutUserMetadataNestedInput = {
   >
 }
 
+export type UserCreateNestedOneWithoutCollectionsInput = {
+  create?: Prisma.XOR<
+    Prisma.UserCreateWithoutCollectionsInput,
+    Prisma.UserUncheckedCreateWithoutCollectionsInput
+  >
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutCollectionsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneWithoutCollectionsNestedInput = {
+  create?: Prisma.XOR<
+    Prisma.UserCreateWithoutCollectionsInput,
+    Prisma.UserUncheckedCreateWithoutCollectionsInput
+  >
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutCollectionsInput
+  upsert?: Prisma.UserUpsertWithoutCollectionsInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<
+    Prisma.XOR<
+      Prisma.UserUpdateToOneWithWhereWithoutCollectionsInput,
+      Prisma.UserUpdateWithoutCollectionsInput
+    >,
+    Prisma.UserUncheckedUpdateWithoutCollectionsInput
+  >
+}
+
 export type UserCreateWithoutSessionsInput = {
   id?: string
   type?: $Enums.UserType
@@ -927,6 +997,8 @@ export type UserCreateWithoutSessionsInput = {
   agent?: Prisma.AgentCreateNestedOneWithoutUserInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutCreatorInput
 }
 
 export type UserUncheckedCreateWithoutSessionsInput = {
@@ -953,6 +1025,8 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   agent?: Prisma.AgentUncheckedCreateNestedOneWithoutUserInput
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutCreatorInput
 }
 
 export type UserCreateOrConnectWithoutSessionsInput = {
@@ -1007,6 +1081,8 @@ export type UserUpdateWithoutSessionsInput = {
   agent?: Prisma.AgentUpdateOneWithoutUserNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   userMetadata?: Prisma.UserMetadataUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -1033,6 +1109,8 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   agent?: Prisma.AgentUncheckedUpdateOneWithoutUserNestedInput
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserCreateWithoutAccountsInput = {
@@ -1059,6 +1137,8 @@ export type UserCreateWithoutAccountsInput = {
   agent?: Prisma.AgentCreateNestedOneWithoutUserInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutCreatorInput
 }
 
 export type UserUncheckedCreateWithoutAccountsInput = {
@@ -1085,6 +1165,8 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   agent?: Prisma.AgentUncheckedCreateNestedOneWithoutUserInput
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutCreatorInput
 }
 
 export type UserCreateOrConnectWithoutAccountsInput = {
@@ -1139,6 +1221,8 @@ export type UserUpdateWithoutAccountsInput = {
   agent?: Prisma.AgentUpdateOneWithoutUserNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   userMetadata?: Prisma.UserMetadataUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -1165,6 +1249,8 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   agent?: Prisma.AgentUncheckedUpdateOneWithoutUserNestedInput
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserCreateWithoutAuthTokensInput = {
@@ -1191,6 +1277,8 @@ export type UserCreateWithoutAuthTokensInput = {
   agent?: Prisma.AgentCreateNestedOneWithoutUserInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutCreatorInput
 }
 
 export type UserUncheckedCreateWithoutAuthTokensInput = {
@@ -1217,6 +1305,8 @@ export type UserUncheckedCreateWithoutAuthTokensInput = {
   agent?: Prisma.AgentUncheckedCreateNestedOneWithoutUserInput
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutCreatorInput
 }
 
 export type UserCreateOrConnectWithoutAuthTokensInput = {
@@ -1271,6 +1361,8 @@ export type UserUpdateWithoutAuthTokensInput = {
   agent?: Prisma.AgentUpdateOneWithoutUserNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   userMetadata?: Prisma.UserMetadataUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAuthTokensInput = {
@@ -1297,6 +1389,8 @@ export type UserUncheckedUpdateWithoutAuthTokensInput = {
   agent?: Prisma.AgentUncheckedUpdateOneWithoutUserNestedInput
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserCreateWithoutTeamMembersInput = {
@@ -1323,6 +1417,8 @@ export type UserCreateWithoutTeamMembersInput = {
   agent?: Prisma.AgentCreateNestedOneWithoutUserInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutCreatorInput
 }
 
 export type UserUncheckedCreateWithoutTeamMembersInput = {
@@ -1349,6 +1445,8 @@ export type UserUncheckedCreateWithoutTeamMembersInput = {
   agent?: Prisma.AgentUncheckedCreateNestedOneWithoutUserInput
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutCreatorInput
 }
 
 export type UserCreateOrConnectWithoutTeamMembersInput = {
@@ -1403,6 +1501,8 @@ export type UserUpdateWithoutTeamMembersInput = {
   agent?: Prisma.AgentUpdateOneWithoutUserNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   userMetadata?: Prisma.UserMetadataUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTeamMembersInput = {
@@ -1429,6 +1529,148 @@ export type UserUncheckedUpdateWithoutTeamMembersInput = {
   agent?: Prisma.AgentUncheckedUpdateOneWithoutUserNestedInput
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput
+}
+
+export type UserCreateWithoutShareLinksInput = {
+  id?: string
+  type?: $Enums.UserType
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  password?: string | null
+  agentSettings?: PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  assets?: Prisma.AssetCreateNestedManyWithoutCreatorInput
+  authTokens?: Prisma.AuthTokenCreateNestedManyWithoutUserInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutCreatorInput
+  teamMembers?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
+  comments?: Prisma.AssetCommentCreateNestedManyWithoutCreatorInput
+  createdInvites?: Prisma.InviteCreateNestedManyWithoutInviterInput
+  createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  agent?: Prisma.AgentCreateNestedOneWithoutUserInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
+  userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutCreatorInput
+}
+
+export type UserUncheckedCreateWithoutShareLinksInput = {
+  id?: string
+  type?: $Enums.UserType
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  password?: string | null
+  agentSettings?: PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutCreatorInput
+  authTokens?: Prisma.AuthTokenUncheckedCreateNestedManyWithoutUserInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutCreatorInput
+  teamMembers?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
+  comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCreatorInput
+  createdInvites?: Prisma.InviteUncheckedCreateNestedManyWithoutInviterInput
+  createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  agent?: Prisma.AgentUncheckedCreateNestedOneWithoutUserInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
+  userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutCreatorInput
+}
+
+export type UserCreateOrConnectWithoutShareLinksInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<
+    Prisma.UserCreateWithoutShareLinksInput,
+    Prisma.UserUncheckedCreateWithoutShareLinksInput
+  >
+}
+
+export type UserUpsertWithoutShareLinksInput = {
+  update: Prisma.XOR<
+    Prisma.UserUpdateWithoutShareLinksInput,
+    Prisma.UserUncheckedUpdateWithoutShareLinksInput
+  >
+  create: Prisma.XOR<
+    Prisma.UserCreateWithoutShareLinksInput,
+    Prisma.UserUncheckedCreateWithoutShareLinksInput
+  >
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutShareLinksInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<
+    Prisma.UserUpdateWithoutShareLinksInput,
+    Prisma.UserUncheckedUpdateWithoutShareLinksInput
+  >
+}
+
+export type UserUpdateWithoutShareLinksInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumUserTypeFieldUpdateOperationsInput | $Enums.UserType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentSettings?: PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  assets?: Prisma.AssetUpdateManyWithoutCreatorNestedInput
+  authTokens?: Prisma.AuthTokenUpdateManyWithoutUserNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutCreatorNestedInput
+  teamMembers?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
+  comments?: Prisma.AssetCommentUpdateManyWithoutCreatorNestedInput
+  createdInvites?: Prisma.InviteUpdateManyWithoutInviterNestedInput
+  createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutUserNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
+  userMetadata?: Prisma.UserMetadataUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutCreatorNestedInput
+}
+
+export type UserUncheckedUpdateWithoutShareLinksInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumUserTypeFieldUpdateOperationsInput | $Enums.UserType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentSettings?: PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutCreatorNestedInput
+  authTokens?: Prisma.AuthTokenUncheckedUpdateManyWithoutUserNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutCreatorNestedInput
+  teamMembers?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
+  comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput
+  createdInvites?: Prisma.InviteUncheckedUpdateManyWithoutInviterNestedInput
+  createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  agent?: Prisma.AgentUncheckedUpdateOneWithoutUserNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
+  userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserCreateWithoutAssetsInput = {
@@ -1455,6 +1697,8 @@ export type UserCreateWithoutAssetsInput = {
   agent?: Prisma.AgentCreateNestedOneWithoutUserInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutCreatorInput
 }
 
 export type UserUncheckedCreateWithoutAssetsInput = {
@@ -1481,6 +1725,8 @@ export type UserUncheckedCreateWithoutAssetsInput = {
   agent?: Prisma.AgentUncheckedCreateNestedOneWithoutUserInput
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutCreatorInput
 }
 
 export type UserCreateOrConnectWithoutAssetsInput = {
@@ -1535,6 +1781,8 @@ export type UserUpdateWithoutAssetsInput = {
   agent?: Prisma.AgentUpdateOneWithoutUserNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   userMetadata?: Prisma.UserMetadataUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAssetsInput = {
@@ -1561,6 +1809,8 @@ export type UserUncheckedUpdateWithoutAssetsInput = {
   agent?: Prisma.AgentUncheckedUpdateOneWithoutUserNestedInput
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserCreateWithoutCommentsInput = {
@@ -1587,6 +1837,8 @@ export type UserCreateWithoutCommentsInput = {
   agent?: Prisma.AgentCreateNestedOneWithoutUserInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutCreatorInput
 }
 
 export type UserUncheckedCreateWithoutCommentsInput = {
@@ -1613,6 +1865,8 @@ export type UserUncheckedCreateWithoutCommentsInput = {
   agent?: Prisma.AgentUncheckedCreateNestedOneWithoutUserInput
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutCreatorInput
 }
 
 export type UserCreateOrConnectWithoutCommentsInput = {
@@ -1667,6 +1921,8 @@ export type UserUpdateWithoutCommentsInput = {
   agent?: Prisma.AgentUpdateOneWithoutUserNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   userMetadata?: Prisma.UserMetadataUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCommentsInput = {
@@ -1693,6 +1949,8 @@ export type UserUncheckedUpdateWithoutCommentsInput = {
   agent?: Prisma.AgentUncheckedUpdateOneWithoutUserNestedInput
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserCreateWithoutCreatedInvitesInput = {
@@ -1719,6 +1977,8 @@ export type UserCreateWithoutCreatedInvitesInput = {
   agent?: Prisma.AgentCreateNestedOneWithoutUserInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutCreatorInput
 }
 
 export type UserUncheckedCreateWithoutCreatedInvitesInput = {
@@ -1745,6 +2005,8 @@ export type UserUncheckedCreateWithoutCreatedInvitesInput = {
   agent?: Prisma.AgentUncheckedCreateNestedOneWithoutUserInput
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutCreatorInput
 }
 
 export type UserCreateOrConnectWithoutCreatedInvitesInput = {
@@ -1799,6 +2061,8 @@ export type UserUpdateWithoutCreatedInvitesInput = {
   agent?: Prisma.AgentUpdateOneWithoutUserNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   userMetadata?: Prisma.UserMetadataUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCreatedInvitesInput = {
@@ -1825,6 +2089,8 @@ export type UserUncheckedUpdateWithoutCreatedInvitesInput = {
   agent?: Prisma.AgentUncheckedUpdateOneWithoutUserNestedInput
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserCreateWithoutCreatedNotificationsInput = {
@@ -1851,6 +2117,8 @@ export type UserCreateWithoutCreatedNotificationsInput = {
   agent?: Prisma.AgentCreateNestedOneWithoutUserInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutCreatorInput
 }
 
 export type UserUncheckedCreateWithoutCreatedNotificationsInput = {
@@ -1877,6 +2145,8 @@ export type UserUncheckedCreateWithoutCreatedNotificationsInput = {
   agent?: Prisma.AgentUncheckedCreateNestedOneWithoutUserInput
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutCreatorInput
 }
 
 export type UserCreateOrConnectWithoutCreatedNotificationsInput = {
@@ -1911,6 +2181,8 @@ export type UserCreateWithoutNotificationsInput = {
   agent?: Prisma.AgentCreateNestedOneWithoutUserInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutCreatorInput
 }
 
 export type UserUncheckedCreateWithoutNotificationsInput = {
@@ -1937,6 +2209,8 @@ export type UserUncheckedCreateWithoutNotificationsInput = {
   agent?: Prisma.AgentUncheckedCreateNestedOneWithoutUserInput
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutCreatorInput
 }
 
 export type UserCreateOrConnectWithoutNotificationsInput = {
@@ -1991,6 +2265,8 @@ export type UserUpdateWithoutCreatedNotificationsInput = {
   agent?: Prisma.AgentUpdateOneWithoutUserNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   userMetadata?: Prisma.UserMetadataUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCreatedNotificationsInput = {
@@ -2017,6 +2293,8 @@ export type UserUncheckedUpdateWithoutCreatedNotificationsInput = {
   agent?: Prisma.AgentUncheckedUpdateOneWithoutUserNestedInput
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserUpsertWithoutNotificationsInput = {
@@ -2063,6 +2341,8 @@ export type UserUpdateWithoutNotificationsInput = {
   agent?: Prisma.AgentUpdateOneWithoutUserNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   userMetadata?: Prisma.UserMetadataUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserUncheckedUpdateWithoutNotificationsInput = {
@@ -2089,6 +2369,8 @@ export type UserUncheckedUpdateWithoutNotificationsInput = {
   agent?: Prisma.AgentUncheckedUpdateOneWithoutUserNestedInput
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserCreateWithoutTasksInput = {
@@ -2115,6 +2397,8 @@ export type UserCreateWithoutTasksInput = {
   agent?: Prisma.AgentCreateNestedOneWithoutUserInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutCreatorInput
 }
 
 export type UserUncheckedCreateWithoutTasksInput = {
@@ -2141,6 +2425,8 @@ export type UserUncheckedCreateWithoutTasksInput = {
   agent?: Prisma.AgentUncheckedCreateNestedOneWithoutUserInput
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutCreatorInput
 }
 
 export type UserCreateOrConnectWithoutTasksInput = {
@@ -2192,6 +2478,8 @@ export type UserUpdateWithoutTasksInput = {
   agent?: Prisma.AgentUpdateOneWithoutUserNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   userMetadata?: Prisma.UserMetadataUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTasksInput = {
@@ -2218,6 +2506,8 @@ export type UserUncheckedUpdateWithoutTasksInput = {
   agent?: Prisma.AgentUncheckedUpdateOneWithoutUserNestedInput
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserCreateWithoutAgentInput = {
@@ -2244,6 +2534,8 @@ export type UserCreateWithoutAgentInput = {
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
   userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutCreatorInput
 }
 
 export type UserUncheckedCreateWithoutAgentInput = {
@@ -2270,6 +2562,8 @@ export type UserUncheckedCreateWithoutAgentInput = {
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
   userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutCreatorInput
 }
 
 export type UserCreateOrConnectWithoutAgentInput = {
@@ -2321,6 +2615,8 @@ export type UserUpdateWithoutAgentInput = {
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
   userMetadata?: Prisma.UserMetadataUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAgentInput = {
@@ -2347,6 +2643,8 @@ export type UserUncheckedUpdateWithoutAgentInput = {
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
   userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserCreateWithoutAgentSessionsInput = {
@@ -2373,6 +2671,8 @@ export type UserCreateWithoutAgentSessionsInput = {
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   agent?: Prisma.AgentCreateNestedOneWithoutUserInput
   userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutCreatorInput
 }
 
 export type UserUncheckedCreateWithoutAgentSessionsInput = {
@@ -2399,6 +2699,8 @@ export type UserUncheckedCreateWithoutAgentSessionsInput = {
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   agent?: Prisma.AgentUncheckedCreateNestedOneWithoutUserInput
   userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutCreatorInput
 }
 
 export type UserCreateOrConnectWithoutAgentSessionsInput = {
@@ -2453,6 +2755,8 @@ export type UserUpdateWithoutAgentSessionsInput = {
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   agent?: Prisma.AgentUpdateOneWithoutUserNestedInput
   userMetadata?: Prisma.UserMetadataUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAgentSessionsInput = {
@@ -2479,6 +2783,8 @@ export type UserUncheckedUpdateWithoutAgentSessionsInput = {
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   agent?: Prisma.AgentUncheckedUpdateOneWithoutUserNestedInput
   userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserCreateWithoutUserMetadataInput = {
@@ -2505,6 +2811,8 @@ export type UserCreateWithoutUserMetadataInput = {
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   agent?: Prisma.AgentCreateNestedOneWithoutUserInput
   agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutCreatorInput
 }
 
 export type UserUncheckedCreateWithoutUserMetadataInput = {
@@ -2531,6 +2839,8 @@ export type UserUncheckedCreateWithoutUserMetadataInput = {
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   agent?: Prisma.AgentUncheckedCreateNestedOneWithoutUserInput
   agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutCreatorInput
 }
 
 export type UserCreateOrConnectWithoutUserMetadataInput = {
@@ -2585,6 +2895,8 @@ export type UserUpdateWithoutUserMetadataInput = {
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   agent?: Prisma.AgentUpdateOneWithoutUserNestedInput
   agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUpdateManyWithoutCreatorNestedInput
 }
 
 export type UserUncheckedUpdateWithoutUserMetadataInput = {
@@ -2611,6 +2923,148 @@ export type UserUncheckedUpdateWithoutUserMetadataInput = {
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   agent?: Prisma.AgentUncheckedUpdateOneWithoutUserNestedInput
   agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput
+}
+
+export type UserCreateWithoutCollectionsInput = {
+  id?: string
+  type?: $Enums.UserType
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  password?: string | null
+  agentSettings?: PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  assets?: Prisma.AssetCreateNestedManyWithoutCreatorInput
+  authTokens?: Prisma.AuthTokenCreateNestedManyWithoutUserInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutCreatorInput
+  teamMembers?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
+  comments?: Prisma.AssetCommentCreateNestedManyWithoutCreatorInput
+  createdInvites?: Prisma.InviteCreateNestedManyWithoutInviterInput
+  createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  agent?: Prisma.AgentCreateNestedOneWithoutUserInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
+  userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutUserInput
+  shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutCreatorInput
+}
+
+export type UserUncheckedCreateWithoutCollectionsInput = {
+  id?: string
+  type?: $Enums.UserType
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  password?: string | null
+  agentSettings?: PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutCreatorInput
+  authTokens?: Prisma.AuthTokenUncheckedCreateNestedManyWithoutUserInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutCreatorInput
+  teamMembers?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
+  comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCreatorInput
+  createdInvites?: Prisma.InviteUncheckedCreateNestedManyWithoutInviterInput
+  createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  agent?: Prisma.AgentUncheckedCreateNestedOneWithoutUserInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
+  userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutUserInput
+  shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutCreatorInput
+}
+
+export type UserCreateOrConnectWithoutCollectionsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<
+    Prisma.UserCreateWithoutCollectionsInput,
+    Prisma.UserUncheckedCreateWithoutCollectionsInput
+  >
+}
+
+export type UserUpsertWithoutCollectionsInput = {
+  update: Prisma.XOR<
+    Prisma.UserUpdateWithoutCollectionsInput,
+    Prisma.UserUncheckedUpdateWithoutCollectionsInput
+  >
+  create: Prisma.XOR<
+    Prisma.UserCreateWithoutCollectionsInput,
+    Prisma.UserUncheckedCreateWithoutCollectionsInput
+  >
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutCollectionsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<
+    Prisma.UserUpdateWithoutCollectionsInput,
+    Prisma.UserUncheckedUpdateWithoutCollectionsInput
+  >
+}
+
+export type UserUpdateWithoutCollectionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumUserTypeFieldUpdateOperationsInput | $Enums.UserType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentSettings?: PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  assets?: Prisma.AssetUpdateManyWithoutCreatorNestedInput
+  authTokens?: Prisma.AuthTokenUpdateManyWithoutUserNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutCreatorNestedInput
+  teamMembers?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
+  comments?: Prisma.AssetCommentUpdateManyWithoutCreatorNestedInput
+  createdInvites?: Prisma.InviteUpdateManyWithoutInviterNestedInput
+  createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutUserNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
+  userMetadata?: Prisma.UserMetadataUpdateManyWithoutUserNestedInput
+  shareLinks?: Prisma.ShareLinkUpdateManyWithoutCreatorNestedInput
+}
+
+export type UserUncheckedUpdateWithoutCollectionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumUserTypeFieldUpdateOperationsInput | $Enums.UserType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentSettings?: PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutCreatorNestedInput
+  authTokens?: Prisma.AuthTokenUncheckedUpdateManyWithoutUserNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutCreatorNestedInput
+  teamMembers?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
+  comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput
+  createdInvites?: Prisma.InviteUncheckedUpdateManyWithoutInviterNestedInput
+  createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  agent?: Prisma.AgentUncheckedUpdateOneWithoutUserNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
+  userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutUserNestedInput
+  shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput
 }
 
 /**
@@ -2630,6 +3084,8 @@ export type UserCountOutputType = {
   accounts: number
   agentSessions: number
   userMetadata: number
+  collections: number
+  shareLinks: number
 }
 
 export type UserCountOutputTypeSelect<
@@ -2647,6 +3103,8 @@ export type UserCountOutputTypeSelect<
   accounts?: boolean | UserCountOutputTypeCountAccountsArgs
   agentSessions?: boolean | UserCountOutputTypeCountAgentSessionsArgs
   userMetadata?: boolean | UserCountOutputTypeCountUserMetadataArgs
+  collections?: boolean | UserCountOutputTypeCountCollectionsArgs
+  shareLinks?: boolean | UserCountOutputTypeCountShareLinksArgs
 }
 
 /**
@@ -2769,6 +3227,24 @@ export type UserCountOutputTypeCountUserMetadataArgs<
   where?: Prisma.UserMetadataWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountCollectionsArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
+> = {
+  where?: Prisma.CollectionWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountShareLinksArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
+> = {
+  where?: Prisma.ShareLinkWhereInput
+}
+
 export type UserSelect<
   ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
 > = runtime.Types.Extensions.GetSelect<
@@ -2797,6 +3273,8 @@ export type UserSelect<
     agent?: boolean | Prisma.User$agentArgs<ExtArgs>
     agentSessions?: boolean | Prisma.User$agentSessionsArgs<ExtArgs>
     userMetadata?: boolean | Prisma.User$userMetadataArgs<ExtArgs>
+    collections?: boolean | Prisma.User$collectionsArgs<ExtArgs>
+    shareLinks?: boolean | Prisma.User$shareLinksArgs<ExtArgs>
     _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
   },
   ExtArgs['result']['user']
@@ -2886,6 +3364,8 @@ export type UserInclude<
   agent?: boolean | Prisma.User$agentArgs<ExtArgs>
   agentSessions?: boolean | Prisma.User$agentSessionsArgs<ExtArgs>
   userMetadata?: boolean | Prisma.User$userMetadataArgs<ExtArgs>
+  collections?: boolean | Prisma.User$collectionsArgs<ExtArgs>
+  shareLinks?: boolean | Prisma.User$shareLinksArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<
@@ -2913,6 +3393,8 @@ export type $UserPayload<
     agent: Prisma.$AgentPayload<ExtArgs> | null
     agentSessions: Prisma.$AgentSessionPayload<ExtArgs>[]
     userMetadata: Prisma.$UserMetadataPayload<ExtArgs>[]
+    collections: Prisma.$CollectionPayload<ExtArgs>[]
+    shareLinks: Prisma.$ShareLinkPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<
     {
@@ -3574,6 +4056,28 @@ export interface Prisma__UserClient<
   ): Prisma.PrismaPromise<
     | runtime.Types.Result.GetResult<
         Prisma.$UserMetadataPayload<ExtArgs>,
+        T,
+        'findMany',
+        GlobalOmitOptions
+      >
+    | Null
+  >
+  collections<T extends Prisma.User$collectionsArgs<ExtArgs> = {}>(
+    args?: Prisma.Subset<T, Prisma.User$collectionsArgs<ExtArgs>>,
+  ): Prisma.PrismaPromise<
+    | runtime.Types.Result.GetResult<
+        Prisma.$CollectionPayload<ExtArgs>,
+        T,
+        'findMany',
+        GlobalOmitOptions
+      >
+    | Null
+  >
+  shareLinks<T extends Prisma.User$shareLinksArgs<ExtArgs> = {}>(
+    args?: Prisma.Subset<T, Prisma.User$shareLinksArgs<ExtArgs>>,
+  ): Prisma.PrismaPromise<
+    | runtime.Types.Result.GetResult<
+        Prisma.$ShareLinkPayload<ExtArgs>,
         T,
         'findMany',
         GlobalOmitOptions
@@ -4382,6 +4886,58 @@ export type User$userMetadataArgs<
   take?: number
   skip?: number
   distinct?: Prisma.UserMetadataScalarFieldEnum | Prisma.UserMetadataScalarFieldEnum[]
+}
+
+/**
+ * User.collections
+ */
+export type User$collectionsArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
+> = {
+  /**
+   * Select specific fields to fetch from the Collection
+   */
+  select?: Prisma.CollectionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Collection
+   */
+  omit?: Prisma.CollectionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CollectionInclude<ExtArgs> | null
+  where?: Prisma.CollectionWhereInput
+  orderBy?: Prisma.CollectionOrderByWithRelationInput | Prisma.CollectionOrderByWithRelationInput[]
+  cursor?: Prisma.CollectionWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CollectionScalarFieldEnum | Prisma.CollectionScalarFieldEnum[]
+}
+
+/**
+ * User.shareLinks
+ */
+export type User$shareLinksArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
+> = {
+  /**
+   * Select specific fields to fetch from the ShareLink
+   */
+  select?: Prisma.ShareLinkSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ShareLink
+   */
+  omit?: Prisma.ShareLinkOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ShareLinkInclude<ExtArgs> | null
+  where?: Prisma.ShareLinkWhereInput
+  orderBy?: Prisma.ShareLinkOrderByWithRelationInput | Prisma.ShareLinkOrderByWithRelationInput[]
+  cursor?: Prisma.ShareLinkWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ShareLinkScalarFieldEnum | Prisma.ShareLinkScalarFieldEnum[]
 }
 
 /**

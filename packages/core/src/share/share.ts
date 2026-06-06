@@ -8,9 +8,14 @@ import {
   AddAssetToShareRequest,
 } from '@shumai/dtos'
 import { PaginatedData, paginateQuery } from '@shumai/core/src/pagination'
+import { getAvatarUrl } from '@shumai/core/src/user/avatar'
 
 export class ShareService {
-  async createShareLink(projectId: string, req: CreateShareLinkRequest): Promise<ShareLinkInfo> {
+  async createShareLink(
+    projectId: string,
+    req: CreateShareLinkRequest,
+    creatorId?: string,
+  ): Promise<ShareLinkInfo> {
     let project = await prisma.project.findUnique({
       where: { id: projectId },
       include: { shareRoot: true },
@@ -55,10 +60,12 @@ export class ShareService {
           defaultSortOrder: req.defaultSortOrder,
           projectId: projectId,
           rootFolderId: shareFolder.id,
+          creatorId,
         },
+        include: { creator: true },
       })
 
-      return this.toShareLinkInfo(shareLink)
+      return await this.toShareLinkInfo(shareLink)
     })
   }
 
@@ -79,6 +86,7 @@ export class ShareService {
         defaultSortOrder: req.defaultSortOrder,
         fieldVisibility: (req.fieldVisibility as PrismaJson.ShareLinkFieldVisibility) ?? undefined,
       },
+      include: { creator: true },
     })
 
     if (req.name) {
@@ -88,7 +96,7 @@ export class ShareService {
       })
     }
 
-    return this.toShareLinkInfo(updated)
+    return await this.toShareLinkInfo(updated)
   }
 
   async deleteShareLink(shareLinkId: string): Promise<void> {
@@ -116,11 +124,12 @@ export class ShareService {
       async (skip, take) => {
         const links = await prisma.shareLink.findMany({
           where,
+          include: { creator: true },
           skip,
           take,
           orderBy: { createdAt: 'desc' },
         })
-        return links.map((l) => this.toShareLinkInfo(l))
+        return await Promise.all(links.map((l) => this.toShareLinkInfo(l)))
       },
       () => prisma.shareLink.count({ where }),
       req,
@@ -130,9 +139,10 @@ export class ShareService {
   async getShareLink(shareLinkId: string): Promise<ShareLinkInfo> {
     const shareLink = await prisma.shareLink.findUnique({
       where: { id: shareLinkId },
+      include: { creator: true },
     })
     if (!shareLink) throw new Error('Share link not found')
-    return this.toShareLinkInfo(shareLink)
+    return await this.toShareLinkInfo(shareLink)
   }
 
   async addAssetToShare(shareLinkId: string, req: AddAssetToShareRequest): Promise<number> {
@@ -280,8 +290,9 @@ export class ShareService {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private toShareLinkInfo(l: any): ShareLinkInfo {
+  private async toShareLinkInfo(l: any): Promise<ShareLinkInfo> {
     const isExpired = l.expireAt ? new Date(l.expireAt) < new Date() : false
+    const avatarUrl = l.creator ? await getAvatarUrl(l.creator.image) : undefined
     return {
       id: l.id,
       name: l.name,
@@ -295,6 +306,7 @@ export class ShareService {
       isExpired,
       createdAt: l.createdAt.toISOString(),
       updatedAt: l.updatedAt.toISOString(),
+      creator: l.creator ? { id: l.creator.id, name: l.creator.name, image: avatarUrl } : null,
     }
   }
 }

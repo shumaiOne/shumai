@@ -36,6 +36,7 @@ export type ShareLinkMinAggregateOutputType = {
   updatedAt: Date | null
   projectId: string | null
   rootFolderId: string | null
+  creatorId: string | null
 }
 
 export type ShareLinkMaxAggregateOutputType = {
@@ -49,6 +50,7 @@ export type ShareLinkMaxAggregateOutputType = {
   updatedAt: Date | null
   projectId: string | null
   rootFolderId: string | null
+  creatorId: string | null
 }
 
 export type ShareLinkCountAggregateOutputType = {
@@ -63,6 +65,7 @@ export type ShareLinkCountAggregateOutputType = {
   updatedAt: number
   projectId: number
   rootFolderId: number
+  creatorId: number
   _all: number
 }
 
@@ -77,6 +80,7 @@ export type ShareLinkMinAggregateInputType = {
   updatedAt?: true
   projectId?: true
   rootFolderId?: true
+  creatorId?: true
 }
 
 export type ShareLinkMaxAggregateInputType = {
@@ -90,6 +94,7 @@ export type ShareLinkMaxAggregateInputType = {
   updatedAt?: true
   projectId?: true
   rootFolderId?: true
+  creatorId?: true
 }
 
 export type ShareLinkCountAggregateInputType = {
@@ -104,6 +109,7 @@ export type ShareLinkCountAggregateInputType = {
   updatedAt?: true
   projectId?: true
   rootFolderId?: true
+  creatorId?: true
   _all?: true
 }
 
@@ -194,6 +200,7 @@ export type ShareLinkGroupByOutputType = {
   updatedAt: Date
   projectId: string
   rootFolderId: string
+  creatorId: string | null
   _count: ShareLinkCountAggregateOutputType | null
   _min: ShareLinkMinAggregateOutputType | null
   _max: ShareLinkMaxAggregateOutputType | null
@@ -226,8 +233,10 @@ export type ShareLinkWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<'ShareLink'> | Date | string
   projectId?: Prisma.StringFilter<'ShareLink'> | string
   rootFolderId?: Prisma.StringFilter<'ShareLink'> | string
+  creatorId?: Prisma.StringNullableFilter<'ShareLink'> | string | null
   project?: Prisma.XOR<Prisma.ProjectScalarRelationFilter, Prisma.ProjectWhereInput>
   rootFolder?: Prisma.XOR<Prisma.AssetScalarRelationFilter, Prisma.AssetWhereInput>
+  creator?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
 }
 
 export type ShareLinkOrderByWithRelationInput = {
@@ -242,8 +251,10 @@ export type ShareLinkOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   rootFolderId?: Prisma.SortOrder
+  creatorId?: Prisma.SortOrderInput | Prisma.SortOrder
   project?: Prisma.ProjectOrderByWithRelationInput
   rootFolder?: Prisma.AssetOrderByWithRelationInput
+  creator?: Prisma.UserOrderByWithRelationInput
 }
 
 export type ShareLinkWhereUniqueInput = Prisma.AtLeast<
@@ -262,8 +273,10 @@ export type ShareLinkWhereUniqueInput = Prisma.AtLeast<
     createdAt?: Prisma.DateTimeFilter<'ShareLink'> | Date | string
     updatedAt?: Prisma.DateTimeFilter<'ShareLink'> | Date | string
     projectId?: Prisma.StringFilter<'ShareLink'> | string
+    creatorId?: Prisma.StringNullableFilter<'ShareLink'> | string | null
     project?: Prisma.XOR<Prisma.ProjectScalarRelationFilter, Prisma.ProjectWhereInput>
     rootFolder?: Prisma.XOR<Prisma.AssetScalarRelationFilter, Prisma.AssetWhereInput>
+    creator?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   },
   'id' | 'rootFolderId'
 >
@@ -280,6 +293,7 @@ export type ShareLinkOrderByWithAggregationInput = {
   updatedAt?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   rootFolderId?: Prisma.SortOrder
+  creatorId?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.ShareLinkCountOrderByAggregateInput
   _max?: Prisma.ShareLinkMaxOrderByAggregateInput
   _min?: Prisma.ShareLinkMinOrderByAggregateInput
@@ -304,6 +318,7 @@ export type ShareLinkScalarWhereWithAggregatesInput = {
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<'ShareLink'> | Date | string
   projectId?: Prisma.StringWithAggregatesFilter<'ShareLink'> | string
   rootFolderId?: Prisma.StringWithAggregatesFilter<'ShareLink'> | string
+  creatorId?: Prisma.StringNullableWithAggregatesFilter<'ShareLink'> | string | null
 }
 
 export type ShareLinkCreateInput = {
@@ -318,6 +333,7 @@ export type ShareLinkCreateInput = {
   updatedAt?: Date | string
   project: Prisma.ProjectCreateNestedOneWithoutShareLinksInput
   rootFolder: Prisma.AssetCreateNestedOneWithoutShareLinkRootFolderInput
+  creator?: Prisma.UserCreateNestedOneWithoutShareLinksInput
 }
 
 export type ShareLinkUncheckedCreateInput = {
@@ -332,6 +348,7 @@ export type ShareLinkUncheckedCreateInput = {
   updatedAt?: Date | string
   projectId: string
   rootFolderId: string
+  creatorId?: string | null
 }
 
 export type ShareLinkUpdateInput = {
@@ -346,6 +363,7 @@ export type ShareLinkUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   project?: Prisma.ProjectUpdateOneRequiredWithoutShareLinksNestedInput
   rootFolder?: Prisma.AssetUpdateOneRequiredWithoutShareLinkRootFolderNestedInput
+  creator?: Prisma.UserUpdateOneWithoutShareLinksNestedInput
 }
 
 export type ShareLinkUncheckedUpdateInput = {
@@ -360,6 +378,7 @@ export type ShareLinkUncheckedUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
   rootFolderId?: Prisma.StringFieldUpdateOperationsInput | string
+  creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ShareLinkCreateManyInput = {
@@ -374,6 +393,7 @@ export type ShareLinkCreateManyInput = {
   updatedAt?: Date | string
   projectId: string
   rootFolderId: string
+  creatorId?: string | null
 }
 
 export type ShareLinkUpdateManyMutationInput = {
@@ -400,6 +420,7 @@ export type ShareLinkUncheckedUpdateManyInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
   rootFolderId?: Prisma.StringFieldUpdateOperationsInput | string
+  creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ShareLinkListRelationFilter = {
@@ -424,6 +445,7 @@ export type ShareLinkCountOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   rootFolderId?: Prisma.SortOrder
+  creatorId?: Prisma.SortOrder
 }
 
 export type ShareLinkMaxOrderByAggregateInput = {
@@ -437,6 +459,7 @@ export type ShareLinkMaxOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   rootFolderId?: Prisma.SortOrder
+  creatorId?: Prisma.SortOrder
 }
 
 export type ShareLinkMinOrderByAggregateInput = {
@@ -450,11 +473,98 @@ export type ShareLinkMinOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
   rootFolderId?: Prisma.SortOrder
+  creatorId?: Prisma.SortOrder
 }
 
 export type ShareLinkNullableScalarRelationFilter = {
   is?: Prisma.ShareLinkWhereInput | null
   isNot?: Prisma.ShareLinkWhereInput | null
+}
+
+export type ShareLinkCreateNestedManyWithoutCreatorInput = {
+  create?:
+    | Prisma.XOR<
+        Prisma.ShareLinkCreateWithoutCreatorInput,
+        Prisma.ShareLinkUncheckedCreateWithoutCreatorInput
+      >
+    | Prisma.ShareLinkCreateWithoutCreatorInput[]
+    | Prisma.ShareLinkUncheckedCreateWithoutCreatorInput[]
+  connectOrCreate?:
+    | Prisma.ShareLinkCreateOrConnectWithoutCreatorInput
+    | Prisma.ShareLinkCreateOrConnectWithoutCreatorInput[]
+  createMany?: Prisma.ShareLinkCreateManyCreatorInputEnvelope
+  connect?: Prisma.ShareLinkWhereUniqueInput | Prisma.ShareLinkWhereUniqueInput[]
+}
+
+export type ShareLinkUncheckedCreateNestedManyWithoutCreatorInput = {
+  create?:
+    | Prisma.XOR<
+        Prisma.ShareLinkCreateWithoutCreatorInput,
+        Prisma.ShareLinkUncheckedCreateWithoutCreatorInput
+      >
+    | Prisma.ShareLinkCreateWithoutCreatorInput[]
+    | Prisma.ShareLinkUncheckedCreateWithoutCreatorInput[]
+  connectOrCreate?:
+    | Prisma.ShareLinkCreateOrConnectWithoutCreatorInput
+    | Prisma.ShareLinkCreateOrConnectWithoutCreatorInput[]
+  createMany?: Prisma.ShareLinkCreateManyCreatorInputEnvelope
+  connect?: Prisma.ShareLinkWhereUniqueInput | Prisma.ShareLinkWhereUniqueInput[]
+}
+
+export type ShareLinkUpdateManyWithoutCreatorNestedInput = {
+  create?:
+    | Prisma.XOR<
+        Prisma.ShareLinkCreateWithoutCreatorInput,
+        Prisma.ShareLinkUncheckedCreateWithoutCreatorInput
+      >
+    | Prisma.ShareLinkCreateWithoutCreatorInput[]
+    | Prisma.ShareLinkUncheckedCreateWithoutCreatorInput[]
+  connectOrCreate?:
+    | Prisma.ShareLinkCreateOrConnectWithoutCreatorInput
+    | Prisma.ShareLinkCreateOrConnectWithoutCreatorInput[]
+  upsert?:
+    | Prisma.ShareLinkUpsertWithWhereUniqueWithoutCreatorInput
+    | Prisma.ShareLinkUpsertWithWhereUniqueWithoutCreatorInput[]
+  createMany?: Prisma.ShareLinkCreateManyCreatorInputEnvelope
+  set?: Prisma.ShareLinkWhereUniqueInput | Prisma.ShareLinkWhereUniqueInput[]
+  disconnect?: Prisma.ShareLinkWhereUniqueInput | Prisma.ShareLinkWhereUniqueInput[]
+  delete?: Prisma.ShareLinkWhereUniqueInput | Prisma.ShareLinkWhereUniqueInput[]
+  connect?: Prisma.ShareLinkWhereUniqueInput | Prisma.ShareLinkWhereUniqueInput[]
+  update?:
+    | Prisma.ShareLinkUpdateWithWhereUniqueWithoutCreatorInput
+    | Prisma.ShareLinkUpdateWithWhereUniqueWithoutCreatorInput[]
+  updateMany?:
+    | Prisma.ShareLinkUpdateManyWithWhereWithoutCreatorInput
+    | Prisma.ShareLinkUpdateManyWithWhereWithoutCreatorInput[]
+  deleteMany?: Prisma.ShareLinkScalarWhereInput | Prisma.ShareLinkScalarWhereInput[]
+}
+
+export type ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput = {
+  create?:
+    | Prisma.XOR<
+        Prisma.ShareLinkCreateWithoutCreatorInput,
+        Prisma.ShareLinkUncheckedCreateWithoutCreatorInput
+      >
+    | Prisma.ShareLinkCreateWithoutCreatorInput[]
+    | Prisma.ShareLinkUncheckedCreateWithoutCreatorInput[]
+  connectOrCreate?:
+    | Prisma.ShareLinkCreateOrConnectWithoutCreatorInput
+    | Prisma.ShareLinkCreateOrConnectWithoutCreatorInput[]
+  upsert?:
+    | Prisma.ShareLinkUpsertWithWhereUniqueWithoutCreatorInput
+    | Prisma.ShareLinkUpsertWithWhereUniqueWithoutCreatorInput[]
+  createMany?: Prisma.ShareLinkCreateManyCreatorInputEnvelope
+  set?: Prisma.ShareLinkWhereUniqueInput | Prisma.ShareLinkWhereUniqueInput[]
+  disconnect?: Prisma.ShareLinkWhereUniqueInput | Prisma.ShareLinkWhereUniqueInput[]
+  delete?: Prisma.ShareLinkWhereUniqueInput | Prisma.ShareLinkWhereUniqueInput[]
+  connect?: Prisma.ShareLinkWhereUniqueInput | Prisma.ShareLinkWhereUniqueInput[]
+  update?:
+    | Prisma.ShareLinkUpdateWithWhereUniqueWithoutCreatorInput
+    | Prisma.ShareLinkUpdateWithWhereUniqueWithoutCreatorInput[]
+  updateMany?:
+    | Prisma.ShareLinkUpdateManyWithWhereWithoutCreatorInput
+    | Prisma.ShareLinkUpdateManyWithWhereWithoutCreatorInput[]
+  deleteMany?: Prisma.ShareLinkScalarWhereInput | Prisma.ShareLinkScalarWhereInput[]
 }
 
 export type ShareLinkCreateNestedManyWithoutProjectInput = {
@@ -599,6 +709,93 @@ export type ShareLinkUncheckedUpdateOneWithoutRootFolderNestedInput = {
   >
 }
 
+export type ShareLinkCreateWithoutCreatorInput = {
+  id?: string
+  name: string
+  expireAt?: Date | string | null
+  password?: string | null
+  isDisabled?: boolean
+  defaultSortOrder?: string | null
+  fieldVisibility?: PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  project: Prisma.ProjectCreateNestedOneWithoutShareLinksInput
+  rootFolder: Prisma.AssetCreateNestedOneWithoutShareLinkRootFolderInput
+}
+
+export type ShareLinkUncheckedCreateWithoutCreatorInput = {
+  id?: string
+  name: string
+  expireAt?: Date | string | null
+  password?: string | null
+  isDisabled?: boolean
+  defaultSortOrder?: string | null
+  fieldVisibility?: PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  projectId: string
+  rootFolderId: string
+}
+
+export type ShareLinkCreateOrConnectWithoutCreatorInput = {
+  where: Prisma.ShareLinkWhereUniqueInput
+  create: Prisma.XOR<
+    Prisma.ShareLinkCreateWithoutCreatorInput,
+    Prisma.ShareLinkUncheckedCreateWithoutCreatorInput
+  >
+}
+
+export type ShareLinkCreateManyCreatorInputEnvelope = {
+  data: Prisma.ShareLinkCreateManyCreatorInput | Prisma.ShareLinkCreateManyCreatorInput[]
+  skipDuplicates?: boolean
+}
+
+export type ShareLinkUpsertWithWhereUniqueWithoutCreatorInput = {
+  where: Prisma.ShareLinkWhereUniqueInput
+  update: Prisma.XOR<
+    Prisma.ShareLinkUpdateWithoutCreatorInput,
+    Prisma.ShareLinkUncheckedUpdateWithoutCreatorInput
+  >
+  create: Prisma.XOR<
+    Prisma.ShareLinkCreateWithoutCreatorInput,
+    Prisma.ShareLinkUncheckedCreateWithoutCreatorInput
+  >
+}
+
+export type ShareLinkUpdateWithWhereUniqueWithoutCreatorInput = {
+  where: Prisma.ShareLinkWhereUniqueInput
+  data: Prisma.XOR<
+    Prisma.ShareLinkUpdateWithoutCreatorInput,
+    Prisma.ShareLinkUncheckedUpdateWithoutCreatorInput
+  >
+}
+
+export type ShareLinkUpdateManyWithWhereWithoutCreatorInput = {
+  where: Prisma.ShareLinkScalarWhereInput
+  data: Prisma.XOR<
+    Prisma.ShareLinkUpdateManyMutationInput,
+    Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorInput
+  >
+}
+
+export type ShareLinkScalarWhereInput = {
+  AND?: Prisma.ShareLinkScalarWhereInput | Prisma.ShareLinkScalarWhereInput[]
+  OR?: Prisma.ShareLinkScalarWhereInput[]
+  NOT?: Prisma.ShareLinkScalarWhereInput | Prisma.ShareLinkScalarWhereInput[]
+  id?: Prisma.StringFilter<'ShareLink'> | string
+  name?: Prisma.StringFilter<'ShareLink'> | string
+  expireAt?: Prisma.DateTimeNullableFilter<'ShareLink'> | Date | string | null
+  password?: Prisma.StringNullableFilter<'ShareLink'> | string | null
+  isDisabled?: Prisma.BoolFilter<'ShareLink'> | boolean
+  defaultSortOrder?: Prisma.StringNullableFilter<'ShareLink'> | string | null
+  fieldVisibility?: Prisma.JsonNullableFilter<'ShareLink'>
+  createdAt?: Prisma.DateTimeFilter<'ShareLink'> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<'ShareLink'> | Date | string
+  projectId?: Prisma.StringFilter<'ShareLink'> | string
+  rootFolderId?: Prisma.StringFilter<'ShareLink'> | string
+  creatorId?: Prisma.StringNullableFilter<'ShareLink'> | string | null
+}
+
 export type ShareLinkCreateWithoutProjectInput = {
   id?: string
   name: string
@@ -610,6 +807,7 @@ export type ShareLinkCreateWithoutProjectInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   rootFolder: Prisma.AssetCreateNestedOneWithoutShareLinkRootFolderInput
+  creator?: Prisma.UserCreateNestedOneWithoutShareLinksInput
 }
 
 export type ShareLinkUncheckedCreateWithoutProjectInput = {
@@ -623,6 +821,7 @@ export type ShareLinkUncheckedCreateWithoutProjectInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   rootFolderId: string
+  creatorId?: string | null
 }
 
 export type ShareLinkCreateOrConnectWithoutProjectInput = {
@@ -666,23 +865,6 @@ export type ShareLinkUpdateManyWithWhereWithoutProjectInput = {
   >
 }
 
-export type ShareLinkScalarWhereInput = {
-  AND?: Prisma.ShareLinkScalarWhereInput | Prisma.ShareLinkScalarWhereInput[]
-  OR?: Prisma.ShareLinkScalarWhereInput[]
-  NOT?: Prisma.ShareLinkScalarWhereInput | Prisma.ShareLinkScalarWhereInput[]
-  id?: Prisma.StringFilter<'ShareLink'> | string
-  name?: Prisma.StringFilter<'ShareLink'> | string
-  expireAt?: Prisma.DateTimeNullableFilter<'ShareLink'> | Date | string | null
-  password?: Prisma.StringNullableFilter<'ShareLink'> | string | null
-  isDisabled?: Prisma.BoolFilter<'ShareLink'> | boolean
-  defaultSortOrder?: Prisma.StringNullableFilter<'ShareLink'> | string | null
-  fieldVisibility?: Prisma.JsonNullableFilter<'ShareLink'>
-  createdAt?: Prisma.DateTimeFilter<'ShareLink'> | Date | string
-  updatedAt?: Prisma.DateTimeFilter<'ShareLink'> | Date | string
-  projectId?: Prisma.StringFilter<'ShareLink'> | string
-  rootFolderId?: Prisma.StringFilter<'ShareLink'> | string
-}
-
 export type ShareLinkCreateWithoutRootFolderInput = {
   id?: string
   name: string
@@ -694,6 +876,7 @@ export type ShareLinkCreateWithoutRootFolderInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   project: Prisma.ProjectCreateNestedOneWithoutShareLinksInput
+  creator?: Prisma.UserCreateNestedOneWithoutShareLinksInput
 }
 
 export type ShareLinkUncheckedCreateWithoutRootFolderInput = {
@@ -707,6 +890,7 @@ export type ShareLinkUncheckedCreateWithoutRootFolderInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   projectId: string
+  creatorId?: string | null
 }
 
 export type ShareLinkCreateOrConnectWithoutRootFolderInput = {
@@ -748,6 +932,7 @@ export type ShareLinkUpdateWithoutRootFolderInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   project?: Prisma.ProjectUpdateOneRequiredWithoutShareLinksNestedInput
+  creator?: Prisma.UserUpdateOneWithoutShareLinksNestedInput
 }
 
 export type ShareLinkUncheckedUpdateWithoutRootFolderInput = {
@@ -761,6 +946,63 @@ export type ShareLinkUncheckedUpdateWithoutRootFolderInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
+  creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+}
+
+export type ShareLinkCreateManyCreatorInput = {
+  id?: string
+  name: string
+  expireAt?: Date | string | null
+  password?: string | null
+  isDisabled?: boolean
+  defaultSortOrder?: string | null
+  fieldVisibility?: PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  projectId: string
+  rootFolderId: string
+}
+
+export type ShareLinkUpdateWithoutCreatorInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  expireAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fieldVisibility?: PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  project?: Prisma.ProjectUpdateOneRequiredWithoutShareLinksNestedInput
+  rootFolder?: Prisma.AssetUpdateOneRequiredWithoutShareLinkRootFolderNestedInput
+}
+
+export type ShareLinkUncheckedUpdateWithoutCreatorInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  expireAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fieldVisibility?: PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  projectId?: Prisma.StringFieldUpdateOperationsInput | string
+  rootFolderId?: Prisma.StringFieldUpdateOperationsInput | string
+}
+
+export type ShareLinkUncheckedUpdateManyWithoutCreatorInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  expireAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fieldVisibility?: PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  projectId?: Prisma.StringFieldUpdateOperationsInput | string
+  rootFolderId?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type ShareLinkCreateManyProjectInput = {
@@ -774,6 +1016,7 @@ export type ShareLinkCreateManyProjectInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   rootFolderId: string
+  creatorId?: string | null
 }
 
 export type ShareLinkUpdateWithoutProjectInput = {
@@ -787,6 +1030,7 @@ export type ShareLinkUpdateWithoutProjectInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   rootFolder?: Prisma.AssetUpdateOneRequiredWithoutShareLinkRootFolderNestedInput
+  creator?: Prisma.UserUpdateOneWithoutShareLinksNestedInput
 }
 
 export type ShareLinkUncheckedUpdateWithoutProjectInput = {
@@ -800,6 +1044,7 @@ export type ShareLinkUncheckedUpdateWithoutProjectInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   rootFolderId?: Prisma.StringFieldUpdateOperationsInput | string
+  creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ShareLinkUncheckedUpdateManyWithoutProjectInput = {
@@ -813,6 +1058,7 @@ export type ShareLinkUncheckedUpdateManyWithoutProjectInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   rootFolderId?: Prisma.StringFieldUpdateOperationsInput | string
+  creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ShareLinkSelect<
@@ -830,8 +1076,10 @@ export type ShareLinkSelect<
     updatedAt?: boolean
     projectId?: boolean
     rootFolderId?: boolean
+    creatorId?: boolean
     project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
     rootFolder?: boolean | Prisma.AssetDefaultArgs<ExtArgs>
+    creator?: boolean | Prisma.ShareLink$creatorArgs<ExtArgs>
   },
   ExtArgs['result']['shareLink']
 >
@@ -851,8 +1099,10 @@ export type ShareLinkSelectCreateManyAndReturn<
     updatedAt?: boolean
     projectId?: boolean
     rootFolderId?: boolean
+    creatorId?: boolean
     project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
     rootFolder?: boolean | Prisma.AssetDefaultArgs<ExtArgs>
+    creator?: boolean | Prisma.ShareLink$creatorArgs<ExtArgs>
   },
   ExtArgs['result']['shareLink']
 >
@@ -872,8 +1122,10 @@ export type ShareLinkSelectUpdateManyAndReturn<
     updatedAt?: boolean
     projectId?: boolean
     rootFolderId?: boolean
+    creatorId?: boolean
     project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
     rootFolder?: boolean | Prisma.AssetDefaultArgs<ExtArgs>
+    creator?: boolean | Prisma.ShareLink$creatorArgs<ExtArgs>
   },
   ExtArgs['result']['shareLink']
 >
@@ -890,6 +1142,7 @@ export type ShareLinkSelectScalar = {
   updatedAt?: boolean
   projectId?: boolean
   rootFolderId?: boolean
+  creatorId?: boolean
 }
 
 export type ShareLinkOmit<
@@ -905,7 +1158,8 @@ export type ShareLinkOmit<
   | 'createdAt'
   | 'updatedAt'
   | 'projectId'
-  | 'rootFolderId',
+  | 'rootFolderId'
+  | 'creatorId',
   ExtArgs['result']['shareLink']
 >
 export type ShareLinkInclude<
@@ -913,18 +1167,21 @@ export type ShareLinkInclude<
 > = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
   rootFolder?: boolean | Prisma.AssetDefaultArgs<ExtArgs>
+  creator?: boolean | Prisma.ShareLink$creatorArgs<ExtArgs>
 }
 export type ShareLinkIncludeCreateManyAndReturn<
   ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
 > = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
   rootFolder?: boolean | Prisma.AssetDefaultArgs<ExtArgs>
+  creator?: boolean | Prisma.ShareLink$creatorArgs<ExtArgs>
 }
 export type ShareLinkIncludeUpdateManyAndReturn<
   ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
 > = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
   rootFolder?: boolean | Prisma.AssetDefaultArgs<ExtArgs>
+  creator?: boolean | Prisma.ShareLink$creatorArgs<ExtArgs>
 }
 
 export type $ShareLinkPayload<
@@ -934,6 +1191,7 @@ export type $ShareLinkPayload<
   objects: {
     project: Prisma.$ProjectPayload<ExtArgs>
     rootFolder: Prisma.$AssetPayload<ExtArgs>
+    creator: Prisma.$UserPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<
     {
@@ -951,6 +1209,7 @@ export type $ShareLinkPayload<
       updatedAt: Date
       projectId: string
       rootFolderId: string
+      creatorId: string | null
     },
     ExtArgs['result']['shareLink']
   >
@@ -1514,6 +1773,19 @@ export interface Prisma__ShareLinkClient<
     ExtArgs,
     GlobalOmitOptions
   >
+  creator<T extends Prisma.ShareLink$creatorArgs<ExtArgs> = {}>(
+    args?: Prisma.Subset<T, Prisma.ShareLink$creatorArgs<ExtArgs>>,
+  ): Prisma.Prisma__UserClient<
+    runtime.Types.Result.GetResult<
+      Prisma.$UserPayload<ExtArgs>,
+      T,
+      'findUniqueOrThrow',
+      GlobalOmitOptions
+    > | null,
+    null,
+    ExtArgs,
+    GlobalOmitOptions
+  >
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1556,6 +1828,7 @@ export interface ShareLinkFieldRefs {
   readonly updatedAt: Prisma.FieldRef<'ShareLink', 'DateTime'>
   readonly projectId: Prisma.FieldRef<'ShareLink', 'String'>
   readonly rootFolderId: Prisma.FieldRef<'ShareLink', 'String'>
+  readonly creatorId: Prisma.FieldRef<'ShareLink', 'String'>
 }
 
 // Custom InputTypes
@@ -1987,6 +2260,27 @@ export type ShareLinkDeleteManyArgs<
    * Limit how many ShareLinks to delete.
    */
   limit?: number
+}
+
+/**
+ * ShareLink.creator
+ */
+export type ShareLink$creatorArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
+> = {
+  /**
+   * Select specific fields to fetch from the User
+   */
+  select?: Prisma.UserSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the User
+   */
+  omit?: Prisma.UserOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserInclude<ExtArgs> | null
+  where?: Prisma.UserWhereInput
 }
 
 /**

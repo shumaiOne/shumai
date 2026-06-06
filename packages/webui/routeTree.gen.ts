@@ -18,6 +18,8 @@ import { Route as ShareShareIdIndexRouteImport } from './routes/share/$shareId/i
 import { Route as ProjectsProjectIdIndexRouteImport } from './routes/projects/$projectId/index'
 import { Route as TeamsTeamIdSettingsRouteImport } from './routes/teams/$teamId/settings'
 import { Route as ProjectsProjectIdRecentlyDeletedRouteImport } from './routes/projects/$projectId/recently-deleted'
+import { Route as ProjectsProjectIdSharesIndexRouteImport } from './routes/projects/$projectId/shares/index'
+import { Route as ProjectsProjectIdCollectionsIndexRouteImport } from './routes/projects/$projectId/collections/index'
 import { Route as ShareShareIdFoldersFolderIdRouteImport } from './routes/share/$shareId/folders/$folderId'
 import { Route as ShareShareIdFilesFileIdRouteImport } from './routes/share/$shareId/files/$fileId'
 import { Route as ProjectsProjectIdSharesShareIdRouteImport } from './routes/projects/$projectId/shares/$shareId'
@@ -70,6 +72,16 @@ const ProjectsProjectIdRecentlyDeletedRoute = ProjectsProjectIdRecentlyDeletedRo
   path: '/projects/$projectId/recently-deleted',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectsProjectIdSharesIndexRoute = ProjectsProjectIdSharesIndexRouteImport.update({
+  id: '/projects/$projectId/shares/',
+  path: '/projects/$projectId/shares/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectsProjectIdCollectionsIndexRoute = ProjectsProjectIdCollectionsIndexRouteImport.update({
+  id: '/projects/$projectId/collections/',
+  path: '/projects/$projectId/collections/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ShareShareIdFoldersFolderIdRoute = ShareShareIdFoldersFolderIdRouteImport.update({
   id: '/folders/$folderId',
   path: '/folders/$folderId',
@@ -118,6 +130,8 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId/shares/$shareId': typeof ProjectsProjectIdSharesShareIdRoute
   '/share/$shareId/files/$fileId': typeof ShareShareIdFilesFileIdRoute
   '/share/$shareId/folders/$folderId': typeof ShareShareIdFoldersFolderIdRoute
+  '/projects/$projectId/collections/': typeof ProjectsProjectIdCollectionsIndexRoute
+  '/projects/$projectId/shares/': typeof ProjectsProjectIdSharesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -134,6 +148,8 @@ export interface FileRoutesByTo {
   '/projects/$projectId/shares/$shareId': typeof ProjectsProjectIdSharesShareIdRoute
   '/share/$shareId/files/$fileId': typeof ShareShareIdFilesFileIdRoute
   '/share/$shareId/folders/$folderId': typeof ShareShareIdFoldersFolderIdRoute
+  '/projects/$projectId/collections': typeof ProjectsProjectIdCollectionsIndexRoute
+  '/projects/$projectId/shares': typeof ProjectsProjectIdSharesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -152,6 +168,8 @@ export interface FileRoutesById {
   '/projects/$projectId/shares/$shareId': typeof ProjectsProjectIdSharesShareIdRoute
   '/share/$shareId/files/$fileId': typeof ShareShareIdFilesFileIdRoute
   '/share/$shareId/folders/$folderId': typeof ShareShareIdFoldersFolderIdRoute
+  '/projects/$projectId/collections/': typeof ProjectsProjectIdCollectionsIndexRoute
+  '/projects/$projectId/shares/': typeof ProjectsProjectIdSharesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -171,6 +189,8 @@ export interface FileRouteTypes {
     | '/projects/$projectId/shares/$shareId'
     | '/share/$shareId/files/$fileId'
     | '/share/$shareId/folders/$folderId'
+    | '/projects/$projectId/collections/'
+    | '/projects/$projectId/shares/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -187,6 +207,8 @@ export interface FileRouteTypes {
     | '/projects/$projectId/shares/$shareId'
     | '/share/$shareId/files/$fileId'
     | '/share/$shareId/folders/$folderId'
+    | '/projects/$projectId/collections'
+    | '/projects/$projectId/shares'
   id:
     | '__root__'
     | '/'
@@ -204,6 +226,8 @@ export interface FileRouteTypes {
     | '/projects/$projectId/shares/$shareId'
     | '/share/$shareId/files/$fileId'
     | '/share/$shareId/folders/$folderId'
+    | '/projects/$projectId/collections/'
+    | '/projects/$projectId/shares/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -219,6 +243,8 @@ export interface RootRouteChildren {
   ProjectsProjectIdFilesFileIdRoute: typeof ProjectsProjectIdFilesFileIdRoute
   ProjectsProjectIdFoldersFolderIdRoute: typeof ProjectsProjectIdFoldersFolderIdRoute
   ProjectsProjectIdSharesShareIdRoute: typeof ProjectsProjectIdSharesShareIdRoute
+  ProjectsProjectIdCollectionsIndexRoute: typeof ProjectsProjectIdCollectionsIndexRoute
+  ProjectsProjectIdSharesIndexRoute: typeof ProjectsProjectIdSharesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -284,6 +310,20 @@ declare module '@tanstack/react-router' {
       path: '/projects/$projectId/recently-deleted'
       fullPath: '/projects/$projectId/recently-deleted'
       preLoaderRoute: typeof ProjectsProjectIdRecentlyDeletedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/$projectId/shares/': {
+      id: '/projects/$projectId/shares/'
+      path: '/projects/$projectId/shares'
+      fullPath: '/projects/$projectId/shares/'
+      preLoaderRoute: typeof ProjectsProjectIdSharesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/$projectId/collections/': {
+      id: '/projects/$projectId/collections/'
+      path: '/projects/$projectId/collections'
+      fullPath: '/projects/$projectId/collections/'
+      preLoaderRoute: typeof ProjectsProjectIdCollectionsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/share/$shareId/folders/$folderId': {
@@ -358,6 +398,8 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectsProjectIdFilesFileIdRoute: ProjectsProjectIdFilesFileIdRoute,
   ProjectsProjectIdFoldersFolderIdRoute: ProjectsProjectIdFoldersFolderIdRoute,
   ProjectsProjectIdSharesShareIdRoute: ProjectsProjectIdSharesShareIdRoute,
+  ProjectsProjectIdCollectionsIndexRoute: ProjectsProjectIdCollectionsIndexRoute,
+  ProjectsProjectIdSharesIndexRoute: ProjectsProjectIdSharesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

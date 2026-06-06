@@ -1,13 +1,24 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { shareService } from './share'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { projectService } from '@shumai/core/src/project/project'
 import { AssetType } from '@shumai/db'
+import { s3Service } from '@shumai/core/src/s3/s3'
+
+vi.mock('@shumai/core/src/s3/s3', () => ({
+  s3Service: {
+    presign: vi.fn(),
+  },
+}))
 
 describe('ShareService', () => {
   setupTestDbHooks()
+
+  beforeEach(() => {
+    vi.mocked(s3Service.presign).mockResolvedValue('http://s3/mock-avatar')
+  })
 
   let teamId: string
   let projectId: string
@@ -267,5 +278,33 @@ describe('ShareService', () => {
     await shareService.removeAssetFromShare(shareLink.id, symlink!.id)
     const symlinkAfter = await prisma.asset.findUnique({ where: { id: symlink!.id } })
     expect(symlinkAfter).toBeNull()
+  })
+
+  it('resolves the creator avatar image to a presigned URL', async () => {
+    const userWithAvatar = await prisma.user.create({
+      data: {
+        name: 'User With Avatar',
+        email: `avatar-test-${Date.now()}@example.com`,
+        image: 'avatars/user123.png',
+      },
+    })
+
+    vi.mocked(s3Service.presign).mockResolvedValue('http://s3/avatars/user123-presigned.png')
+
+    const shareLink = await shareService.createShareLink(
+      projectId,
+      { name: 'Avatar Share' },
+      userWithAvatar.id,
+    )
+
+    expect(shareLink.creator).toBeDefined()
+    expect(shareLink.creator?.image).toBe('http://s3/avatars/user123-presigned.png')
+
+    const fetched = await shareService.getShareLink(shareLink.id)
+    expect(fetched.creator?.image).toBe('http://s3/avatars/user123-presigned.png')
+
+    const list = await shareService.listProjectShareLinks({ projectId })
+    const item = list.data.find((l) => l.id === shareLink.id)
+    expect(item?.creator?.image).toBe('http://s3/avatars/user123-presigned.png')
   })
 })

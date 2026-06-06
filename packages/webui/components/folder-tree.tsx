@@ -16,6 +16,7 @@ import {
   Share2,
   LayoutGrid,
   Bookmark,
+  MoreHorizontal,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useInView } from 'react-intersection-observer'
@@ -24,6 +25,31 @@ import type { DragState } from './dnd-types'
 import { toast } from 'sonner'
 import type { ShareLinkInfo } from '@shumai/dtos'
 import type { CollectionInfo } from '@shumai/dtos'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/ui/components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/ui/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/ui/components/ui/alert-dialog'
+import { Input } from '@/ui/components/ui/input'
+import { Button } from '@/ui/components/ui/button'
 
 interface FolderTreeProps {
   teamId: string
@@ -144,6 +170,110 @@ export function FolderTree({
     },
   })
 
+  const params = useParams({
+    from: '/projects/$projectId/collections/$collectionId',
+    shouldThrow: false,
+  })
+  const shareParams = useParams({
+    from: '/projects/$projectId/shares/$shareId',
+    shouldThrow: false,
+  })
+
+  const [renameId, setRenameId] = useState<string | null>(null)
+  const [renameType, setRenameType] = useState<'collection' | 'share'>('collection')
+  const [renameName, setRenameName] = useState('')
+  const [isRenameOpen, setIsRenameOpen] = useState(false)
+
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [deleteType, setDeleteType] = useState<'collection' | 'share'>('collection')
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+
+  const { mutate: renameCollection } = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const res = await client.api.collections[':collectionId'].$patch({
+        param: { collectionId: id },
+        json: { name },
+      })
+      if (!res.ok) throw new Error('Failed to rename collection')
+      return await res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['collections', projectId] })
+      toast.success('Collection renamed')
+      setIsRenameOpen(false)
+    },
+    onError: (err) => {
+      toast.error(`Error: ${err.message}`)
+    },
+  })
+
+  const { mutate: deleteCollection } = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await client.api.collections[':collectionId'].$delete({
+        param: { collectionId: id },
+      })
+      if (!res.ok) throw new Error('Failed to delete collection')
+      return await res.json()
+    },
+    onSuccess: (_, deletedId) => {
+      queryClient.invalidateQueries({ queryKey: ['collections', projectId] })
+      toast.success('Collection deleted')
+      setIsDeleteOpen(false)
+      if (params?.collectionId === deletedId) {
+        navigate({
+          to: '/projects/$projectId',
+          params: { projectId },
+        })
+      }
+    },
+    onError: (err) => {
+      toast.error(`Error: ${err.message}`)
+    },
+  })
+
+  const { mutate: renameShareLink } = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const res = await client.api.shares[':shareId'].$put({
+        param: { shareId: id },
+        json: { name },
+      })
+      if (!res.ok) throw new Error('Failed to rename share link')
+      return await res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shares', projectId] })
+      toast.success('Share link renamed')
+      setIsRenameOpen(false)
+    },
+    onError: (err) => {
+      toast.error(`Error: ${err.message}`)
+    },
+  })
+
+  const { mutate: deleteShareLink } = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await client.api.shares[':shareId'].$delete({
+        param: { shareId: id },
+      })
+      if (!res.ok) throw new Error('Failed to delete share link')
+      return id
+    },
+    onSuccess: (deletedId) => {
+      queryClient.invalidateQueries({ queryKey: ['shares', projectId] })
+      toast.success('Share link deleted')
+      setIsDeleteOpen(false)
+      if (shareParams?.shareId === deletedId) {
+        navigate({
+          to: '/projects/$projectId',
+          params: { projectId },
+        })
+      }
+    },
+    onError: (err) => {
+      toast.error(`Error: ${err.message}`)
+    },
+  })
+
   const shareLinks = shareLinksData?.data ?? []
 
   return (
@@ -255,23 +385,89 @@ export function FolderTree({
                 : 'opacity-0 invisible pointer-events-none h-0',
             )}
           >
-            {collectionsData?.data.map((collection) => (
-              <div
-                key={collection.id}
-                className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                onClick={() =>
-                  navigate({
-                    to: '/projects/$projectId/collections/$collectionId',
-                    params: { projectId, collectionId: collection.id },
-                  })
-                }
-              >
-                <div className="flex h-4 w-4 items-center justify-center">
-                  <Bookmark className="h-4 w-4 text-sidebar-primary" />
-                </div>
-                <span className="flex-1 truncate text-sidebar-foreground">{collection.name}</span>
+            <div
+              className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              onClick={() =>
+                navigate({
+                  to: '/projects/$projectId/collections',
+                  params: { projectId },
+                })
+              }
+            >
+              <div className="flex h-4 w-4 items-center justify-center">
+                <LayoutGrid className="h-4 w-4 text-sidebar-primary" />
               </div>
-            ))}
+              <span className="flex-1 truncate text-sidebar-foreground">
+                All Collections ({collectionsData?.data.length || 0})
+              </span>
+            </div>
+
+            {collectionsData?.data.map((collection) => {
+              const isColActive = params?.collectionId === collection.id
+              return (
+                <div
+                  key={collection.id}
+                  className={cn(
+                    'group flex cursor-pointer items-center justify-between rounded-md px-2 py-1 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                    isColActive && 'bg-sidebar-accent text-sidebar-accent-foreground font-medium',
+                  )}
+                  onClick={() =>
+                    navigate({
+                      to: '/projects/$projectId/collections/$collectionId',
+                      params: { projectId, collectionId: collection.id },
+                    })
+                  }
+                >
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className="flex h-4 w-4 items-center justify-center shrink-0">
+                      <Bookmark className="h-4 w-4 text-sidebar-primary" />
+                    </div>
+                    <span className="truncate text-sidebar-foreground flex-1">
+                      {collection.name}
+                    </span>
+                  </div>
+
+                  <div
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <DropdownMenu modal={false}>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          className="h-6 w-6 shrink-0 hover:bg-muted hover:text-muted-foreground p-0"
+                        >
+                          <MoreHorizontal className="h-3.5 w-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-32">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setRenameId(collection.id)
+                            setRenameType('collection')
+                            setRenameName(collection.name)
+                            setIsRenameOpen(true)
+                          }}
+                        >
+                          Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                          onClick={() => {
+                            setDeleteId(collection.id)
+                            setDeleteType('collection')
+                            setIsDeleteOpen(true)
+                          }}
+                        >
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
@@ -313,7 +509,15 @@ export function FolderTree({
                 : 'opacity-0 invisible pointer-events-none h-0',
             )}
           >
-            <div className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+            <div
+              className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              onClick={() =>
+                navigate({
+                  to: '/projects/$projectId/shares',
+                  params: { projectId },
+                })
+              }
+            >
               <div className="flex h-4 w-4 items-center justify-center">
                 <LayoutGrid className="h-4 w-4 text-sidebar-primary" />
               </div>
@@ -328,11 +532,97 @@ export function FolderTree({
                 link={link}
                 projectId={projectId}
                 dragState={dragState}
+                onRenameTrigger={(id, currentName) => {
+                  setRenameId(id)
+                  setRenameType('share')
+                  setRenameName(currentName)
+                  setIsRenameOpen(true)
+                }}
+                onDeleteTrigger={(id) => {
+                  setDeleteId(id)
+                  setDeleteType('share')
+                  setIsDeleteOpen(true)
+                }}
               />
             ))}
           </div>
         </div>
       )}
+
+      {/* Rename Dialog */}
+      <Dialog open={isRenameOpen} onOpenChange={setIsRenameOpen}>
+        <DialogContent onClick={(e) => e.stopPropagation()}>
+          <DialogHeader>
+            <DialogTitle>
+              Rename {renameType === 'collection' ? 'Collection' : 'Share Link'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={renameName}
+              onChange={(e) => setRenameName(e.target.value)}
+              placeholder="Enter new name"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && renameName.trim()) {
+                  if (renameType === 'collection') {
+                    renameCollection({ id: renameId!, name: renameName })
+                  } else {
+                    renameShareLink({ id: renameId!, name: renameName })
+                  }
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsRenameOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={!renameName.trim()}
+              onClick={() => {
+                if (renameType === 'collection') {
+                  renameCollection({ id: renameId!, name: renameName })
+                } else {
+                  renameShareLink({ id: renameId!, name: renameName })
+                }
+              }}
+            >
+              Rename
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Alert Dialog */}
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete {deleteType === 'collection' ? 'Collection' : 'Share Link'}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this{' '}
+              {deleteType === 'collection' ? 'collection' : 'share link'}? This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deleteType === 'collection') {
+                  deleteCollection(deleteId!)
+                } else {
+                  deleteShareLink(deleteId!)
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
@@ -341,10 +631,14 @@ function ShareLinkItem({
   link,
   projectId,
   dragState,
+  onRenameTrigger,
+  onDeleteTrigger,
 }: {
   link: ShareLinkInfo
   projectId: string
   dragState?: DragState
+  onRenameTrigger: (id: string, currentName: string) => void
+  onDeleteTrigger: (id: string) => void
 }) {
   const navigate = useNavigate()
   const params = useParams({
@@ -367,7 +661,7 @@ function ShareLinkItem({
     <div
       ref={setDroppableRef}
       className={cn(
-        'group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+        'group flex cursor-pointer items-center justify-between rounded-md px-2 py-1 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
         isActive && 'bg-sidebar-accent text-sidebar-accent-foreground font-medium',
         isOver && isValidDropTarget && 'bg-sidebar-accent ring-2 ring-primary ring-inset',
       )}
@@ -378,10 +672,46 @@ function ShareLinkItem({
         })
       }
     >
-      <div className="flex h-4 w-4 items-center justify-center">
-        <Share2 className="h-4 w-4 text-sidebar-primary" />
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <div className="flex h-4 w-4 items-center justify-center shrink-0">
+          <Share2 className="h-4 w-4 text-sidebar-primary" />
+        </div>
+        <span className="truncate text-sidebar-foreground flex-1">{link.name}</span>
       </div>
-      <span className="flex-1 truncate text-sidebar-foreground">{link.name}</span>
+
+      <div
+        className="opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <DropdownMenu modal={false}>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="h-6 w-6 shrink-0 hover:bg-muted hover:text-muted-foreground p-0"
+            >
+              <MoreHorizontal className="h-3.5 w-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-32">
+            <DropdownMenuItem
+              onClick={() => {
+                onRenameTrigger(link.id, link.name)
+              }}
+            >
+              Rename
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive focus:bg-destructive/10"
+              onClick={() => {
+                onDeleteTrigger(link.id)
+              }}
+            >
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
   )
 }

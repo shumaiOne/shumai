@@ -2,6 +2,7 @@ import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { collectionService } from '@shumai/core/src/collection/collection'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import { getAvatarUrl } from '@shumai/core/src/user/avatar'
 import {
   createCollectionRequestSchema,
   updateCollectionRequestSchema,
@@ -13,7 +14,10 @@ import type { Prisma } from '@shumai/db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
-function toCollectionInfo(c: Prisma.CollectionGetPayload<Record<string, never>>): CollectionInfo {
+async function toCollectionInfo(
+  c: Prisma.CollectionGetPayload<{ include: { creator: true } }>,
+): Promise<CollectionInfo> {
+  const avatarUrl = c.creator ? await getAvatarUrl(c.creator.image) : undefined
   return {
     id: c.id,
     name: c.name,
@@ -21,6 +25,7 @@ function toCollectionInfo(c: Prisma.CollectionGetPayload<Record<string, never>>)
     projectId: c.projectId,
     createdAt: c.createdAt.toISOString(),
     updatedAt: c.updatedAt.toISOString(),
+    creator: c.creator ? { id: c.creator.id, name: c.creator.name, image: avatarUrl } : null,
   }
 }
 
@@ -40,8 +45,8 @@ const route = new Hono<{ Variables: { user: User } }>()
         id: projectId,
       })
 
-      const collection = await collectionService.createCollection(projectId, req)
-      return c.json(toCollectionInfo(collection))
+      const collection = await collectionService.createCollection(projectId, req, user.id)
+      return c.json(await toCollectionInfo(collection))
     },
   )
   .get(
@@ -62,7 +67,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       const collections = await collectionService.listCollections(projectId, req)
       return c.json({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        data: collections.data.map((c: any) => toCollectionInfo(c)),
+        data: await Promise.all(collections.data.map((c: any) => toCollectionInfo(c))),
         pageInfo: collections.pageInfo,
       })
     },
@@ -83,7 +88,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       return c.json({ error: 'Collection not found' }, 404)
     }
 
-    return c.json(toCollectionInfo(collection))
+    return c.json(await toCollectionInfo(collection))
   })
   .patch(
     '/collections/:collectionId',
@@ -101,7 +106,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       })
 
       const collection = await collectionService.updateCollection(collectionId, req)
-      return c.json(toCollectionInfo(collection))
+      return c.json(await toCollectionInfo(collection))
     },
   )
   .delete('/collections/:collectionId', async (c) => {

@@ -139,7 +139,11 @@ describe('Share API', () => {
           permission: Permission.Edit,
         }),
       )
-      expect(shareService.createShareLink).toHaveBeenCalledWith('project1', { name: 'My Share' })
+      expect(shareService.createShareLink).toHaveBeenCalledWith(
+        'project1',
+        { name: 'My Share' },
+        'user1',
+      )
     })
   })
 
