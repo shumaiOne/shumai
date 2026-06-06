@@ -11,15 +11,26 @@ import {
   TableHeader,
   TableRow,
 } from '@/ui/components/ui/table'
+import { Avatar, AvatarImage, AvatarFallback } from '@/ui/components/ui/avatar'
 import { useUiStore } from '@/ui/stores/ui'
 import { useTeamContextStore } from '@/ui/stores/team-context'
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { Copy, ExternalLink, Calendar, User, Link2, Share2 } from 'lucide-react'
+import { Copy, ExternalLink, Calendar, Link2, Share2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ShareLinkInfo } from '@shumai/dtos'
 import { ProjectFolderSkeleton } from '@/ui/components/loading-skeletons'
+
+const getInitials = (name?: string) => {
+  if (!name) return '??'
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
+}
 
 const projectInfoQueryOptions = (projectId: string) => ({
   queryKey: ['projects', projectId],
@@ -206,9 +217,18 @@ function SharesPage() {
                           </TableCell>
                           <TableCell className="px-4 py-3.5">
                             <div className="flex items-center gap-2">
-                              <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                                <User className="h-3.5 w-3.5 text-primary" />
-                              </div>
+                              <Avatar className="h-6 w-6">
+                                {share.creator?.image && (
+                                  <AvatarImage
+                                    src={share.creator.image}
+                                    alt={share.creator.name}
+                                    className="object-cover"
+                                  />
+                                )}
+                                <AvatarFallback className="text-[10px]">
+                                  {getInitials(share.creator?.name)}
+                                </AvatarFallback>
+                              </Avatar>
                               <span className="text-sm font-medium text-foreground truncate max-w-[150px]">
                                 {share.creator?.name || 'Unknown'}
                               </span>
