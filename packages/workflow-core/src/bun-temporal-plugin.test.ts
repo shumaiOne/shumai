@@ -14,7 +14,7 @@ describe('temporalWorkflow plugin', () => {
   it('should register onLoad and configure webpackConfigHook with @temporalio/workflow alias', async () => {
     const plugin = temporalWorkflow()
     
-    let onLoadCallback: Function | null = null
+    let onLoadCallback: ((...args: unknown[]) => unknown) | null = null
 
     const mockBuild = {
       onResolve: vi.fn(),
@@ -35,8 +35,10 @@ describe('temporalWorkflow plugin', () => {
     // Verify bundleWorkflowCode was called
     expect(worker.bundleWorkflowCode).toHaveBeenCalled()
 
-    // Inspect the webpackConfigHook that was passed to bundleWorkflowCode
-    const callArgs = vi.mocked(worker.bundleWorkflowCode).mock.calls[0][0]
+    // Webpack's configuration type is complex and varies across versions.
+    // We cast it to any here to allow indexing the config aliases dynamically.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const callArgs = vi.mocked(worker.bundleWorkflowCode).mock.calls[0][0] as any
     expect(callArgs.webpackConfigHook).toBeDefined()
 
     // Invoke the hook with a dummy config
