@@ -7,14 +7,16 @@ import {
 } from '@shumai/dtos'
 
 export class CollectionService {
-  async createCollection(projectId: string, req: CreateCollectionRequest) {
+  async createCollection(projectId: string, req: CreateCollectionRequest, creatorId?: string) {
     return await prisma.collection.create({
       data: {
         name: req.name,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         filter: req.filter as any,
         projectId,
+        creatorId,
       },
+      include: { creator: true },
     })
   }
 
@@ -26,6 +28,7 @@ export class CollectionService {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ...(req.filter && { filter: req.filter as any }),
       },
+      include: { creator: true },
     })
   }
 
@@ -38,6 +41,7 @@ export class CollectionService {
   async getCollection(collectionId: string) {
     return await prisma.collection.findUnique({
       where: { id: collectionId },
+      include: { creator: true },
     })
   }
 
@@ -46,6 +50,7 @@ export class CollectionService {
       (skip, take) =>
         prisma.collection.findMany({
           where: { projectId },
+          include: { creator: true },
           orderBy: { id: 'desc' },
           skip,
           take,

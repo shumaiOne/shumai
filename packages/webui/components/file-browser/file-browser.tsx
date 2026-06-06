@@ -134,7 +134,7 @@ export function FileBrowser({
   }, [files, localUploadingFiles])
 
   const { data: shareLinksData } = useQuery({
-    queryKey: ['shares', teamId, projectId],
+    queryKey: ['shares', projectId],
     queryFn: async () => {
       const res = await client.api.projects[':projectId'].shares.$get({
         param: { projectId },
@@ -143,7 +143,7 @@ export function FileBrowser({
       if (!res.ok) throw new Error('Failed to fetch share links')
       return (await res.json()) as unknown as { data: ShareLinkInfo[] }
     },
-    enabled: !!teamId && !!projectId && !isPublic,
+    enabled: !!projectId && !isPublic,
   })
 
   const $reparent = client.api.projects[':projectId'].reparent.$post
@@ -265,7 +265,7 @@ export function FileBrowser({
       return share
     },
     onSuccess: (share) => {
-      queryClient.invalidateQueries({ queryKey: ['shares', teamId, projectId] })
+      queryClient.invalidateQueries({ queryKey: ['shares', projectId] })
       toast.success('Share link created', {
         action: {
           label: 'View',
@@ -706,7 +706,7 @@ export function FileBrowser({
 
   const handlePaste = useCallback(
     (e: React.ClipboardEvent | ClipboardEvent) => {
-      if (isShareView) return
+      if (isShareView || !!collection) return
       if (!e.clipboardData) return
       const items = e.clipboardData.items
       const files: File[] = []
@@ -739,13 +739,13 @@ export function FileBrowser({
         processAndUploadFiles(files)
       }
     },
-    [processAndUploadFiles],
+    [processAndUploadFiles, isShareView, collection],
   )
 
   // Add global paste listener if browser is active
   useEffect(() => {
     const onGlobalPaste = (e: ClipboardEvent) => {
-      if (isShareView) return
+      if (isShareView || !!collection) return
       // Don't intercept if user is typing in an input
       if (
         document.activeElement &&
@@ -762,12 +762,12 @@ export function FileBrowser({
     return () => {
       window.removeEventListener('paste', onGlobalPaste)
     }
-  }, [handlePaste, isShareView])
+  }, [handlePaste, isShareView, collection])
 
   const renderContent = () => {
     return (
       <ContextMenu modal={false}>
-        <ContextMenuTrigger asChild disabled={isShareView || isPublic}>
+        <ContextMenuTrigger asChild disabled={isShareView || isPublic || !!collection}>
           <div
             className="flex-1 bg-background relative flex flex-col min-h-0 overflow-hidden"
             onContextMenu={(e) => onContextMenu(e)}

@@ -31,6 +31,7 @@ export type CollectionMinAggregateOutputType = {
   createdAt: Date | null
   updatedAt: Date | null
   projectId: string | null
+  creatorId: string | null
 }
 
 export type CollectionMaxAggregateOutputType = {
@@ -39,6 +40,7 @@ export type CollectionMaxAggregateOutputType = {
   createdAt: Date | null
   updatedAt: Date | null
   projectId: string | null
+  creatorId: string | null
 }
 
 export type CollectionCountAggregateOutputType = {
@@ -48,6 +50,7 @@ export type CollectionCountAggregateOutputType = {
   createdAt: number
   updatedAt: number
   projectId: number
+  creatorId: number
   _all: number
 }
 
@@ -57,6 +60,7 @@ export type CollectionMinAggregateInputType = {
   createdAt?: true
   updatedAt?: true
   projectId?: true
+  creatorId?: true
 }
 
 export type CollectionMaxAggregateInputType = {
@@ -65,6 +69,7 @@ export type CollectionMaxAggregateInputType = {
   createdAt?: true
   updatedAt?: true
   projectId?: true
+  creatorId?: true
 }
 
 export type CollectionCountAggregateInputType = {
@@ -74,6 +79,7 @@ export type CollectionCountAggregateInputType = {
   createdAt?: true
   updatedAt?: true
   projectId?: true
+  creatorId?: true
   _all?: true
 }
 
@@ -159,6 +165,7 @@ export type CollectionGroupByOutputType = {
   createdAt: Date
   updatedAt: Date
   projectId: string
+  creatorId: string | null
   _count: CollectionCountAggregateOutputType | null
   _min: CollectionMinAggregateOutputType | null
   _max: CollectionMaxAggregateOutputType | null
@@ -186,7 +193,9 @@ export type CollectionWhereInput = {
   createdAt?: Prisma.DateTimeFilter<'Collection'> | Date | string
   updatedAt?: Prisma.DateTimeFilter<'Collection'> | Date | string
   projectId?: Prisma.StringFilter<'Collection'> | string
+  creatorId?: Prisma.StringNullableFilter<'Collection'> | string | null
   project?: Prisma.XOR<Prisma.ProjectScalarRelationFilter, Prisma.ProjectWhereInput>
+  creator?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
 }
 
 export type CollectionOrderByWithRelationInput = {
@@ -196,7 +205,9 @@ export type CollectionOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
+  creatorId?: Prisma.SortOrderInput | Prisma.SortOrder
   project?: Prisma.ProjectOrderByWithRelationInput
+  creator?: Prisma.UserOrderByWithRelationInput
 }
 
 export type CollectionWhereUniqueInput = Prisma.AtLeast<
@@ -210,7 +221,9 @@ export type CollectionWhereUniqueInput = Prisma.AtLeast<
     createdAt?: Prisma.DateTimeFilter<'Collection'> | Date | string
     updatedAt?: Prisma.DateTimeFilter<'Collection'> | Date | string
     projectId?: Prisma.StringFilter<'Collection'> | string
+    creatorId?: Prisma.StringNullableFilter<'Collection'> | string | null
     project?: Prisma.XOR<Prisma.ProjectScalarRelationFilter, Prisma.ProjectWhereInput>
+    creator?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   },
   'id'
 >
@@ -222,6 +235,7 @@ export type CollectionOrderByWithAggregationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
+  creatorId?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.CollectionCountOrderByAggregateInput
   _max?: Prisma.CollectionMaxOrderByAggregateInput
   _min?: Prisma.CollectionMinOrderByAggregateInput
@@ -241,6 +255,7 @@ export type CollectionScalarWhereWithAggregatesInput = {
   createdAt?: Prisma.DateTimeWithAggregatesFilter<'Collection'> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<'Collection'> | Date | string
   projectId?: Prisma.StringWithAggregatesFilter<'Collection'> | string
+  creatorId?: Prisma.StringNullableWithAggregatesFilter<'Collection'> | string | null
 }
 
 export type CollectionCreateInput = {
@@ -250,6 +265,7 @@ export type CollectionCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   project: Prisma.ProjectCreateNestedOneWithoutCollectionsInput
+  creator?: Prisma.UserCreateNestedOneWithoutCollectionsInput
 }
 
 export type CollectionUncheckedCreateInput = {
@@ -259,6 +275,7 @@ export type CollectionUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   projectId: string
+  creatorId?: string | null
 }
 
 export type CollectionUpdateInput = {
@@ -268,6 +285,7 @@ export type CollectionUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   project?: Prisma.ProjectUpdateOneRequiredWithoutCollectionsNestedInput
+  creator?: Prisma.UserUpdateOneWithoutCollectionsNestedInput
 }
 
 export type CollectionUncheckedUpdateInput = {
@@ -277,6 +295,7 @@ export type CollectionUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
+  creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type CollectionCreateManyInput = {
@@ -286,6 +305,7 @@ export type CollectionCreateManyInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   projectId: string
+  creatorId?: string | null
 }
 
 export type CollectionUpdateManyMutationInput = {
@@ -303,6 +323,7 @@ export type CollectionUncheckedUpdateManyInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
+  creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type CollectionListRelationFilter = {
@@ -322,6 +343,7 @@ export type CollectionCountOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
+  creatorId?: Prisma.SortOrder
 }
 
 export type CollectionMaxOrderByAggregateInput = {
@@ -330,6 +352,7 @@ export type CollectionMaxOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
+  creatorId?: Prisma.SortOrder
 }
 
 export type CollectionMinOrderByAggregateInput = {
@@ -338,6 +361,93 @@ export type CollectionMinOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
+  creatorId?: Prisma.SortOrder
+}
+
+export type CollectionCreateNestedManyWithoutCreatorInput = {
+  create?:
+    | Prisma.XOR<
+        Prisma.CollectionCreateWithoutCreatorInput,
+        Prisma.CollectionUncheckedCreateWithoutCreatorInput
+      >
+    | Prisma.CollectionCreateWithoutCreatorInput[]
+    | Prisma.CollectionUncheckedCreateWithoutCreatorInput[]
+  connectOrCreate?:
+    | Prisma.CollectionCreateOrConnectWithoutCreatorInput
+    | Prisma.CollectionCreateOrConnectWithoutCreatorInput[]
+  createMany?: Prisma.CollectionCreateManyCreatorInputEnvelope
+  connect?: Prisma.CollectionWhereUniqueInput | Prisma.CollectionWhereUniqueInput[]
+}
+
+export type CollectionUncheckedCreateNestedManyWithoutCreatorInput = {
+  create?:
+    | Prisma.XOR<
+        Prisma.CollectionCreateWithoutCreatorInput,
+        Prisma.CollectionUncheckedCreateWithoutCreatorInput
+      >
+    | Prisma.CollectionCreateWithoutCreatorInput[]
+    | Prisma.CollectionUncheckedCreateWithoutCreatorInput[]
+  connectOrCreate?:
+    | Prisma.CollectionCreateOrConnectWithoutCreatorInput
+    | Prisma.CollectionCreateOrConnectWithoutCreatorInput[]
+  createMany?: Prisma.CollectionCreateManyCreatorInputEnvelope
+  connect?: Prisma.CollectionWhereUniqueInput | Prisma.CollectionWhereUniqueInput[]
+}
+
+export type CollectionUpdateManyWithoutCreatorNestedInput = {
+  create?:
+    | Prisma.XOR<
+        Prisma.CollectionCreateWithoutCreatorInput,
+        Prisma.CollectionUncheckedCreateWithoutCreatorInput
+      >
+    | Prisma.CollectionCreateWithoutCreatorInput[]
+    | Prisma.CollectionUncheckedCreateWithoutCreatorInput[]
+  connectOrCreate?:
+    | Prisma.CollectionCreateOrConnectWithoutCreatorInput
+    | Prisma.CollectionCreateOrConnectWithoutCreatorInput[]
+  upsert?:
+    | Prisma.CollectionUpsertWithWhereUniqueWithoutCreatorInput
+    | Prisma.CollectionUpsertWithWhereUniqueWithoutCreatorInput[]
+  createMany?: Prisma.CollectionCreateManyCreatorInputEnvelope
+  set?: Prisma.CollectionWhereUniqueInput | Prisma.CollectionWhereUniqueInput[]
+  disconnect?: Prisma.CollectionWhereUniqueInput | Prisma.CollectionWhereUniqueInput[]
+  delete?: Prisma.CollectionWhereUniqueInput | Prisma.CollectionWhereUniqueInput[]
+  connect?: Prisma.CollectionWhereUniqueInput | Prisma.CollectionWhereUniqueInput[]
+  update?:
+    | Prisma.CollectionUpdateWithWhereUniqueWithoutCreatorInput
+    | Prisma.CollectionUpdateWithWhereUniqueWithoutCreatorInput[]
+  updateMany?:
+    | Prisma.CollectionUpdateManyWithWhereWithoutCreatorInput
+    | Prisma.CollectionUpdateManyWithWhereWithoutCreatorInput[]
+  deleteMany?: Prisma.CollectionScalarWhereInput | Prisma.CollectionScalarWhereInput[]
+}
+
+export type CollectionUncheckedUpdateManyWithoutCreatorNestedInput = {
+  create?:
+    | Prisma.XOR<
+        Prisma.CollectionCreateWithoutCreatorInput,
+        Prisma.CollectionUncheckedCreateWithoutCreatorInput
+      >
+    | Prisma.CollectionCreateWithoutCreatorInput[]
+    | Prisma.CollectionUncheckedCreateWithoutCreatorInput[]
+  connectOrCreate?:
+    | Prisma.CollectionCreateOrConnectWithoutCreatorInput
+    | Prisma.CollectionCreateOrConnectWithoutCreatorInput[]
+  upsert?:
+    | Prisma.CollectionUpsertWithWhereUniqueWithoutCreatorInput
+    | Prisma.CollectionUpsertWithWhereUniqueWithoutCreatorInput[]
+  createMany?: Prisma.CollectionCreateManyCreatorInputEnvelope
+  set?: Prisma.CollectionWhereUniqueInput | Prisma.CollectionWhereUniqueInput[]
+  disconnect?: Prisma.CollectionWhereUniqueInput | Prisma.CollectionWhereUniqueInput[]
+  delete?: Prisma.CollectionWhereUniqueInput | Prisma.CollectionWhereUniqueInput[]
+  connect?: Prisma.CollectionWhereUniqueInput | Prisma.CollectionWhereUniqueInput[]
+  update?:
+    | Prisma.CollectionUpdateWithWhereUniqueWithoutCreatorInput
+    | Prisma.CollectionUpdateWithWhereUniqueWithoutCreatorInput[]
+  updateMany?:
+    | Prisma.CollectionUpdateManyWithWhereWithoutCreatorInput
+    | Prisma.CollectionUpdateManyWithWhereWithoutCreatorInput[]
+  deleteMany?: Prisma.CollectionScalarWhereInput | Prisma.CollectionScalarWhereInput[]
 }
 
 export type CollectionCreateNestedManyWithoutProjectInput = {
@@ -426,12 +536,85 @@ export type CollectionUncheckedUpdateManyWithoutProjectNestedInput = {
   deleteMany?: Prisma.CollectionScalarWhereInput | Prisma.CollectionScalarWhereInput[]
 }
 
+export type CollectionCreateWithoutCreatorInput = {
+  id?: string
+  name: string
+  filter: PrismaJson.CollectionFilter
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  project: Prisma.ProjectCreateNestedOneWithoutCollectionsInput
+}
+
+export type CollectionUncheckedCreateWithoutCreatorInput = {
+  id?: string
+  name: string
+  filter: PrismaJson.CollectionFilter
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  projectId: string
+}
+
+export type CollectionCreateOrConnectWithoutCreatorInput = {
+  where: Prisma.CollectionWhereUniqueInput
+  create: Prisma.XOR<
+    Prisma.CollectionCreateWithoutCreatorInput,
+    Prisma.CollectionUncheckedCreateWithoutCreatorInput
+  >
+}
+
+export type CollectionCreateManyCreatorInputEnvelope = {
+  data: Prisma.CollectionCreateManyCreatorInput | Prisma.CollectionCreateManyCreatorInput[]
+  skipDuplicates?: boolean
+}
+
+export type CollectionUpsertWithWhereUniqueWithoutCreatorInput = {
+  where: Prisma.CollectionWhereUniqueInput
+  update: Prisma.XOR<
+    Prisma.CollectionUpdateWithoutCreatorInput,
+    Prisma.CollectionUncheckedUpdateWithoutCreatorInput
+  >
+  create: Prisma.XOR<
+    Prisma.CollectionCreateWithoutCreatorInput,
+    Prisma.CollectionUncheckedCreateWithoutCreatorInput
+  >
+}
+
+export type CollectionUpdateWithWhereUniqueWithoutCreatorInput = {
+  where: Prisma.CollectionWhereUniqueInput
+  data: Prisma.XOR<
+    Prisma.CollectionUpdateWithoutCreatorInput,
+    Prisma.CollectionUncheckedUpdateWithoutCreatorInput
+  >
+}
+
+export type CollectionUpdateManyWithWhereWithoutCreatorInput = {
+  where: Prisma.CollectionScalarWhereInput
+  data: Prisma.XOR<
+    Prisma.CollectionUpdateManyMutationInput,
+    Prisma.CollectionUncheckedUpdateManyWithoutCreatorInput
+  >
+}
+
+export type CollectionScalarWhereInput = {
+  AND?: Prisma.CollectionScalarWhereInput | Prisma.CollectionScalarWhereInput[]
+  OR?: Prisma.CollectionScalarWhereInput[]
+  NOT?: Prisma.CollectionScalarWhereInput | Prisma.CollectionScalarWhereInput[]
+  id?: Prisma.StringFilter<'Collection'> | string
+  name?: Prisma.StringFilter<'Collection'> | string
+  filter?: Prisma.JsonFilter<'Collection'>
+  createdAt?: Prisma.DateTimeFilter<'Collection'> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<'Collection'> | Date | string
+  projectId?: Prisma.StringFilter<'Collection'> | string
+  creatorId?: Prisma.StringNullableFilter<'Collection'> | string | null
+}
+
 export type CollectionCreateWithoutProjectInput = {
   id?: string
   name: string
   filter: PrismaJson.CollectionFilter
   createdAt?: Date | string
   updatedAt?: Date | string
+  creator?: Prisma.UserCreateNestedOneWithoutCollectionsInput
 }
 
 export type CollectionUncheckedCreateWithoutProjectInput = {
@@ -440,6 +623,7 @@ export type CollectionUncheckedCreateWithoutProjectInput = {
   filter: PrismaJson.CollectionFilter
   createdAt?: Date | string
   updatedAt?: Date | string
+  creatorId?: string | null
 }
 
 export type CollectionCreateOrConnectWithoutProjectInput = {
@@ -483,16 +667,40 @@ export type CollectionUpdateManyWithWhereWithoutProjectInput = {
   >
 }
 
-export type CollectionScalarWhereInput = {
-  AND?: Prisma.CollectionScalarWhereInput | Prisma.CollectionScalarWhereInput[]
-  OR?: Prisma.CollectionScalarWhereInput[]
-  NOT?: Prisma.CollectionScalarWhereInput | Prisma.CollectionScalarWhereInput[]
-  id?: Prisma.StringFilter<'Collection'> | string
-  name?: Prisma.StringFilter<'Collection'> | string
-  filter?: Prisma.JsonFilter<'Collection'>
-  createdAt?: Prisma.DateTimeFilter<'Collection'> | Date | string
-  updatedAt?: Prisma.DateTimeFilter<'Collection'> | Date | string
-  projectId?: Prisma.StringFilter<'Collection'> | string
+export type CollectionCreateManyCreatorInput = {
+  id?: string
+  name: string
+  filter: PrismaJson.CollectionFilter
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  projectId: string
+}
+
+export type CollectionUpdateWithoutCreatorInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  filter?: PrismaJson.CollectionFilter
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  project?: Prisma.ProjectUpdateOneRequiredWithoutCollectionsNestedInput
+}
+
+export type CollectionUncheckedUpdateWithoutCreatorInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  filter?: PrismaJson.CollectionFilter
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  projectId?: Prisma.StringFieldUpdateOperationsInput | string
+}
+
+export type CollectionUncheckedUpdateManyWithoutCreatorInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  filter?: PrismaJson.CollectionFilter
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  projectId?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type CollectionCreateManyProjectInput = {
@@ -501,6 +709,7 @@ export type CollectionCreateManyProjectInput = {
   filter: PrismaJson.CollectionFilter
   createdAt?: Date | string
   updatedAt?: Date | string
+  creatorId?: string | null
 }
 
 export type CollectionUpdateWithoutProjectInput = {
@@ -509,6 +718,7 @@ export type CollectionUpdateWithoutProjectInput = {
   filter?: PrismaJson.CollectionFilter
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  creator?: Prisma.UserUpdateOneWithoutCollectionsNestedInput
 }
 
 export type CollectionUncheckedUpdateWithoutProjectInput = {
@@ -517,6 +727,7 @@ export type CollectionUncheckedUpdateWithoutProjectInput = {
   filter?: PrismaJson.CollectionFilter
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type CollectionUncheckedUpdateManyWithoutProjectInput = {
@@ -525,6 +736,7 @@ export type CollectionUncheckedUpdateManyWithoutProjectInput = {
   filter?: PrismaJson.CollectionFilter
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type CollectionSelect<
@@ -537,7 +749,9 @@ export type CollectionSelect<
     createdAt?: boolean
     updatedAt?: boolean
     projectId?: boolean
+    creatorId?: boolean
     project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
+    creator?: boolean | Prisma.Collection$creatorArgs<ExtArgs>
   },
   ExtArgs['result']['collection']
 >
@@ -552,7 +766,9 @@ export type CollectionSelectCreateManyAndReturn<
     createdAt?: boolean
     updatedAt?: boolean
     projectId?: boolean
+    creatorId?: boolean
     project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
+    creator?: boolean | Prisma.Collection$creatorArgs<ExtArgs>
   },
   ExtArgs['result']['collection']
 >
@@ -567,7 +783,9 @@ export type CollectionSelectUpdateManyAndReturn<
     createdAt?: boolean
     updatedAt?: boolean
     projectId?: boolean
+    creatorId?: boolean
     project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
+    creator?: boolean | Prisma.Collection$creatorArgs<ExtArgs>
   },
   ExtArgs['result']['collection']
 >
@@ -579,28 +797,32 @@ export type CollectionSelectScalar = {
   createdAt?: boolean
   updatedAt?: boolean
   projectId?: boolean
+  creatorId?: boolean
 }
 
 export type CollectionOmit<
   ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
 > = runtime.Types.Extensions.GetOmit<
-  'id' | 'name' | 'filter' | 'createdAt' | 'updatedAt' | 'projectId',
+  'id' | 'name' | 'filter' | 'createdAt' | 'updatedAt' | 'projectId' | 'creatorId',
   ExtArgs['result']['collection']
 >
 export type CollectionInclude<
   ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
 > = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
+  creator?: boolean | Prisma.Collection$creatorArgs<ExtArgs>
 }
 export type CollectionIncludeCreateManyAndReturn<
   ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
 > = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
+  creator?: boolean | Prisma.Collection$creatorArgs<ExtArgs>
 }
 export type CollectionIncludeUpdateManyAndReturn<
   ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
 > = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
+  creator?: boolean | Prisma.Collection$creatorArgs<ExtArgs>
 }
 
 export type $CollectionPayload<
@@ -609,6 +831,7 @@ export type $CollectionPayload<
   name: 'Collection'
   objects: {
     project: Prisma.$ProjectPayload<ExtArgs>
+    creator: Prisma.$UserPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<
     {
@@ -621,6 +844,7 @@ export type $CollectionPayload<
       createdAt: Date
       updatedAt: Date
       projectId: string
+      creatorId: string | null
     },
     ExtArgs['result']['collection']
   >
@@ -1173,6 +1397,19 @@ export interface Prisma__CollectionClient<
     ExtArgs,
     GlobalOmitOptions
   >
+  creator<T extends Prisma.Collection$creatorArgs<ExtArgs> = {}>(
+    args?: Prisma.Subset<T, Prisma.Collection$creatorArgs<ExtArgs>>,
+  ): Prisma.Prisma__UserClient<
+    runtime.Types.Result.GetResult<
+      Prisma.$UserPayload<ExtArgs>,
+      T,
+      'findUniqueOrThrow',
+      GlobalOmitOptions
+    > | null,
+    null,
+    ExtArgs,
+    GlobalOmitOptions
+  >
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1210,6 +1447,7 @@ export interface CollectionFieldRefs {
   readonly createdAt: Prisma.FieldRef<'Collection', 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<'Collection', 'DateTime'>
   readonly projectId: Prisma.FieldRef<'Collection', 'String'>
+  readonly creatorId: Prisma.FieldRef<'Collection', 'String'>
 }
 
 // Custom InputTypes
@@ -1641,6 +1879,27 @@ export type CollectionDeleteManyArgs<
    * Limit how many Collections to delete.
    */
   limit?: number
+}
+
+/**
+ * Collection.creator
+ */
+export type Collection$creatorArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
+> = {
+  /**
+   * Select specific fields to fetch from the User
+   */
+  select?: Prisma.UserSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the User
+   */
+  omit?: Prisma.UserOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserInclude<ExtArgs> | null
+  where?: Prisma.UserWhereInput
 }
 
 /**

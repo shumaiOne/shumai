@@ -28,7 +28,7 @@ const route = new Hono<{ Variables: { user: User } }>()
         id: projectId,
       })
 
-      const shareLink = await shareService.createShareLink(projectId, req)
+      const shareLink = await shareService.createShareLink(projectId, req, user.id)
       return c.json(shareLink)
     },
   )

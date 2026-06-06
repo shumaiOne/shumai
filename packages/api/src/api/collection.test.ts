@@ -52,6 +52,8 @@ describe('Collection API', () => {
       projectId,
       createdAt: new Date(),
       updatedAt: new Date(),
+      creator: null,
+      creatorId: null,
     })
 
     const res = await app.request(`/projects/${projectId}/collections`, {
@@ -67,7 +69,7 @@ describe('Collection API', () => {
     })
 
     expect(res.status).toBe(200)
-    expect(mockCreate).toHaveBeenCalledWith(projectId, expect.any(Object))
+    expect(mockCreate).toHaveBeenCalledWith(projectId, expect.any(Object), 'user-1')
     expect(authzService.hasPermission).toHaveBeenCalledWith({
       user: expect.any(Object),
       permission: Permission.Edit,
@@ -90,6 +92,8 @@ describe('Collection API', () => {
           projectId,
           createdAt: new Date(),
           updatedAt: new Date(),
+          creator: null,
+          creatorId: null,
         },
       ],
       pageInfo: { total: 1 },
@@ -121,6 +125,8 @@ describe('Collection API', () => {
       projectId,
       createdAt: new Date(),
       updatedAt: new Date(),
+      creator: null,
+      creatorId: null,
     })
 
     const res = await app.request(`/collections/${collectionId}`)
@@ -147,6 +153,8 @@ describe('Collection API', () => {
       projectId,
       createdAt: new Date(),
       updatedAt: new Date(),
+      creator: null,
+      creatorId: null,
     })
 
     const res = await app.request(`/collections/${collectionId}`, {

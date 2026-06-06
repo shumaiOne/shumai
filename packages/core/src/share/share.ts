@@ -10,7 +10,11 @@ import {
 import { PaginatedData, paginateQuery } from '@shumai/core/src/pagination'
 
 export class ShareService {
-  async createShareLink(projectId: string, req: CreateShareLinkRequest): Promise<ShareLinkInfo> {
+  async createShareLink(
+    projectId: string,
+    req: CreateShareLinkRequest,
+    creatorId?: string,
+  ): Promise<ShareLinkInfo> {
     let project = await prisma.project.findUnique({
       where: { id: projectId },
       include: { shareRoot: true },
@@ -55,7 +59,9 @@ export class ShareService {
           defaultSortOrder: req.defaultSortOrder,
           projectId: projectId,
           rootFolderId: shareFolder.id,
+          creatorId,
         },
+        include: { creator: true },
       })
 
       return this.toShareLinkInfo(shareLink)
@@ -79,6 +85,7 @@ export class ShareService {
         defaultSortOrder: req.defaultSortOrder,
         fieldVisibility: (req.fieldVisibility as PrismaJson.ShareLinkFieldVisibility) ?? undefined,
       },
+      include: { creator: true },
     })
 
     if (req.name) {
@@ -116,6 +123,7 @@ export class ShareService {
       async (skip, take) => {
         const links = await prisma.shareLink.findMany({
           where,
+          include: { creator: true },
           skip,
           take,
           orderBy: { createdAt: 'desc' },
@@ -130,6 +138,7 @@ export class ShareService {
   async getShareLink(shareLinkId: string): Promise<ShareLinkInfo> {
     const shareLink = await prisma.shareLink.findUnique({
       where: { id: shareLinkId },
+      include: { creator: true },
     })
     if (!shareLink) throw new Error('Share link not found')
     return this.toShareLinkInfo(shareLink)
@@ -295,6 +304,9 @@ export class ShareService {
       isExpired,
       createdAt: l.createdAt.toISOString(),
       updatedAt: l.updatedAt.toISOString(),
+      creator: l.creator
+        ? { id: l.creator.id, name: l.creator.name, image: l.creator.image ?? undefined }
+        : null,
     }
   }
 }

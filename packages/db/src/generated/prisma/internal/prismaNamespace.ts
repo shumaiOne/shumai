@@ -3042,6 +3042,7 @@ export const ShareLinkScalarFieldEnum = {
   updatedAt: 'updatedAt',
   projectId: 'projectId',
   rootFolderId: 'rootFolderId',
+  creatorId: 'creatorId',
 } as const
 
 export type ShareLinkScalarFieldEnum =
@@ -3324,6 +3325,7 @@ export const CollectionScalarFieldEnum = {
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   projectId: 'projectId',
+  creatorId: 'creatorId',
 } as const
 
 export type CollectionScalarFieldEnum =

@@ -13,7 +13,9 @@ import type { Prisma } from '@shumai/db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
-function toCollectionInfo(c: Prisma.CollectionGetPayload<Record<string, never>>): CollectionInfo {
+function toCollectionInfo(
+  c: Prisma.CollectionGetPayload<{ include: { creator: true } }>,
+): CollectionInfo {
   return {
     id: c.id,
     name: c.name,
@@ -21,6 +23,9 @@ function toCollectionInfo(c: Prisma.CollectionGetPayload<Record<string, never>>)
     projectId: c.projectId,
     createdAt: c.createdAt.toISOString(),
     updatedAt: c.updatedAt.toISOString(),
+    creator: c.creator
+      ? { id: c.creator.id, name: c.creator.name, image: c.creator.image ?? undefined }
+      : null,
   }
 }
 
@@ -40,7 +45,7 @@ const route = new Hono<{ Variables: { user: User } }>()
         id: projectId,
       })
 
-      const collection = await collectionService.createCollection(projectId, req)
+      const collection = await collectionService.createCollection(projectId, req, user.id)
       return c.json(toCollectionInfo(collection))
     },
   )

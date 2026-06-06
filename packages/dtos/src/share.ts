@@ -14,6 +14,7 @@ export interface ShareLinkInfo {
   isExpired: boolean
   createdAt: string
   updatedAt: string
+  creator?: { id: string; name: string; image?: string | null } | null
 }
 
 export const createShareLinkRequestSchema = z.object({
