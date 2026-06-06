@@ -3,6 +3,13 @@ import { collectionService } from '@shumai/core/src/collection/collection'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { Hono, Context, Next } from 'hono'
 import collectionRoute from './collection'
+import { s3Service } from '@shumai/core/src/s3/s3'
+
+vi.mock('@shumai/core/src/s3/s3', () => ({
+  s3Service: {
+    presign: vi.fn(),
+  },
+}))
 
 vi.mock('./middleware/auth', () => ({
   authMiddleware: async (c: Context, next: Next) => {
@@ -38,6 +45,7 @@ describe('Collection API', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     vi.mocked(authzService.hasPermission).mockResolvedValue(undefined)
+    vi.mocked(s3Service.presign).mockResolvedValue('http://s3/presigned-avatar')
   })
 
   it('POST /projects/:projectId/collections', async () => {
@@ -52,8 +60,12 @@ describe('Collection API', () => {
       projectId,
       createdAt: new Date(),
       updatedAt: new Date(),
-      creator: null,
-      creatorId: null,
+      creator: {
+        id: 'user-1',
+        name: 'Test User',
+        image: 'avatars/test.png',
+      } as any,
+      creatorId: 'user-1',
     })
 
     const res = await app.request(`/projects/${projectId}/collections`, {
@@ -69,6 +81,8 @@ describe('Collection API', () => {
     })
 
     expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.creator?.image).toBe('http://s3/presigned-avatar')
     expect(mockCreate).toHaveBeenCalledWith(projectId, expect.any(Object), 'user-1')
     expect(authzService.hasPermission).toHaveBeenCalledWith({
       user: expect.any(Object),
