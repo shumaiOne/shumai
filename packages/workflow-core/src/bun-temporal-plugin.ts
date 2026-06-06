@@ -1,6 +1,6 @@
 import { bundleWorkflowCode } from '@temporalio/worker'
 import type { BunPlugin } from 'bun'
-import { resolve } from 'node:path'
+import { resolve, dirname } from 'node:path'
 
 export interface TemporalWorkflowPluginOptions {
   /** Query param identifier. Default: 'workflow' */
@@ -47,6 +47,9 @@ export function temporalWorkflow(options: TemporalWorkflowPluginOptions = {}): B
               ...config.resolve.alias,
               '@shumai/workflow-core':
                 require.resolve('@shumai/workflow-core/src/workflow-utils.ts'),
+              '@temporalio/workflow': dirname(
+                require.resolve('@temporalio/workflow/package.json'),
+              ),
             }
             console.log('Webpack config aliases:', config.resolve.alias)
             if (originalHook) {
