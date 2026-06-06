@@ -47,9 +47,7 @@ export function temporalWorkflow(options: TemporalWorkflowPluginOptions = {}): B
               ...config.resolve.alias,
               '@shumai/workflow-core':
                 require.resolve('@shumai/workflow-core/src/workflow-utils.ts'),
-              '@temporalio/workflow': dirname(
-                require.resolve('@temporalio/workflow/package.json'),
-              ),
+              '@temporalio/workflow': dirname(require.resolve('@temporalio/workflow/package.json')),
             }
             console.log('Webpack config aliases:', config.resolve.alias)
             if (originalHook) {
