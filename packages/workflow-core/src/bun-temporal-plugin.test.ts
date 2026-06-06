@@ -3,7 +3,7 @@ import { temporalWorkflow } from './bun-temporal-plugin'
 import * as worker from '@temporalio/worker'
 
 vi.mock('@temporalio/worker', () => ({
-  bundleWorkflowCode: vi.fn().mockResolvedValue({ code: 'mock-code', sourceMap: '' })
+  bundleWorkflowCode: vi.fn().mockResolvedValue({ code: 'mock-code', sourceMap: '' }),
 }))
 
 describe('temporalWorkflow plugin', () => {
@@ -13,14 +13,14 @@ describe('temporalWorkflow plugin', () => {
 
   it('should register onLoad and configure webpackConfigHook with @temporalio/workflow alias', async () => {
     const plugin = temporalWorkflow()
-    
+
     let onLoadCallback: ((...args: unknown[]) => unknown) | null = null
 
     const mockBuild = {
       onResolve: vi.fn(),
       onLoad: vi.fn((opts, callback) => {
         onLoadCallback = callback
-      })
+      }),
     }
 
     // Run setup
