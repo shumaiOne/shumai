@@ -4,6 +4,9 @@ import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/a
 import { Hono, Context, Next } from 'hono'
 import collectionRoute from './collection'
 import { s3Service } from '@shumai/core/src/s3/s3'
+import type { Prisma } from '@shumai/db'
+
+type User = Prisma.UserGetPayload<Record<string, never>>
 
 vi.mock('@shumai/core/src/s3/s3', () => ({
   s3Service: {
@@ -64,7 +67,7 @@ describe('Collection API', () => {
         id: 'user-1',
         name: 'Test User',
         image: 'avatars/test.png',
-      } as any,
+      } as unknown as User,
       creatorId: 'user-1',
     })
 
