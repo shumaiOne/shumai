@@ -30,12 +30,8 @@ export class UploadService {
     req: CreateUploadTaskRequest,
   ): Promise<CreateUploadTaskResponse> {
     const visibleFiles = req.files.filter((f) => !f.name.startsWith('.'))
-    let taskName = ''
-    if (visibleFiles.length === 1) {
-      taskName = visibleFiles[0].name
-    } else {
-      taskName = `${visibleFiles.length} Items`
-    }
+    const taskName =
+      visibleFiles.length === 1 ? visibleFiles[0].name : `${visibleFiles.length} Items`
 
     let total = 0
     const countTotalFiles = (nodes: FileNode[]) => {

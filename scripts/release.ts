@@ -129,7 +129,7 @@ console.log('  Working directory clean\n')
 // 2. Determine version
 const rootPkg = JSON.parse(readFileSync('package.json', 'utf-8'))
 const currentVersion = rootPkg.version || '0.1.0'
-let newVersion = ''
+let newVersion: string
 
 if (bumpTypes.has(releaseTarget)) {
   newVersion = incrementVersion(currentVersion, releaseTarget as 'major' | 'minor' | 'patch')

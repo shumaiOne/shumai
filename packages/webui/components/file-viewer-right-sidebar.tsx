@@ -2,6 +2,7 @@ import type { AssetInfo, AttachmentInfo, CommentInfo, FieldValueInfo } from '@sh
 import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
 import type { UserInfo } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
+import { usePermissions } from '@/ui/hooks/use-permissions'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tabs'
 import { useFieldStore } from '@/ui/stores/fields'
 import type { Annotation } from '@/ui/types'
@@ -48,6 +49,7 @@ export function FileViewerRightSidebar({
   onTyping,
   selectedCommentId,
 }: FileViewerRightSidebarProps) {
+  const { canEdit } = usePermissions()
   const { fields, setFields } = useFieldStore()
   const queryClient = useQueryClient()
   const { ref, inView } = useInView()
@@ -431,8 +433,8 @@ export function FileViewerRightSidebar({
                       <FieldRenderer
                         config={field.config}
                         value={itemFieldValueMap[field.id!]?.value}
-                        onSave={(val) => onSaveField(field.id!, val)}
-                        readOnly={readOnly || field.readOnly}
+                        onSave={canEdit ? (val) => onSaveField(field.id!, val) : undefined}
+                        readOnly={readOnly || field.readOnly || !canEdit}
                       />
                     </div>
                   </div>

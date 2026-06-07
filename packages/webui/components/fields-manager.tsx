@@ -52,7 +52,7 @@ function SortableFieldItem({ field, index, onVisibilityChange }: SortableFieldIt
 
 type FieldsManagerProps = {
   projectId: string
-  onManageFields: () => void
+  onManageFields?: () => void
   onSave?: () => void
 }
 
@@ -288,16 +288,18 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
         </DragDropProvider>
       </div>
 
-      <div className="mt-4 space-y-2">
-        <Button variant="secondary" className="w-full" onClick={onManageFields}>
-          <Settings className="h-4 w-4 mr-2" />
-          Manage Fields
-        </Button>
-        <Button className="w-full" onClick={() => setView('create')}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Field
-        </Button>
-      </div>
+      {onManageFields && (
+        <div className="mt-4 space-y-2">
+          <Button variant="secondary" className="w-full" onClick={onManageFields}>
+            <Settings className="h-4 w-4 mr-2" />
+            Manage Fields
+          </Button>
+          <Button className="w-full" onClick={() => setView('create')}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Field
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

@@ -316,7 +316,7 @@ export class LocalStorageService implements S3Service {
       return stats.size
     } catch (e: unknown) {
       if (e instanceof Error && (e as NodeJS.ErrnoException).code === 'ENOENT') {
-        throw new Error(`NoSuchKey: The specified key does not exist.`)
+        throw new Error(`NoSuchKey: The specified key does not exist.`, { cause: e })
       }
       throw e
     }
@@ -347,7 +347,7 @@ export class LocalStorageService implements S3Service {
       }
     } catch (e: unknown) {
       if (e instanceof Error && (e as NodeJS.ErrnoException).code === 'ENOENT') {
-        throw new Error(`NoSuchKey: The specified key does not exist.`)
+        throw new Error(`NoSuchKey: The specified key does not exist.`, { cause: e })
       }
       throw e
     }
@@ -424,7 +424,7 @@ export class LocalStorageService implements S3Service {
       }
     } catch (e: unknown) {
       if (e instanceof Error && (e as NodeJS.ErrnoException).code === 'ENOENT') {
-        throw new Error(`NoSuchKey: The specified key does not exist.`)
+        throw new Error(`NoSuchKey: The specified key does not exist.`, { cause: e })
       }
       throw e
     }

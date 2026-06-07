@@ -5,6 +5,7 @@ import { TopNav } from '@/ui/components/top-nav'
 import { HomeIcon, NotificationFillIcon, UploadCloudIcon } from '@/ui/components/ui/icons'
 import { Toaster } from '@/ui/components/ui/sonner'
 import { UploadTasks } from '@/ui/components/upload-tasks'
+import { usePermissions } from '@/ui/hooks/use-permissions'
 import { useAuthStore } from '@/ui/stores/auth'
 import { useTeamContextStore } from '@/ui/stores/team-context'
 import { useUploadStore } from '@/ui/stores/upload'
@@ -20,6 +21,7 @@ import { useEffect } from 'react'
 function RootComponent() {
   const user = useAuthStore((state) => state.user)
   const { uploading } = useUploadStore()
+  const { canEdit } = usePermissions()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const navigate = useNavigate()
 
@@ -88,17 +90,19 @@ function RootComponent() {
         <DualSidebarItem icon={<NotificationFillIcon />} label="Notifications" badge={badge}>
           <NotificationList />
         </DualSidebarItem>
-        <DualSidebarItem
-          icon={
-            <UploadCloudIcon
-              uploading={uploading > 0}
-              className={uploading > 0 ? 'text-blue-500' : ''}
-            />
-          }
-          label="Uploads"
-        >
-          <UploadTasks />
-        </DualSidebarItem>
+        {canEdit && (
+          <DualSidebarItem
+            icon={
+              <UploadCloudIcon
+                uploading={uploading > 0}
+                className={uploading > 0 ? 'text-blue-500' : ''}
+              />
+            }
+            label="Uploads"
+          >
+            <UploadTasks />
+          </DualSidebarItem>
+        )}
       </DualSidebar>
       <div className="flex flex-col flex-1 md:pl-16 overflow-hidden relative">
         <TopNav />

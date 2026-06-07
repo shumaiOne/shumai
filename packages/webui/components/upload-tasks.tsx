@@ -27,7 +27,7 @@ function UploadTaskItem({ task }: { task: TaskInfo }) {
   const isCompleted = task.uploaded === task.total
   const percent = task.total > 0 ? (task.uploaded / task.total) * 100 : 0
 
-  let formattedTime = ''
+  let formattedTime: string
   try {
     formattedTime = formatTimeAgo(task.createdAt)
   } catch {

@@ -8,6 +8,7 @@ import type { SearchCondition, SearchSort } from '@shumai/dtos'
 import type { ShareLinkInfo } from '@shumai/dtos'
 import type { CreateUploadTaskRequest } from '@shumai/dtos'
 import { formatSize } from '@/ui/lib/format'
+import { usePermissions } from '@/ui/hooks/use-permissions'
 import { useFieldStore } from '@/ui/stores/fields'
 import { useUploadStore } from '@/ui/stores/upload'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -404,6 +405,7 @@ export function FileBrowser({
   const newVersionInputRef = useRef<HTMLInputElement>(null)
   const [targetVersionFileId, setTargetVersionFileId] = useState<string | null>(null)
   const fileContextMenu = useRef(false)
+  const { canEdit } = usePermissions()
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
@@ -513,6 +515,7 @@ export function FileBrowser({
       selectedCount: selectedIds.size,
       isShareView,
       fields: displayedFields,
+      canEdit,
     }
     if (displayStyle === 'card') {
       if (effectiveType === 'folder') return <FolderCard key={item.id} {...props} />
@@ -706,7 +709,7 @@ export function FileBrowser({
 
   const handlePaste = useCallback(
     (e: React.ClipboardEvent | ClipboardEvent) => {
-      if (isShareView || !!collection) return
+      if (!canEdit || isShareView || !!collection) return
       if (!e.clipboardData) return
       const items = e.clipboardData.items
       const files: File[] = []
@@ -739,13 +742,13 @@ export function FileBrowser({
         processAndUploadFiles(files)
       }
     },
-    [processAndUploadFiles, isShareView, collection],
+    [processAndUploadFiles, isShareView, collection, canEdit],
   )
 
   // Add global paste listener if browser is active
   useEffect(() => {
     const onGlobalPaste = (e: ClipboardEvent) => {
-      if (isShareView || !!collection) return
+      if (!canEdit || isShareView || !!collection) return
       // Don't intercept if user is typing in an input
       if (
         document.activeElement &&
@@ -762,7 +765,7 @@ export function FileBrowser({
     return () => {
       window.removeEventListener('paste', onGlobalPaste)
     }
-  }, [handlePaste, isShareView, collection])
+  }, [handlePaste, isShareView, collection, canEdit])
 
   const renderContent = () => {
     return (
@@ -925,6 +928,7 @@ export function FileBrowser({
           shareLinks={shareLinksData?.data ?? []}
           onCreateShareLink={handleCreateShareLink}
           onAddToShareLink={handleAddToShareLink}
+          canEdit={canEdit}
         />
       </ContextMenu>
     )
@@ -932,28 +936,32 @@ export function FileBrowser({
 
   return (
     <>
-      <input
-        type="file"
-        ref={fileInputRef}
-        multiple
-        style={{ display: 'none' }}
-        onChange={handleFileChange}
-      />
-      <input
-        type="file"
-        ref={folderInputRef}
-        multiple
-        /* @ts-expect-error - webkitdirectory is not in the type definition */
-        webkitdirectory="true"
-        style={{ display: 'none' }}
-        onChange={handleFileChange}
-      />
-      <input
-        type="file"
-        ref={newVersionInputRef}
-        style={{ display: 'none' }}
-        onChange={handleNewVersionFileChange}
-      />
+      {canEdit && (
+        <>
+          <input
+            type="file"
+            ref={fileInputRef}
+            multiple
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+          />
+          <input
+            type="file"
+            ref={folderInputRef}
+            multiple
+            /* @ts-expect-error - webkitdirectory is not in the type definition */
+            webkitdirectory="true"
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+          />
+          <input
+            type="file"
+            ref={newVersionInputRef}
+            style={{ display: 'none' }}
+            onChange={handleNewVersionFileChange}
+          />
+        </>
+      )}
       {renderContent()}
 
       {moveCopyMode && (

@@ -32,6 +32,7 @@ interface FileListItemProps {
   disabled?: boolean
   fields: MetadataFieldInfo[]
   columnSizing?: Record<string, number>
+  canEdit?: boolean
 }
 
 export function FileListItem({
@@ -54,6 +55,7 @@ export function FileListItem({
   disabled,
   fields,
   columnSizing,
+  canEdit = true,
 }: FileListItemProps) {
   const [name, setName] = useState(item.name)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -282,8 +284,8 @@ export function FileListItem({
             <FieldRenderer
               config={field.config}
               value={itemFieldValueMap[field.id!]?.value}
-              onSave={(val) => onSaveField(field.id!, val)}
-              readOnly={field.readOnly}
+              onSave={canEdit ? (val) => onSaveField(field.id!, val) : undefined}
+              readOnly={field.readOnly || !canEdit}
             />
           </td>
         ))}

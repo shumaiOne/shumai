@@ -300,8 +300,8 @@ function resolutionToDimensions(
   const targetLongSide = RESOLUTION_LONG_SIDES[resolution]
   if (!targetLongSide) return [0, 0]
 
-  let width = 0
-  let height = 0
+  let width: number
+  let height: number
 
   if (originalWidth >= originalHeight) {
     // Landscape or square: width is the long side

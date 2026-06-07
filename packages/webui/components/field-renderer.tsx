@@ -12,7 +12,7 @@ import ToggleField from './fields/toggle-field'
 interface FieldRendererProps {
   config: FieldInfo['config']
   value: unknown
-  onSave: (value: unknown) => void
+  onSave?: (value: unknown) => void
   readOnly?: boolean
 }
 

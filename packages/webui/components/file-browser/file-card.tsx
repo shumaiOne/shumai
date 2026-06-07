@@ -50,6 +50,7 @@ interface FileCardProps {
   selectedCount?: number
   fields: MetadataFieldInfo[]
   isShareView?: boolean
+  canEdit?: boolean
 }
 
 export function FileCard({
@@ -75,6 +76,7 @@ export function FileCard({
   selectedCount,
   fields,
   isShareView,
+  canEdit = true,
 }: FileCardProps) {
   const [name, setName] = useState(item.name)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -293,16 +295,29 @@ export function FileCard({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {isShareView ? (
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onAction?.('remove-from-share', item)
-                }}
-                className="text-destructive"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                <span>Remove from Share</span>
-              </DropdownMenuItem>
+              <>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onAction?.('download', item)
+                  }}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  <span>Download</span>
+                </DropdownMenuItem>
+                {canEdit && (
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onAction?.('remove-from-share', item)
+                    }}
+                    className="text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    <span>Remove from Share</span>
+                  </DropdownMenuItem>
+                )}
+              </>
             ) : isRecentlyDeleted ? (
               <DropdownMenuItem
                 onClick={(e) => {
@@ -315,7 +330,7 @@ export function FileCard({
               </DropdownMenuItem>
             ) : (
               <>
-                {(!isChecked || (selectedCount || 0) <= 1) && (
+                {canEdit && (!isChecked || (selectedCount || 0) <= 1) && (
                   <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation()
@@ -335,17 +350,21 @@ export function FileCard({
                   <Download className="mr-2 h-4 w-4" />
                   <span>Download</span>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onAction?.('delete', item)
-                  }}
-                  className="text-destructive"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  <span>Delete</span>
-                </DropdownMenuItem>
+                {canEdit && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onAction?.('delete', item)
+                      }}
+                      className="text-destructive"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      <span>Delete</span>
+                    </DropdownMenuItem>
+                  </>
+                )}
               </>
             )}
           </DropdownMenuContent>
@@ -362,8 +381,8 @@ export function FileCard({
                 <FieldRenderer
                   config={field.config}
                   value={itemFieldValueMap[field.id!]?.value}
-                  onSave={(val) => onSaveField(field.id!, val)}
-                  readOnly={field.readOnly}
+                  onSave={canEdit ? (val) => onSaveField(field.id!, val) : undefined}
+                  readOnly={field.readOnly || !canEdit}
                 />
               </div>
             </div>
