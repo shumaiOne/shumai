@@ -363,12 +363,10 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                           return (
                             <div className="mt-1 space-y-1.5 pt-3">
                               {Object.entries(obj).map(([key, value]) => {
-                                let valueStr = ''
-                                if (value && typeof value === 'object') {
-                                  valueStr = JSON.stringify(value, null, 2)
-                                } else {
-                                  valueStr = String(value)
-                                }
+                                const valueStr =
+                                  value && typeof value === 'object'
+                                    ? JSON.stringify(value, null, 2)
+                                    : String(value)
                                 return (
                                   <div key={key} className="text-xs leading-relaxed break-words">
                                     <span className="font-semibold text-violet-600 dark:text-violet-400">

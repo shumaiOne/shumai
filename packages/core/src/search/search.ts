@@ -16,13 +16,10 @@ export class SearchService {
   ) {}
 
   async search(folderId: string, req: SearchRequest): Promise<PaginatedData<AssetInfo[]>> {
-    let targetFolderIds: string[] = []
-
-    if (req.recursively === false) {
-      targetFolderIds = [folderId]
-    } else {
-      targetFolderIds = await this.assetSvc.getDescendantFolderIds(folderId)
-    }
+    const targetFolderIds =
+      req.recursively === false
+        ? [folderId]
+        : await this.assetSvc.getDescendantFolderIds(folderId)
 
     const targetTypes =
       req.assetType === 'folder' ? [AssetType.folder] : [AssetType.file, AssetType.version_stack]
