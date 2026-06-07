@@ -4,7 +4,7 @@ import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
 import type { SearchCondition, SearchSort } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
 import { usePermissions } from '@/ui/hooks/use-permissions'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { InferRequestType, InferResponseType } from 'hono/client'
 import { useState } from 'react'
 import { FieldsManager } from '../fields-manager'
@@ -58,6 +58,7 @@ export function FileBrowserToolbar({
 
   const activeFiltersCount = filterConditions.length
   const isCollection = !!collection
+  const queryClient = useQueryClient()
 
   const { data: folderInfo } = useQuery({
     queryKey: ['folders', assetId],
@@ -133,6 +134,31 @@ export function FileBrowserToolbar({
     })
     return res.code
   }
+
+  const updateMemberRoleMutation = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: 'editor' | 'reviewer' }) => {
+      const res = await client.api.projects[':projectId'].members[':userId'].$patch({
+        param: { projectId, userId },
+        json: { role },
+      })
+      if (!res.ok) throw new Error('Failed to update member role')
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'members'] })
+    },
+  })
+
+  const removeMemberMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await client.api.projects[':projectId'].members[':userId'].$delete({
+        param: { projectId, userId },
+      })
+      if (!res.ok) throw new Error('Failed to remove member')
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'members'] })
+    },
+  })
 
   const getInitials = (name?: string) => {
     if (!name) return '??'
@@ -310,6 +336,13 @@ export function FileBrowserToolbar({
         members={members || []}
         isOwner={me?.role === 'owner'}
         onInvite={handleInvite}
+        onUpdateRole={async (memberId, role) => {
+          await updateMemberRoleMutation.mutateAsync({ userId: memberId, role })
+        }}
+        onRemoveMember={async (memberId) => {
+          await removeMemberMutation.mutateAsync(memberId)
+        }}
+        currentUserId={me?.id}
       />
 
       <SearchFilterDialog

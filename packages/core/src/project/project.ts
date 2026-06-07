@@ -9,6 +9,7 @@ import {
   ServiceListProjectsRequest,
   ServiceAddProjectMemberRequest,
   ServiceListProjectMembersRequest,
+  ServiceUpdateProjectMemberRoleRequest,
   ProjectInfo,
   ProjectUserInfo,
 } from '@shumai/dtos'
@@ -301,6 +302,43 @@ export class ProjectService {
     })
     if (!project) throw new Error('Project not found')
     return project.teamId
+  }
+
+  async updateMemberRole(req: ServiceUpdateProjectMemberRoleRequest): Promise<void> {
+    const member = await prisma.projectMember.findFirst({
+      where: {
+        projectId: req.projectId,
+        teamMember: {
+          userId: req.userId,
+        },
+      },
+    })
+
+    if (!member) throw new Error('Member not found')
+    if (member.role === 'owner') throw new Error('Cannot change the role of an owner')
+
+    await prisma.projectMember.update({
+      where: { id: member.id },
+      data: { role: req.role },
+    })
+  }
+
+  async removeMember(projectId: string, userId: string): Promise<void> {
+    const member = await prisma.projectMember.findFirst({
+      where: {
+        projectId: projectId,
+        teamMember: {
+          userId: userId,
+        },
+      },
+    })
+
+    if (!member) throw new Error('Member not found')
+    if (member.role === 'owner') throw new Error('Cannot remove an owner')
+
+    await prisma.projectMember.delete({
+      where: { id: member.id },
+    })
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

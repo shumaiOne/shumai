@@ -65,6 +65,11 @@ export const recentlyDeletedRequestSchema = z
   })
   .merge(paginationParamsSchema)
 
+export const updateProjectMemberRoleRequestSchema = z.object({
+  role: z.enum(['editor', 'reviewer']),
+})
+export type UpdateProjectMemberRoleRequest = z.infer<typeof updateProjectMemberRoleRequestSchema>
+
 // Service Layer Interfaces
 export interface ServiceCreateProjectRequest {
   teamId: string
@@ -97,4 +102,10 @@ export interface ServiceAddProjectMemberRequest {
 export interface ServiceListProjectMembersRequest {
   projectId: string
   includeAgents?: boolean
+}
+
+export interface ServiceUpdateProjectMemberRoleRequest {
+  projectId: string
+  userId: string
+  role: 'editor' | 'reviewer'
 }

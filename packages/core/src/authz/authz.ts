@@ -1,5 +1,7 @@
 import { prisma } from '@shumai/db'
 import type { Prisma } from '@shumai/db'
+import { HTTPException } from 'hono/http-exception'
+
 type User = Prisma.UserGetPayload<Record<string, never>>
 
 export enum Permission {
@@ -32,7 +34,7 @@ export interface AuthzRequest {
 
 export class AuthzService {
   async hasPermission(req: AuthzRequest): Promise<void> {
-    if (!req.user) throw new Error('User is required')
+    if (!req.user) throw new HTTPException(401, { message: 'User is required' })
 
     const { teamId, projectId } = await this.resolveContext(req.type, req.id)
 
@@ -46,7 +48,7 @@ export class AuthzService {
       },
     })
 
-    if (!member) throw new Error('User is not a member of the team')
+    if (!member) throw new HTTPException(403, { message: 'User is not a member of the team' })
 
     // 2. Check Scope
     if (member.scope === 'team') {
@@ -62,7 +64,7 @@ export class AuthzService {
       if (req.permission === Permission.Read) {
         return
       }
-      throw new Error('User has only project scope')
+      throw new HTTPException(403, { message: 'User has only project scope' })
     }
 
     // Check Project Membership
@@ -75,7 +77,7 @@ export class AuthzService {
       },
     })
 
-    if (!pm) throw new Error(`User is not a member of project ${projectId}`)
+    if (!pm) throw new HTTPException(403, { message: `User is not a member of project ${projectId}` })
 
     return this.checkRole(pm.role, req.permission)
   }
@@ -93,7 +95,7 @@ export class AuthzService {
           where: { id },
           select: { teamId: true },
         })
-        if (!proj) throw new Error('Project not found')
+        if (!proj) throw new HTTPException(404, { message: 'Project not found' })
         return { teamId: proj.teamId, projectId: id }
       }
 
@@ -106,7 +108,7 @@ export class AuthzService {
             project: { select: { id: true, teamId: true } },
           },
         })
-        if (!asset) throw new Error('Asset not found')
+        if (!asset) throw new HTTPException(404, { message: 'Asset not found' })
         if (asset.project) {
           return { teamId: asset.project.teamId, projectId: asset.project.id }
         }
@@ -120,7 +122,7 @@ export class AuthzService {
           // For now, let's try to get context from parent.
           return this.resolveContext(ResourceType.Asset, asset.parentId)
         }
-        throw new Error('Could not resolve context for asset')
+        throw new HTTPException(403, { message: 'Could not resolve context for asset' })
       }
 
       case ResourceType.Collection: {
@@ -128,7 +130,7 @@ export class AuthzService {
           where: { id },
           include: { project: true },
         })
-        if (!coll) throw new Error('Collection not found')
+        if (!coll) throw new HTTPException(404, { message: 'Collection not found' })
         return { teamId: coll.project.teamId, projectId: coll.projectId }
       }
 
@@ -137,7 +139,7 @@ export class AuthzService {
           where: { id },
           select: { teamId: true },
         })
-        if (!agent) throw new Error('Agent not found')
+        if (!agent) throw new HTTPException(404, { message: 'Agent not found' })
         return { teamId: agent.teamId }
       }
 
@@ -146,7 +148,7 @@ export class AuthzService {
           where: { id },
           include: { agent: true },
         })
-        if (!session) throw new Error('Agent session not found')
+        if (!session) throw new HTTPException(404, { message: 'Agent session not found' })
         return { teamId: session.agent.teamId }
       }
 
@@ -155,7 +157,7 @@ export class AuthzService {
           where: { id },
           include: { project: true },
         })
-        if (!share) throw new Error('Share not found')
+        if (!share) throw new HTTPException(404, { message: 'Share not found' })
         return { teamId: share.project.teamId, projectId: share.projectId }
       }
 
@@ -164,7 +166,7 @@ export class AuthzService {
           where: { key: id },
           select: { teamId: true, projectId: true },
         })
-        if (!field) throw new Error('Metadata field not found')
+        if (!field) throw new HTTPException(404, { message: 'Metadata field not found' })
         if (field.projectId) {
           const proj = await prisma.project.findUnique({
             where: { id: field.projectId },
@@ -172,7 +174,7 @@ export class AuthzService {
           })
           return { teamId: proj!.teamId, projectId: field.projectId }
         }
-        if (!field.teamId) throw new Error('Metadata field has no context')
+        if (!field.teamId) throw new HTTPException(403, { message: 'Metadata field has no context' })
         return { teamId: field.teamId }
       }
 
@@ -181,7 +183,7 @@ export class AuthzService {
           where: { id },
           select: { teamId: true },
         })
-        if (!skill) throw new Error('Skill not found')
+        if (!skill) throw new HTTPException(404, { message: 'Skill not found' })
         return { teamId: skill.teamId }
       }
 
@@ -190,7 +192,7 @@ export class AuthzService {
           where: { id },
           select: { teamId: true },
         })
-        if (!provider) throw new Error('Provider not found')
+        if (!provider) throw new HTTPException(404, { message: 'Provider not found' })
         return { teamId: provider.teamId }
       }
 
@@ -199,7 +201,7 @@ export class AuthzService {
           where: { id },
           select: { teamId: true, projectId: true },
         })
-        if (!invite) throw new Error('Invite not found')
+        if (!invite) throw new HTTPException(404, { message: 'Invite not found' })
         return { teamId: invite.teamId, projectId: invite.projectId ?? undefined }
       }
 
@@ -208,13 +210,13 @@ export class AuthzService {
           where: { id },
           include: { asset: { include: { project: true } } },
         })
-        if (!comment) throw new Error('Comment not found')
-        if (!comment.asset.project) throw new Error('Comment asset has no project')
+        if (!comment) throw new HTTPException(404, { message: 'Comment not found' })
+        if (!comment.asset.project) throw new HTTPException(403, { message: 'Comment asset has no project' })
         return { teamId: comment.asset.project.teamId, projectId: comment.asset.projectId! }
       }
 
       default:
-        throw new Error(`Unsupported resource type: ${type}`)
+        throw new HTTPException(403, { message: `Unsupported resource type: ${type}` })
     }
   }
 
@@ -229,7 +231,7 @@ export class AuthzService {
         if (role === 'owner') return
         break
     }
-    throw new Error('Permission denied')
+    throw new HTTPException(403, { message: 'Permission denied' })
   }
 }
 

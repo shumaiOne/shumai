@@ -84,6 +84,11 @@ export type SandboxSettings = z.infer<typeof sandboxSettingsSchema>
 export const updateSandboxSettingsRequestSchema = sandboxSettingsSchema
 export type UpdateSandboxSettingsRequest = z.infer<typeof updateSandboxSettingsRequestSchema>
 
+export const updateTeamMemberRoleRequestSchema = z.object({
+  role: z.enum(['editor', 'reviewer']),
+})
+export type UpdateTeamMemberRoleRequest = z.infer<typeof updateTeamMemberRoleRequestSchema>
+
 // Service Layer Interfaces
 export interface ServiceCreateTeamRequest {
   name: string
@@ -108,4 +113,10 @@ export interface ServiceGetMeRequest {
 export interface ServiceGetTeamMembersRequest {
   teamId: string
   includeAgents?: boolean
+}
+
+export interface ServiceUpdateTeamMemberRoleRequest {
+  teamId: string
+  userId: string
+  role: 'editor' | 'reviewer'
 }

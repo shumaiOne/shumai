@@ -12,6 +12,7 @@ import {
   listMembersQuerySchema,
   updateSandboxSettingsRequestSchema,
   updateMeRequestSchema,
+  updateTeamMemberRoleRequestSchema,
 } from '@shumai/dtos'
 import { updateUserMetadataRequestSchema } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
@@ -111,6 +112,47 @@ const route = new Hono<{ Variables: { user: User } }>()
     })
 
     return c.json(members)
+  })
+  .patch(
+    '/teams/:teamId/members/:userId',
+    zValidator('json', updateTeamMemberRoleRequestSchema),
+    async (c) => {
+      const user = c.get('user')
+      const teamId = c.req.param('teamId')
+      const userId = c.req.param('userId')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Admin,
+        type: ResourceType.Team,
+        id: teamId,
+      })
+
+      await teamService.updateMemberRole({
+        teamId,
+        userId,
+        role: req.role,
+      })
+
+      return c.json({ success: true })
+    },
+  )
+  .delete('/teams/:teamId/members/:userId', async (c) => {
+    const user = c.get('user')
+    const teamId = c.req.param('teamId')
+    const userId = c.req.param('userId')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Admin,
+      type: ResourceType.Team,
+      id: teamId,
+    })
+
+    await teamService.removeMember(teamId, userId)
+
+    return c.json({ success: true })
   })
   .get('/teams/:teamId/settings', async (c) => {
     const user = c.get('user')
