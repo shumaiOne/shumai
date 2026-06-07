@@ -3,6 +3,7 @@ import type { CollectionInfo } from '@shumai/dtos'
 import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
 import type { SearchCondition, SearchSort } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
+import { usePermissions } from '@/ui/hooks/use-permissions'
 import { useMutation } from '@tanstack/react-query'
 import { InferRequestType, InferResponseType } from 'hono/client'
 
@@ -46,6 +47,7 @@ export default function FileSystemManager({
 }: FileSystemManagerProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { canEdit } = usePermissions()
   const { loadedProjectId, setFields } = useFieldStore()
   const $patchMetadata = client.api.files[':fileId'].metadata.$patch
   const { mutate: patchMetadata } = useMutation<
@@ -397,7 +399,7 @@ export default function FileSystemManager({
     <DragDropProvider
       modifiers={[SnapToPointer.configure({ anchor: { x: 0, y: 0 } })]}
       sensors={
-        isRecentlyDeleted
+        isRecentlyDeleted || !canEdit
           ? []
           : [
               PointerSensor.configure({

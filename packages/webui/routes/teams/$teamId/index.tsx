@@ -1,4 +1,5 @@
 import type { ProjectInfo } from '@shumai/dtos'
+import { usePermissions } from '@/ui/hooks/use-permissions'
 import { client } from '@/ui/api/client'
 import { MembersDialog } from '@/ui/components/members-dialog'
 import { ProjectDialog } from '@/ui/components/project-dialog'
@@ -35,6 +36,7 @@ import { toast } from 'sonner'
 
 function TeamPage() {
   const { teamId } = Route.useParams()
+  const { canEdit, canAdmin } = usePermissions()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
@@ -255,13 +257,15 @@ function TeamPage() {
             sortDirection={sortDirection}
             onSortChange={handleSortChange}
           />
-          <Button
-            className="bg-orange-600 hover:bg-orange-700 text-white gap-2"
-            onClick={handleCreateProjectClick}
-          >
-            <PlusIcon className="w-4 h-4" />
-            Create Project
-          </Button>
+          {canEdit && (
+            <Button
+              className="bg-orange-600 hover:bg-orange-700 text-white gap-2"
+              onClick={handleCreateProjectClick}
+            >
+              <PlusIcon className="w-4 h-4" />
+              Create Project
+            </Button>
+          )}
         </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
@@ -302,14 +306,16 @@ function TeamPage() {
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleEditProjectClick(project)
-                        }}
-                      >
-                        Project Settings
-                      </DropdownMenuItem>
+                      {canEdit && (
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleEditProjectClick(project)
+                          }}
+                        >
+                          Project Settings
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem
                         className="flex items-center justify-between gap-4 cursor-pointer"
                         onSelect={(e) => {
@@ -323,12 +329,14 @@ function TeamPage() {
                           className="pointer-events-none"
                         />
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => handleDeleteProjectClick(project)}
-                      >
-                        Delete
-                      </DropdownMenuItem>
+                      {canAdmin && (
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => handleDeleteProjectClick(project)}
+                        >
+                          Delete
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -336,24 +344,26 @@ function TeamPage() {
             </div>
           </div>
         ))}
-        <div
-          className={cn(
-            'shadow-md relative border rounded-xl overflow-hidden cursor-pointer transition-transform duration-100 ease-in-out border-dashed hover:border-orange-600/50 group',
-            clickedProjectId === 'create' ? 'scale-95' : 'scale-100',
-          )}
-          onClick={handleCreateCardClick}
-        >
-          <div className="flex flex-col">
-            <div className="relative w-full aspect-square flex items-center justify-center bg-zinc-400/5 group-hover:bg-orange-600/5 transition-colors">
-              <PlusIcon className="w-8 h-8 text-zinc-400 group-hover:text-orange-600 transition-colors" />
-            </div>
-            <div className="px-2 h-10 flex items-center justify-center bg-zinc-400/10 border-t group-hover:bg-orange-600/10 transition-colors">
-              <p className="text-sm text-muted-foreground group-hover:text-orange-600 transition-colors">
-                Create Project
-              </p>
+        {canEdit && (
+          <div
+            className={cn(
+              'shadow-md relative border rounded-xl overflow-hidden cursor-pointer transition-transform duration-100 ease-in-out border-dashed hover:border-orange-600/50 group',
+              clickedProjectId === 'create' ? 'scale-95' : 'scale-100',
+            )}
+            onClick={handleCreateCardClick}
+          >
+            <div className="flex flex-col">
+              <div className="relative w-full aspect-square flex items-center justify-center bg-zinc-400/5 group-hover:bg-orange-600/5 transition-colors">
+                <PlusIcon className="w-8 h-8 text-zinc-400 group-hover:text-orange-600 transition-colors" />
+              </div>
+              <div className="px-2 h-10 flex items-center justify-center bg-zinc-400/10 border-t group-hover:bg-orange-600/10 transition-colors">
+                <p className="text-sm text-muted-foreground group-hover:text-orange-600 transition-colors">
+                  Create Project
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       <ProjectDialog

@@ -33,6 +33,7 @@ interface FolderCardProps {
   onAction?: (action: 'rename' | 'delete' | 'download' | 'restore', item: AssetInfo) => void
   isRecentlyDeleted?: boolean
   selectedCount?: number
+  canEdit?: boolean
 }
 
 const FolderPreviewGrid = ({ items }: { items: ChildPreview[] }) => {
@@ -105,6 +106,7 @@ export function FolderCard({
   onAction,
   isRecentlyDeleted,
   selectedCount,
+  canEdit = true,
 }: FolderCardProps) {
   const [name, setName] = useState(item.name || '')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -311,7 +313,7 @@ export function FolderCard({
                   </DropdownMenuItem>
                 ) : (
                   <>
-                    {(!isChecked || (selectedCount || 0) <= 1) && (
+                    {canEdit && (!isChecked || (selectedCount || 0) <= 1) && (
                       <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation()
@@ -331,17 +333,21 @@ export function FolderCard({
                       <Download className="mr-2 h-4 w-4" />
                       <span>Download</span>
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onAction?.('delete', item)
-                      }}
-                      className="text-destructive"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      <span>Delete</span>
-                    </DropdownMenuItem>
+                    {canEdit && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onAction?.('delete', item)
+                          }}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          <span>Delete</span>
+                        </DropdownMenuItem>
+                      </>
+                    )}
                   </>
                 )}
               </DropdownMenuContent>

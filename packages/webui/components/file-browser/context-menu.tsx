@@ -45,6 +45,7 @@ interface FileBrowserContextMenuProps {
   shareLinks?: ShareLinkInfo[]
   onCreateShareLink?: (items: AssetInfo[]) => void
   onAddToShareLink?: (shareId: string, items: AssetInfo[]) => void
+  canEdit?: boolean
 }
 
 export function FileBrowserContextMenu({
@@ -69,6 +70,7 @@ export function FileBrowserContextMenu({
   shareLinks = [],
   onCreateShareLink,
   onAddToShareLink,
+  canEdit = true,
 }: FileBrowserContextMenuProps) {
   const allItems = [...folders, ...files]
   const selectedItems = allItems.filter((i) => selectedIds.has(i.id!))
@@ -129,6 +131,7 @@ export function FileBrowserContextMenu({
   }
 
   if (!item) {
+    if (!canEdit) return null
     // Right-click on empty area
     return (
       <ContextMenuContent
@@ -167,44 +170,54 @@ export function FileBrowserContextMenu({
           <Download className="mr-2 h-4 w-4" />
           <span>Download</span>
         </ContextMenuItem>
-        <ContextMenuItem onSelect={() => onMoveTo(itemsToModify)}>
-          <ArrowRight className="mr-2 h-4 w-4" />
-          <span>Move to</span>
-        </ContextMenuItem>
-        <ContextMenuItem onSelect={() => onCopyTo(itemsToModify)}>
-          <Copy className="mr-2 h-4 w-4" />
-          <span>Copy to</span>
-        </ContextMenuItem>
-        <ContextMenuItem onSelect={handleDelete} className="text-destructive">
-          <Trash2 className="mr-2 h-4 w-4" />
-          <span>Delete</span>
-        </ContextMenuItem>
+        {canEdit && (
+          <ContextMenuItem onSelect={() => onMoveTo(itemsToModify)}>
+            <ArrowRight className="mr-2 h-4 w-4" />
+            <span>Move to</span>
+          </ContextMenuItem>
+        )}
+        {canEdit && (
+          <ContextMenuItem onSelect={() => onCopyTo(itemsToModify)}>
+            <Copy className="mr-2 h-4 w-4" />
+            <span>Copy to</span>
+          </ContextMenuItem>
+        )}
+        {canEdit && (
+          <ContextMenuItem onSelect={handleDelete} className="text-destructive">
+            <Trash2 className="mr-2 h-4 w-4" />
+            <span>Delete</span>
+          </ContextMenuItem>
+        )}
 
-        <ContextMenuSeparator />
-        <ContextMenuItem onSelect={() => onCreateShareLink?.(itemsToModify)}>
-          <Plus className="mr-2 h-4 w-4" />
-          <span>Create Share Link</span>
-        </ContextMenuItem>
+        {canEdit && (
+          <>
+            <ContextMenuSeparator />
+            <ContextMenuItem onSelect={() => onCreateShareLink?.(itemsToModify)}>
+              <Plus className="mr-2 h-4 w-4" />
+              <span>Create Share Link</span>
+            </ContextMenuItem>
 
-        {shareLinks.length > 0 && (
-          <ContextMenuSub>
-            <ContextMenuSubTrigger>
-              <Link className="mr-2 h-4 w-4" />
-              <span>Add to Share Links</span>
-            </ContextMenuSubTrigger>
-            <ContextMenuPortal>
-              <ContextMenuSubContent className="w-48">
-                {shareLinks.map((share) => (
-                  <ContextMenuItem
-                    key={share.id}
-                    onSelect={() => onAddToShareLink?.(share.id, itemsToModify)}
-                  >
-                    <span className="truncate">{share.name}</span>
-                  </ContextMenuItem>
-                ))}
-              </ContextMenuSubContent>
-            </ContextMenuPortal>
-          </ContextMenuSub>
+            {shareLinks.length > 0 && (
+              <ContextMenuSub>
+                <ContextMenuSubTrigger>
+                  <Link className="mr-2 h-4 w-4" />
+                  <span>Add to Share Links</span>
+                </ContextMenuSubTrigger>
+                <ContextMenuPortal>
+                  <ContextMenuSubContent className="w-48">
+                    {shareLinks.map((share) => (
+                      <ContextMenuItem
+                        key={share.id}
+                        onSelect={() => onAddToShareLink?.(share.id, itemsToModify)}
+                      >
+                        <span className="truncate">{share.name}</span>
+                      </ContextMenuItem>
+                    ))}
+                  </ContextMenuSubContent>
+                </ContextMenuPortal>
+              </ContextMenuSub>
+            )}
+          </>
         )}
       </ContextMenuContent>
     ) : (
@@ -213,29 +226,35 @@ export function FileBrowserContextMenu({
           e.preventDefault()
         }}
       >
-        <ContextMenuItem
-          onSelect={() => {
-            handleRename()
-          }}
-        >
-          <Edit className="mr-2 h-4 w-4" />
-          <span>Rename</span>
-        </ContextMenuItem>
+        {canEdit && (
+          <ContextMenuItem
+            onSelect={() => {
+              handleRename()
+            }}
+          >
+            <Edit className="mr-2 h-4 w-4" />
+            <span>Rename</span>
+          </ContextMenuItem>
+        )}
         <ContextMenuItem onSelect={handleDownload}>
           <Download className="mr-2 h-4 w-4" />
           <span>Download</span>
         </ContextMenuItem>
 
-        <ContextMenuItem onSelect={() => onMoveTo(itemsToModify)}>
-          <ArrowRight className="mr-2 h-4 w-4" />
-          <span>Move to</span>
-        </ContextMenuItem>
-        <ContextMenuItem onSelect={() => onCopyTo(itemsToModify)}>
-          <Copy className="mr-2 h-4 w-4" />
-          <span>Copy to</span>
-        </ContextMenuItem>
+        {canEdit && (
+          <ContextMenuItem onSelect={() => onMoveTo(itemsToModify)}>
+            <ArrowRight className="mr-2 h-4 w-4" />
+            <span>Move to</span>
+          </ContextMenuItem>
+        )}
+        {canEdit && (
+          <ContextMenuItem onSelect={() => onCopyTo(itemsToModify)}>
+            <Copy className="mr-2 h-4 w-4" />
+            <span>Copy to</span>
+          </ContextMenuItem>
+        )}
 
-        {(item.type === 'file' || item.type === 'version_stack') && (
+        {canEdit && (item.type === 'file' || item.type === 'version_stack') && (
           <ContextMenuItem onSelect={() => onNewVersion(item)}>
             <UploadCloud className="mr-2 h-4 w-4" />
             <span>Create new version</span>
@@ -249,37 +268,41 @@ export function FileBrowserContextMenu({
           </ContextMenuItem>
         )}
 
-        <ContextMenuSeparator />
-        <ContextMenuItem onSelect={handleDelete} className="text-destructive">
-          <Trash2 className="mr-2 h-4 w-4" />
-          <span>Delete</span>
-        </ContextMenuItem>
+        {canEdit && (
+          <>
+            <ContextMenuSeparator />
+            <ContextMenuItem onSelect={handleDelete} className="text-destructive">
+              <Trash2 className="mr-2 h-4 w-4" />
+              <span>Delete</span>
+            </ContextMenuItem>
 
-        <ContextMenuSeparator />
-        <ContextMenuItem onSelect={() => onCreateShareLink?.(itemsToModify)}>
-          <Plus className="mr-2 h-4 w-4" />
-          <span>Create Share Link</span>
-        </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem onSelect={() => onCreateShareLink?.(itemsToModify)}>
+              <Plus className="mr-2 h-4 w-4" />
+              <span>Create Share Link</span>
+            </ContextMenuItem>
 
-        {shareLinks.length > 0 && (
-          <ContextMenuSub>
-            <ContextMenuSubTrigger>
-              <Link className="mr-2 h-4 w-4" />
-              <span>Add to Share Links</span>
-            </ContextMenuSubTrigger>
-            <ContextMenuPortal>
-              <ContextMenuSubContent className="w-48">
-                {shareLinks.map((share) => (
-                  <ContextMenuItem
-                    key={share.id}
-                    onSelect={() => onAddToShareLink?.(share.id, itemsToModify)}
-                  >
-                    <span className="truncate">{share.name}</span>
-                  </ContextMenuItem>
-                ))}
-              </ContextMenuSubContent>
-            </ContextMenuPortal>
-          </ContextMenuSub>
+            {shareLinks.length > 0 && (
+              <ContextMenuSub>
+                <ContextMenuSubTrigger>
+                  <Link className="mr-2 h-4 w-4" />
+                  <span>Add to Share Links</span>
+                </ContextMenuSubTrigger>
+                <ContextMenuPortal>
+                  <ContextMenuSubContent className="w-48">
+                    {shareLinks.map((share) => (
+                      <ContextMenuItem
+                        key={share.id}
+                        onSelect={() => onAddToShareLink?.(share.id, itemsToModify)}
+                      >
+                        <span className="truncate">{share.name}</span>
+                      </ContextMenuItem>
+                    ))}
+                  </ContextMenuSubContent>
+                </ContextMenuPortal>
+              </ContextMenuSub>
+            )}
+          </>
         )}
       </ContextMenuContent>
     )

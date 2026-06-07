@@ -1,5 +1,6 @@
 import type { AssetInfoPaginatedList, AssetInfo } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
+import { usePermissions } from '@/ui/hooks/use-permissions'
 import { cn } from '@/ui/lib/utils'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMatch, useNavigate, useParams } from '@tanstack/react-router'
@@ -76,6 +77,7 @@ export function FolderTree({
 }: FolderTreeProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { canEdit } = usePermissions()
   const isRecentlyDeleted = useMatch({
     from: '/projects/$projectId/recently-deleted',
     shouldThrow: false,
@@ -329,24 +331,28 @@ export function FolderTree({
             dragState={dragState}
             onSelect={onSelect}
             selectedFolderId={selectedFolderId}
+            canEdit={canEdit}
           />
-          <div
-            className={cn(
-              'group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-              isRecentlyDeleted && 'bg-sidebar-accent text-sidebar-accent-foreground font-medium',
-            )}
-            onClick={() =>
-              navigate({
-                to: '/projects/$projectId/recently-deleted',
-                params: { projectId },
-              })
-            }
-          >
-            <div className="flex h-4 w-4 items-center justify-center">
-              <Trash2 className="h-4 w-4 text-sidebar-primary" />
+
+          {canEdit && (
+            <div
+              className={cn(
+                'group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                isRecentlyDeleted && 'bg-sidebar-accent text-sidebar-accent-foreground font-medium',
+              )}
+              onClick={() =>
+                navigate({
+                  to: '/projects/$projectId/recently-deleted',
+                  params: { projectId },
+                })
+              }
+            >
+              <div className="flex h-4 w-4 items-center justify-center">
+                <Trash2 className="h-4 w-4 text-sidebar-primary" />
+              </div>
+              <span className="flex-1 truncate text-sidebar-foreground">Recently Deleted</span>
             </div>
-            <span className="flex-1 truncate text-sidebar-foreground">Recently Deleted</span>
-          </div>
+          )}
         </div>
       </div>
 
@@ -369,12 +375,14 @@ export function FolderTree({
                 <ChevronsUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
               )}
             </div>
-            <button
-              onClick={() => createCollection()}
-              className="text-muted-foreground hover:text-foreground flex-none"
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </button>
+            {canEdit && (
+              <button
+                onClick={() => createCollection()}
+                className="text-muted-foreground hover:text-foreground flex-none"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            )}
           </header>
 
           <div
@@ -427,44 +435,46 @@ export function FolderTree({
                     </span>
                   </div>
 
-                  <div
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <DropdownMenu modal={false}>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          className="h-6 w-6 shrink-0 hover:bg-muted hover:text-muted-foreground p-0"
-                        >
-                          <MoreHorizontal className="h-3.5 w-3.5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-32">
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setRenameId(collection.id)
-                            setRenameType('collection')
-                            setRenameName(collection.name)
-                            setIsRenameOpen(true)
-                          }}
-                        >
-                          Rename
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                          onClick={() => {
-                            setDeleteId(collection.id)
-                            setDeleteType('collection')
-                            setIsDeleteOpen(true)
-                          }}
-                        >
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+                  {canEdit && (
+                    <div
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <DropdownMenu modal={false}>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            className="h-6 w-6 shrink-0 hover:bg-muted hover:text-muted-foreground p-0"
+                          >
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-32">
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setRenameId(collection.id)
+                              setRenameType('collection')
+                              setRenameName(collection.name)
+                              setIsRenameOpen(true)
+                            }}
+                          >
+                            Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                            onClick={() => {
+                              setDeleteId(collection.id)
+                              setDeleteType('collection')
+                              setIsDeleteOpen(true)
+                            }}
+                          >
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  )}
                 </div>
               )
             })}
@@ -491,14 +501,16 @@ export function FolderTree({
                 <ChevronsUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
               )}
             </div>
-            <div className="flex items-center gap-1 flex-none">
-              <button
-                onClick={() => createShareLink()}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <Plus className="h-3.5 w-3.5" />
-              </button>
-            </div>
+            {canEdit && (
+              <div className="flex items-center gap-1 flex-none">
+                <button
+                  onClick={() => createShareLink()}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
           </header>
 
           <div
@@ -532,6 +544,7 @@ export function FolderTree({
                 link={link}
                 projectId={projectId}
                 dragState={dragState}
+                canEdit={canEdit}
                 onRenameTrigger={(id, currentName) => {
                   setRenameId(id)
                   setRenameType('share')
@@ -631,12 +644,14 @@ function ShareLinkItem({
   link,
   projectId,
   dragState,
+  canEdit,
   onRenameTrigger,
   onDeleteTrigger,
 }: {
   link: ShareLinkInfo
   projectId: string
   dragState?: DragState
+  canEdit?: boolean
   onRenameTrigger: (id: string, currentName: string) => void
   onDeleteTrigger: (id: string) => void
 }) {
@@ -679,39 +694,41 @@ function ShareLinkItem({
         <span className="truncate text-sidebar-foreground flex-1">{link.name}</span>
       </div>
 
-      <div
-        className="opacity-0 group-hover:opacity-100 transition-opacity"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <DropdownMenu modal={false}>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="h-6 w-6 shrink-0 hover:bg-muted hover:text-muted-foreground p-0"
-            >
-              <MoreHorizontal className="h-3.5 w-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-32">
-            <DropdownMenuItem
-              onClick={() => {
-                onRenameTrigger(link.id, link.name)
-              }}
-            >
-              Rename
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive focus:bg-destructive/10"
-              onClick={() => {
-                onDeleteTrigger(link.id)
-              }}
-            >
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      {canEdit && (
+        <div
+          className="opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="h-6 w-6 shrink-0 hover:bg-muted hover:text-muted-foreground p-0"
+              >
+                <MoreHorizontal className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-32">
+              <DropdownMenuItem
+                onClick={() => {
+                  onRenameTrigger(link.id, link.name)
+                }}
+              >
+                Rename
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                onClick={() => {
+                  onDeleteTrigger(link.id)
+                }}
+              >
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
     </div>
   )
 }
@@ -725,6 +742,7 @@ interface FolderTreeItemProps {
   dragState?: DragState
   onSelect?: (folder: AssetInfo) => void
   selectedFolderId?: string
+  canEdit?: boolean
 }
 
 function FolderTreeItem({
@@ -736,6 +754,7 @@ function FolderTreeItem({
   dragState,
   onSelect,
   selectedFolderId,
+  canEdit,
 }: FolderTreeItemProps) {
   const [isExpanded, setIsExpanded] = useState(isRoot || false)
   const navigate = useNavigate()
@@ -824,7 +843,7 @@ function FolderTreeItem({
       type: 'folder',
       item: folder,
     },
-    disabled: !!isRoot || !!onSelect,
+    disabled: !!isRoot || !!onSelect || !canEdit,
   })
 
   const { ref: setDroppableRef, isDropTarget: isOver } = useDroppable({
@@ -833,7 +852,7 @@ function FolderTreeItem({
       type: 'folder',
       item: folder,
     },
-    disabled: dragState?.draggedIds.has(folder.id!) || !!onSelect,
+    disabled: dragState?.draggedIds.has(folder.id!) || !!onSelect || !canEdit,
   })
 
   const setNodeRef = (node: HTMLDivElement | null) => {
@@ -905,6 +924,7 @@ function FolderTreeItem({
               dragState={dragState}
               onSelect={onSelect}
               selectedFolderId={selectedFolderId}
+              canEdit={canEdit}
             />
           ))}
           {hasNextPage && (

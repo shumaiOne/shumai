@@ -3,6 +3,7 @@ import type { CollectionInfo } from '@shumai/dtos'
 import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
 import type { SearchCondition, SearchSort } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
+import { usePermissions } from '@/ui/hooks/use-permissions'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import type { InferRequestType, InferResponseType } from 'hono/client'
 import { useState } from 'react'
@@ -48,6 +49,7 @@ export function FileBrowserToolbar({
   onUpdateCollection,
   rootFolderId,
 }: FileBrowserToolbarProps) {
+  const { canEdit } = usePermissions()
   const [popoverOpen, setPopoverOpen] = useState(false)
   const [searchDialogOpen, setSearchDialogOpen] = useState(false)
   const [manageDialogOpen, setManageDialogOpen] = useState(false)
@@ -156,7 +158,7 @@ export function FileBrowserToolbar({
           <PopoverContent className="w-auto p-0" align="start">
             <FieldsManager
               projectId={projectId}
-              onManageFields={handleManageFields}
+              onManageFields={canEdit ? handleManageFields : undefined}
               onSave={() => setPopoverOpen(false)}
             />
           </PopoverContent>

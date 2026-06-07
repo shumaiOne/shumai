@@ -1,4 +1,5 @@
 import type { AncestorFolder } from '@shumai/dtos'
+import { usePermissions } from '@/ui/hooks/use-permissions'
 import { Badge } from '@/ui/components/ui/badge'
 import {
   DropdownMenu,
@@ -70,6 +71,7 @@ export function BreadcrumbNav({
   versions,
 }: BreadcrumbNavProps) {
   const navigate = useNavigate()
+  const { canEdit } = usePermissions()
 
   const handleVersionClick = (versionId: string) => {
     if (!projectId || !fileId) return
@@ -155,8 +157,16 @@ export function BreadcrumbNav({
                   <DropdownMenuItem onClick={() => console.log('Download')}>
                     Download
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => console.log('Rename')}>Rename</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => console.log('Delete')}>Delete</DropdownMenuItem>
+                  {canEdit && (
+                    <DropdownMenuItem onClick={() => console.log('Rename')}>
+                      Rename
+                    </DropdownMenuItem>
+                  )}
+                  {canEdit && (
+                    <DropdownMenuItem onClick={() => console.log('Delete')}>
+                      Delete
+                    </DropdownMenuItem>
+                  )}
 
                   {versions && versions.length > 0 && (
                     <>
