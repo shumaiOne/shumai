@@ -99,7 +99,6 @@ describe('CollectionService', () => {
     // List first page
     const list1 = await collectionService.listCollections(project.id, {
       first: 2,
-      includeCount: true,
     })
     expect(list1.data.length).toBe(2)
     expect(list1.pageInfo.total).toBe(5)

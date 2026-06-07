@@ -283,7 +283,6 @@ export class NotificationService {
       {
         after: params.after,
         first: params.pageSize,
-        includeCount: false,
       },
     )
   }
