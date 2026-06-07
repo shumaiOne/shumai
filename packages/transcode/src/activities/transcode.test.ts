@@ -1,16 +1,16 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { metadataService } from '@shumai/core/src/metadata/metadata'
+import { s3Service } from '@shumai/core/src/s3/s3'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { transcodeService } from '../transcode'
 import {
   getMediaInfoActivity,
+  overlayAnnotationsActivity,
+  takeScreenshotsActivity,
   transcodeVideoActivity,
   updateAssetMediaActivity,
-  takeScreenshotsActivity,
-  overlayAnnotationsActivity,
 } from './transcode'
-import { s3Service } from '@shumai/core/src/s3/s3'
-import { transcodeService } from '../transcode'
-import { metadataService } from '@shumai/core/src/metadata/metadata'
 
 vi.mock('@shumai/core/src/s3/s3', () => ({
   s3Service: {
@@ -85,6 +85,12 @@ describe('Transcode Activities', () => {
 
     expect(transcodeService.getVideoInfo).toHaveBeenCalledWith('/tmp/v.mp4')
     expect(result.duration).toBe(10)
+    expect(result.metadata?.originalWidth).toBe(1920)
+    expect(result.metadata?.videoCodec).toBe('Advanced Video Coding')
+    expect(result.metadata?.audioCodec).toBe('MPEG-4 Audio')
+    expect(result.metadata?.audioChannels).toBe(2)
+    expect(result.metadata?.audioSampleRate).toBe(48000)
+    expect(result.metadata?.audioBitDepth).toBe(16)
     expect(metadataService.updateAssetMetadata).toHaveBeenCalledWith(
       asset.id,
       expect.arrayContaining([{ key: 'file_type', value: 'video' }]),
@@ -106,13 +112,15 @@ describe('Transcode Activities', () => {
       mimeType: 'image/png',
     })
 
-    await getMediaInfoActivity({
+    const result = await getMediaInfoActivity({
       assetId: asset.id,
       filePath: '/tmp/i.png',
       mediaType: 'image/png',
     })
 
     expect(transcodeService.getImageInfo).toHaveBeenCalledWith('/tmp/i.png')
+    expect(result.metadata?.originalWidth).toBe(800)
+    expect(result.metadata?.duration).toBe(0)
     expect(metadataService.updateAssetMetadata).toHaveBeenCalledWith(
       asset.id,
       expect.arrayContaining([{ key: 'file_type', value: 'image' }]),

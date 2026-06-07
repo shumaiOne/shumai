@@ -185,7 +185,10 @@ export function SearchFilterDialog({
         const errorData = (await res.json().catch(() => ({}))) as Record<string, unknown>
         throw new Error((errorData.message as string) || 'Search failed')
       }
-      return (await res.json()) as { data: AssetInfo[]; pageInfo?: { total?: number; cursor?: string } }
+      return (await res.json()) as {
+        data: AssetInfo[]
+        pageInfo?: { total?: number; cursor?: string }
+      }
     },
     enabled: open && hasActiveCriteria,
     staleTime: 500,

@@ -185,9 +185,7 @@ export class SearchService {
         }
       }
 
-      const countRes = await this.prismaClient.$queryRaw<{ count: bigint }[]>(
-        countBuilder.build(),
-      )
+      const countRes = await this.prismaClient.$queryRaw<{ count: bigint }[]>(countBuilder.build())
       pageInfo.total = Number(countRes[0]?.count || 0)
 
       if (hasNextPage) {
@@ -368,9 +366,7 @@ export class SearchService {
         countBuilder.addWhere(Prisma.sql`a.name ILIKE ${'%' + valStr + '%'}`)
       }
 
-      const countRes = await this.prismaClient.$queryRaw<{ count: bigint }[]>(
-        countBuilder.build(),
-      )
+      const countRes = await this.prismaClient.$queryRaw<{ count: bigint }[]>(countBuilder.build())
       pageInfo.total = Number(countRes[0]?.count || 0)
     }
 

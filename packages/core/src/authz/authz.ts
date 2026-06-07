@@ -77,7 +77,8 @@ export class AuthzService {
       },
     })
 
-    if (!pm) throw new HTTPException(403, { message: `User is not a member of project ${projectId}` })
+    if (!pm)
+      throw new HTTPException(403, { message: `User is not a member of project ${projectId}` })
 
     return this.checkRole(pm.role, req.permission)
   }
@@ -174,7 +175,8 @@ export class AuthzService {
           })
           return { teamId: proj!.teamId, projectId: field.projectId }
         }
-        if (!field.teamId) throw new HTTPException(403, { message: 'Metadata field has no context' })
+        if (!field.teamId)
+          throw new HTTPException(403, { message: 'Metadata field has no context' })
         return { teamId: field.teamId }
       }
 
@@ -211,7 +213,8 @@ export class AuthzService {
           include: { asset: { include: { project: true } } },
         })
         if (!comment) throw new HTTPException(404, { message: 'Comment not found' })
-        if (!comment.asset.project) throw new HTTPException(403, { message: 'Comment asset has no project' })
+        if (!comment.asset.project)
+          throw new HTTPException(403, { message: 'Comment asset has no project' })
         return { teamId: comment.asset.project.teamId, projectId: comment.asset.projectId! }
       }
 
