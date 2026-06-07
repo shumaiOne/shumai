@@ -154,43 +154,39 @@ export class SearchService {
       }
 
       const pageInfo: PageInfo = {}
-      if (req.includeCount) {
-        const countBuilder = new SqlQueryBuilder()
-          .select(Prisma.sql`COUNT(*)`)
-          .from(Prisma.sql`assets a JOIN asset_embeddings ae ON a.id = ae.asset_id`)
-          .addWhere(Prisma.sql`a.is_deleted = false`)
+      const countBuilder = new SqlQueryBuilder()
+        .select(Prisma.sql`COUNT(*)`)
+        .from(Prisma.sql`assets a JOIN asset_embeddings ae ON a.id = ae.asset_id`)
+        .addWhere(Prisma.sql`a.is_deleted = false`)
 
-        if (targetFolderIds.length > 0) {
-          countBuilder.addWhere(Prisma.sql`a.parent_id = ANY(${targetFolderIds})`)
-        }
-        if (req.showSymlink) {
-          countBuilder.addWhere(Prisma.sql`
-            (a.type = ANY(${targetTypes}::"AssetType"[]) OR (a.type = 'symlink' AND a.target_id IN (SELECT id FROM assets WHERE type = ANY(${targetTypes}::"AssetType"[]))))
-          `)
-        } else {
-          countBuilder.addWhere(Prisma.sql`a.type = ANY(${targetTypes}::"AssetType"[])`)
-        }
-
-        if (req.conditions && req.conditions.length > 0) {
-          countBuilder.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
-        }
-
-        if (nameCond) {
-          const valStr = String(nameCond.value)
-          const ngrams = generateSearchNgrams(valStr)
-          if (ngrams.length > 0) {
-            countBuilder.addWhere(Prisma.sql`a.name_ngram @> ${ngrams}::text[]`)
-            countBuilder.addWhere(Prisma.sql`a.name ILIKE ${'%' + valStr + '%'}`)
-          } else {
-            countBuilder.addWhere(Prisma.sql`a.name ILIKE ${'%' + valStr + '%'}`)
-          }
-        }
-
-        const countRes = await this.prismaClient.$queryRaw<{ count: bigint }[]>(
-          countBuilder.build(),
-        )
-        pageInfo.total = Number(countRes[0]?.count || 0)
+      if (targetFolderIds.length > 0) {
+        countBuilder.addWhere(Prisma.sql`a.parent_id = ANY(${targetFolderIds})`)
       }
+      if (req.showSymlink) {
+        countBuilder.addWhere(Prisma.sql`
+          (a.type = ANY(${targetTypes}::"AssetType"[]) OR (a.type = 'symlink' AND a.target_id IN (SELECT id FROM assets WHERE type = ANY(${targetTypes}::"AssetType"[]))))
+        `)
+      } else {
+        countBuilder.addWhere(Prisma.sql`a.type = ANY(${targetTypes}::"AssetType"[])`)
+      }
+
+      if (req.conditions && req.conditions.length > 0) {
+        countBuilder.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
+      }
+
+      if (nameCond) {
+        const valStr = String(nameCond.value)
+        const ngrams = generateSearchNgrams(valStr)
+        if (ngrams.length > 0) {
+          countBuilder.addWhere(Prisma.sql`a.name_ngram @> ${ngrams}::text[]`)
+          countBuilder.addWhere(Prisma.sql`a.name ILIKE ${'%' + valStr + '%'}`)
+        } else {
+          countBuilder.addWhere(Prisma.sql`a.name ILIKE ${'%' + valStr + '%'}`)
+        }
+      }
+
+      const countRes = await this.prismaClient.$queryRaw<{ count: bigint }[]>(countBuilder.build())
+      pageInfo.total = Number(countRes[0]?.count || 0)
 
       if (hasNextPage) {
         pageInfo.cursor = encodeCursor(offset + limit)
@@ -342,40 +338,36 @@ export class SearchService {
     }
 
     const pageInfo: PageInfo = {}
-    if (req.includeCount) {
-      if (countOverride !== undefined) {
-        pageInfo.total = countOverride
-      } else {
-        const countBuilder = new SqlQueryBuilder()
-          .select(Prisma.sql`COUNT(*)`)
-          .from(Prisma.sql`assets a`)
-          .addWhere(Prisma.sql`a.is_deleted = false`)
+    if (countOverride !== undefined) {
+      pageInfo.total = countOverride
+    } else {
+      const countBuilder = new SqlQueryBuilder()
+        .select(Prisma.sql`COUNT(*)`)
+        .from(Prisma.sql`assets a`)
+        .addWhere(Prisma.sql`a.is_deleted = false`)
 
-        if (targetFolderIds.length > 0) {
-          countBuilder.addWhere(Prisma.sql`a.parent_id = ANY(${targetFolderIds})`)
-        }
-
-        if (req.showSymlink) {
-          countBuilder.addWhere(Prisma.sql`
-            (a.type = ANY(${targetTypes}::"AssetType"[]) OR (a.type = 'symlink' AND a.target_id IN (SELECT id FROM assets WHERE type = ANY(${targetTypes}::"AssetType"[]))))
-          `)
-        } else {
-          countBuilder.addWhere(Prisma.sql`a.type = ANY(${targetTypes}::"AssetType"[])`)
-        }
-
-        if (req.conditions && req.conditions.length > 0) {
-          countBuilder.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
-        }
-
-        if (nameCond) {
-          countBuilder.addWhere(Prisma.sql`a.name ILIKE ${'%' + valStr + '%'}`)
-        }
-
-        const countRes = await this.prismaClient.$queryRaw<{ count: bigint }[]>(
-          countBuilder.build(),
-        )
-        pageInfo.total = Number(countRes[0]?.count || 0)
+      if (targetFolderIds.length > 0) {
+        countBuilder.addWhere(Prisma.sql`a.parent_id = ANY(${targetFolderIds})`)
       }
+
+      if (req.showSymlink) {
+        countBuilder.addWhere(Prisma.sql`
+          (a.type = ANY(${targetTypes}::"AssetType"[]) OR (a.type = 'symlink' AND a.target_id IN (SELECT id FROM assets WHERE type = ANY(${targetTypes}::"AssetType"[]))))
+        `)
+      } else {
+        countBuilder.addWhere(Prisma.sql`a.type = ANY(${targetTypes}::"AssetType"[])`)
+      }
+
+      if (req.conditions && req.conditions.length > 0) {
+        countBuilder.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
+      }
+
+      if (nameCond) {
+        countBuilder.addWhere(Prisma.sql`a.name ILIKE ${'%' + valStr + '%'}`)
+      }
+
+      const countRes = await this.prismaClient.$queryRaw<{ count: bigint }[]>(countBuilder.build())
+      pageInfo.total = Number(countRes[0]?.count || 0)
     }
 
     if (hasNextPage) {

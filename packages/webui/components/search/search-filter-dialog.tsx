@@ -9,7 +9,7 @@ import { Label } from '@/ui/components/ui/label'
 import { Switch } from '@/ui/components/ui/switch'
 import { formatSize } from '@/ui/lib/format'
 import { cn } from '@/ui/lib/utils'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import {
   AlertCircle,
@@ -22,6 +22,7 @@ import {
   X,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { useInView } from 'react-intersection-observer'
 import { toast } from 'sonner'
 import { FilterPanel } from './filter-panel'
 
@@ -155,13 +156,18 @@ export function SearchFilterDialog({
     },
   })
 
+  const { ref, inView } = useInView()
+
   const {
     data: searchResults,
     isLoading,
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
     error: searchError,
-  } = useQuery({
+  } = useInfiniteQuery({
     queryKey: ['search-preview', teamId, assetId, combinedConditions, isSemantic, triggerQuery],
-    queryFn: async () => {
+    queryFn: async ({ pageParam }) => {
       const activeText = triggerQuery
       const res = await client.api.folders[':folderId'].search.$post({
         param: { folderId: assetId },
@@ -172,18 +178,41 @@ export function SearchFilterDialog({
           query: activeText.trim(),
           isSemantic: isSemantic,
           first: 20,
+          after: pageParam as string | undefined,
         },
       })
       if (!res.ok) {
         const errorData = (await res.json().catch(() => ({}))) as Record<string, unknown>
         throw new Error((errorData.message as string) || 'Search failed')
       }
-      return (await res.json()) as { data: AssetInfo[] }
+      return (await res.json()) as {
+        data: AssetInfo[]
+        pageInfo?: { total?: number; cursor?: string }
+      }
     },
     enabled: open && hasActiveCriteria,
     staleTime: 500,
     retry: false,
+    initialPageParam: '',
+    getNextPageParam: (lastPage) => lastPage.pageInfo?.cursor || undefined,
   })
+
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage()
+    }
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage])
+
+  const flattenedResults = useMemo(() => {
+    return searchResults?.pages.flatMap((page) => page.data) || []
+  }, [searchResults])
+
+  const totalCount = searchResults?.pages[0]?.pageInfo?.total || 0
+
+  const formatMatchedCount = (count: number) => {
+    if (count === 10001) return '10000+'
+    return count.toString()
+  }
 
   const handleApply = () => {
     onApply(combinedConditions)
@@ -395,7 +424,7 @@ export function SearchFilterDialog({
                   </div>
                 </div>
               ))
-            ) : searchResults?.data?.length === 0 ? (
+            ) : flattenedResults.length === 0 ? (
               <div className="py-12 px-4 text-center flex flex-col items-center justify-center bg-muted/20">
                 <AlertCircle className="w-10 h-10 text-muted-foreground/30 mb-2" />
                 <h3 className="text-sm font-semibold text-foreground/80">
@@ -406,62 +435,69 @@ export function SearchFilterDialog({
                 </p>
               </div>
             ) : (
-              searchResults?.data?.map((record) => (
-                <div
-                  key={record.id}
-                  onClick={() => handleResultClick(record)}
-                  className="p-3.5 flex items-center gap-3 hover:bg-muted/40 transition-colors group/record cursor-pointer"
-                >
+              <>
+                {flattenedResults.map((record) => (
                   <div
-                    className={cn(
-                      'shrink-0 w-11 h-11 rounded-xl shadow-xs flex items-center justify-center text-white font-bold relative group-hover/record:scale-105 transition-transform bg-muted overflow-hidden',
-                      record.type === 'folder' ? 'bg-primary/5' : '',
-                    )}
+                    key={record.id}
+                    onClick={() => handleResultClick(record)}
+                    className="p-3.5 flex items-center gap-3 hover:bg-muted/40 transition-colors group/record cursor-pointer"
                   >
-                    {record.preview?.thumbnailUrl ? (
-                      <img
-                        src={record.preview.thumbnailUrl}
-                        alt=""
-                        className="w-full h-full object-cover rounded-xl"
-                      />
-                    ) : record.type === 'folder' ? (
-                      <FolderIcon className="h-6 w-6 text-primary/70" />
-                    ) : (
-                      <FileIcon className="h-6 w-6 text-muted-foreground" />
-                    )}
-                  </div>
+                    <div
+                      className={cn(
+                        'shrink-0 w-11 h-11 rounded-xl shadow-xs flex items-center justify-center text-white font-bold relative group-hover/record:scale-105 transition-transform bg-muted overflow-hidden',
+                        record.type === 'folder' ? 'bg-primary/5' : '',
+                      )}
+                    >
+                      {record.preview?.thumbnailUrl ? (
+                        <img
+                          src={record.preview.thumbnailUrl}
+                          alt=""
+                          className="w-full h-full object-cover rounded-xl"
+                        />
+                      ) : record.type === 'folder' ? (
+                        <FolderIcon className="h-6 w-6 text-primary/70" />
+                      ) : (
+                        <FileIcon className="h-6 w-6 text-muted-foreground" />
+                      )}
+                    </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="truncate">
-                        <span className="font-medium text-sm text-foreground group-hover/record:text-primary transition-colors block truncate">
-                          {record.name}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="truncate">
+                          <span className="font-medium text-sm text-foreground group-hover/record:text-primary transition-colors block truncate">
+                            {record.name}
+                          </span>
+                          <span className="text-xs text-muted-foreground block mt-0.5 truncate">
+                            {record.type === 'folder'
+                              ? 'Folder'
+                              : `Size: ${formatSize(record.sizeByte || 0)}`}
+                          </span>
+                          {record.startTime !== undefined &&
+                            record.startTime !== null &&
+                            record.endTime !== undefined &&
+                            record.endTime !== null && (
+                              <span className="text-[10px] font-semibold text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded mt-1 inline-block">
+                                Match found at {formatTimestamp(record.startTime)} -{' '}
+                                {formatTimestamp(record.endTime)}
+                              </span>
+                            )}
+                        </div>
+                        <span className="text-xs text-muted-foreground font-mono shrink-0">
+                          {new Date(record.createdAt).toLocaleDateString(undefined, {
+                            year: 'numeric',
+                            month: 'short',
+                          })}
                         </span>
-                        <span className="text-xs text-muted-foreground block mt-0.5 truncate">
-                          {record.type === 'folder'
-                            ? 'Folder'
-                            : `Size: ${formatSize(record.sizeByte || 0)}`}
-                        </span>
-                        {record.startTime !== undefined &&
-                          record.startTime !== null &&
-                          record.endTime !== undefined &&
-                          record.endTime !== null && (
-                            <span className="text-[10px] font-semibold text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded mt-1 inline-block">
-                              Match found at {formatTimestamp(record.startTime)} -{' '}
-                              {formatTimestamp(record.endTime)}
-                            </span>
-                          )}
                       </div>
-                      <span className="text-xs text-muted-foreground font-mono shrink-0">
-                        {new Date(record.createdAt).toLocaleDateString(undefined, {
-                          year: 'numeric',
-                          month: 'short',
-                        })}
-                      </span>
                     </div>
                   </div>
-                </div>
-              ))
+                ))}
+                {(hasNextPage || isFetchingNextPage) && (
+                  <div ref={ref} className="p-4 flex justify-center items-center">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -472,7 +508,7 @@ export function SearchFilterDialog({
             <span>
               Matched{' '}
               <strong className="font-mono font-bold text-foreground">
-                {searchResults?.data?.length || 0}
+                {formatMatchedCount(totalCount)}
               </strong>{' '}
               items
             </span>

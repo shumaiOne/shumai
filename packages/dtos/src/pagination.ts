@@ -10,10 +10,6 @@ export type PaginationPageInfo = z.infer<typeof paginationPageInfoSchema>
 export const paginationParamsSchema = z.object({
   first: z.coerce.number().optional(),
   after: z.string().optional(),
-  includeCount: z
-    .union([z.boolean(), z.string()])
-    .transform((v) => v === true || v === 'true')
-    .optional(),
 })
 
 export type PaginationParams = z.infer<typeof paginationParamsSchema>

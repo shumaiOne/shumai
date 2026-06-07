@@ -8,7 +8,6 @@ const key = new Uint8Array([
 export interface PaginationParams {
   first?: number
   after?: string
-  includeCount?: boolean
 }
 
 export interface PageInfo {
@@ -41,7 +40,7 @@ export async function paginateQuery<T>(
 ): Promise<PaginatedData<T[]>> {
   const info: PageInfo = {}
 
-  if (params.includeCount && countFn) {
+  if (countFn) {
     info.total = await countFn()
   }
 

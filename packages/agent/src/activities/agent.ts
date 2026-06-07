@@ -824,7 +824,7 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
           })
         },
         async () => prisma.asset.count({ where }),
-        { first: limit, after, includeCount: true },
+        { first: limit, after },
       )
 
       // return asset id, asset name, asset type, asset size (sizeByte or size)
