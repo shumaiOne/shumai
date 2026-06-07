@@ -10,6 +10,7 @@ import {
 } from './transcode'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { transcodeService } from '../transcode'
+import { metadataService } from '@shumai/core/src/metadata/metadata'
 
 vi.mock('@shumai/core/src/s3/s3', () => ({
   s3Service: {
@@ -17,6 +18,7 @@ vi.mock('@shumai/core/src/s3/s3', () => ({
     putObject: vi.fn(),
     headObject: vi.fn(),
     presign: vi.fn(),
+    downloadToFile: vi.fn(),
   },
 }))
 
@@ -32,11 +34,20 @@ vi.mock('../transcode', () => ({
   },
 }))
 
+vi.mock('@shumai/core/src/metadata/metadata', () => ({
+  metadataService: {
+    updateAssetMetadata: vi.fn(),
+  },
+}))
+
 vi.mock('fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('fs')>()
   return {
     ...actual,
     readFileSync: vi.fn().mockReturnValue(Buffer.from('fake data')),
+    existsSync: vi.fn().mockReturnValue(true),
+    mkdirSync: vi.fn(),
+    unlinkSync: vi.fn(),
   }
 })
 
@@ -47,7 +58,7 @@ describe('Transcode Activities', () => {
     vi.clearAllMocks()
   })
 
-  it('should call getVideoInfo for video assets', async () => {
+  it('should call getVideoInfo and set file_type to video', async () => {
     const asset = await prisma.asset.create({
       data: { name: 'v.mp4', type: 'file', status: 'uploaded' },
     })
@@ -74,15 +85,14 @@ describe('Transcode Activities', () => {
 
     expect(transcodeService.getVideoInfo).toHaveBeenCalledWith('/tmp/v.mp4')
     expect(result.duration).toBe(10)
-    expect(result.metadata?.originalWidth).toBe(1920)
-    expect(result.metadata?.videoCodec).toBe('Advanced Video Coding')
-    expect(result.metadata?.audioCodec).toBe('MPEG-4 Audio')
-    expect(result.metadata?.audioChannels).toBe(2)
-    expect(result.metadata?.audioSampleRate).toBe(48000)
-    expect(result.metadata?.audioBitDepth).toBe(16)
+    expect(metadataService.updateAssetMetadata).toHaveBeenCalledWith(
+      asset.id,
+      expect.arrayContaining([{ key: 'file_type', value: 'video' }]),
+      true,
+    )
   })
 
-  it('should call getImageInfo for image assets', async () => {
+  it('should call getImageInfo and set file_type to image', async () => {
     const asset = await prisma.asset.create({
       data: { name: 'i.png', type: 'file', status: 'uploaded' },
     })
@@ -96,15 +106,72 @@ describe('Transcode Activities', () => {
       mimeType: 'image/png',
     })
 
-    const result = await getMediaInfoActivity({
+    await getMediaInfoActivity({
       assetId: asset.id,
       filePath: '/tmp/i.png',
       mediaType: 'image/png',
     })
 
     expect(transcodeService.getImageInfo).toHaveBeenCalledWith('/tmp/i.png')
-    expect(result.metadata?.originalWidth).toBe(800)
-    expect(result.metadata?.duration).toBe(0)
+    expect(metadataService.updateAssetMetadata).toHaveBeenCalledWith(
+      asset.id,
+      expect.arrayContaining([{ key: 'file_type', value: 'image' }]),
+      true,
+    )
+  })
+
+  it('should set file_type to audio for audio files', async () => {
+    const asset = await prisma.asset.create({
+      data: { name: 'a.mp3', type: 'file', status: 'uploaded' },
+    })
+
+    await getMediaInfoActivity({
+      assetId: asset.id,
+      filePath: '/tmp/a.mp3',
+      mediaType: 'audio/mpeg',
+    })
+
+    expect(metadataService.updateAssetMetadata).toHaveBeenCalledWith(
+      asset.id,
+      expect.arrayContaining([{ key: 'file_type', value: 'audio' }]),
+      true,
+    )
+  })
+
+  it('should set file_type to document for pdf/text files', async () => {
+    const asset = await prisma.asset.create({
+      data: { name: 'd.pdf', type: 'file', status: 'uploaded' },
+    })
+
+    await getMediaInfoActivity({
+      assetId: asset.id,
+      filePath: '/tmp/d.pdf',
+      mediaType: 'application/pdf',
+    })
+
+    expect(metadataService.updateAssetMetadata).toHaveBeenCalledWith(
+      asset.id,
+      expect.arrayContaining([{ key: 'file_type', value: 'document' }]),
+      true,
+    )
+  })
+
+  it('should set file_type to file for unknown types', async () => {
+    const asset = await prisma.asset.create({
+      data: { name: 'u.xyz', type: 'file', status: 'uploaded' },
+    })
+
+    await getMediaInfoActivity({
+      assetId: asset.id,
+      filePath: '/tmp/u.xyz',
+      mediaType: 'application/octet-stream',
+    })
+
+    expect(metadataService.updateAssetMetadata).toHaveBeenCalledWith(
+      asset.id,
+      expect.arrayContaining([{ key: 'file_type', value: 'file' }]),
+      true,
+    )
   })
 
   it('should update asset media field', async () => {

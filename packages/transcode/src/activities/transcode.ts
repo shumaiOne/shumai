@@ -19,6 +19,23 @@ export async function getMediaInfoActivity(params: {
 }): Promise<PrismaJson.MediaInfo> {
   const isVideo = params.mediaType.startsWith('video/')
   const isImage = params.mediaType.startsWith('image/')
+  const isAudio = params.mediaType.startsWith('audio/')
+  const isDocument =
+    params.mediaType.startsWith('text/') ||
+    params.mediaType === 'application/pdf' ||
+    params.mediaType.includes('msword') ||
+    params.mediaType.includes('officedocument') ||
+    params.mediaType.includes('vnd.ms-')
+
+  const fileType = isVideo
+    ? 'video'
+    : isAudio
+      ? 'audio'
+      : isImage
+        ? 'image'
+        : isDocument
+          ? 'document'
+          : 'file'
 
   const mediaInfo: PrismaJson.MediaInfo = {
     duration: 0,
@@ -39,6 +56,10 @@ export async function getMediaInfoActivity(params: {
     },
   }
 
+  const metadataUpdates: { key: string; value: string | number }[] = [
+    { key: 'file_type', value: fileType },
+  ]
+
   if (isVideo) {
     const info = await transcodeService.getVideoInfo(params.filePath)
     mediaInfo.duration = info.duration
@@ -57,13 +78,13 @@ export async function getMediaInfoActivity(params: {
       audioBitDepth: info.audioBitDepth,
       format: {},
     }
-    const metadataUpdates: { key: string; value: string | number }[] = [
+    metadataUpdates.push(
       { key: 'resolution_width', value: info.originalWidth },
       { key: 'resolution_height', value: info.originalHeight },
       { key: 'duration', value: info.duration },
       { key: 'bitRate', value: info.bitRate / 1000 },
       { key: 'frame_rate', value: info.frameRate },
-    ]
+    )
     if (info.videoCodec) metadataUpdates.push({ key: 'video_codec', value: info.videoCodec })
     if (info.audioCodec) metadataUpdates.push({ key: 'audio_codec', value: info.audioCodec })
     if (info.audioChannels !== undefined)
@@ -72,8 +93,6 @@ export async function getMediaInfoActivity(params: {
       metadataUpdates.push({ key: 'audio_sample_rate', value: info.audioSampleRate })
     if (info.audioBitDepth !== undefined)
       metadataUpdates.push({ key: 'audio_bit_depth', value: info.audioBitDepth })
-
-    await metadataService.updateAssetMetadata(params.assetId, metadataUpdates, true)
   } else if (isImage) {
     const info = await transcodeService.getImageInfo(params.filePath)
     mediaInfo.metadata = {
@@ -85,15 +104,13 @@ export async function getMediaInfoActivity(params: {
       hasAudio: false,
       format: {},
     }
-    await metadataService.updateAssetMetadata(
-      params.assetId,
-      [
-        { key: 'resolution_width', value: info.originalWidth },
-        { key: 'resolution_height', value: info.originalHeight },
-      ],
-      true,
+    metadataUpdates.push(
+      { key: 'resolution_width', value: info.originalWidth },
+      { key: 'resolution_height', value: info.originalHeight },
     )
   }
+
+  await metadataService.updateAssetMetadata(params.assetId, metadataUpdates, true)
 
   return mediaInfo
 }
