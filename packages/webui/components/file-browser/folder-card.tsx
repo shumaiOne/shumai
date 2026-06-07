@@ -30,10 +30,14 @@ interface FolderCardProps {
   onFinishEditing: () => void
   dragState?: DragState
   disabled?: boolean
-  onAction?: (action: 'rename' | 'delete' | 'download' | 'restore', item: AssetInfo) => void
+  onAction?: (
+    action: 'rename' | 'delete' | 'download' | 'restore' | 'remove-from-share',
+    item: AssetInfo,
+  ) => void
   isRecentlyDeleted?: boolean
   selectedCount?: number
   canEdit?: boolean
+  isShareView?: boolean
 }
 
 const FolderPreviewGrid = ({ items }: { items: ChildPreview[] }) => {
@@ -107,6 +111,7 @@ export function FolderCard({
   isRecentlyDeleted,
   selectedCount,
   canEdit = true,
+  isShareView,
 }: FolderCardProps) {
   const [name, setName] = useState(item.name || '')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -301,7 +306,31 @@ export function FolderCard({
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {isRecentlyDeleted ? (
+                {isShareView ? (
+                  <>
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onAction?.('download', item)
+                      }}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      <span>Download</span>
+                    </DropdownMenuItem>
+                    {canEdit && (
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onAction?.('remove-from-share', item)
+                        }}
+                        className="text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        <span>Remove from Share</span>
+                      </DropdownMenuItem>
+                    )}
+                  </>
+                ) : isRecentlyDeleted ? (
                   <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation()

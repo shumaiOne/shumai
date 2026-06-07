@@ -1,2 +1,5 @@
 [serve.static]
 plugins = ["bun-plugin-tailwind"]
+
+[install]
+minimumReleaseAge = 604800 # 7 days in seconds

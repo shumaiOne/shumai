@@ -295,16 +295,29 @@ export function FileCard({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {isShareView ? (
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onAction?.('remove-from-share', item)
-                }}
-                className="text-destructive"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                <span>Remove from Share</span>
-              </DropdownMenuItem>
+              <>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onAction?.('download', item)
+                  }}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  <span>Download</span>
+                </DropdownMenuItem>
+                {canEdit && (
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onAction?.('remove-from-share', item)
+                    }}
+                    className="text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    <span>Remove from Share</span>
+                  </DropdownMenuItem>
+                )}
+              </>
             ) : isRecentlyDeleted ? (
               <DropdownMenuItem
                 onClick={(e) => {
