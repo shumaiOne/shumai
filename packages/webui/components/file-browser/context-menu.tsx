@@ -105,13 +105,19 @@ export function FileBrowserContextMenu({
     if (!item) return null
     return (
       <ContextMenuContent>
-        <ContextMenuItem
-          onSelect={() => onRemoveFromShare?.(itemsToModify)}
-          className="text-destructive"
-        >
-          <Trash2 className="mr-2 h-4 w-4" />
-          <span>Remove from Share</span>
+        <ContextMenuItem onSelect={handleDownload}>
+          <Download className="mr-2 h-4 w-4" />
+          <span>Download</span>
         </ContextMenuItem>
+        {canEdit && (
+          <ContextMenuItem
+            onSelect={() => onRemoveFromShare?.(itemsToModify)}
+            className="text-destructive"
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            <span>Remove from Share</span>
+          </ContextMenuItem>
+        )}
       </ContextMenuContent>
     )
   }
