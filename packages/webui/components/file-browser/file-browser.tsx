@@ -742,7 +742,7 @@ export function FileBrowser({
         processAndUploadFiles(files)
       }
     },
-    [processAndUploadFiles, isShareView, collection],
+    [processAndUploadFiles, isShareView, collection, canEdit],
   )
 
   // Add global paste listener if browser is active
@@ -765,7 +765,7 @@ export function FileBrowser({
     return () => {
       window.removeEventListener('paste', onGlobalPaste)
     }
-  }, [handlePaste, isShareView, collection])
+  }, [handlePaste, isShareView, collection, canEdit])
 
   const renderContent = () => {
     return (
