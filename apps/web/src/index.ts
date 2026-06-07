@@ -44,6 +44,9 @@ if (process.env.WORKFLOW_EXECUTOR === 'temporal') {
 const server = Bun.serve({
   port: 3000,
   fetch: app.fetch,
+  maxRequestBodySize: process.env.MAX_REQUEST_BODY_SIZE
+    ? parseInt(process.env.MAX_REQUEST_BODY_SIZE)
+    : 1024 * 1024 * 1024 * 10, // Default 10GB
   routes: {
     // Serve index.html for root
     '/': index,

@@ -1,6 +1,7 @@
 import { hc } from 'hono/client'
 import type { AppType } from '@shumai/api'
 import { useAuthStore } from '@/ui/stores/auth'
+import { toast } from 'sonner'
 
 const customFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   const response = await fetch(input, init)
@@ -16,6 +17,12 @@ const customFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       useAuthStore.getState().clearAuth()
       window.location.href = '/login'
     }
+  }
+
+  if (response.status === 403) {
+    toast.error('You do not have permission. Please contact the team admin.', {
+      id: 'forbidden-error',
+    })
   }
 
   return response

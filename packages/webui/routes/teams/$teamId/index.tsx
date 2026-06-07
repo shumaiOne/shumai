@@ -212,6 +212,31 @@ function TeamPage() {
     return res.code
   }
 
+  const updateMemberRoleMutation = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: 'editor' | 'reviewer' }) => {
+      const res = await client.api.teams[':teamId'].members[':userId'].$patch({
+        param: { teamId, userId },
+        json: { role },
+      })
+      if (!res.ok) throw new Error('Failed to update member role')
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'members'] })
+    },
+  })
+
+  const removeMemberMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await client.api.teams[':teamId'].members[':userId'].$delete({
+        param: { teamId, userId },
+      })
+      if (!res.ok) throw new Error('Failed to remove member')
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'members'] })
+    },
+  })
+
   const getInitials = (name?: string) => {
     if (!name) return '??'
     return name
@@ -418,6 +443,13 @@ function TeamPage() {
         members={safeMembers}
         isOwner={me?.role === 'owner'}
         onInvite={handleInvite}
+        onUpdateRole={async (memberId, role) => {
+          await updateMemberRoleMutation.mutateAsync({ userId: memberId, role })
+        }}
+        onRemoveMember={async (memberId) => {
+          await removeMemberMutation.mutateAsync(memberId)
+        }}
+        currentUserId={me?.id}
       />
     </div>
   )

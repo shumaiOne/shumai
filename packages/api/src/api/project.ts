@@ -9,6 +9,7 @@ import {
   updateProjectRequestSchema,
   listProjectsRequestSchema,
   recentlyDeletedRequestSchema,
+  updateProjectMemberRoleRequestSchema,
 } from '@shumai/dtos'
 import { listMembersQuerySchema } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
@@ -243,6 +244,47 @@ const route = new Hono<{ Variables: { user: User } }>()
     })
 
     return c.body(null, 204)
+  })
+  .patch(
+    '/projects/:projectId/members/:userId',
+    zValidator('json', updateProjectMemberRoleRequestSchema),
+    async (c) => {
+      const user = c.get('user')
+      const projectId = c.req.param('projectId')
+      const userId = c.req.param('userId')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Admin,
+        type: ResourceType.Project,
+        id: projectId,
+      })
+
+      await projectService.updateMemberRole({
+        projectId,
+        userId,
+        role: req.role,
+      })
+
+      return c.json({ success: true })
+    },
+  )
+  .delete('/projects/:projectId/members/:userId', async (c) => {
+    const user = c.get('user')
+    const projectId = c.req.param('projectId')
+    const userId = c.req.param('userId')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Admin,
+      type: ResourceType.Project,
+      id: projectId,
+    })
+
+    await projectService.removeMember(projectId, userId)
+
+    return c.json({ success: true })
   })
 
 export default route

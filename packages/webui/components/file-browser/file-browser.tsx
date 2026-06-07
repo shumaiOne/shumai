@@ -361,25 +361,35 @@ export function FileBrowser({
       const isCurrentFolderUpload = variables.json.parentId === assetId
 
       if (isCurrentFolderUpload) {
-        const newLocalFiles: AssetInfo[] = filesToUpload.map((f) => {
-          const urlInfo = (
-            data.presignedUrls as { id?: string; url?: string; fileId?: string }[] | undefined
-          )?.find((p) => p.id === f.id)
-          const hasUrl = !!urlInfo && !!urlInfo.url
-          return {
-            id: urlInfo?.fileId || f.id,
-            name: f.file.name,
-            sizeByte: f.file.size,
-            fileCount: 0,
-            type: 'file',
-            status: hasUrl ? 'uploading' : 'error',
-            mediaType: f.file.type || null,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          }
-        })
+        const newLocalFiles: AssetInfo[] = filesToUpload
+          .filter((f) => {
+            const path = (f.file.webkitRelativePath || f.file.name).split('/')
+            return path.length === 1
+          })
+          .map((f) => {
+            const urlInfo = (
+              data.presignedUrls as { id?: string; url?: string; fileId?: string }[] | undefined
+            )?.find((p) => p.id === f.id)
+            const hasUrl = !!urlInfo && !!urlInfo.url
+            return {
+              id: urlInfo?.fileId || f.id,
+              name: f.file.name,
+              sizeByte: f.file.size,
+              fileCount: 0,
+              type: 'file',
+              status: hasUrl ? 'uploading' : 'error',
+              mediaType: f.file.type || null,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            }
+          })
         setLocalUploadingFiles((prev) => [...newLocalFiles, ...prev])
       }
+
+      // Invalidate queries immediately so any newly created folders appear
+      queryClient.invalidateQueries({
+        queryKey: ['search', teamId, assetId],
+      })
 
       // The RPC client returns an object that we cast to the expected type
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

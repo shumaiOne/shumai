@@ -1,3 +1,13 @@
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/ui/components/ui/alert-dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/ui/avatar'
 import { Button } from '@/ui/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog'
@@ -9,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu'
 import { Input } from '@/ui/components/ui/input'
-import { ChevronDown, Copy, Loader2 } from 'lucide-react'
+import { ChevronDown, Copy, Loader2, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -27,6 +37,9 @@ interface MembersDialogProps {
   members: Member[]
   isOwner: boolean
   onInvite?: (role: 'editor' | 'reviewer') => Promise<string>
+  onUpdateRole?: (memberId: string, role: 'editor' | 'reviewer') => Promise<void>
+  onRemoveMember?: (memberId: string) => Promise<void>
+  currentUserId?: string
 }
 
 export function MembersDialog({
@@ -36,10 +49,44 @@ export function MembersDialog({
   members,
   isOwner,
   onInvite,
+  onUpdateRole,
+  onRemoveMember,
+  currentUserId,
 }: MembersDialogProps) {
   const [inviteRole, setInviteRole] = useState<'editor' | 'reviewer'>('editor')
   const [inviteLink, setInviteLink] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [updatingMemberId, setUpdatingMemberId] = useState<string | null>(null)
+  const [memberToRemove, setMemberToRemove] = useState<Member | null>(null)
+
+  const handleUpdateRole = async (memberId: string, role: 'editor' | 'reviewer') => {
+    if (!onUpdateRole) return
+    setUpdatingMemberId(memberId)
+    try {
+      await onUpdateRole(memberId, role)
+      toast.success('Member role updated')
+    } catch (error) {
+      console.error(error)
+      toast.error('Failed to update member role')
+    } finally {
+      setUpdatingMemberId(null)
+    }
+  }
+
+  const handleRemoveMember = async () => {
+    if (!onRemoveMember || !memberToRemove?.id) return
+    setUpdatingMemberId(memberToRemove.id)
+    try {
+      await onRemoveMember(memberToRemove.id)
+      toast.success('Member removed')
+      setMemberToRemove(null)
+    } catch (error) {
+      console.error(error)
+      toast.error('Failed to remove member')
+    } finally {
+      setUpdatingMemberId(null)
+    }
+  }
 
   const handleGenerate = async () => {
     if (!onInvite) return
@@ -110,9 +157,79 @@ export function MembersDialog({
                     <span className="text-xs text-muted-foreground capitalize">{member.role}</span>
                   </div>
                 </div>
+
+                {isOwner && member.role !== 'owner' && member.id !== currentUserId && (
+                  <div className="flex items-center gap-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2 text-xs capitalize"
+                          disabled={updatingMemberId === member.id}
+                        >
+                          {member.role}
+                          <ChevronDown className="ml-1 h-3 w-3 opacity-50" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuRadioGroup
+                          value={member.role}
+                          onValueChange={(v) =>
+                            handleUpdateRole(member.id!, v as 'editor' | 'reviewer')
+                          }
+                        >
+                          <DropdownMenuRadioItem value="editor" className="text-xs">
+                            Editor
+                          </DropdownMenuRadioItem>
+                          <DropdownMenuRadioItem value="reviewer" className="text-xs">
+                            Reviewer
+                          </DropdownMenuRadioItem>
+                        </DropdownMenuRadioGroup>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => setMemberToRemove(member)}
+                      disabled={updatingMemberId === member.id}
+                    >
+                      {updatingMemberId === member.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-3 w-3" />
+                      )}
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
+
+          <AlertDialog
+            open={!!memberToRemove}
+            onOpenChange={(open) => !open && setMemberToRemove(null)}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Remove Member</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to remove <strong>{memberToRemove?.name}</strong> from this{' '}
+                  {title.toLowerCase()}? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleRemoveMember}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Remove
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           {isOwner && onInvite && (
             <div className="border-t pt-4">

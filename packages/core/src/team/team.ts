@@ -4,12 +4,14 @@ import { PaginatedData, paginateQuery } from '@shumai/core/src/pagination'
 import { ProviderService, providerService } from '@shumai/core/src/provider/provider'
 import { notificationService } from '@shumai/core/src/notification/notification'
 import { getAvatarUrl } from '@shumai/core/src/user/avatar'
+import { HTTPException } from 'hono/http-exception'
 import {
   ServiceCreateTeamRequest,
   ServiceGetUserTeamsRequest,
   ServiceJoinTeamRequest,
   ServiceGetMeRequest,
   ServiceGetTeamMembersRequest,
+  ServiceUpdateTeamMemberRoleRequest,
   TeamInfo,
   GetMeResponse,
   UserInfo,
@@ -140,7 +142,7 @@ export class TeamService {
       include: { user: true },
     })
 
-    if (!member) throw new Error('user is not a team member')
+    if (!member) throw new HTTPException(403, { message: 'user is not a team member' })
 
     const unreadNotificationCount = await notificationService.getUnreadCount(
       req.teamId,
@@ -207,12 +209,50 @@ export class TeamService {
     )
   }
 
+  async updateMemberRole(req: ServiceUpdateTeamMemberRoleRequest): Promise<void> {
+    const member = await prisma.teamMember.findUnique({
+      where: {
+        teamIdUserId: {
+          teamId: req.teamId,
+          userId: req.userId,
+        },
+      },
+    })
+
+    if (!member) throw new HTTPException(404, { message: 'Member not found' })
+    if (member.role === 'owner')
+      throw new HTTPException(403, { message: 'Cannot change the role of an owner' })
+
+    await prisma.teamMember.update({
+      where: { id: member.id },
+      data: { role: req.role },
+    })
+  }
+
+  async removeMember(teamId: string, userId: string): Promise<void> {
+    const member = await prisma.teamMember.findUnique({
+      where: {
+        teamIdUserId: {
+          teamId: teamId,
+          userId: userId,
+        },
+      },
+    })
+
+    if (!member) throw new HTTPException(404, { message: 'Member not found' })
+    if (member.role === 'owner') throw new HTTPException(403, { message: 'Cannot remove an owner' })
+
+    await prisma.teamMember.delete({
+      where: { id: member.id },
+    })
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async getSettings(teamId: string): Promise<any> {
     const team = await prisma.team.findUnique({
       where: { id: teamId },
     })
-    if (!team) throw new Error('team not found')
+    if (!team) throw new HTTPException(404, { message: 'team not found' })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const settings = (team.settings || {}) as any
 
@@ -227,7 +267,7 @@ export class TeamService {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async updateSettings(teamId: string, key: string, value: any): Promise<any> {
     const team = await prisma.team.findUnique({ where: { id: teamId } })
-    if (!team) throw new Error('team not found')
+    if (!team) throw new HTTPException(404, { message: 'team not found' })
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const settings = (team.settings || {}) as any
