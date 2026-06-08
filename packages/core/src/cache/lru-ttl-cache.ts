@@ -1,5 +1,5 @@
-export interface CacheEntry<V> {
-  value: V
+export interface CacheEntry<TValue> {
+  value: TValue
   expiresAt: number
 }
 
@@ -9,10 +9,10 @@ export interface CacheEntry<V> {
  * It uses a JavaScript Map to maintain insertion order for LRU eviction.
  * On every 'get' call, it samples a fixed number of items to check for expiration.
  */
-export class LruTtlCache<K, V> {
-  private cache = new Map<K, CacheEntry<V>>()
+export class LruTtlCache<TKey, TValue> {
+  private cache = new Map<TKey, CacheEntry<TValue>>()
   private maxCapacity: number
-  private iterator: IterableIterator<K> | null = null
+  private iterator: IterableIterator<TKey> | null = null
   private sampleSize: number
 
   constructor(capacity: number = 50000, sampleSize: number = 50) {
@@ -24,7 +24,7 @@ export class LruTtlCache<K, V> {
    * Gets a value from the cache.
    * Performs proactive eviction of expired items and refreshes the LRU position of the accessed item.
    */
-  get(key: K): V | undefined {
+  get(key: TKey): TValue | undefined {
     this.evictSample()
 
     const entry = this.cache.get(key)
@@ -46,7 +46,7 @@ export class LruTtlCache<K, V> {
    * Sets a value in the cache with a specified TTL.
    * If the cache exceeds capacity, the least recently used item is evicted.
    */
-  set(key: K, value: V, ttlMs: number): void {
+  set(key: TKey, value: TValue, ttlMs: number): void {
     if (this.maxCapacity <= 0 || ttlMs <= 0 || isNaN(ttlMs)) {
       this.cache.delete(key)
       return
@@ -64,7 +64,7 @@ export class LruTtlCache<K, V> {
     this.cache.set(key, { value, expiresAt: this.now() + ttlMs })
   }
 
-  delete(key: K): boolean {
+  delete(key: TKey): boolean {
     return this.cache.delete(key)
   }
 
@@ -81,16 +81,17 @@ export class LruTtlCache<K, V> {
 
     const now = this.now()
     for (let i = 0; i < this.sampleSize; i++) {
-      let result = this.iterator.next()
+      const result = this.iterator.next()
       if (result.done) {
+        // Reset iterator for next call and break early to avoid redundant loops
+        // if cache size < sampleSize.
         this.iterator = this.cache.keys()
-        result = this.iterator.next()
-        if (result.done) break
+        break
       }
 
       const key = result.value
       const entry = this.cache.get(key)
-      
+
       // If entry was manually deleted, entry will be undefined.
       // If it's expired, we delete it.
       if (entry && now > entry.expiresAt) {
