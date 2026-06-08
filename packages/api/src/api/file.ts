@@ -1,28 +1,28 @@
-import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
-import { prisma } from '@shumai/db'
-import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { assetService } from '@shumai/core/src/asset/asset'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { notificationService } from '@shumai/core/src/notification/notification'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import { transcodeService } from '@shumai/transcode/src/transcode'
-import path from 'path'
-import os from 'os'
-import fs from 'fs'
+import type { Prisma } from '@shumai/db'
+import { prisma } from '@shumai/db'
 import {
-  updateFileRequestSchema,
-  updateAssetOrderRequestSchema,
-  deleteFilesRequestSchema,
-  restoreFilesRequestSchema,
   createCommentRequestSchema,
+  deleteFilesRequestSchema,
+  paginationParamsSchema,
+  restoreFilesRequestSchema,
+  updateAssetMetadataRequestSchema,
+  updateAssetOrderRequestSchema,
+  updateFileRequestSchema,
   uploadFileRequestSchema,
 } from '@shumai/dtos'
-import { updateAssetMetadataRequestSchema } from '@shumai/dtos'
-import { paginationParamsSchema } from '@shumai/dtos'
+import { transcodeService } from '@shumai/transcode/src/transcode'
+import fs from 'fs'
+import { Hono } from 'hono'
+import os from 'os'
+import path from 'path'
 import { ulid } from 'ulid'
 import { z } from 'zod'
-import type { Prisma } from '@shumai/db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -227,8 +227,8 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: teamId,
     })
 
-    if (file.size > 10 * 1024 * 1024) {
-      return c.json('file too large, max 10MB', 400)
+    if (file.size > 30 * 1024 * 1024) {
+      return c.json('file too large, max 30MB', 400)
     }
 
     let key = `files/${ulid()}`
