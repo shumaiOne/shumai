@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { s3Service } from '@shumai/core/src/s3/s3'
 import { Hono } from 'hono'
 
 const { mockServeStatic } = vi.hoisted(() => ({
@@ -42,9 +41,13 @@ describe('S3 API', () => {
 
   it('GET /files/* with filename query parameter sets Content-Disposition header', async () => {
     // We need to capture the onFound callback from serveStatic options
-    let onFoundCallback: Function | undefined
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let onFoundCallback: ((path: string, c: any) => void) | undefined
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockServeStatic.mockImplementationOnce((options: any) => {
-      onFoundCallback = options.onFound
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      onFoundCallback = (options as any).onFound
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (c: any) => c.text('static-file')
     })
 

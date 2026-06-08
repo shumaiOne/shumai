@@ -2,7 +2,6 @@ import { ObjectInfo } from '@shumai/dtos'
 import { S3Client } from 'bun'
 import * as crypto from 'crypto'
 import * as fs from 'fs'
-import { readFileSync, statSync } from 'fs'
 import * as path from 'path'
 import { ulid } from 'ulid'
 import { LruTtlCache } from '../cache/lru-ttl-cache'
@@ -218,9 +217,11 @@ export class S3StorageService implements S3Service {
       if (cached) return cached
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const options: any = {
       bucket,
       expiresIn: expiresInSeconds,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       method: method as any,
     }
 
