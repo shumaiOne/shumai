@@ -125,8 +125,7 @@ export class S3StorageService implements S3Service {
 
   async downloadToFile(bucket: string, key: string, filePath: string): Promise<void> {
     const file = this.client.file(key, { bucket })
-    const arrayBuffer = await file.arrayBuffer()
-    await fs.promises.writeFile(filePath, Buffer.from(arrayBuffer))
+    await Bun.write(filePath, file)
   }
 
   async deleteObject(bucket: string, key: string): Promise<number> {
