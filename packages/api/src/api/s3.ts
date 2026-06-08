@@ -11,7 +11,8 @@ const route = new Hono()
       onFound: (_path, c) => {
         const filename = c.req.query('filename')
         if (filename) {
-          c.header('Content-Disposition', `attachment; filename="${filename}"`)
+          const safeFilename = filename.replace(/["\r\n]/g, '_')
+          c.header('Content-Disposition', `attachment; filename="${safeFilename}"`)
         }
       },
     }),

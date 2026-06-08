@@ -199,8 +199,7 @@ export class S3StorageService implements S3Service {
   }
 
   async uploadFileToKey(filePath: string, key: string, contentType: string): Promise<void> {
-    const fileContent = readFileSync(filePath)
-    await this.client.write(key, fileContent, {
+    await this.client.write(key, Bun.file(filePath), {
       bucket: this.bucket,
       type: contentType,
     })
