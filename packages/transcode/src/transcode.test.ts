@@ -169,6 +169,18 @@ describe('TranscodeService', () => {
     expect(sharp).toHaveBeenCalledWith(expect.any(Buffer))
   })
 
+  it('should support Buffer as input for image transcoding', async () => {
+    const inputBuffer = Buffer.from('fake-buffer-image')
+    const outputFile = path.join(tempDir, 'output-buffer.webp')
+    await transcodeService.transcodeImage(inputBuffer, outputFile, 480, 80)
+
+    expect(sharp).toHaveBeenCalledWith(inputBuffer)
+    const mockSharp = vi.mocked(sharp).mock.results[vi.mocked(sharp).mock.results.length - 1].value
+    expect(mockSharp.resize).toHaveBeenCalledWith(480, null, expect.any(Object))
+    expect(mockSharp.webp).toHaveBeenCalledWith({ quality: 80 })
+    expect(mockSharp.toFile).toHaveBeenCalledWith(outputFile)
+  })
+
   it('should use transcodeImage in extractVideoFrames for images', async () => {
     const transcodeImageSpy = vi.spyOn(transcodeService, 'transcodeImage').mockResolvedValue()
     const result = await transcodeService.extractVideoFrames({
