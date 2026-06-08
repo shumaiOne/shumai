@@ -176,23 +176,21 @@ export function FileBrowserGridView({
     for (const virtualItem of virtualItems) {
       const row = rows[virtualItem.index]
       if (row?.type === 'row') {
-        if (row.kind === 'folder') {
-          const lastIndex = (row.rowIndex + 1) * cols
-          if (
-            lastIndex >= folders.length - cols * 2 &&
-            hasNextFoldersPage &&
-            !isFetchingNextFoldersPage
-          ) {
+        const isFolder = row.kind === 'folder'
+        const dataList = isFolder ? folders : files
+        const startIndex = row.rowIndex * cols
+        const isSkeleton = !dataList[startIndex] // Check if the first item in row is loaded
+        const isNearEnd = startIndex >= dataList.length - cols * 3
+
+        if (isFolder && hasNextFoldersPage && !isFetchingNextFoldersPage) {
+          if (isSkeleton || isNearEnd) {
             fetchNextFoldersPage()
+            break
           }
-        } else if (row.kind === 'file') {
-          const lastIndex = (row.rowIndex + 1) * cols
-          if (
-            lastIndex >= files.length - cols * 2 &&
-            hasNextFilesPage &&
-            !isFetchingNextFilesPage
-          ) {
+        } else if (!isFolder && hasNextFilesPage && !isFetchingNextFilesPage) {
+          if (isSkeleton || isNearEnd) {
             fetchNextFilesPage()
+            break
           }
         }
       }

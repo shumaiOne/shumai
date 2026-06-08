@@ -262,20 +262,22 @@ export function FileBrowserListView({
     for (const virtualItem of virtualItems) {
       const item = items[virtualItem.index]
       if (item?.type === 'item') {
-        if (
-          item.kind === 'folder' &&
-          item.index >= folders.length - 10 &&
-          hasNextFoldersPage &&
-          !isFetchingNextFoldersPage
-        ) {
-          fetchNextFoldersPage()
-        } else if (
-          item.kind === 'file' &&
-          item.index >= files.length - 10 &&
-          hasNextFilesPage &&
-          !isFetchingNextFilesPage
-        ) {
-          fetchNextFilesPage()
+        const isSkeleton = item.kind === 'folder' ? !folders[item.index] : !files[item.index]
+        const isNearEnd =
+          item.kind === 'folder'
+            ? item.index >= folders.length - 15
+            : item.index >= files.length - 15
+
+        if (item.kind === 'folder' && hasNextFoldersPage && !isFetchingNextFoldersPage) {
+          if (isSkeleton || isNearEnd) {
+            fetchNextFoldersPage()
+            break
+          }
+        } else if (item.kind === 'file' && hasNextFilesPage && !isFetchingNextFilesPage) {
+          if (isSkeleton || isNearEnd) {
+            fetchNextFilesPage()
+            break
+          }
         }
       }
     }
