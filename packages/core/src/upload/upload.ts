@@ -1,26 +1,26 @@
-import { prisma } from '@shumai/db'
-import { ulid } from 'ulid'
-import { generateKeyBetween } from 'jittered-fractional-indexing'
-import { s3Service } from '@shumai/core/src/s3/s3'
 import { assetService } from '@shumai/core/src/asset/asset'
+import { PaginatedData, PaginationParams, paginateQuery } from '@shumai/core/src/pagination'
+import { s3Service } from '@shumai/core/src/s3/s3'
 import {
-  ConfirmFileUploadRequest,
-  CreateUploadTaskRequest,
-  CreateUploadTaskResponse,
-  FileNode,
-  PresignedUrl,
-  TaskInfo,
-} from '@shumai/dtos'
-import {
-  AssetStatus,
-  AssetType,
-  Prisma,
-  TaskStatus,
-  WorkflowTaskStatus,
-  WorkflowTaskType,
+    AssetStatus,
+    AssetType,
+    Prisma,
+    TaskStatus,
+    WorkflowTaskStatus,
+    WorkflowTaskType,
+    prisma,
 } from '@shumai/db'
-import { PaginationParams, paginateQuery, PaginatedData } from '@shumai/core/src/pagination'
-import { VideoTranscoder, ImageTranscoder } from '@shumai/transcode'
+import {
+    ConfirmFileUploadRequest,
+    CreateUploadTaskRequest,
+    CreateUploadTaskResponse,
+    FileNode,
+    PresignedUrl,
+    TaskInfo,
+} from '@shumai/dtos'
+import { ImageTranscoder, VideoTranscoder } from '@shumai/transcode'
+import { generateKeyBetween } from 'jittered-fractional-indexing'
+import { ulid } from 'ulid'
 
 export class UploadService {
   constructor(private readonly prismaClient: typeof prisma = prisma) {}

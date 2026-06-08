@@ -88,8 +88,7 @@ export class S3StorageService implements S3Service {
   }
 
   async getObjectSize(bucket: string, key: string): Promise<number> {
-    const file = this.client.file(key, { bucket })
-    return await file.size
+    return await this.client.size(key, { bucket })
   }
 
   async putObject(
