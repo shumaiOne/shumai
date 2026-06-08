@@ -8,6 +8,13 @@ const route = new Hono()
     serveStatic({
       root: './data',
       rewriteRequestPath: (path) => path.replace(/^\/files\//, ''),
+      onFound: (_path, c) => {
+        const filename = c.req.query('filename')
+        if (filename) {
+          const safeFilename = filename.replace(/["\r\n]/g, '_')
+          c.header('Content-Disposition', `attachment; filename="${safeFilename}"`)
+        }
+      },
     }),
   )
   .put('/:bucket/:key{.+}', async (c) => {

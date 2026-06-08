@@ -1,17 +1,7 @@
 import { ObjectInfo } from '@shumai/dtos'
-import {
-  CopyObjectCommand,
-  DeleteObjectCommand,
-  GetObjectCommand,
-  HeadObjectCommand,
-  ListObjectsV2Command,
-  PutObjectCommand,
-  S3Client,
-} from '@aws-sdk/client-s3'
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+import { S3Client } from 'bun'
 import * as crypto from 'crypto'
 import * as fs from 'fs'
-import { readFileSync, statSync } from 'fs'
 import * as path from 'path'
 import { ulid } from 'ulid'
 import { LruTtlCache } from '../cache/lru-ttl-cache'
@@ -64,7 +54,7 @@ export interface S3Service {
   listObjects(bucket: string, prefix: string): Promise<string[]>
   uploadFile(filePath: string, contentType: string): Promise<string>
   uploadFileToKey(filePath: string, key: string, contentType: string): Promise<void>
-  presign(bucket: string, key: string, method: string): Promise<string>
+  presign(bucket: string, key: string, method: string, filename?: string): Promise<string>
 }
 
 export class S3StorageService implements S3Service {
@@ -89,54 +79,36 @@ export class S3StorageService implements S3Service {
     this.client = new S3Client({
       region,
       endpoint: fullEndpoint,
-      credentials: {
-        accessKeyId,
-        secretAccessKey,
-      },
-      forcePathStyle: false,
+      accessKeyId,
+      secretAccessKey,
+      bucket,
     })
     this.bucket = bucket
   }
 
   async getObjectSize(bucket: string, key: string): Promise<number> {
-    const command = new HeadObjectCommand({
-      Bucket: bucket,
-      Key: key,
-    })
-    const response = await this.client.send(command)
-    return response.ContentLength || 0
+    return await this.client.size(key, { bucket })
   }
 
   async putObject(
     bucket: string,
     key: string,
     body: Buffer | Uint8Array | string,
-    size: number,
+    _size: number,
     contentType?: string,
   ): Promise<void> {
-    const command = new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      Body: body,
-      ContentLength: size,
-      ContentType: contentType,
+    await this.client.write(key, body, {
+      bucket,
+      type: contentType,
     })
-    await this.client.send(command)
   }
 
   async getObject(bucket: string, key: string): Promise<S3Object> {
-    const command = new GetObjectCommand({
-      Bucket: bucket,
-      Key: key,
-    })
-    const response = await this.client.send(command)
-    if (!response.Body) {
-      throw new Error('Empty response body')
-    }
-    const byteArray = await response.Body.transformToByteArray()
+    const file = this.client.file(key, { bucket })
+    const arrayBuffer = await file.arrayBuffer()
     return {
-      buffer: Buffer.from(byteArray),
-      contentType: response.ContentType || 'application/octet-stream',
+      buffer: Buffer.from(arrayBuffer),
+      contentType: file.type || 'application/octet-stream',
     }
   }
 
@@ -146,54 +118,22 @@ export class S3StorageService implements S3Service {
     destBucket: string,
     destKey: string,
   ): Promise<void> {
-    const command = new CopyObjectCommand({
-      Bucket: destBucket,
-      Key: destKey,
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      CopySource: `${sourceBucket}/${sourceKey}`,
-    })
-    await this.client.send(command)
+    const sourceFile = this.client.file(sourceKey, { bucket: sourceBucket })
+    await this.client.write(destKey, sourceFile, { bucket: destBucket })
   }
 
   async downloadToFile(bucket: string, key: string, filePath: string): Promise<void> {
-    const command = new GetObjectCommand({
-      Bucket: bucket,
-      Key: key,
-    })
-    const response = await this.client.send(command)
-    if (!response.Body) {
-      throw new Error('Empty response body')
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const stream = response.Body as any
-    const writeStream = fs.createWriteStream(filePath)
-
-    await new Promise((resolve, reject) => {
-      stream
-        .pipe(writeStream)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .on('error', (err: any) => {
-          writeStream.close()
-          reject(err)
-        })
-        .on('finish', () => {
-          writeStream.close()
-          resolve(null)
-        })
-    })
+    const file = this.client.file(key, { bucket })
+    await Bun.write(filePath, file)
   }
 
   async deleteObject(bucket: string, key: string): Promise<number> {
-    const command = new DeleteObjectCommand({
-      Bucket: bucket,
-      Key: key,
-    })
     try {
-      await this.client.send(command)
+      const exists = await this.client.exists(key, { bucket })
+      if (!exists) return 0
+      await this.client.delete(key, { bucket })
       return 1
     } catch {
-      // If object doesn't exist, we return 0
       return 0
     }
   }
@@ -207,17 +147,20 @@ export class S3StorageService implements S3Service {
   }
 
   async headObject(bucket: string, key: string): Promise<ObjectInfo> {
-    const command = new HeadObjectCommand({
-      Bucket: bucket,
-      Key: key,
-    })
-    const response = await this.client.send(command)
+    const file = this.client.file(key, { bucket })
+    const exists = await file.exists()
+    if (!exists) {
+      throw new Error(`NoSuchKey: The specified key does not exist.`)
+    }
+
+    // Bun.S3File doesn't expose lastModified or eTag directly in a way that matches ObjectInfo easily
+    // but we can try to get them if available. For now, using defaults for fields not provided.
     return {
       key,
-      size: response.ContentLength || 0,
-      lastModified: response.LastModified || new Date(),
-      contentType: response.ContentType || 'application/octet-stream',
-      eTag: response.ETag || '',
+      size: await file.size,
+      lastModified: new Date(), // Bun doesn't expose this yet via S3File
+      contentType: file.type || 'application/octet-stream',
+      eTag: '',
     }
   }
 
@@ -227,23 +170,21 @@ export class S3StorageService implements S3Service {
     let continuationToken: string | undefined = undefined
 
     while (isTruncated) {
-      const command: ListObjectsV2Command = new ListObjectsV2Command({
-        Bucket: bucket,
-        Prefix: prefix,
-        ContinuationToken: continuationToken,
+      const response = await this.client.list({
+        prefix,
+        continuationToken,
       })
-      const response = await this.client.send(command)
 
-      if (response.Contents) {
-        for (const item of response.Contents) {
-          if (item.Key) {
-            keys.push(item.Key)
+      if (response.contents) {
+        for (const item of response.contents) {
+          if (item.key) {
+            keys.push(item.key)
           }
         }
       }
 
-      isTruncated = response.IsTruncated || false
-      continuationToken = response.NextContinuationToken
+      isTruncated = response.isTruncated || false
+      continuationToken = response.nextContinuationToken
     }
 
     return keys
@@ -256,50 +197,39 @@ export class S3StorageService implements S3Service {
   }
 
   async uploadFileToKey(filePath: string, key: string, contentType: string): Promise<void> {
-    const fileStats = statSync(filePath)
-    const fileContent = readFileSync(filePath)
-
-    const command = new PutObjectCommand({
-      Bucket: this.bucket,
-      Key: key,
-      Body: fileContent,
-      ContentLength: fileStats.size,
-      ContentType: contentType,
+    await this.client.write(key, Bun.file(filePath), {
+      bucket: this.bucket,
+      type: contentType,
     })
-
-    await this.client.send(command)
   }
 
-  async presign(bucket: string, key: string, method: string): Promise<string> {
+  async presign(bucket: string, key: string, method: string, filename?: string): Promise<string> {
     const expireHours = parseInt(process.env.PRESIGNED_URL_EXPIRES_IN || '5', 10)
     const expiresInSeconds = expireHours * 3600
     // Cache time is 2/3 of expire time, rounded to minute
     const cacheMinutes = Math.round((expireHours * 60 * 2) / 3)
     const cacheTtlMs = cacheMinutes * 60 * 1000
 
-    const cacheKey = `${bucket}:${key}`
+    const cacheKey = `${bucket}:${key}:${filename || ''}`
 
     if (method === 'GET') {
       const cached = this.presignCache.get(cacheKey)
       if (cached) return cached
     }
 
-    let command: GetObjectCommand | PutObjectCommand
-    if (method === 'GET') {
-      command = new GetObjectCommand({
-        Bucket: bucket,
-        Key: key,
-      })
-    } else if (method === 'PUT') {
-      command = new PutObjectCommand({
-        Bucket: bucket,
-        Key: key,
-      })
-    } else {
-      throw new Error(`Invalid method: ${method}`)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const options: any = {
+      bucket,
+      expiresIn: expiresInSeconds,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      method: method as any,
     }
 
-    const url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
+    if (filename) {
+      options.contentDisposition = `attachment; filename="${filename}"`
+    }
+
+    const url = this.client.presign(key, options)
 
     if (method === 'GET') {
       this.presignCache.set(cacheKey, url, cacheTtlMs)
@@ -505,14 +435,18 @@ export class LocalStorageService implements S3Service {
     await fs.promises.copyFile(filePath, destPath)
   }
 
-  async presign(bucket: string, key: string, method: string): Promise<string> {
+  async presign(bucket: string, key: string, method: string, filename?: string): Promise<string> {
     if (method !== 'GET' && method !== 'PUT') {
       throw new Error(`Invalid method: ${method}`)
     }
     if (method === 'PUT') {
       return `${this.endpoint}${signLocalUrl(bucket, key)}`
     }
-    return `${this.endpoint}/files/${bucket}/${key}`
+    let url = `${this.endpoint}/files/${bucket}/${key}`
+    if (filename) {
+      url += `?filename=${encodeURIComponent(filename)}`
+    }
+    return url
   }
 }
 

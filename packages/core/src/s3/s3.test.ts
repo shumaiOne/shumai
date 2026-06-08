@@ -3,36 +3,41 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { LocalStorageService, S3StorageService } from './s3'
 
-// Mock the AWS SDK
+// Mock Bun S3Client
 const s3ClientConstructorSpy = vi.fn()
-vi.mock('@aws-sdk/client-s3', () => {
+const s3FileSpy = vi.fn()
+const s3WriteSpy = vi.fn()
+const s3DeleteSpy = vi.fn()
+const s3ListSpy = vi.fn()
+const s3ExistsSpy = vi.fn()
+const s3PresignSpy = vi.fn()
+
+vi.mock('bun', () => {
   return {
     S3Client: class {
       constructor(params: unknown) {
         s3ClientConstructorSpy(params)
       }
-      send = vi.fn().mockResolvedValue({})
+      file = s3FileSpy.mockReturnValue({
+        size: Promise.resolve(123),
+        exists: vi.fn().mockResolvedValue(true),
+        arrayBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(10)),
+        type: 'text/plain',
+      })
+      write = s3WriteSpy.mockResolvedValue({})
+      delete = s3DeleteSpy.mockResolvedValue({})
+      list = s3ListSpy.mockResolvedValue({ contents: [], isTruncated: false })
+      exists = s3ExistsSpy.mockResolvedValue(true)
+      presign = s3PresignSpy.mockReturnValue('http://presigned-url')
     },
-    HeadObjectCommand: class {},
-    PutObjectCommand: class {},
-    GetObjectCommand: class {},
-    ListObjectsV2Command: class {},
-  }
-})
-
-vi.mock('@aws-sdk/s3-request-presigner', () => {
-  return {
-    getSignedUrl: vi.fn().mockResolvedValue('http://presigned-url'),
   }
 })
 
 describe('S3Service implementations', () => {
   beforeEach(async () => {
-    const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner')
-    vi.mocked(getSignedUrl).mockReset()
-    vi.mocked(getSignedUrl).mockResolvedValue('http://presigned-url')
     vi.clearAllMocks()
     delete process.env.PRESIGNED_URL_EXPIRES_IN
+    s3PresignSpy.mockReturnValue('http://presigned-url')
   })
 
   describe('S3StorageService', () => {
@@ -64,55 +69,64 @@ describe('S3Service implementations', () => {
       const s3 = new S3StorageService('localhost:9000', 'key', 'secret', 'test-bucket', false)
       const url = await s3.presign('bucket', 'key', 'GET')
       expect(url).toBe('http://presigned-url')
+      expect(s3PresignSpy).toHaveBeenCalledWith('key', expect.objectContaining({ method: 'GET' }))
     })
 
     it('should cache GET presign URLs', async () => {
       const s3 = new S3StorageService('localhost:9000', 'key', 'secret', 'test-bucket', false)
-      const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner')
 
-      vi.mocked(getSignedUrl).mockClear()
-      vi.mocked(getSignedUrl).mockResolvedValueOnce('http://presigned-url-1')
-      vi.mocked(getSignedUrl).mockResolvedValueOnce('http://presigned-url-2')
+      s3PresignSpy.mockClear()
+      s3PresignSpy.mockReturnValueOnce('http://presigned-url-1')
+      s3PresignSpy.mockReturnValueOnce('http://presigned-url-2')
 
       const url1 = await s3.presign('bucket', 'key', 'GET')
       const url2 = await s3.presign('bucket', 'key', 'GET')
 
       expect(url1).toBe('http://presigned-url-1')
       expect(url2).toBe('http://presigned-url-1')
-      expect(vi.mocked(getSignedUrl)).toHaveBeenCalledTimes(1)
+      expect(s3PresignSpy).toHaveBeenCalledTimes(1)
     })
 
     it('should NOT cache PUT presign URLs', async () => {
       const s3 = new S3StorageService('localhost:9000', 'key', 'secret', 'test-bucket', false)
-      const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner')
 
-      vi.mocked(getSignedUrl).mockClear()
-      vi.mocked(getSignedUrl).mockResolvedValueOnce('http://put-url-1')
-      vi.mocked(getSignedUrl).mockResolvedValueOnce('http://put-url-2')
+      s3PresignSpy.mockReset()
+      s3PresignSpy.mockReturnValueOnce('http://unique-put-url-1')
+      s3PresignSpy.mockReturnValueOnce('http://unique-put-url-2')
 
       const url1 = await s3.presign('bucket', 'key', 'PUT')
       const url2 = await s3.presign('bucket', 'key', 'PUT')
 
-      expect(url1).toBe('http://put-url-1')
-      expect(url2).toBe('http://put-url-2')
-      expect(vi.mocked(getSignedUrl)).toHaveBeenCalledTimes(2)
+      expect(url1).toBe('http://unique-put-url-1')
+      expect(url2).toBe('http://unique-put-url-2')
+      expect(s3PresignSpy).toHaveBeenCalledTimes(2)
     })
 
     it('should respect PRESIGNED_URL_EXPIRES_IN env', async () => {
       process.env.PRESIGNED_URL_EXPIRES_IN = '10'
       const s3 = new S3StorageService('localhost:9000', 'key', 'secret', 'test-bucket', false)
-      const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner')
 
-      vi.mocked(getSignedUrl).mockClear()
+      s3PresignSpy.mockClear()
       await s3.presign('bucket', 'key', 'GET')
 
-      expect(vi.mocked(getSignedUrl)).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.anything(),
+      expect(s3PresignSpy).toHaveBeenCalledWith(
+        'key',
         expect.objectContaining({ expiresIn: 10 * 3600 }),
       )
 
       delete process.env.PRESIGNED_URL_EXPIRES_IN
+    })
+
+    it('should pass filename to presign', async () => {
+      const s3 = new S3StorageService('localhost:9000', 'key', 'secret', 'test-bucket', false)
+      await s3.presign('bucket', 'key', 'GET', 'test.txt')
+
+      expect(s3PresignSpy).toHaveBeenCalledWith(
+        'key',
+        expect.objectContaining({
+          contentDisposition: 'attachment; filename="test.txt"',
+        }),
+      )
     })
   })
 
@@ -166,6 +180,11 @@ describe('S3Service implementations', () => {
     it('should generate a local presign URL', async () => {
       const url = await localS3.presign('my-bucket', 'dir/file.txt', 'GET')
       expect(url).toBe('http://localhost:3000/files/my-bucket/dir/file.txt')
+    })
+
+    it('should generate a local presign URL with filename', async () => {
+      const url = await localS3.presign('my-bucket', 'dir/file.txt', 'GET', 'original.txt')
+      expect(url).toBe('http://localhost:3000/files/my-bucket/dir/file.txt?filename=original.txt')
     })
 
     it('should throw an error for unsupported presign methods', async () => {
