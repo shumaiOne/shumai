@@ -237,7 +237,7 @@ export class TranscodeService {
       input = Buffer.from(await resp.arrayBuffer())
     }
 
-    const metadata = await sharp(input).metadata()
+    const metadata = await sharp(input, { limitInputPixels: false }).metadata()
     return {
       originalWidth: metadata.width || 0,
       originalHeight: metadata.height || 0,
@@ -289,17 +289,16 @@ export class TranscodeService {
       input = Buffer.from(await resp.arrayBuffer())
     }
 
-    const sharpInstance = sharp(input)
+    const sharpInstance = sharp(input, { limitInputPixels: false })
 
-    const w = width > 0 ? width : null
-    const h = height && height > 0 ? height : null
+    const WEBP_MAX_DIMENSION = 16383
+    const targetW = width > 0 ? Math.min(width, WEBP_MAX_DIMENSION) : WEBP_MAX_DIMENSION
+    const targetH = height && height > 0 ? Math.min(height, WEBP_MAX_DIMENSION) : WEBP_MAX_DIMENSION
 
-    if (w || h) {
-      sharpInstance.resize(w, h, {
-        withoutEnlargement: true,
-        fit: 'inside',
-      })
-    }
+    sharpInstance.resize(targetW, targetH, {
+      withoutEnlargement: true,
+      fit: 'inside',
+    })
 
     await sharpInstance.webp({ quality }).toFile(outputFile)
   }
@@ -497,14 +496,14 @@ export class TranscodeService {
           params.annotations &&
           params.annotations.length > 0
         ) {
-          const meta = await sharp(localShotPath).metadata()
+          const meta = await sharp(localShotPath, { limitInputPixels: false }).metadata()
           const width = meta.width || 1280
           const height = meta.height || 720
 
           const svgStr = renderAnnotationsToSvg(width, height, params.annotations)
           const tempCompositedPath = path.join(tmpDir, `composite-${outName}`)
 
-          await sharp(localShotPath)
+          await sharp(localShotPath, { limitInputPixels: false })
             .composite([{ input: Buffer.from(svgStr), top: 0, left: 0 }])
             .toFile(tempCompositedPath)
 
@@ -539,7 +538,7 @@ export class TranscodeService {
       await s3Service.downloadToFile(bucket, params.assetKey, imgPath)
 
       // 2. Read dimensions
-      const meta = await sharp(imgPath).metadata()
+      const meta = await sharp(imgPath, { limitInputPixels: false }).metadata()
       const width = meta.width || 1920
       const height = meta.height || 1080
 
@@ -550,8 +549,9 @@ export class TranscodeService {
       const outName = `annotation-${ulid()}.webp`
       const localOutPath = path.join(tmpDir, outName)
 
-      await sharp(imgPath)
+      await sharp(imgPath, { limitInputPixels: false })
         .composite([{ input: Buffer.from(svgStr), top: 0, left: 0 }])
+        .resize(16383, 16383, { fit: 'inside', withoutEnlargement: true })
         .webp({ quality: 90 })
         .toFile(localOutPath)
 
