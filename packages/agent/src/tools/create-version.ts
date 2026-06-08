@@ -65,7 +65,7 @@ export function createCreateVersionTool(userId: string): AgentTool<typeof create
         const mimeType = getMimeType(absolutePath)
 
         // Generate compliant S3 key matching normal file upload format
-        const s3Key = `file/${ulid()}/raw`
+        const s3Key = `files/${ulid()}/raw`
         await s3Service.uploadFileToKey(absolutePath, s3Key, mimeType)
 
         const result = await executeAgentToolWorkflow({

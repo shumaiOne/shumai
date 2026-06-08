@@ -6,8 +6,23 @@ import { assetService } from '@shumai/core/src/asset/asset'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { notificationService } from '@shumai/core/src/notification/notification'
 import { s3Service } from '@shumai/core/src/s3/s3'
+import { transcodeService } from '@shumai/transcode/src/transcode'
 import { authMiddleware } from './middleware/auth'
 import { authzService, ResourceType, Permission } from '@shumai/core/src/authz/authz'
+
+vi.mock('fs', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>
+  const actualDefault = actual.default as Record<string, unknown>
+  return {
+    ...actual,
+    default: {
+      ...actualDefault,
+      readFileSync: vi.fn().mockReturnValue(Buffer.from('transcoded content')),
+      existsSync: vi.fn().mockReturnValue(true),
+      unlinkSync: vi.fn().mockReturnValue(undefined),
+    },
+  }
+})
 
 vi.mock('@shumai/core/src/authz/authz', () => ({
   authzService: {
@@ -45,6 +60,7 @@ describe('file api', () => {
     vi.spyOn(metadataService, 'updateAssetMetadata').mockImplementation(vi.fn())
     vi.spyOn(notificationService, 'create').mockImplementation(vi.fn())
     vi.spyOn(s3Service, 'putObject').mockImplementation(vi.fn())
+    vi.spyOn(transcodeService, 'transcodeImage').mockResolvedValue(undefined)
     vi.mocked(authzService.hasPermission).mockResolvedValue(undefined)
   })
 
@@ -294,7 +310,7 @@ describe('file api', () => {
     })
   })
 
-  it('POST /teams/:teamId/files', async () => {
+  it('POST /teams/:teamId/files - image with compression', async () => {
     vi.mocked(s3Service.putObject).mockResolvedValue(undefined)
 
     const formData = new FormData()
@@ -309,7 +325,7 @@ describe('file api', () => {
 
     expect(res.status).toBe(200)
     const json = await res.json()
-    expect(json.key).toMatch(/^files\//)
+    expect(json.key).toMatch(/^files\/.*\.webp$/)
 
     expect(authzService.hasPermission).toHaveBeenCalledWith({
       user: { id: 'user1', name: 'Test User' },
@@ -317,7 +333,41 @@ describe('file api', () => {
       type: ResourceType.Team,
       id: 'test-team',
     })
-    expect(s3Service.putObject).toHaveBeenCalled()
+    expect(transcodeService.transcodeImage).toHaveBeenCalled()
+    expect(s3Service.putObject).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.stringMatching(/\.webp$/),
+      expect.any(Buffer),
+      expect.any(Number),
+      'image/webp',
+    )
+  })
+
+  it('POST /teams/:teamId/files - non-image without compression', async () => {
+    vi.mocked(s3Service.putObject).mockResolvedValue(undefined)
+
+    const formData = new FormData()
+    const file = new File(['test content'], 'test.txt', { type: 'text/plain' })
+    formData.append('file', file)
+
+    const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+    const res = await app.request('/teams/test-team/files', {
+      method: 'POST',
+      body: formData,
+    })
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.key).toMatch(/^files\/[A-Z0-9]+$/)
+
+    expect(transcodeService.transcodeImage).not.toHaveBeenCalled()
+    expect(s3Service.putObject).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.not.stringMatching(/\.webp$/),
+      expect.any(Buffer),
+      expect.any(Number),
+      expect.stringContaining('text/plain'),
+    )
   })
 
   it('PATCH /files/:fileId/metadata', async () => {

@@ -274,8 +274,8 @@ describe('Transcode Workflow', () => {
     })
 
     mockActivities.takeScreenshotsActivity.mockResolvedValue([
-      { key: 'file/asset-video/screenshots/shot1.webp', timestamp: 0.0 },
-      { key: 'file/asset-video/screenshots/shot2.webp', timestamp: 5.0 },
+      { key: 'files/asset-video/screenshots/shot1.webp', timestamp: 0.0 },
+      { key: 'files/asset-video/screenshots/shot2.webp', timestamp: 5.0 },
     ])
 
     await transcodeMedia(task)
@@ -295,8 +295,8 @@ describe('Transcode Workflow', () => {
       status: WorkflowTaskStatus.completed,
       output: {
         screenshots: [
-          { key: 'file/asset-video/screenshots/shot1.webp', timestamp: 0.0 },
-          { key: 'file/asset-video/screenshots/shot2.webp', timestamp: 5.0 },
+          { key: 'files/asset-video/screenshots/shot1.webp', timestamp: 0.0 },
+          { key: 'files/asset-video/screenshots/shot2.webp', timestamp: 5.0 },
         ],
       },
     })
@@ -336,7 +336,7 @@ describe('Transcode Workflow', () => {
     })
 
     mockActivities.overlayAnnotationsActivity.mockResolvedValue(
-      'file/asset-image/annotations/ann1.webp',
+      'files/asset-image/annotations/ann1.webp',
     )
 
     await transcodeMedia(task)
@@ -350,7 +350,7 @@ describe('Transcode Workflow', () => {
     expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
       taskId: 'task-image-ann',
       status: WorkflowTaskStatus.completed,
-      output: { key: 'file/asset-image/annotations/ann1.webp' },
+      output: { key: 'files/asset-image/annotations/ann1.webp' },
     })
   })
 })

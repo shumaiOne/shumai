@@ -116,7 +116,7 @@ export class UploadService {
       const assetType = file.type === 'folder' ? AssetType.folder : AssetType.file
       let key: string | null = null
       if (assetType === AssetType.file) {
-        key = `file/${ulid()}/raw`
+        key = `files/${ulid()}/raw`
       }
 
       const newAsset = await this.prismaClient.asset.create({

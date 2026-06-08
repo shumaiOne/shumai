@@ -1446,7 +1446,7 @@ describe('AssetService', () => {
       expect(remainingChildren).toBe(0)
     })
 
-    it('should delete the entire directory prefix for assets with complex keys (e.g., file/ULID/raw)', async () => {
+    it('should delete the entire directory prefix for assets with complex keys (e.g., files/ULID/raw)', async () => {
       const { project } = await setupBasicAssets()
       const { s3Service } = await import('../s3/s3')
 
@@ -1460,7 +1460,7 @@ describe('AssetService', () => {
           project: { connect: { id: project.id } },
           storageKey: {
             create: {
-              key: 'file/01KSBRJVY3DPK111S2MECFKDQ4/raw',
+              key: 'files/01KSBRJVY3DPK111S2MECFKDQ4/raw',
               createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
             },
           },
@@ -1478,7 +1478,7 @@ describe('AssetService', () => {
       // Verify deletePrefix was called with the correct prefix instead of just deleteObject
       expect(s3Service.deletePrefix).toHaveBeenCalledWith(
         expect.any(String),
-        'file/01KSBRJVY3DPK111S2MECFKDQ4/',
+        'files/01KSBRJVY3DPK111S2MECFKDQ4/',
       )
 
       // Verify record is gone

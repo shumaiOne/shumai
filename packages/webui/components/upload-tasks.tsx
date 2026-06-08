@@ -2,6 +2,7 @@ import { client } from '@/ui/api/client'
 import type { TaskInfo } from '@shumai/dtos'
 import { useTeamId } from '@/ui/hooks/use-team-id'
 import { useInfiniteQuery } from '@tanstack/react-query'
+import { useUploadStore } from '@/ui/stores/upload'
 import { Loader2, CheckCircle2, Clock, UploadCloud } from 'lucide-react'
 import { useEffect } from 'react'
 import { useInView } from 'react-intersection-observer'
@@ -90,6 +91,7 @@ interface TaskGroup {
 
 export function UploadTasks() {
   const teamId = useTeamId()
+  const uploading = useUploadStore((state) => state.uploading)
   const {
     data: tasksData,
     fetchNextPage,
@@ -111,6 +113,7 @@ export function UploadTasks() {
       return lastPage.pageInfo?.cursor || undefined
     },
     enabled: !!teamId,
+    refetchInterval: uploading > 0 ? 2000 : false,
   })
 
   const { ref, inView } = useInView()
