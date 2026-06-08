@@ -15,7 +15,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { Download } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useInView } from 'react-intersection-observer'
 import { toast } from 'sonner'
 import type { DragState } from '../dnd-types'
 import { MoveCopyDialog } from '../move-copy-dialog'
@@ -419,21 +418,6 @@ export function FileBrowser({
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
-  const { ref: foldersRef, inView: foldersInView } = useInView()
-  const { ref: filesRef, inView: filesInView } = useInView()
-
-  useEffect(() => {
-    if (foldersInView && hasNextFoldersPage && !isFetchingNextFoldersPage) {
-      fetchNextFoldersPage()
-    }
-  }, [foldersInView, hasNextFoldersPage, isFetchingNextFoldersPage, fetchNextFoldersPage])
-
-  useEffect(() => {
-    if (filesInView && hasNextFilesPage && !isFetchingNextFilesPage) {
-      fetchNextFilesPage()
-    }
-  }, [filesInView, hasNextFilesPage, isFetchingNextFilesPage, fetchNextFilesPage])
-
   const foldersSize = folders.reduce((acc, f) => acc + (f.sizeByte || 0), 0)
   const filesSize = displayedFiles.reduce((acc, f) => acc + (f.sizeByte || 0), 0)
 
@@ -821,10 +805,10 @@ export function FileBrowser({
                   setFoldersExpanded={setFoldersExpanded}
                   filesExpanded={filesExpanded}
                   setFilesExpanded={setFilesExpanded}
-                  foldersRef={foldersRef}
-                  filesRef={filesRef}
                   hasNextFoldersPage={hasNextFoldersPage}
                   hasNextFilesPage={hasNextFilesPage}
+                  fetchNextFoldersPage={fetchNextFoldersPage}
+                  fetchNextFilesPage={fetchNextFilesPage}
                   formatCount={formatCount}
                   formatSize={formatSize}
                   foldersSize={foldersSize}
@@ -832,6 +816,7 @@ export function FileBrowser({
                   handleEmptyAreaClick={handleEmptyAreaClick}
                   dragState={dragState}
                   sort={sort}
+                  scrollContainerRef={scrollContainerRef}
                 />
               ) : (
                 <FileBrowserGridView
@@ -844,10 +829,10 @@ export function FileBrowser({
                   setFoldersExpanded={setFoldersExpanded}
                   filesExpanded={filesExpanded}
                   setFilesExpanded={setFilesExpanded}
-                  foldersRef={foldersRef}
-                  filesRef={filesRef}
                   hasNextFoldersPage={hasNextFoldersPage}
                   hasNextFilesPage={hasNextFilesPage}
+                  fetchNextFoldersPage={fetchNextFoldersPage}
+                  fetchNextFilesPage={fetchNextFilesPage}
                   formatCount={formatCount}
                   formatSize={formatSize}
                   foldersSize={foldersSize}
@@ -855,6 +840,7 @@ export function FileBrowser({
                   handleEmptyAreaClick={handleEmptyAreaClick}
                   dragState={dragState}
                   sort={sort}
+                  scrollContainerRef={scrollContainerRef}
                 />
               )}
 
