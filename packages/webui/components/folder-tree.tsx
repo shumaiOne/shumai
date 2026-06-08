@@ -1,44 +1,4 @@
-import type { AssetInfoPaginatedList, AssetInfo } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
-import { usePermissions } from '@/ui/hooks/use-permissions'
-import { cn } from '@/ui/lib/utils'
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useMatch, useNavigate, useParams } from '@tanstack/react-router'
-import {
-  ChevronDown,
-  ChevronsDownUp,
-  ChevronsUpDown,
-  ChevronRight,
-  Clapperboard,
-  Folder,
-  Loader2,
-  Trash2,
-  Plus,
-  Share2,
-  LayoutGrid,
-  Bookmark,
-  MoreHorizontal,
-} from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
-import { useInView } from 'react-intersection-observer'
-import { useDraggable, useDroppable } from '@dnd-kit/react'
-import type { DragState } from './dnd-types'
-import { toast } from 'sonner'
-import type { ShareLinkInfo } from '@shumai/dtos'
-import type { CollectionInfo } from '@shumai/dtos'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/ui/components/ui/dropdown-menu'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/ui/components/ui/dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,8 +9,46 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/ui/components/ui/alert-dialog'
-import { Input } from '@/ui/components/ui/input'
 import { Button } from '@/ui/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/ui/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/ui/components/ui/dropdown-menu'
+import { Input } from '@/ui/components/ui/input'
+import { usePermissions } from '@/ui/hooks/use-permissions'
+import { cn } from '@/ui/lib/utils'
+import { useDraggable, useDroppable } from '@dnd-kit/react'
+import type { AssetInfo, AssetInfoPaginatedList, CollectionInfo, ShareLinkInfo } from '@shumai/dtos'
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMatch, useNavigate, useParams } from '@tanstack/react-router'
+import {
+  Bookmark,
+  ChevronDown,
+  ChevronRight,
+  ChevronsDownUp,
+  ChevronsUpDown,
+  Clapperboard,
+  Folder,
+  LayoutGrid,
+  Loader2,
+  MoreHorizontal,
+  Plus,
+  Share2,
+  Trash2,
+} from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { useInView } from 'react-intersection-observer'
+import { toast } from 'sonner'
+import type { DragState } from './dnd-types'
 
 interface FolderTreeProps {
   teamId: string
@@ -87,31 +85,75 @@ export function FolderTree({
   const [isCollectionsExpanded, setIsCollectionsExpanded] = useState(true)
   const [isSharesExpanded, setIsSharesExpanded] = useState(true)
 
-  const { data: shareLinksData } = useQuery({
+  const {
+    data: shareLinksData,
+    fetchNextPage: fetchNextShareLinks,
+    hasNextPage: hasNextShareLinks,
+    isFetchingNextPage: isFetchingNextShareLinks,
+  } = useInfiniteQuery({
     queryKey: ['shares', projectId],
-    queryFn: async () => {
+    queryFn: async ({ pageParam }) => {
       const res = await client.api.projects[':projectId'].shares.$get({
         param: { projectId },
-        query: { first: '100' },
+        query: { first: '20', after: pageParam as string },
       })
       if (!res.ok) throw new Error('Failed to fetch share links')
-      return (await res.json()) as unknown as { data: ShareLinkInfo[] }
+      return (await res.json()) as unknown as {
+        data: ShareLinkInfo[]
+        pageInfo: { cursor?: string; total?: number }
+      }
     },
+    initialPageParam: '',
+    getNextPageParam: (lastPage) => lastPage.pageInfo?.cursor || undefined,
     enabled: !!projectId,
   })
 
-  const { data: collectionsData } = useQuery({
+  const {
+    data: collectionsData,
+    fetchNextPage: fetchNextCollections,
+    hasNextPage: hasNextCollections,
+    isFetchingNextPage: isFetchingNextCollections,
+  } = useInfiniteQuery({
     queryKey: ['collections', projectId],
-    queryFn: async () => {
+    queryFn: async ({ pageParam }) => {
       const res = await client.api.projects[':projectId'].collections.$get({
         param: { projectId },
-        query: { first: '100' },
+        query: { first: '20', after: pageParam as string },
       })
       if (!res.ok) throw new Error('Failed to fetch collections')
-      return (await res.json()) as unknown as { data: CollectionInfo[] }
+      return (await res.json()) as unknown as {
+        data: CollectionInfo[]
+        pageInfo: { cursor?: string; total?: number }
+      }
     },
+    initialPageParam: '',
+    getNextPageParam: (lastPage) => lastPage.pageInfo?.cursor || undefined,
     enabled: !!projectId,
   })
+
+  const { ref: collectionsInViewRef, inView: collectionsInView } = useInView()
+  const { ref: sharesInViewRef, inView: sharesInView } = useInView()
+
+  useEffect(() => {
+    if (collectionsInView && hasNextCollections && !isFetchingNextCollections) {
+      fetchNextCollections()
+    }
+  }, [collectionsInView, hasNextCollections, isFetchingNextCollections, fetchNextCollections])
+
+  useEffect(() => {
+    if (sharesInView && hasNextShareLinks && !isFetchingNextShareLinks) {
+      fetchNextShareLinks()
+    }
+  }, [sharesInView, hasNextShareLinks, isFetchingNextShareLinks, fetchNextShareLinks])
+
+  const collections = useMemo(
+    () => collectionsData?.pages.flatMap((p) => p.data) || [],
+    [collectionsData],
+  )
+  const shareLinks = useMemo(
+    () => shareLinksData?.pages.flatMap((p) => p.data) || [],
+    [shareLinksData],
+  )
 
   const { mutate: createCollection } = useMutation({
     mutationFn: async () => {
@@ -276,8 +318,6 @@ export function FolderTree({
     },
   })
 
-  const shareLinks = shareLinksData?.data ?? []
-
   return (
     <div className="flex flex-col h-full overflow-hidden p-3 gap-4 bg-background">
       <div
@@ -406,11 +446,11 @@ export function FolderTree({
                 <LayoutGrid className="h-4 w-4 text-sidebar-primary" />
               </div>
               <span className="flex-1 truncate text-sidebar-foreground">
-                All Collections ({collectionsData?.data.length || 0})
+                All Collections ({collectionsData?.pages[0]?.pageInfo?.total || 0})
               </span>
             </div>
 
-            {collectionsData?.data.map((collection) => {
+            {collections.map((collection) => {
               const isColActive = params?.collectionId === collection.id
               return (
                 <div
@@ -478,6 +518,12 @@ export function FolderTree({
                 </div>
               )
             })}
+            <div ref={collectionsInViewRef} className="h-1" />
+            {isFetchingNextCollections && (
+              <div className="flex justify-center p-2">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -534,7 +580,7 @@ export function FolderTree({
                 <LayoutGrid className="h-4 w-4 text-sidebar-primary" />
               </div>
               <span className="flex-1 truncate text-sidebar-foreground">
-                All Share Links ({shareLinks.length})
+                All Share Links ({shareLinksData?.pages[0]?.pageInfo?.total || 0})
               </span>
             </div>
 
@@ -558,6 +604,12 @@ export function FolderTree({
                 }}
               />
             ))}
+            <div ref={sharesInViewRef} className="h-1" />
+            {isFetchingNextShareLinks && (
+              <div className="flex justify-center p-2">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            )}
           </div>
         </div>
       )}

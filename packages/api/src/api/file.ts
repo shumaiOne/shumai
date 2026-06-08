@@ -6,6 +6,10 @@ import { assetService } from '@shumai/core/src/asset/asset'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { notificationService } from '@shumai/core/src/notification/notification'
 import { s3Service } from '@shumai/core/src/s3/s3'
+import { transcodeService } from '@shumai/transcode/src/transcode'
+import path from 'path'
+import os from 'os'
+import fs from 'fs'
 import {
   updateFileRequestSchema,
   updateAssetOrderRequestSchema,
@@ -227,10 +231,36 @@ const route = new Hono<{ Variables: { user: User } }>()
       return c.json('file too large, max 10MB', 400)
     }
 
-    const key = `files/${ulid()}`
-    const buffer = Buffer.from(await file.arrayBuffer())
+    let key = `files/${ulid()}`
+    let buffer = Buffer.from(await file.arrayBuffer())
+    let contentType = file.type
 
-    await s3Service.putObject(process.env.S3_BUCKET || 'shumai', key, buffer, file.size, file.type)
+    if (
+      file.type.startsWith('image/') &&
+      !file.type.includes('svg') &&
+      !file.type.includes('gif')
+    ) {
+      const tmpOut = path.join(os.tmpdir(), `transcode-${ulid()}.webp`)
+      try {
+        await transcodeService.transcodeImage(buffer, tmpOut, -1, 80, 540)
+        buffer = fs.readFileSync(tmpOut)
+        contentType = 'image/webp'
+        key = `${key}.webp`
+      } catch (err) {
+        console.error('Failed to compress image:', err)
+        // Fallback to original image if transcoding fails
+      } finally {
+        if (fs.existsSync(tmpOut)) fs.unlinkSync(tmpOut)
+      }
+    }
+
+    await s3Service.putObject(
+      process.env.S3_BUCKET || 'shumai',
+      key,
+      buffer,
+      buffer.length,
+      contentType,
+    )
 
     return c.json({ key })
   })

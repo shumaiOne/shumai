@@ -12,10 +12,11 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from '@/ui/components/ui/avatar'
 import { useUiStore } from '@/ui/stores/ui'
 import { useTeamContextStore } from '@/ui/stores/team-context'
-import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
-import { Bookmark, Calendar, LayoutGrid } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Bookmark, Calendar, LayoutGrid, Loader2 } from 'lucide-react'
+import { useInView } from 'react-intersection-observer'
 import type { CollectionInfo } from '@shumai/dtos'
 import { ProjectFolderSkeleton } from '@/ui/components/loading-skeletons'
 
@@ -59,24 +60,46 @@ function CollectionsPage() {
     setFileListLeftSidebarCollapsed: setIsLeftSidebarCollapsed,
   } = useUiStore()
 
-  const { data: collectionsData, isLoading: isCollectionsLoading } = useQuery({
+  const {
+    data: collectionsData,
+    isLoading: isCollectionsLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ['collections', projectId],
-    queryFn: async () => {
+    queryFn: async ({ pageParam }) => {
       const res = await client.api.projects[':projectId'].collections.$get({
         param: { projectId },
-        query: { first: '100' },
+        query: { first: '20', after: pageParam as string },
       })
       if (!res.ok) throw new Error('Failed to fetch collections')
-      return (await res.json()) as unknown as { data: CollectionInfo[] }
+      return (await res.json()) as unknown as {
+        data: CollectionInfo[]
+        pageInfo: { cursor?: string; total?: number }
+      }
     },
+    initialPageParam: '',
+    getNextPageParam: (lastPage) => lastPage.pageInfo?.cursor || undefined,
     enabled: !!projectId,
   })
+
+  const { ref: inViewRef, inView } = useInView()
+
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage()
+    }
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage])
+
+  const collections = useMemo(
+    () => collectionsData?.pages.flatMap((p) => p.data) || [],
+    [collectionsData],
+  )
 
   if (!teamId || !rootFolderId || !projectInfo) {
     return <ProjectFolderSkeleton />
   }
-
-  const collections = collectionsData?.data ?? []
 
   return (
     <div className="flex flex-1 flex-col bg-background min-h-0">
@@ -187,6 +210,9 @@ function CollectionsPage() {
                     ))}
                   </TableBody>
                 </Table>
+                <div ref={inViewRef} className="h-10 w-full flex items-center justify-center">
+                  {isFetchingNextPage && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
+                </div>
               </div>
             )}
           </div>

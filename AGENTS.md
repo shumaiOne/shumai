@@ -322,9 +322,8 @@ model Example {
 
 ## Infinite Scroll & Pagination
 
-- **Frontend**: Use the `useInfiniteScroll` hook for all list UIs.
-  - Located in `packages/webui/hooks/use-infinite-scroll.ts`.
-  - Pass a `fetchData` function that accepts `page` and `limit`.
+- **Frontend**: For paginated APIs (which contain `pageInfo` and `total` fields), the UI MUST use an auto infinite scroll style design using `useInfiniteQuery` from `@tanstack/react-query` and `react-intersection-observer`. Use the `total` count from the API response instead of counting the results locally.
+  - The default `limit` should be **20**.
 - **Backend**:
   - Most list APIs support cursor pagination using opaque tokens (via `hyrumtoken` logic) using the `paginateQuery` helper function.
   - Pass `PaginationParams` containing `first` (limit) and `after` (cursor).

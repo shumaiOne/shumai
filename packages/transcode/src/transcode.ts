@@ -274,14 +274,14 @@ export class TranscodeService {
   }
 
   async transcodeImage(
-    inputFile: string,
+    inputFile: string | Buffer,
     outputFile: string,
     width: number,
     quality: number,
     height: number | null = null,
   ): Promise<void> {
     let input: string | Buffer = inputFile
-    if (inputFile.startsWith('http')) {
+    if (typeof inputFile === 'string' && inputFile.startsWith('http')) {
       const resp = await fetch(inputFile)
       if (!resp.ok) {
         throw new Error(`Failed to fetch image from ${inputFile}: ${resp.statusText}`)
@@ -512,7 +512,7 @@ export class TranscodeService {
         }
 
         // 6. Upload to S3
-        const s3Key = `file/${params.assetId}/screenshots/${outName}`
+        const s3Key = `files/${params.assetId}/screenshots/${outName}`
         const fileBuffer = fs.readFileSync(localShotPath)
         await s3Service.putObject(bucket, s3Key, fileBuffer, fileBuffer.length, 'image/webp')
 
@@ -556,7 +556,7 @@ export class TranscodeService {
         .toFile(localOutPath)
 
       // 5. Upload to S3
-      const s3Key = `file/${params.assetId}/annotations/${outName}`
+      const s3Key = `files/${params.assetId}/annotations/${outName}`
       const fileBuffer = fs.readFileSync(localOutPath)
       await s3Service.putObject(bucket, s3Key, fileBuffer, fileBuffer.length, 'image/webp')
 

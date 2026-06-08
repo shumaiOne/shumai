@@ -14,10 +14,16 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from '@/ui/components/ui/avatar'
 import { useUiStore } from '@/ui/stores/ui'
 import { useTeamContextStore } from '@/ui/stores/team-context'
-import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import {
+  useMutation,
+  useInfiniteQuery,
+  useQueryClient,
+  useSuspenseQuery,
+} from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
-import { Copy, ExternalLink, Calendar, Link2, Share2 } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Copy, ExternalLink, Calendar, Link2, Share2, Loader2 } from 'lucide-react'
+import { useInView } from 'react-intersection-observer'
 import { toast } from 'sonner'
 import type { ShareLinkInfo } from '@shumai/dtos'
 import { ProjectFolderSkeleton } from '@/ui/components/loading-skeletons'
@@ -63,18 +69,39 @@ function SharesPage() {
     setFileListLeftSidebarCollapsed: setIsLeftSidebarCollapsed,
   } = useUiStore()
 
-  const { data: sharesData, isLoading: isSharesLoading } = useQuery({
+  const {
+    data: sharesData,
+    isLoading: isSharesLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ['shares', projectId],
-    queryFn: async () => {
+    queryFn: async ({ pageParam }) => {
       const res = await client.api.projects[':projectId'].shares.$get({
         param: { projectId },
-        query: { first: '100' },
+        query: { first: '20', after: pageParam as string },
       })
       if (!res.ok) throw new Error('Failed to fetch share links')
-      return (await res.json()) as unknown as { data: ShareLinkInfo[] }
+      return (await res.json()) as unknown as {
+        data: ShareLinkInfo[]
+        pageInfo: { cursor?: string; total?: number }
+      }
     },
+    initialPageParam: '',
+    getNextPageParam: (lastPage) => lastPage.pageInfo?.cursor || undefined,
     enabled: !!projectId,
   })
+
+  const { ref: inViewRef, inView } = useInView()
+
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage()
+    }
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage])
+
+  const shares = useMemo(() => sharesData?.pages.flatMap((p) => p.data) || [], [sharesData])
 
   const { mutate: toggleVisibility } = useMutation({
     mutationFn: async ({ id, isDisabled }: { id: string; isDisabled: boolean }) => {
@@ -97,8 +124,6 @@ function SharesPage() {
   if (!teamId || !rootFolderId || !projectInfo) {
     return <ProjectFolderSkeleton />
   }
-
-  const shares = sharesData?.data ?? []
 
   const handleCopyLink = (shareId: string) => {
     const url = `${window.location.origin}/share/${shareId}`
@@ -255,6 +280,9 @@ function SharesPage() {
                     })}
                   </TableBody>
                 </Table>
+                <div ref={inViewRef} className="h-10 w-full flex items-center justify-center">
+                  {isFetchingNextPage && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
+                </div>
               </div>
             )}
           </div>
