@@ -131,6 +131,8 @@ interface FileBrowserListViewProps {
   setFilesExpanded: (expanded: boolean) => void
   hasNextFoldersPage: boolean
   hasNextFilesPage: boolean
+  isFetchingNextFoldersPage: boolean
+  isFetchingNextFilesPage: boolean
   fetchNextFoldersPage: () => void
   fetchNextFilesPage: () => void
   formatCount: (count: number, isFile: boolean) => string
@@ -158,6 +160,8 @@ export function FileBrowserListView({
   setFilesExpanded,
   hasNextFoldersPage,
   hasNextFilesPage,
+  isFetchingNextFoldersPage,
+  isFetchingNextFilesPage,
   fetchNextFoldersPage,
   fetchNextFilesPage,
   formatCount,
@@ -255,14 +259,24 @@ export function FileBrowserListView({
   useEffect(() => {
     if (virtualItems.length === 0) return
 
-    const lastItem = virtualItems[virtualItems.length - 1]
-    const item = items[lastItem.index]
-
-    if (item.type === 'item') {
-      if (item.kind === 'folder' && item.index >= folders.length - 5 && hasNextFoldersPage) {
-        fetchNextFoldersPage()
-      } else if (item.kind === 'file' && item.index >= files.length - 5 && hasNextFilesPage) {
-        fetchNextFilesPage()
+    for (const virtualItem of virtualItems) {
+      const item = items[virtualItem.index]
+      if (item?.type === 'item') {
+        if (
+          item.kind === 'folder' &&
+          item.index >= folders.length - 10 &&
+          hasNextFoldersPage &&
+          !isFetchingNextFoldersPage
+        ) {
+          fetchNextFoldersPage()
+        } else if (
+          item.kind === 'file' &&
+          item.index >= files.length - 10 &&
+          hasNextFilesPage &&
+          !isFetchingNextFilesPage
+        ) {
+          fetchNextFilesPage()
+        }
       }
     }
   }, [
@@ -272,6 +286,8 @@ export function FileBrowserListView({
     files.length,
     hasNextFoldersPage,
     hasNextFilesPage,
+    isFetchingNextFoldersPage,
+    isFetchingNextFilesPage,
     fetchNextFoldersPage,
     fetchNextFilesPage,
   ])

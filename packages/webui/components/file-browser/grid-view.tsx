@@ -73,6 +73,8 @@ interface FileBrowserGridViewProps {
   setFilesExpanded: (expanded: boolean) => void
   hasNextFoldersPage: boolean
   hasNextFilesPage: boolean
+  isFetchingNextFoldersPage: boolean
+  isFetchingNextFilesPage: boolean
   fetchNextFoldersPage: () => void
   fetchNextFilesPage: () => void
   formatCount: (count: number, isFile: boolean) => string
@@ -97,6 +99,8 @@ export function FileBrowserGridView({
   setFilesExpanded,
   hasNextFoldersPage,
   hasNextFilesPage,
+  isFetchingNextFoldersPage,
+  isFetchingNextFilesPage,
   fetchNextFoldersPage,
   fetchNextFilesPage,
   formatCount,
@@ -169,19 +173,27 @@ export function FileBrowserGridView({
   useEffect(() => {
     if (virtualItems.length === 0) return
 
-    const lastItem = virtualItems[virtualItems.length - 1]
-    const row = rows[lastItem.index]
-
-    if (row.type === 'row') {
-      if (row.kind === 'folder') {
-        const lastIndex = (row.rowIndex + 1) * cols
-        if (lastIndex >= folders.length - cols * 2 && hasNextFoldersPage) {
-          fetchNextFoldersPage()
-        }
-      } else if (row.kind === 'file') {
-        const lastIndex = (row.rowIndex + 1) * cols
-        if (lastIndex >= files.length - cols * 2 && hasNextFilesPage) {
-          fetchNextFilesPage()
+    for (const virtualItem of virtualItems) {
+      const row = rows[virtualItem.index]
+      if (row?.type === 'row') {
+        if (row.kind === 'folder') {
+          const lastIndex = (row.rowIndex + 1) * cols
+          if (
+            lastIndex >= folders.length - cols * 2 &&
+            hasNextFoldersPage &&
+            !isFetchingNextFoldersPage
+          ) {
+            fetchNextFoldersPage()
+          }
+        } else if (row.kind === 'file') {
+          const lastIndex = (row.rowIndex + 1) * cols
+          if (
+            lastIndex >= files.length - cols * 2 &&
+            hasNextFilesPage &&
+            !isFetchingNextFilesPage
+          ) {
+            fetchNextFilesPage()
+          }
         }
       }
     }
@@ -192,6 +204,8 @@ export function FileBrowserGridView({
     files.length,
     hasNextFoldersPage,
     hasNextFilesPage,
+    isFetchingNextFoldersPage,
+    isFetchingNextFilesPage,
     fetchNextFoldersPage,
     fetchNextFilesPage,
     cols,

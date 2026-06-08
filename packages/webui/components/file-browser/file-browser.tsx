@@ -807,6 +807,8 @@ export function FileBrowser({
                   setFilesExpanded={setFilesExpanded}
                   hasNextFoldersPage={hasNextFoldersPage}
                   hasNextFilesPage={hasNextFilesPage}
+                  isFetchingNextFoldersPage={isFetchingNextFoldersPage}
+                  isFetchingNextFilesPage={isFetchingNextFilesPage}
                   fetchNextFoldersPage={fetchNextFoldersPage}
                   fetchNextFilesPage={fetchNextFilesPage}
                   formatCount={formatCount}
@@ -831,6 +833,8 @@ export function FileBrowser({
                   setFilesExpanded={setFilesExpanded}
                   hasNextFoldersPage={hasNextFoldersPage}
                   hasNextFilesPage={hasNextFilesPage}
+                  isFetchingNextFoldersPage={isFetchingNextFoldersPage}
+                  isFetchingNextFilesPage={isFetchingNextFilesPage}
                   fetchNextFoldersPage={fetchNextFoldersPage}
                   fetchNextFilesPage={fetchNextFilesPage}
                   formatCount={formatCount}
