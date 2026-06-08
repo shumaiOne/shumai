@@ -219,6 +219,7 @@ export function FileBrowserGridView({
               <div
                 key={`header-${row.kind}`}
                 ref={rowVirtualizer.measureElement}
+                data-index={virtualRow.index}
                 className="absolute top-0 left-0 w-full z-10 bg-background"
                 style={{
                   transform: `translateY(${virtualRow.start}px)`,
@@ -256,6 +257,7 @@ export function FileBrowserGridView({
             <div
               key={`row-${row.kind}-${row.rowIndex}`}
               ref={rowVirtualizer.measureElement}
+              data-index={virtualRow.index}
               className="absolute top-0 left-0 w-full grid gap-4"
               style={{
                 transform: `translateY(${virtualRow.start}px)`,

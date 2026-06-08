@@ -163,7 +163,7 @@ export function FileListItem({
   }
 
   return (
-    <tr
+    <div
       ref={setDraggableRef}
       style={{ opacity }}
       onClick={handleClick}
@@ -174,11 +174,11 @@ export function FileListItem({
           e.preventDefault()
         }
       }}
-      className="group cursor-pointer select-none transition-colors whitespace-nowrap"
+      className="group cursor-pointer select-none transition-colors whitespace-nowrap flex w-full"
     >
-      <td
+      <div
         className={cn(
-          'px-4 py-2 sticky left-0 z-10 transition-colors border-r',
+          'px-4 py-2 sticky left-0 z-10 transition-colors border-r shrink-0',
           isSelected ? 'bg-muted' : 'bg-card group-hover:bg-muted',
         )}
         style={{
@@ -232,24 +232,24 @@ export function FileListItem({
             </Badge>
           )}
         </div>
-      </td>
-      <td
-        className="px-4 py-2 text-sm text-muted-foreground truncate"
+      </div>
+      <div
+        className="px-4 py-2 text-sm text-muted-foreground truncate border-r shrink-0 flex items-center"
         style={{
           width: columnSizing?.['size'] || 100,
           minWidth: columnSizing?.['size'] || 100,
         }}
       >
         {displayItem.type === 'folder' ? '-' : formatSize(displayItem.sizeByte)}
-      </td>
-      <td
-        className="px-4 py-2"
+      </div>
+      <div
+        className="px-4 py-2 border-r shrink-0 flex items-center"
         style={{
           width: columnSizing?.['modified'] || 200,
           minWidth: columnSizing?.['modified'] || 200,
         }}
       >
-        <div className="flex items-center justify-between overflow-hidden">
+        <div className="flex items-center justify-between overflow-hidden w-full">
           <span className="text-sm text-muted-foreground truncate">
             {formatDate(displayItem.updatedAt)}
           </span>
@@ -270,12 +270,12 @@ export function FileListItem({
             <MoreVertical className="h-4 w-4 text-muted-foreground hover:text-foreground" />
           </button>
         </div>
-      </td>
+      </div>
       {displayItem.type === 'file' &&
         fields.map((field) => (
-          <td
+          <div
             key={field.id}
-            className="px-4 py-2 truncate"
+            className="px-4 py-2 truncate border-r shrink-0 flex items-center"
             style={{
               width: columnSizing?.[field.id!] || 150,
               minWidth: columnSizing?.[field.id!] || 150,
@@ -287,8 +287,8 @@ export function FileListItem({
               onSave={canEdit ? (val) => onSaveField(field.id!, val) : undefined}
               readOnly={field.readOnly || !canEdit}
             />
-          </td>
+          </div>
         ))}
-    </tr>
+    </div>
   )
 }

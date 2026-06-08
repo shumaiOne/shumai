@@ -89,6 +89,7 @@ function ListRow({
         setRowRef(node)
         measureElement(node)
       }}
+      data-index={virtualRow.index}
       className={cn(
         'group border-b border-border transition-colors hover:bg-primary/20 absolute top-0 left-0 w-full flex flex-col',
         isSelected && 'bg-primary/10',
@@ -338,6 +339,7 @@ export function FileBrowserListView({
                 <div
                   key={`header-${item.kind}`}
                   ref={rowVirtualizer.measureElement}
+                  data-index={virtualRow.index}
                   className="absolute top-0 left-0 w-full border-b border-border hover:bg-muted/50 transition-colors cursor-pointer group flex bg-card z-20"
                   style={{
                     transform: `translateY(${virtualRow.start}px)`,
