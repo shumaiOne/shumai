@@ -14,6 +14,7 @@ vi.mock('hono/bun', () => ({
 describe('S3 API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.resetModules()
   })
 
   it('GET /files/* calls serveStatic with correct options', async () => {
@@ -39,10 +40,45 @@ describe('S3 API', () => {
     }
   })
 
-  it('PUT /files/:bucket/:key calls s3Service.putObject', async () => {
+  it('GET /files/* with filename query parameter sets Content-Disposition header', async () => {
+    // We need to capture the onFound callback from serveStatic options
+    let onFoundCallback: Function | undefined
+    mockServeStatic.mockImplementationOnce((options: any) => {
+      onFoundCallback = options.onFound
+      return (c: any) => c.text('static-file')
+    })
+
     const { default: route } = await import('./s3')
     const app = new Hono().route('/files', route)
-    const mockPut = vi.spyOn(s3Service, 'putObject').mockResolvedValue(undefined)
+
+    // First, verify onFound is called through the mock
+    await app.request('/files/b1/test.webp?filename=my-file.txt')
+
+    expect(onFoundCallback).toBeDefined()
+
+    // Test the callback directly
+    const mockContext = {
+      req: {
+        query: (key: string) => (key === 'filename' ? 'my-file.txt' : undefined),
+      },
+      header: vi.fn(),
+    }
+
+    if (onFoundCallback) {
+      onFoundCallback('/files/b1/test.webp', mockContext)
+      expect(mockContext.header).toHaveBeenCalledWith(
+        'Content-Disposition',
+        'attachment; filename="my-file.txt"',
+      )
+    }
+  })
+
+  it('PUT /files/:bucket/:key calls s3Service.putObject', async () => {
+    const { s3Service: service } = await import('@shumai/core/src/s3/s3')
+    const mockPut = vi.spyOn(service, 'putObject').mockResolvedValue(undefined)
+
+    const { default: route } = await import('./s3')
+    const app = new Hono().route('/files', route)
     const body = new TextEncoder().encode('test-data')
 
     const res = await app.request('/files/b1/test.webp', {

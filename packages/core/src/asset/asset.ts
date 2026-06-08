@@ -824,6 +824,7 @@ export class AssetService {
           process.env.S3_BUCKET || 'shumai',
           info.media.original.key,
           'GET',
+          a.name,
         )
       }
     }
@@ -1548,9 +1549,18 @@ export class AssetService {
 
       const key = latestVersion.storageKey?.key
       if (media && key) {
+        const fileName =
+          a.type === AssetType.version_stack && (a.name === '' || !a.name)
+            ? latestVersion.name
+            : a.name
         media.original = {
           key,
-          downloadUrl: await s3Service.presign(process.env.S3_BUCKET || 'shumai', key, 'GET'),
+          downloadUrl: await s3Service.presign(
+            process.env.S3_BUCKET || 'shumai',
+            key,
+            'GET',
+            fileName,
+          ),
           filesizeInBytes: latestVersion.sizeByte,
           codec: '', // TODO: extract from metadata if needed
         }
