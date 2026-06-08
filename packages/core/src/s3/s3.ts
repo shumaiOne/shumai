@@ -14,6 +14,7 @@ import * as fs from 'fs'
 import { readFileSync, statSync } from 'fs'
 import * as path from 'path'
 import { ulid } from 'ulid'
+import { LruTtlCache } from '../cache/lru-ttl-cache'
 
 export function signLocalUrl(bucket: string, key: string): string {
   const secret = process.env.BETTER_AUTH_SECRET || 'shumai-local-storage-secret'
@@ -69,6 +70,7 @@ export interface S3Service {
 export class S3StorageService implements S3Service {
   private client: S3Client
   private bucket: string
+  private presignCache = new LruTtlCache<string, string>(50000)
 
   constructor(
     endpoint: string,
@@ -269,6 +271,19 @@ export class S3StorageService implements S3Service {
   }
 
   async presign(bucket: string, key: string, method: string): Promise<string> {
+    const expireHours = parseInt(process.env.PRESIGNED_URL_EXPIRES_IN || '5', 10)
+    const expiresInSeconds = expireHours * 3600
+    // Cache time is 2/3 of expire time, rounded to minute
+    const cacheMinutes = Math.round((expireHours * 60 * 2) / 3)
+    const cacheTtlMs = cacheMinutes * 60 * 1000
+
+    const cacheKey = `${bucket}:${key}`
+
+    if (method === 'GET') {
+      const cached = this.presignCache.get(cacheKey)
+      if (cached) return cached
+    }
+
     let command: GetObjectCommand | PutObjectCommand
     if (method === 'GET') {
       command = new GetObjectCommand({
@@ -284,8 +299,13 @@ export class S3StorageService implements S3Service {
       throw new Error(`Invalid method: ${method}`)
     }
 
-    // 1 hour expiration
-    return await getSignedUrl(this.client, command, { expiresIn: 3600 })
+    const url = await getSignedUrl(this.client, command, { expiresIn: expiresInSeconds })
+
+    if (method === 'GET') {
+      this.presignCache.set(cacheKey, url, cacheTtlMs)
+    }
+
+    return url
   }
 }
 

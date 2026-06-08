@@ -27,6 +27,14 @@ vi.mock('@aws-sdk/s3-request-presigner', () => {
 })
 
 describe('S3Service implementations', () => {
+  beforeEach(async () => {
+    const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner')
+    vi.mocked(getSignedUrl).mockReset()
+    vi.mocked(getSignedUrl).mockResolvedValue('http://presigned-url')
+    vi.clearAllMocks()
+    delete process.env.PRESIGNED_URL_EXPIRES_IN
+  })
+
   describe('S3StorageService', () => {
     it('should correctly build standard endpoints', () => {
       const s3 = new S3StorageService('s3.example.com', 'key', 'secret', 'test-bucket', true)
@@ -56,6 +64,55 @@ describe('S3Service implementations', () => {
       const s3 = new S3StorageService('localhost:9000', 'key', 'secret', 'test-bucket', false)
       const url = await s3.presign('bucket', 'key', 'GET')
       expect(url).toBe('http://presigned-url')
+    })
+
+    it('should cache GET presign URLs', async () => {
+      const s3 = new S3StorageService('localhost:9000', 'key', 'secret', 'test-bucket', false)
+      const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner')
+
+      vi.mocked(getSignedUrl).mockClear()
+      vi.mocked(getSignedUrl).mockResolvedValueOnce('http://presigned-url-1')
+      vi.mocked(getSignedUrl).mockResolvedValueOnce('http://presigned-url-2')
+
+      const url1 = await s3.presign('bucket', 'key', 'GET')
+      const url2 = await s3.presign('bucket', 'key', 'GET')
+
+      expect(url1).toBe('http://presigned-url-1')
+      expect(url2).toBe('http://presigned-url-1')
+      expect(vi.mocked(getSignedUrl)).toHaveBeenCalledTimes(1)
+    })
+
+    it('should NOT cache PUT presign URLs', async () => {
+      const s3 = new S3StorageService('localhost:9000', 'key', 'secret', 'test-bucket', false)
+      const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner')
+
+      vi.mocked(getSignedUrl).mockClear()
+      vi.mocked(getSignedUrl).mockResolvedValueOnce('http://put-url-1')
+      vi.mocked(getSignedUrl).mockResolvedValueOnce('http://put-url-2')
+
+      const url1 = await s3.presign('bucket', 'key', 'PUT')
+      const url2 = await s3.presign('bucket', 'key', 'PUT')
+
+      expect(url1).toBe('http://put-url-1')
+      expect(url2).toBe('http://put-url-2')
+      expect(vi.mocked(getSignedUrl)).toHaveBeenCalledTimes(2)
+    })
+
+    it('should respect PRESIGNED_URL_EXPIRES_IN env', async () => {
+      process.env.PRESIGNED_URL_EXPIRES_IN = '10'
+      const s3 = new S3StorageService('localhost:9000', 'key', 'secret', 'test-bucket', false)
+      const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner')
+
+      vi.mocked(getSignedUrl).mockClear()
+      await s3.presign('bucket', 'key', 'GET')
+
+      expect(vi.mocked(getSignedUrl)).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({ expiresIn: 10 * 3600 }),
+      )
+
+      delete process.env.PRESIGNED_URL_EXPIRES_IN
     })
   })
 
