@@ -172,8 +172,8 @@ export class AssetService {
     }
   }
 
-  async reparentAssets(req: ReparentAssetsRequest): Promise<void> {
-    await this.prismaClient.$transaction(async (tx) => {
+  async reparentAssets(req: ReparentAssetsRequest, tx?: Prisma.TransactionClient): Promise<void> {
+    const runInTx = async (tx: Prisma.TransactionClient) => {
       const newParent = await tx.asset.findUnique({
         where: { id: req.newParentId },
         include: { project: { include: { team: true } } },
@@ -269,7 +269,13 @@ export class AssetService {
       if (oldParent) {
         await this.dissolveStackIfEmpty(tx, oldParent)
       }
-    })
+    }
+
+    if (tx) {
+      await runInTx(tx)
+    } else {
+      await this.prismaClient.$transaction(runInTx)
+    }
   }
 
   async copyAssets(req: CopyAssetsRequest): Promise<void> {
@@ -722,30 +728,41 @@ export class AssetService {
     if (req.contentType) data.mediaType = req.contentType
     if (req.creatorId) data.creator = { connect: { id: req.creatorId } }
 
-    const asset = await this.prismaClient.asset.create({
-      data,
-      include: {
-        creator: true,
-        metadataValues: true,
-        storageKey: true,
-        target: {
-          include: {
-            creator: true,
-            metadataValues: true,
-            storageKey: true,
-            children: {
-              include: { creator: true, metadataValues: true, storageKey: true },
-              take: 3,
-              orderBy: { sortIndex: 'asc' },
+    const asset = await this.prismaClient.$transaction(async (tx) => {
+      const createdAsset = await tx.asset.create({
+        data,
+        include: {
+          creator: true,
+          metadataValues: true,
+          storageKey: true,
+          target: {
+            include: {
+              creator: true,
+              metadataValues: true,
+              storageKey: true,
+              children: {
+                include: { creator: true, metadataValues: true, storageKey: true },
+                take: 3,
+                orderBy: { sortIndex: 'asc' },
+              },
             },
           },
+          children: {
+            include: { creator: true, metadataValues: true, storageKey: true },
+            take: 3,
+            orderBy: { sortIndex: 'asc' },
+          },
         },
-        children: {
-          include: { creator: true, metadataValues: true, storageKey: true },
-          take: 3,
-          orderBy: { sortIndex: 'asc' },
-        },
-      },
+      })
+
+      if (parent) {
+        await tx.asset.update({
+          where: { id: parent.id },
+          data: { fileCount: { increment: 1 } },
+        })
+      }
+
+      return createdAsset
     })
 
     const infos = await this.toAssetInfos([asset])
