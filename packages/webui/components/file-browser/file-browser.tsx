@@ -883,17 +883,20 @@ export function FileBrowser({
                 <div className="text-sm text-muted-foreground">
                   {selectedFolders > 0 && selectedFiles > 0 && (
                     <span>
-                      {selectedCount} Item{selectedCount !== 1 ? 's' : ''} selected • {formatSize(selectedSize)}
+                      {selectedCount} Item{selectedCount !== 1 ? 's' : ''} selected •{' '}
+                      {formatSize(selectedSize)}
                     </span>
                   )}
                   {selectedFolders > 0 && selectedFiles === 0 && (
                     <span>
-                      {selectedFolders} folder{selectedFolders !== 1 ? 's' : ''} selected • {formatSize(selectedSize)}
+                      {selectedFolders} folder{selectedFolders !== 1 ? 's' : ''} selected •{' '}
+                      {formatSize(selectedSize)}
                     </span>
                   )}
                   {selectedFolders === 0 && selectedFiles > 0 && (
                     <span>
-                      {selectedFiles} file{selectedFiles !== 1 ? 's' : ''} selected • {formatSize(selectedSize)}
+                      {selectedFiles} file{selectedFiles !== 1 ? 's' : ''} selected •{' '}
+                      {formatSize(selectedSize)}
                     </span>
                   )}
                 </div>
