@@ -93,6 +93,67 @@ describe('UploadService', () => {
     expect(hidden).toBeNull()
   })
 
+  it('should correctly increment fileCount for parent folders when uploading folders', async () => {
+    const req = {
+      parentId: parentId,
+      files: [
+        {
+          name: 'folder1',
+          id: '1',
+          type: 'folder' as const,
+          size: 0,
+          children: [
+            {
+              name: 'folder2',
+              id: '2',
+              type: 'folder' as const,
+              size: 0,
+              children: [],
+            },
+            {
+              name: 'file1.txt',
+              id: '3',
+              type: 'file' as const,
+              size: 100,
+              mediaType: 'text/plain',
+              children: [],
+            },
+          ],
+        },
+      ],
+    }
+
+    await uploadService.createUploadTask(userId, req)
+
+    // parentId folder should have folder1 as a direct child
+    const parent = await prisma.asset.findUnique({ where: { id: parentId } })
+    expect(parent?.fileCount).toBe(1)
+
+    // folder1 should have folder2 and file1.txt as direct children
+    // folder2 is a folder, so it is counted immediately.
+    // file1.txt is a file, so it is counted after confirmFileUpload.
+    const folder1 = await prisma.asset.findFirst({ where: { name: 'folder1' } })
+    expect(folder1?.parentId).toBe(parentId)
+    expect(folder1?.fileCount).toBe(1)
+
+    const folder2 = await prisma.asset.findFirst({ where: { name: 'folder2' } })
+    expect(folder2?.parentId).toBe(folder1?.id)
+    expect(folder2?.fileCount).toBe(0)
+
+    const file1 = await prisma.asset.findFirst({ where: { name: 'file1.txt' } })
+    expect(file1?.parentId).toBe(folder1?.id)
+    expect(file1?.status).toBe(AssetStatus.uploading)
+
+    // Confirm upload for file1.txt
+    const task = await prisma.task.findFirst({ where: { total: 1 } })
+    await uploadService.confirmFileUpload(userId, task!.id, {
+      fileId: file1!.id,
+    })
+
+    const folder1After = await prisma.asset.findUnique({ where: { id: folder1!.id } })
+    expect(folder1After?.fileCount).toBe(2)
+  })
+
   it('should confirm file upload and create transcode tasks for video', async () => {
     const task = await prisma.task.create({
       data: { creatorId: userId, total: 1, uploaded: 0, type: 'upload' },
