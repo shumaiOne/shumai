@@ -1,14 +1,13 @@
-import { prisma } from '@shumai/db'
-import { WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
+import { s3Service } from '@shumai/core/src/s3/s3'
+import { prisma, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
 import '@shumai/db/src/prisma-json-types'
 import { execFile } from 'child_process'
 import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
 import sharp from 'sharp'
-import { promisify } from 'util'
-import { s3Service } from '@shumai/core/src/s3/s3'
 import { ulid } from 'ulid'
+import { promisify } from 'util'
 
 const execFileAsync = promisify(execFile)
 
@@ -291,7 +290,7 @@ export class TranscodeService {
 
     const sharpInstance = sharp(input, { limitInputPixels: false })
 
-    const WEBP_MAX_DIMENSION = 16383
+    const WEBP_MAX_DIMENSION = 7680
     const targetW = width > 0 ? Math.min(width, WEBP_MAX_DIMENSION) : WEBP_MAX_DIMENSION
     const targetH = height && height > 0 ? Math.min(height, WEBP_MAX_DIMENSION) : WEBP_MAX_DIMENSION
 

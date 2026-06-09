@@ -149,7 +149,7 @@ describe('TranscodeService', () => {
 
     expect(sharp).toHaveBeenCalledWith('input.png', { limitInputPixels: false })
     const mockSharp = vi.mocked(sharp).mock.results[0].value
-    expect(mockSharp.resize).toHaveBeenCalledWith(480, 16383, expect.any(Object))
+    expect(mockSharp.resize).toHaveBeenCalledWith(480, 7680, expect.any(Object))
     expect(mockSharp.webp).toHaveBeenCalledWith({ quality: 80 })
     expect(mockSharp.toFile).toHaveBeenCalledWith(outputFile)
   })
@@ -176,7 +176,7 @@ describe('TranscodeService', () => {
 
     expect(sharp).toHaveBeenCalledWith(inputBuffer, { limitInputPixels: false })
     const mockSharp = vi.mocked(sharp).mock.results[vi.mocked(sharp).mock.results.length - 1].value
-    expect(mockSharp.resize).toHaveBeenCalledWith(480, 16383, expect.any(Object))
+    expect(mockSharp.resize).toHaveBeenCalledWith(480, 7680, expect.any(Object))
     expect(mockSharp.webp).toHaveBeenCalledWith({ quality: 80 })
     expect(mockSharp.toFile).toHaveBeenCalledWith(outputFile)
   })
