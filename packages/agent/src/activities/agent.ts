@@ -866,12 +866,6 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
         creatorId: userId,
       })
 
-      // Increment fileCount of parent folder
-      await prisma.asset.update({
-        where: { id: parent },
-        data: { fileCount: { increment: 1 } },
-      })
-
       return {
         id: newFolder.id,
         name: newFolder.name,
@@ -930,12 +924,8 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
         creatorId: userId,
       })
 
-      // Increment fileCount of parent and update ancestor size
+      // Increment update ancestor size
       await prisma.$transaction(async (tx) => {
-        await tx.asset.update({
-          where: { id: parent },
-          data: { fileCount: { increment: 1 } },
-        })
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await assetService.updateAncestorsSize(tx as any, parent, fileSize)
 
@@ -1026,11 +1016,10 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
             where: { id: newFile.id },
             data: { sortIndex: newSortIndex },
           })
-          // Increment stack's fileCount and size
+          // Increment stack's size (fileCount is incremented by createAsset already)
           const updatedStack = await tx.asset.update({
             where: { id: stackId },
             data: {
-              fileCount: { increment: 1 },
               sizeByte: { increment: fileSize },
             },
           })
