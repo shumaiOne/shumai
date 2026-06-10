@@ -261,7 +261,8 @@ export function FileBrowserGridView({
                     <ChevronRight className="h-4 w-4" />
                   )}
                   <span>
-                    {formatCount(count, !isFolder)}{showSize ? ` • ${formatSize(size)}` : ''}
+                    {formatCount(count, !isFolder)}
+                    {showSize ? ` • ${formatSize(size)}` : ''}
                   </span>
                 </button>
               </div>

@@ -305,7 +305,7 @@ export function FileBrowserListView({
   ])
 
   return (
-    <div className="flex-1 overflow-x-auto" onClick={handleEmptyAreaClick}>
+    <div className="w-full overflow-x-auto" onClick={handleEmptyAreaClick}>
       <div
         className="w-full relative"
         style={{
@@ -406,7 +406,8 @@ export function FileBrowserListView({
                       )}
                     </div>
                     <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-                      {formatCount(count, !isFolder)}{showSize ? ` • ${formatSize(size)}` : ''}
+                      {formatCount(count, !isFolder)}
+                      {showSize ? ` • ${formatSize(size)}` : ''}
                     </span>
                   </div>
                   <div className="flex-1 bg-card" />

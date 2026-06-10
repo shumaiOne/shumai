@@ -741,6 +741,7 @@ describe('SearchService', () => {
 
       // Search files recursively
       const resultRecursive = await searchService.search(rootFolder.id, {
+        conditions: [],
         recursively: true,
         assetType: 'file',
         operator: 'AND',
@@ -752,6 +753,7 @@ describe('SearchService', () => {
 
       // Search files non-recursively
       const resultNonRecursive = await searchService.search(rootFolder.id, {
+        conditions: [],
         recursively: false,
         assetType: 'file',
         operator: 'AND',
@@ -773,6 +775,8 @@ describe('SearchService', () => {
                 return [{ count: 2500n }]
               }
               // For main query, just run it or return mock
+              // We must cast to any because we are proxying the raw sql parameter
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               return target.$queryRaw(prismaSql as any)
             }
           }
@@ -784,10 +788,14 @@ describe('SearchService', () => {
         },
       })
 
+      // We must cast mockPrisma proxy as any because the type signature of SearchService
+      // expects a full PrismaClient instance, whereas we only mocked $queryRaw.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const localSearchService = new SearchService(mockPrisma as any)
       const { rootFolder } = await setupBasicAssets()
 
       const result = await localSearchService.search(rootFolder.id, {
+        conditions: [],
         recursively: true,
         assetType: 'file',
         operator: 'AND',
