@@ -174,6 +174,19 @@ export class TeamService {
   }
 
   async getTeamMembers(req: ServiceGetTeamMembersRequest): Promise<UserInfo[]> {
+    const requester = await prisma.teamMember.findUnique({
+      where: {
+        teamIdUserId: {
+          teamId: req.teamId,
+          userId: req.userId,
+        },
+      },
+    })
+
+    if (!requester) {
+      throw new HTTPException(403, { message: 'Requester is not a team member' })
+    }
+
     const members = await prisma.teamMember.findMany({
       where: {
         teamId: req.teamId,
@@ -194,17 +207,39 @@ export class TeamService {
             }
           : { user: { type: { not: 'agent' } } }),
       },
-      include: { user: true },
+      include: {
+        user: true,
+        projectMembers: true,
+      },
     })
 
+    let filteredMembers = members
+
+    if (requester.scope === 'project') {
+      const requesterProjectIds = await prisma.projectMember
+        .findMany({
+          where: { teamMemberId: requester.id },
+          select: { projectId: true },
+        })
+        .then((pms) => pms.map((pm) => pm.projectId))
+
+      filteredMembers = members.filter((m) => {
+        // Team-scoped members are always visible
+        if (m.scope === 'team') return true
+        // Project-scoped members are visible if they share a project
+        return m.projectMembers.some((pm) => requesterProjectIds.includes(pm.projectId))
+      })
+    }
+
     return Promise.all(
-      members.map(async (m) => ({
+      filteredMembers.map(async (m) => ({
         id: m.user.id,
         name: m.user.name,
         email: undefined,
         role: m.role,
         type: m.user.type || undefined,
         image: await getAvatarUrl(m.user.image),
+        scope: m.scope,
       })),
     )
   }

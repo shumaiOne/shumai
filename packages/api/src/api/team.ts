@@ -108,6 +108,7 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     const members = await teamService.getTeamMembers({
       teamId,
+      userId: user.id,
       includeAgents: includeAgents,
     })
 

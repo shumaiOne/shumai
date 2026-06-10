@@ -52,6 +52,7 @@ export const userInfoSchema = z.object({
   email: z.string().optional(),
   type: z.enum(['human', 'agent']).optional(),
   image: z.string().optional(),
+  scope: z.enum(['team', 'project']).optional(),
 })
 export type UserInfo = z.infer<typeof userInfoSchema>
 
@@ -112,6 +113,7 @@ export interface ServiceGetMeRequest {
 
 export interface ServiceGetTeamMembersRequest {
   teamId: string
+  userId: string
   includeAgents?: boolean
 }
 

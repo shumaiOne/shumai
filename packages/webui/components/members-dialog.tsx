@@ -28,6 +28,7 @@ export interface Member {
   name?: string
   role?: string
   image?: string
+  scope?: 'team' | 'project'
 }
 
 interface MembersDialogProps {
@@ -154,7 +155,19 @@ export function MembersDialog({
                   </Avatar>
                   <div className="flex flex-col">
                     <span className="text-sm font-medium">{member.name}</span>
-                    <span className="text-xs text-muted-foreground capitalize">{member.role}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground capitalize">
+                        {member.role}
+                      </span>
+                      {member.scope && (
+                        <>
+                          <span className="text-[10px] text-muted-foreground/50">•</span>
+                          <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full font-medium text-muted-foreground uppercase tracking-wider">
+                            {member.scope === 'team' ? 'Team Member' : 'Project Member'}
+                          </span>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
 
