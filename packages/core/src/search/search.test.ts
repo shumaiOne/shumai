@@ -734,6 +734,70 @@ describe('SearchService', () => {
       mockExecuteWait.mockRestore()
     })
   })
+
+  describe('totalSize calculation', () => {
+    it('calculates the true total size of matching files when total count < 2000', async () => {
+      const { rootFolder } = await setupBasicAssets()
+
+      // Search files recursively
+      const resultRecursive = await searchService.search(rootFolder.id, {
+        recursively: true,
+        assetType: 'file',
+        operator: 'AND',
+        isSemantic: false,
+      })
+
+      expect(resultRecursive.pageInfo.total).toBe(2)
+      expect(resultRecursive.pageInfo.totalSize).toBe(300) // file1 (100) + file2 (200)
+
+      // Search files non-recursively
+      const resultNonRecursive = await searchService.search(rootFolder.id, {
+        recursively: false,
+        assetType: 'file',
+        operator: 'AND',
+        isSemantic: false,
+      })
+
+      expect(resultNonRecursive.pageInfo.total).toBe(1)
+      expect(resultNonRecursive.pageInfo.totalSize).toBe(100) // file1 (100)
+    })
+
+    it('returns -1 for totalSize when total count is >= 2000', async () => {
+      // Mock prismaClient.$queryRaw for the count query to return 2500
+      const mockPrisma = new Proxy(prisma, {
+        get(target, prop) {
+          if (prop === '$queryRaw') {
+            return async (prismaSql: unknown) => {
+              const sqlStr = (prismaSql as { text?: string })?.text || ''
+              if (sqlStr.includes('COUNT(*)')) {
+                return [{ count: 2500n }]
+              }
+              // For main query, just run it or return mock
+              return target.$queryRaw(prismaSql as any)
+            }
+          }
+          const val = Reflect.get(target, prop)
+          if (typeof val === 'function') {
+            return val.bind(target)
+          }
+          return val
+        },
+      })
+
+      const localSearchService = new SearchService(mockPrisma as any)
+      const { rootFolder } = await setupBasicAssets()
+
+      const result = await localSearchService.search(rootFolder.id, {
+        recursively: true,
+        assetType: 'file',
+        operator: 'AND',
+        isSemantic: false,
+      })
+
+      expect(result.pageInfo.total).toBe(2500)
+      expect(result.pageInfo.totalSize).toBe(-1)
+    })
+  })
 })
 
 describe('SearchService — natural sort by name', () => {
