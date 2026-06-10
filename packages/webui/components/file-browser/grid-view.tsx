@@ -81,6 +81,8 @@ interface FileBrowserGridViewProps {
   formatSize: (bytes: number) => string
   foldersSize: number
   filesSize: number
+  totalFoldersSize?: number
+  totalFilesSize?: number
   handleEmptyAreaClick: (e: React.MouseEvent) => void
   dragState?: DragState
   sort?: SearchSort
@@ -105,8 +107,8 @@ export function FileBrowserGridView({
   fetchNextFilesPage,
   formatCount,
   formatSize,
-  foldersSize,
-  filesSize,
+  totalFoldersSize,
+  totalFilesSize,
   handleEmptyAreaClick,
   dragState,
   sort,
@@ -139,22 +141,26 @@ export function FileBrowserGridView({
     )[] = []
 
     // Folders
-    list.push({ type: 'header', kind: 'folder' })
-    if (foldersExpanded) {
-      const count = totalFolders ?? folders.length
-      const rowCount = Math.ceil(count / cols)
-      for (let i = 0; i < rowCount; i++) {
-        list.push({ type: 'row', kind: 'folder', rowIndex: i })
+    const foldersCount = totalFolders ?? folders.length
+    if (foldersCount > 0) {
+      list.push({ type: 'header', kind: 'folder' })
+      if (foldersExpanded) {
+        const rowCount = Math.ceil(foldersCount / cols)
+        for (let i = 0; i < rowCount; i++) {
+          list.push({ type: 'row', kind: 'folder', rowIndex: i })
+        }
       }
     }
 
     // Files
-    list.push({ type: 'header', kind: 'file' })
-    if (filesExpanded) {
-      const count = totalFiles ?? files.length
-      const rowCount = Math.ceil(count / cols)
-      for (let i = 0; i < rowCount; i++) {
-        list.push({ type: 'row', kind: 'file', rowIndex: i })
+    const filesCount = totalFiles ?? files.length
+    if (filesCount > 0) {
+      list.push({ type: 'header', kind: 'file' })
+      if (filesExpanded) {
+        const rowCount = Math.ceil(filesCount / cols)
+        for (let i = 0; i < rowCount; i++) {
+          list.push({ type: 'row', kind: 'file', rowIndex: i })
+        }
       }
     }
 
@@ -167,6 +173,10 @@ export function FileBrowserGridView({
     estimateSize: (index) => (rows[index]?.type === 'header' ? 40 : 200),
     overscan: 5,
   })
+
+  useEffect(() => {
+    rowVirtualizer.measure()
+  }, [folders.length, files.length, foldersExpanded, filesExpanded, cols, rowVirtualizer])
 
   const virtualItems = rowVirtualizer.getVirtualItems()
 
@@ -223,7 +233,8 @@ export function FileBrowserGridView({
           if (row.type === 'header') {
             const isFolder = row.kind === 'folder'
             const count = isFolder ? (totalFolders ?? folders.length) : (totalFiles ?? files.length)
-            const size = isFolder ? foldersSize : filesSize
+            const size = isFolder ? (totalFoldersSize ?? -1) : (totalFilesSize ?? -1)
+            const showSize = size > -1
             const expanded = isFolder ? foldersExpanded : filesExpanded
             const setExpanded = isFolder ? setFoldersExpanded : setFilesExpanded
 
@@ -250,7 +261,7 @@ export function FileBrowserGridView({
                     <ChevronRight className="h-4 w-4" />
                   )}
                   <span>
-                    {formatCount(count, !isFolder)} • {formatSize(size)}
+                    {formatCount(count, !isFolder)}{showSize ? ` • ${formatSize(size)}` : ''}
                   </span>
                 </button>
               </div>

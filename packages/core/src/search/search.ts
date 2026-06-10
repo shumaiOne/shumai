@@ -186,7 +186,16 @@ export class SearchService {
       }
 
       const countRes = await this.prismaClient.$queryRaw<{ count: bigint }[]>(countBuilder.build())
-      pageInfo.total = Number(countRes[0]?.count || 0)
+      const totalCount = Number(countRes[0]?.count || 0)
+      pageInfo.total = totalCount
+
+      if (totalCount < 2000) {
+        countBuilder.select(Prisma.sql`SUM(COALESCE(a.size_byte, 0))::bigint as sum`)
+        const sumRes = await this.prismaClient.$queryRaw<{ sum: bigint | null }[]>(countBuilder.build())
+        pageInfo.totalSize = Number(sumRes[0]?.sum || 0)
+      } else {
+        pageInfo.totalSize = -1
+      }
 
       if (hasNextPage) {
         pageInfo.cursor = encodeCursor(offset + limit)
@@ -338,9 +347,8 @@ export class SearchService {
     }
 
     const pageInfo: PageInfo = {}
-    if (countOverride !== undefined) {
-      pageInfo.total = countOverride
-    } else {
+    let totalCount = countOverride
+    if (totalCount === undefined) {
       const countBuilder = new SqlQueryBuilder()
         .select(Prisma.sql`COUNT(*)`)
         .from(Prisma.sql`assets a`)
@@ -367,7 +375,49 @@ export class SearchService {
       }
 
       const countRes = await this.prismaClient.$queryRaw<{ count: bigint }[]>(countBuilder.build())
-      pageInfo.total = Number(countRes[0]?.count || 0)
+      totalCount = Number(countRes[0]?.count || 0)
+      pageInfo.total = totalCount
+
+      if (totalCount < 2000) {
+        countBuilder.select(Prisma.sql`SUM(COALESCE(a.size_byte, 0))::bigint as sum`)
+        const sumRes = await this.prismaClient.$queryRaw<{ sum: bigint | null }[]>(countBuilder.build())
+        pageInfo.totalSize = Number(sumRes[0]?.sum || 0)
+      } else {
+        pageInfo.totalSize = -1
+      }
+    } else {
+      pageInfo.total = totalCount
+      if (totalCount < 2000) {
+        const countBuilder = new SqlQueryBuilder()
+          .select(Prisma.sql`SUM(COALESCE(a.size_byte, 0))::bigint as sum`)
+          .from(Prisma.sql`assets a`)
+          .addWhere(Prisma.sql`a.is_deleted = false`)
+
+        if (targetFolderIds.length > 0) {
+          countBuilder.addWhere(Prisma.sql`a.parent_id = ANY(${targetFolderIds})`)
+        }
+
+        if (req.showSymlink) {
+          countBuilder.addWhere(Prisma.sql`
+            (a.type = ANY(${targetTypes}::"AssetType"[]) OR (a.type = 'symlink' AND a.target_id IN (SELECT id FROM assets WHERE type = ANY(${targetTypes}::"AssetType"[]))))
+          `)
+        } else {
+          countBuilder.addWhere(Prisma.sql`a.type = ANY(${targetTypes}::"AssetType"[])`)
+        }
+
+        if (req.conditions && req.conditions.length > 0) {
+          countBuilder.addSearchConditions(req.operator, req.conditions, { skipNameContains: true })
+        }
+
+        if (nameCond) {
+          countBuilder.addWhere(Prisma.sql`a.name ILIKE ${'%' + valStr + '%'}`)
+        }
+
+        const sumRes = await this.prismaClient.$queryRaw<{ sum: bigint | null }[]>(countBuilder.build())
+        pageInfo.totalSize = Number(sumRes[0]?.sum || 0)
+      } else {
+        pageInfo.totalSize = -1
+      }
     }
 
     if (hasNextPage) {

@@ -139,6 +139,8 @@ interface FileBrowserListViewProps {
   formatSize: (bytes: number) => string
   foldersSize: number
   filesSize: number
+  totalFoldersSize?: number
+  totalFilesSize?: number
   handleEmptyAreaClick: (e: React.MouseEvent) => void
   dragState?: DragState
   sort?: SearchSort
@@ -166,8 +168,8 @@ export function FileBrowserListView({
   fetchNextFilesPage,
   formatCount,
   formatSize,
-  foldersSize,
-  filesSize,
+  totalFoldersSize,
+  totalFilesSize,
   handleEmptyAreaClick,
   dragState,
   sort,
@@ -227,20 +229,24 @@ export function FileBrowserListView({
     )[] = []
 
     // Folders section
-    list.push({ type: 'header', kind: 'folder' })
-    if (foldersExpanded) {
-      const count = totalFolders ?? folders.length
-      for (let i = 0; i < count; i++) {
-        list.push({ type: 'item', kind: 'folder', index: i })
+    const foldersCount = totalFolders ?? folders.length
+    if (foldersCount > 0) {
+      list.push({ type: 'header', kind: 'folder' })
+      if (foldersExpanded) {
+        for (let i = 0; i < foldersCount; i++) {
+          list.push({ type: 'item', kind: 'folder', index: i })
+        }
       }
     }
 
     // Files section
-    list.push({ type: 'header', kind: 'file' })
-    if (filesExpanded) {
-      const count = totalFiles ?? files.length
-      for (let i = 0; i < count; i++) {
-        list.push({ type: 'item', kind: 'file', index: i })
+    const filesCount = totalFiles ?? files.length
+    if (filesCount > 0) {
+      list.push({ type: 'header', kind: 'file' })
+      if (filesExpanded) {
+        for (let i = 0; i < filesCount; i++) {
+          list.push({ type: 'item', kind: 'file', index: i })
+        }
       }
     }
 
@@ -253,6 +259,10 @@ export function FileBrowserListView({
     estimateSize: () => 40,
     overscan: 10,
   })
+
+  useEffect(() => {
+    rowVirtualizer.measure()
+  }, [folders.length, files.length, foldersExpanded, filesExpanded, rowVirtualizer])
 
   const virtualItems = rowVirtualizer.getVirtualItems()
 
@@ -348,7 +358,8 @@ export function FileBrowserListView({
               const count = isFolder
                 ? (totalFolders ?? folders.length)
                 : (totalFiles ?? files.length)
-              const size = isFolder ? foldersSize : filesSize
+              const size = isFolder ? (totalFoldersSize ?? -1) : (totalFilesSize ?? -1)
+              const showSize = size > -1
               const expanded = isFolder ? foldersExpanded : filesExpanded
               const setExpanded = isFolder ? setFoldersExpanded : setFilesExpanded
               const hasItems = isFolder ? folders.length > 0 : files.length > 0
@@ -395,7 +406,7 @@ export function FileBrowserListView({
                       )}
                     </div>
                     <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-                      {formatCount(count, !isFolder)} • {formatSize(size)}
+                      {formatCount(count, !isFolder)}{showSize ? ` • ${formatSize(size)}` : ''}
                     </span>
                   </div>
                   <div className="flex-1 bg-card" />

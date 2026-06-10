@@ -48,6 +48,8 @@ interface FileBrowserProps {
   files: AssetInfo[]
   totalFolders?: number
   totalFiles?: number
+  totalFoldersSize?: number
+  totalFilesSize?: number
   selectedItem: AssetInfo | null
   selectedIds: Set<string>
   onItemSelect: (item: AssetInfo, event: React.MouseEvent) => void
@@ -92,6 +94,8 @@ export function FileBrowser({
   files,
   totalFolders,
   totalFiles,
+  totalFoldersSize,
+  totalFilesSize,
   selectedItem,
   selectedIds,
   onItemSelect,
@@ -795,6 +799,8 @@ export function FileBrowser({
                   files={displayedFiles}
                   totalFolders={totalFolders}
                   totalFiles={totalFiles}
+                  totalFoldersSize={totalFoldersSize}
+                  totalFilesSize={totalFilesSize}
                   selectedItem={selectedItem}
                   selectedIds={selectedIds}
                   displayedFields={displayedFields}
@@ -826,6 +832,8 @@ export function FileBrowser({
                   files={displayedFiles}
                   totalFolders={totalFolders}
                   totalFiles={totalFiles}
+                  totalFoldersSize={totalFoldersSize}
+                  totalFilesSize={totalFilesSize}
                   renderItem={renderItem}
                   foldersExpanded={foldersExpanded}
                   setFoldersExpanded={setFoldersExpanded}
