@@ -531,7 +531,7 @@ export function FolderTree({
       {!hideShares && (
         <div
           className={cn(
-            'flex flex-col overflow-hidden transition-all duration-300 ease-in-out border-b border-border pb-4',
+            'flex flex-col overflow-hidden transition-all duration-300 ease-in-out',
             isSharesExpanded ? 'flex-1 min-h-0 h-full' : 'flex-none h-[44px] max-h-[44px]',
           )}
         >

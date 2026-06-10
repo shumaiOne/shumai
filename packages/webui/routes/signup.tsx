@@ -157,7 +157,7 @@ function SignupPage() {
             <span>👋</span>
             <span>
               <strong>{inviteInfo.inviterName}</strong> invited you to join{' '}
-              <strong>{inviteInfo.teamName || inviteInfo.projectName}</strong> as a{' '}
+              <strong>{inviteInfo.projectName || inviteInfo.teamName}</strong> as a{' '}
               <strong>{inviteInfo.role}</strong>.
             </span>
           </div>
