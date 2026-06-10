@@ -175,7 +175,11 @@ describe('team api', () => {
         permission: Permission.Read,
       }),
     )
-    expect(mockGetTeamMembers).toHaveBeenCalledWith({ teamId: 't1', includeAgents: false })
+    expect(mockGetTeamMembers).toHaveBeenCalledWith({
+      teamId: 't1',
+      userId: 'user1',
+      includeAgents: false,
+    })
   })
 
   it('GET /teams/:teamId/settings returns settings', async () => {

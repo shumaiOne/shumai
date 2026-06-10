@@ -127,6 +127,7 @@ describe('TeamService', () => {
 
     const members = await teamService.getTeamMembers({
       teamId: team.id,
+      userId: user1.id,
     })
 
     expect(members).toHaveLength(2)
@@ -169,6 +170,7 @@ describe('TeamService', () => {
     // Should hide bots by default
     const members = await teamService.getTeamMembers({
       teamId: team.id,
+      userId: user.id,
     })
     expect(members).toHaveLength(1)
     expect(members[0].id).toBe(user.id)
@@ -176,9 +178,71 @@ describe('TeamService', () => {
     // Should include bots if requested
     const allMembers = await teamService.getTeamMembers({
       teamId: team.id,
+      userId: user.id,
       includeAgents: true,
     })
     expect(allMembers).toHaveLength(2)
+  })
+
+  it('should filter members for project-scoped members', async () => {
+    const owner = await prisma.user.create({
+      data: { name: 'Owner', email: `owner-${Date.now()}@example.com`, password: 'pw' },
+    })
+    const team = await teamService.createTeam(owner, { name: 'Test Team' })
+
+    const teamMember = await prisma.user.create({
+      data: { name: 'Team Member', email: `tm-${Date.now()}@example.com`, password: 'pw' },
+    })
+    await teamService.joinTeam({ teamId: team.id, userId: teamMember.id })
+
+    const projectMember1 = await prisma.user.create({
+      data: { name: 'Proj Member 1', email: `pm1-${Date.now()}@example.com`, password: 'pw' },
+    })
+    const tm1 = await prisma.teamMember.create({
+      data: { teamId: team.id, userId: projectMember1.id, scope: 'project', role: 'editor' },
+    })
+
+    const projectMember2 = await prisma.user.create({
+      data: { name: 'Proj Member 2', email: `pm2-${Date.now()}@example.com`, password: 'pw' },
+    })
+    const tm2 = await prisma.teamMember.create({
+      data: { teamId: team.id, userId: projectMember2.id, scope: 'project', role: 'editor' },
+    })
+
+    const project = await prisma.project.create({
+      data: { name: 'Shared Project', teamId: team.id },
+    })
+
+    await prisma.projectMember.createMany({
+      data: [
+        { projectId: project.id, teamMemberId: tm1.id, role: 'editor' },
+        { projectId: project.id, teamMemberId: tm2.id, role: 'editor' },
+      ],
+    })
+
+    const projectMember3 = await prisma.user.create({
+      data: { name: 'Proj Member 3', email: `pm3-${Date.now()}@example.com`, password: 'pw' },
+    })
+    await prisma.teamMember.create({
+      data: { teamId: team.id, userId: projectMember3.id, scope: 'project', role: 'editor' },
+    })
+
+    // Owner (team scope) should see everyone (4 users)
+    const ownerView = await teamService.getTeamMembers({ teamId: team.id, userId: owner.id })
+    expect(ownerView).toHaveLength(5) // Owner, Team Member, PM1, PM2, PM3
+
+    // PM1 (project scope) should see: Owner, Team Member, PM2 (shares project), but NOT PM3
+    const pm1View = await teamService.getTeamMembers({ teamId: team.id, userId: projectMember1.id })
+    const pm1ViewIds = pm1View.map((m) => m.id)
+    expect(pm1View).toHaveLength(4)
+    expect(pm1ViewIds).toContain(owner.id)
+    expect(pm1ViewIds).toContain(teamMember.id)
+    expect(pm1ViewIds).toContain(projectMember2.id)
+    expect(pm1ViewIds).not.toContain(projectMember3.id)
+
+    // Check scopes are returned
+    expect(pm1View.find((m) => m.id === owner.id)?.scope).toBe('team')
+    expect(pm1View.find((m) => m.id === projectMember2.id)?.scope).toBe('project')
   })
 
   it('should get and update settings', async () => {
