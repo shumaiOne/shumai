@@ -50,7 +50,7 @@
     "vite-tsconfig-paths": "^6.1.1"
   },
   "dependencies": {
-    "@tanstack/react-virtual": "^3.13.26",
+    "@tanstack/react-virtual": "^3.14.2",
     "jittered-fractional-indexing": "^1.0.1"
   }
 }
