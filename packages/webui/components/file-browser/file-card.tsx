@@ -1,7 +1,10 @@
-import type { AssetInfo, FieldValueInfo } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
+import type { AssetInfo, FieldValueInfo } from '@shumai/dtos'
 import { useQuery } from '@tanstack/react-query'
 
+import { Badge } from '@/ui/components/ui/badge'
+import { Button } from '@/ui/components/ui/button'
+import { Checkbox } from '@/ui/components/ui/checkbox'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,19 +12,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu'
+import { EditableText } from '@/ui/components/ui/editable-text'
+import { Skeleton } from '@/ui/components/ui/skeleton'
 import { formatTimeAgo } from '@/ui/lib/time'
+import { cn } from '@/ui/lib/utils'
 import { useDraggable, useDroppable } from '@dnd-kit/react'
 import { Download, Edit, History, MoreHorizontal, Trash2 } from 'lucide-react'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { cn } from '@/ui/lib/utils'
 import type { DragState } from '../dnd-types'
 import FieldRenderer from '../field-renderer'
 import { FilePreview } from './file-preview'
-import { Badge } from '@/ui/components/ui/badge'
-import { Button } from '@/ui/components/ui/button'
-import { Checkbox } from '@/ui/components/ui/checkbox'
-import { EditableText } from '@/ui/components/ui/editable-text'
-import { Skeleton } from '@/ui/components/ui/skeleton'
 
 import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
 
@@ -275,7 +275,7 @@ export function FileCard({
             onBlur={handleRename}
             onKeyDown={handleKeyDown}
             disabled={!isEditing}
-            className="h-auto p-0 text-sm text-foreground"
+            className="h-auto p-0 text-sm text-foreground !bg-transparent"
           />
           <p className="text-sm text-muted-foreground">
             {displayItem.createdAt && formatTimeAgo(displayItem.createdAt)} by{' '}

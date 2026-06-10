@@ -1,4 +1,3 @@
-import type { AssetInfo, ChildPreview } from '@shumai/dtos'
 import { Checkbox } from '@/ui/components/ui/checkbox'
 import {
   DropdownMenu,
@@ -10,6 +9,7 @@ import {
 import { EditableText } from '@/ui/components/ui/editable-text'
 import { cn } from '@/ui/lib/utils'
 import { useDraggable, useDroppable } from '@dnd-kit/react'
+import type { AssetInfo, ChildPreview } from '@shumai/dtos'
 import { Download, Edit, History, MoreHorizontal, Trash2 } from 'lucide-react'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { DragState } from '../dnd-types'
@@ -56,17 +56,19 @@ const FolderPreviewGrid = ({ items }: { items: ChildPreview[] }) => {
 
   // 1 Item
   if (count === 1) {
-    return <div className="w-full h-full bg-muted/50 rounded-sm">{renderItem(safeChildren[0])}</div>
+    return (
+      <div className="w-full h-full bg-foreground/6 rounded-sm">{renderItem(safeChildren[0])}</div>
+    )
   }
 
   // 2 Items
   if (count === 2) {
     return (
       <div className="grid grid-cols-2 gap-0.5 h-full w-full">
-        <div className="overflow-hidden h-full bg-muted/50 rounded-sm">
+        <div className="overflow-hidden h-full bg-foreground/6 rounded-sm">
           {renderItem(safeChildren[0])}
         </div>
-        <div className="overflow-hidden h-full bg-muted/50 rounded-sm">
+        <div className="overflow-hidden h-full bg-foreground/6 rounded-sm">
           {renderItem(safeChildren[1])}
         </div>
       </div>
@@ -76,14 +78,14 @@ const FolderPreviewGrid = ({ items }: { items: ChildPreview[] }) => {
   // 3 Items
   return (
     <div className="grid grid-cols-3 gap-0.5 h-full w-full">
-      <div className="col-span-1 overflow-hidden h-full relative bg-muted/50 rounded-sm col-span-2">
+      <div className="col-span-1 overflow-hidden h-full relative bg-foreground/6 rounded-sm col-span-2">
         <div className="absolute inset-0 w-full h-full">{renderItem(safeChildren[0])}</div>
       </div>
       <div className="col-span-1 grid grid-rows-2 gap-0.5 h-full col-span-1">
-        <div className="overflow-hidden h-full relative bg-muted/50 rounded-sm">
+        <div className="overflow-hidden h-full relative bg-foreground/6 rounded-sm">
           <div className="absolute inset-0 w-full h-full">{renderItem(safeChildren[1])}</div>
         </div>
-        <div className="overflow-hidden h-full relative bg-muted/50 rounded-sm">
+        <div className="overflow-hidden h-full relative bg-foreground/6 rounded-sm">
           <div className="absolute inset-0 w-full h-full">{renderItem(safeChildren[2])}</div>
         </div>
       </div>
@@ -198,14 +200,14 @@ export function FolderCard({
   const tabHeight = 8
   const config = {
     cornerRadius: 4,
-    tabRadius: 0,
+    tabRadius: 5,
     tabSlope: 15,
-    tabBaseWidth: 150,
+    tabBaseWidth: 120,
   }
   const folderPath = useMemo(() => {
     const { cornerRadius: cr, tabRadius: tr, tabSlope: ts, tabBaseWidth: tbw } = config
     const s = 1
-    return `M ${s}, ${tabHeight + s} L ${s}, ${s + tr} A ${tr} ${tr} 0 0 1 ${s + tr} ${s} L ${tbw - ts + s - tr} ${s} Q ${tbw - ts + s} ${s} ${tbw - ts + s + tr} ${s + tr} L ${tbw + s} ${tabHeight + s} L ${width - cr - s} ${tabHeight + s} A ${cr} ${cr} 0 0 1 ${width - s} ${tabHeight + cr + s} L ${width - s} ${height - cr - s} A ${cr} ${cr} 0 0 1 ${width - cr - s} ${height - s} L ${cr + s} ${height - s} A ${cr} ${cr} 0 0 1 ${s} ${height - cr - s} Z`
+    return `M ${s}, ${tabHeight + s} L ${s}, ${s + tr} A ${tr} ${tr} 0 0 1 ${s + tr} ${s} L ${tbw - ts + s - tr} ${s} Q ${tbw - ts + s} ${s} ${tbw - ts + s} ${s} L ${tbw + s} ${tabHeight + s} L ${width - cr - s} ${tabHeight + s} A ${cr} ${cr} 0 0 1 ${width - s} ${tabHeight + cr + s} L ${width - s} ${height - cr - s} A ${cr} ${cr} 0 0 1 ${width - cr - s} ${height - s} L ${cr + s} ${height - s} A ${cr} ${cr} 0 0 1 ${s} ${height - cr - s} Z`
       .replace(/\s+/g, ' ')
       .trim()
   }, [])
@@ -240,14 +242,14 @@ export function FolderCard({
             strokeLinejoin="round"
             strokeWidth={showDropFeedback ? 3 : 1}
             className={cn(
-              'transition-colors duration-200 fill-none group-hover:stroke-primary',
+              'transition-colors duration-200 fill-none group-hover:stroke-primary stroke-foreground/10',
               (isSelected || isChecked || showDropFeedback) && 'stroke-primary',
             )}
           />
         </svg>
       </div>
 
-      <div className="absolute inset-0 -z-10 drop-shadow-sm pointer-events-none">
+      <div className="absolute inset-0 -z-10 pointer-events-none">
         <svg
           width="100%"
           height="100%"
@@ -260,12 +262,14 @@ export function FolderCard({
             vectorEffect="non-scaling-stroke"
             strokeLinejoin="round"
             strokeWidth={showDropFeedback ? 3 : 1}
-            className={cn('transition-colors duration-200 fill-foreground/15')}
+            className={cn(
+              'transition-colors duration-200 fill-foreground/6 dark:fill-foreground/4',
+            )}
           />
         </svg>
       </div>
 
-      <div className="relative w-full flex flex-1 flex-col p-2 mt-5 bg-muted dark:bg-card rounded-sm">
+      <div className="shadow-[0_-4px_6px_rgba(0,0,0,0.08)] relative w-full flex flex-1 flex-col p-2 mt-5 bg-muted dark:bg-muted/50 rounded-sm">
         <div className="relative w-full aspect-video shrink-0 overflow-hidden">
           <div className="absolute top-1 left-1 z-30 transition-all duration-200">
             <Checkbox
