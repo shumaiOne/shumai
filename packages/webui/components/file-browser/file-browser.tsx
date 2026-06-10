@@ -15,7 +15,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { Download } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useInView } from 'react-intersection-observer'
 import { toast } from 'sonner'
 import type { DragState } from '../dnd-types'
 import { MoveCopyDialog } from '../move-copy-dialog'
@@ -49,6 +48,8 @@ interface FileBrowserProps {
   files: AssetInfo[]
   totalFolders?: number
   totalFiles?: number
+  totalFoldersSize?: number
+  totalFilesSize?: number
   selectedItem: AssetInfo | null
   selectedIds: Set<string>
   onItemSelect: (item: AssetInfo, event: React.MouseEvent) => void
@@ -93,6 +94,8 @@ export function FileBrowser({
   files,
   totalFolders,
   totalFiles,
+  totalFoldersSize,
+  totalFilesSize,
   selectedItem,
   selectedIds,
   onItemSelect,
@@ -418,21 +421,6 @@ export function FileBrowser({
   const { canEdit } = usePermissions()
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
-
-  const { ref: foldersRef, inView: foldersInView } = useInView()
-  const { ref: filesRef, inView: filesInView } = useInView()
-
-  useEffect(() => {
-    if (foldersInView && hasNextFoldersPage && !isFetchingNextFoldersPage) {
-      fetchNextFoldersPage()
-    }
-  }, [foldersInView, hasNextFoldersPage, isFetchingNextFoldersPage, fetchNextFoldersPage])
-
-  useEffect(() => {
-    if (filesInView && hasNextFilesPage && !isFetchingNextFilesPage) {
-      fetchNextFilesPage()
-    }
-  }, [filesInView, hasNextFilesPage, isFetchingNextFilesPage, fetchNextFilesPage])
 
   const foldersSize = folders.reduce((acc, f) => acc + (f.sizeByte || 0), 0)
   const filesSize = displayedFiles.reduce((acc, f) => acc + (f.sizeByte || 0), 0)
@@ -815,6 +803,8 @@ export function FileBrowser({
                   files={displayedFiles}
                   totalFolders={totalFolders}
                   totalFiles={totalFiles}
+                  totalFoldersSize={totalFoldersSize}
+                  totalFilesSize={totalFilesSize}
                   selectedItem={selectedItem}
                   selectedIds={selectedIds}
                   displayedFields={displayedFields}
@@ -825,10 +815,12 @@ export function FileBrowser({
                   setFoldersExpanded={setFoldersExpanded}
                   filesExpanded={filesExpanded}
                   setFilesExpanded={setFilesExpanded}
-                  foldersRef={foldersRef}
-                  filesRef={filesRef}
                   hasNextFoldersPage={hasNextFoldersPage}
                   hasNextFilesPage={hasNextFilesPage}
+                  isFetchingNextFoldersPage={isFetchingNextFoldersPage}
+                  isFetchingNextFilesPage={isFetchingNextFilesPage}
+                  fetchNextFoldersPage={fetchNextFoldersPage}
+                  fetchNextFilesPage={fetchNextFilesPage}
                   formatCount={formatCount}
                   formatSize={formatSize}
                   foldersSize={foldersSize}
@@ -843,15 +835,19 @@ export function FileBrowser({
                   files={displayedFiles}
                   totalFolders={totalFolders}
                   totalFiles={totalFiles}
+                  totalFoldersSize={totalFoldersSize}
+                  totalFilesSize={totalFilesSize}
                   renderItem={renderItem}
                   foldersExpanded={foldersExpanded}
                   setFoldersExpanded={setFoldersExpanded}
                   filesExpanded={filesExpanded}
                   setFilesExpanded={setFilesExpanded}
-                  foldersRef={foldersRef}
-                  filesRef={filesRef}
                   hasNextFoldersPage={hasNextFoldersPage}
                   hasNextFilesPage={hasNextFilesPage}
+                  isFetchingNextFoldersPage={isFetchingNextFoldersPage}
+                  isFetchingNextFilesPage={isFetchingNextFilesPage}
+                  fetchNextFoldersPage={fetchNextFoldersPage}
+                  fetchNextFilesPage={fetchNextFilesPage}
                   formatCount={formatCount}
                   formatSize={formatSize}
                   foldersSize={foldersSize}
@@ -859,6 +855,7 @@ export function FileBrowser({
                   handleEmptyAreaClick={handleEmptyAreaClick}
                   dragState={dragState}
                   sort={sort}
+                  scrollContainerRef={scrollContainerRef}
                 />
               )}
 

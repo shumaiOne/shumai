@@ -3,6 +3,7 @@ import { z } from 'zod'
 export const paginationPageInfoSchema = z.object({
   cursor: z.string().optional(),
   total: z.number().optional(),
+  totalSize: z.number().optional(),
 })
 
 export type PaginationPageInfo = z.infer<typeof paginationPageInfoSchema>

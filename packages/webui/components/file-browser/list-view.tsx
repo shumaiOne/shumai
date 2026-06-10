@@ -5,8 +5,9 @@ import type { FieldInfo } from '@shumai/dtos'
 import type { SearchSort } from '@shumai/dtos'
 import { useDroppable } from '@dnd-kit/react'
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from '@tanstack/react-table'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { ChevronDown, ChevronRight } from 'lucide-react'
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import { cn } from '../../lib/utils'
 import type { DragState } from '../dnd-types'
 import { Checkbox } from '../ui/checkbox'
@@ -18,9 +19,20 @@ interface ListRowProps {
   dragState?: DragState
   isSelected?: boolean
   columnSizing?: Record<string, number>
+  virtualRow: { start: number; index: number }
+  measureElement: (el: HTMLElement | null) => void
 }
 
-function ListRow({ item, renderItem, active, dragState, isSelected, columnSizing }: ListRowProps) {
+function ListRow({
+  item,
+  renderItem,
+  active,
+  dragState,
+  isSelected,
+  columnSizing,
+  virtualRow,
+  measureElement,
+}: ListRowProps) {
   const isDraggingItem = dragState?.draggedIds.has(item.id!)
   const isDraggingAny = dragState?.isActive
 
@@ -72,30 +84,33 @@ function ListRow({ item, renderItem, active, dragState, isSelected, columnSizing
   const showDropFeedback = isRowOver && isValidDropTarget
 
   return (
-    <tbody
-      ref={setRowRef}
+    <div
+      ref={(node) => {
+        setRowRef(node)
+        measureElement(node)
+      }}
+      data-index={virtualRow.index}
       className={cn(
-        'group border-b border-border transition-colors hover:bg-primary/20 relative',
+        'group border-b border-border transition-colors hover:bg-primary/20 absolute top-0 left-0 w-full flex flex-col',
         isSelected && 'bg-primary/10',
         showDropFeedback && 'bg-primary/10',
         isTopOver && 'border-t-2 border-t-primary',
         isBottomOver && 'border-b-2 border-b-primary',
       )}
+      style={{
+        transform: `translateY(${virtualRow.start}px)`,
+      }}
     >
-      <tr
+      <div
         ref={setTopRef}
-        className="p-0 m-0 leading-none bg-transparent pointer-events-auto h-[2px]"
-      >
-        <td colSpan={100} className="p-0 m-0 border-0" />
-      </tr>
+        className="p-0 m-0 leading-none bg-transparent pointer-events-auto h-[2px] w-full"
+      />
       {renderItem(item, columnSizing)}
-      <tr
+      <div
         ref={setBottomRef}
-        className="p-0 m-0 leading-none bg-transparent pointer-events-auto h-[2px]"
-      >
-        <td colSpan={100} className="p-0 m-0 border-0" />
-      </tr>
-    </tbody>
+        className="p-0 m-0 leading-none bg-transparent pointer-events-auto h-[2px] w-full"
+      />
+    </div>
   )
 }
 
@@ -114,14 +129,18 @@ interface FileBrowserListViewProps {
   setFoldersExpanded: (expanded: boolean) => void
   filesExpanded: boolean
   setFilesExpanded: (expanded: boolean) => void
-  foldersRef: (node?: Element | null) => void
-  filesRef: (node?: Element | null) => void
   hasNextFoldersPage: boolean
   hasNextFilesPage: boolean
+  isFetchingNextFoldersPage: boolean
+  isFetchingNextFilesPage: boolean
+  fetchNextFoldersPage: () => void
+  fetchNextFilesPage: () => void
   formatCount: (count: number, isFile: boolean) => string
   formatSize: (bytes: number) => string
   foldersSize: number
   filesSize: number
+  totalFoldersSize?: number
+  totalFilesSize?: number
   handleEmptyAreaClick: (e: React.MouseEvent) => void
   dragState?: DragState
   sort?: SearchSort
@@ -140,14 +159,16 @@ export function FileBrowserListView({
   setFoldersExpanded,
   filesExpanded,
   setFilesExpanded,
-  foldersRef,
-  filesRef,
   hasNextFoldersPage,
   hasNextFilesPage,
+  isFetchingNextFoldersPage,
+  isFetchingNextFilesPage,
+  fetchNextFoldersPage,
+  fetchNextFilesPage,
   formatCount,
   formatSize,
-  foldersSize,
-  filesSize,
+  totalFoldersSize,
+  totalFilesSize,
   handleEmptyAreaClick,
   dragState,
   sort,
@@ -199,24 +220,115 @@ export function FileBrowserListView({
     onColumnSizingChange: setColumnSizing,
   })
 
+  const items = useMemo(() => {
+    const list: (
+      | { type: 'header'; kind: 'folder' | 'file' }
+      | { type: 'item'; kind: 'folder' | 'file'; index: number }
+    )[] = []
+
+    // Folders section
+    const foldersCount = totalFolders ?? folders.length
+    if (foldersCount > 0) {
+      list.push({ type: 'header', kind: 'folder' })
+      if (foldersExpanded) {
+        for (let i = 0; i < foldersCount; i++) {
+          list.push({ type: 'item', kind: 'folder', index: i })
+        }
+      }
+    }
+
+    // Files section
+    const filesCount = totalFiles ?? files.length
+    if (filesCount > 0) {
+      list.push({ type: 'header', kind: 'file' })
+      if (filesExpanded) {
+        for (let i = 0; i < filesCount; i++) {
+          list.push({ type: 'item', kind: 'file', index: i })
+        }
+      }
+    }
+
+    return list
+  }, [foldersExpanded, filesExpanded, folders.length, files.length, totalFolders, totalFiles])
+
+  const localScrollRef = React.useRef<HTMLDivElement>(null)
+
+  const rowVirtualizer = useVirtualizer({
+    count: items.length,
+    getScrollElement: () => localScrollRef.current,
+    estimateSize: () => 40,
+    getItemKey: React.useCallback(
+      (index: number) => {
+        const item = items[index]
+        if (!item) return index
+        if (item.type === 'header') {
+          return `header-${item.kind}`
+        }
+        const dataItem = item.kind === 'folder' ? folders[item.index] : files[item.index]
+        return dataItem?.id || `item-${item.kind}-${item.index}`
+      },
+      [items, folders, files],
+    ),
+    overscan: 10,
+  })
+
+  const virtualItems = rowVirtualizer.getVirtualItems()
+
+  useEffect(() => {
+    if (virtualItems.length === 0) return
+
+    for (const virtualItem of virtualItems) {
+      const item = items[virtualItem.index]
+      if (item?.type === 'item') {
+        const isSkeleton = item.kind === 'folder' ? !folders[item.index] : !files[item.index]
+        const isNearEnd =
+          item.kind === 'folder'
+            ? item.index >= folders.length - 15
+            : item.index >= files.length - 15
+
+        if (item.kind === 'folder' && hasNextFoldersPage && !isFetchingNextFoldersPage) {
+          if (isSkeleton || isNearEnd) {
+            fetchNextFoldersPage()
+            break
+          }
+        } else if (item.kind === 'file' && hasNextFilesPage && !isFetchingNextFilesPage) {
+          if (isSkeleton || isNearEnd) {
+            fetchNextFilesPage()
+            break
+          }
+        }
+      }
+    }
+  }, [
+    virtualItems,
+    items,
+    folders.length,
+    files.length,
+    hasNextFoldersPage,
+    hasNextFilesPage,
+    isFetchingNextFoldersPage,
+    isFetchingNextFilesPage,
+    fetchNextFoldersPage,
+    fetchNextFilesPage,
+  ])
+
   return (
-    <div className="flex-1 overflow-x-auto" onClick={handleEmptyAreaClick}>
-      <table
-        className="w-full border-collapse"
+    <div ref={localScrollRef} className="flex-1 overflow-auto" onClick={handleEmptyAreaClick}>
+      <div
+        className="w-full relative"
         style={{
-          tableLayout: 'fixed',
           width: table.getTotalSize(),
           minWidth: '100%',
         }}
       >
-        <thead className="sticky top-0 z-30 bg-background border-b border-border">
+        <div className="sticky top-0 z-30 bg-background border-b border-border flex flex-col">
           {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id} className="bg-muted/50 whitespace-nowrap">
+            <div key={headerGroup.id} className="bg-muted/50 whitespace-nowrap flex">
               {headerGroup.headers.map((header) => (
-                <th
+                <div
                   key={header.id}
                   className={cn(
-                    'px-4 py-2 text-left text-xs font-medium text-muted-foreground relative border-r',
+                    'px-4 py-2 text-left text-xs font-medium text-muted-foreground relative border-r flex items-center',
                     header.id === 'name' && 'sticky left-0 z-40 bg-muted',
                   )}
                   style={{
@@ -234,32 +346,60 @@ export function FileBrowserListView({
                       header.column.getIsResizing() && 'bg-primary w-1',
                     )}
                   />
-                </th>
+                </div>
               ))}
-            </tr>
+            </div>
           ))}
-        </thead>
+        </div>
 
-        {folders.length > 0 && (
-          <>
-            <tbody className="bg-card">
-              <tr
-                className="border-b border-border hover:bg-muted/50 transition-colors cursor-pointer group"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setFoldersExpanded(!foldersExpanded)
-                }}
-              >
-                <td
-                  className="px-4 py-2 sticky left-0 z-10 bg-card border-r"
+        <div
+          className="relative"
+          style={{
+            height: `${rowVirtualizer.getTotalSize()}px`,
+          }}
+        >
+          {virtualItems.map((virtualRow) => {
+            const item = items[virtualRow.index]
+
+            if (item.type === 'header') {
+              const isFolder = item.kind === 'folder'
+              const count = isFolder
+                ? (totalFolders ?? folders.length)
+                : (totalFiles ?? files.length)
+              const size = isFolder ? (totalFoldersSize ?? -1) : (totalFilesSize ?? -1)
+              const showSize = size > -1
+              const expanded = isFolder ? foldersExpanded : filesExpanded
+              const setExpanded = isFolder ? setFoldersExpanded : setFilesExpanded
+              const hasItems = isFolder ? folders.length > 0 : files.length > 0
+
+              return (
+                <div
+                  key={`header-${item.kind}`}
+                  ref={rowVirtualizer.measureElement}
+                  data-index={virtualRow.index}
+                  className="absolute top-0 left-0 w-full border-b border-border hover:bg-muted/50 transition-colors cursor-pointer group flex bg-card z-20"
                   style={{
-                    width: columnSizing?.['name'] || 300,
-                    minWidth: columnSizing?.['name'] || 300,
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setExpanded(!expanded)
                   }}
                 >
-                  <div className="flex items-center gap-2">
+                  <div
+                    className="px-4 py-2 sticky left-0 z-10 bg-card border-r flex items-center gap-2"
+                    style={{
+                      width: columnSizing?.['name'] || 300,
+                      minWidth: columnSizing?.['name'] || 300,
+                    }}
+                  >
                     <Checkbox
-                      checked={folders.length > 0 && folders.every((f) => selectedIds.has(f.id!))}
+                      checked={
+                        hasItems &&
+                        (isFolder
+                          ? folders.every((f) => selectedIds.has(f.id!))
+                          : files.every((f) => selectedIds.has(f.id!)))
+                      }
                       onCheckedChange={() => {
                         // Batch selection logic
                       }}
@@ -267,110 +407,55 @@ export function FileBrowserListView({
                       className="h-4 w-4"
                     />
                     <div className="p-1 rounded hover:bg-muted">
-                      {foldersExpanded ? (
+                      {expanded ? (
                         <ChevronDown className="h-4 w-4 text-muted-foreground" />
                       ) : (
                         <ChevronRight className="h-4 w-4 text-muted-foreground" />
                       )}
                     </div>
                     <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-                      {formatCount(totalFolders ?? folders.length, false)} •{' '}
-                      {formatSize(foldersSize)}
+                      {formatCount(count, !isFolder)}
+                      {showSize ? ` • ${formatSize(size)}` : ''}
                     </span>
                   </div>
-                </td>
-                <td colSpan={columns.length - 1} className="bg-card" />
-              </tr>
-            </tbody>
-            {foldersExpanded &&
-              folders.map((item) => (
-                <ListRow
-                  key={item.id}
-                  item={item}
-                  renderItem={renderItem}
-                  active={sort?.field === 'custom'}
-                  dragState={dragState}
-                  isSelected={selectedItem?.id === item.id}
-                  columnSizing={columnSizing}
-                />
-              ))}
-            {hasNextFoldersPage && (
-              <tbody className="bg-transparent">
-                <tr>
-                  <td colSpan={columns.length}>
-                    <div ref={foldersRef} className="h-1" />
-                  </td>
-                </tr>
-              </tbody>
-            )}
-          </>
-        )}
+                  <div className="flex-1 bg-card" />
+                </div>
+              )
+            }
 
-        {files.length > 0 && (
-          <>
-            <tbody className="bg-card">
-              <tr
-                className="border-b border-border hover:bg-muted/50 transition-colors cursor-pointer group"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setFilesExpanded(!filesExpanded)
-                }}
-              >
-                <td
-                  className="px-4 py-2 sticky left-0 z-10 bg-card border-r"
+            const dataItem = item.kind === 'folder' ? folders[item.index] : files[item.index]
+
+            if (!dataItem) {
+              return (
+                <div
+                  key={`skeleton-${item.kind}-${item.index}`}
+                  ref={rowVirtualizer.measureElement}
+                  className="absolute top-0 left-0 w-full border-b border-border px-4 py-3 flex items-center animate-pulse"
                   style={{
-                    width: columnSizing?.['name'] || 300,
-                    minWidth: columnSizing?.['name'] || 300,
+                    transform: `translateY(${virtualRow.start}px)`,
                   }}
                 >
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      checked={files.length > 0 && files.every((f) => selectedIds.has(f.id!))}
-                      onCheckedChange={() => {
-                        // Batch selection logic
-                      }}
-                      onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                      className="h-4 w-4"
-                    />
-                    <div className="p-1 rounded hover:bg-muted">
-                      {filesExpanded ? (
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </div>
-                    <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-                      {formatCount(totalFiles ?? files.length, true)} • {formatSize(filesSize)}
-                    </span>
-                  </div>
-                </td>
-                <td colSpan={columns.length - 1} className="bg-card" />
-              </tr>
-            </tbody>
-            {filesExpanded &&
-              files.map((item) => (
-                <ListRow
-                  key={item.id}
-                  item={item}
-                  renderItem={renderItem}
-                  active={sort?.field === 'custom'}
-                  dragState={dragState}
-                  isSelected={selectedItem?.id === item.id}
-                  columnSizing={columnSizing}
-                />
-              ))}
-            {hasNextFilesPage && (
-              <tbody className="bg-transparent">
-                <tr>
-                  <td colSpan={columns.length}>
-                    <div ref={filesRef} className="h-1" />
-                  </td>
-                </tr>
-              </tbody>
-            )}
-          </>
-        )}
-      </table>
+                  <div className="h-4 bg-muted rounded w-1/4" />
+                </div>
+              )
+            }
+
+            return (
+              <ListRow
+                key={dataItem.id}
+                item={dataItem}
+                renderItem={renderItem}
+                active={sort?.field === 'custom'}
+                dragState={dragState}
+                isSelected={selectedItem?.id === dataItem.id}
+                columnSizing={columnSizing}
+                virtualRow={virtualRow}
+                measureElement={rowVirtualizer.measureElement}
+              />
+            )
+          })}
+        </div>
+      </div>
     </div>
   )
 }

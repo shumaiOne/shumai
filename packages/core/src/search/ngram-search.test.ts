@@ -224,8 +224,8 @@ describe('N-gram Search Integration', () => {
         conditions: [{ field: 'name', operator: 'contains', value: 'rareterm' }],
       })
 
-      // Verify probe and main query were executed
-      expect(queries).toHaveLength(2)
+      // Verify probe, main query, and sum query were executed
+      expect(queries).toHaveLength(3)
       // Check that main query used GIN index
       const mainQuery = queries.find((q) => q.includes('as "assetId"'))
       expect(mainQuery).toBeDefined()

@@ -274,6 +274,8 @@ export default function FileSystemManager({
 
   const totalFolders = foldersData?.pages[0]?.pageInfo?.total
   const totalFiles = filesData?.pages[0]?.pageInfo?.total
+  const totalFoldersSize = foldersData?.pages[0]?.pageInfo?.totalSize
+  const totalFilesSize = filesData?.pages[0]?.pageInfo?.totalSize
 
   const handleClearSelection = () => {
     setSelectedIds(new Set())
@@ -454,6 +456,8 @@ export default function FileSystemManager({
             files={files}
             totalFolders={totalFolders}
             totalFiles={totalFiles}
+            totalFoldersSize={totalFoldersSize}
+            totalFilesSize={totalFilesSize}
             selectedItem={selectedItem}
             selectedIds={selectedIds}
             onItemSelect={handleItemSelect}

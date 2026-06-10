@@ -13,6 +13,7 @@ export interface PaginationParams {
 export interface PageInfo {
   total?: number
   cursor?: string
+  totalSize?: number
 }
 
 export interface PaginatedData<T> {
