@@ -233,7 +233,7 @@ function TeamSettingsPage() {
               )}
             </button>
 
-            {me?.role === 'admin' && (
+            {me?.role === 'owner' && (
               <button
                 onClick={() => setActiveTab('transcode')}
                 className={cn(
@@ -267,7 +267,7 @@ function TeamSettingsPage() {
               )}
             </button>
 
-            {me?.role === 'admin' && (
+            {me?.role === 'owner' && (
               <>
                 <div className="mt-6 mb-2 px-4 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider pt-4 border-t border-sidebar-border">
                   AI
