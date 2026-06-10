@@ -257,12 +257,20 @@ export function FileBrowserListView({
     count: items.length,
     getScrollElement: () => localScrollRef.current,
     estimateSize: () => 40,
+    getItemKey: React.useCallback(
+      (index: number) => {
+        const item = items[index]
+        if (!item) return index
+        if (item.type === 'header') {
+          return `header-${item.kind}`
+        }
+        const dataItem = item.kind === 'folder' ? folders[item.index] : files[item.index]
+        return dataItem?.id || `item-${item.kind}-${item.index}`
+      },
+      [items, folders, files],
+    ),
     overscan: 10,
   })
-
-  useEffect(() => {
-    rowVirtualizer.measure()
-  }, [folders.length, files.length, foldersExpanded, filesExpanded, rowVirtualizer])
 
   const virtualItems = rowVirtualizer.getVirtualItems()
 
