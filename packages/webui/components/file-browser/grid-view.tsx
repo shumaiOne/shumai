@@ -1,11 +1,10 @@
 'use client'
 
-import type { AssetInfo } from '@shumai/dtos'
-import type { SearchSort } from '@shumai/dtos'
 import { useDroppable } from '@dnd-kit/react'
+import type { AssetInfo, SearchSort } from '@shumai/dtos'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { ChevronDown, ChevronRight } from 'lucide-react'
-import React, { useMemo, useState, useEffect, useRef } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '../../lib/utils'
 import type { DragState } from '../dnd-types'
 
@@ -170,13 +169,20 @@ export function FileBrowserGridView({
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollContainerRef.current,
-    estimateSize: (index) => (rows[index]?.type === 'header' ? 40 : 200),
+    estimateSize: (index) => (rows[index]?.type === 'header' ? 40 : 350),
+    getItemKey: React.useCallback(
+      (index: number) => {
+        const row = rows[index]
+        if (!row) return index
+        if (row.type === 'header') {
+          return `header-${row.kind}`
+        }
+        return `row-${row.kind}-${row.rowIndex}`
+      },
+      [rows],
+    ),
     overscan: 5,
   })
-
-  useEffect(() => {
-    rowVirtualizer.measure()
-  }, [folders.length, files.length, foldersExpanded, filesExpanded, cols, rowVirtualizer])
 
   const virtualItems = rowVirtualizer.getVirtualItems()
 
@@ -306,7 +312,7 @@ export function FileBrowserGridView({
                 }
 
                 return (
-                  <div key={item.id} className="group-reorder relative flex">
+                  <div key={item.id} className="group-reorder relative flex pb-10">
                     <ReorderIndicator
                       id={`reorder-before-${row.kind}-${item.id}`}
                       item={item}
