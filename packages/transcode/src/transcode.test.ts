@@ -106,7 +106,7 @@ describe('TranscodeService', () => {
     expect(info.originalHeight).toBe(600)
     expect(info.mimeType).toBe('png')
     expect(info.duration).toBe(0)
-    expect(sharp).toHaveBeenCalledWith('test.png')
+    expect(sharp).toHaveBeenCalledWith('test.png', { limitInputPixels: false })
   })
 
   it('should construct correct ffmpeg arguments for video transcoding', async () => {
@@ -147,9 +147,9 @@ describe('TranscodeService', () => {
     const outputFile = path.join(tempDir, 'output.webp')
     await transcodeService.transcodeImage('input.png', outputFile, 480, 80)
 
-    expect(sharp).toHaveBeenCalledWith('input.png')
+    expect(sharp).toHaveBeenCalledWith('input.png', { limitInputPixels: false })
     const mockSharp = vi.mocked(sharp).mock.results[0].value
-    expect(mockSharp.resize).toHaveBeenCalledWith(480, null, expect.any(Object))
+    expect(mockSharp.resize).toHaveBeenCalledWith(480, 7680, expect.any(Object))
     expect(mockSharp.webp).toHaveBeenCalledWith({ quality: 80 })
     expect(mockSharp.toFile).toHaveBeenCalledWith(outputFile)
   })
@@ -166,7 +166,7 @@ describe('TranscodeService', () => {
     await transcodeService.transcodeImage('http://example.com/image.png', outputFile, 480, 80)
 
     expect(global.fetch).toHaveBeenCalledWith('http://example.com/image.png')
-    expect(sharp).toHaveBeenCalledWith(expect.any(Buffer))
+    expect(sharp).toHaveBeenCalledWith(expect.any(Buffer), { limitInputPixels: false })
   })
 
   it('should support Buffer as input for image transcoding', async () => {
@@ -174,9 +174,9 @@ describe('TranscodeService', () => {
     const outputFile = path.join(tempDir, 'output-buffer.webp')
     await transcodeService.transcodeImage(inputBuffer, outputFile, 480, 80)
 
-    expect(sharp).toHaveBeenCalledWith(inputBuffer)
+    expect(sharp).toHaveBeenCalledWith(inputBuffer, { limitInputPixels: false })
     const mockSharp = vi.mocked(sharp).mock.results[vi.mocked(sharp).mock.results.length - 1].value
-    expect(mockSharp.resize).toHaveBeenCalledWith(480, null, expect.any(Object))
+    expect(mockSharp.resize).toHaveBeenCalledWith(480, 7680, expect.any(Object))
     expect(mockSharp.webp).toHaveBeenCalledWith({ quality: 80 })
     expect(mockSharp.toFile).toHaveBeenCalledWith(outputFile)
   })

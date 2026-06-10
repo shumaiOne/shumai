@@ -1,8 +1,15 @@
-import { prisma } from '@shumai/db'
-import { ulid } from 'ulid'
-import { generateKeyBetween } from 'jittered-fractional-indexing'
-import { s3Service } from '@shumai/core/src/s3/s3'
 import { assetService } from '@shumai/core/src/asset/asset'
+import { PaginatedData, PaginationParams, paginateQuery } from '@shumai/core/src/pagination'
+import { s3Service } from '@shumai/core/src/s3/s3'
+import {
+  AssetStatus,
+  AssetType,
+  Prisma,
+  TaskStatus,
+  WorkflowTaskStatus,
+  WorkflowTaskType,
+  prisma,
+} from '@shumai/db'
 import {
   ConfirmFileUploadRequest,
   CreateUploadTaskRequest,
@@ -11,16 +18,9 @@ import {
   PresignedUrl,
   TaskInfo,
 } from '@shumai/dtos'
-import {
-  AssetStatus,
-  AssetType,
-  Prisma,
-  TaskStatus,
-  WorkflowTaskStatus,
-  WorkflowTaskType,
-} from '@shumai/db'
-import { PaginationParams, paginateQuery, PaginatedData } from '@shumai/core/src/pagination'
-import { VideoTranscoder, ImageTranscoder } from '@shumai/transcode'
+import { ImageTranscoder, VideoTranscoder } from '@shumai/transcode'
+import { generateKeyBetween } from 'jittered-fractional-indexing'
+import { ulid } from 'ulid'
 
 export class UploadService {
   constructor(private readonly prismaClient: typeof prisma = prisma) {}
@@ -67,24 +67,32 @@ export class UploadService {
     const isParentFile = parentAsset.type === AssetType.file
     const targetParentId = isParentFile ? parentAsset.parentId! : parentAsset.id
 
-    const createdAssetIds = await this.createAssetsRecursively(
-      userId,
-      task.id,
-      parentAsset.projectId,
-      targetParentId,
-      req.files,
-      presignedUrls,
-    )
+    await this.prismaClient.$transaction(async (tx) => {
+      const ids = await this.createAssetsRecursively(
+        tx,
+        userId,
+        task.id,
+        parentAsset.projectId!,
+        targetParentId,
+        req.files,
+        presignedUrls,
+      )
 
-    if (isParentFile && createdAssetIds.length > 0) {
-      for (const assetId of createdAssetIds) {
-        await assetService.reparentAssets({
-          assetIds: [assetId],
-          newParentId: parentAsset.id,
-          creatorId: userId,
-        })
+      if (isParentFile && ids.length > 0) {
+        for (const assetId of ids) {
+          await assetService.reparentAssets(
+            {
+              assetIds: [assetId],
+              newParentId: parentAsset.id,
+              creatorId: userId,
+            },
+            tx,
+          )
+        }
       }
-    }
+
+      return ids
+    })
 
     return {
       taskId: task.id,
@@ -93,6 +101,7 @@ export class UploadService {
   }
 
   private async createAssetsRecursively(
+    tx: Prisma.TransactionClient,
     userId: string,
     taskId: string,
     projectId: string,
@@ -100,7 +109,7 @@ export class UploadService {
     files: FileNode[],
     presignedUrls: PresignedUrl[],
   ): Promise<string[]> {
-    const firstFile = await this.prismaClient.asset.findFirst({
+    const firstFile = await tx.asset.findFirst({
       where: { parentId },
       orderBy: { sortIndex: 'asc' },
     })
@@ -119,14 +128,14 @@ export class UploadService {
         key = `files/${ulid()}/raw`
       }
 
-      const newAsset = await this.prismaClient.asset.create({
+      const newAsset = await tx.asset.create({
         data: {
           name: file.name,
           type: assetType,
           storageKey: key ? { create: { key } } : undefined,
           sortIndex: newSortIndex,
           mediaType: file.mediaType,
-          status: AssetStatus.uploading,
+          status: assetType === AssetType.folder ? AssetStatus.uploaded : AssetStatus.uploading,
           sizeByte: file.size,
           creator: userId ? { connect: { id: userId } } : undefined,
           parent: parentId ? { connect: { id: parentId } } : undefined,
@@ -136,8 +145,16 @@ export class UploadService {
       })
       createdIds.push(newAsset.id)
 
+      if (assetType === AssetType.folder && parentId) {
+        await tx.asset.update({
+          where: { id: parentId },
+          data: { fileCount: { increment: 1 } },
+        })
+      }
+
       if (file.children && file.children.length > 0) {
         await this.createAssetsRecursively(
+          tx,
           userId,
           taskId,
           projectId,
@@ -212,9 +229,8 @@ export class UploadService {
           where: { id: asset.parentId },
           data: { fileCount: { increment: 1 } },
         })
-        // The transaction context is compatible with the asset service's requirements
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await assetService.updateAncestorsSize(tx as any, asset.parentId, updatedAsset.sizeByte)
+
+        await assetService.updateAncestorsSize(tx, asset.parentId, updatedAsset.sizeByte)
       }
 
       // Update task

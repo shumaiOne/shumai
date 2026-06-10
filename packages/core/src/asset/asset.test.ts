@@ -559,6 +559,63 @@ describe('AssetService', () => {
     })
   })
 
+  describe('fileCount verification', () => {
+    it('createAsset should increment parent fileCount', async () => {
+      const { user, assets, project } = await setupBasicAssets()
+
+      const parent = assets.folderA
+      const initialCount = parent.fileCount // should be 2 from setup (fileA1, fileA2)
+
+      // Create a new folder inside folderA
+      await assetService.createAsset({
+        name: 'newFolder',
+        type: 'folder',
+        parentId: parent.id,
+        projectId: project.id,
+        creatorId: user.id,
+      })
+
+      const updatedParent = await prisma.asset.findUnique({ where: { id: parent.id } })
+      expect(updatedParent?.fileCount).toBe(initialCount + 1)
+
+      // Create a new file inside folderA
+      await assetService.createAsset({
+        name: 'newFile',
+        type: 'file',
+        parentId: parent.id,
+        projectId: project.id,
+        creatorId: user.id,
+      })
+
+      const updatedParent2 = await prisma.asset.findUnique({ where: { id: parent.id } })
+      expect(updatedParent2?.fileCount).toBe(initialCount + 2)
+    })
+
+    it('reparentAssets should update fileCount when moving folders', async () => {
+      const { user, assets } = await setupBasicAssets()
+
+      const sourceParent = assets.root
+      const targetParent = assets.folderB
+      const folderToMove = assets.folderA
+
+      // folderA is a child of root.
+      // root children: folderA, folderB, fileRoot1. count=3.
+      // folderB children: stackB, fileB2. count=2.
+
+      await assetService.reparentAssets({
+        assetIds: [folderToMove.id],
+        newParentId: targetParent.id,
+        creatorId: user.id,
+      })
+
+      const updatedSourceParent = await prisma.asset.findUnique({ where: { id: sourceParent.id } })
+      expect(updatedSourceParent?.fileCount).toBe(2)
+
+      const updatedTargetParent = await prisma.asset.findUnique({ where: { id: targetParent.id } })
+      expect(updatedTargetParent?.fileCount).toBe(3)
+    })
+  })
+
   it('handles reparenting - Version Stack: dissolve with 1 remaining', async () => {
     const { user, assets } = await setupBasicAssets()
     await assetService.reparentAssets({

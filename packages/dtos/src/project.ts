@@ -46,8 +46,9 @@ export type GetProjectTeamResponse = z.infer<typeof getProjectTeamResponseSchema
 export const projectUserInfoSchema = z.object({
   id: z.string(),
   name: z.string(),
-  role: z.string(),
+  role: z.enum(['owner', 'editor', 'reviewer', 'bot', 'unknown']),
   image: z.string().optional(),
+  scope: z.enum(['team', 'project']).optional(),
 })
 export type ProjectUserInfo = z.infer<typeof projectUserInfoSchema>
 
@@ -96,7 +97,7 @@ export interface ServiceListProjectsRequest {
 export interface ServiceAddProjectMemberRequest {
   projectId: string
   userId: string
-  role: string
+  role: 'owner' | 'editor' | 'reviewer' | 'bot' | 'unknown'
 }
 
 export interface ServiceListProjectMembersRequest {

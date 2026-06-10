@@ -233,21 +233,23 @@ function TeamSettingsPage() {
               )}
             </button>
 
-            <button
-              onClick={() => setActiveTab('transcode')}
-              className={cn(
-                'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
-                activeTab === 'transcode'
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
-                  : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-              )}
-            >
-              <Film className="w-5 h-5" />
-              Media Processing
-              {activeTab === 'transcode' && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
-              )}
-            </button>
+            {me?.role === 'owner' && (
+              <button
+                onClick={() => setActiveTab('transcode')}
+                className={cn(
+                  'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
+                  activeTab === 'transcode'
+                    ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
+                    : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                )}
+              >
+                <Film className="w-5 h-5" />
+                Media Processing
+                {activeTab === 'transcode' && (
+                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
+                )}
+              </button>
+            )}
 
             <button
               onClick={() => setActiveTab('notifications')}
@@ -265,73 +267,77 @@ function TeamSettingsPage() {
               )}
             </button>
 
-            <div className="mt-6 mb-2 px-4 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider pt-4 border-t border-sidebar-border">
-              AI
-            </div>
+            {me?.role === 'owner' && (
+              <>
+                <div className="mt-6 mb-2 px-4 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider pt-4 border-t border-sidebar-border">
+                  AI
+                </div>
 
-            <button
-              onClick={() => setActiveTab('providers')}
-              className={cn(
-                'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
-                activeTab === 'providers'
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
-                  : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-              )}
-            >
-              <Cpu className="w-5 h-5" />
-              Providers
-              {activeTab === 'providers' && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
-              )}
-            </button>
+                <button
+                  onClick={() => setActiveTab('providers')}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
+                    activeTab === 'providers'
+                      ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
+                      : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                  )}
+                >
+                  <Cpu className="w-5 h-5" />
+                  Providers
+                  {activeTab === 'providers' && (
+                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
+                  )}
+                </button>
 
-            <button
-              onClick={() => setActiveTab('skills')}
-              className={cn(
-                'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
-                activeTab === 'skills'
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
-                  : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-              )}
-            >
-              <Puzzle className="w-5 h-5" />
-              Skills
-              {activeTab === 'skills' && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
-              )}
-            </button>
+                <button
+                  onClick={() => setActiveTab('skills')}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
+                    activeTab === 'skills'
+                      ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
+                      : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                  )}
+                >
+                  <Puzzle className="w-5 h-5" />
+                  Skills
+                  {activeTab === 'skills' && (
+                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
+                  )}
+                </button>
 
-            <button
-              onClick={() => setActiveTab('agents')}
-              className={cn(
-                'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
-                activeTab === 'agents'
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
-                  : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-              )}
-            >
-              <Bot className="w-5 h-5" />
-              Agents
-              {activeTab === 'agents' && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
-              )}
-            </button>
+                <button
+                  onClick={() => setActiveTab('agents')}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
+                    activeTab === 'agents'
+                      ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
+                      : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                  )}
+                >
+                  <Bot className="w-5 h-5" />
+                  Agents
+                  {activeTab === 'agents' && (
+                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
+                  )}
+                </button>
 
-            <button
-              onClick={() => setActiveTab('sandbox')}
-              className={cn(
-                'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
-                activeTab === 'sandbox'
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
-                  : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-              )}
-            >
-              <Shield className="w-5 h-5" />
-              Agent Sandbox
-              {activeTab === 'sandbox' && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
-              )}
-            </button>
+                <button
+                  onClick={() => setActiveTab('sandbox')}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
+                    activeTab === 'sandbox'
+                      ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
+                      : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                  )}
+                >
+                  <Shield className="w-5 h-5" />
+                  Agent Sandbox
+                  {activeTab === 'sandbox' && (
+                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
+                  )}
+                </button>
+              </>
+            )}
           </nav>
         </div>
 

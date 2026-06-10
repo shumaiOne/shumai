@@ -225,6 +225,7 @@ export class ProjectService {
           name: pm.teamMember.user.name,
           role: pm.role,
           image: await getAvatarUrl(pm.teamMember.user.image),
+          scope: pm.teamMember.scope,
         })),
     )
   }

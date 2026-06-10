@@ -530,6 +530,10 @@ export function FileBrowser({
   const selectedFiles = Array.from(selectedIds).filter((id) =>
     displayedFiles.find((item) => item.id === id),
   ).length
+  const selectedSize = Array.from(selectedIds).reduce((acc, id) => {
+    const item = folders.find((f) => f.id === id) || displayedFiles.find((f) => f.id === id)
+    return acc + (item?.sizeByte || 0)
+  }, 0)
 
   const handleUploadFilesClick = () => {
     fileInputRef.current?.click()
@@ -876,20 +880,20 @@ export function FileBrowser({
                 <div className="text-sm text-muted-foreground">
                   {selectedFolders > 0 && selectedFiles > 0 && (
                     <span>
-                      {selectedFolders} folder
-                      {selectedFolders !== 1 ? 's' : ''}, {selectedFiles} file
-                      {selectedFiles !== 1 ? 's' : ''} selected
+                      {selectedCount} Item{selectedCount !== 1 ? 's' : ''} selected •{' '}
+                      {formatSize(selectedSize)}
                     </span>
                   )}
                   {selectedFolders > 0 && selectedFiles === 0 && (
                     <span>
-                      {selectedFolders} folder
-                      {selectedFolders !== 1 ? 's' : ''} selected
+                      {selectedFolders} folder{selectedFolders !== 1 ? 's' : ''} selected •{' '}
+                      {formatSize(selectedSize)}
                     </span>
                   )}
                   {selectedFolders === 0 && selectedFiles > 0 && (
                     <span>
-                      {selectedFiles} file{selectedFiles !== 1 ? 's' : ''} selected
+                      {selectedFiles} file{selectedFiles !== 1 ? 's' : ''} selected •{' '}
+                      {formatSize(selectedSize)}
                     </span>
                   )}
                 </div>

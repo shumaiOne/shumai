@@ -33,7 +33,7 @@ export const getMeResponseSchema = z.object({
   id: z.string(),
   name: z.string(),
   email: z.string().optional(),
-  role: z.string(),
+  role: z.enum(['owner', 'editor', 'reviewer', 'bot', 'unknown']),
   image: z.string().optional(),
   unreadNotificationCount: z.number().optional(),
 })
@@ -48,10 +48,11 @@ export type UpdateMeRequest = z.infer<typeof updateMeRequestSchema>
 export const userInfoSchema = z.object({
   id: z.string(),
   name: z.string(),
-  role: z.string(),
+  role: z.enum(['owner', 'editor', 'reviewer', 'bot', 'unknown']),
   email: z.string().optional(),
   type: z.enum(['human', 'agent']).optional(),
   image: z.string().optional(),
+  scope: z.enum(['team', 'project']).optional(),
 })
 export type UserInfo = z.infer<typeof userInfoSchema>
 
@@ -112,6 +113,7 @@ export interface ServiceGetMeRequest {
 
 export interface ServiceGetTeamMembersRequest {
   teamId: string
+  userId: string
   includeAgents?: boolean
 }
 

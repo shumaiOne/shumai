@@ -11,6 +11,7 @@ const customFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     // Don't redirect if we are already on login page, it's an auth request, or we are on a public share page
     if (
       !window.location.pathname.includes('/login') &&
+      !window.location.pathname.includes('/signup') &&
       !window.location.pathname.startsWith('/share/') &&
       !url.includes('/api/authn')
     ) {
