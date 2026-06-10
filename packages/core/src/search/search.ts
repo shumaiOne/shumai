@@ -191,7 +191,9 @@ export class SearchService {
 
       if (totalCount < 2000) {
         countBuilder.select(Prisma.sql`SUM(COALESCE(a.size_byte, 0))::bigint as sum`)
-        const sumRes = await this.prismaClient.$queryRaw<{ sum: bigint | null }[]>(countBuilder.build())
+        const sumRes = await this.prismaClient.$queryRaw<{ sum: bigint | null }[]>(
+          countBuilder.build(),
+        )
         pageInfo.totalSize = Number(sumRes[0]?.sum || 0)
       } else {
         pageInfo.totalSize = -1
@@ -380,7 +382,9 @@ export class SearchService {
 
       if (totalCount < 2000) {
         countBuilder.select(Prisma.sql`SUM(COALESCE(a.size_byte, 0))::bigint as sum`)
-        const sumRes = await this.prismaClient.$queryRaw<{ sum: bigint | null }[]>(countBuilder.build())
+        const sumRes = await this.prismaClient.$queryRaw<{ sum: bigint | null }[]>(
+          countBuilder.build(),
+        )
         pageInfo.totalSize = Number(sumRes[0]?.sum || 0)
       } else {
         pageInfo.totalSize = -1
@@ -413,7 +417,9 @@ export class SearchService {
           countBuilder.addWhere(Prisma.sql`a.name ILIKE ${'%' + valStr + '%'}`)
         }
 
-        const sumRes = await this.prismaClient.$queryRaw<{ sum: bigint | null }[]>(countBuilder.build())
+        const sumRes = await this.prismaClient.$queryRaw<{ sum: bigint | null }[]>(
+          countBuilder.build(),
+        )
         pageInfo.totalSize = Number(sumRes[0]?.sum || 0)
       } else {
         pageInfo.totalSize = -1

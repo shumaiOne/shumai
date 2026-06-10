@@ -144,7 +144,6 @@ interface FileBrowserListViewProps {
   handleEmptyAreaClick: (e: React.MouseEvent) => void
   dragState?: DragState
   sort?: SearchSort
-  scrollContainerRef: React.RefObject<HTMLDivElement | null>
 }
 
 export function FileBrowserListView({
@@ -173,7 +172,6 @@ export function FileBrowserListView({
   handleEmptyAreaClick,
   dragState,
   sort,
-  scrollContainerRef,
 }: FileBrowserListViewProps) {
   const [columnSizing, setColumnSizing] = useState<Record<string, number>>({})
 
@@ -253,9 +251,11 @@ export function FileBrowserListView({
     return list
   }, [foldersExpanded, filesExpanded, folders.length, files.length, totalFolders, totalFiles])
 
+  const localScrollRef = React.useRef<HTMLDivElement>(null)
+
   const rowVirtualizer = useVirtualizer({
     count: items.length,
-    getScrollElement: () => scrollContainerRef.current,
+    getScrollElement: () => localScrollRef.current,
     estimateSize: () => 40,
     overscan: 10,
   })
@@ -305,7 +305,7 @@ export function FileBrowserListView({
   ])
 
   return (
-    <div className="flex-1 overflow-x-auto" onClick={handleEmptyAreaClick}>
+    <div ref={localScrollRef} className="flex-1 overflow-auto" onClick={handleEmptyAreaClick}>
       <div
         className="w-full relative"
         style={{
@@ -406,7 +406,8 @@ export function FileBrowserListView({
                       )}
                     </div>
                     <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-                      {formatCount(count, !isFolder)}{showSize ? ` • ${formatSize(size)}` : ''}
+                      {formatCount(count, !isFolder)}
+                      {showSize ? ` • ${formatSize(size)}` : ''}
                     </span>
                   </div>
                   <div className="flex-1 bg-card" />

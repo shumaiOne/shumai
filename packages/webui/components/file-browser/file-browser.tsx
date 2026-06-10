@@ -824,7 +824,6 @@ export function FileBrowser({
                   handleEmptyAreaClick={handleEmptyAreaClick}
                   dragState={dragState}
                   sort={sort}
-                  scrollContainerRef={scrollContainerRef}
                 />
               ) : (
                 <FileBrowserGridView
