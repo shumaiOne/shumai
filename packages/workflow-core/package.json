@@ -9,8 +9,8 @@
     "@shumai/db": "workspace:*",
     "@shumai/dtos": "workspace:*",
     "@shumai/core": "workspace:*",
-    "@temporalio/client": "^1.16.1",
-    "@temporalio/workflow": "^1.16.1",
-    "@temporalio/worker": "^1.16.1"
+    "@temporalio/client": "1.17.2",
+    "@temporalio/workflow": "1.17.2",
+    "@temporalio/worker": "1.17.2"
   }
 }
