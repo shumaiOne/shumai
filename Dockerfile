@@ -19,6 +19,9 @@ COPY . .
 # Build API and Worker
 RUN bun run build.ts
 
+# Generate runner-package.json for the runner stage
+RUN bun run scripts/extract-runtime-deps.ts
+
 # Stage 2: Runner
 FROM oven/bun:1 AS runner
 
@@ -54,10 +57,9 @@ RUN mkdir -p /app/data && chown -R bun:bun /app
 USER bun
 WORKDIR /app
 
-# Manually install temporalio packages and prisma
-# These need native bindings or CLI access in the runner environment
-RUN bun add @temporalio/activity @temporalio/client @temporalio/worker @temporalio/workflow && \
-    bun add --dev --omit peer prisma sharp
+# Install runtime dependencies with exact matching versions extracted from the builder stage
+COPY --chown=bun:bun --from=builder /app/runner-package.json ./package.json
+RUN bun install
 
 # Copy build artifacts and prisma config
 COPY --chown=bun:bun --from=builder /app/dist ./
