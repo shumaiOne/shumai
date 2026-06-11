@@ -12,6 +12,6 @@
     "@shumai/agent": "workspace:*",
     "@shumai/transcode": "workspace:*",
     "@shumai/webui": "workspace:*",
-    "hono": "^4.12.14"
+    "hono": "4.12.23"
   }
 }
