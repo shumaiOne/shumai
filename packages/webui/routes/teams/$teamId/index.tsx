@@ -314,6 +314,7 @@ function TeamPage() {
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 180.95 164.7"
+                    preserveAspectRatio="xMidYMid slice"
                     className="w-full h-full object-cover rounded"
                   >
                     <polygon
