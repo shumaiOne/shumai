@@ -349,6 +349,28 @@ export function FileBrowser({
     selectedIds,
   })
 
+  const [isEmptyTrashDialogOpen, setIsEmptyTrashDialogOpen] = useState(false)
+  const { mutate: emptyTrash, isPending: isEmptyingTrash } = useMutation({
+    mutationFn: async () => {
+      const res = await client.api.projects[':projectId']['empty-trash'].$post({
+        param: { projectId },
+      })
+      if (!res.ok) throw new Error('Failed to empty trash')
+      return await res.json()
+    },
+    onSuccess: () => {
+      toast.success('Trash emptied successfully')
+      queryClient.invalidateQueries({
+        queryKey: ['projects', projectId, 'recently-deleted'],
+      })
+      onClearSelection()
+      setIsEmptyTrashDialogOpen(false)
+    },
+    onError: (err) => {
+      toast.error(`Error emptying trash: ${err.message}`)
+    },
+  })
+
   const $confirmUpload = client.api.teams[':teamId'].upload.tasks[':taskId'].$patch
   const { mutateAsync: confirmUpload } = useMutation<
     InferResponseType<typeof $confirmUpload>,
@@ -431,7 +453,7 @@ export function FileBrowser({
   const newVersionInputRef = useRef<HTMLInputElement>(null)
   const [targetVersionFileId, setTargetVersionFileId] = useState<string | null>(null)
   const fileContextMenu = useRef(false)
-  const { canEdit } = usePermissions()
+  const { canEdit, canAdmin } = usePermissions()
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
@@ -806,6 +828,25 @@ export function FileBrowser({
                 rootFolderId={rootFolderId}
               />
             )}
+            {isRecentlyDeleted && (
+              <div className="flex items-center justify-between px-4 py-2.5 bg-muted/20 border-b border-border text-sm shrink-0 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
+                  <span>Items are automatically deleted after 30 days.</span>
+                </div>
+                {canAdmin && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={isEmptyingTrash}
+                    onClick={() => setIsEmptyTrashDialogOpen(true)}
+                    className="h-8 px-3 text-xs font-medium bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive hover:text-destructive-foreground transition-all duration-200"
+                  >
+                    Delete Now
+                  </Button>
+                )}
+              </div>
+            )}
             <div
               ref={scrollContainerRef}
               className="flex-1 overflow-y-auto min-h-0 relative flex flex-col"
@@ -1016,6 +1057,30 @@ export function FileBrowser({
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isEmptyTrashDialogOpen} onOpenChange={setIsEmptyTrashDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Empty Trash?</AlertDialogTitle>
+            <AlertDialogDescription>
+              All items in the recently deleted folder will be permanently removed both from the
+              database and from storage. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                emptyTrash()
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isEmptyingTrash}
+            >
+              {isEmptyingTrash ? 'Deleting...' : 'Delete Now'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

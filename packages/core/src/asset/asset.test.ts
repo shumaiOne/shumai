@@ -1883,4 +1883,118 @@ describe('AssetService — natural sort by name', () => {
       expect(result).toHaveLength(1)
     })
   })
+
+  describe('emptyTrash', () => {
+    it('should permanently delete trashed assets of the target project only', async () => {
+      const { s3Service } = await import('../s3/s3')
+
+      const team = await prisma.team.create({ data: { name: 'Empty Trash Team' } })
+      const project1 = await prisma.project.create({
+        data: { name: 'Project 1', teamId: team.id },
+      })
+      const project2 = await prisma.project.create({
+        data: { name: 'Project 2', teamId: team.id },
+      })
+      const user = await prisma.user.create({
+        data: { name: 'Test User', email: `test-${Date.now()}@example.com` },
+      })
+
+      // 1. Create a trashed folder with a child file in Project 1
+      const folderA = await prisma.asset.create({
+        data: {
+          name: 'Folder A',
+          type: AssetType.folder,
+          status: 'trashed',
+          isDeleted: true,
+          project: { connect: { id: project1.id } },
+          creator: { connect: { id: user.id } },
+          deletedAt: new Date(),
+        },
+      })
+
+      const fileA1 = await prisma.asset.create({
+        data: {
+          name: 'File A1',
+          type: AssetType.file,
+          status: 'uploaded',
+          isDeleted: true,
+          project: { connect: { id: project1.id } },
+          parent: { connect: { id: folderA.id } },
+          creator: { connect: { id: user.id } },
+          storageKey: {
+            create: {
+              key: 'files/project1-trashed/raw',
+              createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
+            },
+          },
+        },
+      })
+
+      // 2. Create an active file in Project 1
+      const fileActive = await prisma.asset.create({
+        data: {
+          name: 'File Active',
+          type: AssetType.file,
+          status: 'uploaded',
+          isDeleted: false,
+          project: { connect: { id: project1.id } },
+          creator: { connect: { id: user.id } },
+          storageKey: {
+            create: {
+              key: 'files/project1-active/raw',
+              createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
+            },
+          },
+        },
+      })
+
+      // 3. Create a trashed file in Project 2
+      const fileOtherTrashed = await prisma.asset.create({
+        data: {
+          name: 'File Other Trashed',
+          type: AssetType.file,
+          status: 'trashed',
+          isDeleted: true,
+          project: { connect: { id: project2.id } },
+          creator: { connect: { id: user.id } },
+          deletedAt: new Date(),
+          storageKey: {
+            create: {
+              key: 'files/project2-trashed/raw',
+              createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
+            },
+          },
+        },
+      })
+
+      // Act
+      await assetService.emptyTrash(project1.id)
+
+      // Assert: Project 1 trashed assets are deleted from DB
+      expect(await prisma.asset.findUnique({ where: { id: folderA.id } })).toBeNull()
+      expect(await prisma.asset.findUnique({ where: { id: fileA1.id } })).toBeNull()
+
+      // Assert: Project 1 active assets are NOT deleted
+      expect(await prisma.asset.findUnique({ where: { id: fileActive.id } })).not.toBeNull()
+
+      // Assert: Project 2 trashed assets are NOT deleted
+      expect(await prisma.asset.findUnique({ where: { id: fileOtherTrashed.id } })).not.toBeNull()
+
+      // Assert: S3 deletion was called for Project 1's trashed file
+      expect(s3Service.deletePrefix).toHaveBeenCalledWith(
+        expect.any(String),
+        'files/project1-trashed/',
+      )
+
+      // Assert: S3 deletion was NOT called for Project 1's active file or Project 2's trashed file
+      expect(s3Service.deletePrefix).not.toHaveBeenCalledWith(
+        expect.any(String),
+        'files/project1-active/',
+      )
+      expect(s3Service.deletePrefix).not.toHaveBeenCalledWith(
+        expect.any(String),
+        'files/project2-trashed/',
+      )
+    })
+  })
 })

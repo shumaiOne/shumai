@@ -177,4 +177,23 @@ describe('project api', () => {
       creatorId: 'user1',
     })
   })
+
+  it('POST /projects/:projectId/empty-trash', async () => {
+    vi.mocked(assetService.emptyTrash).mockResolvedValue(undefined)
+
+    const res = await app.request('/projects/p1/empty-trash', {
+      method: 'POST',
+    })
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json).toEqual({ success: true })
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Admin,
+      type: ResourceType.Project,
+      id: 'p1',
+    })
+    expect(assetService.emptyTrash).toHaveBeenCalledWith('p1')
+  })
 })
