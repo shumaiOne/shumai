@@ -33,6 +33,23 @@ const commonExternal = [
   'prisma',
 ]
 
+// Extract exact dependency versions from workspace
+console.log('🔍 Extracting exact dependency versions for runtime packages...')
+const lsOutput = Bun.spawnSync(['bun', 'pm', 'ls', '--all']).stdout.toString()
+const dependencyVersions: Record<string, string> = {}
+
+for (const dep of commonExternal) {
+  const escapedDep = dep.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const regex = new RegExp(`(?:^|\\s)${escapedDep}@(\\d+\\.\\d+\\.\\d+[^\\s]*)`, 'g')
+  const match = regex.exec(lsOutput)
+  if (match && match[1]) {
+    dependencyVersions[dep] = match[1]
+    console.log(`  ✅ Found ${dep}@${match[1]}`)
+  } else {
+    console.warn(`  ⚠️ Warning: Could not find exact version for ${dep}`)
+  }
+}
+
 const targets = [
   { platform: 'darwin', arch: 'arm64', bunTarget: 'bun-darwin-arm64', suffix: '' },
   { platform: 'darwin', arch: 'x64', bunTarget: 'bun-darwin-x64', suffix: '' },
@@ -257,17 +274,7 @@ child.on('error', (err) => {
   )
 
   const dependencies = {
-    '@prisma/client': '^7.7.0',
-    '@prisma/adapter-pg': '^7.7.0',
-    pg: '^8.20.0',
-    sharp: '^0.34.5',
-    pino: '^10.3.1',
-    'pino-pretty': '^13.1.3',
-    '@temporalio/activity': '^1.16.1',
-    '@temporalio/client': '^1.16.1',
-    '@temporalio/worker': '^1.16.1',
-    '@temporalio/workflow': '^1.16.1',
-    prisma: '^7.7.0',
+    ...dependencyVersions,
     ...extraDependencies,
   }
 
