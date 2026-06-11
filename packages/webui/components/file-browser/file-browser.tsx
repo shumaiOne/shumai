@@ -838,7 +838,9 @@ export function FileBrowser({
                   <Button
                     variant="destructive"
                     size="sm"
-                    disabled={isEmptyingTrash || (folders.length === 0 && displayedFiles.length === 0)}
+                    disabled={
+                      isEmptyingTrash || (folders.length === 0 && displayedFiles.length === 0)
+                    }
                     onClick={() => setIsEmptyTrashDialogOpen(true)}
                     className="h-8 px-3 text-xs font-medium bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive hover:text-destructive-foreground transition-all duration-200"
                   >

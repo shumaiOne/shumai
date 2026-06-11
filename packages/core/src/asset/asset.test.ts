@@ -1996,5 +1996,100 @@ describe('AssetService — natural sort by name', () => {
         'files/project2-trashed/',
       )
     })
+
+    it('should do nothing and not throw when there are no trashed assets', async () => {
+      const team = await prisma.team.create({ data: { name: 'Empty Test Team' } })
+      const project = await prisma.project.create({
+        data: { name: 'Empty Test Project', teamId: team.id },
+      })
+
+      await expect(assetService.emptyTrash(project.id)).resolves.not.toThrow()
+    })
+  })
+
+  describe('expireTrashedAssets', () => {
+    it('should only purge root assets that have been in the trash for > 30 days and their descendants', async () => {
+      const team = await prisma.team.create({ data: { name: 'GC Team' } })
+      const project = await prisma.project.create({
+        data: { name: 'GC Project', teamId: team.id },
+      })
+      const user = await prisma.user.create({
+        data: { name: 'Test User', email: `test-${Date.now()}@example.com` },
+      })
+
+      const fortyDaysAgo = new Date(Date.now() - 40 * 24 * 60 * 60 * 1000)
+      const twentyDaysAgo = new Date(Date.now() - 20 * 24 * 60 * 60 * 1000)
+
+      // 1. Root expired folder (> 30 days)
+      const folderExpired = await prisma.asset.create({
+        data: {
+          name: 'Expired Folder',
+          type: AssetType.folder,
+          status: 'trashed',
+          isDeleted: true,
+          project: { connect: { id: project.id } },
+          creator: { connect: { id: user.id } },
+          deletedAt: fortyDaysAgo,
+        },
+      })
+
+      // Child of expired folder
+      const childOfExpired = await prisma.asset.create({
+        data: {
+          name: 'Child of Expired',
+          type: AssetType.file,
+          status: 'uploaded',
+          isDeleted: true,
+          project: { connect: { id: project.id } },
+          parent: { connect: { id: folderExpired.id } },
+          creator: { connect: { id: user.id } },
+        },
+      })
+
+      // 2. Root active folder (<= 30 days)
+      const folderActive = await prisma.asset.create({
+        data: {
+          name: 'Active Folder',
+          type: AssetType.folder,
+          status: 'trashed',
+          isDeleted: true,
+          project: { connect: { id: project.id } },
+          creator: { connect: { id: user.id } },
+          deletedAt: twentyDaysAgo,
+        },
+      })
+
+      // Child of active folder
+      const childOfActive = await prisma.asset.create({
+        data: {
+          name: 'Child of Active',
+          type: AssetType.file,
+          status: 'uploaded',
+          isDeleted: true,
+          project: { connect: { id: project.id } },
+          parent: { connect: { id: folderActive.id } },
+          creator: { connect: { id: user.id } },
+        },
+      })
+
+      // Act
+      await (
+        assetService as unknown as { expireTrashedAssets: () => Promise<void> }
+      ).expireTrashedAssets()
+
+      // Assert
+      const expiredDb = await prisma.asset.findUnique({ where: { id: folderExpired.id } })
+      const childExpiredDb = await prisma.asset.findUnique({ where: { id: childOfExpired.id } })
+      const activeDb = await prisma.asset.findUnique({ where: { id: folderActive.id } })
+      const childActiveDb = await prisma.asset.findUnique({ where: { id: childOfActive.id } })
+
+      // The expired folder and its child should be marked as pending_purge
+      expect(expiredDb?.status).toBe('pending_purge')
+      expect(childExpiredDb?.status).toBe('pending_purge')
+
+      // The active folder and its child should remain 'trashed' and 'uploaded' respectively
+      expect(activeDb?.status).toBe('trashed')
+      expect(childActiveDb?.status).toBe('uploaded')
+    })
   })
 })
