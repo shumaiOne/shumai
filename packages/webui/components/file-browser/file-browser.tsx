@@ -13,7 +13,7 @@ import { useFieldStore } from '@/ui/stores/fields'
 import { useUploadStore } from '@/ui/stores/upload'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { Download } from 'lucide-react'
+import { Download, AlertTriangle, Loader2 } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import type { DragState } from '../dnd-types'
@@ -30,6 +30,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog'
 import { Button } from '../ui/button'
 import { ContextMenu, ContextMenuTrigger } from '../ui/context-menu'
 import { FileCard } from './file-card'
@@ -327,6 +335,11 @@ export function FileBrowser({
     isDeleteDialogOpen,
     setIsDeleteDialogOpen,
     confirmDelete,
+    isDownloadDialogOpen,
+    setIsDownloadDialogOpen,
+    isLoadingLinks,
+    resolvedFiles,
+    startDownload,
   } = useFileActions({
     teamId,
     projectId,
@@ -1007,6 +1020,68 @@ export function FileBrowser({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={isDownloadDialogOpen} onOpenChange={setIsDownloadDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{isLoadingLinks ? 'Preparing Download' : 'Confirm Download'}</DialogTitle>
+            <DialogDescription>
+              {isLoadingLinks
+                ? 'Resolving all files and folders. Please wait...'
+                : 'Selected files and folders will be prepared for download.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {isLoadingLinks ? (
+            <div className="space-y-4 py-6 flex flex-col items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="text-sm font-medium text-muted-foreground mt-2">
+                Preparing download links...
+              </span>
+            </div>
+          ) : (
+            <div className="space-y-4 py-2">
+              <div className="text-sm text-muted-foreground">
+                This download will include{' '}
+                <span className="font-semibold text-foreground">{resolvedFiles.length}</span>{' '}
+                file(s).
+              </div>
+              <div className="flex items-start gap-3 p-3 text-sm rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/30">
+                <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold">No Folder Structure</p>
+                  <p className="mt-0.5 text-xs text-amber-700/90 dark:text-amber-400/90">
+                    Folder hierarchy will be flattened. All nested files will be downloaded directly
+                    into your default download folder.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            {!isLoadingLinks ? (
+              <>
+                <Button variant="outline" onClick={() => setIsDownloadDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={startDownload}
+                  className="gap-2"
+                  disabled={resolvedFiles.length === 0}
+                >
+                  <Download className="h-4 w-4" />
+                  Start Download
+                </Button>
+              </>
+            ) : (
+              <Button variant="outline" onClick={() => setIsDownloadDialogOpen(false)}>
+                Cancel
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

@@ -294,3 +294,20 @@ export const postAttachmentResponseSchema = z.object({
   uploadUrl: z.string(),
 })
 export type PostAttachmentResponse = z.infer<typeof postAttachmentResponseSchema>
+
+export const getDownloadLinksRequestSchema = z.object({
+  ids: z.array(z.string()),
+})
+export type GetDownloadLinksRequest = z.infer<typeof getDownloadLinksRequestSchema>
+
+export const downloadLinkItemSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  url: z.string(),
+})
+export type DownloadLinkItem = z.infer<typeof downloadLinkItemSchema>
+
+export const getDownloadLinksResponseSchema = z.object({
+  files: z.array(downloadLinkItemSchema),
+})
+export type GetDownloadLinksResponse = z.infer<typeof getDownloadLinksResponseSchema>

@@ -15,6 +15,7 @@ import {
   updateAssetOrderRequestSchema,
   updateFileRequestSchema,
   uploadFileRequestSchema,
+  getDownloadLinksRequestSchema,
 } from '@shumai/dtos'
 import { transcodeService } from '@shumai/transcode/src/transcode'
 import fs from 'fs'
@@ -263,6 +264,40 @@ const route = new Hono<{ Variables: { user: User } }>()
     )
 
     return c.json({ key })
+  })
+  .post('/files/download-links', zValidator('json', getDownloadLinksRequestSchema), async (c) => {
+    const user = c.get('user')
+    const req = c.req.valid('json')
+
+    if (req.ids.length === 0) {
+      return c.json({ files: [] })
+    }
+
+    // 1. Fetch project IDs from the service layer
+    const projectIds = await assetService.getProjectIds(req.ids)
+
+    if (projectIds.length === 0) {
+      return c.json({ files: [] })
+    }
+
+    // 2. Validate same-project constraint
+    if (projectIds.length !== 1) {
+      return c.json({ error: 'All selected items must belong to the same project' }, 400)
+    }
+
+    const projectId = projectIds[0]
+
+    // 3. Verify user has READ permission on this project
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Project,
+      id: projectId,
+    })
+
+    // 4. Generate download links
+    const files = await assetService.getDownloadLinks(req.ids)
+    return c.json({ files })
   })
 
 export default route

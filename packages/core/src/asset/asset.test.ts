@@ -1647,4 +1647,240 @@ describe('AssetService — natural sort by name', () => {
 
     expect(result.data.map((a) => a.name)).toEqual(['apple', 'apricot', 'banana', 'cherry'])
   })
+
+  describe('getDownloadLinks', () => {
+    it('resolves folders, version stacks, and symlinks to correct latest files and urls', async () => {
+      const user = await prisma.user.create({
+        data: {
+          name: 'DownloadUser',
+          email: `download-${Date.now()}@example.com`,
+        },
+      })
+      const team = await prisma.team.create({ data: { name: 'DownloadTeam' } })
+      const project = await prisma.project.create({
+        data: { name: 'DownloadProject', teamId: team.id },
+      })
+
+      // Create folder structure:
+      // - rootFolder (folder)
+      //   - file1.txt (file)
+      //   - subFolder (folder)
+      //     - file2.txt (file)
+      //     - stack (version_stack)
+      //       - version1.txt (file, sortIndex = 'a1')
+      //       - version2.txt (file, sortIndex = 'a0') -> latest
+      //   - symlinkToFile (symlink -> file1.txt)
+      //   - symlinkToStack (symlink -> stack)
+
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'rootFolder',
+          type: AssetType.folder,
+          project: { connect: { id: project.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      const file1 = await prisma.asset.create({
+        data: {
+          name: 'file1.txt',
+          type: AssetType.file,
+          project: { connect: { id: project.id } },
+          parent: { connect: { id: rootFolder.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.uploaded,
+          storageKey: { create: { key: 'keys/file1' } },
+        },
+      })
+
+      const subFolder = await prisma.asset.create({
+        data: {
+          name: 'subFolder',
+          type: AssetType.folder,
+          project: { connect: { id: project.id } },
+          parent: { connect: { id: rootFolder.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      await prisma.asset.create({
+        data: {
+          name: 'file2.txt',
+          type: AssetType.file,
+          project: { connect: { id: project.id } },
+          parent: { connect: { id: subFolder.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.uploaded,
+          storageKey: { create: { key: 'keys/file2' } },
+        },
+      })
+
+      const stack = await prisma.asset.create({
+        data: {
+          name: 'stack',
+          type: AssetType.version_stack,
+          project: { connect: { id: project.id } },
+          parent: { connect: { id: subFolder.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      await prisma.asset.create({
+        data: {
+          name: 'version1.txt',
+          type: AssetType.file,
+          project: { connect: { id: project.id } },
+          parent: { connect: { id: stack.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.uploaded,
+          sortIndex: 'a1',
+          storageKey: { create: { key: 'keys/v1' } },
+        },
+      })
+
+      await prisma.asset.create({
+        data: {
+          name: 'version2.txt',
+          type: AssetType.file,
+          project: { connect: { id: project.id } },
+          parent: { connect: { id: stack.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.uploaded,
+          sortIndex: 'a0', // smaller sortIndex means latest
+          storageKey: { create: { key: 'keys/v2' } },
+        },
+      })
+
+      await prisma.asset.create({
+        data: {
+          name: 'symlinkToFile',
+          type: AssetType.symlink,
+          project: { connect: { id: project.id } },
+          parent: { connect: { id: rootFolder.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.uploaded,
+          target: { connect: { id: file1.id } },
+        },
+      })
+
+      await prisma.asset.create({
+        data: {
+          name: 'symlinkToStack',
+          type: AssetType.symlink,
+          project: { connect: { id: project.id } },
+          parent: { connect: { id: rootFolder.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.uploaded,
+          target: { connect: { id: stack.id } },
+        },
+      })
+
+      // Run download links request on rootFolder
+      const result = await assetService.getDownloadLinks([rootFolder.id])
+
+      // We expect:
+      // 1. file1.txt
+      // 2. file2.txt
+      // 3. version2.txt (latest version of the stack)
+      // 4. file1.txt (from symlinkToFile target resolution, deduplicated)
+      // 5. version2.txt (from symlinkToStack target resolution, deduplicated)
+
+      const fileNames = result.map((r) => r.name)
+      expect(fileNames).toHaveLength(3) // 3 unique files
+      expect(fileNames).toContain('file1.txt')
+      expect(fileNames).toContain('file2.txt')
+      expect(fileNames).toContain('version2.txt')
+      expect(fileNames).not.toContain('version1.txt') // older version should not be downloaded
+      expect(fileNames).not.toContain('rootFolder')
+      expect(fileNames).not.toContain('subFolder')
+      expect(fileNames).not.toContain('stack')
+
+      // Check urls are returned correctly (mock s3 presign resolves to 'http://mock-s3-url')
+      for (const item of result) {
+        expect(item.url).toBe('http://mock-s3-url')
+      }
+    })
+
+    it('resolves top-level symlinks to their targets when passed as direct starting IDs', async () => {
+      const team = await prisma.team.create({ data: { name: 'Test Team' } })
+      const project = await prisma.project.create({
+        data: { name: 'Test Project', teamId: team.id },
+      })
+      const user = await prisma.user.create({
+        data: { name: 'Test User', email: `test-${Date.now()}@example.com` },
+      })
+
+      const file1 = await prisma.asset.create({
+        data: {
+          name: 'file1.txt',
+          type: AssetType.file,
+          project: { connect: { id: project.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.uploaded,
+          storageKey: { create: { key: 'keys/file1' } },
+        },
+      })
+
+      const symlink = await prisma.asset.create({
+        data: {
+          name: 'symlinkToFile',
+          type: AssetType.symlink,
+          project: { connect: { id: project.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.uploaded,
+          target: { connect: { id: file1.id } },
+        },
+      })
+
+      const result = await assetService.getDownloadLinks([symlink.id])
+      expect(result).toHaveLength(1)
+      expect(result[0].name).toBe('file1.txt')
+      expect(result[0].id).toBe(file1.id)
+    })
+  })
+
+  describe('getProjectIds', () => {
+    it('returns empty lists for empty inputs', async () => {
+      const result = await assetService.getProjectIds([])
+      expect(result).toEqual([])
+    })
+
+    it('resolves project IDs, including symlinks', async () => {
+      const team = await prisma.team.create({ data: { name: 'Test Team' } })
+      const project = await prisma.project.create({
+        data: { name: 'Test Project', teamId: team.id },
+      })
+      const user = await prisma.user.create({
+        data: { name: 'Test User', email: `test-${Date.now()}@example.com` },
+      })
+
+      const file1 = await prisma.asset.create({
+        data: {
+          name: 'file1.txt',
+          type: AssetType.file,
+          project: { connect: { id: project.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      const symlink = await prisma.asset.create({
+        data: {
+          name: 'symlink',
+          type: AssetType.symlink,
+          project: { connect: { id: project.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.uploaded,
+          target: { connect: { id: file1.id } },
+        },
+      })
+
+      const result = await assetService.getProjectIds([file1.id, symlink.id])
+      expect(result).toContain(project.id)
+      expect(result).toHaveLength(1)
+    })
+  })
 })
