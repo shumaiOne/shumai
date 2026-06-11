@@ -22,7 +22,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu'
-import { ShumaiLogo } from '@/ui/components/ui/icons'
 import { Input } from '@/ui/components/ui/input'
 import { Switch } from '@/ui/components/ui/switch'
 import { formatDateAgo } from '@/ui/lib/time'
@@ -312,9 +311,48 @@ function TeamPage() {
                     className="w-full h-full object-cover rounded"
                   />
                 ) : (
-                  <div className="text-center text-muted-foreground font-bold tracking-wider z-10">
-                    <ShumaiLogo className="w-8 h-8 text-zinc-400" />
-                  </div>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 180.95 164.7"
+                    preserveAspectRatio="xMidYMid slice"
+                    className="w-full h-full object-cover rounded"
+                  >
+                    <polygon
+                      fill="#FC9F8E"
+                      points="0 18.5 0 76.0 151.69 164.7 180.95 164.7 180.95 113.6"
+                    />
+                    <polygon
+                      fill="#FEBAB8"
+                      points="0 0 74.58 61.5 90.53 51.6 110.33 63.9 180.95 18.9 180.95 0"
+                    />
+                    <polyline
+                      fill="#FAA5A5"
+                      points="0 18.5 74.58 61.5 90.53 51.6 110.33 63.9 180.95 18.9 180.95 0 0 0"
+                    />
+                    <polygon fill="#EC5B6C" points="0 76.0 0 164.7 151.69 164.7" />
+                    <polygon
+                      fill="#E85C71"
+                      points="180.95 18.9 110.33 63.9 117.37 68.0 117.26 73.4 180.95 113.6"
+                    />
+                    <polygon
+                      fill="#C8405B"
+                      points="117.26 73.4 117.37 99.0 90.53 114.9 174.35 164.7 180.95 164.7 180.95 113.6"
+                    />
+                    <polygon fill="#FFCCBE" points="90.53 51.6 63.69 68.1 90.53 83.4" />
+                    <path
+                      fill="#FB9991"
+                      d="M 90.53 51.6 L 90.53 61.3 L 100.87 67.4 L 90.53 73.5 L 90.53 83.4 L 117.37 68.0 C 117.15 67.6 90.53 51.6 90.53 51.6 Z"
+                    />
+                    <path
+                      fill="#FFEACD"
+                      d="M 63.69 68.1 C 63.47 68.5 64.02 99.3 64.02 99.3 C 64.02 99.3 64.46 99.6 64.9 99.9 L 90.53 83.4 L 63.69 68.1 Z"
+                    />
+                    <polygon fill="#FFCFB5" points="64.02 99.3 90.53 114.9 90.53 83.4" />
+                    <path fill="#F67D73" d="M 90.53 83.4 L 90.53 114.9 L 117.37 99.0 Z" />
+                    <path fill="#F26560" d="M 90.53 83.4 L 117.37 99.0 L 117.37 68.0 Z" />
+                    <polygon fill="#EB5F5B" points="80.08 67.5 90.53 73.5 90.53 61.3" />
+                    <polygon fill="#DB4D50" points="90.53 61.3 90.53 73.5 100.87 67.4" />
+                  </svg>
                 )}
                 <div className="absolute bottom-0 left-0 w-full h-[65%] bg-linear-to-t from-black/35 to-black/0" />
                 <p className="absolute left-1 bottom-2 text-white">{project.name}</p>
