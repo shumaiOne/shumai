@@ -102,7 +102,7 @@ export const DualSidebar: React.FC<DualSidebarProps> = ({ children }) => {
       >
         <div className="absolute bottom-0 w-full h-[70dvh] bg-linear-to-t from-sidebar-primary/10 to-transparent"></div>
         {/* Level 1: Icon Bar */}
-        <nav className="w-16 bg-sidebar border-r border-sidebar-border flex flex-col items-center pb-4 pt-0 space-y-2 flex-shrink-0">
+        <nav className="w-16 bg-card border-r border-sidebar-border flex flex-col items-center pb-4 pt-0 space-y-2 flex-shrink-0">
           <div className="flex-1 w-full flex flex-col items-center space-y-5 pt-1">
             <TooltipProvider>
               {sidebarItems.map((item, index) => (
