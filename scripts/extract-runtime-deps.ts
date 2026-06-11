@@ -20,7 +20,7 @@ const depsToExtract = [
 function run(cmd: string) {
   try {
     return execSync(cmd, { encoding: 'utf-8', stdio: 'pipe' });
-  } catch (e) {
+  } catch {
     console.error(`Command failed: ${cmd}`);
     return null;
   }
