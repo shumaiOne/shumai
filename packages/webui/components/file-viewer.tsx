@@ -1,15 +1,15 @@
-import type { AssetInfo } from '@shumai/dtos'
 import { useScreenSize } from '@/ui/hooks/useScreenSize'
 import { getBestTranscode } from '@/ui/lib/media'
-import { Minus, Plus, Copy, Download, Check } from 'lucide-react'
+import type { AssetInfo } from '@shumai/dtos'
+import { Check, Copy, Download, Minus, Plus } from 'lucide-react'
 import type { RefObject } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import type Player from 'video.js/dist/types/player'
 import DrawingCanvas from './drawing-canvas'
 import VideoPlayer from './viewers/video-player'
 
-import type { Annotation } from '@/ui/types'
 import { useAnnotationStore } from '@/ui/stores/annotation-store'
+import type { Annotation } from '@/ui/types'
 
 type FileViewerProps = {
   file: AssetInfo
@@ -223,7 +223,7 @@ export function FileViewer({
             />
           </div>
           {/* Zoom Toolbar */}
-          <div className="relative px-4 py-3 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-10 flex items-center justify-end gap-2 transition-colors duration-200">
+          <div className="relative px-4 py-3 bg-card border-t border-gray-200 dark:border-gray-700 z-10 flex items-center justify-end gap-2 transition-colors duration-200">
             <div className="flex items-center gap-1 bg-gray-200/50 dark:bg-white/10 rounded-md p-0.5 mr-auto">
               <button
                 onClick={() => handleZoom(0.8)}
