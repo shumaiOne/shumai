@@ -455,22 +455,12 @@ describe('file api', () => {
   })
 
   it('POST /files/download-links generates links if assets belong to the same project', async () => {
-    const mockFindMany = vi.spyOn(prisma.asset, 'findMany').mockResolvedValue([
-      {
-        id: 'asset1',
-        projectId: 'project-id-1',
-        type: 'file',
-        targetId: null,
-      },
-      {
-        id: 'asset2',
-        projectId: 'project-id-1',
-        type: 'folder',
-        targetId: null,
-      },
-      // Mocking only the required subset of Prisma Asset properties for the test
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ] as any)
+    const mockGetProjectIdsAndStartingIds = vi
+      .spyOn(assetService, 'getProjectIdsAndStartingIds')
+      .mockResolvedValue({
+        projectIds: ['project-id-1'],
+        startingIds: ['asset1', 'asset2'],
+      })
 
     const mockGetDownloadLinks = vi.spyOn(assetService, 'getDownloadLinks').mockResolvedValue([
       { id: 'file1', name: 'file1.txt', url: 'http://link1' },
@@ -498,27 +488,17 @@ describe('file api', () => {
 
     expect(assetService.getDownloadLinks).toHaveBeenCalledWith(['asset1', 'asset2'])
 
-    mockFindMany.mockRestore()
+    mockGetProjectIdsAndStartingIds.mockRestore()
     mockGetDownloadLinks.mockRestore()
   })
 
   it('POST /files/download-links rejects if assets belong to different projects', async () => {
-    const mockFindMany = vi.spyOn(prisma.asset, 'findMany').mockResolvedValue([
-      {
-        id: 'asset1',
-        projectId: 'project-id-1',
-        type: 'file',
-        targetId: null,
-      },
-      {
-        id: 'asset2',
-        projectId: 'project-id-2',
-        type: 'file',
-        targetId: null,
-      },
-      // Mocking only the required subset of Prisma Asset properties for the test
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ] as any)
+    const mockGetProjectIdsAndStartingIds = vi
+      .spyOn(assetService, 'getProjectIdsAndStartingIds')
+      .mockResolvedValue({
+        projectIds: ['project-id-1', 'project-id-2'],
+        startingIds: ['asset1', 'asset2'],
+      })
 
     const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
     const res = await app.request('/files/download-links', {
@@ -531,6 +511,6 @@ describe('file api', () => {
     const json = await res.json()
     expect(json.error).toBe('All selected items must belong to the same project')
 
-    mockFindMany.mockRestore()
+    mockGetProjectIdsAndStartingIds.mockRestore()
   })
 })

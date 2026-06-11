@@ -1649,6 +1649,50 @@ export class AssetService {
     )
   }
 
+  async getProjectIdsAndStartingIds(assetIds: string[]): Promise<{
+    projectIds: string[]
+    startingIds: string[]
+  }> {
+    if (assetIds.length === 0) {
+      return { projectIds: [], startingIds: [] }
+    }
+
+    const assets = await this.prismaClient.asset.findMany({
+      where: { id: { in: assetIds }, isDeleted: false },
+      select: {
+        id: true,
+        projectId: true,
+        type: true,
+        targetId: true,
+        target: { select: { projectId: true } },
+      },
+    })
+
+    const projectIds = new Set<string>()
+    const startingIds: string[] = []
+
+    for (const asset of assets) {
+      let projId = asset.projectId
+      if (asset.type === 'symlink' && asset.target?.projectId) {
+        projId = asset.target.projectId
+      }
+      if (projId) {
+        projectIds.add(projId)
+      }
+
+      if (asset.type === 'symlink' && asset.targetId) {
+        startingIds.push(asset.targetId)
+      } else {
+        startingIds.push(asset.id)
+      }
+    }
+
+    return {
+      projectIds: Array.from(projectIds),
+      startingIds,
+    }
+  }
+
   async getDownloadLinks(
     startingIds: string[],
   ): Promise<Array<{ id: string; name: string; url: string }>> {

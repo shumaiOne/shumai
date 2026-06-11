@@ -273,39 +273,19 @@ const route = new Hono<{ Variables: { user: User } }>()
       return c.json({ files: [] })
     }
 
-    // 1. Fetch input assets to verify project grouping
-    const assets = await prisma.asset.findMany({
-      where: { id: { in: req.ids }, isDeleted: false },
-      select: {
-        id: true,
-        projectId: true,
-        type: true,
-        targetId: true,
-        target: { select: { projectId: true } },
-      },
-    })
+    // 1. Fetch project IDs and starting IDs from the service layer
+    const { projectIds, startingIds } = await assetService.getProjectIdsAndStartingIds(req.ids)
 
-    if (assets.length === 0) {
+    if (startingIds.length === 0) {
       return c.json({ files: [] })
     }
 
-    const projectIds = new Set<string>()
-    for (const asset of assets) {
-      let projId = asset.projectId
-      if (asset.type === 'symlink' && asset.target?.projectId) {
-        projId = asset.target.projectId
-      }
-      if (projId) {
-        projectIds.add(projId)
-      }
-    }
-
     // 2. Validate same-project constraint
-    if (projectIds.size !== 1) {
+    if (projectIds.length !== 1) {
       return c.json({ error: 'All selected items must belong to the same project' }, 400)
     }
 
-    const projectId = Array.from(projectIds)[0]
+    const projectId = projectIds[0]
 
     // 3. Verify user has READ permission on this project
     await authzService.hasPermission({
@@ -315,15 +295,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: projectId,
     })
 
-    // 4. Resolve starting IDs (dereference top-level symlinks)
-    const startingIds = assets.map((asset) => {
-      if (asset.type === 'symlink' && asset.targetId) {
-        return asset.targetId
-      }
-      return asset.id
-    })
-
-    // 5. Generate download links
+    // 4. Generate download links
     const files = await assetService.getDownloadLinks(startingIds)
     return c.json({ files })
   })
