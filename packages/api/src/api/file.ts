@@ -273,10 +273,10 @@ const route = new Hono<{ Variables: { user: User } }>()
       return c.json({ files: [] })
     }
 
-    // 1. Fetch project IDs and starting IDs from the service layer
-    const { projectIds, startingIds } = await assetService.getProjectIdsAndStartingIds(req.ids)
+    // 1. Fetch project IDs from the service layer
+    const projectIds = await assetService.getProjectIds(req.ids)
 
-    if (startingIds.length === 0) {
+    if (projectIds.length === 0) {
       return c.json({ files: [] })
     }
 
@@ -296,7 +296,7 @@ const route = new Hono<{ Variables: { user: User } }>()
     })
 
     // 4. Generate download links
-    const files = await assetService.getDownloadLinks(startingIds)
+    const files = await assetService.getDownloadLinks(req.ids)
     return c.json({ files })
   })
 

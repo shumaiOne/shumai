@@ -1803,16 +1803,52 @@ describe('AssetService — natural sort by name', () => {
         expect(item.url).toBe('http://mock-s3-url')
       }
     })
+
+    it('resolves top-level symlinks to their targets when passed as direct starting IDs', async () => {
+      const team = await prisma.team.create({ data: { name: 'Test Team' } })
+      const project = await prisma.project.create({
+        data: { name: 'Test Project', teamId: team.id },
+      })
+      const user = await prisma.user.create({
+        data: { name: 'Test User', email: `test-${Date.now()}@example.com` },
+      })
+
+      const file1 = await prisma.asset.create({
+        data: {
+          name: 'file1.txt',
+          type: AssetType.file,
+          project: { connect: { id: project.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.uploaded,
+          storageKey: { create: { key: 'keys/file1' } },
+        },
+      })
+
+      const symlink = await prisma.asset.create({
+        data: {
+          name: 'symlinkToFile',
+          type: AssetType.symlink,
+          project: { connect: { id: project.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.uploaded,
+          target: { connect: { id: file1.id } },
+        },
+      })
+
+      const result = await assetService.getDownloadLinks([symlink.id])
+      expect(result).toHaveLength(1)
+      expect(result[0].name).toBe('file1.txt')
+      expect(result[0].id).toBe(file1.id)
+    })
   })
 
-  describe('getProjectIdsAndStartingIds', () => {
+  describe('getProjectIds', () => {
     it('returns empty lists for empty inputs', async () => {
-      const result = await assetService.getProjectIdsAndStartingIds([])
-      expect(result.projectIds).toEqual([])
-      expect(result.startingIds).toEqual([])
+      const result = await assetService.getProjectIds([])
+      expect(result).toEqual([])
     })
 
-    it('resolves project IDs and starting IDs, including symlinks', async () => {
+    it('resolves project IDs, including symlinks', async () => {
       const team = await prisma.team.create({ data: { name: 'Test Team' } })
       const project = await prisma.project.create({
         data: { name: 'Test Project', teamId: team.id },
@@ -1842,13 +1878,9 @@ describe('AssetService — natural sort by name', () => {
         },
       })
 
-      const result = await assetService.getProjectIdsAndStartingIds([file1.id, symlink.id])
-      expect(result.projectIds).toContain(project.id)
-      expect(result.projectIds).toHaveLength(1)
-      expect(result.startingIds).toHaveLength(2)
-      // Since it's a symlink, its starting ID should be resolved to the target file1.id
-      expect(result.startingIds[0]).toBe(file1.id)
-      expect(result.startingIds[1]).toBe(file1.id)
+      const result = await assetService.getProjectIds([file1.id, symlink.id])
+      expect(result).toContain(project.id)
+      expect(result).toHaveLength(1)
     })
   })
 })

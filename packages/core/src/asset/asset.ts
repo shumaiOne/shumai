@@ -1649,28 +1649,21 @@ export class AssetService {
     )
   }
 
-  async getProjectIdsAndStartingIds(assetIds: string[]): Promise<{
-    projectIds: string[]
-    startingIds: string[]
-  }> {
+  async getProjectIds(assetIds: string[]): Promise<string[]> {
     if (assetIds.length === 0) {
-      return { projectIds: [], startingIds: [] }
+      return []
     }
 
     const assets = await this.prismaClient.asset.findMany({
       where: { id: { in: assetIds }, isDeleted: false },
       select: {
-        id: true,
         projectId: true,
         type: true,
-        targetId: true,
         target: { select: { projectId: true } },
       },
     })
 
     const projectIds = new Set<string>()
-    const startingIds: string[] = []
-
     for (const asset of assets) {
       let projId = asset.projectId
       if (asset.type === 'symlink' && asset.target?.projectId) {
@@ -1679,23 +1672,31 @@ export class AssetService {
       if (projId) {
         projectIds.add(projId)
       }
-
-      if (asset.type === 'symlink' && asset.targetId) {
-        startingIds.push(asset.targetId)
-      } else {
-        startingIds.push(asset.id)
-      }
     }
 
-    return {
-      projectIds: Array.from(projectIds),
-      startingIds,
-    }
+    return Array.from(projectIds)
   }
 
-  async getDownloadLinks(
-    startingIds: string[],
-  ): Promise<Array<{ id: string; name: string; url: string }>> {
+  async getDownloadLinks(ids: string[]): Promise<Array<{ id: string; name: string; url: string }>> {
+    if (ids.length === 0) return []
+
+    // Resolve starting IDs (dereference top-level symlinks)
+    const assets = await this.prismaClient.asset.findMany({
+      where: { id: { in: ids }, isDeleted: false },
+      select: {
+        id: true,
+        type: true,
+        targetId: true,
+      },
+    })
+
+    const startingIds = assets.map((asset) => {
+      if (asset.type === 'symlink' && asset.targetId) {
+        return asset.targetId
+      }
+      return asset.id
+    })
+
     if (startingIds.length === 0) return []
 
     const descendants = await this.prismaClient.$queryRaw<
