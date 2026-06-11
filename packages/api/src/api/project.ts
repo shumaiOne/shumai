@@ -80,6 +80,21 @@ const route = new Hono<{ Variables: { user: User } }>()
       return c.json(resp)
     },
   )
+  .post('/projects/:projectId/empty-trash', async (c) => {
+    const projectId = c.req.param('projectId')
+    const user = c.get('user')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Admin,
+      type: ResourceType.Project,
+      id: projectId,
+    })
+
+    await assetService.emptyTrash(projectId)
+
+    return c.json({ success: true })
+  })
   .get('/teams/:teamId/projects', zValidator('query', listProjectsRequestSchema), async (c) => {
     const teamId = c.req.param('teamId')
     const user = c.get('user')

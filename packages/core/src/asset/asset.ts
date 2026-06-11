@@ -1033,6 +1033,38 @@ export class AssetService {
     }
   }
 
+  private async cascadeStatusToPendingPurge(rootIds: string[]): Promise<void> {
+    if (rootIds.length === 0) return
+
+    await this.prismaClient.$executeRaw`
+      WITH RECURSIVE descendant AS (
+        SELECT id FROM assets WHERE id = ANY(${rootIds})
+        UNION ALL
+        SELECT a.id FROM assets a
+        INNER JOIN descendant d ON a.parent_id = d.id
+      )
+      UPDATE assets SET status = 'pending_purge', updated_at = NOW()
+      WHERE id IN (SELECT id FROM descendant);
+    `
+  }
+
+  async emptyTrash(projectId: string): Promise<void> {
+    const trashedRoots = await this.prismaClient.asset.findMany({
+      where: {
+        projectId,
+        status: 'trashed',
+        isDeleted: true,
+      },
+      select: { id: true },
+    })
+
+    const rootIds = trashedRoots.map((r) => r.id)
+    await this.cascadeStatusToPendingPurge(rootIds)
+
+    await this.purgePendingAssets()
+    await this.purgeUnreferencedStorageKeys()
+  }
+
   private cleanupJobsRunning = false
 
   async startCleanupJob() {
@@ -1080,21 +1112,8 @@ export class AssetService {
       take: 100,
     })
 
-    for (const root of expiredRoots) {
-      await this.prismaClient.$transaction(async (tx) => {
-        // Use recursive CTE to find all descendants and mark them all as pending_purge
-        await tx.$executeRaw`
-          WITH RECURSIVE descendant AS (
-            SELECT id FROM assets WHERE id = ${root.id}
-            UNION ALL
-            SELECT a.id FROM assets a
-            INNER JOIN descendant d ON a.parent_id = d.id
-          )
-          UPDATE assets SET status = 'pending_purge', updated_at = NOW()
-          WHERE id IN (SELECT id FROM descendant);
-        `
-      })
-    }
+    const rootIds = expiredRoots.map((r) => r.id)
+    await this.cascadeStatusToPendingPurge(rootIds)
   }
 
   /**

@@ -301,10 +301,10 @@ export default function FileSystemManager({
   }, [selectedIds, files])
 
   const handleItemDoubleClick = (item: AssetInfo) => {
+    if (isRecentlyDeleted) {
+      return
+    }
     if (item.type === 'folder') {
-      if (isRecentlyDeleted) {
-        return
-      }
       setFilterConditions([])
       navigate({
         to: '/projects/$projectId/folders/$folderId',
