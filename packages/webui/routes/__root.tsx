@@ -10,10 +10,10 @@ import { useTeamContextStore } from '@/ui/stores/team-context'
 import { useUploadStore } from '@/ui/stores/upload'
 import { useQuery } from '@tanstack/react-query'
 import {
-  createRootRouteWithContext,
-  Outlet,
-  useNavigate,
-  useRouterState,
+    createRootRouteWithContext,
+    Outlet,
+    useNavigate,
+    useRouterState,
 } from '@tanstack/react-router'
 import { useEffect } from 'react'
 
@@ -64,9 +64,9 @@ function RootComponent() {
   const displayCount = unreadCount > 99 ? '99+' : unreadCount
   const badge =
     unreadCount > 0 ? (
-      <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-slate-100 dark:border-slate-900 animate-pulse">
+      <span className="absolute top-0 -right-1 mt-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs leading-4 bg-red-400 dark:bg-red-500 text-white pointer-events-none h-5 min-w-5">
         {displayCount}
-      </div>
+      </span>
     ) : null
 
   return (
