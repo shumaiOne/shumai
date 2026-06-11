@@ -5,6 +5,7 @@ import type { AssetInfo } from '@shumai/dtos'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { InferRequestType, InferResponseType } from 'hono/client'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
 interface UseFileActionsProps {
   teamId: string
@@ -26,6 +27,14 @@ export function useFileActions({
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [itemsToDelete, setItemsToDelete] = useState<AssetInfo[]>([])
+  const [isDownloadDialogOpen, setIsDownloadDialogOpen] = useState(false)
+  const [itemsToDownload, setItemsToDownload] = useState<AssetInfo[]>([])
+  const [isDownloading, setIsDownloading] = useState(false)
+  const [downloadProgress, setDownloadProgress] = useState<{
+    current: number
+    total: number
+    currentName: string
+  }>({ current: 0, total: 0, currentName: '' })
   const queryClient = useQueryClient()
 
   const $createFolder = client.api.folders.$post
@@ -111,6 +120,19 @@ export function useFileActions({
     },
   })
 
+  const $getDownloadLinks = client.api.files['download-links'].$post
+  const { mutateAsync: getDownloadLinks } = useMutation<
+    InferResponseType<typeof $getDownloadLinks, 200>,
+    Error,
+    InferRequestType<typeof $getDownloadLinks>
+  >({
+    mutationFn: async (request) => {
+      const res = await $getDownloadLinks(request)
+      if (!res.ok) throw new Error('Failed to get download links')
+      return (await res.json()) as unknown as InferResponseType<typeof $getDownloadLinks, 200>
+    },
+  })
+
   const handleRename = (item: AssetInfo) => {
     setEditingItemId(item.id!)
   }
@@ -186,11 +208,57 @@ export function useFileActions({
   }
 
   const handleDownload = (items: AssetInfo[]) => {
-    alert(
-      `Download functionality - Would download ${
-        items.length
-      } item(s): ${items.map((i) => i.name).join(', ')}`,
-    )
+    if (items.length === 0) return
+    setItemsToDownload(items)
+    setDownloadProgress({ current: 0, total: 0, currentName: '' })
+    setIsDownloadDialogOpen(true)
+  }
+
+  const startDownload = async () => {
+    setIsDownloading(true)
+    try {
+      const res = await getDownloadLinks({
+        json: { ids: itemsToDownload.map((i) => i.id!) },
+      })
+      const files = res.files
+
+      const chunkSize = 5
+      const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+      for (let i = 0; i < files.length; i += chunkSize) {
+        const chunk = files.slice(i, i + chunkSize)
+
+        // Trigger downloads for this batch in parallel by creating/clicking links
+        for (const file of chunk) {
+          const absoluteIndex = i + chunk.indexOf(file) + 1
+          setDownloadProgress({
+            current: absoluteIndex,
+            total: files.length,
+            currentName: file.name,
+          })
+
+          const a = document.createElement('a')
+          a.href = file.url
+          a.download = file.name
+          a.target = '_blank'
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+        }
+
+        // If we have more chunks to process, wait 1 second before triggering the next batch
+        if (i + chunkSize < files.length) {
+          await delay(1000)
+        }
+      }
+      toast.success('Downloads started successfully')
+    } catch (error) {
+      toast.error('Download failed')
+      console.error(error)
+    } finally {
+      setIsDownloading(false)
+      setIsDownloadDialogOpen(false)
+    }
   }
 
   const handleNewFolder = (name: string) => {
@@ -283,5 +351,11 @@ export function useFileActions({
     setIsDeleteDialogOpen,
     itemsToDelete,
     confirmDelete,
+    isDownloadDialogOpen,
+    setIsDownloadDialogOpen,
+    itemsToDownload,
+    isDownloading,
+    downloadProgress,
+    startDownload,
   }
 }

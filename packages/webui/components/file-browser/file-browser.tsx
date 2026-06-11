@@ -13,7 +13,7 @@ import { useFieldStore } from '@/ui/stores/fields'
 import { useUploadStore } from '@/ui/stores/upload'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { Download } from 'lucide-react'
+import { Download, AlertTriangle, Loader2 } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import type { DragState } from '../dnd-types'
@@ -30,6 +30,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../ui/dialog'
+import { Progress } from '../ui/progress'
 import { Button } from '../ui/button'
 import { ContextMenu, ContextMenuTrigger } from '../ui/context-menu'
 import { FileCard } from './file-card'
@@ -327,6 +336,12 @@ export function FileBrowser({
     isDeleteDialogOpen,
     setIsDeleteDialogOpen,
     confirmDelete,
+    isDownloadDialogOpen,
+    setIsDownloadDialogOpen,
+    itemsToDownload,
+    isDownloading,
+    downloadProgress,
+    startDownload,
   } = useFileActions({
     teamId,
     projectId,
@@ -1007,6 +1022,79 @@ export function FileBrowser({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={isDownloadDialogOpen} onOpenChange={setIsDownloadDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{isDownloading ? 'Downloading Files' : 'Prepare Download'}</DialogTitle>
+            <DialogDescription>
+              {isDownloading
+                ? 'Please wait while we queue your downloads. Do not close this dialog.'
+                : 'Selected files and folders will be prepared for download.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {!isDownloading ? (
+            <div className="space-y-4 py-2">
+              <div className="text-sm text-muted-foreground">
+                You have selected{' '}
+                <span className="font-medium text-foreground">{itemsToDownload.length}</span>{' '}
+                item(s).
+              </div>
+              <div className="flex items-start gap-3 p-3 text-sm rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/30">
+                <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold">No Folder Structure</p>
+                  <p className="mt-0.5 text-xs text-amber-700/90 dark:text-amber-400/90">
+                    Folder hierarchy will be flattened. All nested files will be downloaded directly
+                    into your default download folder.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4 py-4">
+              <div className="flex items-center gap-3">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <span className="text-sm font-medium text-foreground">
+                  {downloadProgress.total === 0
+                    ? 'Preparing download links...'
+                    : `Downloading file ${downloadProgress.current} of ${downloadProgress.total}...`}
+                </span>
+              </div>
+              {downloadProgress.total > 0 && (
+                <div className="space-y-2">
+                  <Progress
+                    value={Math.round((downloadProgress.current / downloadProgress.total) * 100)}
+                    className="h-2"
+                  />
+                  <p className="text-xs text-muted-foreground truncate">
+                    Current file: {downloadProgress.currentName}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            {!isDownloading ? (
+              <>
+                <Button variant="outline" onClick={() => setIsDownloadDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={startDownload} className="gap-2">
+                  <Download className="h-4 w-4" />
+                  Start Download
+                </Button>
+              </>
+            ) : (
+              <Button disabled variant="outline">
+                Downloading...
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

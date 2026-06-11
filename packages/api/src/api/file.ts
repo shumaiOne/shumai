@@ -15,6 +15,7 @@ import {
   updateAssetOrderRequestSchema,
   updateFileRequestSchema,
   uploadFileRequestSchema,
+  getDownloadLinksRequestSchema,
 } from '@shumai/dtos'
 import { transcodeService } from '@shumai/transcode/src/transcode'
 import fs from 'fs'
@@ -263,6 +264,68 @@ const route = new Hono<{ Variables: { user: User } }>()
     )
 
     return c.json({ key })
+  })
+  .post('/files/download-links', zValidator('json', getDownloadLinksRequestSchema), async (c) => {
+    const user = c.get('user')
+    const req = c.req.valid('json')
+
+    if (req.ids.length === 0) {
+      return c.json({ files: [] })
+    }
+
+    // 1. Fetch input assets to verify project grouping
+    const assets = await prisma.asset.findMany({
+      where: { id: { in: req.ids }, isDeleted: false },
+      select: {
+        id: true,
+        projectId: true,
+        type: true,
+        targetId: true,
+        target: { select: { projectId: true } },
+      },
+    })
+
+    if (assets.length === 0) {
+      return c.json({ files: [] })
+    }
+
+    const projectIds = new Set<string>()
+    for (const asset of assets) {
+      let projId = asset.projectId
+      if (asset.type === 'symlink' && asset.target?.projectId) {
+        projId = asset.target.projectId
+      }
+      if (projId) {
+        projectIds.add(projId)
+      }
+    }
+
+    // 2. Validate same-project constraint
+    if (projectIds.size !== 1) {
+      return c.json({ error: 'All selected items must belong to the same project' }, 400)
+    }
+
+    const projectId = Array.from(projectIds)[0]
+
+    // 3. Verify user has READ permission on this project
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Project,
+      id: projectId,
+    })
+
+    // 4. Resolve starting IDs (dereference top-level symlinks)
+    const startingIds = assets.map((asset) => {
+      if (asset.type === 'symlink' && asset.targetId) {
+        return asset.targetId
+      }
+      return asset.id
+    })
+
+    // 5. Generate download links
+    const files = await assetService.getDownloadLinks(startingIds)
+    return c.json({ files })
   })
 
 export default route

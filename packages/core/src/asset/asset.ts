@@ -1649,6 +1649,146 @@ export class AssetService {
     )
   }
 
+  async getDownloadLinks(
+    startingIds: string[],
+  ): Promise<Array<{ id: string; name: string; url: string }>> {
+    if (startingIds.length === 0) return []
+
+    const descendants = await this.prismaClient.$queryRaw<
+      Array<{
+        id: string
+        name: string
+        type: string
+        parentId: string | null
+        storageKeyId: string | null
+        sortIndex: string | null
+        targetId: string | null
+      }>
+    >`
+      WITH RECURSIVE descendant AS (
+        SELECT id, name, type, parent_id, storage_key_id, sort_index, target_id, is_deleted
+        FROM assets
+        WHERE id IN (${Prisma.join(startingIds)}) AND is_deleted = false
+        UNION ALL
+        SELECT a.id, a.name, a.type, a.parent_id, a.storage_key_id, a.sort_index, a.target_id, a.is_deleted
+        FROM assets a
+        INNER JOIN descendant d ON a.parent_id = d.id
+        WHERE a.is_deleted = false
+      )
+      SELECT id, name, type, parent_id AS "parentId", storage_key_id AS "storageKeyId", sort_index AS "sortIndex", target_id AS "targetId" FROM descendant;
+    `
+
+    // Find any symlink in the descendants and resolve its target.
+    const symlinks = descendants.filter((d) => d.type === 'symlink')
+    let resolvedTargets: Array<{
+      id: string
+      name: string
+      type: string
+      parentId: string | null
+      storageKeyId: string | null
+      sortIndex: string | null
+      targetId: string | null
+    }> = []
+
+    if (symlinks.length > 0) {
+      const targetIds = symlinks.map((s) => s.targetId).filter((id): id is string => !!id)
+      if (targetIds.length > 0) {
+        const dbTargets = await this.prismaClient.asset.findMany({
+          where: { id: { in: targetIds }, isDeleted: false },
+        })
+        resolvedTargets = dbTargets.map((t) => ({
+          id: t.id,
+          name: t.name,
+          type: t.type,
+          parentId: t.parentId,
+          storageKeyId: t.storageKeyId,
+          sortIndex: t.sortIndex,
+          targetId: t.targetId,
+        }))
+      }
+    }
+
+    const allAssets = [...descendants.filter((d) => d.type !== 'symlink'), ...resolvedTargets]
+
+    const nonFolderAssets = allAssets.filter(
+      (a) =>
+        a.type !== 'folder' && a.type !== 'root' && a.type !== 'share_root' && a.type !== 'share',
+    )
+
+    // Separate version stacks and other files
+    const versionStackIds = new Set(
+      nonFolderAssets.filter((a) => a.type === 'version_stack').map((a) => a.id),
+    )
+
+    const versionAssetsByStack = new Map<string, typeof nonFolderAssets>()
+    const otherAssets: typeof nonFolderAssets = []
+
+    for (const asset of nonFolderAssets) {
+      if (asset.type === 'version_stack') {
+        continue
+      }
+      if (asset.parentId && versionStackIds.has(asset.parentId)) {
+        const list = versionAssetsByStack.get(asset.parentId) || []
+        list.push(asset)
+        versionAssetsByStack.set(asset.parentId, list)
+      } else {
+        otherAssets.push(asset)
+      }
+    }
+
+    // Pick the latest version for each version stack (ascending sortIndex: 'asc' means first version is latest)
+    const latestVersions: typeof nonFolderAssets = []
+    for (const versions of versionAssetsByStack.values()) {
+      versions.sort((x, y) => {
+        if (!x.sortIndex || !y.sortIndex) return 0
+        return x.sortIndex < y.sortIndex ? -1 : x.sortIndex > y.sortIndex ? 1 : 0
+      })
+      if (versions.length > 0) {
+        latestVersions.push(versions[0])
+      }
+    }
+
+    const finalFiles = [...otherAssets, ...latestVersions]
+
+    // Deduplicate files by id
+    const uniqueFilesMap = new Map<string, (typeof finalFiles)[0]>()
+    for (const file of finalFiles) {
+      uniqueFilesMap.set(file.id, file)
+    }
+    const deduplicatedFiles = Array.from(uniqueFilesMap.values())
+
+    // Fetch storage keys
+    const storageKeyIds = deduplicatedFiles
+      .map((f) => f.storageKeyId)
+      .filter((id): id is string => !!id)
+    const storageKeys = await this.prismaClient.storageKey.findMany({
+      where: { id: { in: storageKeyIds } },
+    })
+    const storageKeyMap = new Map(storageKeys.map((k) => [k.id, k.key]))
+
+    const downloadLinks = await Promise.all(
+      deduplicatedFiles.map(async (file) => {
+        const key = file.storageKeyId ? storageKeyMap.get(file.storageKeyId) : null
+        if (!key) return null
+
+        const url = await s3Service.presign(
+          process.env.S3_BUCKET || 'shumai',
+          key,
+          'GET',
+          file.name,
+        )
+
+        return {
+          id: file.id,
+          name: file.name,
+          url,
+        }
+      }),
+    )
+
+    return downloadLinks.filter((link): link is { id: string; name: string; url: string } => !!link)
+  }
+
   private async toPreviewInfo(asset: Asset | AssetWithIncludes): Promise<PreviewInfo | null> {
     if (!asset.media) return null
 

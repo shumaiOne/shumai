@@ -36,6 +36,7 @@ vi.mock('@shumai/core/src/authz/authz', () => ({
   ResourceType: {
     Asset: 'asset',
     Team: 'team',
+    Project: 'project',
   },
 }))
 
@@ -451,5 +452,85 @@ describe('file api', () => {
     expect(assetService.updateAssetOrder).toHaveBeenCalledWith('test-id', {
       beforeIndex: 'index-1',
     })
+  })
+
+  it('POST /files/download-links generates links if assets belong to the same project', async () => {
+    const mockFindMany = vi.spyOn(prisma.asset, 'findMany').mockResolvedValue([
+      {
+        id: 'asset1',
+        projectId: 'project-id-1',
+        type: 'file',
+        targetId: null,
+      },
+      {
+        id: 'asset2',
+        projectId: 'project-id-1',
+        type: 'folder',
+        targetId: null,
+      },
+      // Mocking only the required subset of Prisma Asset properties for the test
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ] as any)
+
+    const mockGetDownloadLinks = vi.spyOn(assetService, 'getDownloadLinks').mockResolvedValue([
+      { id: 'file1', name: 'file1.txt', url: 'http://link1' },
+      { id: 'file2', name: 'file2.txt', url: 'http://link2' },
+    ])
+
+    const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+    const res = await app.request('/files/download-links', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: ['asset1', 'asset2'] }),
+    })
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.files).toHaveLength(2)
+    expect(json.files[0].name).toBe('file1.txt')
+
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: { id: 'user1', name: 'Test User' },
+      permission: Permission.Read,
+      type: 'project',
+      id: 'project-id-1',
+    })
+
+    expect(assetService.getDownloadLinks).toHaveBeenCalledWith(['asset1', 'asset2'])
+
+    mockFindMany.mockRestore()
+    mockGetDownloadLinks.mockRestore()
+  })
+
+  it('POST /files/download-links rejects if assets belong to different projects', async () => {
+    const mockFindMany = vi.spyOn(prisma.asset, 'findMany').mockResolvedValue([
+      {
+        id: 'asset1',
+        projectId: 'project-id-1',
+        type: 'file',
+        targetId: null,
+      },
+      {
+        id: 'asset2',
+        projectId: 'project-id-2',
+        type: 'file',
+        targetId: null,
+      },
+      // Mocking only the required subset of Prisma Asset properties for the test
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ] as any)
+
+    const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+    const res = await app.request('/files/download-links', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: ['asset1', 'asset2'] }),
+    })
+
+    expect(res.status).toBe(400)
+    const json = await res.json()
+    expect(json.error).toBe('All selected items must belong to the same project')
+
+    mockFindMany.mockRestore()
   })
 })
