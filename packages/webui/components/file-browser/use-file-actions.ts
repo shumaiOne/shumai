@@ -224,16 +224,44 @@ export function useFileActions({
   }
 
   const startDownload = () => {
-    for (const file of resolvedFiles) {
-      const a = document.createElement('a')
-      a.href = file.url
-      a.download = file.name
-      a.target = '_blank'
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-    }
+    const files = [...resolvedFiles]
     setIsDownloadDialogOpen(false)
+
+    if (files.length === 0) return
+
+    toast.info(
+      `Starting download of ${files.length} files. Please allow multiple downloads if prompted by your browser.`,
+      {
+        duration: 5000,
+      },
+    )
+
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+    const runQueue = async () => {
+      const batchSize = 5
+      for (let i = 0; i < files.length; i += batchSize) {
+        const chunk = files.slice(i, i + batchSize)
+        for (const file of chunk) {
+          const a = document.createElement('a')
+          a.href = file.url
+          a.download = file.name
+          a.target = '_blank'
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+        }
+        if (i + batchSize < files.length) {
+          await delay(600)
+        }
+      }
+      toast.success('All downloads initiated successfully')
+    }
+
+    runQueue().catch((err) => {
+      console.error('Background downloads failed:', err)
+      toast.error('Some downloads could not be started')
+    })
   }
 
   const handleNewFolder = (name: string) => {
