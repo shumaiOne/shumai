@@ -1,22 +1,22 @@
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
 } from '@/ui/components/ui/alert-dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/ui/avatar'
 import { Button } from '@/ui/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+    DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu'
 import { Input } from '@/ui/components/ui/input'
 import { ChevronDown, Copy, Loader2, Trash2 } from 'lucide-react'
@@ -135,7 +135,7 @@ export function MembersDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
@@ -161,8 +161,8 @@ export function MembersDialog({
                       </span>
                       {member.scope && (
                         <>
-                          <span className="text-[10px] text-muted-foreground/50">•</span>
-                          <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full font-medium text-muted-foreground uppercase tracking-wider">
+                          <span className="text-[10px] text-muted-foreground/70">•</span>
+                          <span className="text-xs text-muted-foreground capitalize">
                             {member.scope === 'team' ? 'Team Member' : 'Project Member'}
                           </span>
                         </>
@@ -176,9 +176,9 @@ export function MembersDialog({
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
-                          className="h-8 px-2 text-xs capitalize"
+                          className="h-8 px-2 text-xs capitalize w-26"
                           disabled={updatingMemberId === member.id}
                         >
                           {member.role}
