@@ -240,7 +240,7 @@ export function FolderCard({
             d={folderPath}
             vectorEffect="non-scaling-stroke"
             strokeLinejoin="round"
-            strokeWidth={showDropFeedback ? 3 : 1}
+            strokeWidth={showDropFeedback || isSelected ? 2 : 1}
             className={cn(
               'transition-colors duration-200 fill-none group-hover:stroke-primary stroke-foreground/10',
               (isSelected || isChecked || showDropFeedback) && 'stroke-primary',

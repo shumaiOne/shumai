@@ -212,9 +212,9 @@ export function FileCard({
         }
       }}
       className={cn(
-        'group relative flex cursor-pointer select-none flex-col overflow-hidden rounded-xl border border-border bg-card transition-all hover:border-primary/50 h-full',
-        isSelected && 'ring-2 ring-primary',
-        showDropFeedback && 'border-primary ring-2 ring-primary',
+        'group relative flex cursor-pointer select-none flex-col overflow-hidden rounded-xl border border-border bg-card transition-all hover:border-primary h-full m-1',
+        isSelected && 'outline-1 outline-primary border-primary',
+        showDropFeedback && 'border-primary outline-1 outline-primary',
       )}
     >
       <div className="absolute left-2 top-2 z-10">
