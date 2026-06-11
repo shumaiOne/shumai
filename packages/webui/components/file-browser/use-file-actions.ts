@@ -28,13 +28,10 @@ export function useFileActions({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [itemsToDelete, setItemsToDelete] = useState<AssetInfo[]>([])
   const [isDownloadDialogOpen, setIsDownloadDialogOpen] = useState(false)
-  const [itemsToDownload, setItemsToDownload] = useState<AssetInfo[]>([])
-  const [isDownloading, setIsDownloading] = useState(false)
-  const [downloadProgress, setDownloadProgress] = useState<{
-    current: number
-    total: number
-    currentName: string
-  }>({ current: 0, total: 0, currentName: '' })
+  const [isLoadingLinks, setIsLoadingLinks] = useState(false)
+  const [resolvedFiles, setResolvedFiles] = useState<
+    Array<{ id: string; name: string; url: string }>
+  >([])
   const queryClient = useQueryClient()
 
   const $createFolder = client.api.folders.$post
@@ -207,58 +204,36 @@ export function useFileActions({
     }
   }
 
-  const handleDownload = (items: AssetInfo[]) => {
+  const handleDownload = async (items: AssetInfo[]) => {
     if (items.length === 0) return
-    setItemsToDownload(items)
-    setDownloadProgress({ current: 0, total: 0, currentName: '' })
     setIsDownloadDialogOpen(true)
-  }
-
-  const startDownload = async () => {
-    setIsDownloading(true)
+    setIsLoadingLinks(true)
+    setResolvedFiles([])
     try {
       const res = await getDownloadLinks({
-        json: { ids: itemsToDownload.map((i) => i.id!) },
+        json: { ids: items.map((i) => i.id!) },
       })
-      const files = res.files
-
-      const chunkSize = 5
-      const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
-
-      for (let i = 0; i < files.length; i += chunkSize) {
-        const chunk = files.slice(i, i + chunkSize)
-
-        // Trigger downloads for this batch in parallel by creating/clicking links
-        for (const file of chunk) {
-          const absoluteIndex = i + chunk.indexOf(file) + 1
-          setDownloadProgress({
-            current: absoluteIndex,
-            total: files.length,
-            currentName: file.name,
-          })
-
-          const a = document.createElement('a')
-          a.href = file.url
-          a.download = file.name
-          a.target = '_blank'
-          document.body.appendChild(a)
-          a.click()
-          document.body.removeChild(a)
-        }
-
-        // If we have more chunks to process, wait 1 second before triggering the next batch
-        if (i + chunkSize < files.length) {
-          await delay(1000)
-        }
-      }
-      toast.success('Downloads started successfully')
+      setResolvedFiles(res.files)
     } catch (error) {
-      toast.error('Download failed')
+      toast.error('Failed to prepare download links')
+      setIsDownloadDialogOpen(false)
       console.error(error)
     } finally {
-      setIsDownloading(false)
-      setIsDownloadDialogOpen(false)
+      setIsLoadingLinks(false)
     }
+  }
+
+  const startDownload = () => {
+    for (const file of resolvedFiles) {
+      const a = document.createElement('a')
+      a.href = file.url
+      a.download = file.name
+      a.target = '_blank'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    }
+    setIsDownloadDialogOpen(false)
   }
 
   const handleNewFolder = (name: string) => {
@@ -353,9 +328,8 @@ export function useFileActions({
     confirmDelete,
     isDownloadDialogOpen,
     setIsDownloadDialogOpen,
-    itemsToDownload,
-    isDownloading,
-    downloadProgress,
+    isLoadingLinks,
+    resolvedFiles,
     startDownload,
   }
 }

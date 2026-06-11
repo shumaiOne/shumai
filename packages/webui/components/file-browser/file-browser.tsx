@@ -38,7 +38,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../ui/dialog'
-import { Progress } from '../ui/progress'
 import { Button } from '../ui/button'
 import { ContextMenu, ContextMenuTrigger } from '../ui/context-menu'
 import { FileCard } from './file-card'
@@ -338,9 +337,8 @@ export function FileBrowser({
     confirmDelete,
     isDownloadDialogOpen,
     setIsDownloadDialogOpen,
-    itemsToDownload,
-    isDownloading,
-    downloadProgress,
+    isLoadingLinks,
+    resolvedFiles,
     startDownload,
   } = useFileActions({
     teamId,
@@ -1026,20 +1024,27 @@ export function FileBrowser({
       <Dialog open={isDownloadDialogOpen} onOpenChange={setIsDownloadDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{isDownloading ? 'Downloading Files' : 'Prepare Download'}</DialogTitle>
+            <DialogTitle>{isLoadingLinks ? 'Preparing Download' : 'Confirm Download'}</DialogTitle>
             <DialogDescription>
-              {isDownloading
-                ? 'Please wait while we queue your downloads. Do not close this dialog.'
+              {isLoadingLinks
+                ? 'Resolving all files and folders. Please wait...'
                 : 'Selected files and folders will be prepared for download.'}
             </DialogDescription>
           </DialogHeader>
 
-          {!isDownloading ? (
+          {isLoadingLinks ? (
+            <div className="space-y-4 py-6 flex flex-col items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="text-sm font-medium text-muted-foreground mt-2">
+                Preparing download links...
+              </span>
+            </div>
+          ) : (
             <div className="space-y-4 py-2">
               <div className="text-sm text-muted-foreground">
-                You have selected{' '}
-                <span className="font-medium text-foreground">{itemsToDownload.length}</span>{' '}
-                item(s).
+                This download will include{' '}
+                <span className="font-semibold text-foreground">{resolvedFiles.length}</span>{' '}
+                file(s).
               </div>
               <div className="flex items-start gap-3 p-3 text-sm rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/30">
                 <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
@@ -1052,44 +1057,26 @@ export function FileBrowser({
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="space-y-4 py-4">
-              <div className="flex items-center gap-3">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                <span className="text-sm font-medium text-foreground">
-                  {downloadProgress.total === 0
-                    ? 'Preparing download links...'
-                    : `Downloading file ${downloadProgress.current} of ${downloadProgress.total}...`}
-                </span>
-              </div>
-              {downloadProgress.total > 0 && (
-                <div className="space-y-2">
-                  <Progress
-                    value={Math.round((downloadProgress.current / downloadProgress.total) * 100)}
-                    className="h-2"
-                  />
-                  <p className="text-xs text-muted-foreground truncate">
-                    Current file: {downloadProgress.currentName}
-                  </p>
-                </div>
-              )}
-            </div>
           )}
 
           <DialogFooter>
-            {!isDownloading ? (
+            {!isLoadingLinks ? (
               <>
                 <Button variant="outline" onClick={() => setIsDownloadDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={startDownload} className="gap-2">
+                <Button
+                  onClick={startDownload}
+                  className="gap-2"
+                  disabled={resolvedFiles.length === 0}
+                >
                   <Download className="h-4 w-4" />
                   Start Download
                 </Button>
               </>
             ) : (
-              <Button disabled variant="outline">
-                Downloading...
+              <Button variant="outline" onClick={() => setIsDownloadDialogOpen(false)}>
+                Cancel
               </Button>
             )}
           </DialogFooter>
