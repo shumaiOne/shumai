@@ -102,6 +102,7 @@ const SelectMultiField: React.FC<FieldProps<string[]>> = ({
   const isOpen = (expanded && !isEditing) || isEditing
 
   const handleOpenChange = (open: boolean) => {
+    if (readOnly) return
     if (!open) {
       setExpanded(false)
       setIsEditing(false)
@@ -109,8 +110,8 @@ const SelectMultiField: React.FC<FieldProps<string[]>> = ({
   }
 
   return (
-    <div className="relative w-full">
-      <Popover open={isOpen} onOpenChange={handleOpenChange}>
+    <div className="relative w-full" onClick={(e) => e.stopPropagation()}>
+      <Popover open={!readOnly && isOpen} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           {/* Placeholder Display Mode */}
           <div
@@ -148,36 +149,35 @@ const SelectMultiField: React.FC<FieldProps<string[]>> = ({
           </div>
         </PopoverTrigger>
 
-        {expanded && !isEditing && (
-          <PopoverContent
-            onClick={handleOverlayClick}
-            className="p-1 w-[--radix-popover-trigger-width] min-w-[200px] flex flex-wrap gap-1 bg-white rounded border border-blue-500 shadow-lg min-h-[32px] h-auto cursor-pointer"
-            align="start"
-          >
-            {selectedOptions.length === 0 && (
-              <span className="text-gray-400 text-sm italic px-1 pt-0.5">Empty</span>
-            )}
-            {selectedOptions.map((option: SelectOption) => (
-              <span
-                key={option.id}
-                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border border-transparent whitespace-nowrap h-[22px]"
-                style={{
-                  backgroundColor: `${option.color}33`,
-                  color: option.color || undefined,
-                }}
-              >
-                {option.displayName}
-              </span>
-            ))}
-          </PopoverContent>
-        )}
-
-        {isEditing && (
-          <PopoverContent
-            className="p-1 w-64 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-auto"
-            align="start"
-          >
-            {selectConfig?.options?.map((option: SelectOption) => {
+        <PopoverContent
+          className={`p-1 bg-white border rounded-lg shadow-xl max-h-60 overflow-auto ${
+            expanded && !isEditing
+              ? 'w-[--radix-popover-trigger-width] min-w-[200px] flex flex-wrap gap-1 border-blue-500 min-h-[32px] h-auto cursor-pointer'
+              : 'w-64 border-gray-200'
+          }`}
+          align="start"
+          onClick={expanded && !isEditing ? handleOverlayClick : undefined}
+        >
+          {expanded && !isEditing ? (
+            <>
+              {selectedOptions.length === 0 && (
+                <span className="text-gray-400 text-sm italic px-1 pt-0.5">Empty</span>
+              )}
+              {selectedOptions.map((option: SelectOption) => (
+                <span
+                  key={option.id}
+                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border border-transparent whitespace-nowrap h-[22px]"
+                  style={{
+                    backgroundColor: `${option.color}33`,
+                    color: option.color || undefined,
+                  }}
+                >
+                  {option.displayName}
+                </span>
+              ))}
+            </>
+          ) : (
+            selectConfig?.options?.map((option: SelectOption) => {
               const isSelected = (value || []).includes(option.id)
               return (
                 <div
@@ -197,9 +197,9 @@ const SelectMultiField: React.FC<FieldProps<string[]>> = ({
                   {isSelected && <Check className="w-4 h-4 text-blue-500" />}
                 </div>
               )
-            })}
-          </PopoverContent>
-        )}
+            })
+          )}
+        </PopoverContent>
       </Popover>
     </div>
   )

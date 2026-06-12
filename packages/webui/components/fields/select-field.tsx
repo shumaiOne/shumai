@@ -21,6 +21,11 @@ const SelectField: React.FC<FieldProps<string>> = ({ value, config, onSave, read
     setIsEditing(false)
   }
 
+  const handleOpenChange = (open: boolean) => {
+    if (readOnly) return
+    setIsEditing(open)
+  }
+
   const renderOptionBadge = (option: SelectOption | undefined) => {
     if (!option) return <span className="text-gray-400 italic">Select an option</span>
     return (
@@ -37,8 +42,8 @@ const SelectField: React.FC<FieldProps<string>> = ({ value, config, onSave, read
   }
 
   return (
-    <div className="relative w-full">
-      <Popover open={isEditing} onOpenChange={setIsEditing}>
+    <div className="relative w-full" onClick={(e) => e.stopPropagation()}>
+      <Popover open={!readOnly && isEditing} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <div
             onClick={handleStartEdit}
@@ -53,36 +58,34 @@ const SelectField: React.FC<FieldProps<string>> = ({ value, config, onSave, read
           </div>
         </PopoverTrigger>
 
-        {isEditing && (
-          <PopoverContent
-            className="p-1 w-[--radix-popover-trigger-width] min-w-[150px] max-h-60 overflow-auto bg-white border border-gray-200 rounded-lg shadow-lg"
-            align="start"
+        <PopoverContent
+          className="p-1 w-[--radix-popover-trigger-width] min-w-[150px] max-h-60 overflow-auto bg-white border border-gray-200 rounded-lg shadow-lg"
+          align="start"
+        >
+          <div
+            onClick={() => handleSelect('')}
+            className="px-3 py-2 text-sm text-gray-500 hover:bg-gray-50 cursor-pointer flex items-center gap-2"
           >
+            <X className="w-3 h-3" /> Clear
+          </div>
+          {selectConfig?.options?.map((option: SelectOption) => (
             <div
-              onClick={() => handleSelect('')}
-              className="px-3 py-2 text-sm text-gray-500 hover:bg-gray-50 cursor-pointer flex items-center gap-2"
+              key={option.id}
+              onClick={() => handleSelect(option.id)}
+              className="px-3 py-2 hover:bg-gray-50 cursor-pointer flex items-center"
             >
-              <X className="w-3 h-3" /> Clear
-            </div>
-            {selectConfig?.options?.map((option: SelectOption) => (
-              <div
-                key={option.id}
-                onClick={() => handleSelect(option.id)}
-                className="px-3 py-2 hover:bg-gray-50 cursor-pointer flex items-center"
+              <span
+                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                style={{
+                  backgroundColor: `${option.color}33`,
+                  color: option.color || undefined,
+                }}
               >
-                <span
-                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
-                  style={{
-                    backgroundColor: `${option.color}33`,
-                    color: option.color || undefined,
-                  }}
-                >
-                  {option.displayName}
-                </span>
-              </div>
-            ))}
-          </PopoverContent>
-        )}
+                {option.displayName}
+              </span>
+            </div>
+          ))}
+        </PopoverContent>
       </Popover>
     </div>
   )
