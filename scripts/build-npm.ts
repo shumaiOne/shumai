@@ -223,7 +223,7 @@ if (platform === 'darwin' && arch === 'arm64') {
 
 const pathsToTry = [
   join(__dirname, '..', '..', '..', pkgName, 'bin', binaryName), // Flat node_modules
-  join(__dirname, '..', '..', 'node_modules', pkgName, 'bin', binaryName), // Nested node_modules
+  join(__dirname, '..', 'node_modules', pkgName, 'bin', binaryName), // Nested node_modules
 ]
 
 let binaryPath = ''
