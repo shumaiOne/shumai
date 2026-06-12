@@ -41,6 +41,8 @@ interface MembersDialogProps {
   onUpdateRole?: (memberId: string, role: 'editor' | 'reviewer') => Promise<void>
   onRemoveMember?: (memberId: string) => Promise<void>
   currentUserId?: string
+  availableMembersToAdd?: Member[]
+  onAddMember?: (userId: string, role: 'editor' | 'reviewer') => Promise<void>
 }
 
 export function MembersDialog({
@@ -53,12 +55,20 @@ export function MembersDialog({
   onUpdateRole,
   onRemoveMember,
   currentUserId,
+  availableMembersToAdd,
+  onAddMember,
 }: MembersDialogProps) {
   const [inviteRole, setInviteRole] = useState<'editor' | 'reviewer'>('editor')
   const [inviteLink, setInviteLink] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [updatingMemberId, setUpdatingMemberId] = useState<string | null>(null)
   const [memberToRemove, setMemberToRemove] = useState<Member | null>(null)
+  const [rolesToAdd, setRolesToAdd] = useState<Record<string, 'editor' | 'reviewer'>>({})
+  const [addingMemberId, setAddingMemberId] = useState<string | null>(null)
+
+  const setRoleToAdd = (memberId: string, role: 'editor' | 'reviewer') => {
+    setRolesToAdd((prev) => ({ ...prev, [memberId]: role }))
+  }
 
   const handleUpdateRole = async (memberId: string, role: 'editor' | 'reviewer') => {
     if (!onUpdateRole) return
@@ -127,6 +137,8 @@ export function MembersDialog({
     if (!newOpen) {
       setInviteLink(null)
       setInviteRole('editor')
+      setRolesToAdd({})
+      setAddingMemberId(null)
     }
     onOpenChange(newOpen)
   }
@@ -219,7 +231,6 @@ export function MembersDialog({
               </div>
             ))}
           </div>
-
           <AlertDialog
             open={!!memberToRemove}
             onOpenChange={(open) => !open && setMemberToRemove(null)}
@@ -242,8 +253,97 @@ export function MembersDialog({
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
-          </AlertDialog>
+          </AlertDialog>{' '}
+          {isOwner && onAddMember && availableMembersToAdd && availableMembersToAdd.length > 0 && (
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-medium mb-3">Add Team Member to Project</h4>
+              <div className="max-h-[200px] overflow-y-auto space-y-2 pr-1">
+                {availableMembersToAdd.map((member) => {
+                  const currentRole = rolesToAdd[member.id!] || 'editor'
+                  return (
+                    <div
+                      key={member.id}
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Avatar>
+                          {member.image && (
+                            <AvatarImage
+                              src={member.image}
+                              alt={member.name}
+                              className="object-cover"
+                            />
+                          )}
+                          <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">{member.name}</span>
+                          <span className="text-xs text-muted-foreground capitalize">
+                            {member.scope === 'team' ? 'Team Member' : 'Project Member'}
+                          </span>
+                        </div>
+                      </div>
 
+                      <div className="flex items-center gap-2">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 px-2 text-xs capitalize w-26"
+                              disabled={addingMemberId === member.id}
+                            >
+                              {currentRole}
+                              <ChevronDown className="ml-1 h-3 w-3 opacity-50" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuRadioGroup
+                              value={currentRole}
+                              onValueChange={(v) =>
+                                setRoleToAdd(member.id!, v as 'editor' | 'reviewer')
+                              }
+                            >
+                              <DropdownMenuRadioItem value="editor" className="text-xs">
+                                Editor
+                              </DropdownMenuRadioItem>
+                              <DropdownMenuRadioItem value="reviewer" className="text-xs">
+                                Reviewer
+                              </DropdownMenuRadioItem>
+                            </DropdownMenuRadioGroup>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <Button
+                          onClick={async () => {
+                            setAddingMemberId(member.id!)
+                            try {
+                              await onAddMember(member.id!, currentRole)
+                              toast.success(`Added ${member.name} successfully`)
+                            } catch (error) {
+                              console.error(error)
+                              toast.error(`Failed to add ${member.name}`)
+                            } finally {
+                              setAddingMemberId(null)
+                            }
+                          }}
+                          disabled={addingMemberId !== null}
+                          size="sm"
+                          className="h-8 text-xs px-3 w-[60px]"
+                        >
+                          {addingMemberId === member.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            'Add'
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
           {isOwner && onInvite && (
             <div className="border-t pt-4">
               <h4 className="text-sm font-medium mb-3">Invite New Member</h4>

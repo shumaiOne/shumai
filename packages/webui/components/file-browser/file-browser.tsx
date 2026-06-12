@@ -453,7 +453,7 @@ export function FileBrowser({
   const newVersionInputRef = useRef<HTMLInputElement>(null)
   const [targetVersionFileId, setTargetVersionFileId] = useState<string | null>(null)
   const fileContextMenu = useRef(false)
-  const { canEdit, canAdmin } = usePermissions()
+  const { canEdit, canAdmin } = usePermissions(projectId)
 
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 

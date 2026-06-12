@@ -10,6 +10,7 @@ import {
   listProjectsRequestSchema,
   recentlyDeletedRequestSchema,
   updateProjectMemberRoleRequestSchema,
+  addProjectMemberRequestSchema,
 } from '@shumai/dtos'
 import { listMembersQuerySchema } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
@@ -300,6 +301,44 @@ const route = new Hono<{ Variables: { user: User } }>()
     await projectService.removeMember(projectId, userId)
 
     return c.json({ success: true })
+  })
+  .post(
+    '/projects/:projectId/members',
+    zValidator('json', addProjectMemberRequestSchema),
+    async (c) => {
+      const user = c.get('user')
+      const projectId = c.req.param('projectId')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Admin,
+        type: ResourceType.Project,
+        id: projectId,
+      })
+
+      await projectService.addProjectMember({
+        projectId,
+        userId: req.userId,
+        role: req.role,
+      })
+
+      return c.json({ success: true })
+    },
+  )
+  .get('/projects/:projectId/me', async (c) => {
+    const user = c.get('user')
+    const projectId = c.req.param('projectId')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Project,
+      id: projectId,
+    })
+
+    const me = await projectService.getProjectMe(projectId, user.id)
+    return c.json(me)
   })
 
 export default route

@@ -22,20 +22,28 @@ export interface Permissions {
  * Reuses the same React Query cache key (['teams', teamId, 'me']) populated
  * by __root.tsx, so no extra API calls are made.
  */
-export function usePermissions(): Permissions {
+export function usePermissions(projectId?: string): Permissions {
   const teamId = useTeamContextStore((s) => s.teamId)
 
   const { data: me } = useQuery({
-    queryKey: ['teams', teamId, 'me'],
+    queryKey: projectId ? ['projects', projectId, 'me'] : ['teams', teamId, 'me'],
     queryFn: async () => {
-      if (!teamId) return null
-      const res = await client.api.teams[':teamId'].me.$get({
-        param: { teamId },
-      })
-      if (!res.ok) throw new Error('Failed to fetch me')
-      return await res.json()
+      if (projectId) {
+        const res = await client.api.projects[':projectId'].me.$get({
+          param: { projectId },
+        })
+        if (!res.ok) throw new Error('Failed to fetch project me')
+        return await res.json()
+      } else {
+        if (!teamId) return null
+        const res = await client.api.teams[':teamId'].me.$get({
+          param: { teamId },
+        })
+        if (!res.ok) throw new Error('Failed to fetch team me')
+        return await res.json()
+      }
     },
-    enabled: !!teamId,
+    enabled: projectId ? !!projectId : !!teamId,
   })
 
   return useMemo(

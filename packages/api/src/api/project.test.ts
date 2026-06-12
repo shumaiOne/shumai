@@ -196,4 +196,54 @@ describe('project api', () => {
     })
     expect(assetService.emptyTrash).toHaveBeenCalledWith('p1')
   })
+
+  it('POST /projects/:projectId/members', async () => {
+    vi.mocked(projectService.addProjectMember).mockResolvedValue(undefined)
+
+    const res = await app.request('/projects/p1/members', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: 'user2', role: 'editor' }),
+    })
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json).toEqual({ success: true })
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Admin,
+      type: ResourceType.Project,
+      id: 'p1',
+    })
+    expect(projectService.addProjectMember).toHaveBeenCalledWith({
+      projectId: 'p1',
+      userId: 'user2',
+      role: 'editor',
+    })
+  })
+
+  it('GET /projects/:projectId/me', async () => {
+    vi.mocked(projectService.getProjectMe).mockResolvedValue({
+      id: 'user1',
+      name: 'Test User',
+      role: 'editor',
+    })
+
+    const res = await app.request('/projects/p1/me')
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json).toEqual({
+      id: 'user1',
+      name: 'Test User',
+      role: 'editor',
+    })
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Read,
+      type: ResourceType.Project,
+      id: 'p1',
+    })
+    expect(projectService.getProjectMe).toHaveBeenCalledWith('p1', 'user1')
+  })
 })

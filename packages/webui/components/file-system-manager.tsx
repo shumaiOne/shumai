@@ -47,7 +47,7 @@ export default function FileSystemManager({
 }: FileSystemManagerProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { canEdit } = usePermissions()
+  const { canEdit } = usePermissions(projectId)
   const { loadedProjectId, setFields } = useFieldStore()
   const $patchMetadata = client.api.files[':fileId'].metadata.$patch
   const { mutate: patchMetadata } = useMutation<

@@ -397,4 +397,110 @@ describe('AuthzService', () => {
       projectId: project.id,
     })
   })
+
+  describe('New project-precedent authz rules', () => {
+    it('should prioritize project-specific role over team role', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'Matt', email: 'matt@example.com', password: 'pass' },
+      })
+      const team = await prisma.team.create({ data: { name: 'Team Precedence' } })
+      const project = await prisma.project.create({
+        data: { name: 'Project Foo', teamId: team.id },
+      })
+
+      // Matt is a team editor (which would normally give Edit permissions)
+      const tm = await prisma.teamMember.create({
+        data: { teamId: team.id, userId: user.id, role: 'editor', scope: 'team' },
+      })
+
+      // But Matt is specifically added to Project Foo as a reviewer (Read-only)
+      await prisma.projectMember.create({
+        data: { projectId: project.id, teamMemberId: tm.id, role: 'reviewer' },
+      })
+
+      // Check that Matt has Read permission on Project Foo
+      await expect(
+        authzService.hasPermission({
+          type: ResourceType.Project,
+          id: project.id,
+          user,
+          permission: Permission.Read,
+        }),
+      ).resolves.toBeUndefined()
+
+      // Check that Matt is DENIED Edit permission on Project Foo (even though they are team editor)
+      await expect(
+        authzService.hasPermission({
+          type: ResourceType.Project,
+          id: project.id,
+          user,
+          permission: Permission.Edit,
+        }),
+      ).rejects.toThrow()
+    })
+
+    it('should fall back to team role if no project-specific role exists', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'Jane', email: 'jane@example.com', password: 'pass' },
+      })
+      const team = await prisma.team.create({ data: { name: 'Team Fallback' } })
+      const project = await prisma.project.create({
+        data: { name: 'Project Bar', teamId: team.id },
+      })
+
+      // Jane is a team editor (scope: team)
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: user.id, role: 'editor', scope: 'team' },
+      })
+
+      // Jane has no project-specific record on Project Bar, should fall back to team role (editor)
+      await expect(
+        authzService.hasPermission({
+          type: ResourceType.Project,
+          id: project.id,
+          user,
+          permission: Permission.Edit,
+        }),
+      ).resolves.toBeUndefined()
+    })
+
+    it('should deny project-scoped user access to projects they are not member of', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'Guest', email: 'guest@example.com', password: 'pass' },
+      })
+      const team = await prisma.team.create({ data: { name: 'Team Guest' } })
+      const projectA = await prisma.project.create({ data: { name: 'Project A', teamId: team.id } })
+      const projectB = await prisma.project.create({ data: { name: 'Project B', teamId: team.id } })
+
+      // Guest is project-scoped
+      const tm = await prisma.teamMember.create({
+        data: { teamId: team.id, userId: user.id, role: 'reviewer', scope: 'project' },
+      })
+
+      // Guest is only added to Project A (as editor)
+      await prisma.projectMember.create({
+        data: { projectId: projectA.id, teamMemberId: tm.id, role: 'editor' },
+      })
+
+      // Guest can access Project A
+      await expect(
+        authzService.hasPermission({
+          type: ResourceType.Project,
+          id: projectA.id,
+          user,
+          permission: Permission.Edit,
+        }),
+      ).resolves.toBeUndefined()
+
+      // Guest CANNOT access Project B (denied)
+      await expect(
+        authzService.hasPermission({
+          type: ResourceType.Project,
+          id: projectB.id,
+          user,
+          permission: Permission.Read,
+        }),
+      ).rejects.toThrow('User has only project scope')
+    })
+  })
 })
