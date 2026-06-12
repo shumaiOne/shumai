@@ -18,11 +18,22 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu'
+import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/ui/popover'
 import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
 import { Switch } from '@/ui/components/ui/switch'
 import { arrayMove } from '@/ui/lib/dnd-utils'
 import { PointerActivationConstraints } from '@dnd-kit/dom'
+
+export const PREDEFINED_COLORS = [
+  '#ef4444', // Red
+  '#f97316', // Orange
+  '#eab308', // Yellow
+  '#22c55e', // Green
+  '#3b82f6', // Blue
+  '#a855f7', // Purple
+  '#808080', // Gray
+]
 import {
   AlignLeft,
   Calendar,
@@ -305,10 +316,32 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
                       placeholder="Option name"
                       className="h-8 flex-1"
                     />
-                    <div
-                      className="w-6 h-6 rounded-full border shrink-0"
-                      style={{ backgroundColor: opt.color }}
-                    ></div>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="w-6 h-6 rounded-full border shrink-0 cursor-pointer focus:outline-none hover:scale-105 transition-transform"
+                          style={{ backgroundColor: opt.color || '#808080' }}
+                        />
+                      </PopoverTrigger>
+                      <PopoverContent className="p-2 w-auto" align="end">
+                        <div className="flex gap-1">
+                          {PREDEFINED_COLORS.map((color) => (
+                            <button
+                              key={color}
+                              type="button"
+                              className="w-5 h-5 rounded-full border cursor-pointer hover:scale-110 transition-transform"
+                              style={{ backgroundColor: color }}
+                              onClick={() => {
+                                const updated = [...newOptions]
+                                updated[idx] = { ...opt, color }
+                                setNewOptions(updated)
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                     <Button
                       variant="ghost"
                       size="icon"
