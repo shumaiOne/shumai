@@ -50,37 +50,35 @@ export class AuthzService {
 
     if (!member) throw new HTTPException(403, { message: 'User is not a member of the team' })
 
-    // 2. Check Scope
+    // 2. Check Project Membership first if project context is available
+    if (projectId) {
+      const pm = await prisma.projectMember.findUnique({
+        where: {
+          projectIdTeamMemberId: {
+            projectId: projectId,
+            teamMemberId: member.id,
+          },
+        },
+      })
+      if (pm) {
+        return this.checkRole(pm.role, req.permission)
+      }
+    }
+
+    // 3. Fall back to Team scope checks
     if (member.scope === 'team') {
       return this.checkRole(member.role, req.permission)
     }
 
-    // 3. Scope is Project
+    // 4. Scope is Project, and no project-level record exists (or no project context was provided)
     if (!projectId) {
       // User has project scope but no project context provided (e.g. Team-level resource)
-      // If it's a team-level resource, project-scoped users shouldn't have access except for Read maybe?
-      // But usually team resources like Skills/Providers are managed by Team Owners/Editors.
-      // For now, let's keep the logic: project-scoped users can't access team-level resources unless it's Read (like ListProjects).
+      // If it's a team-level resource, project-scoped users can access Read (like ListProjects).
       if (req.permission === Permission.Read) {
         return
       }
-      throw new HTTPException(403, { message: 'User has only project scope' })
     }
-
-    // Check Project Membership
-    const pm = await prisma.projectMember.findUnique({
-      where: {
-        projectIdTeamMemberId: {
-          projectId: projectId,
-          teamMemberId: member.id,
-        },
-      },
-    })
-
-    if (!pm)
-      throw new HTTPException(403, { message: `User is not a member of project ${projectId}` })
-
-    return this.checkRole(pm.role, req.permission)
+    throw new HTTPException(403, { message: 'User has only project scope' })
   }
 
   private async resolveContext(

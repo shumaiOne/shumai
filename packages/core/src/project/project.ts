@@ -342,6 +342,44 @@ export class ProjectService {
     })
   }
 
+  async getProjectMe(
+    projectId: string,
+    userId: string,
+  ): Promise<{ id: string; name: string; role: string; image?: string }> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    })
+    if (!user) throw new Error('User not found')
+
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    })
+    if (!project) throw new Error('Project not found')
+
+    const tm = await prisma.teamMember.findUnique({
+      where: {
+        teamIdUserId: { teamId: project.teamId, userId },
+      },
+    })
+    if (!tm) throw new Error('User is not a team member')
+
+    const pm = await prisma.projectMember.findFirst({
+      where: {
+        projectId,
+        teamMemberId: tm.id,
+      },
+    })
+
+    const role = pm ? pm.role : tm.role
+
+    return {
+      id: user.id,
+      name: user.name,
+      role: role,
+      image: await getAvatarUrl(user.image),
+    }
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async toProjectInfo(p: any): Promise<ProjectInfo> {
     const pi: ProjectInfo = {

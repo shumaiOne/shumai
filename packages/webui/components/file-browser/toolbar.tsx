@@ -49,7 +49,7 @@ export function FileBrowserToolbar({
   onUpdateCollection,
   rootFolderId,
 }: FileBrowserToolbarProps) {
-  const { canEdit } = usePermissions()
+  const { canEdit } = usePermissions(projectId)
   const [popoverOpen, setPopoverOpen] = useState(false)
   const [searchDialogOpen, setSearchDialogOpen] = useState(false)
   const [manageDialogOpen, setManageDialogOpen] = useState(false)
@@ -72,7 +72,7 @@ export function FileBrowserToolbar({
     enabled: isCollection && !!assetId,
   })
 
-  const { data: members } = useQuery({
+  const { data: members, refetch: refetchProjectMembers } = useQuery({
     queryKey: ['projects', projectId, 'members'],
     queryFn: async () => {
       const res = await client.api.projects[':projectId'].members.$get({
@@ -95,16 +95,29 @@ export function FileBrowserToolbar({
     },
   })
 
-  const { data: me } = useQuery({
-    queryKey: ['teams', teamInfo?.teamId, 'me'],
+  const { data: teamMembers } = useQuery({
+    queryKey: ['teams', teamInfo?.teamId, 'members'],
     queryFn: async () => {
-      const res = await client.api.teams[':teamId'].me.$get({
+      const res = await client.api.teams[':teamId'].members.$get({
         param: { teamId: teamInfo?.teamId || '' },
+        query: {},
       })
-      if (!res.ok) throw new Error('Failed to fetch me')
+      if (!res.ok) throw new Error('Failed to fetch team members')
       return await res.json()
     },
-    enabled: !!teamInfo?.teamId,
+    enabled: !!teamInfo?.teamId && isMembersDialogOpen,
+  })
+
+  const { data: me, refetch: refetchMe } = useQuery({
+    queryKey: ['projects', projectId, 'me'],
+    queryFn: async () => {
+      const res = await client.api.projects[':projectId'].me.$get({
+        param: { projectId },
+      })
+      if (!res.ok) throw new Error('Failed to fetch project me')
+      return await res.json()
+    },
+    enabled: !!projectId,
   })
 
   const $inviteProject = client.api.projects[':projectId'].invite.$post
@@ -122,6 +135,23 @@ export function FileBrowserToolbar({
     },
   })
 
+  const $addProjectMember = client.api.projects[':projectId'].members.$post
+  const addProjectMemberMutation = useMutation<
+    InferResponseType<typeof $addProjectMember>,
+    Error,
+    InferRequestType<typeof $addProjectMember>
+  >({
+    mutationFn: async (args) => {
+      const res = await $addProjectMember(args)
+      if (!res.ok) throw new Error('Failed to add project member')
+      return await res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'members'] })
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'me'] })
+    },
+  })
+
   const handleManageFields = () => {
     setPopoverOpen(false)
     setManageDialogOpen(true)
@@ -133,6 +163,27 @@ export function FileBrowserToolbar({
       json: { role },
     })
     return res.code
+  }
+
+  const handleOpenMembersDialog = (open: boolean) => {
+    setIsMembersDialogOpen(open)
+    if (open) {
+      refetchProjectMembers()
+      refetchMe()
+    }
+  }
+
+  const safeProjectMembers = Array.isArray(members) ? members : []
+  const safeTeamMembers = Array.isArray(teamMembers) ? teamMembers : []
+  const availableMembersToAdd = safeTeamMembers.filter(
+    (tm) => !safeProjectMembers.some((pm) => pm.id === tm.id),
+  )
+
+  const handleAddProjectMember = async (userId: string, role: 'editor' | 'reviewer' | 'owner') => {
+    await addProjectMemberMutation.mutateAsync({
+      param: { projectId },
+      json: { userId, role },
+    })
   }
 
   const updateMemberRoleMutation = useMutation({
@@ -304,7 +355,7 @@ export function FileBrowserToolbar({
         {!isRecentlyDeleted && (
           <div
             className="flex items-center -space-x-2 cursor-pointer hover:opacity-90"
-            onClick={() => setIsMembersDialogOpen(true)}
+            onClick={() => handleOpenMembersDialog(true)}
           >
             {members?.slice(0, 3).map((member) => (
               <Avatar key={member.id} className="border-2 border-background w-8 h-8">
@@ -331,7 +382,7 @@ export function FileBrowserToolbar({
 
       <MembersDialog
         open={isMembersDialogOpen}
-        onOpenChange={setIsMembersDialogOpen}
+        onOpenChange={handleOpenMembersDialog}
         title="Project Members"
         members={members || []}
         isOwner={me?.role === 'owner'}
@@ -343,6 +394,8 @@ export function FileBrowserToolbar({
           await removeMemberMutation.mutateAsync(memberId)
         }}
         currentUserId={me?.id}
+        availableMembersToAdd={availableMembersToAdd}
+        onAddMember={handleAddProjectMember}
       />
 
       <SearchFilterDialog

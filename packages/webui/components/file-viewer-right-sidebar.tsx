@@ -49,7 +49,7 @@ export function FileViewerRightSidebar({
   onTyping,
   selectedCommentId,
 }: FileViewerRightSidebarProps) {
-  const { canEdit } = usePermissions()
+  const { canEdit } = usePermissions(projectId)
   const { fields, setFields } = useFieldStore()
   const queryClient = useQueryClient()
   const { ref, inView } = useInView()

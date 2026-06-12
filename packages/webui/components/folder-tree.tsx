@@ -75,7 +75,7 @@ export function FolderTree({
 }: FolderTreeProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { canEdit } = usePermissions()
+  const { canEdit } = usePermissions(projectId)
   const isRecentlyDeleted = useMatch({
     from: '/projects/$projectId/recently-deleted',
     shouldThrow: false,

@@ -110,3 +110,17 @@ export interface ServiceUpdateProjectMemberRoleRequest {
   userId: string
   role: 'editor' | 'reviewer'
 }
+
+export const addProjectMemberRequestSchema = z.object({
+  userId: z.string(),
+  role: z.enum(['owner', 'editor', 'reviewer']),
+})
+export type AddProjectMemberRequest = z.infer<typeof addProjectMemberRequestSchema>
+
+export const projectMeResponseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  role: z.enum(['owner', 'editor', 'reviewer', 'bot', 'unknown']),
+  image: z.string().optional(),
+})
+export type ProjectMeResponse = z.infer<typeof projectMeResponseSchema>

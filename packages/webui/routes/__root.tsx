@@ -10,10 +10,10 @@ import { useTeamContextStore } from '@/ui/stores/team-context'
 import { useUploadStore } from '@/ui/stores/upload'
 import { useQuery } from '@tanstack/react-query'
 import {
-    createRootRouteWithContext,
-    Outlet,
-    useNavigate,
-    useRouterState,
+  createRootRouteWithContext,
+  Outlet,
+  useNavigate,
+  useRouterState,
 } from '@tanstack/react-router'
 import { useEffect } from 'react'
 

@@ -71,7 +71,7 @@ export function BreadcrumbNav({
   versions,
 }: BreadcrumbNavProps) {
   const navigate = useNavigate()
-  const { canEdit } = usePermissions()
+  const { canEdit } = usePermissions(projectId)
 
   const handleVersionClick = (versionId: string) => {
     if (!projectId || !fileId) return
