@@ -70,4 +70,4 @@ COPY --chown=bun:bun --from=builder /app/prisma.config.ts.prod ./prisma.config.t
 EXPOSE 3000
 
 # Default command: run migrations and start API server
-CMD ["sh", "-c", "bun prisma migrate deploy && bun apps/web/src/index.js"]
+CMD ["sh", "-c", "bun prisma migrate deploy && bun index.js"]

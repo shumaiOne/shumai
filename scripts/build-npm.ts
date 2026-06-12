@@ -1,4 +1,4 @@
-import { rm, mkdir, cp, writeFile } from 'node:fs/promises'
+import { rm, mkdir, cp, writeFile, readdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import tailwindPlugin from 'bun-plugin-tailwind'
@@ -15,6 +15,9 @@ if (existsSync(distDir)) {
   await rm(distDir, { recursive: true, force: true })
 }
 await mkdir(distDir, { recursive: true })
+
+const dummyRunnerPath = path.join(distDir, 'dummy-runner.ts')
+await writeFile(dummyRunnerPath, '// Shumai Runner Stub\n', 'utf-8')
 
 const rootPackageJson = JSON.parse(await Bun.file('package.json').text())
 const version = rootPackageJson.version || '0.1.0'
@@ -112,21 +115,18 @@ async function compileApp({
     process.exit(1)
   }
 
-  // Rename generated binary (usually Bun names it 'src' or the folder name of the entrypoint)
-  const generatedFile = path.join(outdir, 'src')
-  const generatedFileExe = path.join(outdir, 'src.exe')
+  // Rename generated binary dynamically by finding the output file in outdir
   const finalFile = path.join(outdir, binaryName)
+  const files = await readdir(outdir)
+  const generatedFilename = files.find((f) => f !== binaryName)
 
-  if (existsSync(generatedFile)) {
+  if (generatedFilename) {
+    const generatedPath = path.join(outdir, generatedFilename)
     console.log(`➡️ Moving binary to final location: ${finalFile}`)
-    await cp(generatedFile, finalFile)
-    await rm(generatedFile)
-  } else if (existsSync(generatedFileExe)) {
-    console.log(`➡️ Moving binary to final location: ${finalFile}`)
-    await cp(generatedFileExe, finalFile)
-    await rm(generatedFileExe)
-  } else {
-    console.error(`❌ Could not find compiled binary at ${generatedFile} or ${generatedFileExe}`)
+    await cp(generatedPath, finalFile)
+    await rm(generatedPath)
+  } else if (!existsSync(finalFile)) {
+    console.error(`❌ Could not find compiled binary in ${outdir}`)
     process.exit(1)
   }
 }
@@ -173,16 +173,61 @@ async function buildPlatformPackages(
 }
 
 // Function to build main wrapper package
-async function buildMainPackage(
-  appName: string,
-  description: string,
-  hasPrisma: boolean,
-  extraDependencies: Record<string, string> = {},
-) {
+// Function to build main wrapper package
+async function buildMainPackage({
+  appName,
+  description,
+  hasPrisma,
+  entrypoint,
+  plugins = [],
+  extraDependencies = {},
+}: {
+  appName: string
+  description: string
+  hasPrisma: boolean
+  entrypoint: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  plugins?: any[]
+  extraDependencies?: Record<string, string>
+}) {
   console.log(`\n📄 Packaging wrapper app ${appName}...`)
   const mainOutDir = path.join(distDir, appName)
   const binOutDir = path.join(mainOutDir, 'bin')
   await mkdir(binOutDir, { recursive: true })
+
+  // 1. Bundle the JS application code for wrapper
+  console.log(`📦 Bundling JS application code for wrapper ${appName}...`)
+  const appJsName = `${appName}-app.js`
+
+  const buildResult = await Bun.build({
+    entrypoints: [entrypoint],
+    root: '.',
+    target: 'bun',
+    outdir: binOutDir,
+    minify: true,
+    naming: `${appName}-app.[ext]`,
+    plugins,
+    external: commonExternal,
+    define: {
+      'process.env.NODE_ENV': JSON.stringify('production'),
+    },
+    publicPath: '/',
+  })
+
+  if (!buildResult.success) {
+    console.error(`❌ JS bundling failed for ${appName}!`)
+    for (const log of buildResult.logs) {
+      console.error(log)
+    }
+    process.exit(1)
+  }
+
+  // Confirm that the bundle exists
+  const finalJsFile = path.join(binOutDir, appJsName)
+  if (!existsSync(finalJsFile)) {
+    console.error(`❌ Could not find compiled JS bundle at ${finalJsFile}`)
+    process.exit(1)
+  }
 
   // Write JS wrapper script
   const wrapperContent = `#!/usr/bin/env node
@@ -239,8 +284,14 @@ if (!binaryPath) {
   process.exit(1)
 }
 
-const child = spawn(binaryPath, process.argv.slice(2), {
+const appJsPath = join(__dirname, '${appName}-app.js')
+
+const child = spawn(binaryPath, ['run', appJsPath, ...process.argv.slice(2)], {
   stdio: 'inherit',
+  env: {
+    ...process.env,
+    BUN_BE_BUN: '1',
+  },
 })
 
 child.on('close', (code) => {
@@ -301,32 +352,53 @@ child.on('error', (err) => {
 }
 
 // 2. Build shumai (Main app & platform binaries)
-await buildPlatformPackages('shumai', './apps/web/src/index.ts', [
+const shumaiPlugins = [
   temporalWorkflow({
     bundleOptions: {},
   }),
   tailwindPlugin,
-])
-await buildMainPackage('shumai', 'A fullstack AI-powered media workspace and workflow engine', true)
+]
+await buildPlatformPackages('shumai', dummyRunnerPath)
+await buildMainPackage({
+  appName: 'shumai',
+  description: 'A fullstack AI-powered media workspace and workflow engine',
+  hasPrisma: true,
+  entrypoint: './apps/web/src/index.ts',
+  plugins: shumaiPlugins,
+})
 
 // 3. Build shumai-agent (Agent app & platform binaries)
-await buildPlatformPackages('shumai-agent', './apps/agent/src/index.ts', [
+const agentPlugins = [
   temporalWorkflow({
     bundleOptions: {},
   }),
-])
-await buildMainPackage('shumai-agent', 'AI worker agent for the shumai media workspace', false)
+]
+await buildPlatformPackages('shumai-agent', dummyRunnerPath)
+await buildMainPackage({
+  appName: 'shumai-agent',
+  description: 'AI worker agent for the shumai media workspace',
+  hasPrisma: false,
+  entrypoint: './apps/agent/src/index.ts',
+  plugins: agentPlugins,
+})
 
 // 4. Build shumai-transcode (Transcode app & platform binaries)
-await buildPlatformPackages('shumai-transcode', './apps/transcode/src/index.ts', [
+const transcodePlugins = [
   temporalWorkflow({
     bundleOptions: {},
   }),
-])
-await buildMainPackage(
-  'shumai-transcode',
-  'Media transcoding worker for the shumai media workspace',
-  false,
-)
+]
+await buildPlatformPackages('shumai-transcode', dummyRunnerPath)
+await buildMainPackage({
+  appName: 'shumai-transcode',
+  description: 'Media transcoding worker for the shumai media workspace',
+  hasPrisma: false,
+  entrypoint: './apps/transcode/src/index.ts',
+  plugins: transcodePlugins,
+})
+
+if (existsSync(dummyRunnerPath)) {
+  await rm(dummyRunnerPath)
+}
 
 console.log('\n✅ All applications and platform binaries built and packaged successfully!')

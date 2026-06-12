@@ -1,3 +1,4 @@
+import { join } from 'node:path'
 import { loadEnvConfig } from '@shumai/core/src/env-loader'
 loadEnvConfig(process.cwd(), process.env.NODE_ENV !== 'production')
 
@@ -41,25 +42,71 @@ if (process.env.WORKFLOW_EXECUTOR === 'temporal') {
   Promise.all(queuesToStart.map((q) => workflowService.startWorkers(q))).catch(console.error)
 }
 
-const server = Bun.serve({
-  port: 3000,
-  fetch: app.fetch,
-  maxRequestBodySize: process.env.MAX_REQUEST_BODY_SIZE
-    ? parseInt(process.env.MAX_REQUEST_BODY_SIZE)
-    : 1024 * 1024 * 1024 * 10, // Default 10GB
-  routes: {
-    // Serve index.html for root
-    '/': index,
+const isProd = process.env.NODE_ENV === 'production'
 
-    // Proxy API requests to Hono
-    '/api/*': app.fetch,
-    '/files/*': app.fetch,
+const server = Bun.serve(
+  isProd
+    ? {
+        port: 3000,
+        maxRequestBodySize: process.env.MAX_REQUEST_BODY_SIZE
+          ? parseInt(process.env.MAX_REQUEST_BODY_SIZE)
+          : 1024 * 1024 * 1024 * 10, // Default 10GB
+        development: false,
+        async fetch(req) {
+          const url = new URL(req.url)
 
-    // Catch-all for SPA routing (fallback to index.html)
-    '/*': index,
-  },
-  development: process.env.NODE_ENV !== 'production',
-})
+          if (!url.pathname.startsWith('/api/') && !url.pathname.startsWith('/files/')) {
+            const filepath = join(import.meta.dir, url.pathname)
+            const file = Bun.file(filepath)
+            if (await file.exists()) {
+              try {
+                const stat = await file.stat()
+                if (stat.isFile()) {
+                  return new Response(file)
+                }
+              } catch {
+                // ignore stat errors
+              }
+            }
+
+            const htmlFile = Bun.file(join(import.meta.dir, 'index.html'))
+            if (await htmlFile.exists()) {
+              return new Response(htmlFile, {
+                headers: { 'Content-Type': 'text/html' },
+              })
+            }
+
+            const htmlFileNpm = Bun.file(join(import.meta.dir, 'shumai-app.html'))
+            if (await htmlFileNpm.exists()) {
+              return new Response(htmlFileNpm, {
+                headers: { 'Content-Type': 'text/html' },
+              })
+            }
+          }
+
+          return app.fetch(req)
+        },
+      }
+    : {
+        port: 3000,
+        maxRequestBodySize: process.env.MAX_REQUEST_BODY_SIZE
+          ? parseInt(process.env.MAX_REQUEST_BODY_SIZE)
+          : 1024 * 1024 * 1024 * 10, // Default 10GB
+        development: true,
+        fetch: app.fetch,
+        routes: {
+          // Serve index.html for root
+          '/': index,
+
+          // Proxy API requests to Hono
+          '/api/*': app.fetch,
+          '/files/*': app.fetch,
+
+          // Catch-all for SPA routing (fallback to index.html)
+          '/*': index,
+        },
+      },
+)
 
 console.log(`🚀 Server running at ${server.url}`)
 
