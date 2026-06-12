@@ -48,7 +48,7 @@ export default function FileSystemManager({
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { canEdit } = usePermissions(projectId)
-  const { loadedProjectId, setFields } = useFieldStore()
+  const { setFields } = useFieldStore()
   const $patchMetadata = client.api.files[':fileId'].metadata.$patch
   const { mutate: patchMetadata } = useMutation<
     InferResponseType<typeof $patchMetadata>,
@@ -75,10 +75,10 @@ export default function FileSystemManager({
   })
 
   useEffect(() => {
-    if (fields && projectId !== loadedProjectId) {
+    if (fields) {
       setFields(fields as unknown as MetadataFieldInfo[], projectId)
     }
-  }, [fields, projectId, loadedProjectId, setFields])
+  }, [fields, projectId, setFields])
 
   const isRecentlyDeleted = assetId === 'recently-deleted'
   const [selectedItem, setSelectedItem] = useState<AssetInfo | null>(null)

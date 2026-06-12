@@ -1,9 +1,15 @@
-import { FieldType, type FieldInfo, type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
+import {
+  FieldType,
+  type FieldInfo,
+  type FieldInfo as MetadataFieldInfo,
+  type SelectOption,
+} from '@shumai/dtos'
+import { ulid } from 'ulid'
 import { client } from '@/ui/api/client'
 import { useFieldStore } from '@/ui/stores/fields'
 import { DragDropProvider, KeyboardSensor, PointerSensor, type DragEndEvent } from '@dnd-kit/react'
 import { useSortable } from '@dnd-kit/react/sortable'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { InferRequestType, InferResponseType } from 'hono/client'
 
 import { Button } from '@/ui/components/ui/button'
@@ -13,13 +19,86 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu'
+import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/ui/popover'
 import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
 import { Switch } from '@/ui/components/ui/switch'
 import { arrayMove } from '@/ui/lib/dnd-utils'
 import { PointerActivationConstraints } from '@dnd-kit/dom'
-import { ChevronDown, GripVertical, Plus, Search, Settings, Sparkles } from 'lucide-react'
-import { useMemo, useState } from 'react'
+
+export const PREDEFINED_COLORS = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'gray']
+
+export const COLOR_MAP: Record<string, { bg: string; text: string; hex: string }> = {
+  red: { bg: 'rgba(239, 68, 68, 0.15)', text: '#ef4444', hex: '#ef4444' },
+  orange: { bg: 'rgba(249, 115, 22, 0.15)', text: '#f97316', hex: '#f97316' },
+  yellow: { bg: 'rgba(234, 179, 8, 0.15)', text: '#ca8a04', hex: '#eab308' },
+  green: { bg: 'rgba(34, 197, 94, 0.15)', text: '#16a34a', hex: '#22c55e' },
+  blue: { bg: 'rgba(59, 130, 246, 0.15)', text: '#2563eb', hex: '#3b82f6' },
+  purple: { bg: 'rgba(168, 85, 247, 0.15)', text: '#9333ea', hex: '#a855f7' },
+  gray: { bg: 'rgba(128, 128, 128, 0.15)', text: '#4b5563', hex: '#808080' },
+  system: { bg: 'rgba(128, 128, 128, 0.1)', text: '#6b7280', hex: '#808080' },
+}
+
+export function getOptionStyle(color?: string) {
+  if (!color) {
+    return {
+      backgroundColor: 'rgba(128, 128, 128, 0.1)',
+      color: '#6b7280',
+    }
+  }
+
+  const normalized = color.toLowerCase()
+  const mapped = COLOR_MAP[normalized]
+  if (mapped) {
+    return {
+      backgroundColor: mapped.bg,
+      color: mapped.text,
+    }
+  }
+
+  // Support hex colors (e.g. for existing custom fields)
+  if (color.startsWith('#')) {
+    return {
+      backgroundColor: `${color}33`,
+      color: color,
+    }
+  }
+
+  // Fallback
+  return {
+    backgroundColor: 'rgba(128, 128, 128, 0.1)',
+    color: color,
+  }
+}
+import {
+  AlignLeft,
+  Calendar,
+  ChevronDown,
+  GripVertical,
+  Hash,
+  List,
+  Plus,
+  Search,
+  Settings,
+  Sparkles,
+  Star,
+  Tags,
+  ToggleLeft,
+  Type,
+  X,
+} from 'lucide-react'
+import { useMemo, useState, useEffect } from 'react'
+
+export const FIELD_TYPE_ICONS: Record<FieldType, React.ComponentType<{ className?: string }>> = {
+  [FieldType.text]: Type,
+  [FieldType.longText]: AlignLeft,
+  [FieldType.select]: List,
+  [FieldType.selectMulti]: Tags,
+  [FieldType.rating]: Star,
+  [FieldType.number]: Hash,
+  [FieldType.toggle]: ToggleLeft,
+  [FieldType.date]: Calendar,
+}
 
 type SortableFieldItemProps = {
   field: FieldInfo
@@ -33,14 +112,17 @@ function SortableFieldItem({ field, index, onVisibilityChange }: SortableFieldIt
     index,
   })
 
+  const Icon = field.config?.type ? FIELD_TYPE_ICONS[field.config.type as FieldType] : null
+
   return (
     <div ref={ref} className="flex items-center justify-between p-2 rounded-md hover:bg-muted">
       <div className="flex items-center gap-2">
         <div ref={handleRef} className="cursor-grab">
           <GripVertical className="h-4 w-4 text-muted-foreground" />
         </div>
-        {field.aiAutofill && <Sparkles className="h-4 w-4 text-muted-foreground" />}
-        <span className="text-sm">{field.config?.name}</span>
+        {Icon && <Icon className="h-4 w-4 text-muted-foreground shrink-0" />}
+        {field.aiAutofill && <Sparkles className="h-4 w-4 text-muted-foreground shrink-0" />}
+        <span className="text-sm truncate">{field.config?.name}</span>
       </div>
       <Switch
         checked={field.visible}
@@ -64,6 +146,12 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
   const [newFieldType, setNewFieldType] = useState<FieldType | ''>('')
   const [newAiAutofill, setNewAiAutofill] = useState(false)
   const [newDescription, setNewDescription] = useState('')
+  const [newOptions, setNewOptions] = useState<SelectOption[]>([])
+
+  const queryClient = useQueryClient()
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ['fields', projectId] })
+  }, [projectId, queryClient])
 
   const $patchOrder = client.api.projects[':projectId'].fields.order.$patch
   const { mutate: updateFieldsOrder } = useMutation<
@@ -96,6 +184,7 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
       const newFieldsList = [...fields, newField]
       updateFields(newFieldsList)
       setNewFieldName('')
+      setNewOptions([])
 
       updateFieldsOrder({
         param: { projectId: projectId },
@@ -147,12 +236,19 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
 
   const handleCreateField = () => {
     if (!newFieldName || !newFieldType) return
+    const typeConfig =
+      newFieldType === FieldType.select
+        ? { select: { options: newOptions } }
+        : newFieldType === FieldType.selectMulti
+          ? { selectMulti: { options: newOptions } }
+          : {}
     createField({
       param: { projectId: projectId },
       json: {
         config: {
           name: newFieldName,
           type: newFieldType,
+          ...typeConfig,
         },
         label: newFieldName,
         aiAutofill: newAiAutofill,
@@ -195,7 +291,10 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
                 {Object.values(FieldType).map((type) => (
                   <DropdownMenuItem
                     key={type}
-                    onClick={() => setNewFieldType(type)}
+                    onClick={() => {
+                      setNewFieldType(type)
+                      setNewOptions([])
+                    }}
                     className="capitalize"
                   >
                     {type.replace(/_/g, ' ')}
@@ -220,6 +319,84 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
             <Label htmlFor="ai-autofill">AI Autofill</Label>
           </div>
 
+          {(newFieldType === FieldType.select || newFieldType === FieldType.selectMulti) && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Options</Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2"
+                  onClick={() => {
+                    const newOption: SelectOption = {
+                      id: ulid(),
+                      displayName: 'New Option',
+                      color: '#808080',
+                    }
+                    setNewOptions([...newOptions, newOption])
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Add Option
+                </Button>
+              </div>
+              <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                {newOptions.map((opt, idx) => (
+                  <div key={opt.id} className="flex items-center gap-2">
+                    <Input
+                      value={opt.displayName}
+                      onChange={(e) => {
+                        const updated = [...newOptions]
+                        updated[idx] = { ...opt, displayName: e.target.value }
+                        setNewOptions(updated)
+                      }}
+                      placeholder="Option name"
+                      className="h-8 flex-1"
+                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="w-6 h-6 rounded-full border shrink-0 cursor-pointer focus:outline-none hover:scale-105 transition-transform"
+                          style={{
+                            backgroundColor:
+                              COLOR_MAP[opt.color || '']?.hex || opt.color || '#808080',
+                          }}
+                        />
+                      </PopoverTrigger>
+                      <PopoverContent className="p-2 w-auto" align="end">
+                        <div className="flex gap-1">
+                          {PREDEFINED_COLORS.map((color) => (
+                            <button
+                              key={color}
+                              type="button"
+                              className="w-5 h-5 rounded-full border cursor-pointer hover:scale-110 transition-transform"
+                              style={{ backgroundColor: COLOR_MAP[color]?.hex || color }}
+                              onClick={() => {
+                                const updated = [...newOptions]
+                                updated[idx] = { ...opt, color }
+                                setNewOptions(updated)
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => {
+                        setNewOptions(newOptions.filter((_, i) => i !== idx))
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-2 pt-2">
             <Button
               variant="secondary"
@@ -230,6 +407,7 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
                 setNewFieldType('')
                 setNewAiAutofill(false)
                 setNewDescription('')
+                setNewOptions([])
               }}
             >
               Cancel

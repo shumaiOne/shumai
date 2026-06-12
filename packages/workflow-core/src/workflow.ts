@@ -1,5 +1,6 @@
 import { prisma, registerWorkflowTrigger, WorkflowTask } from '@shumai/db'
 import path from 'path'
+import { ulid } from 'ulid'
 import * as taskActivities from './activities/task'
 import { Executor } from './executor'
 import { LocalExecutor } from './local-executor'
@@ -73,8 +74,7 @@ export class WorkflowService {
       const activities = (globalThis as any).__localActivities
 
       // For agent_queue and transcode_queue, use worker-specific unique queues
-      const crypto = await import('crypto')
-      const workerId = crypto.randomUUID()
+      const workerId = ulid()
       const workerSpecificQueue = `${queue}-${workerId}`
 
       console.log(`Starting Temporal workers for domain: ${queue}`)

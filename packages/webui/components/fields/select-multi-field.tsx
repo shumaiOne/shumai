@@ -1,7 +1,9 @@
 import { Check } from 'lucide-react'
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import React, { useLayoutEffect, useRef, useState } from 'react'
 import type { FieldProps } from './field-types'
 import type { SelectOption } from '@shumai/dtos'
+import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/ui/popover'
+import { getOptionStyle } from '../fields-manager'
 
 const SelectMultiField: React.FC<FieldProps<string[]>> = ({
   value = [],
@@ -11,7 +13,6 @@ const SelectMultiField: React.FC<FieldProps<string[]>> = ({
 }) => {
   const selectConfig = config?.selectMulti
   const containerRef = useRef<HTMLDivElement>(null)
-  const dropdownRef = useRef<HTMLDivElement>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [visibleCount, setVisibleCount] = useState(value.length)
@@ -63,28 +64,6 @@ const SelectMultiField: React.FC<FieldProps<string[]>> = ({
     }
   }, [selectedOptions, isEditing, expanded, value])
 
-  // Click outside to close dropdown or expanded view
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      // Check if click is outside both the main container and the dropdown
-      const isOutsideDropdown =
-        !dropdownRef.current || !dropdownRef.current.contains(event.target as Node)
-      const isOutsideContainer =
-        !containerRef.current || !containerRef.current.contains(event.target as Node)
-
-      if (isOutsideDropdown && isOutsideContainer) {
-        if (isEditing) {
-          setIsEditing(false)
-        }
-        if (expanded) {
-          setExpanded(false)
-        }
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [isEditing, expanded])
-
   const toggleOption = (optionId: string) => {
     const currentVal = value || []
     let newVal
@@ -121,99 +100,99 @@ const SelectMultiField: React.FC<FieldProps<string[]>> = ({
   }
 
   const hiddenCount = selectedOptions.length - visibleCount
+  const isOpen = (expanded && !isEditing) || isEditing
+
+  const handleOpenChange = (open: boolean) => {
+    if (readOnly) return
+    if (!open) {
+      setExpanded(false)
+      setIsEditing(false)
+    }
+  }
 
   return (
-    <div className="relative w-full">
-      {/* Placeholder Display Mode */}
-      <div
-        ref={containerRef}
-        onClick={handlePlaceholderClick}
-        className={`w-full px-1 py-1 flex flex-wrap gap-1 rounded border border-transparent transition-all box-border h-[32px] overflow-hidden ${
-          !readOnly || hiddenCount > 0
-            ? 'cursor-pointer hover:bg-gray-100 hover:border-gray-200'
-            : ''
-        }`}
-      >
-        {selectedOptions.length === 0 && (
-          <span className="text-gray-400 text-sm italic px-1 pt-0.5">Empty</span>
-        )}
-
-        {/* Render visible items */}
-        {selectedOptions.slice(0, visibleCount).map((option: SelectOption) => (
-          <span
-            key={option.id}
-            className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border border-transparent whitespace-nowrap h-[22px]"
-            style={{
-              backgroundColor: `${option.color}33`,
-              color: option.color || undefined,
-            }}
+    <div className="relative w-full" onClick={(e) => e.stopPropagation()}>
+      <Popover open={!readOnly && isOpen} onOpenChange={handleOpenChange}>
+        <PopoverTrigger asChild>
+          {/* Placeholder Display Mode */}
+          <div
+            ref={containerRef}
+            onClick={handlePlaceholderClick}
+            className={`w-full px-1 py-1 flex flex-wrap gap-1 rounded border border-transparent transition-all box-border h-[32px] overflow-hidden ${
+              !readOnly || hiddenCount > 0
+                ? 'cursor-pointer hover:bg-gray-100 hover:border-gray-200'
+                : ''
+            }`}
           >
-            {option.displayName}
-          </span>
-        ))}
+            {selectedOptions.length === 0 && (
+              <span className="text-gray-400 text-sm italic px-1 pt-0.5">Empty</span>
+            )}
 
-        {hiddenCount > 0 && (
-          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-600 h-[22px]">
-            +{hiddenCount}
-          </span>
-        )}
-      </div>
-
-      {/* Expanded Overlay Mode */}
-      {expanded && !isEditing && (
-        <div
-          onClick={handleOverlayClick}
-          className={`absolute top-0 left-0 w-full px-1 py-1 flex flex-wrap gap-1 bg-white rounded border border-blue-500 shadow-lg z-50 min-h-[32px] h-auto ${
-            !readOnly ? 'cursor-pointer' : ''
-          }`}
-        >
-          {selectedOptions.length === 0 && (
-            <span className="text-gray-400 text-sm italic px-1 pt-0.5">Empty</span>
-          )}
-          {selectedOptions.map((option: SelectOption) => (
-            <span
-              key={option.id}
-              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border border-transparent whitespace-nowrap h-[22px]"
-              style={{
-                backgroundColor: `${option.color}33`,
-                color: option.color || undefined,
-              }}
-            >
-              {option.displayName}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* Edit Mode Dropdown */}
-      {isEditing && (
-        <div
-          ref={dropdownRef}
-          className="absolute z-50 top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-auto"
-        >
-          {selectConfig?.options?.map((option: SelectOption) => {
-            const isSelected = (value || []).includes(option.id)
-            return (
-              <div
+            {/* Render visible items */}
+            {selectedOptions.slice(0, visibleCount).map((option: SelectOption) => (
+              <span
                 key={option.id}
-                onClick={() => toggleOption(option.id)}
-                className="px-3 py-2 hover:bg-gray-50 cursor-pointer flex items-center justify-between"
+                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border border-transparent whitespace-nowrap h-[22px]"
+                style={getOptionStyle(option.color)}
               >
+                {option.displayName}
+              </span>
+            ))}
+
+            {hiddenCount > 0 && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-600 h-[22px]">
+                +{hiddenCount}
+              </span>
+            )}
+          </div>
+        </PopoverTrigger>
+
+        <PopoverContent
+          className={`p-1 bg-white border rounded-lg shadow-xl max-h-60 overflow-auto ${
+            expanded && !isEditing
+              ? 'w-[--radix-popover-trigger-width] min-w-[200px] flex flex-wrap gap-1 border-blue-500 min-h-[32px] h-auto cursor-pointer'
+              : 'w-64 border-gray-200'
+          }`}
+          align="start"
+          onClick={expanded && !isEditing ? handleOverlayClick : undefined}
+        >
+          {expanded && !isEditing ? (
+            <>
+              {selectedOptions.length === 0 && (
+                <span className="text-gray-400 text-sm italic px-1 pt-0.5">Empty</span>
+              )}
+              {selectedOptions.map((option: SelectOption) => (
                 <span
-                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
-                  style={{
-                    backgroundColor: `${option.color}33`,
-                    color: option.color || undefined,
-                  }}
+                  key={option.id}
+                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border border-transparent whitespace-nowrap h-[22px]"
+                  style={getOptionStyle(option.color)}
                 >
                   {option.displayName}
                 </span>
-                {isSelected && <Check className="w-4 h-4 text-blue-500" />}
-              </div>
-            )
-          })}
-        </div>
-      )}
+              ))}
+            </>
+          ) : (
+            selectConfig?.options?.map((option: SelectOption) => {
+              const isSelected = (value || []).includes(option.id)
+              return (
+                <div
+                  key={option.id}
+                  onClick={() => toggleOption(option.id)}
+                  className="px-3 py-2 hover:bg-gray-50 cursor-pointer flex items-center justify-between"
+                >
+                  <span
+                    className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                    style={getOptionStyle(option.color)}
+                  >
+                    {option.displayName}
+                  </span>
+                  {isSelected && <Check className="w-4 h-4 text-blue-500" />}
+                </div>
+              )
+            })
+          )}
+        </PopoverContent>
+      </Popover>
     </div>
   )
 }

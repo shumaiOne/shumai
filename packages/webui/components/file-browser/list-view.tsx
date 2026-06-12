@@ -3,6 +3,8 @@
 import type { AssetInfo } from '@shumai/dtos'
 import type { FieldInfo } from '@shumai/dtos'
 import type { SearchSort } from '@shumai/dtos'
+import { FieldType } from '@shumai/dtos'
+import { FIELD_TYPE_ICONS } from '../fields-manager'
 import { useDroppable } from '@dnd-kit/react'
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from '@tanstack/react-table'
 import { useVirtualizer } from '@tanstack/react-virtual'
@@ -198,9 +200,15 @@ export function FileBrowserListView({
     ]
 
     displayedFields.forEach((field) => {
+      const Icon = field.config?.type ? FIELD_TYPE_ICONS[field.config.type as FieldType] : null
       cols.push({
         id: field.id,
-        header: field.config?.name || field.id,
+        header: () => (
+          <div className="flex items-center gap-1.5 truncate">
+            {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+            <span className="truncate">{field.config?.name || field.id}</span>
+          </div>
+        ),
         size: 150,
         minSize: 100,
       })

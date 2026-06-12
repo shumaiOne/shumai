@@ -4,8 +4,9 @@ import {
   FieldType,
   type SelectOption,
 } from '@shumai/dtos'
+import { ulid } from 'ulid'
 import { client } from '@/ui/api/client'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { InferRequestType, InferResponseType } from 'hono/client'
 import { useFieldStore } from '@/ui/stores/fields'
 import { DragDropProvider, KeyboardSensor, PointerSensor, type DragEndEvent } from '@dnd-kit/react'
@@ -22,7 +23,10 @@ import {
   Sparkles,
   X,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
+import { toast } from 'sonner'
+import { Popover, PopoverTrigger, PopoverContent } from '@/ui/components/ui/popover'
+import { FIELD_TYPE_ICONS, PREDEFINED_COLORS, COLOR_MAP } from './fields-manager'
 
 import { Button } from '@/ui/components/ui/button'
 import { Dialog, DialogContent, DialogTitle } from '@/ui/components/ui/dialog'
@@ -89,6 +93,8 @@ function SortableFieldRow({
     disabled: !isSortable,
   })
 
+  const Icon = field.config?.type ? FIELD_TYPE_ICONS[field.config.type as FieldType] : null
+
   return (
     <div
       ref={ref}
@@ -104,9 +110,9 @@ function SortableFieldRow({
         </div>
       )}
       {!isSortable && <div className="w-4" />} {/* Spacer */}
-      {field.aiAutofill && <Sparkles className="h-4 w-4 text-muted-foreground" />}
+      {Icon && <Icon className="h-4 w-4 text-muted-foreground shrink-0" />}
+      {field.aiAutofill && <Sparkles className="h-4 w-4 text-muted-foreground shrink-0" />}
       <div className="flex-1 text-sm font-medium truncate">{field.config?.name}</div>
-      {/* Visual indicator for type or something? */}
     </div>
   )
 }
@@ -116,6 +122,13 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
   const [selectedGroup, setSelectedGroup] = useState<string>(SCOPE_GROUPS.PROJECT)
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null)
   const [isCreating, setIsCreating] = useState(false)
+
+  const queryClient = useQueryClient()
+  useEffect(() => {
+    if (open) {
+      queryClient.invalidateQueries({ queryKey: ['fields', projectId] })
+    }
+  }, [open, projectId, queryClient])
 
   // Editor State
   const [editLabel, setEditLabel] = useState('')
@@ -159,6 +172,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
       setIsCreating(false)
       setSelectedFieldId(data.id!)
       resetEditor(data)
+      toast.success('Field created successfully')
     },
   })
   const $put = client.api.fields[':fieldId'].$put
@@ -177,6 +191,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
         f.id === data.id ? { ...f, ...(data as MetadataFieldInfo) } : f,
       )
       updateFields(newFields)
+      toast.success('Field updated successfully')
     },
   })
   const $delete = client.api.fields[':fieldId'].$delete
@@ -194,15 +209,19 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
       const newFields = fields.filter((f) => f.id !== variables.param.fieldId)
       updateFields(newFields)
       setSelectedFieldId(null)
+      toast.success('Field deleted successfully')
     },
   })
 
   const groups = useMemo(() => {
-    // Determine available groups from fields or static list
-    // User said groups are scope field.
-    const presentScopes = Array.from(new Set(fields.map((f) => f.scope || 'project')))
-    // Ensure Project is always there for custom fields
-    if (!presentScopes.includes('project')) presentScopes.push('project')
+    // Normalize scopes to lowercase to match SCOPE_GROUPS definitions
+    const presentScopes = Array.from(
+      new Set(fields.map((f) => (f.scope || SCOPE_GROUPS.PROJECT).toLowerCase())),
+    )
+    // Ensure Project group is always present
+    if (!presentScopes.includes(SCOPE_GROUPS.PROJECT)) {
+      presentScopes.push(SCOPE_GROUPS.PROJECT)
+    }
 
     return presentScopes.map((scope) => ({
       id: scope,
@@ -210,6 +229,10 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
       icon: GROUP_ICONS[scope] || FileText,
     }))
   }, [fields])
+
+  const filteredFields = useMemo(() => {
+    return fields.filter((f) => (f.scope || SCOPE_GROUPS.PROJECT).toLowerCase() === selectedGroup)
+  }, [fields, selectedGroup])
 
   const selectedField = useMemo(
     () => fields.find((f) => f.id === selectedFieldId),
@@ -423,7 +446,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
                 onClick={() => {
                   // Logic to add option
                   const newOption = {
-                    id: crypto.randomUUID(),
+                    id: ulid(),
                     displayName: 'New Option',
                     color: '#808080',
                   }
@@ -468,10 +491,49 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
                       })
                     }}
                   />
-                  <div
-                    className="w-6 h-6 rounded-full border"
-                    style={{ backgroundColor: opt.color }}
-                  ></div>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className="w-6 h-6 rounded-full border shrink-0 cursor-pointer focus:outline-none hover:scale-105 transition-transform"
+                        style={{
+                          backgroundColor:
+                            COLOR_MAP[opt.color || '']?.hex || opt.color || '#808080',
+                        }}
+                        disabled={isReadOnly}
+                      />
+                    </PopoverTrigger>
+                    {!isReadOnly && (
+                      <PopoverContent className="p-2 w-auto" align="end">
+                        <div className="flex gap-1">
+                          {PREDEFINED_COLORS.map((color) => (
+                            <button
+                              key={color}
+                              type="button"
+                              className="w-5 h-5 rounded-full border cursor-pointer hover:scale-110 transition-transform"
+                              style={{ backgroundColor: COLOR_MAP[color]?.hex || color }}
+                              onClick={() => {
+                                const newOpts = [
+                                  ...((selectedField.config?.type === 'select'
+                                    ? editConfig.select?.options
+                                    : editConfig.selectMulti?.options) || []),
+                                ]
+                                newOpts[idx] = { ...opt, color }
+                                setEditConfig({
+                                  ...editConfig,
+                                  [selectedField.config?.type === 'select'
+                                    ? 'select'
+                                    : 'selectMulti']: {
+                                    options: newOpts,
+                                  },
+                                })
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    )}
+                  </Popover>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -497,7 +559,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
           </div>
         )}
 
-        {!isReadOnly && (
+        {!isReadOnly && selectedField.scope?.toLowerCase() !== 'system' && (
           <div className="pt-4 flex justify-between">
             <Button
               variant="outline"
@@ -544,14 +606,16 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
           </div>
 
           {/* Middle Column: Field List */}
-          <div className="w-100 border-r flex flex-col">
+          <div className="w-64 border-r flex flex-col">
             <div className="p-4 border-b flex items-center justify-between bg-background h-[57px]">
               <span className="font-medium text-sm">
                 {groups.find((g) => g.id === selectedGroup)?.label}
               </span>
-              <Button size="sm" variant="outline" className="h-8" onClick={handleCreateClick}>
-                New <Plus className="ml-1 h-3 w-3" />
-              </Button>
+              {selectedGroup === SCOPE_GROUPS.PROJECT && (
+                <Button size="sm" variant="outline" className="h-8" onClick={handleCreateClick}>
+                  New <Plus className="ml-1 h-3 w-3" />
+                </Button>
+              )}
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
               <DragDropProvider
@@ -565,7 +629,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
                 ]}
                 onDragEnd={handleDragEnd}
               >
-                {fields.map((field, index) => (
+                {filteredFields.map((field, index) => (
                   <SortableFieldRow
                     key={field.id}
                     field={field}
@@ -576,7 +640,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
                   />
                 ))}
               </DragDropProvider>
-              {fields.length === 0 && (
+              {filteredFields.length === 0 && (
                 <div className="text-center text-muted-foreground text-sm py-8">
                   No fields found
                 </div>
@@ -585,7 +649,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
           </div>
 
           {/* Right Column: Config */}
-          <div className="w-100 bg-background flex flex-col">
+          <div className="flex-1 bg-background flex flex-col">
             <div className="flex-1 overflow-y-auto p-6">{renderConfigEditor()}</div>
             {(isCreating || (selectedField && !selectedField.readOnly)) && (
               <div className="p-4 border-t flex justify-end gap-2 bg-muted/10">
