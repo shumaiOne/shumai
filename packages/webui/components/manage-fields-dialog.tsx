@@ -555,7 +555,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
           </div>
         )}
 
-        {!isReadOnly && (
+        {!isReadOnly && selectedField.scope?.toLowerCase() !== 'system' && (
           <div className="pt-4 flex justify-between">
             <Button
               variant="outline"
