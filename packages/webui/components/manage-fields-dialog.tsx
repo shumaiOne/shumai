@@ -4,6 +4,7 @@ import {
   FieldType,
   type SelectOption,
 } from '@shumai/dtos'
+import { ulid } from 'ulid'
 import { client } from '@/ui/api/client'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { InferRequestType, InferResponseType } from 'hono/client'
@@ -445,7 +446,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
                 onClick={() => {
                   // Logic to add option
                   const newOption = {
-                    id: crypto.randomUUID(),
+                    id: ulid(),
                     displayName: 'New Option',
                     color: '#808080',
                   }

@@ -4,6 +4,7 @@ import {
   type FieldInfo as MetadataFieldInfo,
   type SelectOption,
 } from '@shumai/dtos'
+import { ulid } from 'ulid'
 import { client } from '@/ui/api/client'
 import { useFieldStore } from '@/ui/stores/fields'
 import { DragDropProvider, KeyboardSensor, PointerSensor, type DragEndEvent } from '@dnd-kit/react'
@@ -328,7 +329,7 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
                   className="h-8 px-2"
                   onClick={() => {
                     const newOption: SelectOption = {
-                      id: crypto.randomUUID(),
+                      id: ulid(),
                       displayName: 'New Option',
                       color: '#808080',
                     }

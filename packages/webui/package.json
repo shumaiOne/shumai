@@ -82,7 +82,8 @@
     "zod": "4.4.3",
     "date-fns": "4.4.0",
     "hono": "4.12.23",
-    "@shumai/dtos": "workspace:*"
+    "@shumai/dtos": "workspace:*",
+    "ulid": "3.0.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.0",

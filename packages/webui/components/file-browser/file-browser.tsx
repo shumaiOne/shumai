@@ -8,6 +8,7 @@ import type { SearchCondition, SearchSort } from '@shumai/dtos'
 import type { ShareLinkInfo } from '@shumai/dtos'
 import type { CreateUploadTaskRequest } from '@shumai/dtos'
 import { formatSize } from '@/ui/lib/format'
+import { ulid } from 'ulid'
 import { usePermissions } from '@/ui/hooks/use-permissions'
 import { useFieldStore } from '@/ui/stores/fields'
 import { useUploadStore } from '@/ui/stores/upload'
@@ -692,7 +693,7 @@ export function FileBrowser({
             const parentDir = {
               name: dir,
               type: 'folder' as const,
-              id: crypto.randomUUID(),
+              id: ulid(),
               children: newDir,
               size: 0,
             }
@@ -703,7 +704,7 @@ export function FileBrowser({
             currentLevel = directories.get(currentPath)!
           }
         }
-        const fileWithId = { file, id: crypto.randomUUID() }
+        const fileWithId = { file, id: ulid() }
         fileWithIds.push(fileWithId)
         currentLevel.push({
           name: fileName,
