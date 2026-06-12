@@ -1,4 +1,4 @@
-import { rm, mkdir, cp, writeFile } from 'node:fs/promises'
+import { rm, mkdir, cp, writeFile, readdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import tailwindPlugin from 'bun-plugin-tailwind'
@@ -115,21 +115,18 @@ async function compileApp({
     process.exit(1)
   }
 
-  // Rename generated binary (usually Bun names it 'src' or the folder name of the entrypoint)
-  const generatedFile = path.join(outdir, 'src')
-  const generatedFileExe = path.join(outdir, 'src.exe')
+  // Rename generated binary dynamically by finding the output file in outdir
   const finalFile = path.join(outdir, binaryName)
+  const files = await readdir(outdir)
+  const generatedFilename = files.find((f) => f !== binaryName)
 
-  if (existsSync(generatedFile)) {
+  if (generatedFilename) {
+    const generatedPath = path.join(outdir, generatedFilename)
     console.log(`➡️ Moving binary to final location: ${finalFile}`)
-    await cp(generatedFile, finalFile)
-    await rm(generatedFile)
-  } else if (existsSync(generatedFileExe)) {
-    console.log(`➡️ Moving binary to final location: ${finalFile}`)
-    await cp(generatedFileExe, finalFile)
-    await rm(generatedFileExe)
-  } else {
-    console.error(`❌ Could not find compiled binary at ${generatedFile} or ${generatedFileExe}`)
+    await cp(generatedPath, finalFile)
+    await rm(generatedPath)
+  } else if (!existsSync(finalFile)) {
+    console.error(`❌ Could not find compiled binary in ${outdir}`)
     process.exit(1)
   }
 }
