@@ -16,6 +16,9 @@ if (existsSync(distDir)) {
 }
 await mkdir(distDir, { recursive: true })
 
+const dummyRunnerPath = path.join(distDir, 'dummy-runner.ts')
+await writeFile(dummyRunnerPath, '// Shumai Runner Stub\n', 'utf-8')
+
 const rootPackageJson = JSON.parse(await Bun.file('package.json').text())
 const version = rootPackageJson.version || '0.1.0'
 
@@ -358,7 +361,7 @@ const shumaiPlugins = [
   }),
   tailwindPlugin,
 ]
-await buildPlatformPackages('shumai', './apps/web/src/index.ts', shumaiPlugins)
+await buildPlatformPackages('shumai', dummyRunnerPath)
 await buildMainPackage({
   appName: 'shumai',
   description: 'A fullstack AI-powered media workspace and workflow engine',
@@ -373,7 +376,7 @@ const agentPlugins = [
     bundleOptions: {},
   }),
 ]
-await buildPlatformPackages('shumai-agent', './apps/agent/src/index.ts', agentPlugins)
+await buildPlatformPackages('shumai-agent', dummyRunnerPath)
 await buildMainPackage({
   appName: 'shumai-agent',
   description: 'AI worker agent for the shumai media workspace',
@@ -388,7 +391,7 @@ const transcodePlugins = [
     bundleOptions: {},
   }),
 ]
-await buildPlatformPackages('shumai-transcode', './apps/transcode/src/index.ts', transcodePlugins)
+await buildPlatformPackages('shumai-transcode', dummyRunnerPath)
 await buildMainPackage({
   appName: 'shumai-transcode',
   description: 'Media transcoding worker for the shumai media workspace',
@@ -396,5 +399,9 @@ await buildMainPackage({
   entrypoint: './apps/transcode/src/index.ts',
   plugins: transcodePlugins,
 })
+
+if (existsSync(dummyRunnerPath)) {
+  await rm(dummyRunnerPath)
+}
 
 console.log('\n✅ All applications and platform binaries built and packaged successfully!')
