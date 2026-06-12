@@ -1,0 +1,83 @@
+name: Build, Release & Publish to NPM
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build (e.g., v0.12.0)'
+        required: true
+        type: string
+      source_ref:
+        description: 'Source ref to build/publish (defaults to tag)'
+        required: false
+        type: string
+
+permissions: {}
+
+jobs:
+  release:
+    name: Build, Release and Publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      SOURCE_REF: ${{ github.event.inputs.source_ref || github.event.inputs.tag || github.ref_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_REF }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep bubblewrap socat libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev fd-find
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Test
+        run: bun run test
+
+      - name: Build NPM packages
+        run: bun run build-npm
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "${{ env.RELEASE_TAG }}" >/dev/null 2>&1; then
+            gh release edit "${{ env.RELEASE_TAG }}" \
+              --title "${{ env.RELEASE_TAG }}" \
+              --generate-notes
+          else
+            gh release create "${{ env.RELEASE_TAG }}" \
+              --title "${{ env.RELEASE_TAG }}" \
+              --generate-notes
+          fi
+
+      - name: Publish to NPM
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: bun run scripts/publish.ts
