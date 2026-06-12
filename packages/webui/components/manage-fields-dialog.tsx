@@ -5,7 +5,7 @@ import {
   type SelectOption,
 } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { InferRequestType, InferResponseType } from 'hono/client'
 import { useFieldStore } from '@/ui/stores/fields'
 import { DragDropProvider, KeyboardSensor, PointerSensor, type DragEndEvent } from '@dnd-kit/react'
@@ -22,7 +22,8 @@ import {
   Sparkles,
   X,
 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
+import { toast } from 'sonner'
 
 import { Button } from '@/ui/components/ui/button'
 import { Dialog, DialogContent, DialogTitle } from '@/ui/components/ui/dialog'
@@ -117,6 +118,13 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null)
   const [isCreating, setIsCreating] = useState(false)
 
+  const queryClient = useQueryClient()
+  useEffect(() => {
+    if (open) {
+      queryClient.invalidateQueries({ queryKey: ['fields', projectId] })
+    }
+  }, [open, projectId, queryClient])
+
   // Editor State
   const [editLabel, setEditLabel] = useState('')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -159,6 +167,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
       setIsCreating(false)
       setSelectedFieldId(data.id!)
       resetEditor(data)
+      toast.success('Field created successfully')
     },
   })
   const $put = client.api.fields[':fieldId'].$put
@@ -177,6 +186,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
         f.id === data.id ? { ...f, ...(data as MetadataFieldInfo) } : f,
       )
       updateFields(newFields)
+      toast.success('Field updated successfully')
     },
   })
   const $delete = client.api.fields[':fieldId'].$delete
@@ -194,6 +204,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
       const newFields = fields.filter((f) => f.id !== variables.param.fieldId)
       updateFields(newFields)
       setSelectedFieldId(null)
+      toast.success('Field deleted successfully')
     },
   })
 
@@ -210,6 +221,10 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
       icon: GROUP_ICONS[scope] || FileText,
     }))
   }, [fields])
+
+  const filteredFields = useMemo(() => {
+    return fields.filter((f) => (f.scope || SCOPE_GROUPS.PROJECT) === selectedGroup)
+  }, [fields, selectedGroup])
 
   const selectedField = useMemo(
     () => fields.find((f) => f.id === selectedFieldId),
@@ -565,7 +580,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
                 ]}
                 onDragEnd={handleDragEnd}
               >
-                {fields.map((field, index) => (
+                {filteredFields.map((field, index) => (
                   <SortableFieldRow
                     key={field.id}
                     field={field}
@@ -576,7 +591,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
                   />
                 ))}
               </DragDropProvider>
-              {fields.length === 0 && (
+              {filteredFields.length === 0 && (
                 <div className="text-center text-muted-foreground text-sm py-8">
                   No fields found
                 </div>
