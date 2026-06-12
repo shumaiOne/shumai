@@ -602,7 +602,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
           </div>
 
           {/* Middle Column: Field List */}
-          <div className="w-100 border-r flex flex-col">
+          <div className="w-64 border-r flex flex-col">
             <div className="p-4 border-b flex items-center justify-between bg-background h-[57px]">
               <span className="font-medium text-sm">
                 {groups.find((g) => g.id === selectedGroup)?.label}
@@ -645,7 +645,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
           </div>
 
           {/* Right Column: Config */}
-          <div className="w-100 bg-background flex flex-col">
+          <div className="flex-1 bg-background flex flex-col">
             <div className="flex-1 overflow-y-auto p-6">{renderConfigEditor()}</div>
             {(isCreating || (selectedField && !selectedField.readOnly)) && (
               <div className="p-4 border-t flex justify-end gap-2 bg-muted/10">

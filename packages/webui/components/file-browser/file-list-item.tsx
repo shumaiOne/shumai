@@ -280,6 +280,7 @@ export function FileListItem({
               width: columnSizing?.[field.id!] || 150,
               minWidth: columnSizing?.[field.id!] || 150,
             }}
+            onClick={(e) => e.stopPropagation()}
           >
             <FieldRenderer
               config={field.config}

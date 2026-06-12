@@ -377,7 +377,7 @@ export function FileCard({
               <label className="text-xs text-muted-foreground tracking-wide">
                 {field.config?.name}
               </label>
-              <div className="min-h-[28px]">
+              <div className="min-h-[28px]" onClick={(e) => e.stopPropagation()}>
                 <FieldRenderer
                   config={field.config}
                   value={itemFieldValueMap[field.id!]?.value}
