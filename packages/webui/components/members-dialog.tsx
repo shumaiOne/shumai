@@ -63,9 +63,12 @@ export function MembersDialog({
   const [isGenerating, setIsGenerating] = useState(false)
   const [updatingMemberId, setUpdatingMemberId] = useState<string | null>(null)
   const [memberToRemove, setMemberToRemove] = useState<Member | null>(null)
-  const [memberToAddId, setMemberToAddId] = useState<string>('')
-  const [memberToAddRole, setMemberToAddRole] = useState<'editor' | 'reviewer'>('editor')
-  const [isAdding, setIsAdding] = useState(false)
+  const [rolesToAdd, setRolesToAdd] = useState<Record<string, 'editor' | 'reviewer'>>({})
+  const [addingMemberId, setAddingMemberId] = useState<string | null>(null)
+
+  const setRoleToAdd = (memberId: string, role: 'editor' | 'reviewer') => {
+    setRolesToAdd((prev) => ({ ...prev, [memberId]: role }))
+  }
 
   const handleUpdateRole = async (memberId: string, role: 'editor' | 'reviewer') => {
     if (!onUpdateRole) return
@@ -134,6 +137,8 @@ export function MembersDialog({
     if (!newOpen) {
       setInviteLink(null)
       setInviteRole('editor')
+      setRolesToAdd({})
+      setAddingMemberId(null)
     }
     onOpenChange(newOpen)
   }
@@ -226,7 +231,6 @@ export function MembersDialog({
               </div>
             ))}
           </div>
-
           <AlertDialog
             open={!!memberToRemove}
             onOpenChange={(open) => !open && setMemberToRemove(null)}
@@ -249,84 +253,97 @@ export function MembersDialog({
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
-          </AlertDialog>
-
+          </AlertDialog>{' '}
           {isOwner && onAddMember && availableMembersToAdd && availableMembersToAdd.length > 0 && (
             <div className="border-t pt-4">
               <h4 className="text-sm font-medium mb-3">Add Team Member to Project</h4>
-              <div className="space-y-3">
-                <div className="flex gap-2">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="flex-1 justify-between text-left">
-                        <span className="truncate">
-                          {availableMembersToAdd.find((m) => m.id === memberToAddId)?.name ||
-                            'Select Team Member'}
-                        </span>
-                        <ChevronDown className="h-4 w-4 opacity-50 ml-2 shrink-0" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="max-h-[200px] overflow-y-auto">
-                      <DropdownMenuRadioGroup
-                        value={memberToAddId}
-                        onValueChange={setMemberToAddId}
-                      >
-                        {availableMembersToAdd.map((m) => (
-                          <DropdownMenuRadioItem key={m.id} value={m.id || ''}>
-                            {m.name}
-                          </DropdownMenuRadioItem>
-                        ))}
-                      </DropdownMenuRadioGroup>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+              <div className="max-h-[200px] overflow-y-auto space-y-2 pr-1">
+                {availableMembersToAdd.map((member) => {
+                  const currentRole = rolesToAdd[member.id!] || 'editor'
+                  return (
+                    <div
+                      key={member.id}
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Avatar>
+                          {member.image && (
+                            <AvatarImage
+                              src={member.image}
+                              alt={member.name}
+                              className="object-cover"
+                            />
+                          )}
+                          <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">{member.name}</span>
+                          <span className="text-xs text-muted-foreground capitalize">
+                            {member.scope === 'team' ? 'Team Member' : 'Project Member'}
+                          </span>
+                        </div>
+                      </div>
 
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="w-[120px] justify-between">
-                        {memberToAddRole === 'editor' ? 'Editor' : 'Reviewer'}
-                        <ChevronDown className="h-4 w-4 opacity-50" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuRadioGroup
-                        value={memberToAddRole}
-                        onValueChange={(v) => setMemberToAddRole(v as 'editor' | 'reviewer')}
-                      >
-                        <DropdownMenuRadioItem value="editor">Editor</DropdownMenuRadioItem>
-                        <DropdownMenuRadioItem value="reviewer">Reviewer</DropdownMenuRadioItem>
-                      </DropdownMenuRadioGroup>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                      <div className="flex items-center gap-2">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 px-2 text-xs capitalize w-26"
+                              disabled={addingMemberId === member.id}
+                            >
+                              {currentRole}
+                              <ChevronDown className="ml-1 h-3 w-3 opacity-50" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuRadioGroup
+                              value={currentRole}
+                              onValueChange={(v) =>
+                                setRoleToAdd(member.id!, v as 'editor' | 'reviewer')
+                              }
+                            >
+                              <DropdownMenuRadioItem value="editor" className="text-xs">
+                                Editor
+                              </DropdownMenuRadioItem>
+                              <DropdownMenuRadioItem value="reviewer" className="text-xs">
+                                Reviewer
+                              </DropdownMenuRadioItem>
+                            </DropdownMenuRadioGroup>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
 
-                  <Button
-                    onClick={async () => {
-                      if (!memberToAddId) {
-                        toast.error('Please select a team member')
-                        return
-                      }
-                      setIsAdding(true)
-                      try {
-                        await onAddMember(memberToAddId, memberToAddRole)
-                        toast.success('Member added successfully')
-                        setMemberToAddId('')
-                      } catch (error) {
-                        console.error(error)
-                        toast.error('Failed to add member')
-                      } finally {
-                        setIsAdding(false)
-                      }
-                    }}
-                    disabled={isAdding || !memberToAddId}
-                    className="w-[80px]"
-                  >
-                    {isAdding && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Add
-                  </Button>
-                </div>
+                        <Button
+                          onClick={async () => {
+                            setAddingMemberId(member.id!)
+                            try {
+                              await onAddMember(member.id!, currentRole)
+                              toast.success(`Added ${member.name} successfully`)
+                            } catch (error) {
+                              console.error(error)
+                              toast.error(`Failed to add ${member.name}`)
+                            } finally {
+                              setAddingMemberId(null)
+                            }
+                          }}
+                          disabled={addingMemberId !== null}
+                          size="sm"
+                          className="h-8 text-xs px-3 w-[60px]"
+                        >
+                          {addingMemberId === member.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            'Add'
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
-
           {isOwner && onInvite && (
             <div className="border-t pt-4">
               <h4 className="text-sm font-medium mb-3">Invite New Member</h4>
