@@ -161,6 +161,7 @@ async function buildPlatformPackages(
       description: `${target.platform} ${target.arch} binary for ${appName}`,
       os: [target.platform],
       cpu: [target.arch],
+      repository: rootPackageJson.repository,
     }
 
     await writeFile(
@@ -289,6 +290,7 @@ child.on('error', (err) => {
     files: ['bin', ...(hasPrisma ? ['prisma'] : [])],
     dependencies,
     optionalDependencies,
+    repository: rootPackageJson.repository,
   }
 
   await writeFile(
