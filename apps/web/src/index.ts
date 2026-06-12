@@ -59,12 +59,26 @@ const server = Bun.serve(
             const filepath = join(import.meta.dir, url.pathname)
             const file = Bun.file(filepath)
             if (await file.exists()) {
-              return new Response(file)
+              try {
+                const stat = await file.stat()
+                if (stat.isFile()) {
+                  return new Response(file)
+                }
+              } catch {
+                // ignore stat errors
+              }
             }
 
-            const htmlFile = Bun.file(join(import.meta.dir, 'shumai-app.html'))
+            const htmlFile = Bun.file(join(import.meta.dir, 'index.html'))
             if (await htmlFile.exists()) {
               return new Response(htmlFile, {
+                headers: { 'Content-Type': 'text/html' },
+              })
+            }
+
+            const htmlFileNpm = Bun.file(join(import.meta.dir, 'shumai-app.html'))
+            if (await htmlFileNpm.exists()) {
+              return new Response(htmlFileNpm, {
                 headers: { 'Content-Type': 'text/html' },
               })
             }

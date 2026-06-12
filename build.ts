@@ -20,6 +20,7 @@ await Bun.build({
   target: 'bun',
   outdir: outdir,
   minify: false,
+  naming: '[name].[ext]',
   plugins: [
     temporalWorkflow({
       bundleOptions: {},
