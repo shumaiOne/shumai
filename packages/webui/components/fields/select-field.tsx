@@ -3,6 +3,7 @@ import { ChevronDown, X } from 'lucide-react'
 import React, { useState } from 'react'
 import type { FieldProps } from './field-types'
 import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/ui/popover'
+import { getOptionStyle } from '../fields-manager'
 
 const SelectField: React.FC<FieldProps<string>> = ({ value, config, onSave, readOnly }) => {
   const selectConfig = config?.select
@@ -31,10 +32,7 @@ const SelectField: React.FC<FieldProps<string>> = ({ value, config, onSave, read
     return (
       <span
         className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
-        style={{
-          backgroundColor: `${option.color}33`,
-          color: option.color || undefined,
-        }} // 33 is approx 20% opacity hex
+        style={getOptionStyle(option.color)}
       >
         {option.displayName}
       </span>
@@ -76,10 +74,7 @@ const SelectField: React.FC<FieldProps<string>> = ({ value, config, onSave, read
             >
               <span
                 className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
-                style={{
-                  backgroundColor: `${option.color}33`,
-                  color: option.color || undefined,
-                }}
+                style={getOptionStyle(option.color)}
               >
                 {option.displayName}
               </span>

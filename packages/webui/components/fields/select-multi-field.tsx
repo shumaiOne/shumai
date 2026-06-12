@@ -3,6 +3,7 @@ import React, { useLayoutEffect, useRef, useState } from 'react'
 import type { FieldProps } from './field-types'
 import type { SelectOption } from '@shumai/dtos'
 import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/ui/popover'
+import { getOptionStyle } from '../fields-manager'
 
 const SelectMultiField: React.FC<FieldProps<string[]>> = ({
   value = [],
@@ -132,10 +133,7 @@ const SelectMultiField: React.FC<FieldProps<string[]>> = ({
               <span
                 key={option.id}
                 className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border border-transparent whitespace-nowrap h-[22px]"
-                style={{
-                  backgroundColor: `${option.color}33`,
-                  color: option.color || undefined,
-                }}
+                style={getOptionStyle(option.color)}
               >
                 {option.displayName}
               </span>
@@ -167,10 +165,7 @@ const SelectMultiField: React.FC<FieldProps<string[]>> = ({
                 <span
                   key={option.id}
                   className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border border-transparent whitespace-nowrap h-[22px]"
-                  style={{
-                    backgroundColor: `${option.color}33`,
-                    color: option.color || undefined,
-                  }}
+                  style={getOptionStyle(option.color)}
                 >
                   {option.displayName}
                 </span>
@@ -187,10 +182,7 @@ const SelectMultiField: React.FC<FieldProps<string[]>> = ({
                 >
                   <span
                     className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
-                    style={{
-                      backgroundColor: `${option.color}33`,
-                      color: option.color || undefined,
-                    }}
+                    style={getOptionStyle(option.color)}
                   >
                     {option.displayName}
                   </span>

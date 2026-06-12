@@ -25,15 +25,50 @@ import { Switch } from '@/ui/components/ui/switch'
 import { arrayMove } from '@/ui/lib/dnd-utils'
 import { PointerActivationConstraints } from '@dnd-kit/dom'
 
-export const PREDEFINED_COLORS = [
-  '#ef4444', // Red
-  '#f97316', // Orange
-  '#eab308', // Yellow
-  '#22c55e', // Green
-  '#3b82f6', // Blue
-  '#a855f7', // Purple
-  '#808080', // Gray
-]
+export const PREDEFINED_COLORS = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'gray']
+
+export const COLOR_MAP: Record<string, { bg: string; text: string; hex: string }> = {
+  red: { bg: 'rgba(239, 68, 68, 0.15)', text: '#ef4444', hex: '#ef4444' },
+  orange: { bg: 'rgba(249, 115, 22, 0.15)', text: '#f97316', hex: '#f97316' },
+  yellow: { bg: 'rgba(234, 179, 8, 0.15)', text: '#ca8a04', hex: '#eab308' },
+  green: { bg: 'rgba(34, 197, 94, 0.15)', text: '#16a34a', hex: '#22c55e' },
+  blue: { bg: 'rgba(59, 130, 246, 0.15)', text: '#2563eb', hex: '#3b82f6' },
+  purple: { bg: 'rgba(168, 85, 247, 0.15)', text: '#9333ea', hex: '#a855f7' },
+  gray: { bg: 'rgba(128, 128, 128, 0.15)', text: '#4b5563', hex: '#808080' },
+  system: { bg: 'rgba(128, 128, 128, 0.1)', text: '#6b7280', hex: '#808080' },
+}
+
+export function getOptionStyle(color?: string) {
+  if (!color) {
+    return {
+      backgroundColor: 'rgba(128, 128, 128, 0.1)',
+      color: '#6b7280',
+    }
+  }
+
+  const normalized = color.toLowerCase()
+  const mapped = COLOR_MAP[normalized]
+  if (mapped) {
+    return {
+      backgroundColor: mapped.bg,
+      color: mapped.text,
+    }
+  }
+
+  // Support hex colors (e.g. for existing custom fields)
+  if (color.startsWith('#')) {
+    return {
+      backgroundColor: `${color}33`,
+      color: color,
+    }
+  }
+
+  // Fallback
+  return {
+    backgroundColor: 'rgba(128, 128, 128, 0.1)',
+    color: color,
+  }
+}
 import {
   AlignLeft,
   Calendar,
@@ -321,7 +356,10 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
                         <button
                           type="button"
                           className="w-6 h-6 rounded-full border shrink-0 cursor-pointer focus:outline-none hover:scale-105 transition-transform"
-                          style={{ backgroundColor: opt.color || '#808080' }}
+                          style={{
+                            backgroundColor:
+                              COLOR_MAP[opt.color || '']?.hex || opt.color || '#808080',
+                          }}
                         />
                       </PopoverTrigger>
                       <PopoverContent className="p-2 w-auto" align="end">
@@ -331,7 +369,7 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
                               key={color}
                               type="button"
                               className="w-5 h-5 rounded-full border cursor-pointer hover:scale-110 transition-transform"
-                              style={{ backgroundColor: color }}
+                              style={{ backgroundColor: COLOR_MAP[color]?.hex || color }}
                               onClick={() => {
                                 const updated = [...newOptions]
                                 updated[idx] = { ...opt, color }

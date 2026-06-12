@@ -23,7 +23,8 @@ import type { DragState } from '../dnd-types'
 import FieldRenderer from '../field-renderer'
 import { FilePreview } from './file-preview'
 
-import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
+import { type FieldInfo as MetadataFieldInfo, FieldType } from '@shumai/dtos'
+import { FIELD_TYPE_ICONS } from '../fields-manager'
 
 interface FileCardProps {
   teamId?: string
@@ -372,21 +373,27 @@ export function FileCard({
       </div>
       {fields && fields.length > 0 && (
         <div className="space-y-2 border-t p-3 mx-2">
-          {fields.map((field) => (
-            <div key={field.id} className="space-y-1">
-              <label className="text-xs text-muted-foreground tracking-wide">
-                {field.config?.name}
-              </label>
-              <div className="min-h-[28px]">
-                <FieldRenderer
-                  config={field.config}
-                  value={itemFieldValueMap[field.id!]?.value}
-                  onSave={canEdit ? (val) => onSaveField(field.id!, val) : undefined}
-                  readOnly={field.readOnly || !canEdit}
-                />
+          {fields.map((field) => {
+            const Icon = field.config?.type
+              ? FIELD_TYPE_ICONS[field.config.type as FieldType]
+              : null
+            return (
+              <div key={field.id} className="space-y-1">
+                <label className="text-xs text-muted-foreground tracking-wide flex items-center gap-1">
+                  {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+                  <span>{field.config?.name}</span>
+                </label>
+                <div className="min-h-[28px]">
+                  <FieldRenderer
+                    config={field.config}
+                    value={itemFieldValueMap[field.id!]?.value}
+                    onSave={canEdit ? (val) => onSaveField(field.id!, val) : undefined}
+                    readOnly={field.readOnly || !canEdit}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

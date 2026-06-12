@@ -25,7 +25,7 @@ import {
 import { useMemo, useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { Popover, PopoverTrigger, PopoverContent } from '@/ui/components/ui/popover'
-import { FIELD_TYPE_ICONS, PREDEFINED_COLORS } from './fields-manager'
+import { FIELD_TYPE_ICONS, PREDEFINED_COLORS, COLOR_MAP } from './fields-manager'
 
 import { Button } from '@/ui/components/ui/button'
 import { Dialog, DialogContent, DialogTitle } from '@/ui/components/ui/dialog'
@@ -495,7 +495,10 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
                       <button
                         type="button"
                         className="w-6 h-6 rounded-full border shrink-0 cursor-pointer focus:outline-none hover:scale-105 transition-transform"
-                        style={{ backgroundColor: opt.color || '#808080' }}
+                        style={{
+                          backgroundColor:
+                            COLOR_MAP[opt.color || '']?.hex || opt.color || '#808080',
+                        }}
                         disabled={isReadOnly}
                       />
                     </PopoverTrigger>
@@ -507,7 +510,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
                               key={color}
                               type="button"
                               className="w-5 h-5 rounded-full border cursor-pointer hover:scale-110 transition-transform"
-                              style={{ backgroundColor: color }}
+                              style={{ backgroundColor: COLOR_MAP[color]?.hex || color }}
                               onClick={() => {
                                 const newOpts = [
                                   ...((selectedField.config?.type === 'select'
