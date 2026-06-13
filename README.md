@@ -10,7 +10,7 @@
 
 ---
 
-![Shumai App Screenshot](docs/screenshot.png)
+![Shumai App Screenshot](docs/screenshot.webp)
 
 ## Features
 
