@@ -286,8 +286,10 @@ if (!binaryPath) {
 
 const appJsPath = join(__dirname, '${appName}-app.js')
 
+let activeProcess = null
+
 function startApp() {
-  const child = spawn(binaryPath, ['run', appJsPath, ...process.argv.slice(2)], {
+  activeProcess = spawn(binaryPath, ['run', appJsPath, ...process.argv.slice(2)], {
     stdio: 'inherit',
     env: {
       ...process.env,
@@ -295,11 +297,11 @@ function startApp() {
     },
   })
 
-  child.on('close', (code) => {
+  activeProcess.on('close', (code) => {
     process.exit(code ?? 0)
   })
 
-  child.on('error', (err) => {
+  activeProcess.on('error', (err) => {
     console.error(\`Failed to start child process:\`, err)
     process.exit(1)
   })
@@ -345,7 +347,7 @@ console.log(\`ℹ️ [${appName}] DATABASE_URL is: \${process.env.DATABASE_URL ?
 const prismaSchemaPath = join(__dirname, '..', 'prisma', 'schema.prisma')
 if (existsSync(prismaSchemaPath)) {
   console.log('🔄 Running database migrations...')
-  const migrationProcess = spawn(
+  activeProcess = spawn(
     binaryPath,
     ['run', 'prisma', 'migrate', 'deploy', '--schema', './prisma/schema.prisma'],
     {
@@ -358,7 +360,7 @@ if (existsSync(prismaSchemaPath)) {
     }
   )
 
-  migrationProcess.on('close', (code) => {
+  activeProcess.on('close', (code) => {
     if (code !== 0) {
       console.error(\`❌ Database migration failed with code \${code}. Exiting.\`)
       process.exit(code ?? 1)
@@ -366,13 +368,27 @@ if (existsSync(prismaSchemaPath)) {
     startApp()
   })
 
-  migrationProcess.on('error', (err) => {
+  activeProcess.on('error', (err) => {
     console.error('❌ Failed to run database migrations:', err)
     process.exit(1)
   })
 } else {
   startApp()
 }
+
+// Forward kill signals to the active child process
+const cleanupAndExit = (signal) => {
+  if (activeProcess && !activeProcess.killed) {
+    activeProcess.kill(signal)
+  } else {
+    process.exit(0)
+  }
+}
+
+process.on('SIGINT', () => cleanupAndExit('SIGINT'))
+process.on('SIGTERM', () => cleanupAndExit('SIGTERM'))
+process.on('SIGQUIT', () => cleanupAndExit('SIGQUIT'))
+
 `
 
   const wrapperPath = path.join(binOutDir, `${appName}.js`)
