@@ -1,7 +1,7 @@
-import { rm, mkdir, cp, writeFile, readdir } from 'node:fs/promises'
-import { existsSync } from 'node:fs'
-import path from 'node:path'
 import tailwindPlugin from 'bun-plugin-tailwind'
+import { existsSync } from 'node:fs'
+import { cp, mkdir, readdir, rm, writeFile } from 'node:fs/promises'
+import path from 'node:path'
 import { temporalWorkflow } from '../packages/workflow-core/src/bun-temporal-plugin'
 
 console.log('\n🚀 Starting NPM packaging build process for all applications...\n')
@@ -234,7 +234,7 @@ async function buildMainPackage({
 import { spawn } from 'node:child_process'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const platform = process.platform
@@ -286,22 +286,93 @@ if (!binaryPath) {
 
 const appJsPath = join(__dirname, '${appName}-app.js')
 
-const child = spawn(binaryPath, ['run', appJsPath, ...process.argv.slice(2)], {
-  stdio: 'inherit',
-  env: {
-    ...process.env,
-    BUN_BE_BUN: '1',
-  },
-})
+function startApp() {
+  const child = spawn(binaryPath, ['run', appJsPath, ...process.argv.slice(2)], {
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      BUN_BE_BUN: '1',
+    },
+  })
 
-child.on('close', (code) => {
-  process.exit(code ?? 0)
-})
+  child.on('close', (code) => {
+    process.exit(code ?? 0)
+  })
 
-child.on('error', (err) => {
-  console.error(\`Failed to start child process:\`, err)
-  process.exit(1)
-})
+  child.on('error', (err) => {
+    console.error(\`Failed to start child process:\`, err)
+    process.exit(1)
+  })
+}
+
+// Simple .env parser to load env files from process.cwd()
+function loadEnv() {
+  const envFiles = ['.env.production.local', '.env.local', '.env.production', '.env']
+  for (const file of envFiles) {
+    const envPath = join(process.cwd(), file)
+    if (existsSync(envPath)) {
+      try {
+        const content = readFileSync(envPath, 'utf8')
+        const lines = content.split(/\\r?\\n/)
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed || trimmed.startsWith('#')) continue
+          const match = trimmed.match(/^([^=]+)=(.*)$/)
+          if (match) {
+            const key = match[1].trim()
+            let value = match[2].trim()
+            if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+              value = value.substring(1, value.length - 1)
+            }
+            if (process.env[key] === undefined) {
+              process.env[key] = value
+            }
+          }
+        }
+      } catch (err) {
+        console.error('⚠️ [shumai] Error reading env file:', err)
+      }
+    }
+  }
+}
+
+// Load env files on startup
+loadEnv()
+
+console.log(\`ℹ️ [${appName}] Running from CWD: \${process.cwd()}\`)
+console.log(\`ℹ️ [${appName}] DATABASE_URL is: \${process.env.DATABASE_URL ? '(defined)' : '(undefined)'}\`)
+
+const prismaSchemaPath = join(__dirname, '..', 'prisma', 'schema.prisma')
+if (existsSync(prismaSchemaPath)) {
+  console.log('🔄 Running database migrations...')
+  const migrationProcess = spawn(
+    binaryPath,
+    ['run', 'prisma', 'migrate', 'deploy', '--schema', './prisma/schema.prisma'],
+    {
+      stdio: 'inherit',
+      cwd: join(__dirname, '..'),
+      env: {
+        ...process.env,
+        BUN_BE_BUN: '1',
+      },
+    }
+  )
+
+  migrationProcess.on('close', (code) => {
+    if (code !== 0) {
+      console.error(\`❌ Database migration failed with code \${code}. Exiting.\`)
+      process.exit(code ?? 1)
+    }
+    startApp()
+  })
+
+  migrationProcess.on('error', (err) => {
+    console.error('❌ Failed to run database migrations:', err)
+    process.exit(1)
+  })
+} else {
+  startApp()
+}
 `
 
   const wrapperPath = path.join(binOutDir, `${appName}.js`)
@@ -318,6 +389,21 @@ child.on('error', (err) => {
         recursive: true,
       })
     }
+
+    // Generate prisma.config.ts in the package root
+    const localConfigContent = `import { defineConfig } from 'prisma/config'
+
+export default defineConfig({
+  schema: './prisma/schema.prisma',
+  migrations: {
+    path: './prisma/migrations',
+  },
+  datasource: {
+    url: process.env.DATABASE_URL,
+  },
+})
+`
+    await writeFile(path.join(mainOutDir, 'prisma.config.ts'), localConfigContent, 'utf-8')
   }
 
   // Generate package.json
@@ -338,7 +424,7 @@ child.on('error', (err) => {
     bin: {
       [appName]: `./bin/${appName}.js`,
     },
-    files: ['bin', ...(hasPrisma ? ['prisma'] : [])],
+    files: ['bin', ...(hasPrisma ? ['prisma', 'prisma.config.ts'] : [])],
     dependencies,
     optionalDependencies,
     repository: rootPackageJson.repository,
@@ -377,7 +463,7 @@ await buildPlatformPackages('shumai-agent', dummyRunnerPath)
 await buildMainPackage({
   appName: 'shumai-agent',
   description: 'AI worker agent for the shumai media workspace',
-  hasPrisma: false,
+  hasPrisma: true,
   entrypoint: './apps/agent/src/index.ts',
   plugins: agentPlugins,
 })
@@ -392,7 +478,7 @@ await buildPlatformPackages('shumai-transcode', dummyRunnerPath)
 await buildMainPackage({
   appName: 'shumai-transcode',
   description: 'Media transcoding worker for the shumai media workspace',
-  hasPrisma: false,
+  hasPrisma: true,
   entrypoint: './apps/transcode/src/index.ts',
   plugins: transcodePlugins,
 })
