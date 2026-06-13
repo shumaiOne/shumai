@@ -165,9 +165,9 @@ You can spin up the main application, database, and Temporal services using Dock
    ```
    This exposes the Shumai Web UI at `http://localhost:3000` and the Temporal dashboard at `http://localhost:8080`.
 
-### 3. Run workers on separate machines
+### 3. Run the background workers
 
-If you want to scale horizontally or isolate tasks, you can run the agent and transcoding workers separately:
+When running in Temporal mode, the main Shumai application only submits tasks to the Temporal queue. To process these tasks, you must run at least one agent worker and one transcoding worker:
 
 - **Transcoding Worker**:
   Install `@shumai-one/shumai-transcode` and run it on a machine with sufficient transcoding resources:
