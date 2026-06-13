@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/logo.png" alt="Shumai Logo" width="200" />
+  <img src="docs/logo.png" alt="Shumai Logo" width="100" style="border-radius: 16px;" />
 </p>
 
 <h1 align="center">Shumai</h1>
@@ -35,11 +35,11 @@
 
 ### Option 1: Docker Compose (Quick Start)
 
-The fastest way to get Shumai up and running is with Docker Compose. This starts both the PostgreSQL database (pre-configured with `pgvector`) and the main Shumai web application.
+The easiest way to run Shumai is using Docker Compose. You do not need to clone the repository:
 
-1. Navigate to the local docker-compose directory:
+1. Create a `docker-compose.yaml` file by copying the configuration from [GitHub](https://github.com/shumaiOne/shumai/blob/main/docker-compose/local/docker-compose.yaml) or download it directly:
    ```bash
-   cd docker-compose/local
+   curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose.yaml
    ```
 2. Start the services:
    ```bash
@@ -49,7 +49,7 @@ The fastest way to get Shumai up and running is with Docker Compose. This starts
    ```
    http://localhost:3000
    ```
-4. Stop the services:
+4. Stop and remove the services:
    ```bash
    docker compose down
    ```
@@ -97,7 +97,6 @@ DATABASE_URL=postgresql://shumai:shumai_password@localhost:5432/shumai_db?schema
 BETTER_AUTH_SECRET=ySxs7DxzHDGBbeeHNPEwBuspYwipBqz5Gk5XdBjNhWw=
 BETTER_AUTH_URL=http://localhost:3000
 STORAGE_BACKEND=local
-GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
 #### Step 4: Run Shumai
