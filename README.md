@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="docs/logo.png" alt="Shumai Logo" width="100" style="border-radius: 16px;" />
+  <img src="docs/logo-rounded.png" alt="Shumai Logo" width="65" />
 </p>
 
 <h1 align="center">Shumai</h1>
 
 <p align="center">
-  <strong>An open-source platform for all your creative work, similar to Frame.io.</strong>
+  <strong>An open-source platform for all your creative work.</strong>
 </p>
 
 ---
@@ -21,7 +21,7 @@
 - **Scalable Transcode Workflows via Temporal**: Offload resource-heavy video transcoding to a reliable background worker pool orchestrated by Temporal.
 - **Flexible Asset Metadata System**: Customize your workspace metadata with dynamic, user-defined fields tailored to your production pipeline.
 
-### Shumai AI
+### Shumai Agent
 
 - **Chat with Agent as a Collaborator**: Converse with a context-aware AI agent directly within your project workspace.
 - **Extend Agent with Skills**: Easily register new tools and custom skills for the agent to run and automate workflows.
