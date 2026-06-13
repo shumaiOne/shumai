@@ -234,7 +234,7 @@ async function buildMainPackage({
 import { spawn } from 'node:child_process'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const platform = process.platform
@@ -304,6 +304,43 @@ function startApp() {
     process.exit(1)
   })
 }
+
+// Simple .env parser to load env files from process.cwd()
+function loadEnv() {
+  const envFiles = ['.env.production.local', '.env.local', '.env.production', '.env']
+  for (const file of envFiles) {
+    const envPath = join(process.cwd(), file)
+    if (existsSync(envPath)) {
+      try {
+        const content = readFileSync(envPath, 'utf8')
+        const lines = content.split(/\\r?\\n/)
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed || trimmed.startsWith('#')) continue
+          const match = trimmed.match(/^([^=]+)=(.*)$/)
+          if (match) {
+            const key = match[1].trim()
+            let value = match[2].trim()
+            if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+              value = value.substring(1, value.length - 1)
+            }
+            if (process.env[key] === undefined) {
+              process.env[key] = value
+            }
+          }
+        }
+      } catch (err) {
+        console.error('⚠️ [shumai] Error reading env file:', err)
+      }
+    }
+  }
+}
+
+// Load env files on startup
+loadEnv()
+
+console.log(\`ℹ️ [${appName}] Running from CWD: \${process.cwd()}\`)
+console.log(\`ℹ️ [${appName}] DATABASE_URL is: \${process.env.DATABASE_URL ? '(defined)' : '(undefined)'}\`)
 
 const prismaSchemaPath = join(__dirname, '..', 'prisma', 'schema.prisma')
 if (existsSync(prismaSchemaPath)) {

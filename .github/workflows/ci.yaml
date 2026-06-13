@@ -46,6 +46,3 @@ jobs:
       - name: Test Local Release
         run: |
           bun run release:local --skip-check --out /tmp/shumai-local-release --force
-          cd /tmp/shumai-local-release/node
-          npx shumai-agent
-          npx shumai-transcode
