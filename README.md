@@ -153,15 +153,15 @@ TEMPORAL_ADDRESS=localhost:7233
 
 ### 2. Set up the stack
 
-An example setup using Docker Compose can spin up the main application, database, and Temporal services:
+You can spin up the main application, database, and Temporal services using Docker Compose:
 
-1. Navigate to the temporal compose directory:
+1. Create a `docker-compose.yaml` file by downloading the configuration:
    ```bash
-   cd docker-compose/temporal
+   curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/temporal/docker-compose.yaml
    ```
 2. Start the services:
    ```bash
-   docker compose up -d --build
+   docker compose up -d
    ```
    This exposes the Shumai Web UI at `http://localhost:3000` and the Temporal dashboard at `http://localhost:8080`.
 
