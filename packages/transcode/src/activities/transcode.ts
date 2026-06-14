@@ -12,107 +12,133 @@ export interface GetMediaInfoActivityParams {
   mediaType: string
 }
 
+function getErrorDetails(err: unknown): { code?: string; message: string; name?: string } {
+  if (err && typeof err === 'object') {
+    const record = err as Record<string, unknown>
+    return {
+      code: typeof record.code === 'string' ? record.code : undefined,
+      message: typeof record.message === 'string' ? record.message : String(err),
+      name: typeof record.name === 'string' ? record.name : undefined,
+    }
+  }
+  return {
+    message: String(err),
+  }
+}
+
 export async function getMediaInfoActivity(params: {
   filePath: string
   assetId: string
   mediaType: string
 }): Promise<PrismaJson.MediaInfo> {
-  const isVideo = params.mediaType.startsWith('video/')
-  const isImage = params.mediaType.startsWith('image/')
-  const isAudio = params.mediaType.startsWith('audio/')
-  const isDocument =
-    params.mediaType.startsWith('text/') ||
-    params.mediaType === 'application/pdf' ||
-    params.mediaType.includes('msword') ||
-    params.mediaType.includes('officedocument') ||
-    params.mediaType.includes('vnd.ms-')
+  try {
+    const isVideo = params.mediaType.startsWith('video/')
+    const isImage = params.mediaType.startsWith('image/')
+    const isAudio = params.mediaType.startsWith('audio/')
+    const isDocument =
+      params.mediaType.startsWith('text/') ||
+      params.mediaType === 'application/pdf' ||
+      params.mediaType.includes('msword') ||
+      params.mediaType.includes('officedocument') ||
+      params.mediaType.includes('vnd.ms-')
 
-  const fileType = isVideo
-    ? 'video'
-    : isAudio
-      ? 'audio'
-      : isImage
-        ? 'image'
-        : isDocument
-          ? 'document'
-          : 'file'
+    const fileType = isVideo
+      ? 'video'
+      : isAudio
+        ? 'audio'
+        : isImage
+          ? 'image'
+          : isDocument
+            ? 'document'
+            : 'file'
 
-  const mediaInfo: PrismaJson.MediaInfo = {
-    duration: 0,
-    filesize: 0,
-    fps: 0,
-    frames: 0,
-    imageTranscodes: [],
-    videoTranscodes: [],
-    videoPreview: { width: 0, height: 0 },
-    finishedAt: new Date().toISOString(),
-    metadata: null,
-    mimeType: params.mediaType,
-    original: {
-      key: '', // Will be filled by caller or updated later
-      downloadUrl: '',
-      filesizeInBytes: 0,
-      codec: '',
-    },
-  }
-
-  const metadataUpdates: { key: string; value: string | number }[] = [
-    { key: 'file_type', value: fileType },
-  ]
-
-  if (isVideo) {
-    const info = await transcodeService.getVideoInfo(params.filePath)
-    mediaInfo.duration = info.duration
-    mediaInfo.fps = info.frameRate
-    mediaInfo.metadata = {
-      originalWidth: info.originalWidth,
-      originalHeight: info.originalHeight,
-      duration: info.duration,
-      bitRate: info.bitRate,
-      frameRate: info.frameRate,
-      hasAudio: info.hasAudio,
-      videoCodec: info.videoCodec,
-      audioCodec: info.audioCodec,
-      audioChannels: info.audioChannels,
-      audioSampleRate: info.audioSampleRate,
-      audioBitDepth: info.audioBitDepth,
-      format: {},
-    }
-    metadataUpdates.push(
-      { key: 'resolution_width', value: info.originalWidth },
-      { key: 'resolution_height', value: info.originalHeight },
-      { key: 'duration', value: info.duration },
-      { key: 'bitRate', value: info.bitRate / 1000 },
-      { key: 'frame_rate', value: info.frameRate },
-    )
-    if (info.videoCodec) metadataUpdates.push({ key: 'video_codec', value: info.videoCodec })
-    if (info.audioCodec) metadataUpdates.push({ key: 'audio_codec', value: info.audioCodec })
-    if (info.audioChannels !== undefined)
-      metadataUpdates.push({ key: 'audio_channels', value: info.audioChannels })
-    if (info.audioSampleRate !== undefined)
-      metadataUpdates.push({ key: 'audio_sample_rate', value: info.audioSampleRate })
-    if (info.audioBitDepth !== undefined)
-      metadataUpdates.push({ key: 'audio_bit_depth', value: info.audioBitDepth })
-  } else if (isImage) {
-    const info = await transcodeService.getImageInfo(params.filePath)
-    mediaInfo.metadata = {
-      originalWidth: info.originalWidth,
-      originalHeight: info.originalHeight,
+    const mediaInfo: PrismaJson.MediaInfo = {
       duration: 0,
-      bitRate: 0,
-      frameRate: 0,
-      hasAudio: false,
-      format: {},
+      filesize: 0,
+      fps: 0,
+      frames: 0,
+      imageTranscodes: [],
+      videoTranscodes: [],
+      videoPreview: { width: 0, height: 0 },
+      finishedAt: new Date().toISOString(),
+      metadata: null,
+      mimeType: params.mediaType,
+      original: {
+        key: '', // Will be filled by caller or updated later
+        downloadUrl: '',
+        filesizeInBytes: 0,
+        codec: '',
+      },
     }
-    metadataUpdates.push(
-      { key: 'resolution_width', value: info.originalWidth },
-      { key: 'resolution_height', value: info.originalHeight },
-    )
+
+    const metadataUpdates: { key: string; value: string | number }[] = [
+      { key: 'file_type', value: fileType },
+    ]
+
+    if (isVideo) {
+      const info = await transcodeService.getVideoInfo(params.filePath)
+      mediaInfo.duration = info.duration
+      mediaInfo.fps = info.frameRate
+      mediaInfo.metadata = {
+        originalWidth: info.originalWidth,
+        originalHeight: info.originalHeight,
+        duration: info.duration,
+        bitRate: info.bitRate,
+        frameRate: info.frameRate,
+        hasAudio: info.hasAudio,
+        videoCodec: info.videoCodec,
+        audioCodec: info.audioCodec,
+        audioChannels: info.audioChannels,
+        audioSampleRate: info.audioSampleRate,
+        audioBitDepth: info.audioBitDepth,
+        format: {},
+      }
+      metadataUpdates.push(
+        { key: 'resolution_width', value: info.originalWidth },
+        { key: 'resolution_height', value: info.originalHeight },
+        { key: 'duration', value: info.duration },
+        { key: 'bitRate', value: info.bitRate / 1000 },
+        { key: 'frame_rate', value: info.frameRate },
+      )
+      if (info.videoCodec) metadataUpdates.push({ key: 'video_codec', value: info.videoCodec })
+      if (info.audioCodec) metadataUpdates.push({ key: 'audio_codec', value: info.audioCodec })
+      if (info.audioChannels !== undefined)
+        metadataUpdates.push({ key: 'audio_channels', value: info.audioChannels })
+      if (info.audioSampleRate !== undefined)
+        metadataUpdates.push({ key: 'audio_sample_rate', value: info.audioSampleRate })
+      if (info.audioBitDepth !== undefined)
+        metadataUpdates.push({ key: 'audio_bit_depth', value: info.audioBitDepth })
+    } else if (isImage) {
+      const info = await transcodeService.getImageInfo(params.filePath)
+      mediaInfo.metadata = {
+        originalWidth: info.originalWidth,
+        originalHeight: info.originalHeight,
+        duration: 0,
+        bitRate: 0,
+        frameRate: 0,
+        hasAudio: false,
+        format: {},
+      }
+      metadataUpdates.push(
+        { key: 'resolution_width', value: info.originalWidth },
+        { key: 'resolution_height', value: info.originalHeight },
+      )
+    }
+
+    await metadataService.updateAssetMetadata(params.assetId, metadataUpdates, true)
+
+    return mediaInfo
+  } catch (err) {
+    const { name, message } = getErrorDetails(err)
+    if (name?.includes('Prisma') || message.includes('Prisma')) {
+      throw err
+    }
+    throw ApplicationFailure.create({
+      message: `Failed to get media info: ${message}`,
+      nonRetryable: true,
+      cause: err instanceof Error ? err : undefined,
+    })
   }
-
-  await metadataService.updateAssetMetadata(params.assetId, metadataUpdates, true)
-
-  return mediaInfo
 }
 
 export interface VideoActivityParams {
@@ -167,6 +193,26 @@ export async function transcodeVideoActivity(
     await s3Service.putObject(bucket, key, buffer, buffer.length, 'video/mp4')
 
     return { ...params.videoSpec, key }
+  } catch (err) {
+    const { code, message } = getErrorDetails(err)
+    const lowerMsg = message.toLowerCase()
+
+    if (
+      code === 'ENOENT' ||
+      lowerMsg.includes('enoent') ||
+      lowerMsg.includes('ffmpeg') ||
+      lowerMsg.includes('ffprobe') ||
+      lowerMsg.includes('spawn') ||
+      lowerMsg.includes('format') ||
+      lowerMsg.includes('no video stream found')
+    ) {
+      throw ApplicationFailure.create({
+        message: `Video transcoding failed: ${message}`,
+        nonRetryable: true,
+        cause: err instanceof Error ? err : undefined,
+      })
+    }
+    throw err
   } finally {
     if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile)
   }
@@ -205,6 +251,24 @@ export async function transcodeImageActivity(
     await s3Service.putObject(bucket, key, buffer, buffer.length, 'image/webp')
 
     return { ...params.imageSpec, key }
+  } catch (err) {
+    const { code, message } = getErrorDetails(err)
+    const lowerMsg = message.toLowerCase()
+
+    if (
+      code === 'ENOENT' ||
+      lowerMsg.includes('enoent') ||
+      lowerMsg.includes('sharp') ||
+      lowerMsg.includes('spawn') ||
+      lowerMsg.includes('format')
+    ) {
+      throw ApplicationFailure.create({
+        message: `Image transcoding failed: ${message}`,
+        nonRetryable: true,
+        cause: err instanceof Error ? err : undefined,
+      })
+    }
+    throw err
   } finally {
     if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile)
   }
@@ -259,6 +323,25 @@ export async function generateSpriteActivity(params: GenerateSpriteActivityParam
     )
 
     return { sprite: params.spriteSpec, poster: params.posterSpec }
+  } catch (err) {
+    const { code, message } = getErrorDetails(err)
+    const lowerMsg = message.toLowerCase()
+
+    if (
+      code === 'ENOENT' ||
+      lowerMsg.includes('enoent') ||
+      lowerMsg.includes('ffmpeg') ||
+      lowerMsg.includes('ffprobe') ||
+      lowerMsg.includes('spawn') ||
+      lowerMsg.includes('format')
+    ) {
+      throw ApplicationFailure.create({
+        message: `Sprite/Poster generation failed: ${message}`,
+        nonRetryable: true,
+        cause: err instanceof Error ? err : undefined,
+      })
+    }
+    throw err
   } finally {
     if (fs.existsSync(spriteFile)) fs.unlinkSync(spriteFile)
     if (fs.existsSync(posterFile)) fs.unlinkSync(posterFile)
@@ -276,7 +359,20 @@ export async function downloadMediaToTmpActivity(params: {
     fs.mkdirSync(tmpDir, { recursive: true })
   }
 
-  await s3Service.downloadToFile(bucket, params.assetKey, filePath)
+  try {
+    await s3Service.downloadToFile(bucket, params.assetKey, filePath)
+  } catch (err) {
+    const { code, message } = getErrorDetails(err)
+    const lowerMsg = message.toLowerCase()
+    if (code === 'ENOENT' || lowerMsg.includes('enoent') || lowerMsg.includes('nosuchkey')) {
+      throw ApplicationFailure.create({
+        message: `Failed to download media to tmp: ${message}`,
+        nonRetryable: true,
+        cause: err instanceof Error ? err : undefined,
+      })
+    }
+    throw err
+  }
 
   return { filePath, tmpDir }
 }
@@ -324,7 +420,26 @@ export async function takeScreenshotsActivity(params: {
   commentTimestamp?: number | null
   annotations?: PrismaJson.AnnotationList | null
 }): Promise<Array<{ key: string; timestamp: number }>> {
-  return transcodeService.takeScreenshots(params)
+  try {
+    return await transcodeService.takeScreenshots(params)
+  } catch (err) {
+    const { code, message } = getErrorDetails(err)
+    const lowerMsg = message.toLowerCase()
+    if (
+      code === 'ENOENT' ||
+      lowerMsg.includes('enoent') ||
+      lowerMsg.includes('nosuchkey') ||
+      lowerMsg.includes('ffmpeg') ||
+      lowerMsg.includes('sharp')
+    ) {
+      throw ApplicationFailure.create({
+        message: `Screenshot extraction failed: ${message}`,
+        nonRetryable: true,
+        cause: err instanceof Error ? err : undefined,
+      })
+    }
+    throw err
+  }
 }
 
 export async function overlayAnnotationsActivity(params: {
@@ -332,5 +447,24 @@ export async function overlayAnnotationsActivity(params: {
   assetId: string
   annotations: PrismaJson.AnnotationList
 }): Promise<string> {
-  return transcodeService.overlayAnnotations(params)
+  try {
+    return await transcodeService.overlayAnnotations(params)
+  } catch (err) {
+    const { code, message } = getErrorDetails(err)
+    const lowerMsg = message.toLowerCase()
+    if (
+      code === 'ENOENT' ||
+      lowerMsg.includes('enoent') ||
+      lowerMsg.includes('nosuchkey') ||
+      lowerMsg.includes('ffmpeg') ||
+      lowerMsg.includes('sharp')
+    ) {
+      throw ApplicationFailure.create({
+        message: `Overlay annotations failed: ${message}`,
+        nonRetryable: true,
+        cause: err instanceof Error ? err : undefined,
+      })
+    }
+    throw err
+  }
 }

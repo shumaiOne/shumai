@@ -1,5 +1,26 @@
-import { describe, it, expect, vi, beforeAll } from 'vitest'
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest'
+import * as wf from '@temporalio/workflow'
 import { getActivities, executeActivity } from './workflow-utils'
+
+const mockWorkflowInfo = vi.fn().mockImplementation(() => {
+  throw new Error('Not in workflow context')
+})
+const mockProxyActivities = vi.fn()
+
+vi.mock('@temporalio/workflow', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@temporalio/workflow')>()
+  return {
+    ...actual,
+    workflowInfo: () => mockWorkflowInfo(),
+    proxyActivities: (...args: unknown[]) => mockProxyActivities(...args),
+    log: {
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    },
+  }
+})
 
 describe('workflow-utils executeActivity', () => {
   beforeAll(() => {
@@ -38,5 +59,38 @@ describe('workflow-utils executeActivity', () => {
     await expect(executeActivity('queue', normalFn as any)).rejects.toThrow(
       'executeActivity must be called with an activity function obtained from getActivities()',
     )
+  })
+
+  describe('Temporal mode', () => {
+    beforeAll(() => {
+      // Mock workflowInfo to simulate running in Temporal by returning a fake object
+      mockWorkflowInfo.mockReturnValue({} as unknown as wf.WorkflowInfo)
+    })
+
+    afterAll(() => {
+      mockWorkflowInfo.mockImplementation(() => {
+        throw new Error('Not in workflow context')
+      })
+      vi.restoreAllMocks()
+    })
+
+    it('should configure proxyActivities with retry options', async () => {
+      mockProxyActivities.mockReturnValue({
+        mockActivity: vi.fn().mockResolvedValue('temporal-success'),
+      })
+
+      const { mockActivity } = getActivities()
+      const result = await executeActivity('test-queue', mockActivity, 'arg1')
+
+      expect(mockProxyActivities).toHaveBeenCalledWith(
+        expect.objectContaining({
+          retry: {
+            maximumAttempts: 5,
+            initialInterval: '10s',
+          },
+        }),
+      )
+      expect(result).toBe('temporal-success')
+    })
   })
 })
