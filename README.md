@@ -23,7 +23,7 @@
 - **Scalable Transcode Workflows via Temporal**: Offload resource-heavy video transcoding to a reliable background worker pool orchestrated by Temporal.
 - **Flexible Asset Metadata System**: Customize your workspace metadata with dynamic, user-defined fields tailored to your production pipeline.
 
-### Shumai Agent
+#### Shumai Agent
 
 - **Chat with Agent as a Collaborator**: Converse with a context-aware AI agent directly within your project workspace.
 - **Extend Agent with Skills**: Easily register new tools and custom skills for the agent to run and automate workflows.
