@@ -1,3 +1,4 @@
+import { cn } from '@/ui/lib/utils'
 import type { MediaMetadata } from '@shumai/dtos'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 
@@ -34,6 +35,12 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
   const previewVideoRef = useRef<HTMLVideoElement>(null)
   const [hoverPosition, setHoverPosition] = useState<number | null>(null) // 0 to 1
   const [isHovering, setIsHovering] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
+
+  const onSeekRef = useRef(onSeek)
+  useEffect(() => {
+    onSeekRef.current = onSeek
+  }, [onSeek])
 
   // Load the preview video in background
   useEffect(() => {
@@ -42,8 +49,16 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
     }
   }, [previewUrl])
 
+  const getPercentageFromEvent = useCallback((clientX: number) => {
+    if (!containerRef.current) return 0
+    const rect = containerRef.current.getBoundingClientRect()
+    const x = Math.max(0, Math.min(clientX - rect.left, rect.width))
+    return x / rect.width
+  }, [])
+
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
+      if (isDragging) return
       if (!containerRef.current) return
 
       const rect = containerRef.current.getBoundingClientRect()
@@ -62,23 +77,138 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
         }
       }
     },
-    [duration],
+    [duration, isDragging],
   )
 
   const handleMouseLeave = () => {
-    setIsHovering(false)
-    setHoverPosition(null)
+    if (!isDragging) {
+      setIsHovering(false)
+      setHoverPosition(null)
+    }
   }
 
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current || !duration) return
-    const rect = containerRef.current.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const percentage = x / rect.width
-    onSeek(percentage * duration)
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return
+    e.preventDefault()
+    setIsDragging(true)
+    const percentage = getPercentageFromEvent(e.clientX)
+    setHoverPosition(percentage)
+    setIsHovering(true)
+    onSeekRef.current(percentage * duration)
   }
 
-  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    setIsDragging(true)
+    const percentage = getPercentageFromEvent(e.touches[0].clientX)
+    setHoverPosition(percentage)
+    setIsHovering(true)
+    onSeekRef.current(percentage * duration)
+  }
+
+  useEffect(() => {
+    if (!isDragging) return
+
+    const handleWindowMouseMove = (e: MouseEvent) => {
+      const percentage = getPercentageFromEvent(e.clientX)
+      setHoverPosition(percentage)
+      setIsHovering(true)
+
+      if (previewVideoRef.current && duration) {
+        const seekTime = percentage * duration
+        const vid = previewVideoRef.current
+        if (Number.isFinite(seekTime)) {
+          vid.currentTime = seekTime
+        }
+      }
+
+      onSeekRef.current(percentage * duration)
+    }
+
+    const handleWindowMouseUp = (e: MouseEvent) => {
+      setIsDragging(false)
+
+      let stillHovering = false
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect()
+        stillHovering =
+          e.clientX >= rect.left &&
+          e.clientX <= rect.right &&
+          e.clientY >= rect.top &&
+          e.clientY <= rect.bottom
+      }
+
+      if (!stillHovering) {
+        setIsHovering(false)
+        setHoverPosition(null)
+      }
+
+      const percentage = getPercentageFromEvent(e.clientX)
+      onSeekRef.current(percentage * duration)
+    }
+
+    const handleWindowTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 0) return
+      const percentage = getPercentageFromEvent(e.touches[0].clientX)
+      setHoverPosition(percentage)
+      setIsHovering(true)
+
+      if (previewVideoRef.current && duration) {
+        const seekTime = percentage * duration
+        const vid = previewVideoRef.current
+        if (Number.isFinite(seekTime)) {
+          vid.currentTime = seekTime
+        }
+      }
+
+      onSeekRef.current(percentage * duration)
+    }
+
+    const handleWindowTouchEnd = (e: TouchEvent) => {
+      setIsDragging(false)
+
+      const clientX = e.changedTouches.length > 0 ? e.changedTouches[0].clientX : null
+      const clientY = e.changedTouches.length > 0 ? e.changedTouches[0].clientY : null
+
+      let stillHovering = false
+      if (clientX !== null && clientY !== null && containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect()
+        stillHovering =
+          clientX >= rect.left &&
+          clientX <= rect.right &&
+          clientY >= rect.top &&
+          clientY <= rect.bottom
+      }
+
+      if (!stillHovering) {
+        setIsHovering(false)
+        setHoverPosition(null)
+      }
+
+      if (clientX !== null) {
+        const percentage = getPercentageFromEvent(clientX)
+        onSeekRef.current(percentage * duration)
+      }
+    }
+
+    window.addEventListener('mousemove', handleWindowMouseMove)
+    window.addEventListener('mouseup', handleWindowMouseUp)
+    window.addEventListener('touchmove', handleWindowTouchMove, { passive: true })
+    window.addEventListener('touchend', handleWindowTouchEnd)
+
+    return () => {
+      window.removeEventListener('mousemove', handleWindowMouseMove)
+      window.removeEventListener('mouseup', handleWindowMouseUp)
+      window.removeEventListener('touchmove', handleWindowTouchMove)
+      window.removeEventListener('touchend', handleWindowTouchEnd)
+    }
+  }, [isDragging, duration, getPercentageFromEvent])
+
+  const progressPercent =
+    isDragging && hoverPosition !== null
+      ? hoverPosition * 100
+      : duration > 0
+        ? (currentTime / duration) * 100
+        : 0
   const hoverPercent = hoverPosition !== null ? hoverPosition * 100 : 0
 
   // Calculate preview tooltip position
@@ -127,7 +257,8 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
       className="group relative h-1.5 w-full cursor-pointer touch-none rounded-full bg-muted transition-colors duration-200"
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      onClick={handleClick}
+      onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
     >
       {/* Hidden Preview Video Element */}
       <video
@@ -173,7 +304,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
       {/* Hover Highlight Bar */}
       {isHovering && (
         <div
-          className="absolute top-0 left-0 h-full rounded-full bg-foreground/10"
+          className="absolute top-0 left-0 h-full rounded-full bg-primary/30"
           style={{ width: `${hoverPercent}%` }}
         />
       )}
@@ -184,7 +315,12 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
         style={{ width: `${progressPercent}%` }}
       >
         {/* Thumb (Playhead) - visible on group hover or active */}
-        <div className="absolute top-1/2 right-0 h-3.5 w-3.5 -translate-y-1/2 translate-x-1/2 scale-0 rounded-full border border-border bg-background shadow-md transition-transform duration-100 group-hover:scale-100" />
+        <div
+          className={cn(
+            'absolute top-1/2 right-0 h-3.5 w-3.5 -translate-y-1/2 translate-x-1/2 rounded-full border border-border bg-primary shadow-md transition-transform duration-100',
+            isHovering || isDragging ? 'scale-100' : 'scale-0 group-hover:scale-100',
+          )}
+        />
       </div>
     </div>
   )
