@@ -505,15 +505,22 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         setBuffered((bufferedEnd / duration) * 100)
       }
 
-      setState((prev) => ({
-        ...prev,
-        currentTime: current,
-        duration: duration || prev.duration,
-        progress: duration > 0 ? (current / duration) * 100 : 0,
-      }))
+      // Only update state here if the player is paused.
+      // When playing, requestAnimationFrame handles smooth updates.
+      if (player.paused()) {
+        setState((prev) => {
+          if (prev.currentTime === current) return prev
+          return {
+            ...prev,
+            currentTime: current,
+            duration: duration || prev.duration,
+            progress: duration > 0 ? (current / duration) * 100 : 0,
+          }
+        })
 
-      if (onTimeUpdate) {
-        onTimeUpdate(current)
+        if (onTimeUpdate) {
+          onTimeUpdate(current)
+        }
       }
     })
 
@@ -549,6 +556,45 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       }
     }
   }, [data])
+
+  // Smooth progress updates using requestAnimationFrame when playing
+  useEffect(() => {
+    let animationFrameId: number
+
+    const updateProgress = () => {
+      const player = playerRef.current
+      if (player && !player.paused()) {
+        const current = player.currentTime() || 0
+        const duration = player.duration() || data.media?.metadata?.duration || 0
+
+        setState((prev) => {
+          if (prev.currentTime === current) return prev
+          return {
+            ...prev,
+            currentTime: current,
+            duration: duration || prev.duration,
+            progress: duration > 0 ? (current / duration) * 100 : 0,
+          }
+        })
+
+        if (onTimeUpdate) {
+          onTimeUpdate(current)
+        }
+
+        animationFrameId = requestAnimationFrame(updateProgress)
+      }
+    }
+
+    if (state.isPlaying) {
+      animationFrameId = requestAnimationFrame(updateProgress)
+    }
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId)
+      }
+    }
+  }, [state.isPlaying, playerRef, data.media?.metadata?.duration, onTimeUpdate])
 
   const handleMouseMove = useCallback(() => {
     // Always show controls on movement
