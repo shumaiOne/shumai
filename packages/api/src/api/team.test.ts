@@ -268,13 +268,17 @@ describe('team api', () => {
   })
 
   it('GET /teams/:teamId/sandbox returns sandbox settings', async () => {
-    mockGetSandboxSettings.mockResolvedValue({ allowedDomains: ['example.com'] })
+    mockGetSandboxSettings.mockResolvedValue({
+      allowedDomains: ['example.com'],
+      pendingDomains: ['pending.com'],
+    })
 
     const res = await app.request('/teams/t1/sandbox')
 
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data.allowedDomains).toEqual(['example.com'])
+    expect(data.pendingDomains).toEqual(['pending.com'])
     expect(authzService.hasPermission).toHaveBeenCalledWith(
       expect.objectContaining({
         type: ResourceType.Team,
@@ -286,17 +290,21 @@ describe('team api', () => {
   })
 
   it('PUT /teams/:teamId/sandbox updates sandbox settings', async () => {
-    mockUpdateSandboxSettings.mockResolvedValue({ allowedDomains: ['new.com'] })
+    mockUpdateSandboxSettings.mockResolvedValue({
+      allowedDomains: ['new.com'],
+      pendingDomains: ['new-pending.com'],
+    })
 
     const res = await app.request('/teams/t1/sandbox', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ allowedDomains: ['new.com'] }),
+      body: JSON.stringify({ allowedDomains: ['new.com'], pendingDomains: ['new-pending.com'] }),
     })
 
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data.allowedDomains).toEqual(['new.com'])
+    expect(data.pendingDomains).toEqual(['new-pending.com'])
     expect(authzService.hasPermission).toHaveBeenCalledWith(
       expect.objectContaining({
         type: ResourceType.Team,
@@ -304,6 +312,9 @@ describe('team api', () => {
         permission: Permission.Admin,
       }),
     )
-    expect(mockUpdateSandboxSettings).toHaveBeenCalledWith('t1', { allowedDomains: ['new.com'] })
+    expect(mockUpdateSandboxSettings).toHaveBeenCalledWith('t1', {
+      allowedDomains: ['new.com'],
+      pendingDomains: ['new-pending.com'],
+    })
   })
 })

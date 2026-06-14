@@ -5,6 +5,7 @@ import { getModel } from '@earendil-works/pi-ai'
 import { Type, type TSchema } from '@sinclair/typebox'
 import * as fs from 'fs'
 import * as path from 'path'
+import { prisma } from '@shumai/db'
 import { agentService } from '@shumai/core/src/agent/agent'
 import { DatabaseSessionStorage } from './database-session-storage'
 import { createAnalyzeImageTool } from './tools/analyze-image'
@@ -17,6 +18,7 @@ import { createReadSkillTool } from './tools/read-skill'
 import { createSandboxedBashTool } from './tools/sandboxed-bash'
 
 export interface CreateAgentSessionParams {
+  teamId: string
   agentId: string
   providerName: string
   modelId: string
@@ -36,10 +38,12 @@ export interface CreateAgentSessionParams {
       config: PrismaJson.ModelConfig
     }>
   }>
+  onNetworkBlocked?: (host: string) => void
 }
 
 export async function createAgentSession(params: CreateAgentSessionParams) {
   const {
+    teamId,
     agentId,
     providerName,
     modelId,
@@ -115,18 +119,54 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
 
   const allowWrite = [piDir]
 
+  const sandboxAskCallback = async ({ host, port }: { host: string; port?: number }) => {
+    const hostPort = port ? `${host}:${port}` : host
+
+    try {
+      const sandbox = await prisma.sandbox.findUnique({
+        where: { teamId },
+      })
+      const pendingDomains = sandbox?.pendingDomains || []
+      if (!pendingDomains.includes(hostPort)) {
+        await prisma.sandbox.upsert({
+          where: { teamId },
+          create: {
+            teamId,
+            pendingDomains: [hostPort],
+          },
+          update: {
+            pendingDomains: {
+              push: hostPort,
+            },
+          },
+        })
+      }
+    } catch (err) {
+      console.error('Failed to update sandbox pending domains:', err)
+    }
+
+    if (params.onNetworkBlocked) {
+      params.onNetworkBlocked(hostPort)
+    }
+
+    return false
+  }
+
   // SandboxManager.initialize is a global operation that applies to the entire process.
-  await SandboxManager.initialize({
-    network: {
-      allowedDomains,
-      deniedDomains: [],
+  await SandboxManager.initialize(
+    {
+      network: {
+        allowedDomains,
+        deniedDomains: [],
+      },
+      filesystem: {
+        denyRead: ['.env', '.env.*', '*.pem', '*.key'],
+        allowWrite,
+        denyWrite: ['.env', '.env.*', '*.pem', '*.key'],
+      },
     },
-    filesystem: {
-      denyRead: ['.env', '.env.*', '*.pem', '*.key'],
-      allowWrite,
-      denyWrite: ['.env', '.env.*', '*.pem', '*.key'],
-    },
-  })
+    sandboxAskCallback,
+  )
 
   const skillEnvs: Record<string, string> = {}
   const onEnvsAdded = (envs: Record<string, string>) => {

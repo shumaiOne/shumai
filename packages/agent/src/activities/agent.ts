@@ -97,7 +97,10 @@ If you need to create files in the local filesystem (for example, a temporary fi
     systemPrompt += `\n\nYour current model supports the following input types: ${modelConfig.input.join(', ')}.`
   }
 
+  let blockedHost = ''
+
   const { session, harness } = await createAgentSession({
+    teamId: params.teamId,
     agentId: params.agentId,
     providerName,
     modelId,
@@ -121,6 +124,9 @@ If you need to create files in the local filesystem (for example, a temporary fi
         config: m.config,
       })),
     })),
+    onNetworkBlocked: (host) => {
+      blockedHost = host
+    },
   })
 
   const imagesToPass: ImageContent[] = []
@@ -141,6 +147,24 @@ If you need to create files in the local filesystem (for example, a temporary fi
 
   try {
     const assistantMessage = await harness.prompt(params.prompt, { images: imagesToPass })
+
+    const storage = session.getStorage()
+    let sessionId = ''
+    if (storage instanceof DatabaseSessionStorage) {
+      sessionId = storage.sessionId
+    }
+
+    if (blockedHost) {
+      return {
+        text: `Network request to ${blockedHost} is blocked, please ask admin to allow it in sandbox settings.`,
+        usage: {
+          model: modelId,
+          inputTokens: assistantMessage.usage?.input || 0,
+          outputTokens: assistantMessage.usage?.output || 0,
+        },
+        sessionId,
+      }
+    }
 
     const sessionEntries = await session.getEntries()
     sessionEntries.forEach((entry) => {
@@ -178,12 +202,25 @@ If you need to create files in the local filesystem (for example, a temporary fi
       outputTokens: assistantMessage.usage?.output || 0,
     }
 
-    const storage = session.getStorage()
-    let sessionId = ''
-    if (storage instanceof DatabaseSessionStorage) {
-      sessionId = storage.sessionId
-    }
     return { text, usage, sessionId }
+  } catch (err) {
+    if (blockedHost) {
+      const storage = session.getStorage()
+      let sessionId = ''
+      if (storage instanceof DatabaseSessionStorage) {
+        sessionId = storage.sessionId
+      }
+      return {
+        text: `Network request to ${blockedHost} is blocked, please ask admin to allow it in sandbox settings.`,
+        usage: {
+          model: modelId,
+          inputTokens: 0,
+          outputTokens: 0,
+        },
+        sessionId,
+      }
+    }
+    throw err
   } finally {
     // Cleanup handled by agent session if needed
   }

@@ -290,16 +290,20 @@ describe('TeamService', () => {
     // Should have default settings
     const settings = await teamService.getSandboxSettings(team.id)
     expect(settings.allowedDomains).toContain('github.com')
+    expect(settings.pendingDomains).toEqual([])
 
     // Should update settings
     const updated = await teamService.updateSandboxSettings(team.id, {
       allowedDomains: ['example.com'],
+      pendingDomains: ['pending.com'],
     })
     expect(updated.allowedDomains).toEqual(['example.com'])
+    expect(updated.pendingDomains).toEqual(['pending.com'])
 
     // Should persist to DB
     const persisted = await teamService.getSandboxSettings(team.id)
     expect(persisted.allowedDomains).toEqual(['example.com'])
+    expect(persisted.pendingDomains).toEqual(['pending.com'])
   })
 
   it('should return empty allowedDomains if sandbox is missing for old team', async () => {
@@ -309,5 +313,6 @@ describe('TeamService', () => {
 
     const settings = await teamService.getSandboxSettings(team.id)
     expect(settings.allowedDomains).toEqual([])
+    expect(settings.pendingDomains).toEqual([])
   })
 })
