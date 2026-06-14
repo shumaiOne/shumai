@@ -157,7 +157,7 @@ Spin up the database, Temporal server, and the main Shumai web application on yo
    curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/temporal/docker-compose.yaml
    ```
 2. Configure the environment variables in `docker-compose.yaml`:
-   - Set the S3 storage environment variables (`S3_ENDPOINT_URL`, `S3_REGION`, `BUCKET_NAME`, etc.).
+   - Set the S3 storage environment variables (`AWS_ENDPOINT_URL_S3`, `S3_REGION`, `S3_BUCKET`, etc.).
    - If deploying to a remote host (e.g., AWS ECS, EC2, VPS), update `AWS_ENDPOINT_URL_S3` under the `shumai` service to your server's public IP address or domain name.
    - Note: The `TEMPORAL_ADDRESS` environment variable for the main Shumai application is pre-configured as `temporal:7233` (referencing the Temporal container within the same Docker network) and does not need to be changed.
 3. Start the services:
