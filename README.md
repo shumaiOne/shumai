@@ -73,7 +73,13 @@ docker run --name shumai_postgres \
 Install the main Shumai package using `npm`, `pnpm`, `bun`, or `yarn`:
 
 > [!IMPORTANT]
-> **Prerequisite**: Because Shumai uses a secure sandboxed execution environment for its AI agents, your machine must meet the platform requirements for the sandbox. Please verify you have installed the required dependencies for your OS as detailed in the [Agent Sandbox Platform Support](#agent-sandbox-platform-support) section.
+> **Prerequisites**:
+>
+> - **Agent Sandbox**: Because Shumai uses a secure sandboxed execution environment for its AI agents, your machine must meet the platform requirements for the sandbox. Please verify you have installed the required dependencies for your OS as detailed in the [Agent Sandbox Platform Support](#agent-sandbox-platform-support) section.
+> - **FFmpeg & FFprobe**: Shumai requires `ffmpeg` and `ffprobe` to be installed on your system path for handling media transcoding and metadata extraction.
+>   - macOS: `brew install ffmpeg`
+>   - Ubuntu/Debian: `sudo apt-get install ffmpeg`
+>   - Fedora: `sudo dnf install ffmpeg`
 
 ```bash
 npm install -g @shumai-one/shumai
@@ -180,6 +186,7 @@ Configure a `.env` file on each worker machine. It must contain the following va
 
 ```env
 DATABASE_URL=postgresql://shumai:shumai_password@<host-ip>:5432/shumai_db?schema=public
+WORKFLOW_EXECUTOR=temporal
 TEMPORAL_ADDRESS=<host-ip>:7233
 STORAGE_BACKEND=s3
 AWS_ENDPOINT_URL_S3=http://<host-ip>:3000 # Or your public S3/R2 endpoint URL
@@ -193,6 +200,12 @@ Run the workers:
 
 - **Transcoding Worker**:
   Install `@shumai-one/shumai-transcode` and run it on a machine with sufficient transcoding resources:
+
+  > [!IMPORTANT]
+  > **FFmpeg Requirement**: The transcoding worker requires `ffmpeg` and `ffprobe` to be installed and available on the machine's system path.
+  >
+  > - macOS: `brew install ffmpeg`
+  > - Ubuntu/Debian: `sudo apt-get install ffmpeg`
 
   ```bash
   npm install -g @shumai-one/shumai-transcode
