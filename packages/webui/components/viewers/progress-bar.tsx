@@ -124,7 +124,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
   return (
     <div
       ref={containerRef}
-      className="group relative h-1.5 w-full cursor-pointer touch-none rounded-full bg-gray-300 transition-colors duration-200 dark:bg-white/20"
+      className="group relative h-1.5 w-full cursor-pointer touch-none rounded-full bg-muted transition-colors duration-200"
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
@@ -145,7 +145,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
           className="pointer-events-none absolute bottom-full z-50 mb-3 flex w-max flex-col"
           style={getTooltipStyle()}
         >
-          <div className="relative overflow-hidden rounded-lg border-2 border-gray-300 bg-white shadow-2xl dark:border-white/50 dark:bg-black">
+          <div className="relative overflow-hidden rounded-lg border-2 border-border bg-popover shadow-2xl">
             <video
               src={previewUrl}
               className="bg-black object-cover"
@@ -157,7 +157,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
                 }
               }}
             />
-            <div className="absolute bottom-0 w-full bg-white/80 py-0.5 text-center text-xs font-medium text-gray-900 dark:bg-black/60 dark:text-white">
+            <div className="absolute bottom-0 w-full bg-popover/80 py-0.5 text-center text-xs font-medium text-popover-foreground">
               {formatTime(hoverPosition! * duration)}
             </div>
           </div>
@@ -166,25 +166,25 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
 
       {/* Buffered Bar */}
       <div
-        className="absolute top-0 left-0 h-full rounded-full bg-gray-400 transition-all duration-200 dark:bg-white/30"
+        className="absolute top-0 left-0 h-full rounded-full bg-muted-foreground/30 transition-all duration-200"
         style={{ width: `${buffered}%` }}
       />
 
       {/* Hover Highlight Bar */}
       {isHovering && (
         <div
-          className="absolute top-0 left-0 h-full rounded-full bg-gray-500/40 dark:bg-white/40"
+          className="absolute top-0 left-0 h-full rounded-full bg-foreground/10"
           style={{ width: `${hoverPercent}%` }}
         />
       )}
 
       {/* Play Progress Bar */}
       <div
-        className="relative absolute top-0 left-0 h-full rounded-full bg-blue-600 dark:bg-blue-500"
+        className="relative absolute top-0 left-0 h-full rounded-full bg-primary"
         style={{ width: `${progressPercent}%` }}
       >
         {/* Thumb (Playhead) - visible on group hover or active */}
-        <div className="absolute top-1/2 right-0 h-3.5 w-3.5 -translate-y-1/2 translate-x-1/2 scale-0 rounded-full border border-gray-200 bg-white shadow-md transition-transform duration-100 group-hover:scale-100 dark:border-none" />
+        <div className="absolute top-1/2 right-0 h-3.5 w-3.5 -translate-y-1/2 translate-x-1/2 scale-0 rounded-full border border-border bg-background shadow-md transition-transform duration-100 group-hover:scale-100" />
       </div>
     </div>
   )

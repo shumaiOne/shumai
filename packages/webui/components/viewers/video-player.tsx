@@ -108,7 +108,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
         'transition-all duration-300 ease-in-out z-20',
         state.isFullScreen
           ? 'absolute bottom-0 left-0 right-0 px-4 py-4 bg-black/60 backdrop-blur-md text-white'
-          : 'relative w-full bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 py-3 z-10 transition-colors duration-200',
+          : 'relative w-full bg-card border-t border-border px-4 py-3 z-10 transition-colors duration-200',
         isControlsVisible
           ? 'opacity-100 translate-y-0'
           : 'opacity-0 translate-y-4 pointer-events-none',
@@ -133,12 +133,12 @@ const ControlBar: React.FC<ControlBarProps> = ({
       <div
         className={cn(
           'flex items-center justify-between',
-          state.isFullScreen ? 'text-white/90' : 'text-gray-700 dark:text-white/90',
+          state.isFullScreen ? 'text-white/90' : 'text-foreground',
         )}
       >
         {/* Left Side: Play, Vol, Time */}
         <div className="flex items-center gap-4">
-          <button onClick={togglePlay} className="hover:text-blue-500 transition-colors">
+          <button onClick={togglePlay} className="hover:text-primary transition-colors">
             {state.isPlaying ? (
               <Pause className="w-6 h-6 fill-current" />
             ) : (
@@ -148,14 +148,17 @@ const ControlBar: React.FC<ControlBarProps> = ({
 
           <button
             onClick={toggleLoop}
-            className={cn('transition-colors', state.isLooping ? 'text-blue-500' : 'text-gray-400')}
+            className={cn(
+              'transition-colors',
+              state.isLooping ? 'text-primary' : 'text-muted-foreground',
+            )}
             title="Loop"
           >
             <Repeat className="w-5 h-5" />
           </button>
 
           <div className="flex items-center gap-3 group/vol">
-            <button onClick={toggleMute} className="hover:text-blue-500">
+            <button onClick={toggleMute} className="hover:text-primary">
               {state.isMuted || state.volume === 0 ? (
                 <VolumeX className="w-6 h-6" />
               ) : (
@@ -176,31 +179,33 @@ const ControlBar: React.FC<ControlBarProps> = ({
           </div>
 
           <div
-            className="min-w-[100px] cursor-pointer text-sm font-medium tabular-nums hover:text-blue-500"
+            className="min-w-[100px] cursor-pointer text-sm font-medium tabular-nums hover:text-primary"
             onClick={() => setState((p) => ({ ...p, showFrames: !p.showFrames }))}
             title="Click to toggle Time/Frames"
           >
             {state.showFrames
               ? `${formatFrame(state.currentTime, data.media.metadata.frameRate ?? 30)} / ${formatFrame(state.duration, data.media.metadata.frameRate ?? 30)}`
               : `${formatTime(state.currentTime)} / ${formatTime(state.duration)}`}
-            <span className="ml-1 text-xs text-gray-400">{state.showFrames ? 'fr' : ''}</span>
+            <span className="ml-1 text-xs text-muted-foreground">
+              {state.showFrames ? 'fr' : ''}
+            </span>
           </div>
         </div>
 
         {/* Right Side: Zoom, Speed, Res, Download, Fullscreen */}
         <div className="relative flex items-center gap-3">
           {/* Zoom Controls */}
-          <div className="flex items-center gap-1 bg-gray-200/50 dark:bg-white/10 rounded-md p-0.5">
+          <div className="flex items-center gap-1 bg-muted rounded-md p-0.5">
             <button
               onClick={() => onZoomChange(zoom * 0.8)}
-              className="p-1 hover:text-blue-500 rounded"
+              className="p-1 hover:text-primary rounded"
             >
               <Minus size={14} />
             </button>
             <span className="text-xs w-8 text-center tabular-nums">{Math.round(zoom * 100)}%</span>
             <button
               onClick={() => onZoomChange(zoom * 1.2)}
-              className="p-1 hover:text-blue-500 rounded"
+              className="p-1 hover:text-primary rounded"
             >
               <Plus size={14} />
             </button>
@@ -209,7 +214,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
           {/* Playback Rate */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="w-8 text-sm font-bold hover:text-blue-500">
+              <button className="w-8 text-sm font-bold hover:text-primary">
                 {state.playbackRate}x
               </button>
             </DropdownMenuTrigger>
@@ -221,8 +226,8 @@ const ControlBar: React.FC<ControlBarProps> = ({
                   className={cn(
                     'rounded py-1 px-2 text-left text-xs',
                     state.playbackRate === rate
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800',
+                      ? 'bg-primary text-primary-foreground focus:bg-primary focus:text-primary-foreground'
+                      : 'text-foreground',
                   )}
                 >
                   {rate}x
@@ -234,7 +239,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
           {/* Resolution Selector */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-1 rounded border border-gray-300 px-2 py-0.5 text-sm font-semibold hover:bg-gray-200 dark:border-white/20 dark:hover:bg-white/10">
+              <button className="flex items-center gap-1 rounded border border-border px-2 py-0.5 text-sm font-semibold hover:bg-muted transition-colors">
                 <Settings className="h-3.5 w-3.5" />
                 <span>{state.currentResolution}</span>
               </button>
@@ -249,12 +254,12 @@ const ControlBar: React.FC<ControlBarProps> = ({
                   className={cn(
                     'flex w-full items-center justify-between',
                     state.currentResolution === res.resolution
-                      ? 'text-blue-500'
-                      : 'text-gray-700 dark:text-gray-300',
+                      ? 'text-primary font-medium'
+                      : 'text-foreground',
                   )}
                 >
                   <span>{res.resolution}</span>
-                  <span className="pl-5 text-xs text-gray-400 dark:text-gray-500">
+                  <span className="pl-5 text-xs text-muted-foreground">
                     {res.width}x{res.height}
                   </span>
                 </DropdownMenuItem>
@@ -265,7 +270,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
           {/* Download */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="transition-colors hover:text-blue-500" title="Download">
+              <button className="transition-colors hover:text-primary" title="Download">
                 <Download className="h-5 w-5" />
               </button>
             </DropdownMenuTrigger>
@@ -275,17 +280,17 @@ const ControlBar: React.FC<ControlBarProps> = ({
                 <DropdownMenuItem
                   key={res.resolution}
                   onClick={() => handleDownload(res.url ?? '', res.resolution)}
-                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-foreground"
                 >
                   <span>{res.resolution}</span>
-                  <span className="text-xs text-gray-400 dark:text-gray-500">MP4</span>
+                  <span className="text-xs text-muted-foreground">MP4</span>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
 
           {/* Fullscreen */}
-          <button onClick={toggleFullScreen} className="transition-colors hover:text-blue-500">
+          <button onClick={toggleFullScreen} className="transition-colors hover:text-primary">
             {state.isFullScreen ? (
               <Minimize className="h-6 w-6" />
             ) : (
