@@ -12,7 +12,6 @@
   <a target="_blank" href="https://shumai.one/">Website</a> | <a target="_blank" href="https://docs.shumai.one/introduction">Docs</a> | <a target="_blank" href="https://staging.shumai.one">Demo</a>
 </p>
 
-
 ![Shumai App Screenshot](docs/screenshot.webp)
 
 ## Features
@@ -72,6 +71,9 @@ docker run --name shumai_postgres \
 #### Step 2: Install Shumai globally
 
 Install the main Shumai package using `npm`, `pnpm`, `bun`, or `yarn`:
+
+> [!IMPORTANT]
+> **Prerequisite**: Because Shumai uses a secure sandboxed execution environment for its AI agents, your machine must meet the platform requirements for the sandbox. Please verify you have installed the required dependencies for your OS as detailed in the [Agent Sandbox Platform Support](#agent-sandbox-platform-support) section.
 
 ```bash
 npm install -g @shumai-one/shumai
@@ -200,8 +202,66 @@ Run the workers:
 
 - **AI Agent Worker**:
   Install `@shumai-one/shumai-agent` and run it on a machine configured for Agent tasks:
+
+  > [!IMPORTANT]
+  > Because the AI Agent worker runs sandboxed agent scripts, the host machine must have the necessary dependencies installed. Please refer to [Agent Sandbox Platform Support](#agent-sandbox-platform-support) for setup details.
+
   ```bash
   npm install -g @shumai-one/shumai-agent
   # Run worker with the configured .env (must include GEMINI_API_KEY)
   shumai-agent
   ```
+
+---
+
+## Agent Sandbox Platform Support
+
+Shumai uses `anthropic-experimental/sandbox-runtime` to execute AI agent scripts and tasks in a secure, isolated sandbox environment. When installing Shumai or the AI Agent worker from NPM, ensure your host platform meets the following requirements:
+
+### Platform Support
+
+- **macOS**: Uses `sandbox-exec` with custom profiles (no additional OS-level containerization dependencies).
+- **Linux**: Uses `bubblewrap` (bwrap) for containerization.
+- **Windows**: Not yet supported.
+
+### Platform-Specific Dependencies
+
+#### Linux
+
+The following system packages must be installed on your Linux host:
+
+- `bubblewrap` - Container runtime
+  - Ubuntu/Debian: `sudo apt-get install bubblewrap`
+  - Fedora: `sudo dnf install bubblewrap`
+  - Arch: `sudo pacman -S bubblewrap`
+- `socat` - Socket relay for proxy bridging
+  - Ubuntu/Debian: `sudo apt-get install socat`
+  - Fedora: `sudo dnf install socat`
+  - Arch: `sudo pacman -S socat`
+- `ripgrep` - Fast search tool for deny path detection
+  - Ubuntu/Debian: `sudo apt-get install ripgrep`
+  - Fedora: `sudo dnf install ripgrep`
+  - Arch: `sudo pacman -S ripgrep`
+
+**Ubuntu 24.04+ Note**: These releases restrict unprivileged user namespaces by default. Disable this restriction so that `bubblewrap` and the seccomp isolation layer can function:
+
+```bash
+sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+```
+
+**Optional Linux Dependencies (for seccomp fallback)**:
+Pre-generated seccomp filters are provided for x86-64 and arm architectures. If you run on a different architecture, you will need a C compiler and development files:
+
+- `gcc` or `clang`
+- `libseccomp` development headers
+  - Ubuntu/Debian: `sudo apt-get install gcc libseccomp-dev`
+  - Fedora: `sudo dnf install gcc libseccomp-devel`
+  - Arch: `sudo pacman -S gcc libseccomp`
+
+#### macOS
+
+The following dependencies are required on macOS:
+
+- `ripgrep` - Fast search tool for deny path detection
+  - Install via Homebrew: `brew install ripgrep`
+  - Or download from: https://github.com/BurntSushi/ripgrep/releases
