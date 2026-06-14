@@ -71,6 +71,10 @@ export function getActivities<T = any>(): T {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     baseProxy = wf.proxyActivities<any>({
       startToCloseTimeout: '10 minutes',
+      retry: {
+        maximumAttempts: 5,
+        initialInterval: '10s',
+      },
     })
   } else {
     baseProxy = localActivitiesProxy()
@@ -163,6 +167,10 @@ export async function executeActivity(
       const handle = wf.proxyActivities<any>({
         startToCloseTimeout: '10 minutes',
         taskQueue: queue,
+        retry: {
+          maximumAttempts: 5,
+          initialInterval: '10s',
+        },
       })
       result = await handle[activityName](...args)
     } else {

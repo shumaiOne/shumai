@@ -10,6 +10,9 @@ import {
   takeScreenshotsActivity,
   transcodeVideoActivity,
   updateAssetMediaActivity,
+  downloadMediaToTmpActivity,
+  transcodeImageActivity,
+  generateSpriteActivity,
 } from './transcode'
 
 vi.mock('@shumai/core/src/s3/s3', () => ({
@@ -27,6 +30,8 @@ vi.mock('../transcode', () => ({
     getVideoInfo: vi.fn(),
     getImageInfo: vi.fn(),
     transcodeVideo: vi.fn(),
+    transcodeImage: vi.fn(),
+    generateSprite: vi.fn(),
     createTempDir: vi.fn().mockReturnValue('/tmp'),
     removeDir: vi.fn(),
     takeScreenshots: vi.fn(),
@@ -257,5 +262,107 @@ describe('Transcode Activities', () => {
       annotations: [],
     })
     expect(result).toBe('annotations/ann.webp')
+  })
+
+  describe('Non-retryable Error Handling', () => {
+    it('should throw non-retryable ApplicationFailure when downloadMediaToTmpActivity fails with ENOENT', async () => {
+      vi.mocked(s3Service.downloadToFile).mockRejectedValue({
+        code: 'ENOENT',
+        message: 'ENOENT: no such file or directory',
+      })
+
+      await expect(downloadMediaToTmpActivity({ assetKey: 'missing.mp4' })).rejects.toThrowError(
+        /Failed to download media to tmp/,
+      )
+    })
+
+    it('should throw non-retryable ApplicationFailure when getMediaInfoActivity fails with ENOENT', async () => {
+      const asset = await prisma.asset.create({
+        data: { name: 'missing.mp4', type: 'file', status: 'uploaded' },
+      })
+      vi.mocked(transcodeService.getVideoInfo).mockRejectedValue({
+        code: 'ENOENT',
+        message: 'ENOENT: no such file or directory',
+      })
+
+      await expect(
+        getMediaInfoActivity({
+          assetId: asset.id,
+          filePath: '/tmp/missing.mp4',
+          mediaType: 'video/mp4',
+        }),
+      ).rejects.toThrowError(/Failed to get media info/)
+    })
+
+    it('should throw non-retryable ApplicationFailure when transcodeVideoActivity fails with ffmpeg error', async () => {
+      vi.mocked(s3Service.headObject).mockRejectedValue(new Error('Not found'))
+      vi.mocked(transcodeService.transcodeVideo).mockRejectedValue(new Error('FFmpeg failed'))
+
+      await expect(
+        transcodeVideoActivity({
+          assetKey: 'v.mp4',
+          filePath: '/tmp/v.mp4',
+          videoSpec: { resolution: '720p', width: 1280, height: 720 },
+          duration: 10,
+          originalFps: 30,
+        }),
+      ).rejects.toThrowError(/Video transcoding failed/)
+    })
+
+    it('should throw non-retryable ApplicationFailure when transcodeImageActivity fails with sharp error', async () => {
+      vi.mocked(s3Service.headObject).mockRejectedValue(new Error('Not found'))
+      vi.mocked(transcodeService.transcodeImage).mockRejectedValue(new Error('sharp failed'))
+
+      await expect(
+        transcodeImageActivity({
+          assetKey: 'i.png',
+          filePath: '/tmp/i.png',
+          imageSpec: { width: 800, height: 600, quality: 90, format: 'webp' },
+        }),
+      ).rejects.toThrowError(/Image transcoding failed/)
+    })
+
+    it('should throw non-retryable ApplicationFailure when generateSpriteActivity fails with error', async () => {
+      vi.mocked(s3Service.headObject).mockRejectedValue(new Error('Not found'))
+      vi.mocked(transcodeService.generateSprite).mockRejectedValue(new Error('FFmpeg failed'))
+
+      await expect(
+        generateSpriteActivity({
+          assetKey: 'v.mp4',
+          filePath: '/tmp/v.mp4',
+          mediaInfo: { duration: 10 } as unknown as PrismaJson.MediaInfo,
+          spriteSpec: { key: 'sprite.webp', frames: 100, tileX: 10, tileY: 10 },
+          posterSpec: { key: 'poster.webp' },
+        }),
+      ).rejects.toThrowError(/Sprite\/Poster generation failed/)
+    })
+
+    it('should throw non-retryable ApplicationFailure when takeScreenshotsActivity fails with error', async () => {
+      vi.mocked(transcodeService.takeScreenshots).mockRejectedValue(new Error('FFmpeg failed'))
+
+      await expect(
+        takeScreenshotsActivity({
+          assetKey: 'v.mp4',
+          assetId: 'asset-1',
+          start: 0,
+          end: 10,
+          count: 1,
+          commentTimestamp: 1.0,
+          annotations: [],
+        }),
+      ).rejects.toThrowError(/Screenshot extraction failed/)
+    })
+
+    it('should throw non-retryable ApplicationFailure when overlayAnnotationsActivity fails with error', async () => {
+      vi.mocked(transcodeService.overlayAnnotations).mockRejectedValue(new Error('sharp failed'))
+
+      await expect(
+        overlayAnnotationsActivity({
+          assetKey: 'i.png',
+          assetId: 'asset-2',
+          annotations: [],
+        }),
+      ).rejects.toThrowError(/Overlay annotations failed/)
+    })
   })
 })
