@@ -21,7 +21,6 @@ export function GuestIdentityPopup({
   onSuccess,
   children,
 }: GuestIdentityPopupProps) {
-  console.log('[GuestIdentityPopup] isOpen:', isOpen)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
