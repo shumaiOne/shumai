@@ -8,7 +8,10 @@
   <strong>An open-source platform for all your creative work.</strong>
 </p>
 
----
+<p align="center">
+  <a target="_blank" href="https://shumai.one/">Website</a> | <a target="_blank" href="https://docs.shumai.one/introduction">Docs</a> | <a target="_blank" href="https://staging.shumai.one">Demo</a>
+</p>
+
 
 ![Shumai App Screenshot](docs/screenshot.webp)
 
