@@ -165,6 +165,12 @@ Spin up the database, Temporal server, and the main Shumai web application on yo
 
 When running in Temporal mode, the main Shumai application only submits tasks to the Temporal queue. To process these tasks, you must run at least one agent worker and one transcoding worker on their respective machines.
 
+> [!NOTE]
+> **Network & Access Requirements**:
+>
+> - Both the transcode worker and the agent worker must have network access to the PostgreSQL database and the S3-compatible storage.
+> - Because the transcode worker needs to download and upload large media files for transcoding, it is highly recommended to deploy the transcode worker in the same cloud provider and region as your S3 storage to minimize transfer latency and data egress fees.
+
 Configure a `.env` file on each worker machine. It must contain the following variables:
 
 ```env
