@@ -44,7 +44,6 @@ The easiest way to run Shumai is using Docker Compose. You do not need to clone 
 2. Configure environment variables (if deploying remotely):
    If you are deploying Shumai to a remote server (e.g., AWS ECS, EC2, VPS), you must edit `docker-compose.yaml` under `shumai -> environment` to set:
    - `AWS_ENDPOINT_URL_S3` to your server's public IP or domain name (e.g., `http://43.153.213.233:3000`).
-   - `BETTER_AUTH_URL` to your server's public IP or domain name (e.g., `http://43.153.213.233:3000`).
 3. Start the services:
    ```bash
    docker compose up -d
@@ -96,13 +95,12 @@ Create a `.env` file in this folder and add the following configuration (which a
 ```env
 DATABASE_URL=postgresql://shumai:shumai_password@localhost:5432/shumai_db?schema=public
 BETTER_AUTH_SECRET=ySxs7DxzHDZBbeeHNPEwBuspYwipBqz5Gk5XdBjNhWw=
-BETTER_AUTH_URL=http://localhost:3000
 STORAGE_BACKEND=local
 AWS_ENDPOINT_URL_S3=http://localhost:3000
 ```
 
 > [!NOTE]
-> If you are deploying on a remote server, make sure to change `BETTER_AUTH_URL` and `AWS_ENDPOINT_URL_S3` from `http://localhost:3000` to your server's public IP address or domain name (e.g., `http://43.153.213.233:3000`).
+> If you are deploying on a remote server, make sure to change `AWS_ENDPOINT_URL_S3` from `http://localhost:3000` to your server's public IP address or domain name (e.g., `http://43.153.213.233:3000`).
 
 #### Step 4: Run Shumai
 
@@ -160,7 +158,7 @@ Spin up the database, Temporal server, and the main Shumai web application on yo
    ```
 2. Configure the environment variables in `docker-compose.yaml`:
    - Set the S3 storage environment variables (`S3_ENDPOINT_URL`, `S3_REGION`, `BUCKET_NAME`, etc.).
-   - If deploying to a remote host (e.g., AWS ECS, EC2, VPS), update `AWS_ENDPOINT_URL_S3` and `BETTER_AUTH_URL` under the `shumai` service to your server's public IP address or domain name (e.g., `http://43.153.213.233:3000`).
+   - If deploying to a remote host (e.g., AWS ECS, EC2, VPS), update `AWS_ENDPOINT_URL_S3` under the `shumai` service to your server's public IP address or domain name (e.g., `http://43.153.213.233:3000`).
    - Note: The `TEMPORAL_ADDRESS` environment variable for the main Shumai application is pre-configured as `temporal:7233` (referencing the Temporal container within the same Docker network) and does not need to be changed.
 3. Start the services:
    ```bash

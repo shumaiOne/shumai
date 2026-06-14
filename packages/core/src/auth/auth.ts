@@ -15,7 +15,7 @@ export const auth = betterAuth({
   },
   secret: process.env.BETTER_AUTH_SECRET,
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  baseURL: process.env.BETTER_AUTH_URL,
+  baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
   basePath: '/api/auth',
   trustedOrigins: ['http://localhost:3000', 'http://127.0.0.1:3000'],
   advanced: {
