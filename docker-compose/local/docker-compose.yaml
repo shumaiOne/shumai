@@ -32,7 +32,6 @@ services:
 
       # Better Auth
       BETTER_AUTH_SECRET: qSxs9DxzHDZBbeeTNPEwBuspYwipBqz5Gk5XdBjNhWw=
-      BETTER_AUTH_URL: https://staging.shumai.one/
 
     depends_on:
       postgres:
