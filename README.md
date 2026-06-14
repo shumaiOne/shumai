@@ -42,17 +42,12 @@ The easiest way to run Shumai is using Docker Compose. You do not need to clone 
    curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose.yaml
    ```
 2. Configure environment variables (if deploying remotely):
-   If you are deploying Shumai to a remote server (e.g., AWS ECS, EC2, VPS), you must edit `docker-compose.yaml` under `shumai -> environment` to set:
-   - `AWS_ENDPOINT_URL_S3` to your server's public IP or domain name (e.g., `http://43.153.213.233:3000`).
+   If you are deploying Shumai to a remote server (e.g., AWS ECS, EC2, VPS), you must edit `docker-compose.yaml`, set `AWS_ENDPOINT_URL_S3` to your server's public IP or domain name (e.g., `http://12.345.567.789:3000`).
 3. Start the services:
    ```bash
    docker compose up -d
    ```
 4. Access the application in your browser at `http://localhost:3000` (or `http://<your-server-ip>:3000` for remote deployments).
-5. Stop and remove the services:
-   ```bash
-   docker compose down
-   ```
 
 ### Option 2: Install from NPM
 
@@ -86,8 +81,8 @@ npm install -g @shumai-one/shumai
 Create a new directory for your Shumai configuration and navigate into it:
 
 ```bash
-mkdir my-shumai-app
-cd my-shumai-app
+mkdir shumai
+cd shumai
 ```
 
 Create a `.env` file in this folder and add the following configuration (which aligns with the Docker database command in Step 1):
@@ -100,7 +95,7 @@ AWS_ENDPOINT_URL_S3=http://localhost:3000
 ```
 
 > [!NOTE]
-> If you are deploying on a remote server, make sure to change `AWS_ENDPOINT_URL_S3` from `http://localhost:3000` to your server's public IP address or domain name (e.g., `http://43.153.213.233:3000`).
+> If you are deploying on a remote server, make sure to change `AWS_ENDPOINT_URL_S3` from `http://localhost:3000` to your server's public IP address or domain name.
 
 #### Step 4: Run Shumai
 
@@ -158,7 +153,7 @@ Spin up the database, Temporal server, and the main Shumai web application on yo
    ```
 2. Configure the environment variables in `docker-compose.yaml`:
    - Set the S3 storage environment variables (`S3_ENDPOINT_URL`, `S3_REGION`, `BUCKET_NAME`, etc.).
-   - If deploying to a remote host (e.g., AWS ECS, EC2, VPS), update `AWS_ENDPOINT_URL_S3` under the `shumai` service to your server's public IP address or domain name (e.g., `http://43.153.213.233:3000`).
+   - If deploying to a remote host (e.g., AWS ECS, EC2, VPS), update `AWS_ENDPOINT_URL_S3` under the `shumai` service to your server's public IP address or domain name.
    - Note: The `TEMPORAL_ADDRESS` environment variable for the main Shumai application is pre-configured as `temporal:7233` (referencing the Temporal container within the same Docker network) and does not need to be changed.
 3. Start the services:
    ```bash
@@ -195,7 +190,7 @@ Run the workers:
   ```
 
 - **AI Agent Worker**:
-  Install `@shumai-one/shumai-agent` and run it on a machine configured for AI tasks (with access to sandbox environments and `GEMINI_API_KEY`):
+  Install `@shumai-one/shumai-agent` and run it on a machine configured for Agent tasks:
   ```bash
   npm install -g @shumai-one/shumai-agent
   # Run worker with the configured .env (must include GEMINI_API_KEY)
