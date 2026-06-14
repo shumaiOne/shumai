@@ -517,10 +517,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
             progress: duration > 0 ? (current / duration) * 100 : 0,
           }
         })
+      }
 
-        if (onTimeUpdate) {
-          onTimeUpdate(current)
-        }
+      if (onTimeUpdate) {
+        onTimeUpdate(current)
       }
     })
 
@@ -577,10 +577,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           }
         })
 
-        if (onTimeUpdate) {
-          onTimeUpdate(current)
-        }
-
         animationFrameId = requestAnimationFrame(updateProgress)
       }
     }
@@ -594,7 +590,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         cancelAnimationFrame(animationFrameId)
       }
     }
-  }, [state.isPlaying, playerRef, data.media?.metadata?.duration, onTimeUpdate])
+  }, [state.isPlaying, playerRef, data.media?.metadata?.duration])
 
   const handleMouseMove = useCallback(() => {
     // Always show controls on movement
