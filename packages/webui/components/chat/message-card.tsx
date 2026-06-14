@@ -1,5 +1,3 @@
-import type { AttachmentInfo, CommentInfo } from '@shumai/dtos'
-import type { UserInfo } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
 import { Button } from '@/ui/components/ui/button'
 import {
@@ -11,6 +9,7 @@ import {
 } from '@/ui/components/ui/dialog'
 import { Separator } from '@/ui/components/ui/separator'
 import { formatTimeAgo } from '@/ui/lib/time'
+import type { AttachmentInfo, CommentInfo, UserInfo } from '@shumai/dtos'
 import { useQuery } from '@tanstack/react-query'
 import { Download, File, Terminal } from 'lucide-react'
 import React from 'react'
@@ -191,11 +190,11 @@ export const MessageCard: React.FC<MessageCardProps> = ({
               <span className="text-xs text-muted-foreground animate-pulse">{loadingText}</span>
             </div>
           ) : message.sessionId ? (
-            <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none break-words">
+            <div className="text-sm leading-[1.8] prose prose-sm dark:prose-invert max-w-none break-words">
               <Markdown>{preprocessMarkdown(message.message!)}</Markdown>
             </div>
           ) : (
-            <div className="text-sm leading-relaxed whitespace-pre-wrap break-words text-wrap break-all">
+            <div className="text-sm leading-[1.8] whitespace-pre-wrap break-words text-wrap break-all">
               {renderFormattedMessage(message.message!)}
             </div>
           )}
