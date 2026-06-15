@@ -1152,7 +1152,7 @@ describe('AssetService', () => {
     expect(updatedA?.sortIndex && updatedA.sortIndex > 'a1').toBe(true)
   })
 
-  it('reproduces collation mismatch error when reordering assets with mixed-case sort indexes', async () => {
+  it('verifies that sortIndex uses C collation to prevent fractional indexing mismatch', async () => {
     const { user, project } = await setupBasicAssets()
 
     // Create a parent folder to contain our assets
@@ -1210,10 +1210,8 @@ describe('AssetService', () => {
     expect(assetA.sortIndex! > assetB.sortIndex!).toBe(true)
 
     // Verify Postgres sorting behavior:
-    // If the database collation is locale-aware (case-insensitive or groups n/N),
-    // it will consider assetA.sortIndex < assetB.sortIndex.
-    // So if we find the first asset with sortIndex < assetB.sortIndex,
-    // a locale-aware collation will find assetA, while ASCII ordering would NOT find assetA.
+    // With C collation, it must follow ASCII ordering. Therefore, searching for
+    // sortIndex < assetB.sortIndex must NOT find assetA.
     const prevAsset = await prisma.asset.findFirst({
       where: {
         parentId: folder.id,
@@ -1223,17 +1221,15 @@ describe('AssetService', () => {
       orderBy: { sortIndex: 'desc' },
     })
 
-    console.log('Postgres found prevAsset with sortIndex:', prevAsset?.sortIndex)
+    // Assert that the database collation is correctly "C" (returns null for prevAsset)
+    expect(prevAsset).toBeNull()
 
-    // If it finds assetA, it confirms that Postgres is using a different collation order than ASCII.
-    // Then calling updateAssetOrder will call generateKeyBetween("YjnsD0vZ", "YjNuyGpV"), which throws.
-    if (prevAsset?.sortIndex === 'YjnsD0vZ') {
-      await expect(
-        assetService.updateAssetOrder(assetC.id, {
-          beforeIndex: assetB.sortIndex!,
-        })
-      ).rejects.toThrow()
-    }
+    // Assert that updateAssetOrder succeeds without throwing a collation error
+    const updatedC = await assetService.updateAssetOrder(assetC.id, {
+      beforeIndex: assetB.sortIndex!,
+    })
+    expect(updatedC.sortIndex).toBeDefined()
+    expect(updatedC.sortIndex! < assetB.sortIndex!).toBe(true)
   })
 
   describe('Symlinks', () => {
