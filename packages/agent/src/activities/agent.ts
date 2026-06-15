@@ -98,6 +98,7 @@ If you need to create files in the local filesystem (for example, a temporary fi
   }
 
   const { session, harness } = await createAgentSession({
+    teamId: params.teamId,
     agentId: params.agentId,
     providerName,
     modelId,

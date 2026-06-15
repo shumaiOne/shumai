@@ -316,6 +316,7 @@ describe('DatabaseSessionStorage', () => {
 
     // 6. Resume the session via createAgentSession
     await createAgentSession({
+      teamId: 't1',
       agentId: agent.id,
       providerName: 'test-provider',
       modelId: 'test-model',
@@ -334,6 +335,7 @@ describe('DatabaseSessionStorage', () => {
       expect.objectContaining({
         MOCK_ENV_VAR: 'mocked-value',
       }),
+      expect.any(Object),
     )
   })
 
@@ -424,6 +426,7 @@ describe('DatabaseSessionStorage', () => {
 
     // 3. Resume the session via createAgentSession with a NEW comment ID
     await createAgentSession({
+      teamId: 't1',
       agentId: agent.id,
       providerName: 'test-provider',
       modelId: 'test-model',

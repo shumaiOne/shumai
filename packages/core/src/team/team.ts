@@ -322,6 +322,7 @@ export class TeamService {
     })
     return {
       allowedDomains: sandbox?.allowedDomains || [],
+      pendingDomains: sandbox?.pendingDomains || [],
     }
   }
 
@@ -331,13 +332,16 @@ export class TeamService {
       create: {
         teamId,
         allowedDomains: settings.allowedDomains,
+        pendingDomains: settings.pendingDomains,
       },
       update: {
         allowedDomains: settings.allowedDomains,
+        pendingDomains: settings.pendingDomains,
       },
     })
     return {
       allowedDomains: sandbox.allowedDomains,
+      pendingDomains: sandbox.pendingDomains,
     }
   }
 

@@ -79,6 +79,7 @@ export type VideoTranscodeStrategy =
 
 export const sandboxSettingsSchema = z.object({
   allowedDomains: z.array(z.string()),
+  pendingDomains: z.array(z.string()).default([]),
 })
 export type SandboxSettings = z.infer<typeof sandboxSettingsSchema>
 

@@ -5,6 +5,7 @@ import { getModel } from '@earendil-works/pi-ai'
 import { Type, type TSchema } from '@sinclair/typebox'
 import * as fs from 'fs'
 import * as path from 'path'
+import { prisma } from '@shumai/db'
 import { agentService } from '@shumai/core/src/agent/agent'
 import { DatabaseSessionStorage } from './database-session-storage'
 import { createAnalyzeImageTool } from './tools/analyze-image'
@@ -17,6 +18,7 @@ import { createReadSkillTool } from './tools/read-skill'
 import { createSandboxedBashTool } from './tools/sandboxed-bash'
 
 export interface CreateAgentSessionParams {
+  teamId: string
   agentId: string
   providerName: string
   modelId: string
@@ -40,6 +42,7 @@ export interface CreateAgentSessionParams {
 
 export async function createAgentSession(params: CreateAgentSessionParams) {
   const {
+    teamId,
     agentId,
     providerName,
     modelId,
@@ -115,18 +118,57 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
 
   const allowWrite = [piDir]
 
+  const sandboxState = {
+    blockedHost: '',
+  }
+
+  const sandboxAskCallback = async ({ host }: { host: string; port?: number }) => {
+    try {
+      const sandbox = await prisma.sandbox.findUnique({
+        where: { teamId },
+      })
+      const pendingDomains = sandbox?.pendingDomains || []
+      if (!pendingDomains.includes(host)) {
+        await prisma.sandbox.upsert({
+          where: { teamId },
+          create: {
+            teamId,
+            pendingDomains: [host],
+          },
+          update: {
+            pendingDomains: {
+              push: host,
+            },
+          },
+        })
+      }
+    } catch (err) {
+      console.error('Failed to update sandbox pending domains:', err)
+    }
+
+    sandboxState.blockedHost = host
+
+    return false
+  }
+
   // SandboxManager.initialize is a global operation that applies to the entire process.
-  await SandboxManager.initialize({
-    network: {
-      allowedDomains,
-      deniedDomains: [],
+  // We reset it first to ensure any previous process-global SOCKS/HTTP proxy servers
+  // and callbacks are cleaned up, allowing the new callback and allowedDomains to take effect.
+  await SandboxManager.reset()
+  await SandboxManager.initialize(
+    {
+      network: {
+        allowedDomains,
+        deniedDomains: [],
+      },
+      filesystem: {
+        denyRead: ['.env', '.env.*', '*.pem', '*.key'],
+        allowWrite,
+        denyWrite: ['.env', '.env.*', '*.pem', '*.key'],
+      },
     },
-    filesystem: {
-      denyRead: ['.env', '.env.*', '*.pem', '*.key'],
-      allowWrite,
-      denyWrite: ['.env', '.env.*', '*.pem', '*.key'],
-    },
-  })
+    sandboxAskCallback,
+  )
 
   const skillEnvs: Record<string, string> = {}
   const onEnvsAdded = (envs: Record<string, string>) => {
@@ -169,7 +211,12 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     )
   }
 
-  const sandboxedBash = createSandboxedBashTool(process.cwd(), skillEnvs)
+  const sandboxedBash = createSandboxedBashTool(process.cwd(), skillEnvs, {
+    getBlockedHost: () => sandboxState.blockedHost,
+    clearBlockedHost: () => {
+      sandboxState.blockedHost = ''
+    },
+  })
   const readSkill = createReadSkillTool(onEnvsAdded)
 
   const systemTools: AgentTool[] = []

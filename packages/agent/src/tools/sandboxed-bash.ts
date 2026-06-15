@@ -15,9 +15,15 @@ type BashDetails = {
   stderr: string
 }
 
+export interface SandboxedBashOptions {
+  getBlockedHost?: () => string
+  clearBlockedHost?: () => void
+}
+
 export const createSandboxedBashTool = (
   cwd: string,
   skillEnvs: Record<string, string> = {},
+  options?: SandboxedBashOptions,
 ): AgentTool<typeof BashParameters, BashDetails> => {
   return {
     name: 'bash',
@@ -29,6 +35,7 @@ export const createSandboxedBashTool = (
       { command, timeout },
       signal,
     ): Promise<AgentToolResult<BashDetails>> => {
+      options?.clearBlockedHost?.()
       const wrappedCommand = await SandboxManager.wrapWithSandbox(command)
 
       return new Promise((resolve, reject) => {
@@ -94,12 +101,20 @@ export const createSandboxedBashTool = (
           if (timeoutHandle) clearTimeout(timeoutHandle)
           signal?.removeEventListener('abort', onAbort)
 
+          const blocked = options?.getBlockedHost?.()
+
           if (signal?.aborted) {
             logger.error({ command, stdout, stderr }, 'Sandboxed bash command aborted')
             reject(new Error('aborted'))
           } else if (timedOut) {
             logger.error({ timeout, command, stdout, stderr }, 'Sandboxed bash command timed out')
             reject(new Error(`bash command timed out after ${timeout} seconds`))
+          } else if (blocked) {
+            reject(
+              new Error(
+                `Network request to ${blocked} is blocked, please ask admin to allow it in sandbox settings.`,
+              ),
+            )
           } else if (code !== 0 && code !== null) {
             logger.error(
               { exitCode: code, command, stdout, stderr },
