@@ -404,7 +404,6 @@ export function FileViewerRightSidebar({
                   onSendMessage={handleSendMessage}
                   replyingTo={replyingTo}
                   onCancelReply={() => setReplyingTo(null)}
-                  users={members}
                   bots={enabledBots}
                   hideAnnotationControl={hideAnnotationControl}
                   disableMentions={isPublic}
