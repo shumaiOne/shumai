@@ -156,7 +156,7 @@ export function SandboxSettings({ teamId }: { teamId: string }) {
                     key={domain}
                     className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0"
                   >
-                    <span className="font-mono text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
+                    <span className="font-mono text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded break-all">
                       {domain}
                     </span>
                     <div className="flex items-center gap-2">
