@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { formatSkillsForPrompt, createAgentSession } from './index'
 import { createSandboxedBashTool } from './tools/sandboxed-bash'
-import { SandboxManager } from '@anthropic-ai/sandbox-runtime'
+import { SandboxManager, type SandboxAskCallback } from '@anthropic-ai/sandbox-runtime'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import * as path from 'path'
@@ -155,6 +155,104 @@ describe('Sandbox Network isolation integration', () => {
       mockSpawn = null
       initializeSpy.mockRestore()
       wrapSpy.mockRestore()
+    }
+  })
+
+  it('should correctly route sandbox callback to the active session when multiple sessions are created sequentially', async () => {
+    // 1. Create two teams
+    const team1 = await prisma.team.create({
+      data: { name: 'Team 1' },
+    })
+    const team2 = await prisma.team.create({
+      data: { name: 'Team 2' },
+    })
+
+    // Ensure agent user and agents exist in database
+    await prisma.user.create({
+      data: {
+        id: 'agent-1',
+        name: 'Ai Agent 1',
+        email: 'agent1@shumai.ai',
+        type: 'agent',
+      },
+    })
+    await prisma.user.create({
+      data: {
+        id: 'agent-2',
+        name: 'Ai Agent 2',
+        email: 'agent2@shumai.ai',
+        type: 'agent',
+      },
+    })
+    await prisma.agent.create({
+      data: {
+        id: 'agent-1',
+        teamId: team1.id,
+        type: 'chat',
+        config: { provider: 'openai', model: 'gpt-4' },
+      },
+    })
+    await prisma.agent.create({
+      data: {
+        id: 'agent-2',
+        teamId: team2.id,
+        type: 'chat',
+        config: { provider: 'openai', model: 'gpt-4' },
+      },
+    })
+
+    // Mock SandboxManager.initialize to behave like a process-global singleton
+    let registeredCallback: SandboxAskCallback | null = null
+    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockImplementation(async (config, cb) => {
+      if (!registeredCallback) {
+        registeredCallback = cb || null
+      }
+    })
+    const resetSpy = vi.spyOn(SandboxManager, 'reset').mockImplementation(async () => {
+      // In the real SandboxManager, reset clears the global initialization promise and servers,
+      // which allows subsequent initialize calls to register a new callback.
+      registeredCallback = null
+    })
+
+    try {
+      // 2. Call createAgentSession for Session 1
+      await createAgentSession({
+        teamId: team1.id,
+        agentId: 'agent-1',
+        providerName: 'google',
+        modelId: 'gemini',
+        systemPrompt: 'prompt',
+        teamSkills: [],
+        allowedDomains: [],
+        providers: [],
+      })
+
+      // 3. Call createAgentSession for Session 2
+      await createAgentSession({
+        teamId: team2.id,
+        agentId: 'agent-2',
+        providerName: 'google',
+        modelId: 'gemini',
+        systemPrompt: 'prompt',
+        teamSkills: [],
+        allowedDomains: [],
+        providers: [],
+      })
+
+      expect(registeredCallback).toBeDefined()
+
+      // 4. Trigger the globally registered callback (which is from Session 1)
+      const result = await registeredCallback!({ host: 'blocked-for-session-2.com', port: 443 })
+      expect(result).toBe(false)
+
+      // 5. Verify that the pending domain was pushed to the DB record of Team 2
+      const sandbox2 = await prisma.sandbox.findUnique({
+        where: { teamId: team2.id },
+      })
+      expect(sandbox2?.pendingDomains).toContain('blocked-for-session-2.com:443')
+    } finally {
+      initializeSpy.mockRestore()
+      resetSpy.mockRestore()
     }
   })
 })

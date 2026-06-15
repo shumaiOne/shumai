@@ -154,6 +154,9 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
   }
 
   // SandboxManager.initialize is a global operation that applies to the entire process.
+  // We reset it first to ensure any previous process-global SOCKS/HTTP proxy servers
+  // and callbacks are cleaned up, allowing the new callback and allowedDomains to take effect.
+  await SandboxManager.reset()
   await SandboxManager.initialize(
     {
       network: {
