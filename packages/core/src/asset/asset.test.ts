@@ -1152,6 +1152,90 @@ describe('AssetService', () => {
     expect(updatedA?.sortIndex && updatedA.sortIndex > 'a1').toBe(true)
   })
 
+  it('reproduces collation mismatch error when reordering assets with mixed-case sort indexes', async () => {
+    const { user, project } = await setupBasicAssets()
+
+    // Create a parent folder to contain our assets
+    const folder = await prisma.asset.create({
+      data: {
+        name: 'Parent Folder',
+        type: AssetType.folder,
+        projectId: project.id,
+        creatorId: user.id,
+        status: 'uploaded',
+      },
+    })
+
+    // Create Asset A: In ASCII, "YjnsD0vZ" > "YjNuyGpV" because "n" (110) > "N" (78).
+    // In default Postgres locale collation, "YjnsD0vZ" < "YjNuyGpV".
+    const assetA = await prisma.asset.create({
+      data: {
+        name: 'Asset A',
+        type: AssetType.file,
+        parentId: folder.id,
+        projectId: project.id,
+        creatorId: user.id,
+        sortIndex: 'YjnsD0vZ',
+        status: 'uploaded',
+      },
+    })
+
+    // Create Asset B
+    const assetB = await prisma.asset.create({
+      data: {
+        name: 'Asset B',
+        type: AssetType.file,
+        parentId: folder.id,
+        projectId: project.id,
+        creatorId: user.id,
+        sortIndex: 'YjNuyGpV',
+        status: 'uploaded',
+      },
+    })
+
+    // Create Asset C
+    const assetC = await prisma.asset.create({
+      data: {
+        name: 'Asset C',
+        type: AssetType.file,
+        parentId: folder.id,
+        projectId: project.id,
+        creatorId: user.id,
+        sortIndex: 'Yjzaaa',
+        status: 'uploaded',
+      },
+    })
+
+    // Verify ASCII ordering in JavaScript: assetA.sortIndex > assetB.sortIndex
+    expect(assetA.sortIndex! > assetB.sortIndex!).toBe(true)
+
+    // Verify Postgres sorting behavior:
+    // If the database collation is locale-aware (case-insensitive or groups n/N),
+    // it will consider assetA.sortIndex < assetB.sortIndex.
+    // So if we find the first asset with sortIndex < assetB.sortIndex,
+    // a locale-aware collation will find assetA, while ASCII ordering would NOT find assetA.
+    const prevAsset = await prisma.asset.findFirst({
+      where: {
+        parentId: folder.id,
+        sortIndex: { lt: assetB.sortIndex! },
+        id: { not: assetC.id },
+      },
+      orderBy: { sortIndex: 'desc' },
+    })
+
+    console.log('Postgres found prevAsset with sortIndex:', prevAsset?.sortIndex)
+
+    // If it finds assetA, it confirms that Postgres is using a different collation order than ASCII.
+    // Then calling updateAssetOrder will call generateKeyBetween("YjnsD0vZ", "YjNuyGpV"), which throws.
+    if (prevAsset?.sortIndex === 'YjnsD0vZ') {
+      await expect(
+        assetService.updateAssetOrder(assetC.id, {
+          beforeIndex: assetB.sortIndex!,
+        })
+      ).rejects.toThrow()
+    }
+  })
+
   describe('Symlinks', () => {
     it('toAssetInfo resolves symlink target metadata', async () => {
       const { project, user } = await setupBasicAssets()
