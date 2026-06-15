@@ -107,7 +107,7 @@ export const FileViewerLeftSidebar: FC<FileViewerLeftSidebarProps> = ({
   }, [files, currentAssetId])
 
   return (
-    <div className="h-full w-24 bg-card border-r border-border flex flex-col flex-shrink-0 select-none">
+    <div className="h-full w-24 bg-transparent border-r border-border flex flex-col flex-shrink-0 select-none">
       <div className="flex-1 overflow-y-auto py-4 flex flex-col items-center gap-3 no-scrollbar">
         {files.map((file) => {
           if (!file) return null
@@ -123,10 +123,10 @@ export const FileViewerLeftSidebar: FC<FileViewerLeftSidebarProps> = ({
                 params={{ projectId, fileId: file.id }}
                 search={{ version: undefined }}
                 className={cn(
-                  'w-[54px] h-[54px] rounded-lg border overflow-hidden flex items-center justify-center transition-all bg-muted/30 block',
+                  'rounded-lg border overflow-hidden flex items-center justify-center transition-all bg-muted/30 block',
                   isActive
-                    ? 'border-primary ring-2 ring-primary opacity-100 scale-105'
-                    : 'border-border hover:border-primary/50 opacity-65 hover:opacity-100',
+                    ? 'w-[60px] h-[60px] border-primary ring-2 ring-primary opacity-100'
+                    : 'w-[54px] h-[54px] border-border hover:border-primary/50 opacity-65 hover:opacity-100',
                 )}
               >
                 <CarouselFilePreview item={file} />
