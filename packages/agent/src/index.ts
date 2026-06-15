@@ -122,24 +122,22 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     blockedHost: '',
   }
 
-  const sandboxAskCallback = async ({ host, port }: { host: string; port?: number }) => {
-    const hostPort = port ? `${host}:${port}` : host
-
+  const sandboxAskCallback = async ({ host }: { host: string; port?: number }) => {
     try {
       const sandbox = await prisma.sandbox.findUnique({
         where: { teamId },
       })
       const pendingDomains = sandbox?.pendingDomains || []
-      if (!pendingDomains.includes(hostPort)) {
+      if (!pendingDomains.includes(host)) {
         await prisma.sandbox.upsert({
           where: { teamId },
           create: {
             teamId,
-            pendingDomains: [hostPort],
+            pendingDomains: [host],
           },
           update: {
             pendingDomains: {
-              push: hostPort,
+              push: host,
             },
           },
         })
@@ -148,7 +146,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
       console.error('Failed to update sandbox pending domains:', err)
     }
 
-    sandboxState.blockedHost = hostPort
+    sandboxState.blockedHost = host
 
     return false
   }

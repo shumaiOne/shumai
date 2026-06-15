@@ -114,7 +114,7 @@ describe('Sandbox Network isolation integration', () => {
     const sandbox = await prisma.sandbox.findUnique({
       where: { teamId: team.id },
     })
-    expect(sandbox?.pendingDomains).toContain('blocked-api.com:443')
+    expect(sandbox?.pendingDomains).toContain('blocked-api.com')
 
     // 7. Verify that if the bash tool is run while a domain is blocked, it rejects with correct error
     const sandboxState = { blockedHost: '' }
@@ -131,7 +131,7 @@ describe('Sandbox Network isolation integration', () => {
 
     // Mock spawn to simulate process exit and trigger network block
     mockSpawn = () => {
-      sandboxState.blockedHost = 'blocked-api.com:443'
+      sandboxState.blockedHost = 'blocked-api.com'
       const mockChild = {
         pid: 123,
         stdout: { on: vi.fn() },
@@ -149,7 +149,7 @@ describe('Sandbox Network isolation integration', () => {
 
     try {
       await expect(bashPromise).rejects.toThrow(
-        'Network request to blocked-api.com:443 is blocked, please ask admin to allow it in sandbox settings.',
+        'Network request to blocked-api.com is blocked, please ask admin to allow it in sandbox settings.',
       )
     } finally {
       mockSpawn = null
@@ -249,7 +249,7 @@ describe('Sandbox Network isolation integration', () => {
       const sandbox2 = await prisma.sandbox.findUnique({
         where: { teamId: team2.id },
       })
-      expect(sandbox2?.pendingDomains).toContain('blocked-for-session-2.com:443')
+      expect(sandbox2?.pendingDomains).toContain('blocked-for-session-2.com')
     } finally {
       initializeSpy.mockRestore()
       resetSpy.mockRestore()
