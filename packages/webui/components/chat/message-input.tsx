@@ -5,6 +5,9 @@ import { client } from '@/ui/api/client'
 import { useAnnotationStore } from '@/ui/stores/annotation-store'
 import type { Annotation } from '@/ui/types'
 import { useMutation } from '@tanstack/react-query'
+import { Skeleton } from '../ui/skeleton'
+import { useMemberStore } from '@/ui/stores/members'
+import { useTeamContextStore } from '@/ui/stores/team-context'
 import {
   ArrowLeft,
   ArrowUp,
@@ -45,7 +48,6 @@ interface ChatInputProps {
   ) => void
   replyingTo?: CommentInfo | null
   onCancelReply?: () => void
-  users?: UserInfo[]
   bots?: BotInfo[]
   initialText?: string
   hideAnnotationControl?: boolean
@@ -76,7 +78,6 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
       onSendMessage,
       replyingTo,
       onCancelReply,
-      users = [],
       bots = [],
       initialText = '',
       hideAnnotationControl = false,
@@ -90,6 +91,15 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
     const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([])
     const [viewingFile, setViewingFile] = useState<File | null>(null)
     const [isTimestampEnabled, setIsTimestampEnabled] = useState(true)
+
+    const { teamId, ensureTeamIdForProject } = useTeamContextStore()
+    const { members: storeMembers, loading: membersLoading, fetchMembers } = useMemberStore()
+
+    useEffect(() => {
+      if (projectId && !teamId) {
+        ensureTeamIdForProject(projectId)
+      }
+    }, [projectId, teamId, ensureTeamIdForProject])
 
     // Annotation Store
     const {
@@ -171,7 +181,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
     }, [setIsDrawing])
 
     const filteredAgents = [
-      ...users
+      ...storeMembers
         .filter(
           (u) => u.type === 'agent' && u.name?.toLowerCase().startsWith(mentionQuery.toLowerCase()),
         )
@@ -181,7 +191,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
         .map((b) => ({ type: 'bot' as const, data: b })),
     ]
 
-    const filteredHumans = users
+    const filteredHumans = storeMembers
       .filter(
         (u) => u.type !== 'agent' && u.name?.toLowerCase().startsWith(mentionQuery.toLowerCase()),
       )
@@ -229,6 +239,10 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
             if (!/\s/.test(query)) {
               setMentionQuery(query)
               setShowMentionList(true)
+
+              if (teamId) {
+                fetchMembers(teamId, true, true)
+              }
 
               // Save the range for later insertion
               const mentionRange = document.createRange()
@@ -443,85 +457,120 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
           cursor: text;
         }
       `}</style>
-        {showMentionList && (filteredAgents.length > 0 || filteredHumans.length > 0) && (
+        {showMentionList && (membersLoading || filteredAgents.length > 0 || filteredHumans.length > 0) && (
           <div className="absolute bottom-full left-4 mb-2 w-64 rounded-xl shadow-lg border border-border overflow-hidden z-20 bg-popover text-popover-foreground animate-in fade-in slide-in-from-bottom-2 duration-200">
             <div className="h-64 overflow-y-auto">
-              {filteredAgents.length > 0 && (
+              {membersLoading ? (
+                <div className="p-2 space-y-4 animate-pulse">
+                  {/* Agents Skeleton */}
+                  <div className="space-y-2">
+                    <div className="px-3 py-1.5 bg-muted/50 border-b border-border">
+                      <Skeleton className="h-3 w-16" />
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2">
+                      <Skeleton className="w-6 h-6 rounded-full" />
+                      <Skeleton className="h-4 w-28" />
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2">
+                      <Skeleton className="w-6 h-6 rounded-full" />
+                      <Skeleton className="h-4 w-20" />
+                    </div>
+                  </div>
+                  {/* Members Skeleton */}
+                  <div className="space-y-2">
+                    <div className="px-3 py-1.5 bg-muted/50 border-b border-border">
+                      <Skeleton className="h-3 w-16" />
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2">
+                      <Skeleton className="w-6 h-6 rounded-full" />
+                      <Skeleton className="h-4 w-32" />
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2">
+                      <Skeleton className="w-6 h-6 rounded-full" />
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                  </div>
+                </div>
+              ) : (
                 <>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      setCollapsedSections((prev) => ({ ...prev, bots: !prev.bots }))
-                    }}
-                    className="w-full text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/50 border-b border-border sticky top-0 flex items-center justify-between hover:bg-muted transition-colors"
-                  >
-                    <span>Agents</span>
-                    <ChevronDown
-                      className={`w-3 h-3 transition-transform ${collapsedSections.bots ? '-rotate-90' : ''}`}
-                    />
-                  </button>
-                  {!collapsedSections.bots &&
-                    filteredAgents.map((item, index) => {
-                      const actualIndex = index
-                      return (
-                        <button
-                          key={item.data.id}
-                          onClick={() => handleSelectEntity(item)}
-                          onMouseEnter={() => setHighlightedIndex(actualIndex)}
-                          className={`w-full flex items-center gap-2 px-3 py-2 transition-colors text-left ${
-                            actualIndex === highlightedIndex
-                              ? 'bg-accent text-accent-foreground'
-                              : 'hover:bg-accent/50'
-                          }`}
-                        >
-                          <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-xs font-bold text-purple-600 dark:text-purple-300">
-                            {item.data.name?.[0]}
-                          </div>
-                          <span className="text-sm">{item.data.name}</span>
-                        </button>
-                      )
-                    })}
-                </>
-              )}
+                  {filteredAgents.length > 0 && (
+                    <>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setCollapsedSections((prev) => ({ ...prev, bots: !prev.bots }))
+                        }}
+                        className="w-full text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/50 border-b border-border sticky top-0 flex items-center justify-between hover:bg-muted transition-colors"
+                      >
+                        <span>Agents</span>
+                        <ChevronDown
+                          className={`w-3 h-3 transition-transform ${collapsedSections.bots ? '-rotate-90' : ''}`}
+                        />
+                      </button>
+                      {!collapsedSections.bots &&
+                        filteredAgents.map((item, index) => {
+                          const actualIndex = index
+                          return (
+                            <button
+                              key={item.data.id}
+                              onClick={() => handleSelectEntity(item)}
+                              onMouseEnter={() => setHighlightedIndex(actualIndex)}
+                              className={`w-full flex items-center gap-2 px-3 py-2 transition-colors text-left ${
+                                actualIndex === highlightedIndex
+                                  ? 'bg-accent text-accent-foreground'
+                                  : 'hover:bg-accent/50'
+                              }`}
+                            >
+                              <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-xs font-bold text-purple-600 dark:text-purple-300">
+                                {item.data.name?.[0]}
+                              </div>
+                              <span className="text-sm">{item.data.name}</span>
+                            </button>
+                          )
+                        })}
+                    </>
+                  )}
 
-              {filteredHumans.length > 0 && (
-                <>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      setCollapsedSections((prev) => ({ ...prev, users: !prev.users }))
-                    }}
-                    className="w-full text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/50 border-b border-border sticky top-0 flex items-center justify-between hover:bg-muted transition-colors"
-                  >
-                    <span>Members</span>
-                    <ChevronDown
-                      className={`w-3 h-3 transition-transform ${collapsedSections.users ? '-rotate-90' : ''}`}
-                    />
-                  </button>
-                  {!collapsedSections.users &&
-                    filteredHumans.map((item, index) => {
-                      const actualIndex =
-                        (collapsedSections.bots ? 0 : filteredAgents.length) + index
-                      return (
-                        <button
-                          key={item.data.id}
-                          onClick={() => handleSelectEntity(item)}
-                          onMouseEnter={() => setHighlightedIndex(actualIndex)}
-                          className={`w-full flex items-center gap-2 px-3 py-2 transition-colors text-left ${
-                            actualIndex === highlightedIndex
-                              ? 'bg-accent text-accent-foreground'
-                              : 'hover:bg-accent/50'
-                          }`}
-                        >
-                          <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-xs font-bold text-blue-600 dark:text-blue-300">
-                            {item.data.name?.[0]}
-                          </div>
-                          <span className="text-sm">{item.data.name}</span>
-                        </button>
-                      )
-                    })}
+                  {filteredHumans.length > 0 && (
+                    <>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setCollapsedSections((prev) => ({ ...prev, users: !prev.users }))
+                        }}
+                        className="w-full text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/50 border-b border-border sticky top-0 flex items-center justify-between hover:bg-muted transition-colors"
+                      >
+                        <span>Members</span>
+                        <ChevronDown
+                          className={`w-3 h-3 transition-transform ${collapsedSections.users ? '-rotate-90' : ''}`}
+                        />
+                      </button>
+                      {!collapsedSections.users &&
+                        filteredHumans.map((item, index) => {
+                          const actualIndex =
+                            (collapsedSections.bots ? 0 : filteredAgents.length) + index
+                          return (
+                            <button
+                              key={item.data.id}
+                              onClick={() => handleSelectEntity(item)}
+                              onMouseEnter={() => setHighlightedIndex(actualIndex)}
+                              className={`w-full flex items-center gap-2 px-3 py-2 transition-colors text-left ${
+                                actualIndex === highlightedIndex
+                                  ? 'bg-accent text-accent-foreground'
+                                  : 'hover:bg-accent/50'
+                              }`}
+                            >
+                              <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-xs font-bold text-blue-600 dark:text-blue-300">
+                                {item.data.name?.[0]}
+                              </div>
+                              <span className="text-sm">{item.data.name}</span>
+                            </button>
+                          )
+                        })}
+                    </>
+                  )}
                 </>
               )}
             </div>

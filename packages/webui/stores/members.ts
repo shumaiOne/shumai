@@ -9,7 +9,7 @@ interface MemberState {
   loadedTeamId?: string
   loadedWithAgents?: boolean
   loading: boolean
-  fetchMembers: (teamId: string, includeAgents?: boolean) => Promise<void>
+  fetchMembers: (teamId: string, includeAgents?: boolean, force?: boolean) => Promise<void>
 }
 
 export const useMemberStore = create<MemberState>()(
@@ -17,8 +17,8 @@ export const useMemberStore = create<MemberState>()(
     immer((set, get) => ({
       members: [],
       loading: false,
-      fetchMembers: async (teamId, includeAgents) => {
-        if (get().loadedTeamId === teamId && get().loadedWithAgents === includeAgents) {
+      fetchMembers: async (teamId, includeAgents, force) => {
+        if (!force && get().loadedTeamId === teamId && get().loadedWithAgents === includeAgents) {
           return
         }
 
