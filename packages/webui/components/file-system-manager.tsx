@@ -12,7 +12,7 @@ import { useMemberStore } from '@/ui/stores/members'
 import { useTopNavStore } from '@/ui/stores/top-nav'
 import { useUiStore } from '@/ui/stores/ui'
 import { useUserMetadataStore } from '@/ui/stores/user-metadata'
-import { PointerActivationConstraints } from '@dnd-kit/dom'
+import { Feedback, PointerActivationConstraints } from '@dnd-kit/dom'
 import { DragDropProvider, DragOverlay, KeyboardSensor, PointerSensor } from '@dnd-kit/react'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -400,6 +400,17 @@ export default function FileSystemManager({
   return (
     <DragDropProvider
       modifiers={[SnapToPointer.configure({ anchor: { x: 0, y: 0 } })]}
+      plugins={(defaults) =>
+        defaults.map((p) => {
+          if (p === Feedback) {
+            return Feedback.configure({ dropAnimation: null })
+          }
+          if (typeof p === 'object' && p !== null && 'plugin' in p && p.plugin === Feedback) {
+            return Feedback.configure({ dropAnimation: null })
+          }
+          return p
+        })
+      }
       sensors={
         isRecentlyDeleted || !canEdit
           ? []
