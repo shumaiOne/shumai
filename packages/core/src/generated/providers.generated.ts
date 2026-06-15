@@ -273,7 +273,7 @@ export const builtinProviders: Record<string, any> = {
           reasoning: true,
           input: ['text', 'image'],
           contextWindow: 400000,
-          maxTokens: 272000,
+          maxTokens: 128000,
           cost: {
             input: 15,
             output: 120,
@@ -871,6 +871,23 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
+        modelId: 'claude-fable-5',
+        name: 'Claude Fable 5',
+        config: {
+          api: 'anthropic-messages',
+          reasoning: true,
+          input: ['text', 'image'],
+          contextWindow: 1000000,
+          maxTokens: 128000,
+          cost: {
+            input: 10,
+            output: 50,
+            cacheRead: 1,
+            cacheWrite: 12.5,
+          },
+        },
+      },
+      {
         modelId: 'claude-haiku-4-5',
         name: 'Claude Haiku 4.5 (latest)',
         config: {
@@ -1424,6 +1441,40 @@ export const builtinProviders: Record<string, any> = {
           },
         },
       },
+      {
+        modelId: 'gemma-4-E2B-it',
+        name: 'Gemma 4 E2B IT',
+        config: {
+          api: 'google-generative-ai',
+          reasoning: true,
+          input: ['text', 'image'],
+          contextWindow: 131072,
+          maxTokens: 8192,
+          cost: {
+            input: 0,
+            output: 0,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+        },
+      },
+      {
+        modelId: 'gemma-4-E4B-it',
+        name: 'Gemma 4 E4B IT',
+        config: {
+          api: 'google-generative-ai',
+          reasoning: true,
+          input: ['text', 'image'],
+          contextWindow: 131072,
+          maxTokens: 8192,
+          cost: {
+            input: 0,
+            output: 0,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+        },
+      },
     ],
   },
   deepseek: {
@@ -1479,76 +1530,8 @@ export const builtinProviders: Record<string, any> = {
     },
     models: [
       {
-        modelId: 'deepseek-r1-distill-llama-70b',
-        name: 'DeepSeek R1 Distill Llama 70B',
-        config: {
-          api: 'openai-completions',
-          reasoning: true,
-          input: ['text'],
-          contextWindow: 131072,
-          maxTokens: 8192,
-          cost: {
-            input: 0.75,
-            output: 0.99,
-            cacheRead: 0,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
-        modelId: 'gemma2-9b-it',
-        name: 'Gemma 2 9B',
-        config: {
-          api: 'openai-completions',
-          reasoning: false,
-          input: ['text'],
-          contextWindow: 8192,
-          maxTokens: 8192,
-          cost: {
-            input: 0.2,
-            output: 0.2,
-            cacheRead: 0,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
-        modelId: 'groq/compound',
-        name: 'Compound',
-        config: {
-          api: 'openai-completions',
-          reasoning: true,
-          input: ['text'],
-          contextWindow: 131072,
-          maxTokens: 8192,
-          cost: {
-            input: 0,
-            output: 0,
-            cacheRead: 0,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
-        modelId: 'groq/compound-mini',
-        name: 'Compound Mini',
-        config: {
-          api: 'openai-completions',
-          reasoning: true,
-          input: ['text'],
-          contextWindow: 131072,
-          maxTokens: 8192,
-          cost: {
-            input: 0,
-            output: 0,
-            cacheRead: 0,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
         modelId: 'llama-3.1-8b-instant',
-        name: 'Llama 3.1 8B Instant',
+        name: 'Llama 3.1 8B',
         config: {
           api: 'openai-completions',
           reasoning: false,
@@ -1565,7 +1548,7 @@ export const builtinProviders: Record<string, any> = {
       },
       {
         modelId: 'llama-3.3-70b-versatile',
-        name: 'Llama 3.3 70B Versatile',
+        name: 'Llama 3.3 70B',
         config: {
           api: 'openai-completions',
           reasoning: false,
@@ -1581,59 +1564,8 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
-        modelId: 'llama3-70b-8192',
-        name: 'Llama 3 70B',
-        config: {
-          api: 'openai-completions',
-          reasoning: false,
-          input: ['text'],
-          contextWindow: 8192,
-          maxTokens: 8192,
-          cost: {
-            input: 0.59,
-            output: 0.79,
-            cacheRead: 0,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
-        modelId: 'llama3-8b-8192',
-        name: 'Llama 3 8B',
-        config: {
-          api: 'openai-completions',
-          reasoning: false,
-          input: ['text'],
-          contextWindow: 8192,
-          maxTokens: 8192,
-          cost: {
-            input: 0.05,
-            output: 0.08,
-            cacheRead: 0,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
-        modelId: 'meta-llama/llama-4-maverick-17b-128e-instruct',
-        name: 'Llama 4 Maverick 17B',
-        config: {
-          api: 'openai-completions',
-          reasoning: false,
-          input: ['text', 'image'],
-          contextWindow: 131072,
-          maxTokens: 8192,
-          cost: {
-            input: 0.2,
-            output: 0.6,
-            cacheRead: 0,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
         modelId: 'meta-llama/llama-4-scout-17b-16e-instruct',
-        name: 'Llama 4 Scout 17B',
+        name: 'Llama 4 Scout 17B 16E',
         config: {
           api: 'openai-completions',
           reasoning: false,
@@ -1644,57 +1576,6 @@ export const builtinProviders: Record<string, any> = {
             input: 0.11,
             output: 0.34,
             cacheRead: 0,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
-        modelId: 'mistral-saba-24b',
-        name: 'Mistral Saba 24B',
-        config: {
-          api: 'openai-completions',
-          reasoning: false,
-          input: ['text'],
-          contextWindow: 32768,
-          maxTokens: 32768,
-          cost: {
-            input: 0.79,
-            output: 0.79,
-            cacheRead: 0,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
-        modelId: 'moonshotai/kimi-k2-instruct',
-        name: 'Kimi K2 Instruct',
-        config: {
-          api: 'openai-completions',
-          reasoning: false,
-          input: ['text'],
-          contextWindow: 131072,
-          maxTokens: 16384,
-          cost: {
-            input: 1,
-            output: 3,
-            cacheRead: 0,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
-        modelId: 'moonshotai/kimi-k2-instruct-0905',
-        name: 'Kimi K2 Instruct 0905',
-        config: {
-          api: 'openai-completions',
-          reasoning: false,
-          input: ['text'],
-          contextWindow: 262144,
-          maxTokens: 16384,
-          cost: {
-            input: 1,
-            output: 3,
-            cacheRead: 0.5,
             cacheWrite: 0,
           },
         },
@@ -1751,25 +1632,8 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
-        modelId: 'qwen-qwq-32b',
-        name: 'Qwen QwQ 32B',
-        config: {
-          api: 'openai-completions',
-          reasoning: true,
-          input: ['text'],
-          contextWindow: 131072,
-          maxTokens: 16384,
-          cost: {
-            input: 0.29,
-            output: 0.39,
-            cacheRead: 0,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
         modelId: 'qwen/qwen3-32b',
-        name: 'Qwen3 32B',
+        name: 'Qwen3-32B',
         config: {
           api: 'openai-completions',
           reasoning: true,
@@ -1889,8 +1753,8 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 300000,
           maxTokens: 5120,
           cost: {
-            input: 0.7999999999999999,
-            output: 3.1999999999999997,
+            input: 0.8,
+            output: 3.2,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -1923,10 +1787,27 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 200000,
           maxTokens: 8192,
           cost: {
-            input: 0.7999999999999999,
+            input: 0.8,
             output: 4,
             cacheRead: 0.08,
             cacheWrite: 1,
+          },
+        },
+      },
+      {
+        modelId: 'anthropic/claude-fable-5',
+        name: 'Anthropic: Claude Fable 5',
+        config: {
+          api: 'openai-completions',
+          reasoning: true,
+          input: ['text', 'image'],
+          contextWindow: 1000000,
+          maxTokens: 128000,
+          cost: {
+            input: 10,
+            output: 50,
+            cacheRead: 1,
+            cacheWrite: 12.5,
           },
         },
       },
@@ -1942,7 +1823,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 1,
             output: 5,
-            cacheRead: 0.09999999999999999,
+            cacheRead: 0.1,
             cacheWrite: 1.25,
           },
         },
@@ -2220,23 +2101,6 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
-        modelId: 'baidu/ernie-4.5-vl-28b-a3b',
-        name: 'Baidu: ERNIE 4.5 VL 28B A3B',
-        config: {
-          api: 'openai-completions',
-          reasoning: true,
-          input: ['text', 'image'],
-          contextWindow: 131072,
-          maxTokens: 8000,
-          cost: {
-            input: 0.14,
-            output: 0.56,
-            cacheRead: 0,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
         modelId: 'bytedance-seed/seed-1.6',
         name: 'ByteDance Seed: Seed 1.6',
         config: {
@@ -2297,8 +2161,8 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 262144,
           maxTokens: 131072,
           cost: {
-            input: 0.09999999999999999,
-            output: 0.39999999999999997,
+            input: 0.1,
+            output: 0.4,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -2348,8 +2212,8 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 131072,
           maxTokens: 16000,
           cost: {
-            input: 0.20020000000000002,
-            output: 0.8000999999999999,
+            input: 0.2002,
+            output: 0.8001,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -2365,7 +2229,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 163840,
           maxTokens: 16384,
           cost: {
-            input: 0.19999999999999998,
+            input: 0.2,
             output: 0.77,
             cacheRead: 0.135,
             cacheWrite: 0,
@@ -2383,7 +2247,7 @@ export const builtinProviders: Record<string, any> = {
           maxTokens: 32768,
           cost: {
             input: 0.21,
-            output: 0.7899999999999999,
+            output: 0.79,
             cacheRead: 0.13,
             cacheWrite: 0,
           },
@@ -2417,7 +2281,7 @@ export const builtinProviders: Record<string, any> = {
           maxTokens: 32768,
           cost: {
             input: 0.5,
-            output: 2.1500000000000004,
+            output: 2.15,
             cacheRead: 0.35,
             cacheWrite: 0,
           },
@@ -2482,11 +2346,11 @@ export const builtinProviders: Record<string, any> = {
           reasoning: true,
           input: ['text'],
           contextWindow: 1048576,
-          maxTokens: 131072,
+          maxTokens: 65536,
           cost: {
-            input: 0.0983,
-            output: 0.1966,
-            cacheRead: 0.019700000000000002,
+            input: 0.09,
+            output: 0.18,
+            cacheRead: 0.02,
             cacheWrite: 0,
           },
         },
@@ -2538,7 +2402,7 @@ export const builtinProviders: Record<string, any> = {
             input: 0.3,
             output: 2.5,
             cacheRead: 0.03,
-            cacheWrite: 0.08333333333333334,
+            cacheWrite: 0.083333,
           },
         },
       },
@@ -2552,10 +2416,10 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 1048576,
           maxTokens: 65535,
           cost: {
-            input: 0.09999999999999999,
-            output: 0.39999999999999997,
+            input: 0.1,
+            output: 0.4,
             cacheRead: 0.01,
-            cacheWrite: 0.08333333333333334,
+            cacheWrite: 0.083333,
           },
         },
       },
@@ -2569,10 +2433,10 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 1048576,
           maxTokens: 65535,
           cost: {
-            input: 0.09999999999999999,
-            output: 0.39999999999999997,
+            input: 0.1,
+            output: 0.4,
             cacheRead: 0.01,
-            cacheWrite: 0.08333333333333334,
+            cacheWrite: 0.083333,
           },
         },
       },
@@ -2639,8 +2503,8 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 0.5,
             output: 3,
-            cacheRead: 0.049999999999999996,
-            cacheWrite: 0.08333333333333334,
+            cacheRead: 0.05,
+            cacheWrite: 0.083333,
           },
         },
       },
@@ -2656,8 +2520,8 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 0.25,
             output: 1.5,
-            cacheRead: 0.024999999999999998,
-            cacheWrite: 0.08333333333333334,
+            cacheRead: 0.025,
+            cacheWrite: 0.083333,
           },
         },
       },
@@ -2673,8 +2537,8 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 0.25,
             output: 1.5,
-            cacheRead: 0.024999999999999998,
-            cacheWrite: 0.08333333333333334,
+            cacheRead: 0.025,
+            cacheWrite: 0.083333,
           },
         },
       },
@@ -2690,7 +2554,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 2,
             output: 12,
-            cacheRead: 0.19999999999999998,
+            cacheRead: 0.2,
             cacheWrite: 0.375,
           },
         },
@@ -2707,7 +2571,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 2,
             output: 12,
-            cacheRead: 0.19999999999999998,
+            cacheRead: 0.2,
             cacheWrite: 0.375,
           },
         },
@@ -2725,7 +2589,7 @@ export const builtinProviders: Record<string, any> = {
             input: 1.5,
             output: 9,
             cacheRead: 0.15,
-            cacheWrite: 0.08333333333333334,
+            cacheWrite: 0.083333,
           },
         },
       },
@@ -2739,8 +2603,8 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 131072,
           maxTokens: 16384,
           cost: {
-            input: 0.04,
-            output: 0.13,
+            input: 0.05,
+            output: 0.15,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -2805,11 +2669,11 @@ export const builtinProviders: Record<string, any> = {
           reasoning: true,
           input: ['text', 'image'],
           contextWindow: 262144,
-          maxTokens: 16384,
+          maxTokens: 262144,
           cost: {
             input: 0.12,
-            output: 0.37,
-            cacheRead: 0,
+            output: 0.35,
+            cacheRead: 0.09,
             cacheWrite: 0,
           },
         },
@@ -2841,9 +2705,9 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 131072,
           maxTokens: 131072,
           cost: {
-            input: 0.049999999999999996,
-            output: 0.09999999999999999,
-            cacheRead: 0.049999999999999996,
+            input: 0.05,
+            output: 0.1,
+            cacheRead: 0.05,
             cacheWrite: 0,
           },
         },
@@ -2860,7 +2724,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 0.25,
             output: 0.75,
-            cacheRead: 0.024999999999999998,
+            cacheRead: 0.025,
             cacheWrite: 0,
           },
         },
@@ -2943,8 +2807,8 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 131072,
           maxTokens: 16384,
           cost: {
-            input: 0.39999999999999997,
-            output: 0.39999999999999997,
+            input: 0.4,
+            output: 0.4,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -2961,7 +2825,7 @@ export const builtinProviders: Record<string, any> = {
           maxTokens: 16384,
           cost: {
             input: 0.02,
-            output: 0.049999999999999996,
+            output: 0.03,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -2977,7 +2841,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 131072,
           maxTokens: 16384,
           cost: {
-            input: 0.09999999999999999,
+            input: 0.1,
             output: 0.32,
             cacheRead: 0,
             cacheWrite: 0,
@@ -3028,7 +2892,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 10000000,
           maxTokens: 16384,
           cost: {
-            input: 0.08,
+            input: 0.1,
             output: 0.3,
             cacheRead: 0,
             cacheWrite: 0,
@@ -3045,7 +2909,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 1000000,
           maxTokens: 40000,
           cost: {
-            input: 0.39999999999999997,
+            input: 0.4,
             output: 2.2,
             cacheRead: 0,
             cacheWrite: 0,
@@ -3097,8 +2961,8 @@ export const builtinProviders: Record<string, any> = {
           maxTokens: 196608,
           cost: {
             input: 0.15,
-            output: 1.15,
-            cacheRead: 0,
+            output: 0.9,
+            cacheRead: 0.05,
             cacheWrite: 0,
           },
         },
@@ -3113,9 +2977,9 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 204800,
           maxTokens: 131072,
           cost: {
-            input: 0.27899999999999997,
-            output: 1.2,
-            cacheRead: 0,
+            input: 0.25,
+            output: 1,
+            cacheRead: 0.05,
             cacheWrite: 0,
           },
         },
@@ -3148,7 +3012,7 @@ export const builtinProviders: Record<string, any> = {
           maxTokens: 4096,
           cost: {
             input: 0.3,
-            output: 0.8999999999999999,
+            output: 0.9,
             cacheRead: 0.03,
             cacheWrite: 0,
           },
@@ -3164,7 +3028,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 262144,
           maxTokens: 4096,
           cost: {
-            input: 0.39999999999999997,
+            input: 0.4,
             output: 2,
             cacheRead: 0.04,
             cacheWrite: 0,
@@ -3181,8 +3045,8 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 262144,
           maxTokens: 4096,
           cost: {
-            input: 0.19999999999999998,
-            output: 0.19999999999999998,
+            input: 0.2,
+            output: 0.2,
             cacheRead: 0.02,
             cacheWrite: 0,
           },
@@ -3198,8 +3062,8 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 131072,
           maxTokens: 4096,
           cost: {
-            input: 0.09999999999999999,
-            output: 0.09999999999999999,
+            input: 0.1,
+            output: 0.1,
             cacheRead: 0.01,
             cacheWrite: 0,
           },
@@ -3234,7 +3098,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 2,
             output: 6,
-            cacheRead: 0.19999999999999998,
+            cacheRead: 0.2,
             cacheWrite: 0,
           },
         },
@@ -3251,7 +3115,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 2,
             output: 6,
-            cacheRead: 0.19999999999999998,
+            cacheRead: 0.2,
             cacheWrite: 0,
           },
         },
@@ -3268,7 +3132,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 0.5,
             output: 1.5,
-            cacheRead: 0.049999999999999996,
+            cacheRead: 0.05,
             cacheWrite: 0,
           },
         },
@@ -3283,7 +3147,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 131072,
           maxTokens: 4096,
           cost: {
-            input: 0.39999999999999997,
+            input: 0.4,
             output: 2,
             cacheRead: 0.04,
             cacheWrite: 0,
@@ -3317,7 +3181,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 131072,
           maxTokens: 4096,
           cost: {
-            input: 0.39999999999999997,
+            input: 0.4,
             output: 2,
             cacheRead: 0.04,
             cacheWrite: 0,
@@ -3351,7 +3215,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 32768,
           maxTokens: 4096,
           cost: {
-            input: 0.19999999999999998,
+            input: 0.2,
             output: 0.6,
             cacheRead: 0.02,
             cacheWrite: 0,
@@ -3386,7 +3250,7 @@ export const builtinProviders: Record<string, any> = {
           maxTokens: 16384,
           cost: {
             input: 0.075,
-            output: 0.19999999999999998,
+            output: 0.2,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -3404,7 +3268,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 2,
             output: 6,
-            cacheRead: 0.19999999999999998,
+            cacheRead: 0.2,
             cacheWrite: 0,
           },
         },
@@ -3419,7 +3283,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 32000,
           maxTokens: 4096,
           cost: {
-            input: 0.09999999999999999,
+            input: 0.1,
             output: 0.3,
             cacheRead: 0.01,
             cacheWrite: 0,
@@ -3436,7 +3300,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 131072,
           maxTokens: 32768,
           cost: {
-            input: 0.5700000000000001,
+            input: 0.57,
             output: 2.3,
             cacheRead: 0,
             cacheWrite: 0,
@@ -3502,44 +3366,44 @@ export const builtinProviders: Record<string, any> = {
           reasoning: true,
           input: ['text', 'image'],
           contextWindow: 262144,
-          maxTokens: 262144,
+          maxTokens: 262142,
           cost: {
-            input: 0.684,
-            output: 3.42,
-            cacheRead: 0.144,
+            input: 0.68,
+            output: 3.41,
+            cacheRead: 0.34,
             cacheWrite: 0,
           },
         },
       },
       {
-        modelId: 'moonshotai/kimi-k2.6:free',
-        name: 'MoonshotAI: Kimi K2.6 (free)',
+        modelId: 'moonshotai/kimi-k2.7-code',
+        name: 'MoonshotAI: Kimi K2.7 Code',
         config: {
           api: 'openai-completions',
           reasoning: true,
           input: ['text', 'image'],
           contextWindow: 262144,
-          maxTokens: 4096,
+          maxTokens: 262144,
           cost: {
-            input: 0,
-            output: 0,
-            cacheRead: 0,
+            input: 0.75,
+            output: 3.5,
+            cacheRead: 0.16,
             cacheWrite: 0,
           },
         },
       },
       {
-        modelId: 'nex-agi/deepseek-v3.1-nex-n1',
-        name: 'Nex AGI: DeepSeek V3.1 Nex N1',
+        modelId: 'nex-agi/nex-n2-pro:free',
+        name: 'Nex AGI: Nex-N2-Pro (free)',
         config: {
           api: 'openai-completions',
-          reasoning: false,
-          input: ['text'],
-          contextWindow: 131072,
-          maxTokens: 163840,
+          reasoning: true,
+          input: ['text', 'image'],
+          contextWindow: 262144,
+          maxTokens: 262144,
           cost: {
-            input: 0.135,
-            output: 0.5,
+            input: 0,
+            output: 0,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -3555,8 +3419,8 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 131072,
           maxTokens: 16384,
           cost: {
-            input: 0.09999999999999999,
-            output: 0.39999999999999997,
+            input: 0.4,
+            output: 0.4,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -3572,8 +3436,8 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 262144,
           maxTokens: 228000,
           cost: {
-            input: 0.049999999999999996,
-            output: 0.19999999999999998,
+            input: 0.05,
+            output: 0.2,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -3624,7 +3488,7 @@ export const builtinProviders: Record<string, any> = {
           maxTokens: 4096,
           cost: {
             input: 0.09,
-            output: 0.44999999999999996,
+            output: 0.45,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -3693,23 +3557,6 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 0,
             output: 0,
-            cacheRead: 0,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
-        modelId: 'nvidia/nemotron-nano-9b-v2',
-        name: 'NVIDIA: Nemotron Nano 9B V2',
-        config: {
-          api: 'openai-completions',
-          reasoning: true,
-          input: ['text'],
-          contextWindow: 131072,
-          maxTokens: 16384,
-          cost: {
-            input: 0.04,
-            output: 0.16,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -3801,23 +3648,6 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
-        modelId: 'openai/gpt-4-1106-preview',
-        name: 'OpenAI: GPT-4 Turbo (older v1106)',
-        config: {
-          api: 'openai-completions',
-          reasoning: false,
-          input: ['text'],
-          contextWindow: 128000,
-          maxTokens: 4096,
-          cost: {
-            input: 10,
-            output: 30,
-            cacheRead: 0,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
         modelId: 'openai/gpt-4-turbo',
         name: 'OpenAI: GPT-4 Turbo',
         config: {
@@ -3878,9 +3708,9 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 1047576,
           maxTokens: 32768,
           cost: {
-            input: 0.39999999999999997,
-            output: 1.5999999999999999,
-            cacheRead: 0.09999999999999999,
+            input: 0.4,
+            output: 1.6,
+            cacheRead: 0.1,
             cacheWrite: 0,
           },
         },
@@ -3895,9 +3725,9 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 1047576,
           maxTokens: 32768,
           cost: {
-            input: 0.09999999999999999,
-            output: 0.39999999999999997,
-            cacheRead: 0.024999999999999998,
+            input: 0.1,
+            output: 0.4,
+            cacheRead: 0.025,
             cacheWrite: 0,
           },
         },
@@ -4050,7 +3880,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 0.25,
             output: 2,
-            cacheRead: 0.024999999999999998,
+            cacheRead: 0.025,
             cacheWrite: 0,
           },
         },
@@ -4065,8 +3895,8 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 400000,
           maxTokens: 4096,
           cost: {
-            input: 0.049999999999999996,
-            output: 0.39999999999999997,
+            input: 0.05,
+            output: 0.4,
             cacheRead: 0.01,
             cacheWrite: 0,
           },
@@ -4169,7 +3999,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 0.25,
             output: 2,
-            cacheRead: 0.024999999999999998,
+            cacheRead: 0.025,
             cacheWrite: 0,
           },
         },
@@ -4320,7 +4150,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 400000,
           maxTokens: 128000,
           cost: {
-            input: 0.19999999999999998,
+            input: 0.2,
             output: 1.25,
             cacheRead: 0.02,
             cacheWrite: 0,
@@ -4762,7 +4592,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 131072,
           maxTokens: 131072,
           cost: {
-            input: 0.19999999999999998,
+            input: 0.2,
             output: 1.1,
             cacheRead: 0,
             cacheWrite: 0,
@@ -4780,7 +4610,7 @@ export const builtinProviders: Record<string, any> = {
           maxTokens: 16384,
           cost: {
             input: 0.36,
-            output: 0.39999999999999997,
+            output: 0.4,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -4798,7 +4628,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 0.26,
             output: 0.78,
-            cacheRead: 0.052000000000000005,
+            cacheRead: 0.052,
             cacheWrite: 0.325,
           },
         },
@@ -4847,7 +4677,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 131702,
           maxTokens: 40960,
           cost: {
-            input: 0.09999999999999999,
+            input: 0.1,
             output: 0.24,
             cacheRead: 0,
             cacheWrite: 0,
@@ -4864,8 +4694,8 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 131072,
           maxTokens: 8192,
           cost: {
-            input: 0.45499999999999996,
-            output: 1.8199999999999998,
+            input: 0.455,
+            output: 1.82,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -4881,8 +4711,8 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 262144,
           maxTokens: 16384,
           cost: {
-            input: 0.071,
-            output: 0.09999999999999999,
+            input: 0.09,
+            output: 0.1,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -4898,9 +4728,9 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 262144,
           maxTokens: 262144,
           cost: {
-            input: 0.09999999999999999,
-            output: 0.09999999999999999,
-            cacheRead: 0.09999999999999999,
+            input: 0.1,
+            output: 0.1,
+            cacheRead: 0.1,
             cacheWrite: 0,
           },
         },
@@ -4913,10 +4743,10 @@ export const builtinProviders: Record<string, any> = {
           reasoning: true,
           input: ['text'],
           contextWindow: 131072,
-          maxTokens: 20000,
+          maxTokens: 16384,
           cost: {
-            input: 0.09,
-            output: 0.44999999999999996,
+            input: 0.12,
+            output: 0.5,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -4950,7 +4780,7 @@ export const builtinProviders: Record<string, any> = {
           maxTokens: 131072,
           cost: {
             input: 0.08,
-            output: 0.39999999999999997,
+            output: 0.4,
             cacheRead: 0.08,
             cacheWrite: 0,
           },
@@ -4983,9 +4813,9 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 131072,
           maxTokens: 8192,
           cost: {
-            input: 0.049999999999999996,
-            output: 0.39999999999999997,
-            cacheRead: 0.049999999999999996,
+            input: 0.05,
+            output: 0.4,
+            cacheRead: 0.05,
             cacheWrite: 0,
           },
         },
@@ -5001,7 +4831,7 @@ export const builtinProviders: Record<string, any> = {
           maxTokens: 65536,
           cost: {
             input: 0.22,
-            output: 1.7999999999999998,
+            output: 1.8,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -5052,7 +4882,7 @@ export const builtinProviders: Record<string, any> = {
           maxTokens: 262144,
           cost: {
             input: 0.11,
-            output: 0.7999999999999999,
+            output: 0.8,
             cacheRead: 0.07,
             cacheWrite: 0,
           },
@@ -5187,7 +5017,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 262144,
           maxTokens: 16384,
           cost: {
-            input: 0.19999999999999998,
+            input: 0.2,
             output: 0.88,
             cacheRead: 0.11,
             cacheWrite: 0,
@@ -5255,8 +5085,8 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 262144,
           maxTokens: 32768,
           cost: {
-            input: 0.10400000000000001,
-            output: 0.41600000000000004,
+            input: 0.104,
+            output: 0.416,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -5342,7 +5172,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 0.14,
             output: 1,
-            cacheRead: 0.049999999999999996,
+            cacheRead: 0.05,
             cacheWrite: 0,
           },
         },
@@ -5372,9 +5202,9 @@ export const builtinProviders: Record<string, any> = {
           reasoning: true,
           input: ['text', 'image'],
           contextWindow: 262144,
-          maxTokens: 81920,
+          maxTokens: 262144,
           cost: {
-            input: 0.04,
+            input: 0.1,
             output: 0.15,
             cacheRead: 0,
             cacheWrite: 0,
@@ -5426,7 +5256,7 @@ export const builtinProviders: Record<string, any> = {
           maxTokens: 65536,
           cost: {
             input: 0.3,
-            output: 1.7999999999999998,
+            output: 1.8,
             cacheRead: 0,
             cacheWrite: 0.375,
           },
@@ -5442,8 +5272,8 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 262144,
           maxTokens: 262140,
           cost: {
-            input: 0.29,
-            output: 3.1999999999999997,
+            input: 0.2885,
+            output: 3.17,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -5457,11 +5287,11 @@ export const builtinProviders: Record<string, any> = {
           reasoning: true,
           input: ['text', 'image'],
           contextWindow: 262144,
-          maxTokens: 262140,
+          maxTokens: 262144,
           cost: {
-            input: 0.14,
+            input: 0.15,
             output: 1,
-            cacheRead: 0,
+            cacheRead: 0.05,
             cacheWrite: 0,
           },
         },
@@ -5544,10 +5374,10 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 1000000,
           maxTokens: 65536,
           cost: {
-            input: 0.39999999999999997,
-            output: 1.5999999999999999,
-            cacheRead: 0.08,
-            cacheWrite: 0.5,
+            input: 0.32,
+            output: 1.28,
+            cacheRead: 0.064,
+            cacheWrite: 0.4,
           },
         },
       },
@@ -5561,8 +5391,8 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 16384,
           maxTokens: 16384,
           cost: {
-            input: 0.09999999999999999,
-            output: 0.09999999999999999,
+            input: 0.1,
+            output: 0.1,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -5580,23 +5410,6 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 1,
             output: 3,
-            cacheRead: 0,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
-        modelId: 'sao10k/l3-euryale-70b',
-        name: 'Sao10k: Llama 3 Euryale 70B v2.1',
-        config: {
-          api: 'openai-completions',
-          reasoning: false,
-          input: ['text'],
-          contextWindow: 8192,
-          maxTokens: 8192,
-          cost: {
-            input: 1.48,
-            output: 1.48,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -5646,7 +5459,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 256000,
           maxTokens: 256000,
           cost: {
-            input: 0.19999999999999998,
+            input: 0.2,
             output: 1.15,
             cacheRead: 0.04,
             cacheWrite: 0,
@@ -5665,7 +5478,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 0.063,
             output: 0.21,
-            cacheRead: 0.020999999999999998,
+            cacheRead: 0.021,
             cacheWrite: 0,
           },
         },
@@ -5680,7 +5493,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 32768,
           maxTokens: 32768,
           cost: {
-            input: 0.16999999999999998,
+            input: 0.17,
             output: 0.43,
             cacheRead: 0,
             cacheWrite: 0,
@@ -5697,8 +5510,8 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 32768,
           maxTokens: 32768,
           cost: {
-            input: 0.39999999999999997,
-            output: 0.39999999999999997,
+            input: 0.4,
+            output: 0.4,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -5733,7 +5546,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 1.25,
             output: 2.5,
-            cacheRead: 0.19999999999999998,
+            cacheRead: 0.2,
             cacheWrite: 0,
           },
         },
@@ -5750,7 +5563,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 1.25,
             output: 2.5,
-            cacheRead: 0.19999999999999998,
+            cacheRead: 0.2,
             cacheWrite: 0,
           },
         },
@@ -5767,7 +5580,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 1,
             output: 2,
-            cacheRead: 0.19999999999999998,
+            cacheRead: 0.2,
             cacheWrite: 0,
           },
         },
@@ -5782,7 +5595,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 262144,
           maxTokens: 65536,
           cost: {
-            input: 0.09999999999999999,
+            input: 0.1,
             output: 0.3,
             cacheRead: 0.01,
             cacheWrite: 0,
@@ -5824,23 +5637,6 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
-        modelId: 'z-ai/glm-4-32b',
-        name: 'Z.ai: GLM 4 32B ',
-        config: {
-          api: 'openai-completions',
-          reasoning: false,
-          input: ['text'],
-          contextWindow: 128000,
-          maxTokens: 4096,
-          cost: {
-            input: 0.09999999999999999,
-            output: 0.09999999999999999,
-            cacheRead: 0,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
         modelId: 'z-ai/glm-4.5',
         name: 'Z.ai: GLM 4.5',
         config: {
@@ -5875,23 +5671,6 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
-        modelId: 'z-ai/glm-4.5-air:free',
-        name: 'Z.ai: GLM 4.5 Air (free)',
-        config: {
-          api: 'openai-completions',
-          reasoning: true,
-          input: ['text'],
-          contextWindow: 131072,
-          maxTokens: 96000,
-          cost: {
-            input: 0,
-            output: 0,
-            cacheRead: 0,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
         modelId: 'z-ai/glm-4.5v',
         name: 'Z.ai: GLM 4.5V',
         config: {
@@ -5902,7 +5681,7 @@ export const builtinProviders: Record<string, any> = {
           maxTokens: 16384,
           cost: {
             input: 0.6,
-            output: 1.7999999999999998,
+            output: 1.8,
             cacheRead: 0.11,
             cacheWrite: 0,
           },
@@ -5933,11 +5712,11 @@ export const builtinProviders: Record<string, any> = {
           reasoning: true,
           input: ['text', 'image'],
           contextWindow: 131072,
-          maxTokens: 24000,
+          maxTokens: 32768,
           cost: {
             input: 0.3,
-            output: 0.8999999999999999,
-            cacheRead: 0.049999999999999996,
+            output: 0.9,
+            cacheRead: 0.055,
             cacheWrite: 0,
           },
         },
@@ -5952,7 +5731,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 202752,
           maxTokens: 131072,
           cost: {
-            input: 0.39999999999999997,
+            input: 0.4,
             output: 1.75,
             cacheRead: 0.08,
             cacheWrite: 0,
@@ -5970,7 +5749,7 @@ export const builtinProviders: Record<string, any> = {
           maxTokens: 16384,
           cost: {
             input: 0.06,
-            output: 0.39999999999999997,
+            output: 0.4,
             cacheRead: 0.01,
             cacheWrite: 0,
           },
@@ -6000,7 +5779,7 @@ export const builtinProviders: Record<string, any> = {
           api: 'openai-completions',
           reasoning: true,
           input: ['text'],
-          contextWindow: 202752,
+          contextWindow: 262144,
           maxTokens: 131072,
           cost: {
             input: 1.2,
@@ -6028,19 +5807,19 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
-        modelId: 'z-ai/glm-5v-turbo',
-        name: 'Z.ai: GLM 5V Turbo',
+        modelId: '~anthropic/claude-fable-latest',
+        name: 'Anthropic: Claude Fable Latest',
         config: {
           api: 'openai-completions',
           reasoning: true,
           input: ['text', 'image'],
-          contextWindow: 202752,
-          maxTokens: 131072,
+          contextWindow: 1000000,
+          maxTokens: 128000,
           cost: {
-            input: 1.2,
-            output: 4,
-            cacheRead: 0.24,
-            cacheWrite: 0,
+            input: 10,
+            output: 50,
+            cacheRead: 1,
+            cacheWrite: 12.5,
           },
         },
       },
@@ -6056,7 +5835,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 1,
             output: 5,
-            cacheRead: 0.09999999999999999,
+            cacheRead: 0.1,
             cacheWrite: 1.25,
           },
         },
@@ -6108,7 +5887,7 @@ export const builtinProviders: Record<string, any> = {
             input: 1.5,
             output: 9,
             cacheRead: 0.15,
-            cacheWrite: 0.08333333333333334,
+            cacheWrite: 0.083333,
           },
         },
       },
@@ -6124,7 +5903,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 2,
             output: 12,
-            cacheRead: 0.19999999999999998,
+            cacheRead: 0.2,
             cacheWrite: 0.375,
           },
         },
@@ -6137,11 +5916,11 @@ export const builtinProviders: Record<string, any> = {
           reasoning: true,
           input: ['text', 'image'],
           contextWindow: 262144,
-          maxTokens: 262144,
+          maxTokens: 262142,
           cost: {
-            input: 0.684,
-            output: 3.42,
-            cacheRead: 0.144,
+            input: 0.68,
+            output: 3.41,
+            cacheRead: 0.34,
             cacheWrite: 0,
           },
         },
@@ -6518,13 +6297,13 @@ export const builtinProviders: Record<string, any> = {
         name: 'Mistral Medium (latest)',
         config: {
           api: 'mistral-conversations',
-          reasoning: true,
+          reasoning: false,
           input: ['text', 'image'],
           contextWindow: 262144,
           maxTokens: 262144,
           cost: {
-            input: 1.5,
-            output: 7.5,
+            input: 0.4,
+            output: 2,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -6715,7 +6494,7 @@ export const builtinProviders: Record<string, any> = {
         name: 'Nova 2 Lite',
         config: {
           api: 'bedrock-converse-stream',
-          reasoning: false,
+          reasoning: true,
           input: ['text', 'image'],
           contextWindow: 128000,
           maxTokens: 4096,
@@ -7051,6 +6830,23 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
+        modelId: 'eu.anthropic.claude-fable-5',
+        name: 'Claude Fable 5 (EU)',
+        config: {
+          api: 'bedrock-converse-stream',
+          reasoning: true,
+          input: ['text', 'image'],
+          contextWindow: 1000000,
+          maxTokens: 128000,
+          cost: {
+            input: 11,
+            output: 55,
+            cacheRead: 1.1,
+            cacheWrite: 13.75,
+          },
+        },
+      },
+      {
         modelId: 'eu.anthropic.claude-haiku-4-5-20251001-v1:0',
         name: 'Claude Haiku 4.5 (EU)',
         config: {
@@ -7166,6 +6962,23 @@ export const builtinProviders: Record<string, any> = {
             output: 16.5,
             cacheRead: 0.33,
             cacheWrite: 4.125,
+          },
+        },
+      },
+      {
+        modelId: 'global.anthropic.claude-fable-5',
+        name: 'Claude Fable 5 (Global)',
+        config: {
+          api: 'bedrock-converse-stream',
+          reasoning: true,
+          input: ['text', 'image'],
+          contextWindow: 1000000,
+          maxTokens: 128000,
+          cost: {
+            input: 10,
+            output: 50,
+            cacheRead: 1,
+            cacheWrite: 12.5,
           },
         },
       },
@@ -7782,11 +7595,45 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
-        modelId: 'openai.gpt-oss-120b-1:0',
+        modelId: 'openai.gpt-5.4',
+        name: 'GPT-5.4',
+        config: {
+          api: 'bedrock-converse-stream',
+          reasoning: true,
+          input: ['text', 'image'],
+          contextWindow: 272000,
+          maxTokens: 128000,
+          cost: {
+            input: 2.75,
+            output: 16.5,
+            cacheRead: 0.275,
+            cacheWrite: 0,
+          },
+        },
+      },
+      {
+        modelId: 'openai.gpt-5.5',
+        name: 'GPT-5.5',
+        config: {
+          api: 'bedrock-converse-stream',
+          reasoning: true,
+          input: ['text', 'image'],
+          contextWindow: 272000,
+          maxTokens: 128000,
+          cost: {
+            input: 5.5,
+            output: 33,
+            cacheRead: 0.55,
+            cacheWrite: 0,
+          },
+        },
+      },
+      {
+        modelId: 'openai.gpt-oss-120b',
         name: 'gpt-oss-120b',
         config: {
           api: 'bedrock-converse-stream',
-          reasoning: false,
+          reasoning: true,
           input: ['text'],
           contextWindow: 128000,
           maxTokens: 16384,
@@ -7799,11 +7646,45 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
+        modelId: 'openai.gpt-oss-120b-1:0',
+        name: 'gpt-oss-120b',
+        config: {
+          api: 'bedrock-converse-stream',
+          reasoning: true,
+          input: ['text'],
+          contextWindow: 128000,
+          maxTokens: 16384,
+          cost: {
+            input: 0.15,
+            output: 0.6,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+        },
+      },
+      {
+        modelId: 'openai.gpt-oss-20b',
+        name: 'gpt-oss-20b',
+        config: {
+          api: 'bedrock-converse-stream',
+          reasoning: true,
+          input: ['text'],
+          contextWindow: 128000,
+          maxTokens: 16384,
+          cost: {
+            input: 0.07,
+            output: 0.3,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+        },
+      },
+      {
         modelId: 'openai.gpt-oss-20b-1:0',
         name: 'gpt-oss-20b',
         config: {
           api: 'bedrock-converse-stream',
-          reasoning: false,
+          reasoning: true,
           input: ['text'],
           contextWindow: 128000,
           maxTokens: 16384,
@@ -7965,6 +7846,23 @@ export const builtinProviders: Record<string, any> = {
             output: 1.5,
             cacheRead: 0,
             cacheWrite: 0,
+          },
+        },
+      },
+      {
+        modelId: 'us.anthropic.claude-fable-5',
+        name: 'Claude Fable 5 (US)',
+        config: {
+          api: 'bedrock-converse-stream',
+          reasoning: true,
+          input: ['text', 'image'],
+          contextWindow: 1000000,
+          maxTokens: 128000,
+          cost: {
+            input: 10,
+            output: 50,
+            cacheRead: 1,
+            cacheWrite: 12.5,
           },
         },
       },
@@ -8574,7 +8472,7 @@ export const builtinProviders: Record<string, any> = {
           reasoning: true,
           input: ['text', 'image'],
           contextWindow: 400000,
-          maxTokens: 272000,
+          maxTokens: 128000,
           cost: {
             input: 15,
             output: 120,
@@ -8794,7 +8692,7 @@ export const builtinProviders: Record<string, any> = {
           api: 'azure-openai-responses',
           reasoning: true,
           input: ['text', 'image'],
-          contextWindow: 272000,
+          contextWindow: 1050000,
           maxTokens: 128000,
           cost: {
             input: 2.5,
@@ -8862,7 +8760,7 @@ export const builtinProviders: Record<string, any> = {
           api: 'azure-openai-responses',
           reasoning: true,
           input: ['text', 'image'],
-          contextWindow: 272000,
+          contextWindow: 1050000,
           maxTokens: 128000,
           cost: {
             input: 5,
@@ -9043,27 +8941,10 @@ export const builtinProviders: Record<string, any> = {
           reasoning: true,
           input: ['text'],
           contextWindow: 131072,
-          maxTokens: 32768,
+          maxTokens: 40960,
           cost: {
-            input: 0.25,
-            output: 0.69,
-            cacheRead: 0,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
-        modelId: 'llama3.1-8b',
-        name: 'Llama 3.1 8B',
-        config: {
-          api: 'openai-completions',
-          reasoning: false,
-          input: ['text'],
-          contextWindow: 32000,
-          maxTokens: 8000,
-          cost: {
-            input: 0.1,
-            output: 0.1,
+            input: 0.35,
+            output: 0.75,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -9074,10 +8955,10 @@ export const builtinProviders: Record<string, any> = {
         name: 'Z.AI GLM-4.7',
         config: {
           api: 'openai-completions',
-          reasoning: false,
+          reasoning: true,
           input: ['text'],
           contextWindow: 131072,
-          maxTokens: 40000,
+          maxTokens: 40960,
           cost: {
             input: 2.25,
             output: 2.75,
@@ -9196,6 +9077,23 @@ export const builtinProviders: Record<string, any> = {
             output: 15,
             cacheRead: 0.3,
             cacheWrite: 3.75,
+          },
+        },
+      },
+      {
+        modelId: 'claude-fable-5',
+        name: 'Claude Fable 5',
+        config: {
+          api: 'anthropic-messages',
+          reasoning: true,
+          input: ['text', 'image'],
+          contextWindow: 1000000,
+          maxTokens: 128000,
+          cost: {
+            input: 10,
+            output: 50,
+            cacheRead: 1,
+            cacheWrite: 12.5,
           },
         },
       },
@@ -9822,6 +9720,23 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
+        modelId: '@cf/moonshotai/kimi-k2.7-code',
+        name: 'Kimi K2.7 Code',
+        config: {
+          api: 'openai-completions',
+          reasoning: true,
+          input: ['text', 'image'],
+          contextWindow: 262144,
+          maxTokens: 262144,
+          cost: {
+            input: 0.95,
+            output: 4,
+            cacheRead: 0.19,
+            cacheWrite: 0,
+          },
+        },
+      },
+      {
         modelId: '@cf/nvidia/nemotron-3-120b-a12b',
         name: 'Nemotron 3 Super 120B',
         config: {
@@ -10002,23 +9917,6 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
-        modelId: 'accounts/fireworks/models/kimi-k2p5',
-        name: 'Kimi K2.5',
-        config: {
-          api: 'anthropic-messages',
-          reasoning: true,
-          input: ['text', 'image'],
-          contextWindow: 256000,
-          maxTokens: 256000,
-          cost: {
-            input: 0.6,
-            output: 3,
-            cacheRead: 0.1,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
         modelId: 'accounts/fireworks/models/kimi-k2p6',
         name: 'Kimi K2.6',
         config: {
@@ -10036,18 +9934,18 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
-        modelId: 'accounts/fireworks/models/minimax-m2p5',
-        name: 'MiniMax-M2.5',
+        modelId: 'accounts/fireworks/models/kimi-k2p7-code',
+        name: 'Kimi K2.7 Code',
         config: {
           api: 'anthropic-messages',
           reasoning: true,
-          input: ['text'],
-          contextWindow: 196608,
-          maxTokens: 196608,
+          input: ['text', 'image'],
+          contextWindow: 262000,
+          maxTokens: 262000,
           cost: {
-            input: 0.3,
-            output: 1.2,
-            cacheRead: 0.03,
+            input: 0.95,
+            output: 4,
+            cacheRead: 0.19,
             cacheWrite: 0,
           },
         },
@@ -10070,8 +9968,25 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
-        modelId: 'accounts/fireworks/models/qwen3p6-plus',
-        name: 'Qwen 3.6 Plus',
+        modelId: 'accounts/fireworks/models/minimax-m3',
+        name: 'MiniMax-M3',
+        config: {
+          api: 'anthropic-messages',
+          reasoning: true,
+          input: ['text'],
+          contextWindow: 512000,
+          maxTokens: 512000,
+          cost: {
+            input: 0.3,
+            output: 1.2,
+            cacheRead: 0.06,
+            cacheWrite: 0,
+          },
+        },
+      },
+      {
+        modelId: 'accounts/fireworks/models/qwen3p7-plus',
+        name: 'Qwen 3.7 Plus',
         config: {
           api: 'anthropic-messages',
           reasoning: true,
@@ -10079,9 +9994,9 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 262144,
           maxTokens: 65536,
           cost: {
-            input: 0.5,
-            output: 3,
-            cacheRead: 0.1,
+            input: 0.4,
+            output: 1.6,
+            cacheRead: 0.08,
             cacheWrite: 0,
           },
         },
@@ -10104,6 +10019,23 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
+        modelId: 'accounts/fireworks/routers/kimi-k2p6-fast',
+        name: 'Kimi K2.6 Fast',
+        config: {
+          api: 'anthropic-messages',
+          reasoning: true,
+          input: ['text', 'image'],
+          contextWindow: 262000,
+          maxTokens: 262000,
+          cost: {
+            input: 2,
+            output: 8,
+            cacheRead: 0.3,
+            cacheWrite: 0,
+          },
+        },
+      },
+      {
         modelId: 'accounts/fireworks/routers/kimi-k2p6-turbo',
         name: 'Kimi K2.6 Turbo',
         config: {
@@ -10120,16 +10052,50 @@ export const builtinProviders: Record<string, any> = {
           },
         },
       },
+      {
+        modelId: 'accounts/fireworks/routers/kimi-k2p7-code-fast',
+        name: 'Kimi K2.7 Code Fast',
+        config: {
+          api: 'anthropic-messages',
+          reasoning: true,
+          input: ['text', 'image'],
+          contextWindow: 262000,
+          maxTokens: 262000,
+          cost: {
+            input: 2,
+            output: 8,
+            cacheRead: 0.38,
+            cacheWrite: 0,
+          },
+        },
+      },
     ],
   },
   'github-copilot': {
     name: 'github-copilot',
     config: {
-      api: 'anthropic-messages',
+      api: 'openai-completions',
       baseUrl: 'https://api.individual.githubcopilot.com',
       apiKey: 'COPILOT_GITHUB_TOKEN',
     },
     models: [
+      {
+        modelId: 'claude-fable-5',
+        name: 'Claude Fable 5',
+        config: {
+          api: 'openai-completions',
+          reasoning: true,
+          input: ['text', 'image'],
+          contextWindow: 1000000,
+          maxTokens: 128000,
+          cost: {
+            input: 10,
+            output: 50,
+            cacheRead: 1,
+            cacheWrite: 12.5,
+          },
+        },
+      },
       {
         modelId: 'claude-haiku-4.5',
         name: 'Claude Haiku 4.5 (latest)',
@@ -11130,6 +11096,23 @@ export const builtinProviders: Record<string, any> = {
     },
     models: [
       {
+        modelId: 'k2p7',
+        name: 'Kimi K2.7 Code',
+        config: {
+          api: 'anthropic-messages',
+          reasoning: true,
+          input: ['text', 'image'],
+          contextWindow: 262144,
+          maxTokens: 32768,
+          cost: {
+            input: 0,
+            output: 0,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+        },
+      },
+      {
         modelId: 'kimi-for-coding',
         name: 'Kimi For Coding',
         config: {
@@ -11414,6 +11397,23 @@ export const builtinProviders: Record<string, any> = {
           },
         },
       },
+      {
+        modelId: 'kimi-k2.7-code',
+        name: 'Kimi K2.7 Code',
+        config: {
+          api: 'openai-completions',
+          reasoning: true,
+          input: ['text', 'image'],
+          contextWindow: 262144,
+          maxTokens: 262144,
+          cost: {
+            input: 0.95,
+            output: 4,
+            cacheRead: 0.19,
+            cacheWrite: 0,
+          },
+        },
+      },
     ],
   },
   'moonshotai-cn': {
@@ -11660,8 +11660,8 @@ export const builtinProviders: Record<string, any> = {
         name: 'mistral-small-4-119b-2603',
         config: {
           api: 'openai-completions',
-          reasoning: false,
-          input: ['text'],
+          reasoning: true,
+          input: ['text', 'image'],
           contextWindow: 128000,
           maxTokens: 8192,
           cost: {
@@ -11681,40 +11681,6 @@ export const builtinProviders: Record<string, any> = {
           input: ['text', 'image'],
           contextWindow: 262144,
           maxTokens: 262144,
-          cost: {
-            input: 0,
-            output: 0,
-            cacheRead: 0,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
-        modelId: 'nvidia/llama-3.3-nemotron-super-49b-v1',
-        name: 'Llama 3.3 Nemotron Super 49B v1',
-        config: {
-          api: 'openai-completions',
-          reasoning: true,
-          input: ['text'],
-          contextWindow: 131072,
-          maxTokens: 131072,
-          cost: {
-            input: 0,
-            output: 0,
-            cacheRead: 0,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
-        modelId: 'nvidia/llama-3.3-nemotron-super-49b-v1.5',
-        name: 'Llama 3.3 Nemotron Super 49B v1.5',
-        config: {
-          api: 'openai-completions',
-          reasoning: true,
-          input: ['text'],
-          contextWindow: 131072,
-          maxTokens: 131072,
           cost: {
             input: 0,
             output: 0,
@@ -11775,6 +11741,23 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
+        modelId: 'nvidia/nemotron-3-ultra-550b-a55b',
+        name: 'Nemotron 3 Ultra 550B A55B',
+        config: {
+          api: 'openai-completions',
+          reasoning: true,
+          input: ['text'],
+          contextWindow: 1000000,
+          maxTokens: 65536,
+          cost: {
+            input: 0.5,
+            output: 2.5,
+            cacheRead: 0.15,
+            cacheWrite: 0,
+          },
+        },
+      },
+      {
         modelId: 'nvidia/nvidia-nemotron-nano-9b-v2',
         name: 'nvidia-nemotron-nano-9b-v2',
         config: {
@@ -11792,14 +11775,14 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
-        modelId: 'openai/gpt-oss-20b',
-        name: 'GPT OSS 20B',
+        modelId: 'openai/gpt-oss-120b',
+        name: 'GPT-OSS-120B',
         config: {
           api: 'openai-completions',
           reasoning: true,
           input: ['text'],
-          contextWindow: 131072,
-          maxTokens: 32768,
+          contextWindow: 128000,
+          maxTokens: 8192,
           cost: {
             input: 0,
             output: 0,
@@ -11809,14 +11792,14 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
-        modelId: 'qwen/qwen3-coder-480b-a35b-instruct',
-        name: 'Qwen3 Coder 480B A35B Instruct',
+        modelId: 'openai/gpt-oss-20b',
+        name: 'GPT OSS 20B',
         config: {
           api: 'openai-completions',
-          reasoning: false,
+          reasoning: true,
           input: ['text'],
-          contextWindow: 262144,
-          maxTokens: 66536,
+          contextWindow: 131072,
+          maxTokens: 32768,
           cost: {
             input: 0,
             output: 0,
@@ -12163,7 +12146,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 0.14,
             output: 0.28,
-            cacheRead: 0.03,
+            cacheRead: 0.028,
             cacheWrite: 0,
           },
         },
@@ -12181,6 +12164,23 @@ export const builtinProviders: Record<string, any> = {
             input: 0,
             output: 0,
             cacheRead: 0,
+            cacheWrite: 0,
+          },
+        },
+      },
+      {
+        modelId: 'deepseek-v4-pro',
+        name: 'DeepSeek V4 Pro',
+        config: {
+          api: 'openai-completions',
+          reasoning: true,
+          input: ['text'],
+          contextWindow: 1000000,
+          maxTokens: 384000,
+          cost: {
+            input: 1.74,
+            output: 3.84,
+            cacheRead: 0.145,
             cacheWrite: 0,
           },
         },
@@ -12645,14 +12645,14 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
-        modelId: 'minimax-m3-free',
-        name: 'MiniMax M3 Free',
+        modelId: 'nemotron-3-ultra-free',
+        name: 'Nemotron 3 Ultra Free',
         config: {
-          api: 'anthropic-messages',
+          api: 'openai-completions',
           reasoning: true,
-          input: ['text', 'image'],
-          contextWindow: 200000,
-          maxTokens: 32000,
+          input: ['text'],
+          contextWindow: 1000000,
+          maxTokens: 128000,
           cost: {
             input: 0,
             output: 0,
@@ -12662,14 +12662,14 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
-        modelId: 'nemotron-3-ultra-free',
-        name: 'Nemotron 3 Ultra Free',
+        modelId: 'north-mini-code-free',
+        name: 'North Mini Code Free',
         config: {
           api: 'openai-completions',
           reasoning: true,
           input: ['text'],
-          contextWindow: 1000000,
-          maxTokens: 128000,
+          contextWindow: 256000,
+          maxTokens: 64000,
           cost: {
             input: 0,
             output: 0,
@@ -12791,23 +12791,6 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
-        modelId: 'kimi-k2.5',
-        name: 'Kimi K2.5',
-        config: {
-          api: 'openai-completions',
-          reasoning: true,
-          input: ['text', 'image'],
-          contextWindow: 262144,
-          maxTokens: 65536,
-          cost: {
-            input: 0.6,
-            output: 3,
-            cacheRead: 0.1,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
         modelId: 'kimi-k2.6',
         name: 'Kimi K2.6',
         config: {
@@ -12820,6 +12803,23 @@ export const builtinProviders: Record<string, any> = {
             input: 0.95,
             output: 4,
             cacheRead: 0.16,
+            cacheWrite: 0,
+          },
+        },
+      },
+      {
+        modelId: 'kimi-k2.7-code',
+        name: 'Kimi K2.7 Code',
+        config: {
+          api: 'openai-completions',
+          reasoning: true,
+          input: ['text', 'image'],
+          contextWindow: 262144,
+          maxTokens: 262144,
+          cost: {
+            input: 0.95,
+            output: 4,
+            cacheRead: 0.19,
             cacheWrite: 0,
           },
         },
@@ -12859,23 +12859,6 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
-        modelId: 'minimax-m2.5',
-        name: 'MiniMax M2.5',
-        config: {
-          api: 'anthropic-messages',
-          reasoning: true,
-          input: ['text'],
-          contextWindow: 204800,
-          maxTokens: 65536,
-          cost: {
-            input: 0.3,
-            output: 1.2,
-            cacheRead: 0.03,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
         modelId: 'minimax-m2.7',
         name: 'MiniMax M2.7',
         config: {
@@ -12894,7 +12877,7 @@ export const builtinProviders: Record<string, any> = {
       },
       {
         modelId: 'minimax-m3',
-        name: 'MiniMax M3',
+        name: 'MiniMax M3 (3x usage)',
         config: {
           api: 'anthropic-messages',
           reasoning: true,
@@ -12902,9 +12885,9 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 512000,
           maxTokens: 131072,
           cost: {
-            input: 0.6,
-            output: 2.4,
-            cacheRead: 0.12,
+            input: 0.1,
+            output: 0.4,
+            cacheRead: 0.02,
             cacheWrite: 0,
           },
         },
@@ -12916,7 +12899,7 @@ export const builtinProviders: Record<string, any> = {
           api: 'openai-completions',
           reasoning: true,
           input: ['text', 'image'],
-          contextWindow: 262144,
+          contextWindow: 1000000,
           maxTokens: 65536,
           cost: {
             input: 0.5,
@@ -12950,7 +12933,7 @@ export const builtinProviders: Record<string, any> = {
           api: 'anthropic-messages',
           reasoning: true,
           input: ['text', 'image'],
-          contextWindow: 262144,
+          contextWindow: 1000000,
           maxTokens: 65536,
           cost: {
             input: 0.4,
@@ -12971,23 +12954,6 @@ export const builtinProviders: Record<string, any> = {
     },
     models: [
       {
-        modelId: 'MiniMaxAI/MiniMax-M2.5',
-        name: 'MiniMax-M2.5',
-        config: {
-          api: 'openai-completions',
-          reasoning: true,
-          input: ['text'],
-          contextWindow: 204800,
-          maxTokens: 131072,
-          cost: {
-            input: 0.3,
-            output: 1.2,
-            cacheRead: 0.06,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
         modelId: 'MiniMaxAI/MiniMax-M2.7',
         name: 'MiniMax-M2.7',
         config: {
@@ -13005,25 +12971,42 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
-        modelId: 'Qwen/Qwen3-235B-A22B-Instruct-2507-tput',
-        name: 'Qwen3 235B A22B Instruct 2507 FP8',
+        modelId: 'MiniMaxAI/MiniMax-M3',
+        name: 'MiniMax-M3',
         config: {
           api: 'openai-completions',
           reasoning: true,
-          input: ['text'],
-          contextWindow: 262144,
-          maxTokens: 262144,
+          input: ['text', 'image'],
+          contextWindow: 524288,
+          maxTokens: 250000,
           cost: {
-            input: 0.2,
-            output: 0.6,
+            input: 0.3,
+            output: 1.2,
+            cacheRead: 0.06,
+            cacheWrite: 0,
+          },
+        },
+      },
+      {
+        modelId: 'Qwen/Qwen2.5-7B-Instruct-Turbo',
+        name: 'Qwen 2.5 7B Instruct Turbo',
+        config: {
+          api: 'openai-completions',
+          reasoning: false,
+          input: ['text'],
+          contextWindow: 32768,
+          maxTokens: 32768,
+          cost: {
+            input: 0.3,
+            output: 0.3,
             cacheRead: 0,
             cacheWrite: 0,
           },
         },
       },
       {
-        modelId: 'Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8',
-        name: 'Qwen3 Coder 480B A35B Instruct',
+        modelId: 'Qwen/Qwen3-235B-A22B-Instruct-2507-tput',
+        name: 'Qwen3 235B A22B Instruct 2507 FP8',
         config: {
           api: 'openai-completions',
           reasoning: false,
@@ -13031,25 +13014,8 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 262144,
           maxTokens: 262144,
           cost: {
-            input: 2,
-            output: 2,
-            cacheRead: 0,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
-        modelId: 'Qwen/Qwen3-Coder-Next-FP8',
-        name: 'Qwen3 Coder Next FP8',
-        config: {
-          api: 'openai-completions',
-          reasoning: true,
-          input: ['text'],
-          contextWindow: 262144,
-          maxTokens: 262144,
-          cost: {
-            input: 0.5,
-            output: 1.2,
+            input: 0.2,
+            output: 0.6,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -13067,6 +13033,23 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 0.6,
             output: 3.6,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+        },
+      },
+      {
+        modelId: 'Qwen/Qwen3.5-9B',
+        name: 'Qwen3.5 9B',
+        config: {
+          api: 'openai-completions',
+          reasoning: true,
+          input: ['text', 'image'],
+          contextWindow: 262144,
+          maxTokens: 65536,
+          cost: {
+            input: 0.17,
+            output: 0.25,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -13094,47 +13077,13 @@ export const builtinProviders: Record<string, any> = {
         name: 'Qwen3.7 Max',
         config: {
           api: 'openai-completions',
-          reasoning: true,
+          reasoning: false,
           input: ['text'],
           contextWindow: 1000000,
           maxTokens: 500000,
           cost: {
             input: 2.5,
             output: 7.5,
-            cacheRead: 0,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
-        modelId: 'deepseek-ai/DeepSeek-V3',
-        name: 'DeepSeek V3',
-        config: {
-          api: 'openai-completions',
-          reasoning: true,
-          input: ['text'],
-          contextWindow: 131072,
-          maxTokens: 131072,
-          cost: {
-            input: 1.25,
-            output: 1.25,
-            cacheRead: 0,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
-        modelId: 'deepseek-ai/DeepSeek-V3-1',
-        name: 'DeepSeek V3.1',
-        config: {
-          api: 'openai-completions',
-          reasoning: true,
-          input: ['text'],
-          contextWindow: 131072,
-          maxTokens: 131072,
-          cost: {
-            input: 0.6,
-            output: 1.7,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -13150,8 +13099,8 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 512000,
           maxTokens: 384000,
           cost: {
-            input: 2.1,
-            output: 4.4,
+            input: 1.74,
+            output: 3.48,
             cacheRead: 0.2,
             cacheWrite: 0,
           },
@@ -13184,8 +13133,8 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 262144,
           maxTokens: 131072,
           cost: {
-            input: 0.2,
-            output: 0.5,
+            input: 0.39,
+            output: 0.97,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -13209,23 +13158,6 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
-        modelId: 'moonshotai/Kimi-K2.5',
-        name: 'Kimi K2.5',
-        config: {
-          api: 'openai-completions',
-          reasoning: true,
-          input: ['text', 'image'],
-          contextWindow: 262144,
-          maxTokens: 262144,
-          cost: {
-            input: 0.5,
-            output: 2.8,
-            cacheRead: 0,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
         modelId: 'moonshotai/Kimi-K2.6',
         name: 'Kimi K2.6',
         config: {
@@ -13243,6 +13175,40 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
+        modelId: 'moonshotai/Kimi-K2.7-Code',
+        name: 'Kimi K2.7 Code',
+        config: {
+          api: 'openai-completions',
+          reasoning: true,
+          input: ['text'],
+          contextWindow: 262144,
+          maxTokens: 131072,
+          cost: {
+            input: 0.95,
+            output: 4,
+            cacheRead: 0.19,
+            cacheWrite: 0,
+          },
+        },
+      },
+      {
+        modelId: 'nvidia/nemotron-3-ultra-550b-a55b',
+        name: 'Nemotron 3 Ultra 550B A55B',
+        config: {
+          api: 'openai-completions',
+          reasoning: true,
+          input: ['text'],
+          contextWindow: 512300,
+          maxTokens: 512300,
+          cost: {
+            input: 0.6,
+            output: 3.6,
+            cacheRead: 0.2,
+            cacheWrite: 0,
+          },
+        },
+      },
+      {
         modelId: 'openai/gpt-oss-120b',
         name: 'GPT OSS 120B',
         config: {
@@ -13254,6 +13220,40 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 0.15,
             output: 0.6,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+        },
+      },
+      {
+        modelId: 'openai/gpt-oss-20b',
+        name: 'GPT OSS 20B',
+        config: {
+          api: 'openai-completions',
+          reasoning: true,
+          input: ['text'],
+          contextWindow: 131072,
+          maxTokens: 131072,
+          cost: {
+            input: 0.05,
+            output: 0.2,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+        },
+      },
+      {
+        modelId: 'zai-org/GLM-5',
+        name: 'GLM-5',
+        config: {
+          api: 'openai-completions',
+          reasoning: true,
+          input: ['text'],
+          contextWindow: 202752,
+          maxTokens: 131072,
+          cost: {
+            input: 1,
+            output: 3.2,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -13330,8 +13330,8 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 40960,
           maxTokens: 16384,
           cost: {
-            input: 0.08,
-            output: 0.29,
+            input: 0.12,
+            output: 0.5,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -13381,7 +13381,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 131072,
           maxTokens: 32768,
           cost: {
-            input: 0.39999999999999997,
+            input: 0.4,
             output: 4,
             cacheRead: 0,
             cacheWrite: 0,
@@ -13451,7 +13451,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 1,
             output: 5,
-            cacheRead: 0.19999999999999998,
+            cacheRead: 0.2,
             cacheWrite: 0,
           },
         },
@@ -13551,7 +13551,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 131072,
           maxTokens: 32768,
           cost: {
-            input: 0.39999999999999997,
+            input: 0.4,
             output: 4,
             cacheRead: 0,
             cacheWrite: 0,
@@ -13568,8 +13568,8 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 1000000,
           maxTokens: 64000,
           cost: {
-            input: 0.09999999999999999,
-            output: 0.39999999999999997,
+            input: 0.1,
+            output: 0.4,
             cacheRead: 0.001,
             cacheWrite: 0.125,
           },
@@ -13585,7 +13585,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 1000000,
           maxTokens: 64000,
           cost: {
-            input: 0.39999999999999997,
+            input: 0.4,
             output: 2.4,
             cacheRead: 0.04,
             cacheWrite: 0.5,
@@ -13603,7 +13603,7 @@ export const builtinProviders: Record<string, any> = {
           maxTokens: 256000,
           cost: {
             input: 0.6,
-            output: 3.5999999999999996,
+            output: 3.6,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -13621,7 +13621,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 0.5,
             output: 3,
-            cacheRead: 0.09999999999999999,
+            cacheRead: 0.1,
             cacheWrite: 0.625,
           },
         },
@@ -13653,8 +13653,8 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 1000000,
           maxTokens: 64000,
           cost: {
-            input: 0.39999999999999997,
-            output: 1.5999999999999999,
+            input: 0.4,
+            output: 1.6,
             cacheRead: 0.08,
             cacheWrite: 0.5,
           },
@@ -13687,7 +13687,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 200000,
           maxTokens: 8192,
           cost: {
-            input: 0.7999999999999999,
+            input: 0.8,
             output: 4,
             cacheRead: 0.08,
             cacheWrite: 1,
@@ -13706,7 +13706,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 1,
             output: 5,
-            cacheRead: 0.09999999999999999,
+            cacheRead: 0.1,
             cacheWrite: 1.25,
           },
         },
@@ -13892,7 +13892,7 @@ export const builtinProviders: Record<string, any> = {
           maxTokens: 80000,
           cost: {
             input: 0.25,
-            output: 0.8999999999999999,
+            output: 0.9,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -13910,7 +13910,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 0.25,
             output: 2,
-            cacheRead: 0.049999999999999996,
+            cacheRead: 0.05,
             cacheWrite: 0,
           },
         },
@@ -14069,40 +14069,6 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
-        modelId: 'google/gemini-2.0-flash',
-        name: 'Gemini 2.0 Flash',
-        config: {
-          api: 'anthropic-messages',
-          reasoning: false,
-          input: ['text', 'image'],
-          contextWindow: 1048576,
-          maxTokens: 8192,
-          cost: {
-            input: 0.15,
-            output: 0.6,
-            cacheRead: 0.024999999999999998,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
-        modelId: 'google/gemini-2.0-flash-lite',
-        name: 'Gemini 2.0 Flash Lite',
-        config: {
-          api: 'anthropic-messages',
-          reasoning: false,
-          input: ['text', 'image'],
-          contextWindow: 1048576,
-          maxTokens: 8192,
-          cost: {
-            input: 0.075,
-            output: 0.3,
-            cacheRead: 0.02,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
         modelId: 'google/gemini-2.5-flash',
         name: 'Gemini 2.5 Flash',
         config: {
@@ -14129,8 +14095,8 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 1048576,
           maxTokens: 65536,
           cost: {
-            input: 0.09999999999999999,
-            output: 0.39999999999999997,
+            input: 0.1,
+            output: 0.4,
             cacheRead: 0.01,
             cacheWrite: 0,
           },
@@ -14165,7 +14131,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 0.5,
             output: 3,
-            cacheRead: 0.049999999999999996,
+            cacheRead: 0.05,
             cacheWrite: 0,
           },
         },
@@ -14182,7 +14148,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 2,
             output: 12,
-            cacheRead: 0.19999999999999998,
+            cacheRead: 0.2,
             cacheWrite: 0,
           },
         },
@@ -14233,7 +14199,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 2,
             output: 12,
-            cacheRead: 0.19999999999999998,
+            cacheRead: 0.2,
             cacheWrite: 0,
           },
         },
@@ -14283,7 +14249,7 @@ export const builtinProviders: Record<string, any> = {
           maxTokens: 131072,
           cost: {
             input: 0.14,
-            output: 0.39999999999999997,
+            output: 0.4,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -14301,7 +14267,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 0.25,
             output: 0.75,
-            cacheRead: 0.024999999999999998,
+            cacheRead: 0.025,
             cacheWrite: 0,
           },
         },
@@ -14453,7 +14419,7 @@ export const builtinProviders: Record<string, any> = {
           maxTokens: 8192,
           cost: {
             input: 0.24,
-            output: 0.9700000000000001,
+            output: 0.97,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -14469,7 +14435,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 128000,
           maxTokens: 8192,
           cost: {
-            input: 0.16999999999999998,
+            input: 0.17,
             output: 0.66,
             cacheRead: 0,
             cacheWrite: 0,
@@ -14623,7 +14589,7 @@ export const builtinProviders: Record<string, any> = {
           maxTokens: 4000,
           cost: {
             input: 0.3,
-            output: 0.8999999999999999,
+            output: 0.9,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -14639,7 +14605,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 256000,
           maxTokens: 256000,
           cost: {
-            input: 0.39999999999999997,
+            input: 0.4,
             output: 2,
             cacheRead: 0,
             cacheWrite: 0,
@@ -14656,7 +14622,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 128000,
           maxTokens: 64000,
           cost: {
-            input: 0.09999999999999999,
+            input: 0.1,
             output: 0.3,
             cacheRead: 0,
             cacheWrite: 0,
@@ -14673,7 +14639,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 256000,
           maxTokens: 256000,
           cost: {
-            input: 0.09999999999999999,
+            input: 0.1,
             output: 0.3,
             cacheRead: 0,
             cacheWrite: 0,
@@ -14690,8 +14656,8 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 128000,
           maxTokens: 4000,
           cost: {
-            input: 0.09999999999999999,
-            output: 0.09999999999999999,
+            input: 0.1,
+            output: 0.1,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -14724,7 +14690,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 128000,
           maxTokens: 64000,
           cost: {
-            input: 0.39999999999999997,
+            input: 0.4,
             output: 2,
             cacheRead: 0,
             cacheWrite: 0,
@@ -14775,7 +14741,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 32000,
           maxTokens: 4000,
           cost: {
-            input: 0.09999999999999999,
+            input: 0.1,
             output: 0.3,
             cacheRead: 0,
             cacheWrite: 0,
@@ -14826,7 +14792,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 131072,
           maxTokens: 131072,
           cost: {
-            input: 0.5700000000000001,
+            input: 0.57,
             output: 2.3,
             cacheRead: 0,
             cacheWrite: 0,
@@ -14851,40 +14817,6 @@ export const builtinProviders: Record<string, any> = {
         },
       },
       {
-        modelId: 'moonshotai/kimi-k2-thinking-turbo',
-        name: 'Kimi K2 Thinking Turbo',
-        config: {
-          api: 'anthropic-messages',
-          reasoning: true,
-          input: ['text'],
-          contextWindow: 262114,
-          maxTokens: 262114,
-          cost: {
-            input: 1.15,
-            output: 8,
-            cacheRead: 0.15,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
-        modelId: 'moonshotai/kimi-k2-turbo',
-        name: 'Kimi K2 Turbo',
-        config: {
-          api: 'anthropic-messages',
-          reasoning: false,
-          input: ['text'],
-          contextWindow: 256000,
-          maxTokens: 16384,
-          cost: {
-            input: 1.15,
-            output: 8,
-            cacheRead: 0.15,
-            cacheWrite: 0,
-          },
-        },
-      },
-      {
         modelId: 'moonshotai/kimi-k2.5',
         name: 'Kimi K2.5',
         config: {
@@ -14896,7 +14828,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 0.6,
             output: 3,
-            cacheRead: 0.09999999999999999,
+            cacheRead: 0.1,
             cacheWrite: 0,
           },
         },
@@ -14914,6 +14846,23 @@ export const builtinProviders: Record<string, any> = {
             input: 0.95,
             output: 4,
             cacheRead: 0.16,
+            cacheWrite: 0,
+          },
+        },
+      },
+      {
+        modelId: 'moonshotai/kimi-k2.7-code',
+        name: 'Kimi K2.7 Code',
+        config: {
+          api: 'anthropic-messages',
+          reasoning: true,
+          input: ['text', 'image'],
+          contextWindow: 256000,
+          maxTokens: 32768,
+          cost: {
+            input: 0.95,
+            output: 4,
+            cacheRead: 0.19,
             cacheWrite: 0,
           },
         },
@@ -14942,12 +14891,12 @@ export const builtinProviders: Record<string, any> = {
           api: 'anthropic-messages',
           reasoning: true,
           input: ['text'],
-          contextWindow: 262144,
+          contextWindow: 1000000,
           maxTokens: 65000,
           cost: {
-            input: 0.5,
-            output: 2.5,
-            cacheRead: 0.15,
+            input: 0.6,
+            output: 2.4,
+            cacheRead: 0.12,
             cacheWrite: 0,
           },
         },
@@ -14962,7 +14911,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 131072,
           maxTokens: 131072,
           cost: {
-            input: 0.19999999999999998,
+            input: 0.2,
             output: 0.6,
             cacheRead: 0,
             cacheWrite: 0,
@@ -14980,7 +14929,7 @@ export const builtinProviders: Record<string, any> = {
           maxTokens: 131072,
           cost: {
             input: 0.06,
-            output: 0.22999999999999998,
+            output: 0.23,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -15030,9 +14979,9 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 1047576,
           maxTokens: 32768,
           cost: {
-            input: 0.39999999999999997,
-            output: 1.5999999999999999,
-            cacheRead: 0.09999999999999999,
+            input: 0.4,
+            output: 1.6,
+            cacheRead: 0.1,
             cacheWrite: 0,
           },
         },
@@ -15047,9 +14996,9 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 1047576,
           maxTokens: 32768,
           cost: {
-            input: 0.09999999999999999,
-            output: 0.39999999999999997,
-            cacheRead: 0.024999999999999998,
+            input: 0.1,
+            output: 0.4,
+            cacheRead: 0.025,
             cacheWrite: 0,
           },
         },
@@ -15151,7 +15100,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 0.25,
             output: 2,
-            cacheRead: 0.024999999999999998,
+            cacheRead: 0.025,
             cacheWrite: 0,
           },
         },
@@ -15166,8 +15115,8 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 400000,
           maxTokens: 128000,
           cost: {
-            input: 0.049999999999999996,
-            output: 0.39999999999999997,
+            input: 0.05,
+            output: 0.4,
             cacheRead: 0.005,
             cacheWrite: 0,
           },
@@ -15236,7 +15185,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 0.25,
             output: 2,
-            cacheRead: 0.024999999999999998,
+            cacheRead: 0.025,
             cacheWrite: 0,
           },
         },
@@ -15421,7 +15370,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 400000,
           maxTokens: 128000,
           cost: {
-            input: 0.19999999999999998,
+            input: 0.2,
             output: 1.25,
             cacheRead: 0.02,
             cacheWrite: 0,
@@ -15506,8 +15455,8 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 131072,
           maxTokens: 8192,
           cost: {
-            input: 0.049999999999999996,
-            output: 0.19999999999999998,
+            input: 0.05,
+            output: 0.2,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -15693,7 +15642,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 256000,
           maxTokens: 256000,
           cost: {
-            input: 0.19999999999999998,
+            input: 0.2,
             output: 1.15,
             cacheRead: 0.04,
             cacheWrite: 0,
@@ -15710,9 +15659,9 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 1000000,
           maxTokens: 1000000,
           cost: {
-            input: 0.19999999999999998,
+            input: 0.2,
             output: 0.5,
-            cacheRead: 0.049999999999999996,
+            cacheRead: 0.05,
             cacheWrite: 0,
           },
         },
@@ -15727,9 +15676,9 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 1000000,
           maxTokens: 1000000,
           cost: {
-            input: 0.19999999999999998,
+            input: 0.2,
             output: 0.5,
-            cacheRead: 0.049999999999999996,
+            cacheRead: 0.05,
             cacheWrite: 0,
           },
         },
@@ -15746,7 +15695,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 1.25,
             output: 2.5,
-            cacheRead: 0.19999999999999998,
+            cacheRead: 0.2,
             cacheWrite: 0,
           },
         },
@@ -15763,7 +15712,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 1.25,
             output: 2.5,
-            cacheRead: 0.19999999999999998,
+            cacheRead: 0.2,
             cacheWrite: 0,
           },
         },
@@ -15780,7 +15729,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 1.25,
             output: 2.5,
-            cacheRead: 0.19999999999999998,
+            cacheRead: 0.2,
             cacheWrite: 0,
           },
         },
@@ -15797,7 +15746,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 1.25,
             output: 2.5,
-            cacheRead: 0.19999999999999998,
+            cacheRead: 0.2,
             cacheWrite: 0,
           },
         },
@@ -15814,7 +15763,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 1.25,
             output: 2.5,
-            cacheRead: 0.19999999999999998,
+            cacheRead: 0.2,
             cacheWrite: 0,
           },
         },
@@ -15831,7 +15780,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 1.25,
             output: 2.5,
-            cacheRead: 0.19999999999999998,
+            cacheRead: 0.2,
             cacheWrite: 0,
           },
         },
@@ -15848,7 +15797,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 1.25,
             output: 2.5,
-            cacheRead: 0.19999999999999998,
+            cacheRead: 0.2,
             cacheWrite: 0,
           },
         },
@@ -15865,7 +15814,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 1,
             output: 2,
-            cacheRead: 0.19999999999999998,
+            cacheRead: 0.2,
             cacheWrite: 0,
           },
         },
@@ -15880,7 +15829,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 262144,
           maxTokens: 32000,
           cost: {
-            input: 0.09999999999999999,
+            input: 0.1,
             output: 0.3,
             cacheRead: 0.01,
             cacheWrite: 0,
@@ -15899,7 +15848,7 @@ export const builtinProviders: Record<string, any> = {
           cost: {
             input: 1,
             output: 3,
-            cacheRead: 0.19999999999999998,
+            cacheRead: 0.2,
             cacheWrite: 0,
           },
         },
@@ -15965,7 +15914,7 @@ export const builtinProviders: Record<string, any> = {
           contextWindow: 128000,
           maxTokens: 96000,
           cost: {
-            input: 0.19999999999999998,
+            input: 0.2,
             output: 1.1,
             cacheRead: 0.03,
             cacheWrite: 0,
@@ -15983,7 +15932,7 @@ export const builtinProviders: Record<string, any> = {
           maxTokens: 16000,
           cost: {
             input: 0.6,
-            output: 1.7999999999999998,
+            output: 1.8,
             cacheRead: 0.11,
             cacheWrite: 0,
           },
@@ -16017,8 +15966,8 @@ export const builtinProviders: Record<string, any> = {
           maxTokens: 24000,
           cost: {
             input: 0.3,
-            output: 0.8999999999999999,
-            cacheRead: 0.049999999999999996,
+            output: 0.9,
+            cacheRead: 0.05,
             cacheWrite: 0,
           },
         },
@@ -16068,7 +16017,7 @@ export const builtinProviders: Record<string, any> = {
           maxTokens: 131000,
           cost: {
             input: 0.07,
-            output: 0.39999999999999997,
+            output: 0.4,
             cacheRead: 0,
             cacheWrite: 0,
           },
@@ -16085,7 +16034,7 @@ export const builtinProviders: Record<string, any> = {
           maxTokens: 128000,
           cost: {
             input: 0.06,
-            output: 0.39999999999999997,
+            output: 0.4,
             cacheRead: 0.01,
             cacheWrite: 0,
           },
@@ -16102,8 +16051,8 @@ export const builtinProviders: Record<string, any> = {
           maxTokens: 131100,
           cost: {
             input: 1,
-            output: 3.1999999999999997,
-            cacheRead: 0.19999999999999998,
+            output: 3.2,
+            cacheRead: 0.2,
             cacheWrite: 0,
           },
         },
@@ -16210,7 +16159,7 @@ export const builtinProviders: Record<string, any> = {
           api: 'openai-completions',
           reasoning: false,
           input: ['text', 'image'],
-          contextWindow: 2000000,
+          contextWindow: 1000000,
           maxTokens: 30000,
           cost: {
             input: 1.25,
@@ -16227,7 +16176,7 @@ export const builtinProviders: Record<string, any> = {
           api: 'openai-completions',
           reasoning: true,
           input: ['text', 'image'],
-          contextWindow: 2000000,
+          contextWindow: 1000000,
           maxTokens: 30000,
           cost: {
             input: 1.25,
@@ -16383,6 +16332,23 @@ export const builtinProviders: Record<string, any> = {
           },
         },
       },
+      {
+        modelId: 'mimo-v2.5-pro-ultraspeed',
+        name: 'MiMo-V2.5-Pro-UltraSpeed',
+        config: {
+          api: 'openai-completions',
+          reasoning: true,
+          input: ['text'],
+          contextWindow: 1048576,
+          maxTokens: 131072,
+          cost: {
+            input: 1.305,
+            output: 2.61,
+            cacheRead: 0.0108,
+            cacheWrite: 0,
+          },
+        },
+      },
     ],
   },
   'xiaomi-token-plan-ams': {
@@ -16457,6 +16423,23 @@ export const builtinProviders: Record<string, any> = {
             input: 1,
             output: 3,
             cacheRead: 0.2,
+            cacheWrite: 0,
+          },
+        },
+      },
+      {
+        modelId: 'mimo-v2.5-pro-ultraspeed',
+        name: 'MiMo-V2.5-Pro-UltraSpeed',
+        config: {
+          api: 'openai-completions',
+          reasoning: true,
+          input: ['text'],
+          contextWindow: 1048576,
+          maxTokens: 131072,
+          cost: {
+            input: 1.305,
+            output: 2.61,
+            cacheRead: 0.0108,
             cacheWrite: 0,
           },
         },
@@ -16539,6 +16522,23 @@ export const builtinProviders: Record<string, any> = {
           },
         },
       },
+      {
+        modelId: 'mimo-v2.5-pro-ultraspeed',
+        name: 'MiMo-V2.5-Pro-UltraSpeed',
+        config: {
+          api: 'openai-completions',
+          reasoning: true,
+          input: ['text'],
+          contextWindow: 1048576,
+          maxTokens: 131072,
+          cost: {
+            input: 1.305,
+            output: 2.61,
+            cacheRead: 0.0108,
+            cacheWrite: 0,
+          },
+        },
+      },
     ],
   },
   'xiaomi-token-plan-sgp': {
@@ -16617,6 +16617,23 @@ export const builtinProviders: Record<string, any> = {
           },
         },
       },
+      {
+        modelId: 'mimo-v2.5-pro-ultraspeed',
+        name: 'MiMo-V2.5-Pro-UltraSpeed',
+        config: {
+          api: 'openai-completions',
+          reasoning: true,
+          input: ['text'],
+          contextWindow: 1048576,
+          maxTokens: 131072,
+          cost: {
+            input: 1.305,
+            output: 2.61,
+            cacheRead: 0.0108,
+            cacheWrite: 0,
+          },
+        },
+      },
     ],
   },
   zai: {
@@ -16686,6 +16703,23 @@ export const builtinProviders: Record<string, any> = {
           reasoning: true,
           input: ['text'],
           contextWindow: 200000,
+          maxTokens: 131072,
+          cost: {
+            input: 0,
+            output: 0,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+        },
+      },
+      {
+        modelId: 'glm-5.2',
+        name: 'GLM-5.2',
+        config: {
+          api: 'openai-completions',
+          reasoning: true,
+          input: ['text'],
+          contextWindow: 1000000,
           maxTokens: 131072,
           cost: {
             input: 0,
@@ -16781,6 +16815,23 @@ export const builtinProviders: Record<string, any> = {
           reasoning: true,
           input: ['text'],
           contextWindow: 200000,
+          maxTokens: 131072,
+          cost: {
+            input: 0,
+            output: 0,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
+        },
+      },
+      {
+        modelId: 'glm-5.2',
+        name: 'GLM-5.2',
+        config: {
+          api: 'openai-completions',
+          reasoning: true,
+          input: ['text'],
+          contextWindow: 1000000,
           maxTokens: 131072,
           cost: {
             input: 0,
