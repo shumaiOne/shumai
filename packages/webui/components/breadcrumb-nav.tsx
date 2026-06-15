@@ -240,65 +240,67 @@ export function BreadcrumbNav({
         )}
       </div>
 
-      <div className="flex flex-shrink-0 items-center gap-1 rounded-md border border-border bg-background p-1">
-        {/* Left Sidebar Toggle */}
-        {!isPublic && onLeftSidebarToggle && (
+      {!fileId && (
+        <div className="flex flex-shrink-0 items-center gap-1 rounded-md border border-border bg-background p-1">
+          {/* Left Sidebar Toggle */}
+          {!isPublic && onLeftSidebarToggle && (
+            <button
+              onClick={onLeftSidebarToggle}
+              className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+              title={isLeftSidebarCollapsed ? 'Show Left Sidebar' : 'Hide Left Sidebar'}
+            >
+              {isLeftSidebarCollapsed ? (
+                <DockToLeft className="h-4 w-4" />
+              ) : (
+                <DockToLeftFilled className="h-4 w-4 fill-primary stroke-0" />
+              )}
+            </button>
+          )}
+
+          {/* Card View */}
+          {!isPublic && displayStyle && onDisplayStyleChange && (
+            <>
+              <button
+                onClick={() => onDisplayStyleChange('card')}
+                className={`rounded p-1.5 transition-colors ${
+                  displayStyle === 'card'
+                    ? 'bg-accent text-accent-foreground'
+                    : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                }`}
+                title="Card View"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+
+              {/* List View */}
+              <button
+                onClick={() => onDisplayStyleChange('list')}
+                className={`rounded p-1.5 transition-colors ${
+                  displayStyle === 'list'
+                    ? 'bg-accent text-accent-foreground'
+                    : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                }`}
+                title="List View"
+              >
+                <List className="h-4 w-4" />
+              </button>
+            </>
+          )}
+
+          {/* Right Sidebar Toggle */}
           <button
-            onClick={onLeftSidebarToggle}
+            onClick={onRightSidebarToggle}
             className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-            title={isLeftSidebarCollapsed ? 'Show Left Sidebar' : 'Hide Left Sidebar'}
+            title={isRightSidebarCollapsed ? 'Show Right Sidebar' : 'Hide Right Sidebar'}
           >
-            {isLeftSidebarCollapsed ? (
-              <DockToLeft className="h-4 w-4" />
+            {isRightSidebarCollapsed ? (
+              <DockToRight className="h-4 w-4" />
             ) : (
-              <DockToLeftFilled className="h-4 w-4 fill-primary stroke-0" />
+              <DockToRightFilled className="h-4 w-4 fill-primary stroke-0" />
             )}
           </button>
-        )}
-
-        {/* Card View */}
-        {!isPublic && displayStyle && onDisplayStyleChange && (
-          <>
-            <button
-              onClick={() => onDisplayStyleChange('card')}
-              className={`rounded p-1.5 transition-colors ${
-                displayStyle === 'card'
-                  ? 'bg-accent text-accent-foreground'
-                  : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-              }`}
-              title="Card View"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </button>
-
-            {/* List View */}
-            <button
-              onClick={() => onDisplayStyleChange('list')}
-              className={`rounded p-1.5 transition-colors ${
-                displayStyle === 'list'
-                  ? 'bg-accent text-accent-foreground'
-                  : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-              }`}
-              title="List View"
-            >
-              <List className="h-4 w-4" />
-            </button>
-          </>
-        )}
-
-        {/* Right Sidebar Toggle */}
-        <button
-          onClick={onRightSidebarToggle}
-          className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-          title={isRightSidebarCollapsed ? 'Show Right Sidebar' : 'Hide Right Sidebar'}
-        >
-          {isRightSidebarCollapsed ? (
-            <DockToRight className="h-4 w-4" />
-          ) : (
-            <DockToRightFilled className="h-4 w-4 fill-primary stroke-0" />
-          )}
-        </button>
-      </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -203,11 +203,13 @@ describe('Sandbox Network isolation integration', () => {
 
     // Mock SandboxManager.initialize to behave like a process-global singleton
     let registeredCallback: SandboxAskCallback | null = null
-    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockImplementation(async (config, cb) => {
-      if (!registeredCallback) {
-        registeredCallback = cb || null
-      }
-    })
+    const initializeSpy = vi
+      .spyOn(SandboxManager, 'initialize')
+      .mockImplementation(async (config, cb) => {
+        if (!registeredCallback) {
+          registeredCallback = cb || null
+        }
+      })
     const resetSpy = vi.spyOn(SandboxManager, 'reset').mockImplementation(async () => {
       // In the real SandboxManager, reset clears the global initialization promise and servers,
       // which allows subsequent initialize calls to register a new callback.

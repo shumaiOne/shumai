@@ -7,12 +7,11 @@ import { FileDetailSkeleton } from '@/ui/components/loading-skeletons'
 import { useMemberStore } from '@/ui/stores/members'
 import { useTeamContextStore } from '@/ui/stores/team-context'
 import { useTopNavStore } from '@/ui/stores/top-nav'
-import { useUiStore } from '@/ui/stores/ui'
 import { type Annotation } from '@/ui/types'
 import { useMutation } from '@tanstack/react-query'
 import { InferRequestType, InferResponseType } from 'hono/client'
 
-import type { AssetInfo, CommentInfo } from '@shumai/dtos'
+import type { AssetInfo, AssetInfoPaginatedList, CommentInfo } from '@shumai/dtos'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
@@ -26,17 +25,17 @@ function FileViewPage() {
   const activeFileId = versionAssetId || fileId
 
   const videoRef = useRef<Player | null>(null)
-  const {
-    fileViewRightSidebarCollapsed: isRightSidebarCollapsed,
-    fileViewLeftSidebarCollapsed: isLeftSidebarCollapsed,
-    setFileViewLeftSidebarCollapsed: setIsLeftSidebarCollapsed,
-  } = useUiStore()
   const { teamId, ensureTeamIdForProject } = useTeamContextStore()
-  const [leftSidebarWidth, setLeftSidebarWidth] = useState(280)
   const [rightSidebarWidth, setRightSidebarWidth] = useState(360)
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [currentTime, setCurrentTime] = useState(0)
   const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null)
+  const [carouselState, setCarouselState] = useState<{
+    show: boolean
+    files: AssetInfo[]
+    nextCursor?: string
+    folderId?: string
+  }>({ show: false, files: [], nextCursor: undefined, folderId: undefined })
   const $patchMetadata = client.api.files[':fileId'].metadata.$patch
   const { mutate: patchMetadata } = useMutation<
     InferResponseType<typeof $patchMetadata>,
@@ -171,6 +170,92 @@ function FileViewPage() {
     navigate,
   ])
 
+  const parentFolderId =
+    fileData?.ancestorFolders?.[fileData.ancestorFolders.length - 1]?.id ??
+    projectInfo?.rootFolder ??
+    ''
+
+  useEffect(() => {
+    if (!parentFolderId || !activeFileId) return
+    if (carouselState.folderId === parentFolderId) {
+      return
+    }
+
+    let isMounted = true
+
+    const fetchCarouselData = async () => {
+      try {
+        let cursor = ''
+        let found = false
+        const allFiles: AssetInfo[] = []
+        let lastCursor: string | undefined = undefined
+
+        for (let batch = 0; batch < 5; batch++) {
+          const res = await client.api.folders[':folderId'].search.$post({
+            param: { folderId: parentFolderId },
+            json: {
+              assetType: 'file',
+              after: cursor,
+              first: 200,
+              recursively: false,
+              conditions: [],
+            },
+          })
+          if (!res.ok) {
+            throw new Error('Failed to search parent folder for carousel')
+          }
+          const result = (await res.json()) as unknown as AssetInfoPaginatedList
+          const batchFiles = (result.data || []) as AssetInfo[]
+          allFiles.push(...batchFiles)
+
+          if (batchFiles.some((f) => f.id === activeFileId)) {
+            found = true
+            lastCursor = result.pageInfo?.cursor || undefined
+            break
+          }
+          if (!result.pageInfo?.cursor || batchFiles.length < 200) {
+            break
+          }
+          cursor = result.pageInfo.cursor
+        }
+
+        if (isMounted) {
+          if (found) {
+            setCarouselState({
+              show: true,
+              files: allFiles,
+              nextCursor: lastCursor,
+              folderId: parentFolderId,
+            })
+          } else {
+            setCarouselState({
+              show: false,
+              files: [],
+              nextCursor: undefined,
+              folderId: parentFolderId,
+            })
+          }
+        }
+      } catch (err) {
+        console.error(err)
+        if (isMounted) {
+          setCarouselState({
+            show: false,
+            files: [],
+            nextCursor: undefined,
+            folderId: parentFolderId,
+          })
+        }
+      }
+    }
+
+    fetchCarouselData()
+
+    return () => {
+      isMounted = false
+    }
+  }, [parentFolderId, activeFileId, carouselState.folderId])
+
   if (isLoading && !fileData) {
     return <FileDetailSkeleton />
   }
@@ -225,28 +310,6 @@ function FileViewPage() {
   return (
     <div className="h-full flex flex-1 flex-col bg-background">
       <div className="h-full flex flex-1 overflow-hidden">
-        {!isLeftSidebarCollapsed && (
-          <>
-            <div style={{ width: leftSidebarWidth }} className="flex-shrink-0">
-              <FileViewerLeftSidebar
-                projectId={projectId}
-                currentAssetId={activeFileId}
-                parentFolderId={
-                  fileData.ancestorFolders?.[fileData.ancestorFolders.length - 1]?.id ??
-                  projectInfo.rootFolder ??
-                  ''
-                }
-                onCollapse={() => setIsLeftSidebarCollapsed(true)}
-              />
-            </div>
-            <ResizeHandle
-              onResize={(delta) => {
-                setLeftSidebarWidth((prev) => Math.max(200, Math.min(500, prev + delta)))
-              }}
-              className="hidden md:block"
-            />
-          </>
-        )}
         <div className="flex-1 relative">
           {isFetching && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
@@ -259,35 +322,41 @@ function FileViewPage() {
             onPlay={handlePlay}
             onTimeUpdate={setCurrentTime}
             annotations={annotations}
+          >
+            {carouselState.show && (
+              <FileViewerLeftSidebar
+                projectId={projectId}
+                currentAssetId={activeFileId}
+                parentFolderId={parentFolderId}
+                initialFiles={carouselState.files}
+                initialNextCursor={carouselState.nextCursor}
+              />
+            )}
+          </FileViewer>
+        </div>
+        <ResizeHandle
+          onResize={(delta) => {
+            setRightSidebarWidth((prev) => Math.max(300, Math.min(600, prev - delta)))
+          }}
+          className="hidden md:block"
+        />
+        <div style={{ width: rightSidebarWidth }} className="flex-shrink-0">
+          <FileViewerRightSidebar
+            teamId={teamId}
+            projectId={projectId}
+            file={fileData as unknown as AssetInfo}
+            onSaveField={handleSaveField}
+            members={members}
+            onCommentSelect={handleCommentSelect}
+            currentTime={currentTime}
+            onTyping={() => {
+              if (videoRef.current) {
+                videoRef.current.pause()
+              }
+            }}
+            selectedCommentId={selectedCommentId}
           />
         </div>
-        {!isRightSidebarCollapsed && (
-          <>
-            <ResizeHandle
-              onResize={(delta) => {
-                setRightSidebarWidth((prev) => Math.max(300, Math.min(600, prev - delta)))
-              }}
-              className="hidden md:block"
-            />
-            <div style={{ width: rightSidebarWidth }} className="flex-shrink-0">
-              <FileViewerRightSidebar
-                teamId={teamId}
-                projectId={projectId}
-                file={fileData as unknown as AssetInfo}
-                onSaveField={handleSaveField}
-                members={members}
-                onCommentSelect={handleCommentSelect}
-                currentTime={currentTime}
-                onTyping={() => {
-                  if (videoRef.current) {
-                    videoRef.current.pause()
-                  }
-                }}
-                selectedCommentId={selectedCommentId}
-              />
-            </div>
-          </>
-        )}
       </div>
     </div>
   )
