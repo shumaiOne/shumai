@@ -40,11 +40,21 @@ export function useFileSystemDnd({
       queryKey: queryKeyPrefix,
     })
 
-    for (const [queryKey, oldData] of queries) {
-      if (!oldData) continue
+    const isSearchSort = (val: unknown): val is SearchSort => {
+      if (typeof val !== 'object' || val === null) return false
+      const obj = val as Record<string, unknown>
+      return (
+        'field' in obj &&
+        'order' in obj &&
+        typeof obj.field === 'string' &&
+        (obj.order === 'asc' || obj.order === 'desc')
+      )
+    }
 
-      const sort = queryKey[5] as SearchSort | undefined
-      const isDesc = sort?.order === 'desc'
+    for (const [queryKey, oldData] of queries) {
+      if (!oldData || !Array.isArray(oldData.pages)) continue
+
+      const sort = queryKey.find(isSearchSort)
 
       const allItems = oldData.pages.flatMap((page) => page.data ?? [])
 
@@ -55,13 +65,19 @@ export function useFileSystemDnd({
 
       allItems[itemIndex] = { ...allItems[itemIndex], ...updatedItem }
 
-      allItems.sort((a, b) => {
-        const indexA = a.sortIndex ?? ''
-        const indexB = b.sortIndex ?? ''
-        if (indexA === indexB) return 0
-        const comp = indexA.localeCompare(indexB)
-        return isDesc ? -comp : comp
-      })
+      if (sort?.field === 'custom') {
+        const isDesc = sort.order === 'desc'
+        allItems.sort((a, b) => {
+          const indexA = a.sortIndex ?? ''
+          const indexB = b.sortIndex ?? ''
+          if (indexA === indexB) return 0
+          if (isDesc) {
+            return indexA < indexB ? 1 : -1
+          } else {
+            return indexA < indexB ? -1 : 1
+          }
+        })
+      }
 
       let pointer = 0
       const newPages = oldData.pages.map((page) => {
