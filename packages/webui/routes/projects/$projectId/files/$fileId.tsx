@@ -310,15 +310,6 @@ function FileViewPage() {
   return (
     <div className="h-full flex flex-1 flex-col bg-background">
       <div className="h-full flex flex-1 overflow-hidden">
-        {carouselState.show && (
-          <FileViewerLeftSidebar
-            projectId={projectId}
-            currentAssetId={activeFileId}
-            parentFolderId={parentFolderId}
-            initialFiles={carouselState.files}
-            initialNextCursor={carouselState.nextCursor}
-          />
-        )}
         <div className="flex-1 relative">
           {isFetching && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
@@ -331,7 +322,17 @@ function FileViewPage() {
             onPlay={handlePlay}
             onTimeUpdate={setCurrentTime}
             annotations={annotations}
-          />
+          >
+            {carouselState.show && (
+              <FileViewerLeftSidebar
+                projectId={projectId}
+                currentAssetId={activeFileId}
+                parentFolderId={parentFolderId}
+                initialFiles={carouselState.files}
+                initialNextCursor={carouselState.nextCursor}
+              />
+            )}
+          </FileViewer>
         </div>
         <ResizeHandle
           onResize={(delta) => {

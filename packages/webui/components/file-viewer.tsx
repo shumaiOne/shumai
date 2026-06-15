@@ -2,7 +2,7 @@ import { useScreenSize } from '@/ui/hooks/useScreenSize'
 import { getBestTranscode } from '@/ui/lib/media'
 import type { AssetInfo } from '@shumai/dtos'
 import { Check, Copy, Download, Minus, Plus } from 'lucide-react'
-import type { RefObject } from 'react'
+import type { ReactNode, RefObject } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import type Player from 'video.js/dist/types/player'
 import DrawingCanvas from './drawing-canvas'
@@ -18,6 +18,7 @@ type FileViewerProps = {
   onPause?: () => void
   onTimeUpdate?: (time: number) => void
   annotations?: Annotation[]
+  children?: ReactNode
 }
 
 export function FileViewer({
@@ -27,6 +28,7 @@ export function FileViewer({
   onPause,
   onTimeUpdate,
   annotations,
+  children,
 }: FileViewerProps) {
   const { width: screenWidth } = useScreenSize()
   const isImage = file.mediaType?.startsWith('image/')
@@ -186,10 +188,28 @@ export function FileViewer({
     }
   }
 
-  if (!bestUrl) {
+  const isUnsupported = !bestUrl || (!isImage && !isVideo)
+
+  if (isUnsupported) {
     return (
-      <div className="flex flex-1 items-center justify-center">
-        <p className="text-muted-foreground">Preview unavailable</p>
+      <div className="flex flex-col flex-1 h-full overflow-hidden bg-gray-100 dark:bg-gray-950 relative">
+        <div className="flex-1 flex min-h-0 relative">
+          {children}
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-muted-foreground">Preview unavailable</p>
+          </div>
+        </div>
+        <div className="relative px-4 py-3 bg-card border-t border-gray-200 dark:border-gray-700 z-10 flex items-center justify-end gap-2 transition-colors duration-200">
+          <button
+            onClick={handleDownload}
+            disabled={!file.media?.original?.downloadUrl}
+            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded bg-gray-200/50 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors border border-transparent disabled:opacity-50 animate-in fade-in zoom-in-95 duration-200"
+            title="Download original file"
+          >
+            <Download size={14} />
+            Download
+          </button>
+        </div>
       </div>
     )
   }
@@ -201,26 +221,29 @@ export function FileViewer({
     <div className="flex flex-col flex-1 h-full overflow-hidden bg-gray-100 dark:bg-gray-950 relative">
       {isImage && (
         <>
-          <div ref={containerRef} className="flex-1 relative overflow-hidden">
-            <DrawingCanvas
-              width={conW}
-              height={conH}
-              mediaDimensions={{
-                width: imgW,
-                height: imgH,
-              }}
-              imageUrl={bestUrl}
-              annotations={displayAnnotations}
-              scale={zoom}
-              offset={pan}
-              onPan={setPan}
-              className="absolute inset-0 z-0"
-              // Drawing Props
-              isDrawing={isDrawing}
-              currentTool={currentTool}
-              currentColor={currentColor}
-              onAddAnnotation={addAnnotation}
-            />
+          <div className="flex-1 flex min-h-0 relative">
+            {children}
+            <div ref={containerRef} className="flex-1 relative overflow-hidden">
+              <DrawingCanvas
+                width={conW}
+                height={conH}
+                mediaDimensions={{
+                  width: imgW,
+                  height: imgH,
+                }}
+                imageUrl={bestUrl}
+                annotations={displayAnnotations}
+                scale={zoom}
+                offset={pan}
+                onPan={setPan}
+                className="absolute inset-0 z-0"
+                // Drawing Props
+                isDrawing={isDrawing}
+                currentTool={currentTool}
+                currentColor={currentColor}
+                onAddAnnotation={addAnnotation}
+              />
+            </div>
           </div>
           {/* Zoom Toolbar */}
           <div className="relative px-4 py-3 bg-card border-t border-gray-200 dark:border-gray-700 z-10 flex items-center justify-end gap-2 transition-colors duration-200">
@@ -278,7 +301,9 @@ export function FileViewer({
           onPause={onPause}
           onTimeUpdate={onTimeUpdate}
           annotations={displayAnnotations}
-        />
+        >
+          {children}
+        </VideoPlayer>
       )}
     </div>
   )

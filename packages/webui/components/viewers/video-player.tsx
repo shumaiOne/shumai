@@ -53,6 +53,7 @@ interface VideoPlayerProps {
   onPause?: () => void
   onTimeUpdate?: (time: number) => void
   annotations?: Annotation[]
+  children?: React.ReactNode
 }
 
 type DisplayTranscode = VideoTranscode & { resolution: string }
@@ -310,6 +311,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   onPause,
   onTimeUpdate,
   annotations,
+  children,
 }) => {
   const localPlayerRef = useRef<Player | null>(null)
   const playerRef = passedPlayerRef || localPlayerRef
@@ -797,49 +799,54 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Video Area */}
-      <div
-        ref={containerRef}
-        className={cn(
-          'w-full bg-black cursor-pointer relative flex items-center justify-center overflow-hidden flex-1 min-h-0',
-        )}
-        onClick={togglePlay}
-        data-vjs-player
-      >
-        {/* Hidden VideoJS container */}
-        <div ref={videoContainerRef} className="absolute inset-0 z-[-1]" />
+      <div className="flex-1 flex min-h-0 relative">
+        {/* Render Carousel/Sidebar here if not fullscreen */}
+        {!state.isFullScreen && children}
 
-        {/* Drawing Canvas (Visible) */}
-        {videoHtmlEl && containerSize.width > 0 && (
-          <DrawingCanvas
-            width={containerSize.width}
-            height={containerSize.height}
-            mediaDimensions={{
-              width: vidW,
-              height: vidH,
-            }}
-            videoElement={videoHtmlEl}
-            annotations={displayAnnotations}
-            scale={scale}
-            offset={{ x: panX, y: panY }}
-            className="absolute inset-0"
-            onClick={togglePlay}
-            // Drawing Props
-            isDrawing={isDrawing}
-            currentTool={currentTool}
-            currentColor={currentColor}
-            onAddAnnotation={addAnnotation}
-          />
-        )}
+        {/* Video Area */}
+        <div
+          ref={containerRef}
+          className={cn(
+            'flex-1 bg-black cursor-pointer relative flex items-center justify-center overflow-hidden min-h-0',
+          )}
+          onClick={togglePlay}
+          data-vjs-player
+        >
+          {/* Hidden VideoJS container */}
+          <div ref={videoContainerRef} className="absolute inset-0 z-[-1]" />
 
-        {/* Big Play Button Overlay (when paused) */}
-        {!state.isPlaying && !isDrawing && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none z-10">
-            <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center border-2 border-white/30 animate-pulse">
-              <Play className="w-10 h-10 text-white ml-1 fill-white" />
+          {/* Drawing Canvas (Visible) */}
+          {videoHtmlEl && containerSize.width > 0 && (
+            <DrawingCanvas
+              width={containerSize.width}
+              height={containerSize.height}
+              mediaDimensions={{
+                width: vidW,
+                height: vidH,
+              }}
+              videoElement={videoHtmlEl}
+              annotations={displayAnnotations}
+              scale={scale}
+              offset={{ x: panX, y: panY }}
+              className="absolute inset-0"
+              onClick={togglePlay}
+              // Drawing Props
+              isDrawing={isDrawing}
+              currentTool={currentTool}
+              currentColor={currentColor}
+              onAddAnnotation={addAnnotation}
+            />
+          )}
+
+          {/* Big Play Button Overlay (when paused) */}
+          {!state.isPlaying && !isDrawing && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none z-10">
+              <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center border-2 border-white/30 animate-pulse">
+                <Play className="w-10 h-10 text-white ml-1 fill-white" />
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <ControlBar
