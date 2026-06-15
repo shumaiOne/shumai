@@ -470,7 +470,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       sources: [
         {
           src: state.currentSrc,
-          type: data.media?.mimeType || 'video/mp4',
+          type: 'video/mp4',
         },
       ],
     }))
@@ -732,7 +732,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       currentSrc: res.url,
     }))
 
-    player.src({ type: data.media?.mimeType || 'video/mp4', src: res.url })
+    player.src({ type: 'video/mp4', src: res.url })
 
     player.one('loadedmetadata', () => {
       player.currentTime(currentTime)
