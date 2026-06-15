@@ -30,6 +30,12 @@ function FileViewPage() {
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [currentTime, setCurrentTime] = useState(0)
   const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null)
+  const [carouselState, setCarouselState] = useState<{
+    show: boolean
+    files: AssetInfo[]
+    nextCursor?: string
+    folderId?: string
+  }>({ show: false, files: [], nextCursor: undefined, folderId: undefined })
   const $patchMetadata = client.api.files[':fileId'].metadata.$patch
   const { mutate: patchMetadata } = useMutation<
     InferResponseType<typeof $patchMetadata>,
@@ -164,68 +170,10 @@ function FileViewPage() {
     navigate,
   ])
 
-  if (isLoading && !fileData) {
-    return <FileDetailSkeleton />
-  }
-
-  if (isError || !fileData || !projectInfo || !teamId) {
-    return <div>File not found.</div>
-  }
-
-  const handleSaveField = (fieldId: string, value: unknown) => {
-    if (!teamId) return
-    patchMetadata(
-      {
-        param: { fileId: activeFileId },
-        json: [{ key: fieldId, value }] as InferRequestType<typeof $patchMetadata>['json'],
-      },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({
-            queryKey: ['files', activeFileId],
-          })
-        },
-      },
-    )
-  }
-
-  const handleCommentSelect = (comment: CommentInfo) => {
-    setSelectedCommentId(comment.id || null)
-    const newAnnotations = comment.annotations as Annotation[]
-    if (newAnnotations && newAnnotations.length > 0) {
-      setAnnotations(newAnnotations)
-    } else {
-      setAnnotations([])
-    }
-
-    if (comment.second !== null && comment.second !== undefined) {
-      if (videoRef.current) {
-        videoRef.current.currentTime(comment.second)
-        videoRef.current.pause()
-      }
-    } else if (newAnnotations && newAnnotations.length > 0) {
-      if (videoRef.current) {
-        videoRef.current.pause()
-      }
-    }
-  }
-
-  const handlePlay = () => {
-    setAnnotations([])
-    setSelectedCommentId(null)
-  }
-
   const parentFolderId =
-    fileData.ancestorFolders?.[fileData.ancestorFolders.length - 1]?.id ??
-    projectInfo.rootFolder ??
+    fileData?.ancestorFolders?.[fileData.ancestorFolders.length - 1]?.id ??
+    projectInfo?.rootFolder ??
     ''
-
-  const [carouselState, setCarouselState] = useState<{
-    show: boolean
-    files: AssetInfo[]
-    nextCursor?: string
-    folderId?: string
-  }>({ show: false, files: [], nextCursor: undefined, folderId: undefined })
 
   useEffect(() => {
     if (!parentFolderId || !activeFileId) return
@@ -307,6 +255,57 @@ function FileViewPage() {
       isMounted = false
     }
   }, [parentFolderId, activeFileId, carouselState.folderId])
+
+  if (isLoading && !fileData) {
+    return <FileDetailSkeleton />
+  }
+
+  if (isError || !fileData || !projectInfo || !teamId) {
+    return <div>File not found.</div>
+  }
+
+  const handleSaveField = (fieldId: string, value: unknown) => {
+    if (!teamId) return
+    patchMetadata(
+      {
+        param: { fileId: activeFileId },
+        json: [{ key: fieldId, value }] as InferRequestType<typeof $patchMetadata>['json'],
+      },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({
+            queryKey: ['files', activeFileId],
+          })
+        },
+      },
+    )
+  }
+
+  const handleCommentSelect = (comment: CommentInfo) => {
+    setSelectedCommentId(comment.id || null)
+    const newAnnotations = comment.annotations as Annotation[]
+    if (newAnnotations && newAnnotations.length > 0) {
+      setAnnotations(newAnnotations)
+    } else {
+      setAnnotations([])
+    }
+
+    if (comment.second !== null && comment.second !== undefined) {
+      if (videoRef.current) {
+        videoRef.current.currentTime(comment.second)
+        videoRef.current.pause()
+      }
+    } else if (newAnnotations && newAnnotations.length > 0) {
+      if (videoRef.current) {
+        videoRef.current.pause()
+      }
+    }
+  }
+
+  const handlePlay = () => {
+    setAnnotations([])
+    setSelectedCommentId(null)
+  }
 
   return (
     <div className="h-full flex flex-1 flex-col bg-background">
