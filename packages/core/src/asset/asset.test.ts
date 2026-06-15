@@ -1232,6 +1232,54 @@ describe('AssetService', () => {
     expect(updatedC.sortIndex! < assetB.sortIndex!).toBe(true)
   })
 
+  it('correctly bounds the new sortIndex when moving an asset after another asset in the middle of the list', async () => {
+    const { user, project } = await setupBasicAssets()
+
+    // Create three assets: A, B, C with specific sort indexes
+    const assetA = await prisma.asset.create({
+      data: {
+        name: 'Asset A',
+        type: AssetType.file,
+        projectId: project.id,
+        creatorId: user.id,
+        sortIndex: 'a0',
+        status: 'uploaded',
+      },
+    })
+
+    const assetB = await prisma.asset.create({
+      data: {
+        name: 'Asset B',
+        type: AssetType.file,
+        projectId: project.id,
+        creatorId: user.id,
+        sortIndex: 'a1',
+        status: 'uploaded',
+      },
+    })
+
+    const assetC = await prisma.asset.create({
+      data: {
+        name: 'Asset C',
+        type: AssetType.file,
+        projectId: project.id,
+        creatorId: user.id,
+        sortIndex: 'a11',
+        status: 'uploaded',
+      },
+    })
+
+    // Move Asset A to be after Asset B (it should be placed between B ("a1") and C ("a11"))
+    const updatedA = await assetService.updateAssetOrder(assetA.id, {
+      afterIndex: assetB.sortIndex!,
+    })
+
+    // Verify it is placed after B
+    expect(updatedA.sortIndex! > assetB.sortIndex!).toBe(true)
+    // Verify it is placed before C (this fails under the buggy code because C's bound is ignored, generating a key greater than "a11")
+    expect(updatedA.sortIndex! < assetC.sortIndex!).toBe(true)
+  })
+
   describe('Symlinks', () => {
     it('toAssetInfo resolves symlink target metadata', async () => {
       const { project, user } = await setupBasicAssets()
