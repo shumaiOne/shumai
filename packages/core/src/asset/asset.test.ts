@@ -1394,6 +1394,7 @@ describe('AssetService', () => {
           creatorId: user.id,
           status: 'uploaded',
           sizeByte: 100,
+          sortIndex: 'abc',
         },
       })
 
@@ -1425,6 +1426,7 @@ describe('AssetService', () => {
       expect(res.data).toHaveLength(1)
       const stackAsset = res.data[0]
       expect(stackAsset.type).toBe(AssetType.version_stack)
+      expect(stackAsset.sortIndex).toBe('abc')
       expect(stackAsset.versionStack).toBeDefined()
       expect(stackAsset.versionStack?.versions).toHaveLength(2)
       const versions = stackAsset.versionStack!.versions

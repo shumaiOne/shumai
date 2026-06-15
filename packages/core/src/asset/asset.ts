@@ -533,6 +533,7 @@ export class AssetService {
         parentId: stackParentId,
         creatorId: creatorId,
         name: '',
+        sortIndex: destFile.sortIndex,
       },
     })
 
