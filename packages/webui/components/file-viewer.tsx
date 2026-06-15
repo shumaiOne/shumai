@@ -3,7 +3,7 @@ import { getBestTranscode } from '@/ui/lib/media'
 import type { AssetInfo } from '@shumai/dtos'
 import { Check, Copy, Download, Minus, Plus } from 'lucide-react'
 import type { ReactNode, RefObject } from 'react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type Player from 'video.js/dist/types/player'
 import DrawingCanvas from './drawing-canvas'
 import VideoPlayer from './viewers/video-player'
@@ -51,10 +51,32 @@ export function FileViewer({
 
   // State for Image Viewer
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
-  const containerRef = useRef<HTMLDivElement>(null)
   const [zoom, setZoom] = useState(1)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [copied, setCopied] = useState(false)
+
+  const observerRef = useRef<ResizeObserver | null>(null)
+
+  const containerRef = useCallback((node: HTMLDivElement | null) => {
+    if (observerRef.current) {
+      observerRef.current.disconnect()
+      observerRef.current = null
+    }
+
+    if (node !== null) {
+      const observer = new ResizeObserver((entries) => {
+        const entry = entries[0]
+        if (entry) {
+          setContainerSize({
+            width: entry.contentRect.width,
+            height: entry.contentRect.height,
+          })
+        }
+      })
+      observer.observe(node)
+      observerRef.current = observer
+    }
+  }, [])
 
   const imgW = file.media?.metadata?.originalWidth ?? 1920
   const imgH = file.media?.metadata?.originalHeight ?? 1080
@@ -77,22 +99,6 @@ export function FileViewer({
       setPan({ x, y })
     }
   }, [file.id, conW, conH, isImage, baseScale, imgW, imgH])
-
-  // Resize Observer
-  useEffect(() => {
-    if (!containerRef.current) return
-    const observer = new ResizeObserver((entries) => {
-      const entry = entries[0]
-      if (entry) {
-        setContainerSize({
-          width: entry.contentRect.width,
-          height: entry.contentRect.height,
-        })
-      }
-    })
-    observer.observe(containerRef.current)
-    return () => observer.disconnect()
-  }, [])
 
   const handleZoom = (factor: number) => {
     const cx = conW / 2
