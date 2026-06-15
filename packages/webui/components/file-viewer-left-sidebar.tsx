@@ -1,11 +1,11 @@
 import { client } from '@/ui/api/client'
+import { cn } from '@/ui/lib/utils'
+import type { AssetInfo, AssetInfoPaginatedList } from '@shumai/dtos'
+import { Link } from '@tanstack/react-router'
 import { File, Loader2 } from 'lucide-react'
 import type { FC } from 'react'
-import type { AssetInfo, AssetInfoPaginatedList } from '@shumai/dtos'
 import { useEffect, useRef, useState } from 'react'
 import { useInView } from 'react-intersection-observer'
-import { Link } from '@tanstack/react-router'
-import { cn } from '@/ui/lib/utils'
 
 interface FileViewerLeftSidebarProps {
   projectId: string
@@ -107,7 +107,7 @@ export const FileViewerLeftSidebar: FC<FileViewerLeftSidebarProps> = ({
   }, [files, currentAssetId])
 
   return (
-    <div className="h-full w-24 bg-transparent border-r border-border flex flex-col flex-shrink-0 select-none">
+    <div className="h-full w-24 bg-gray-100 dark:bg-gray-950 flex flex-col flex-shrink-0 select-none">
       <div className="flex-1 overflow-y-auto py-4 flex flex-col items-center gap-3 no-scrollbar">
         {files.map((file) => {
           if (!file) return null
@@ -125,8 +125,8 @@ export const FileViewerLeftSidebar: FC<FileViewerLeftSidebarProps> = ({
                 className={cn(
                   'rounded-lg border overflow-hidden flex items-center justify-center transition-all bg-muted/30 block',
                   isActive
-                    ? 'w-[60px] h-[60px] border-primary ring-2 ring-primary opacity-100'
-                    : 'w-[54px] h-[54px] border-border hover:border-primary/50 opacity-65 hover:opacity-100',
+                    ? 'w-[62px] h-[62px] opacity-100'
+                    : 'w-[52px] h-[52px] opacity-60 hover:opacity-100',
                 )}
               >
                 <CarouselFilePreview item={file} />
