@@ -38,7 +38,6 @@ export interface CreateAgentSessionParams {
       config: PrismaJson.ModelConfig
     }>
   }>
-  onNetworkBlocked?: (host: string) => void
 }
 
 export async function createAgentSession(params: CreateAgentSessionParams) {
@@ -119,6 +118,10 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
 
   const allowWrite = [piDir]
 
+  const sandboxState = {
+    blockedHost: '',
+  }
+
   const sandboxAskCallback = async ({ host, port }: { host: string; port?: number }) => {
     const hostPort = port ? `${host}:${port}` : host
 
@@ -145,9 +148,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
       console.error('Failed to update sandbox pending domains:', err)
     }
 
-    if (params.onNetworkBlocked) {
-      params.onNetworkBlocked(hostPort)
-    }
+    sandboxState.blockedHost = hostPort
 
     return false
   }
@@ -209,7 +210,12 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     )
   }
 
-  const sandboxedBash = createSandboxedBashTool(process.cwd(), skillEnvs)
+  const sandboxedBash = createSandboxedBashTool(process.cwd(), skillEnvs, {
+    getBlockedHost: () => sandboxState.blockedHost,
+    clearBlockedHost: () => {
+      sandboxState.blockedHost = ''
+    },
+  })
   const readSkill = createReadSkillTool(onEnvsAdded)
 
   const systemTools: AgentTool[] = []

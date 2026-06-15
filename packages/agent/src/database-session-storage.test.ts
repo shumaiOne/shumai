@@ -335,6 +335,7 @@ describe('DatabaseSessionStorage', () => {
       expect.objectContaining({
         MOCK_ENV_VAR: 'mocked-value',
       }),
+      expect.any(Object),
     )
   })
 
