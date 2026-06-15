@@ -100,6 +100,7 @@ export const FileViewerLeftSidebar: FC<FileViewerLeftSidebarProps> = ({
     if (activeFileInView && activeItemRef.current && !hasScrolledRef.current) {
       activeItemRef.current.scrollIntoView({
         block: 'center',
+        inline: 'center',
         behavior: 'smooth',
       })
       hasScrolledRef.current = true
@@ -107,8 +108,8 @@ export const FileViewerLeftSidebar: FC<FileViewerLeftSidebarProps> = ({
   }, [files, currentAssetId])
 
   return (
-    <div className="h-full w-24 bg-gray-100 dark:bg-gray-950 flex flex-col flex-shrink-0 select-none">
-      <div className="flex-1 overflow-y-auto py-4 flex flex-col items-center gap-3 no-scrollbar">
+    <div className="h-24 md:h-full w-full md:w-24 bg-gray-100 dark:bg-gray-950 flex flex-row md:flex-col flex-shrink-0 select-none">
+      <div className="flex-1 overflow-x-auto overflow-y-hidden md:overflow-y-auto md:overflow-x-hidden px-4 md:px-0 py-2 md:py-4 flex flex-row md:flex-col items-center gap-3 no-scrollbar">
         {files.map((file) => {
           if (!file) return null
           const isActive = file.id === currentAssetId
@@ -137,7 +138,10 @@ export const FileViewerLeftSidebar: FC<FileViewerLeftSidebarProps> = ({
 
         {/* Infinite Scroll Trigger */}
         {hasMore && (
-          <div ref={ref} className="py-2 flex justify-center items-center w-full">
+          <div
+            ref={ref}
+            className="px-2 md:px-0 py-2 md:py-4 flex justify-center items-center h-full md:w-full flex-shrink-0"
+          >
             {isFetchingNext && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
           </div>
         )}

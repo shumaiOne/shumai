@@ -199,7 +199,7 @@ export function FileViewer({
   if (isUnsupported) {
     return (
       <div className="flex flex-col flex-1 h-full overflow-hidden bg-gray-100 dark:bg-gray-950 relative">
-        <div className="flex-1 flex min-h-0 relative">
+        <div className="flex-1 flex flex-col-reverse md:flex-row min-h-0 relative">
           {children}
           <div className="flex-1 flex items-center justify-center">
             <p className="text-muted-foreground">Preview unavailable</p>
@@ -227,7 +227,7 @@ export function FileViewer({
     <div className="flex flex-col flex-1 h-full overflow-hidden bg-gray-100 dark:bg-gray-950 relative">
       {isImage && (
         <>
-          <div className="flex-1 flex min-h-0 relative">
+          <div className="flex-1 flex flex-col-reverse md:flex-row min-h-0 relative">
             {children}
             <div ref={containerRef} className="flex-1 relative overflow-hidden">
               <DrawingCanvas

@@ -799,7 +799,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
-      <div className="flex-1 flex min-h-0 relative">
+      <div className="flex-1 flex flex-col-reverse md:flex-row min-h-0 relative">
         {/* Render Carousel/Sidebar here if not fullscreen */}
         {!state.isFullScreen && children}
 
