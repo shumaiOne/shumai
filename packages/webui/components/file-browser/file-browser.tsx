@@ -853,6 +853,7 @@ export function FileBrowser({
             <div
               ref={scrollContainerRef}
               className="flex-1 overflow-y-auto min-h-0 relative flex flex-col"
+              style={{ overflowAnchor: 'none' }}
             >
               {displayStyle === 'list' ? (
                 <FileBrowserListView

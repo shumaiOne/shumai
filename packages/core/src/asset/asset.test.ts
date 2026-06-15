@@ -1152,6 +1152,134 @@ describe('AssetService', () => {
     expect(updatedA?.sortIndex && updatedA.sortIndex > 'a1').toBe(true)
   })
 
+  it('verifies that sortIndex uses C collation to prevent fractional indexing mismatch', async () => {
+    const { user, project } = await setupBasicAssets()
+
+    // Create a parent folder to contain our assets
+    const folder = await prisma.asset.create({
+      data: {
+        name: 'Parent Folder',
+        type: AssetType.folder,
+        projectId: project.id,
+        creatorId: user.id,
+        status: 'uploaded',
+      },
+    })
+
+    // Create Asset A: In ASCII, "YjnsD0vZ" > "YjNuyGpV" because "n" (110) > "N" (78).
+    // In default Postgres locale collation, "YjnsD0vZ" < "YjNuyGpV".
+    const assetA = await prisma.asset.create({
+      data: {
+        name: 'Asset A',
+        type: AssetType.file,
+        parentId: folder.id,
+        projectId: project.id,
+        creatorId: user.id,
+        sortIndex: 'YjnsD0vZ',
+        status: 'uploaded',
+      },
+    })
+
+    // Create Asset B
+    const assetB = await prisma.asset.create({
+      data: {
+        name: 'Asset B',
+        type: AssetType.file,
+        parentId: folder.id,
+        projectId: project.id,
+        creatorId: user.id,
+        sortIndex: 'YjNuyGpV',
+        status: 'uploaded',
+      },
+    })
+
+    // Create Asset C
+    const assetC = await prisma.asset.create({
+      data: {
+        name: 'Asset C',
+        type: AssetType.file,
+        parentId: folder.id,
+        projectId: project.id,
+        creatorId: user.id,
+        sortIndex: 'Yjzaaa',
+        status: 'uploaded',
+      },
+    })
+
+    // Verify ASCII ordering in JavaScript: assetA.sortIndex > assetB.sortIndex
+    expect(assetA.sortIndex! > assetB.sortIndex!).toBe(true)
+
+    // Verify Postgres sorting behavior:
+    // With C collation, it must follow ASCII ordering. Therefore, searching for
+    // sortIndex < assetB.sortIndex must NOT find assetA.
+    const prevAsset = await prisma.asset.findFirst({
+      where: {
+        parentId: folder.id,
+        sortIndex: { lt: assetB.sortIndex! },
+        id: { not: assetC.id },
+      },
+      orderBy: { sortIndex: 'desc' },
+    })
+
+    // Assert that the database collation is correctly "C" (returns null for prevAsset)
+    expect(prevAsset).toBeNull()
+
+    // Assert that updateAssetOrder succeeds without throwing a collation error
+    const updatedC = await assetService.updateAssetOrder(assetC.id, {
+      beforeIndex: assetB.sortIndex!,
+    })
+    expect(updatedC.sortIndex).toBeDefined()
+    expect(updatedC.sortIndex! < assetB.sortIndex!).toBe(true)
+  })
+
+  it('correctly bounds the new sortIndex when moving an asset after another asset in the middle of the list', async () => {
+    const { user, project } = await setupBasicAssets()
+
+    // Create three assets: A, B, C with specific sort indexes
+    const assetA = await prisma.asset.create({
+      data: {
+        name: 'Asset A',
+        type: AssetType.file,
+        projectId: project.id,
+        creatorId: user.id,
+        sortIndex: 'a0',
+        status: 'uploaded',
+      },
+    })
+
+    const assetB = await prisma.asset.create({
+      data: {
+        name: 'Asset B',
+        type: AssetType.file,
+        projectId: project.id,
+        creatorId: user.id,
+        sortIndex: 'a1',
+        status: 'uploaded',
+      },
+    })
+
+    const assetC = await prisma.asset.create({
+      data: {
+        name: 'Asset C',
+        type: AssetType.file,
+        projectId: project.id,
+        creatorId: user.id,
+        sortIndex: 'a11',
+        status: 'uploaded',
+      },
+    })
+
+    // Move Asset A to be after Asset B (it should be placed between B ("a1") and C ("a11"))
+    const updatedA = await assetService.updateAssetOrder(assetA.id, {
+      afterIndex: assetB.sortIndex!,
+    })
+
+    // Verify it is placed after B
+    expect(updatedA.sortIndex! > assetB.sortIndex!).toBe(true)
+    // Verify it is placed before C (this fails under the buggy code because C's bound is ignored, generating a key greater than "a11")
+    expect(updatedA.sortIndex! < assetC.sortIndex!).toBe(true)
+  })
+
   describe('Symlinks', () => {
     it('toAssetInfo resolves symlink target metadata', async () => {
       const { project, user } = await setupBasicAssets()
@@ -1266,6 +1394,7 @@ describe('AssetService', () => {
           creatorId: user.id,
           status: 'uploaded',
           sizeByte: 100,
+          sortIndex: 'abc',
         },
       })
 
@@ -1297,6 +1426,7 @@ describe('AssetService', () => {
       expect(res.data).toHaveLength(1)
       const stackAsset = res.data[0]
       expect(stackAsset.type).toBe(AssetType.version_stack)
+      expect(stackAsset.sortIndex).toBe('abc')
       expect(stackAsset.versionStack).toBeDefined()
       expect(stackAsset.versionStack?.versions).toHaveLength(2)
       const versions = stackAsset.versionStack!.versions

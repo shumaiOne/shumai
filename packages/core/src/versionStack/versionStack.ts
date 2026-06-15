@@ -58,6 +58,9 @@ export class VersionStackService {
         throw new Error('parent not found')
       }
 
+      const firstFile = files[0]
+      const sortIndex = firstFile?.sortIndex || null
+
       const stack = await tx.asset.create({
         data: {
           type: AssetType.version_stack,
@@ -67,6 +70,7 @@ export class VersionStackService {
           projectId: projectId,
           creatorId: creatorId,
           parentId: parentId,
+          sortIndex: sortIndex,
         },
       })
 

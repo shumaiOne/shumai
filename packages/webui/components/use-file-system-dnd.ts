@@ -2,8 +2,9 @@
 
 import { client } from '@/ui/api/client'
 import type { InferRequestType, InferResponseType } from 'hono/client'
-import type { AssetInfo } from '@shumai/dtos'
+import type { AssetInfo, AssetInfoPaginatedList, SearchSort } from '@shumai/dtos'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import type { InfiniteData } from '@tanstack/react-query'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/react'
@@ -30,6 +31,71 @@ export function useFileSystemDnd({
 }: UseFileSystemDndProps) {
   const queryClient = useQueryClient()
   const [dragState, setDragState] = useState<DragState | undefined>(undefined)
+
+  const updateLocalCache = (isFolder: boolean, updatedItem: AssetInfo) => {
+    const assetType = isFolder ? 'folder' : 'file'
+    const queryKeyPrefix = ['search', teamId, assetId, assetType]
+
+    const queries = queryClient.getQueriesData<InfiniteData<AssetInfoPaginatedList>>({
+      queryKey: queryKeyPrefix,
+    })
+
+    const isSearchSort = (val: unknown): val is SearchSort => {
+      if (typeof val !== 'object' || val === null) return false
+      const obj = val as Record<string, unknown>
+      return (
+        'field' in obj &&
+        'order' in obj &&
+        typeof obj.field === 'string' &&
+        (obj.order === 'asc' || obj.order === 'desc')
+      )
+    }
+
+    for (const [queryKey, oldData] of queries) {
+      if (!oldData || !Array.isArray(oldData.pages)) continue
+
+      const sort = queryKey.find(isSearchSort)
+
+      const allItems = oldData.pages.flatMap((page) => page.data ?? [])
+
+      const itemIndex = allItems.findIndex((item) => item.id === updatedItem.id)
+      if (itemIndex === -1) {
+        continue
+      }
+
+      allItems[itemIndex] = { ...allItems[itemIndex], ...updatedItem }
+
+      if (sort?.field === 'custom') {
+        const isDesc = sort.order === 'desc'
+        allItems.sort((a, b) => {
+          const indexA = a.sortIndex ?? ''
+          const indexB = b.sortIndex ?? ''
+          if (indexA === indexB) return 0
+          if (isDesc) {
+            return indexA < indexB ? 1 : -1
+          } else {
+            return indexA < indexB ? -1 : 1
+          }
+        })
+      }
+
+      let pointer = 0
+      const newPages = oldData.pages.map((page) => {
+        const pageSize = page.data ? page.data.length : 0
+        const pageData = allItems.slice(pointer, pointer + pageSize)
+        pointer += pageSize
+        return {
+          ...page,
+          data: pageData,
+        }
+      })
+
+      queryClient.setQueryData<InfiniteData<AssetInfoPaginatedList>>(queryKey, {
+        ...oldData,
+        pages: newPages,
+      })
+    }
+  }
 
   const $reparent = client.api.projects[':projectId'].reparent.$post
   const { mutate: reparentAssets } = useMutation<
@@ -185,11 +251,9 @@ export function useFileSystemDnd({
                   : { afterIndex: targetItem.sortIndex ?? undefined },
             },
             {
-              onSuccess: () => {
+              onSuccess: (updatedFolder) => {
                 toast.success('Folder reordered')
-                queryClient.invalidateQueries({
-                  queryKey: ['search', teamId, assetId],
-                })
+                updateLocalCache(true, updatedFolder)
                 onClearSelection()
               },
               onError: (err) => {
@@ -207,11 +271,9 @@ export function useFileSystemDnd({
                   : { afterIndex: targetItem.sortIndex ?? undefined },
             },
             {
-              onSuccess: () => {
+              onSuccess: (updatedFile) => {
                 toast.success('File reordered')
-                queryClient.invalidateQueries({
-                  queryKey: ['search', teamId, assetId],
-                })
+                updateLocalCache(false, updatedFile)
                 onClearSelection()
               },
               onError: (err) => {

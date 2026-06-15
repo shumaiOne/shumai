@@ -533,6 +533,7 @@ export class AssetService {
         parentId: stackParentId,
         creatorId: creatorId,
         name: '',
+        sortIndex: destFile.sortIndex,
       },
     })
 
@@ -973,7 +974,15 @@ export class AssetService {
       afterSortIndex = prevAsset?.sortIndex || null
     } else if (req.afterIndex) {
       afterSortIndex = req.afterIndex
-      beforeSortIndex = null
+      const nextAsset = await this.prismaClient.asset.findFirst({
+        where: {
+          parentId: asset.parentId,
+          sortIndex: { gt: req.afterIndex },
+          id: { not: id },
+        },
+        orderBy: { sortIndex: 'asc' },
+      })
+      beforeSortIndex = nextAsset?.sortIndex || null
     }
 
     const newSortIndex = generateKeyBetween(afterSortIndex, beforeSortIndex)

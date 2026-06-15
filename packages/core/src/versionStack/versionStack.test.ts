@@ -56,6 +56,7 @@ describe('VersionStackService', () => {
           creatorId: user.id,
           status: 'uploaded',
           sizeByte: 100,
+          sortIndex: 'abc',
         },
       })
 
@@ -85,6 +86,7 @@ describe('VersionStackService', () => {
       expect(stack.fileCount).toBe(2)
       expect(stack.sizeByte).toBe(300)
       expect(stack.parentId).toBe(parent.id)
+      expect(stack.sortIndex).toBe('abc')
 
       // Verify Parent file count
       const updatedParent = await prisma.asset.findUnique({ where: { id: parent.id } })
