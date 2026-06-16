@@ -50,8 +50,12 @@
         "pages": ["using-shumai/semantic-search"]
       },
       {
+        "group": "Advanced Deployment",
+        "pages": ["configuration/temporal"]
+      },
+      {
         "group": "Configuration",
-        "pages": ["configuration/env-variables", "configuration/temporal"]
+        "pages": ["configuration/env-variables"]
       }
     ]
   }
