@@ -22,6 +22,10 @@ Docker Compose automatically configures and spins up all required services (the 
 3.  **Access the Dashboard**:
     Open your browser and navigate to **`http://localhost:3000`** to access the Shumai Web UI.
 
+### Production Deployments (Temporal)
+
+If you are deploying Shumai for a production team with high-volume video uploads, we recommend setting up a distributed deployment using **Temporal** and an S3-compatible storage backend. This offloads resource-heavy video transcoding and AI agents to separate, dedicated worker nodes to keep your main dashboard fast and responsive. For setup instructions, see the [Deploy with Temporal](/configuration/temporal) guide.
+
 ---
 
 ## Option 2: Install via NPM

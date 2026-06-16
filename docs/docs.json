@@ -51,7 +51,7 @@
       },
       {
         "group": "Configuration",
-        "pages": ["configuration/env-variables"]
+        "pages": ["configuration/env-variables", "configuration/temporal"]
       }
     ]
   }
