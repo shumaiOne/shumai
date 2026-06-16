@@ -1,0 +1,44 @@
+---
+title: Transcode Settings
+description: Configure how Shumai processes and optimizes your media files.
+---
+
+<Note>
+  Transcode settings are only accessible to Team Administrators.
+</Note>
+
+## Media Processing Overview
+
+When you upload video or image assets, Shumai automatically generates web-friendly versions to ensure fast loading and compatibility across all devices. This process is called **Transcoding**.
+
+---
+
+## Transcode Strategies
+
+Shumai uses flexible strategies to determine how to process different file types.
+
+### Video Strategies
+- **Best Match**: Automatically selects the best resolution and bitrate based on the source file.
+- **Fixed Resolution**: Force all videos to a specific resolution (e.g., 1080p).
+- **Skip**: Disable automatic transcoding for certain projects or file types.
+
+### Image Optimization
+All uploaded images are automatically optimized for the web:
+- **WebP Conversion**: Images are converted to WebP format for superior compression.
+- **Responsive Sizes**: Multiple resolutions are generated for different screen sizes.
+- **Sprite Generation**: For videos, a thumbnail sprite is generated to allow for hover previews in the UI.
+
+![Transcode settings panel showing video and image processing options](placeholder)
+
+---
+
+## Technical Details
+
+Shumai uses industry-standard tools for media processing:
+- **FFmpeg**: For video transcoding, audio extraction, and frame capturing.
+- **Sharp**: For high-performance image processing and optimization.
+
+### Background Workers
+Transcoding is a resource-intensive task and is handled by dedicated **Transcode Workers**. You can scale these workers independently to handle high volumes of uploads (see [Configuration](/configuration/environment-variables) for concurrency settings).
+
+![Illustration showing the workflow from upload to transcode worker to S3 storage](placeholder)

@@ -1,0 +1,54 @@
+---
+title: Environment Variables
+description: Configuration options for the Shumai backend and workers.
+---
+
+Shumai uses environment variables to configure its various services. You can set these in a `.env` file at the root of your project or directly in your deployment environment.
+
+## Database
+
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `DATABASE_URL` | The PostgreSQL connection string (must support `pgvector`). | `postgres://localhost:5432/shumai` |
+
+## Storage (S3)
+
+Shumai uses S3-compatible storage for assets and media.
+
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `S3_BUCKET` | The name of the S3 bucket. | `shumai` |
+| `AWS_ACCESS_KEY_ID` | Access key for your S3 provider. | - |
+| `AWS_SECRET_ACCESS_KEY` | Secret key for your S3 provider. | - |
+| `AWS_REGION` | The S3 region. | `us-east-1` |
+| `AWS_ENDPOINT` | Custom endpoint (e.g., for MinIO or R2). | - |
+| `PRESIGNED_URL_EXPIRES_IN` | Expiration time (in seconds) for presigned URLs. | `3600` |
+
+## Authentication
+
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `BETTER_AUTH_SECRET` | A random secret string used for signing session tokens. | - |
+| `BETTER_AUTH_URL` | The base URL of your Shumai installation. | `http://localhost:3000` |
+
+## AI Configuration
+
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `GEMINI_API_KEY` | API key for Google Gemini (if using the builtin Gemini provider). | - |
+
+## Workflow & Workers
+
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `WORKFLOW_EXECUTOR` | Choose between `local` (polling-based) or `temporal`. | `local` |
+| `TEMPORAL_ADDRESS` | The address of your Temporal cluster (if using `temporal`). | `localhost:7233` |
+| `CONCURRENCY_TRANSCODE` | Max number of concurrent transcode tasks per worker. | `1` |
+| `CONCURRENCY_AGENT` | Max number of concurrent agent tasks per worker. | `5` |
+
+## Logging
+
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `LOG_LEVEL` | Logging verbosity (`debug`, `info`, `warn`, `error`). | `info` |
+| `LOG_FORMAT` | Log output format (`json` or `pretty`). | `json` |

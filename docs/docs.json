@@ -16,7 +16,27 @@
     "groups": [
       {
         "group": "Getting Started",
-        "pages": ["introduction", "getting-started/docker"]
+        "pages": [
+          "getting-started/overview",
+          "getting-started/quickstart"
+        ]
+      },
+      {
+        "group": "Using Shumai",
+        "pages": [
+          "using-shumai/file-management",
+          "using-shumai/collaboration",
+          "using-shumai/assets-and-sharing",
+          "using-shumai/semantic-search",
+          "using-shumai/agent-settings",
+          "using-shumai/transcode-settings"
+        ]
+      },
+      {
+        "group": "Configuration",
+        "pages": [
+          "configuration/environment-variables"
+        ]
       }
     ]
   }

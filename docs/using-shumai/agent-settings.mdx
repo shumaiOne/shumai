@@ -1,0 +1,74 @@
+---
+title: Agent Settings
+description: Configure AI Providers, Agents, Skills, and the secure Sandbox environment.
+---
+
+<Note>
+  Agent settings are only accessible to Team Administrators.
+</Note>
+
+## AI Providers
+
+AI Providers are the foundations for your agents. Shumai supports several major AI model providers.
+
+### Supported Providers
+- **Google Gemini**: High-performance models with large context windows.
+- **OpenAI**: Industry-standard models like GPT-4o.
+- **Anthropic**: Models known for their reasoning capabilities.
+
+### Configuring a Provider
+1. Go to **Admin Settings** > **AI Providers**.
+2. Click **Add Provider**.
+3. Select the provider type and enter your **API Key**.
+4. Save the configuration.
+
+![AI Provider configuration screen with API key input](placeholder)
+
+---
+
+## Agents
+
+Agents are specialized AI entities configured for specific tasks. An agent combines an AI model (from a Provider) with a **System Prompt** and a set of **Skills**.
+
+### Creating an Agent
+1. Go to **Admin Settings** > **Agents**.
+2. Click **Create Agent**.
+3. Select an AI Provider and Model.
+4. Define the **System Prompt** (e.g., "You are a helpful assistant that specializes in image analysis").
+5. Select the **Skills** this agent can use.
+
+### Agent Roles
+- **Default Agent**: The agent used for general chat and questions.
+- **Embedding Agent**: The agent responsible for generating embeddings for [Semantic Search](/using-shumai/semantic-search).
+- **Autofill Agent**: The agent used to automatically populate asset metadata.
+
+![Agent creation screen showing model selection and system prompt editor](placeholder)
+
+---
+
+## Agent Skills
+
+Skills are tools that agents can use to interact with the Shumai system or external services.
+
+### Available Skills
+- **Read File**: Allows the agent to read the content of assets in Shumai.
+- **Transcode**: Allows the agent to trigger media transcoding tasks.
+- **Analyze Image**: Uses vision models to describe or extract data from images.
+- **Bash Execution**: Allows the agent to run code in a secure sandbox.
+
+![Skills list showing various tool capabilities](placeholder)
+
+---
+
+## Agent Sandbox
+
+To ensure security, all code execution (via the Bash skill) performed by agents happens within a secure, isolated **Sandbox**.
+
+### Network Isolation
+The sandbox is isolated from your local network. Administrators must explicitly allow domains that agents are permitted to access.
+
+### Managing Domains
+- **Allowed Domains**: A list of domains that agents can freely access.
+- **Pending Domains**: If an agent attempts to access a blocked domain, it will appear in the **Pending Domains** list. Administrators can then choose to allow or deny these requests.
+
+![Sandbox settings showing allowed and pending network domains](placeholder)

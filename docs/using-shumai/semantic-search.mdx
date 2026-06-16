@@ -1,0 +1,48 @@
+---
+title: Semantic Search
+description: Find assets by meaning, not just by name, using Shumai's AI-powered search.
+---
+
+## What is Semantic Search?
+
+Traditional search looks for exact keyword matches in filenames or metadata. **Semantic Search** uses AI embeddings to understand the "meaning" of your query and the content of your assets. This allows you to find what you're looking for even if you don't remember the exact name.
+
+For example, searching for *"a sunny day at the beach"* can find photos of oceans and sand, even if those words aren't in the filename.
+
+---
+
+## How it Works
+
+1. **Embedding**: When an asset is uploaded or updated, Shumai uses a configured AI model (e.g., from Google Gemini or OpenAI) to generate a "vector embedding"—a mathematical representation of the asset's content.
+2. **Indexing**: These embeddings are stored in a high-performance vector database (`pgvector`).
+3. **Retrieval**: When you perform a semantic search, Shumai converts your query into a vector and finds the assets with the most similar embeddings.
+
+---
+
+## Enabling Semantic Search
+
+Semantic search requires an **Embedding Agent** to be configured for your team.
+
+1. Go to **Team Settings** > **Agents**.
+2. Configure or select an agent that supports embedding (see [Agent Settings](/using-shumai/agent-settings)).
+3. Ensure the agent is enabled for semantic search.
+
+---
+
+## Using Semantic Search
+
+To use semantic search:
+1. Click on the search bar in the file explorer.
+2. Toggle the **Semantic Search** switch (indicated by an AI or sparkle icon).
+3. Type your query in natural language.
+4. Browse the results, which are ranked by relevance to your query.
+
+![Search bar with semantic search toggle and results ranked by relevance](placeholder)
+
+---
+
+## Tips for Better Results
+
+- **Be Descriptive**: Instead of just "car," try "a red sports car on a highway."
+- **Use Concepts**: Search for abstract concepts like "team collaboration," "minimalist design," or "urgent documents."
+- **Combine with Filters**: You can still use traditional filters (like file type or date) alongside semantic search to narrow down your results further.
