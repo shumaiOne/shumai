@@ -1,6 +1,6 @@
 ---
 title: Team & Project Management
-description: Set up workspace boundaries, define roles, and invite collaborators.
+description: Organize your workspaces, define roles, and manage members.
 ---
 
 Shumai uses a two-tier organizational hierarchy—**Teams** and **Projects**—to manage file access and collaboration.
@@ -9,38 +9,40 @@ Shumai uses a two-tier organizational hierarchy—**Teams** and **Projects**—t
 
 ## Teams vs. Projects
 
-| Level       | Scope                                                                                                             | Administration             |
-| :---------- | :---------------------------------------------------------------------------------------------------------------- | :------------------------- |
-| **Team**    | The parent organization boundary. Houses shared settings, integrations, AI providers, custom skills, and billing. | Managed by Team Owners.    |
-| **Project** | A specific workspace containing folders, assets, comments, and collections.                                       | Managed by Project Owners. |
+- **Teams**: The parent organization boundaries. A team houses overall billing, custom integrations, AI providers, custom skills, and all members.
+- **Projects**: Workspaces created within a team containing folders, files, comments, and collections.
 
 ---
 
 ## Member Roles
 
-Shumai uses permission roles to manage what actions team members can perform:
+Shumai uses permission roles to control what actions team and project members can perform:
 
-### Team Roles
-
-- **Owner**: Full administrative control over team settings, custom skills, provider credentials, and sandbox restrictions.
-- **Member**: General access to the team and its public projects.
-
-### Project Roles
-
-- **Owner**: Can configure project settings, manage invites, create collections, generate share links, and delete assets.
-- **Editor**: Can upload files, delete their own assets, edit custom metadata values, and create comments or annotations.
-- **Reviewer**: Read-only access to assets. Can view files, toggle versions, and leave text comments and drawings, but cannot edit metadata or delete files.
+- **Owner**: Full administrative control. Team Owners can modify team settings, skills, and AI providers. Project Owners can edit project configurations, manage members, and generate invites.
+- **Editor**: Can upload files, edit custom metadata, create folders, and add comments or canvas annotations.
+- **Reviewer**: Read-only access. Can view media assets, toggle versions, and leave text comments or canvas drawings, but cannot upload/delete files or modify metadata.
 
 ---
 
-## Inviting Members
+## Managing Members
 
-To add new members to a Team or Project:
+Member management is handled using a unified **Members Dialog** popup, accessed differently depending on the context:
 
-1.  Navigate to the **Members** tab in your Team or Project settings.
-2.  Click **Create Invite Link**.
-3.  Select the invite role (Editor or Reviewer) and set the access duration.
-4.  Copy the generated invite URL. When a recipient opens the link, they will be prompted to sign up or log in, after which they will automatically join the Team or Project.
+### 1. Managing Team Members
 
-![Invites List Placeholder](https://placehold.co/800x350/2C2E3E/D95A66?text=Invite+Link+Generator)
-_Placeholder: Member management panel with active invites, active members list, and the "Generate Invite" button._
+- **Access**: Open your **Team Dashboard** and click the members list or avatar group in the header.
+- **Settings**:
+  - Change member roles between Editor and Reviewer.
+  - Remove members from the team.
+  - **Invite New Members**: Select a role (Editor or Reviewer) and click **Generate Link**. Copy the signup URL to invite new users to the team.
+
+### 2. Managing Project Members
+
+- **Access**: Open your project **File Browser** and click the members avatars or button in the top toolbar.
+- **Settings**:
+  - Change project member roles or remove them from the project.
+  - **Add Team Members**: The dialog displays a list of active team members who are not yet added to this project. Select their project role and click **Add** to add them instantly.
+  - **Invite External Collaborators**: Select a role (Editor or Reviewer) and click **Generate Link** to invite new users directly into this specific project.
+
+![Members Dialog Placeholder](https://placehold.co/800x450/2C2E3E/D95A66?text=Members+Dialog+UI)
+_Placeholder: Screenshot of the Members Dialog showcasing the list of active project members, the "Add Team Member" selection list, and the invite link generator._
