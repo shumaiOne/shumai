@@ -93,4 +93,25 @@ describe('WorkflowService Temporal Workers Concurrency Control', () => {
     const agentSpecificWorkerOptions = mockCreate.mock.calls[1][0]
     expect(agentSpecificWorkerOptions.maxConcurrentActivityTaskExecutions).toBe(12)
   })
+
+  it('should fallback to defaults when environment variables are invalid or <= 0 for specific workers', async () => {
+    process.env.CONCURRENCY_TRANSCODE = 'invalid'
+    process.env.CONCURRENCY_AGENT = '-5'
+
+    // Test Transcode Worker
+    await workflowService.startWorkers(TaskQueueTranscode)
+    expect(mockCreate).toHaveBeenCalledTimes(2)
+
+    const transcodeSpecificWorkerOptions = mockCreate.mock.calls[1][0]
+    expect(transcodeSpecificWorkerOptions.maxConcurrentActivityTaskExecutions).toBe(1)
+
+    vi.clearAllMocks()
+
+    // Test Agent Worker
+    await workflowService.startWorkers(TaskQueueAgent)
+    expect(mockCreate).toHaveBeenCalledTimes(2)
+
+    const agentSpecificWorkerOptions = mockCreate.mock.calls[1][0]
+    expect(agentSpecificWorkerOptions.maxConcurrentActivityTaskExecutions).toBe(5)
+  })
 })

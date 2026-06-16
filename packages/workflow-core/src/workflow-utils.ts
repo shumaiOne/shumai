@@ -190,3 +190,16 @@ export async function executeActivity(
     throw err
   }
 }
+
+/**
+ * Parses and validates a concurrency limit environment variable.
+ * If the value is undefined, NaN, or <= 0, it falls back to the default value.
+ */
+export function getConcurrencyLimit(envVar: string | undefined, defaultValue: number): number {
+  if (!envVar) return defaultValue
+  const parsed = parseInt(envVar, 10)
+  if (isNaN(parsed) || parsed <= 0) {
+    return defaultValue
+  }
+  return parsed
+}

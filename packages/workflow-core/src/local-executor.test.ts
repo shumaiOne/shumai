@@ -386,5 +386,21 @@ describe('LocalExecutor Integration Tests', () => {
       expect(defaultExecutor.getTranscodeConcurrencyLimit()).toBe(1)
       expect(defaultExecutor.getAgentConcurrencyLimit()).toBe(5)
     })
+
+    it('should fallback to defaults when environment variables are invalid or <= 0', () => {
+      process.env.CONCURRENCY_TRANSCODE = 'invalid'
+      process.env.CONCURRENCY_AGENT = '0'
+
+      const executor1 = new LocalExecutor()
+      expect(executor1.getTranscodeConcurrencyLimit()).toBe(1)
+      expect(executor1.getAgentConcurrencyLimit()).toBe(5)
+
+      process.env.CONCURRENCY_TRANSCODE = '-2'
+      process.env.CONCURRENCY_AGENT = 'abc'
+
+      const executor2 = new LocalExecutor()
+      expect(executor2.getTranscodeConcurrencyLimit()).toBe(1)
+      expect(executor2.getAgentConcurrencyLimit()).toBe(5)
+    })
   })
 })

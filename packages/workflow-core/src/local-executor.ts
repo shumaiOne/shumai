@@ -3,6 +3,7 @@ import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
 import { Executor } from './executor'
 import * as taskActivities from './activities/task'
 import { logger } from '@shumai/core/src/logger'
+import { getConcurrencyLimit } from './workflow-utils'
 
 type WorkflowFn = (task: WorkflowTask) => Promise<void>
 
@@ -76,12 +77,8 @@ export class LocalExecutor implements Executor {
   private generalLimiter: ConcurrencyLimiter
 
   constructor() {
-    const transcodeLimit = process.env.CONCURRENCY_TRANSCODE
-      ? parseInt(process.env.CONCURRENCY_TRANSCODE, 10)
-      : 1
-    const agentLimit = process.env.CONCURRENCY_AGENT
-      ? parseInt(process.env.CONCURRENCY_AGENT, 10)
-      : 5
+    const transcodeLimit = getConcurrencyLimit(process.env.CONCURRENCY_TRANSCODE, 1)
+    const agentLimit = getConcurrencyLimit(process.env.CONCURRENCY_AGENT, 5)
 
     this.transcodeLimiter = new ConcurrencyLimiter(transcodeLimit)
     this.generalLimiter = new ConcurrencyLimiter(agentLimit)
