@@ -1,4 +1,4 @@
-export const dataFormatNames: Record<string, string> = {
+export const dataFormatNames: Readonly<Record<string, string>> = {
   // additional codecs
   apch: 'Apple ProRes 422 High Quality',
   apcn: 'Apple ProRes 422 Standard Definition',

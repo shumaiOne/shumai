@@ -1,6 +1,6 @@
 import { prisma } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import { transcodeService } from '@shumai/core/src/transcode/transcode'
+import { transcodeService } from '@shumai/core'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { ApplicationFailure } from '@temporalio/activity'
 import * as path from 'path'

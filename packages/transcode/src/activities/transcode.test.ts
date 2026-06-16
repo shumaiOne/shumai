@@ -3,7 +3,7 @@ import { s3Service } from '@shumai/core/src/s3/s3'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { transcodeService } from '@shumai/core/src/transcode/transcode'
+import { transcodeService } from '@shumai/core'
 import {
   getMediaInfoActivity,
   overlayAnnotationsActivity,
