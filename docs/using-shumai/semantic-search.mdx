@@ -9,31 +9,21 @@ Traditional search relies on matching exact characters (e.g., searching "dog" wi
 
 ## How Semantic Search Works
 
-Semantic search translates text and media into high-dimensional numerical vectors (embeddings) where similar concepts sit close to each other.
+Semantic search translates text queries and file contents into conceptual profiles. Similar ideas and visuals are mapped near each other.
 
-```mermaid
-graph LR
-    UserQuery["User Query: 'sunset at the beach'"] --> EmbedAPI[Embedding Model]
-    EmbedAPI --> VectorQuery[Query Vector]
-    VectorQuery --> SimilarityMatch[Cosine Distance Comparison]
-    DB[(PostgreSQL + pgvector)] --> SimilarityMatch
-    SimilarityMatch --> Results[Return: 'ocean_dusk.mp4']
-```
-
-1.  **Ingestion**: When an asset is uploaded and processed, the **Embedding Agent** converts the file's description, text, or visual tags into a 1536-dimensional vector.
-2.  **Storage**: These vectors are stored in the `asset_embeddings` table in PostgreSQL, utilizing the **`pgvector`** extension for indexing.
-3.  **Querying**: When you search with the "Semantic" toggle enabled, Shumai converts your search query into a vector and queries the database for the closest vector matches using cosine distance.
+1.  **Index Generation**: When you upload an asset, Shumai's background agent scans the file's visual elements, text contents, or descriptions, translating them into a concept profile.
+2.  **Concept Matching**: When you search with the "Semantic" toggle enabled, Shumai matches the conceptual meaning of your query against your assets.
+3.  **Result**: Searching "sunset at the beach" will successfully find a video file of ocean waves at dusk, even if the filename is `IMG_4029.mp4`.
 
 ---
 
-## Setting Up Semantic Search
+## Activating Semantic Search
 
-To activate semantic search in your team workspace:
+To use semantic search:
 
-1.  Navigate to **Team Settings** > **Agents**.
-2.  Verify that you have created an **Embedding Agent** (`type` set to `embedding`) and it is toggled **Enabled**.
-3.  Ensure the agent is linked to a valid embedding model (e.g., `text-embedding-3-small` from OpenAI, or a supported Google Gemini embedding endpoint).
-4.  Once the agent is active, Shumai will automatically begin indexing new uploads, and the **Semantic Search** toggle will appear on your file search explorer.
+1.  Verify that your administrator has enabled the **Embedding Agent** under **Team Settings** > **Agents**.
+2.  Once active, Shumai will automatically begin indexing new uploads.
+3.  Toggle the **Semantic** button next to the search input in the file explorer to search by conceptual meaning.
 
 ![Semantic Search Toggle Placeholder](https://placehold.co/800x200/2C2E3E/D95A66?text=Semantic+Search+Toggle+UI)
 _Placeholder: Screenshot of the search bar, emphasizing the active "Semantic" toggle option next to the text input._

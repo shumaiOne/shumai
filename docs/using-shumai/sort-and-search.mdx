@@ -1,34 +1,34 @@
 ---
 title: Sort & Search
-description: Fast filtering, Ngram text searching, and ordering controls for assets.
+description: Fast filtering, text search, and sorting controls for assets.
 ---
 
-As your projects grow, finding the right media files quickly is critical. Shumai provides Ngram-based textual search and customizable sorting parameters.
+As your projects grow, finding the right media files quickly is critical. Shumai provides search options and customizable sorting parameters.
 
 ---
 
 ## Searching Assets
 
-The main search bar at the top of the file explorer allows you to perform exact and partial keyword matches.
+The search bar at the top of the file explorer allows you to perform exact and partial keyword matches.
 
 ![Search Bar UI Placeholder](https://placehold.co/800x250/2C2E3E/D95A66?text=File+Explorer+Search+Bar)
 _Placeholder: Screenshot of the search input with toggle buttons for "Recursive Search" and "Filter by Type"._
 
-### Search Mechanics
+### Search Filters
 
-- **Ngram Indexing**: Shumai decomposes asset names into character sequences (Ngrams) stored in the database (`nameNgram` field) and indexed using a **PostgreSQL GIN (Generalized Inverted Index)**. This allows for instant partial matches and fuzzy auto-completions as you type.
-- **Recursive Search**: Toggle between searching only in the **Current Folder** or **Recursively** down the entire nested folder tree.
-- **Asset Type Filtering**: Restrict your search query to return only folders or only files.
-- **Symlinks Toggle**: Choose whether to display symlinked assets (virtual links to files in other directories) in your search results.
+- **Partial Matching**: Search matches any part of a file name as you type.
+- **Recursive Search Toggle**: Choose whether to search only inside the **Current Folder** or search **Recursively** down the entire nested folder tree.
+- **Asset Type**: Restrict your search to return only folders or only files.
+- **Show Links**: Toggle whether virtual links (shortcuts to files in other projects or directories) should be displayed in your search results.
 
 ---
 
 ## Sorting Assets
 
-You can sort lists of assets by clicking the column headers or selecting a sorting preference from the sort dropdown:
+You can sort your files by clicking the column headers or selecting a preference from the sort dropdown:
 
-- **Default Sort (ULID Sort)**: By default, assets are sorted by `id` descending. Because Shumai uses **ULIDs (Universally Unique Lexicographical Sortable Identifiers)** for asset IDs, sorting by ID descending automatically lists the newest uploads first without requiring an index on a `createdAt` timestamp.
-- **Name**: Sort alphabetically.
-- **Size**: Sort by file size in bytes.
-- **Type**: Group folders together followed by files and version stacks.
-- **Custom Metadata Columns**: If your project has defined custom metadata fields (such as "Due Date" or "Priority"), you can click those headers to sort the file list by these dynamic values.
+- **Newest Upload**: Lists the most recently uploaded files first (default).
+- **Name**: Sorts alphabetically (A-Z or Z-A).
+- **Size**: Sorts by file size.
+- **Type**: Groups folders together followed by files and version stacks.
+- **Custom Metadata Columns**: If your project has custom columns defined (such as "Due Date" or "Priority"), you can click those headers to sort the file list by these custom criteria.

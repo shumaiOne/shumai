@@ -1,19 +1,18 @@
 ---
 title: Agent Skills
-description: Extend your agents' capabilities with custom JavaScript/TypeScript tool scripts.
+description: Extend your agents' capabilities with custom automation tools.
 ---
 
-By default, LLMs can only process text. In Shumai, you can extend your agents' capabilities by registering **Skills**—custom scripts that the agent can choose to execute when solving a task.
+By default, AI models can only process text. In Shumai, you can extend your agents' capabilities by registering **Skills**—custom scripts that the agent can run when solving a task.
 
 ---
 
 ## How Skills Work
 
-Shumai skills are structured as standard functions that accept a JSON input payload and execute inside a secure, sandboxed environment.
+Skills are actions that you define and make available to your AI agents.
 
-- **Function Declarations**: When you register a skill, you write a description and declare a parameters schema using JSON Schema format.
-- **Tool Calling**: The LLM reads this schema. If it decides it needs to use the skill (e.g. to search a folder or calculate a statistic), it outputs a structured tool call.
-- **Execution**: Shumai catches the tool call, spins up a secure sandbox, runs your skill script with the LLM's arguments, and returns the result back to the LLM to complete its response.
+- **Descriptions for the AI**: When you register a skill, you write a clear description of what the skill does. The AI agent reads this description to understand when it should use the tool.
+- **Tool Execution**: When the Chat Agent decides it needs to use a skill (for example, to post a message to Slack or look up information), it requests to run that skill. Shumai executes the script in the background and returns the results to the agent.
 
 ---
 
@@ -24,24 +23,11 @@ To add a new skill, navigate to **Team Settings** > **Skills**:
 1.  Click **Create Skill**.
 2.  Fill in the parameters:
     - **Name**: E.g., `image_resizer` or `slack_notify`.
-    - **Description**: A clear explanation of what the tool does (the LLM reads this description to understand when to invoke it).
-    - **Parameters Schema**: A JSON Schema describing the input arguments.
-    - **Script Code**: The actual JavaScript code to be executed.
+    - **Description**: A clear explanation of what the tool does (e.g. "Use this tool to send a Slack message to the team channel").
+    - **Parameters**: Define the input parameters the agent must provide (such as the target channel name and the message text).
+    - **Script Code**: The automation script code uploaded by your administrator.
 3.  Click **Save**.
 4.  Navigate to **Agents** and check the box to assign this skill to your chosen Chat Agent.
-
-```javascript
-// Example Skill Script: slack_notify
-// Receives parameter: { channel: string, message: string }
-async function main(args) {
-  const response = await fetch(`https://hooks.slack.com/services/${args.channel}`, {
-    method: 'POST',
-    body: JSON.stringify({ text: args.message }),
-    headers: { 'Content-Type': 'application/json' },
-  })
-  return response.ok ? 'Notification sent' : 'Failed to send'
-}
-```
 
 ![Skills List View Placeholder](https://placehold.co/800x400/2C2E3E/D95A66?text=Agent+Skills+List)
 _Placeholder: Table displaying custom skills, their descriptions, code editors, and the list of agents currently utilizing them._

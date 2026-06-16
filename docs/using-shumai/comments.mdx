@@ -1,35 +1,35 @@
 ---
 title: Comments & Annotations
-description: Collaborate on media assets using frame-level drawings and timestamped comments.
+description: Collaborate on media assets using drawings and timestamped comments.
 ---
 
-Shumai provides a feedback workflow designed for video, audio, and image review. Instead of generic text comments, you can drop timestamped feedback and sketch directly onto video frames or images.
+Shumai provides a review workspace designed for video, audio, and image feedback. Instead of generic text comments, you can drop timestamped feedback and sketch directly onto the media.
 
 ---
 
-## Time-Based Comments
+## Timestamped Comments
 
-When reviewing video or audio assets, comments can be anchored to specific moments in time:
+When reviewing video or audio files, comments can be anchored to specific seconds on the timeline:
 
-1.  Play or scrub the video to the desired timestamp.
-2.  Type your feedback in the comment input box.
-3.  Click **Submit**. The comment is saved with the exact timestamp (`second` field in the database) and shown as a marker on the player timeline.
-4.  Clicking a comment card in the comments sidebar automatically jumps the media player to that exact timestamp.
+1.  Play or scrub the video player to the exact frame or timestamp you want to review.
+2.  Type your feedback in the comment box.
+3.  Click **Submit**. Your comment will be saved with a timestamp marker shown on the video timeline.
+4.  Collaborators can click your comment card in the sidebar to jump the video player to the exact moment you commented on.
 
 ![Timestamp Comments Placeholder](https://placehold.co/800x400/2C2E3E/D95A66?text=Video+Player+with+Comment+Timeline)
-_Placeholder: Screenshot of the video review interface showing comments linked to timestamp markers on the timeline._
+_Placeholder: Screenshot of the video review interface showing comments linked to markers on the timeline._
 
 ---
 
 ## Draw Annotations (Canvas)
 
-To give precise visual feedback, you can draw directly onto image or video frames:
+To give clear visual feedback, you can draw directly onto image or video frames:
 
-1.  Pause the video on the frame you wish to comment on.
-2.  Select a drawing tool (brush, rectangle, circle, arrow) from the annotation toolbar overlay.
-3.  Draw directly on the video player/canvas.
-4.  Your drawing coordinates are captured and saved as a JSON payload (`annotation` field in `AssetComment`) associated with your comment.
-5.  When other users click on your comment, the drawing is overlaid on the video player canvas at the corresponding frame.
+1.  Pause the video on the frame you wish to annotate.
+2.  Select a drawing tool (brush, rectangle, circle, arrow) from the annotation toolbar overlaying the player.
+3.  Draw directly on the video screen.
+4.  Type your comment and click **Submit**. Your drawing is saved along with your comment.
+5.  When other users select your comment, your drawings will overlay on the player screen automatically at that frame.
 
 ![Draw Annotations Placeholder](https://placehold.co/800x400/2C2E3E/D95A66?text=Frame-Level+Drawing+Overlay)
 _Placeholder: Screenshot showing the drawing canvas overlay over a video frame with visual arrows and circles._
@@ -38,18 +38,16 @@ _Placeholder: Screenshot showing the drawing canvas overlay over a video frame w
 
 ## Comment Threads (Replies)
 
-You can reply to any comment to create threaded discussions:
+Keep discussions organized by replying directly to feedback:
 
-- Click **Reply** on any comment card.
-- Type your message. Replies are nested under the parent comment using the `replyToId` field.
-- Threaded comments are sorted chronologically.
+- Click **Reply** on any comment.
+- Replies are nested under the parent comment card, making it easy to track resolution conversations.
 
 ---
 
-## Comment Attachments
+## Attachments
 
-Need to attach a reference image, PDF, or document to your feedback?
+You can attach reference documents, style guides, or other assets to your comments:
 
-- Click the **Paperclip** icon inside the comment input.
-- Select the file to upload.
-- Attachments are uploaded to the storage backend and linked to the comment via the `AssetCommentAttachment` relation.
+- Click the **Paperclip** icon inside the comment input box.
+- Choose a file to upload. It will appear as a downloadable link directly on your comment card.

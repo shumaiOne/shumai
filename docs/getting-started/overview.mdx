@@ -1,67 +1,38 @@
 ---
 title: Overview
-description: Learn about Shumai, a modern AI agent and media processing platform for creative work.
+description: Learn about Shumai, a modern collaboration and media review platform.
 ---
 
 ## What is Shumai?
 
-**Shumai** is a highly modular, self-hosted media collaboration platform and AI agent playground. It allows teams to securely store, organize, and review creative assets (video, audio, images, etc.) while leveraging advanced AI capabilities to automate metadata tagging, perform semantic visual searches, and run sandboxed automation scripts.
+**Shumai** is a self-hosted media collaboration platform designed for creative teams, video editors, designers, and clients. It provides a centralized workspace where you can upload, organize, and review assets (video, audio, images, and documents) in real-time. With built-in AI capabilities and background transcoding, Shumai helps streamline asset organization and feedback workflows.
 
-![Shumai Overview Placeholder](https://placehold.co/800x450/2C2E3E/D95A66?text=Shumai+Dashboard+Overview)
+![Shumai Dashboard Overview Placeholder](https://placehold.co/800x450/2C2E3E/D95A66?text=Shumai+Dashboard+Overview)
 _Placeholder: Dashboard view showing the file explorer, active projects, and sidebar options._
 
 ---
 
-## High-Level Features
+## Core Features
 
-- **S3-Compatible & Local FS Storage**: Flexibly store creative assets locally or connect directly to standard S3-compatible providers (AWS S3, Cloudflare R2, MinIO, etc.).
-- **Media Commenting & Drawing**: Leave frame-level and timestamped feedback with sketch overlays on image and video assets.
-- **Version Stacking**: Version control for assets by stacking multiple file revisions together.
-- **AI-Powered Metadata & Search**: Automatically analyze files using Gemini to populate metadata fields, and search them visually or semantically via vector databases.
-- **Custom Agent Skills**: Write scripts to automate repetitive workflow actions inside secure sandboxed environments.
-- **Production-Ready Media Transcoding**: Offload heavy media processing workloads using distributed workers.
-
----
-
-## Architectural Layout
-
-Shumai is developed as a modern, strictly decoupled monorepo managed with **Bun Workspaces**. Its architecture ensures clear separations of concerns across the following layers:
-
-```mermaid
-graph TD
-    WebUI[WebUI: packages/webui - React & Tailwind] --> API[API Layer: packages/api - Hono]
-    API --> Core[Core Service Layer: packages/core - Business Logic]
-    Core --> DB[Database Layer: packages/db - Prisma]
-    Core --> DTOs[DTO Layer: packages/dtos - Shared Schemas]
-    Core --> Workers[Workers: Agent/Transcode Workflows]
-```
-
-### The Monorepo Packages
-
-1.  **WebUI (`packages/webui`)**: The user interface. Built on React and styled with Tailwind CSS and Shadcn UI.
-2.  **API (`packages/api`)**: The HTTP server. Built on Hono and Bun. Acts as the entrypoint for all frontend requests.
-3.  **Core (`packages/core`)**: The business logic and services layer. Interacts with the database, S3 storage, and external providers.
-4.  **Database (`packages/db`)**: Holds the database schema, Prisma client generation, and migrations (using PostgreSQL with `pgvector`).
-5.  **DTOs (`packages/dtos`)**: Shared data transfer object definitions and Zod schemas, guaranteeing end-to-end type safety between the frontend and backend.
-6.  **Workers**: Specialized packages for running background operations:
-    - `@shumai/workflow-core`: Common workflow engine logic.
-    - `@shumai/agent`: AI agent workflows and activities.
-    - `@shumai/transcode`: Media processing workflows and activities.
+- **Secure Storage**: Host your creative assets locally on your server or connect directly to any S3-compatible cloud storage provider (like AWS S3, Cloudflare R2, or MinIO).
+- **Media Commenting & Drawing**: Speed up review cycles with frame-level comments and drawing tools that let you sketch directly onto video frames or images.
+- **Version Control**: Stack multiple versions of the same file into a single entry to keep your workspace organized and track revision history.
+- **AI-Powered Tags & Search**: Automatically tag your files on upload using Google Gemini, and find assets based on visual or conceptual meaning.
+- **Custom Automations**: Build tailored background workflows using custom scripts to automate repetitive team actions.
+- **Proxy Transcoding**: Automatically convert heavy camera and design files in the background into web-friendly streaming formats for smooth playback.
 
 ---
 
-## Dual Workflow Engines
+## Deployment Scales
 
-To cater to different environments, Shumai implements a custom background execution layer that supports two modes:
+Depending on your team size and production volume, Shumai can be configured to run in one of two modes:
 
-### 1. Local Executor (Default)
+### 1. Single-Server Deployment (Default)
 
-In local development or lightweight self-hosted setups, Shumai uses a polling-based engine. It continuously polls the database for pending background tasks (such as metadata autofill, embedding generation, or transcoding) and executes them directly on the main application container.
+Ideal for small teams, local development, or low-volume workflows. In this setup, the main web server, database, and background tasks (like transcoding and AI tagging) all run on a single machine.
 
-### 2. Temporal Executor (Production-Ready)
+### 2. High-Scale Distributed Deployment
 
-For heavy production workflows, Shumai decouples background task execution entirely using **Temporal**.
+Recommended for production environments with high-volume video uploads. In this setup, background tasks are managed via a centralized queue (Temporal). This allows you to offload heavy workloads to specialized worker machines (for example, putting video transcoding tasks on high-CPU/GPU machines and AI agents on separate sandboxed environments).
 
-- **Orchestration**: The main Hono application registers tasks to the Temporal Cluster.
-- **Specialized Workers**: Separate worker machines run `@shumai/transcode` and `@shumai/agent` processes. They poll tasks from the Temporal queue and execute them independently.
-- **S3 Requirement**: In Temporal mode, **you must use an S3-compatible storage backend**. Because workers run on separate machines, they cannot access a local filesystem to retrieve or write files.
+_Note: S3-compatible cloud storage is required for distributed deployments so that all workers can access the uploaded files._

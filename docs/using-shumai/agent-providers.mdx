@@ -3,8 +3,7 @@ title: AI Providers
 description: Connect Shumai to OpenAI, Anthropic, Gemini, or custom LLM gateways.
 ---
 
-<ctrl94>thought
-<ctrl95>To enable AI Agents, metadata autofill, and semantic search, Shumai must be connected to an AI model provider. Team Owners can manage these credentials under the **AI Providers** settings tab.
+To enable AI Agents, metadata autofill, and semantic search, Shumai must be connected to an AI model provider. Team Owners can manage these credentials under the **AI Providers** settings tab.
 
 ---
 
@@ -16,20 +15,20 @@ Shumai ships with pre-configured settings for major LLM providers:
 - **OpenAI**: Supports GPT-4, GPT-4o, and reasoning models.
 - **Anthropic**: Supports the Claude 3.5 Sonnet and Haiku models.
 
-### Global Keys (Environment-level)
+### Global Credentials
 
-If you define environment variables like `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `ANTHROPIC_API_KEY` in your `.env` file, the respective built-in provider will use these global credentials automatically, making them immediately available to the entire team.
+If your system administrator has configured global keys (like `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `ANTHROPIC_API_KEY`) in the server's environment variables, the respective built-in provider will use these credentials automatically, making them immediately available to the entire team.
 
 ---
 
-## Custom Provider Configurations
+## Custom Providers
 
-If you want to use local models (e.g. via Ollama or vLLM) or private enterprise proxy gateways, you can register custom providers:
+If you want to use local models (via Ollama or vLLM) or private enterprise proxy gateways, you can register custom providers:
 
 1.  Navigate to **Team Settings** > **AI Providers**.
 2.  Click **Add Provider**.
 3.  Fill in the configuration parameters:
-    - **Provider Name**: e.g., `Ollama-Local` or `Enterprise-Gateway`.
+    - **Provider Name**: E.g., `Ollama-Local` or `Enterprise-Gateway`.
     - **Base URL**: The target API URL (e.g., `http://localhost:11434/v1` for Ollama).
     - **API Key**: The authentication token (use `nokey` if local/unauthenticated).
 4.  **Register Models**: Define the list of model IDs and names (e.g., model ID `llama3`, name `Llama 3`) that this provider exposes.

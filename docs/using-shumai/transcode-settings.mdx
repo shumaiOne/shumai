@@ -1,39 +1,34 @@
 ---
 title: Media Transcoding Settings
-description: Configure video transcode strategies, proxy generation, and background transcoding workers.
+description: Configure video transcode strategies and preview proxy generation.
 ---
 
-High-resolution camera formats and raw media files (ProRes, DNxHR, MKV, etc.) cannot be rendered natively in web browsers. Shumai transcodes these assets into web-friendly streaming formats in the background.
+High-resolution camera formats and raw media files cannot be rendered natively in web browsers. Shumai transcodes these assets into web-friendly streaming formats in the background.
 
 ---
 
 ## Video Transcode Strategies
 
-Team Owners can select how aggressive the transcoding engine should be:
+Team Owners can select how the transcoding engine handles uploaded files:
 
 ### 1. Best Match (`best_match`)
 
-- **Behavior**: Shumai inspects the container, codecs, and bitrate of the uploaded file.
-- **Skip Transcoding**: If the file is already a web-compatible H.264/AAC MP4, WebM, or MOV that browser engines can play directly, transcoding is skipped.
+- **Behavior**: Shumai checks the parameters of the uploaded file.
+- **Skip Transcoding**: If the file is already in a web-compatible format that browser engines can play directly (like standard MP4s), transcoding is skipped.
 - **Transcode**: If the file format is incompatible, it is transcoded. This is the recommended option as it saves processing time and storage space.
 
 ### 2. Transcode All (`all`)
 
-- **Behavior**: Every single uploaded video is forced through the transcoding pipeline.
-- **Output**: Converts the file into a standardized, web-optimized H.264/AAC MP4 profile. This ensures consistent streaming performance and compatibility across all client devices and browsers, regardless of the source.
+- **Behavior**: Every single uploaded video is sent through the transcoding pipeline.
+- **Output**: Converts the file into a standardized, web-optimized MP4 profile. This ensures consistent streaming performance and compatibility across all client devices and browsers, regardless of the source.
 
 ![Transcode Settings Placeholder](https://placehold.co/800x350/2C2E3E/D95A66?text=Media+Processing+Transcode+Strategy)
 _Placeholder: Web UI Settings screen displaying the Media Processing tab with the strategy toggle selectors._
 
 ---
 
-## Transcoding Architecture
+## Processing Architecture
 
-Transcoding is highly resource-intensive. Depending on your scaling needs:
+Transcoding is resource-intensive. Depending on your scaling needs, your administrator can run the transcode engine on the main server (Local Single-Server mode) or delegate tasks to specialized transcoding worker machines (Distributed High-Scale mode).
 
-- **Local Executor**: Running in local mode, the main application container runs the transcoding task using the local CPU. This is suitable for low-volume uploads.
-- **Temporal Executor**: In production, transcoding tasks are offloaded to **Temporal**. You can spin up multiple transcoding worker machines running `@shumai-one/shumai-transcode` (preferably close to your S3 storage server) to process files in parallel.
-
-### System Requirements
-
-Every machine running the transcode process (the main container in Local mode, or the transcode worker in Temporal mode) must have `ffmpeg` and `ffprobe` installed and configured on the system PATH.
+_Note: In all modes, the processing machine must have the standard system media utilities (`ffmpeg` and `ffprobe`) installed._

@@ -1,55 +1,48 @@
 ---
 title: Quickstart
-description: Get Shumai up and running in minutes using Docker, NPM, or from source.
+description: Get Shumai up and running using Docker, NPM, or from source.
 ---
 
-We support three installation paths depending on your needs. For most users, **Docker Compose** is the fastest and easiest way to run Shumai.
+We support three installation options. For most administrators, **Docker Compose** is the fastest and easiest way to deploy Shumai.
 
 ---
 
 ## Option 1: Docker Compose (Recommended)
 
-Docker Compose configures and runs all required services (web application, PostgreSQL with pgvector, and S3 local storage) automatically.
+Docker Compose automatically configures and spins up all required services (the web application, a database, and local storage).
 
-### Local Stack
-
-A lightweight setup to run the core API and frontend using pre-built images.
-
-1. Download the docker-compose configuration:
-   ```bash
-   curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose.yaml
-   ```
-2. Spin up the containers:
-   ```bash
-   docker compose up -d
-   ```
-3. Open your browser and navigate to **`http://localhost:3000`** to access the Shumai Web UI.
-
-### Temporal Stack (Production-Ready / Development)
-
-For details on running the full Temporal worker orchestration stack, refer to the [Docker Setup Guide](/getting-started/docker).
+1.  **Download the Configuration**:
+    ```bash
+    curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose.yaml
+    ```
+2.  **Start the Services**:
+    ```bash
+    docker compose up -d
+    ```
+3.  **Access the Dashboard**:
+    Open your browser and navigate to **`http://localhost:3000`** to access the Shumai Web UI.
 
 ---
 
-## Option 2: Install from NPM
+## Option 2: Install via NPM
 
-You can run Shumai as a global npm package. This requires installing the system-level dependencies manually.
+You can run Shumai as a global service using the Node Package Manager (NPM).
 
-### Prerequisites
+### System Prerequisites
 
-1.  **FFmpeg & FFprobe**: Required for media transcoding and metadata extraction.
-    - **macOS**: `brew install ffmpeg`
-    - **Linux**: `sudo apt-get install ffmpeg`
-2.  **Sandbox Executable Dependencies**: Shumai runs AI agents inside secure, isolated sandboxes.
-    - **macOS**: Requires `ripgrep` (`brew install ripgrep`).
-    - **Linux**: Requires `bubblewrap`, `socat`, and `ripgrep` (`sudo apt-get install bubblewrap socat ripgrep`). On Ubuntu 24.04+, run:
-      ```bash
-      sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-      ```
+To handle media processing and security isolation, the host machine must have the following system utilities installed:
 
-### Step-by-Step NPM Setup
+- **FFmpeg & FFprobe**: Required for video transcoding and metadata extraction.
+  - _macOS_: `brew install ffmpeg`
+  - _Linux (Ubuntu/Debian)_: `sudo apt-get install ffmpeg`
+- **Agent Sandbox Utilities**: Used to run custom automation scripts securely.
+  - _macOS_: `brew install ripgrep`
+  - _Linux (Ubuntu/Debian)_: `sudo apt-get install bubblewrap socat ripgrep`
 
-1.  **Start PostgreSQL with pgvector**:
+### Step-by-Step Setup
+
+1.  **Start a Database**:
+    Shumai requires a PostgreSQL database with the `pgvector` extension. Start a database container:
     ```bash
     docker run --name shumai_postgres \
       -e POSTGRES_USER=shumai \
@@ -58,50 +51,52 @@ You can run Shumai as a global npm package. This requires installing the system-
       -p 5432:5432 \
       -d pgvector/pgvector:pg18
     ```
-2.  **Install Shumai globally**:
+2.  **Install Shumai**:
     ```bash
     npm install -g @shumai-one/shumai
     ```
 3.  **Configure Environment Variables**:
-    Create a new directory and save a `.env` file inside it:
+    Create a new directory, navigate into it, and create a `.env` file:
     ```bash
     mkdir shumai && cd shumai
     ```
-    Create `.env`:
+    Create a `.env` file with the following variables:
     ```env
     DATABASE_URL=postgresql://shumai:shumai_password@localhost:5432/shumai_db?schema=public
-    BETTER_AUTH_SECRET=your-random-32-byte-secret-key
+    BETTER_AUTH_SECRET=your-random-32-character-secret-key
     STORAGE_BACKEND=local
     AWS_ENDPOINT_URL_S3=http://localhost:3000
     ```
-4.  **Run the application**:
+4.  **Start Shumai**:
     ```bash
     shumai
     ```
-    Access the UI at `http://localhost:3000`.
+    Open your browser to `http://localhost:3000`.
 
 ---
 
 ## Option 3: Run from Source (For Developers)
 
-Follow these steps to run Shumai locally for development:
+If you wish to run Shumai locally to customize the platform or contribute:
 
-1.  **Clone the Repository & Install Dependencies**:
+1.  **Clone the Repository**:
     ```bash
     git clone https://github.com/shumaiOne/shumai.git
     cd shumai
+    ```
+2.  **Install Dependencies**:
+    ```bash
     bun install
     ```
-2.  **Start the Database**:
-    Spin up a `pgvector` container as shown in the NPM option above.
-3.  **Prepare Environment Variables**:
-    Copy the environment variables template or create a `.env` file at the root of the workspace.
-4.  **Run Database Migrations**:
+3.  **Start a Database**:
+    Launch a local database container (as described in the NPM section above).
+4.  **Run Migrations**:
+    Set up your `.env` file at the root, then apply database migrations:
     ```bash
     bun run db:migrate
     ```
-5.  **Start the Development Server**:
+5.  **Start the Dev Server**:
     ```bash
     bun run dev
     ```
-    This launches the React frontend (running on port `3000`) and the Hono API backend simultaneously.
+    This spins up the web server on port `3000` with hot-reloading active.

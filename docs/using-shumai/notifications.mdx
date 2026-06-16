@@ -7,34 +7,31 @@ Shumai includes a built-in notification system to keep you informed of team acti
 
 ---
 
-## Notification Types
+## What Triggers a Notification?
 
-The following actions trigger system notifications:
+You will receive notifications for the following events:
 
-- **Comment Created**: Triggered when a new comment is posted on an asset you created or are watching.
-- **Reply Created**: Triggered when someone replies directly to a comment thread you participated in.
-- **Mentions**: Sent immediately if a collaborator tags you (using `@username`) in any comment.
-- **Upload Complete**: Sent when a file you uploaded transitions from the `processing` state to `processed`.
-- **Metadata Status Update**: Sent when a custom metadata field representing progress or status is modified.
-- **User Joins**: Notifies owners when a new user joins the Team or Project via an invite link.
+- **New Comments**: When a collaborator comments on an asset you created or are watching.
+- **Thread Replies**: When someone replies directly to a comment thread you participated in.
+- **Direct @Mentions**: Sent immediately if someone tags you (using `@username`) in any comment.
+- **Upload Finished**: Sent when a file you uploaded is finished transcoding and is ready for review.
+- **Status Changes**: Sent if a critical metadata field (like a file's "Approval Status") is updated.
+- **New Members**: Notifies project owners when a new collaborator joins their project via invite link.
 
 ---
 
 ## Project-Level Notification Toggles
 
-If you find yourself in a highly active project, you can toggle notifications off for that specific project:
+If you are working in a highly active project and want to reduce noise, you can disable notifications for that project:
 
-1.  Navigate to your **Project Settings**.
+1.  Navigate to **Project Settings**.
 2.  Locate the **Enable Notifications** toggle.
 3.  Turn it off. You will stop receiving updates for file uploads and standard comments in this project, but direct `@mentions` will still be delivered to your inbox.
-
-![Notification Toggles Placeholder](https://placehold.co/800x300/2C2E3E/D95A66?text=Project+Notification+Settings)
-_Placeholder: Settings view showcasing user preference toggles for email and in-app notifications._
 
 ---
 
 ## The Notification Inbox
 
-- The bell icon in the navigation bar displays a red badge when you have unread notifications.
-- Clicking it opens your inbox list.
-- Clicking a notification card (like a new comment) will mark it as read and redirect you directly to the relevant asset and comment thread.
+- The **Bell** icon in the navigation bar displays a red badge when you have unread notifications.
+- Click the bell to open your inbox panel.
+- Clicking any notification card will mark it as read and take you directly to the relevant file and comment thread.

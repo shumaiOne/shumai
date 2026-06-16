@@ -11,7 +11,7 @@ Shumai uses specialized AI Agents to perform background automation, chat workflo
 
 Shumai supports three types of agents:
 
-### 1. Chat Agent (`chat`)
+### 1. Chat Agent
 
 An interactive, conversational bot that appears in your project workspace.
 
@@ -19,7 +19,7 @@ An interactive, conversational bot that appears in your project workspace.
 - The agent is context-aware: it can read files, search the project folder, inspect metadata, and read comment threads.
 - You can attach custom "Skills" to a chat agent, enabling it to write files, run scripts, or interact with external APIs on your behalf.
 
-### 2. Autofill Agent (`autofill`)
+### 2. Autofill Agent
 
 A background agent that monitors file uploads.
 
@@ -27,12 +27,12 @@ A background agent that monitors file uploads.
 - It analyzes the file's content (multimodal images, text descriptions) and populates any metadata fields flagged for "AI Autofill".
 - This is highly effective for automating tags, description summaries, camera settings, and video transcripts.
 
-### 3. Embedding Agent (`embedding`)
+### 3. Embedding Agent
 
-A specialized utility agent that processes assets to generate vector embeddings.
+A specialized utility agent that processes assets to generate search indexes.
 
-- It runs embedding models (like OpenAI's `text-embedding-3-small` or local variants) on asset text, captions, or image descriptions.
-- These vectors are saved in the `asset_embeddings` table to power Shumai's natural language semantic search capabilities.
+- It runs embedding models on asset text, captions, or image descriptions.
+- These search indexes are saved to power Shumai's natural language semantic search capabilities.
 
 ---
 
@@ -43,7 +43,7 @@ To edit or create an agent, navigate to **Team Settings** > **Agents**:
 - **Enabled / Disabled Toggle**: Stop or start the agent. If the embedding agent is disabled, semantic search indexing is paused.
 - **System Prompt / Soul**: The core instructions that define the agent's behavior, guidelines, formatting requirements, and operational limits.
 - **Model Provider**: Select which registered provider and model the agent should use for execution.
-- **Assigned Skills**: Select which custom javascript skills this agent is permitted to execute.
+- **Assigned Skills**: Select which custom skills this agent is permitted to execute.
 
 ![Agent Config Panel Placeholder](https://placehold.co/800x450/2C2E3E/D95A66?text=Agent+Configuration+Dashboard)
 _Placeholder: Configuration screen showing an agent's soul text editor, model dropdown, and assigned skills checkbox list._
