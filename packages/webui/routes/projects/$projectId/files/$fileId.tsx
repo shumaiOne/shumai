@@ -260,7 +260,7 @@ function FileViewPage() {
     setCurrentTime(0)
     setSelectedCommentId(null)
     setAnnotations([])
-  }, [activeFileId])
+  }, [fileData?.id])
 
   if (isLoading && !fileData) {
     return <FileDetailSkeleton />
