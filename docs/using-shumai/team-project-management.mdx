@@ -7,10 +7,12 @@ Shumai uses a two-tier organizational hierarchy—**Teams** and **Projects**—t
 
 ---
 
-## Teams vs. Projects
+## Member Visibility & Scopes
 
-- **Teams**: The parent organization boundaries. A team houses overall billing, custom integrations, AI providers, custom skills, and all members.
-- **Projects**: Workspaces created within a team containing folders, files, comments, and collections.
+Members added to a team belong to one of two permission scopes:
+
+- **Team Scope**: Team-scoped members can view all projects inside the team by default.
+- **Project Scope**: Project-scoped members can only see and access the specific projects they have been explicitly granted permission to join.
 
 ---
 
@@ -24,9 +26,18 @@ Shumai uses permission roles to control what actions team and project members ca
 
 ---
 
+## Project Role Overrides
+
+Administrators can add existing team members to specific projects to override their permissions:
+
+- Project-level roles take higher priority than team-level roles within that project.
+- _Example_: If Peter is a team member with an **Editor** role, an administrator can add Peter to _Project A_ with a **Reviewer** role. Peter will act as a Reviewer inside Project A, but maintain his Editor role across the rest of the team's projects.
+
+---
+
 ## Managing Members
 
-Member management is handled using a unified **Members Dialog** popup, accessed differently depending on the context:
+Member management is handled using a unified **Members Dialog** popup:
 
 ### 1. Managing Team Members
 
@@ -41,7 +52,7 @@ Member management is handled using a unified **Members Dialog** popup, accessed 
 - **Access**: Open your project **File Browser** and click the members avatars or button in the top toolbar.
 - **Settings**:
   - Change project member roles or remove them from the project.
-  - **Add Team Members**: The dialog displays a list of active team members who are not yet added to this project. Select their project role and click **Add** to add them instantly.
+  - **Add Team Members**: The dialog displays a list of active team members who are not yet added to this project. Select their project role (which will override their team role inside this project) and click **Add** to add them instantly.
   - **Invite External Collaborators**: Select a role (Editor or Reviewer) and click **Generate Link** to invite new users directly into this specific project.
 
 ![Members Dialog Placeholder](https://placehold.co/800x450/2C2E3E/D95A66?text=Members+Dialog+UI)
