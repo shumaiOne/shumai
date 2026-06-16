@@ -16,12 +16,7 @@
     "groups": [
       {
         "group": "Getting Started",
-        "pages": [
-          "introduction",
-          "getting-started/overview",
-          "getting-started/quickstart",
-          "getting-started/docker"
-        ]
+        "pages": ["getting-started/overview", "getting-started/quickstart"]
       },
       {
         "group": "Using Shumai",
