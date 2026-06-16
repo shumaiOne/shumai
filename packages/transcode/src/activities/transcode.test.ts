@@ -3,7 +3,7 @@ import { s3Service } from '@shumai/core/src/s3/s3'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { transcodeService } from '../transcode'
+import { transcodeService } from '@shumai/core'
 import {
   getMediaInfoActivity,
   overlayAnnotationsActivity,
@@ -25,7 +25,7 @@ vi.mock('@shumai/core/src/s3/s3', () => ({
   },
 }))
 
-vi.mock('../transcode', () => ({
+vi.mock('@shumai/core/src/transcode/transcode', () => ({
   transcodeService: {
     getVideoInfo: vi.fn(),
     getImageInfo: vi.fn(),

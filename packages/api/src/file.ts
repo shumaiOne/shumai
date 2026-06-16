@@ -17,7 +17,7 @@ import {
   uploadFileRequestSchema,
   getDownloadLinksRequestSchema,
 } from '@shumai/dtos'
-import { transcodeService } from '@shumai/transcode/src/transcode'
+import { transcodeService } from '@shumai/core'
 import fs from 'fs'
 import { Hono } from 'hono'
 import os from 'os'
