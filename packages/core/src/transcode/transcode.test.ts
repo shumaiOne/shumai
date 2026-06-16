@@ -3,6 +3,7 @@ import { transcodeService } from './transcode'
 import * as path from 'path'
 import * as child_process from 'child_process'
 import { WorkflowTask } from '@shumai/db'
+import { setupTestDbHooks } from '@shumai/db/test'
 import sharp from 'sharp'
 
 // Mock child_process
@@ -25,6 +26,7 @@ vi.mock('sharp', () => {
 })
 
 describe('TranscodeService', () => {
+  setupTestDbHooks()
   let tempDir: string
 
   beforeEach(() => {

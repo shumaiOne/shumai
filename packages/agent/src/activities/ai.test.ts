@@ -7,7 +7,7 @@ import {
   saveAssetEmbeddingsActivity,
 } from './ai'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import { transcodeService } from '@shumai/transcode'
+import { transcodeService } from '@shumai/core/src/transcode/transcode'
 import { prisma, AssetType, AssetStatus } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import * as fs from 'fs'
@@ -38,7 +38,7 @@ vi.mock('@shumai/core/src/s3/s3', () => ({
   },
 }))
 
-vi.mock('@shumai/transcode', () => ({
+vi.mock('@shumai/core/src/transcode/transcode', () => ({
   transcodeService: {
     extractVideoFrames: vi.fn(),
   },

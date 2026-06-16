@@ -6,7 +6,7 @@ import { assetService } from '@shumai/core/src/asset/asset'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { notificationService } from '@shumai/core/src/notification/notification'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import { transcodeService } from '@shumai/transcode/src/transcode'
+import { transcodeService } from '@shumai/core/src/transcode/transcode'
 import { authMiddleware } from './middleware/auth'
 import { authzService, ResourceType, Permission } from '@shumai/core/src/authz/authz'
 

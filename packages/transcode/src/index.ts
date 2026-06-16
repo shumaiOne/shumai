@@ -9,6 +9,5 @@ export function initTranscodeWorkflows() {
 }
 
 export * from './transcoder'
-export * from './transcode'
 export * from './workflows/transcode'
 export * from './activities/transcode'

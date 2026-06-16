@@ -32,7 +32,7 @@
     },
     "apps/agent": {
       "name": "@shumai/agent-app",
-      "version": "0.1.0",
+      "version": "0.0.6",
       "bin": {
         "shumai-agent": "./src/index.ts",
       },
@@ -44,7 +44,7 @@
     },
     "apps/transcode": {
       "name": "@shumai/transcode-app",
-      "version": "0.1.0",
+      "version": "0.0.6",
       "bin": {
         "shumai-transcode": "./src/index.ts",
       },
@@ -56,7 +56,7 @@
     },
     "apps/web": {
       "name": "@shumai/web-app",
-      "version": "0.1.0",
+      "version": "0.0.6",
       "dependencies": {
         "@shumai/agent": "workspace:*",
         "@shumai/api": "workspace:*",
@@ -71,7 +71,7 @@
     },
     "packages/agent": {
       "name": "@shumai/agent",
-      "version": "0.1.0",
+      "version": "0.0.6",
       "dependencies": {
         "@anthropic-ai/sandbox-runtime": "0.0.52",
         "@earendil-works/pi-agent-core": "0.78.0",
@@ -95,7 +95,7 @@
     },
     "packages/api": {
       "name": "@shumai/api",
-      "version": "0.1.0",
+      "version": "0.0.6",
       "dependencies": {
         "@hono/zod-validator": "0.7.6",
         "@shumai/core": "workspace:*",
@@ -109,7 +109,7 @@
     },
     "packages/core": {
       "name": "@shumai/core",
-      "version": "0.1.0",
+      "version": "0.0.6",
       "dependencies": {
         "@shumai/db": "workspace:*",
         "@shumai/dtos": "workspace:*",
@@ -123,6 +123,7 @@
         "hono": "4.12.23",
         "jittered-fractional-indexing": "1.0.1",
         "pino": "10.3.1",
+        "sharp": "0.34.5",
         "tweetnacl": "1.0.3",
         "ulid": "3.0.2",
         "yaml": "2.9.0",
@@ -135,7 +136,7 @@
     },
     "packages/db": {
       "name": "@shumai/db",
-      "version": "0.1.0",
+      "version": "0.0.6",
       "dependencies": {
         "@earendil-works/pi-agent-core": "0.78.0",
         "@prisma/adapter-pg": "7.8.0",
@@ -151,14 +152,14 @@
     },
     "packages/dtos": {
       "name": "@shumai/dtos",
-      "version": "0.1.0",
+      "version": "0.0.6",
       "dependencies": {
         "zod": "4.4.3",
       },
     },
     "packages/transcode": {
       "name": "@shumai/transcode",
-      "version": "0.1.0",
+      "version": "0.0.6",
       "dependencies": {
         "@shumai/core": "workspace:*",
         "@shumai/db": "workspace:*",
@@ -167,13 +168,12 @@
         "@temporalio/activity": "1.17.2",
         "@temporalio/worker": "1.17.2",
         "@temporalio/workflow": "1.17.2",
-        "sharp": "0.34.5",
         "ulid": "3.0.2",
       },
     },
     "packages/webui": {
       "name": "@shumai/webui",
-      "version": "0.1.0",
+      "version": "0.0.6",
       "dependencies": {
         "@base-ui/react": "1.5.0",
         "@dnd-kit/abstract": "0.4.0",
@@ -273,7 +273,7 @@
     },
     "packages/workflow-core": {
       "name": "@shumai/workflow-core",
-      "version": "0.1.0",
+      "version": "0.0.6",
       "dependencies": {
         "@shumai/core": "workspace:*",
         "@shumai/db": "workspace:*",

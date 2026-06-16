@@ -244,7 +244,7 @@ The `bunfig.toml` is configured to run `setup-tests.ts` automatically as a prelo
 
 ### API Tests
 
-- Located in `packages/api/src/api/**/*.test.ts`.
+- Located in `packages/api/src/**/*.test.ts`.
 - Mock the Service layer using `vi.spyOn(service, 'method')` or `vi.mock('@shumai/core/src/team/team')`.
 - Verify that the API calls the Service methods correctly.
 
