@@ -1,45 +1,66 @@
 ---
 title: Asset Metadata
-description: Customize your assets with dynamic, team-scoped metadata fields and AI autofill features.
+description: Customize your assets with dynamic, scoped metadata fields and AI-driven autofill features.
 ---
 
-Standard file systems restrict you to basic properties like file size and modified dates. Shumai allows you to create custom fields tailored to your production pipeline.
+Standard file systems limit you to basic attributes like file name and modification date. Shumai lets you create structured metadata fields tailored to your creative pipeline—from tracking review statuses to capturing technical specs automatically.
 
 ---
 
 ## Metadata Scopes
 
-Custom fields can be defined at different scopes:
+Fields are grouped and displayed in the sidebar inspector by their scope:
 
-- **System Scope**: Universal fields defined by system administrators that appear across all teams and projects.
-- **Team Scope**: Fields inherited by all projects within a team. Useful for maintaining company-wide tagging or department standards.
-- **Project Scope**: Custom fields restricted to a single project workspace.
+- **Essentials (System Scope)**: Core fields built into Shumai that appear across all teams and projects. Many of these (like resolution, duration, and codec) are automatically extracted during file upload.
+- **Team Attributes (Team Scope)**: Custom fields defined at the team level, which are inherited by all projects under that team. Excellent for enforcing company-wide metadata guidelines.
+- **Custom Fields (Project Scope)**: Unique metadata fields defined specifically for a single project workspace.
 
 ---
 
 ## Custom Field Types
 
-When creating a new field, you can choose from the following data types:
+When building or editing your metadata schema, you can choose from these custom types:
 
-- **Text (String)**: For simple text, descriptions, tags, or status labels.
-- **Number**: For numeric values (e.g. frame rates, rating scores, review passes).
-- **Yes/No (Boolean)**: Simple toggles (e.g. `Approved`, `VFX Required`).
-- **Date**: Calendar selection (e.g. `Due Date`, `Launch Date`).
+- **Text**: A single-line input field for simple strings, codes, or labels.
+- **Long Text**: A paragraph input area for detailed descriptions, summaries, or notes.
+- **Dropdown (Select)**: A single-choice dropdown menu where options can be styled with custom background colors (e.g., Green for Approved, Yellow for In Progress).
+- **Tags (Multi-Select)**: A multi-choice tag field allowing you to assign multiple custom colored labels to a single asset.
+- **Star Rating**: An interactive star rating scale (supports configurations from 2 to 6 stars) for scoring and ranking.
+- **Number**: A numeric field supporting custom decimal precision (from 0 to 3 decimal places) for values like frame rates, counts, or scores.
+- **Checkbox (Toggle)**: A simple Yes/No switch for binary indicators (e.g., "VFX Required").
+- **Date**: A calendar date selector with support for custom display formats (Local, ISO, USA, Euro, Friendly) and optional time tracking.
 
 ---
 
-## Field Settings
+## Default Built-in Fields
 
-### Read-Only
+Every project comes pre-configured with several essential fields populated automatically during upload or status changes:
 
-When enabled, standard team members cannot edit the field value through the dashboard interface. This is ideal for fields populated automatically by background tasks (like video resolution, audio formats, or AI confidence scores).
+- **Technical Specs**: File Size, Format, File Type (Video, Audio, Image, Document, File), Resolution Width/Height, Video/Audio Codecs, Duration, Frame Rate, and Audio Sample Rates.
+- **Collaborative Fields**:
+  - **Status**: A dropdown select field containing `Needs Review` (Red), `In Progress` (Yellow), and `Approved` (Green).
+  - **Rating**: A 5-star rating scale for quick review evaluations.
+  - **Keywords**: A tags (multi-select) field to categorize assets.
+
+---
+
+## Field Settings & Controls
+
+### Read-Only Fields
+
+Marking a custom field as **Read-Only** prevents team members from editing its value directly. This is ideal for fields meant to be populated programmatically or by automated integrations.
 
 ### AI Autofill
 
-If a field is flagged for **AI Autofill**, Shumai's background worker will automatically analyze the asset contents using the team's default Gemini model upon upload.
+When you enable **AI Autofill** on a metadata field, Shumai automatically analyzes uploaded assets using your team's default Gemini AI model. The AI will populate the field with extracted insights:
 
-- For video/images: The AI analyzes the visuals to suggest tags, write description summaries, or classify content themes.
-- The metadata values are updated automatically once the asset is ready.
+- For text/long text: AI generates summaries, descriptions, or shot logs.
+- For select/multi-select: AI automatically categorizes themes or applies matching tags.
+- For numbers: AI can output confidence scores or other metrics.
 
-![Metadata Manager Placeholder](https://placehold.co/800x400/2C2E3E/D95A66?text=Metadata+Schema+Builder)
-_Placeholder: Screenshot of the metadata builder interface, demonstrating creating a new field with the AI Autofill toggle._
+### Visibility & Ordering
+
+In the metadata inspector:
+
+- **Visibility**: Toggle fields on or off to clean up the sidebar and only show what is relevant to your current review process.
+- **Ordering**: Drag and drop fields in the builder to arrange their display order within the Custom Fields section.
