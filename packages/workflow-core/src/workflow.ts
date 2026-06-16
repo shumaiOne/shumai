@@ -5,6 +5,7 @@ import * as taskActivities from './activities/task'
 import { Executor } from './executor'
 import { LocalExecutor } from './local-executor'
 import { TemporalExecutor } from './temporal-executor'
+import { TaskQueueAgent, TaskQueueTranscode, getConcurrencyLimit } from './workflow-utils'
 
 export class WorkflowService {
   private executor: Executor
@@ -117,11 +118,22 @@ export class WorkflowService {
         },
       })
 
+      let maxConcurrentActivityTaskExecutions: number | undefined
+      if (queue === TaskQueueTranscode) {
+        maxConcurrentActivityTaskExecutions = getConcurrencyLimit(
+          process.env.CONCURRENCY_TRANSCODE,
+          1,
+        )
+      } else if (queue === TaskQueueAgent) {
+        maxConcurrentActivityTaskExecutions = getConcurrencyLimit(process.env.CONCURRENCY_AGENT, 5)
+      }
+
       const specificWorker = await Worker.create({
         connection,
         // Register both domain-specific activities and shared task activities
         activities: { ...activities, ...taskActivities },
         taskQueue: workerSpecificQueue,
+        maxConcurrentActivityTaskExecutions,
         bundlerOptions: {
           webpackConfigHook: (config) => {
             config.resolve = config.resolve || {}

@@ -3,6 +3,7 @@ import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
 import { Executor } from './executor'
 import * as taskActivities from './activities/task'
 import { logger } from '@shumai/core/src/logger'
+import { getConcurrencyLimit } from './workflow-utils'
 
 type WorkflowFn = (task: WorkflowTask) => Promise<void>
 
@@ -34,6 +35,10 @@ export class ConcurrencyLimiter {
   private queue: (() => void)[] = []
 
   constructor(private readonly limit: number) {}
+
+  getLimit(): number {
+    return this.limit
+  }
 
   async run<T>(fn: () => Promise<T>): Promise<T> {
     if (this.activeCount >= this.limit) {
@@ -68,9 +73,24 @@ export class LocalExecutor implements Executor {
   private interval: Timer | null = null
   private processingTasks = new Set<string>()
 
-  // 1 concurrency for transcode, 5 for other workflows
-  private transcodeLimiter = new ConcurrencyLimiter(1)
-  private generalLimiter = new ConcurrencyLimiter(5)
+  private transcodeLimiter: ConcurrencyLimiter
+  private generalLimiter: ConcurrencyLimiter
+
+  constructor() {
+    const transcodeLimit = getConcurrencyLimit(process.env.CONCURRENCY_TRANSCODE, 1)
+    const agentLimit = getConcurrencyLimit(process.env.CONCURRENCY_AGENT, 5)
+
+    this.transcodeLimiter = new ConcurrencyLimiter(transcodeLimit)
+    this.generalLimiter = new ConcurrencyLimiter(agentLimit)
+  }
+
+  getTranscodeConcurrencyLimit(): number {
+    return this.transcodeLimiter.getLimit()
+  }
+
+  getAgentConcurrencyLimit(): number {
+    return this.generalLimiter.getLimit()
+  }
 
   async submit(task: WorkflowTask): Promise<string> {
     if (task.status !== WorkflowTaskStatus.pending) {
