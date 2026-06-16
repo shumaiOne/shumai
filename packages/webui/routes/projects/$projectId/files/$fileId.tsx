@@ -256,6 +256,12 @@ function FileViewPage() {
     }
   }, [parentFolderId, activeFileId, carouselState.folderId])
 
+  useEffect(() => {
+    setCurrentTime(0)
+    setSelectedCommentId(null)
+    setAnnotations([])
+  }, [fileData?.id])
+
   if (isLoading && !fileData) {
     return <FileDetailSkeleton />
   }

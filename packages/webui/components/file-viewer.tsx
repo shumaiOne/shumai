@@ -301,6 +301,7 @@ export function FileViewer({
       )}
       {isVideo && (
         <VideoPlayer
+          key={file.id}
           data={file}
           playerRef={videoRef}
           onPlay={onPlay}
