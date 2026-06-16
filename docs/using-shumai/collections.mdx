@@ -1,0 +1,68 @@
+---
+title: Collections
+description: Build dynamic virtual folders using metadata filters and search criteria.
+---
+
+Instead of copying files into static folders, Shumai uses **Collections**—dynamic, query-based virtual views. A collection automatically groups files that match specific criteria in real-time.
+
+---
+
+## What is a Collection?
+
+A **Collection** does not move or duplicate files on disk. Instead, it runs a pre-defined filter query against your project assets database. Whenever a new file is uploaded or metadata is updated to match the collection's query, the file automatically appears inside the collection.
+
+---
+
+## Setting Up Collection Filters
+
+When creating or editing a collection, you specify a name and set up a **Collection Filter**:
+
+```json
+{
+  "sourceFolderId": "ulid_of_root_folder",
+  "searchFilter": {
+    "operator": "AND",
+    "conditions": [
+      {
+        "field": "metadata.status",
+        "operator": "eq",
+        "value": "Approved"
+      },
+      {
+        "field": "type",
+        "operator": "is",
+        "value": "file"
+      }
+    ]
+  }
+}
+```
+
+### 1. Source Folder
+
+Specify the folder root where the query starts. The collection will scan this directory and all its nested subfolders recursively.
+
+### 2. Operators and Conditions
+
+- **Logical Operators**: Combine conditions using `AND` (all conditions must be met) or `OR` (at least one condition must be met).
+- **Fields**: Filter on standard fields (name, type, size, etc.) or custom metadata fields (using the `metadata.<field_key>` prefix).
+- **Comparison Operators**:
+  - `is`, `eq` (equals), `neq` (not equal)
+  - `contains`, `notContains` (substring matches)
+  - `gt` (greater than), `gte`, `lt`, `lte` (numeric/date ranges)
+  - `isEmpty`, `isNotEmpty` (checks if field contains values)
+
+### 3. Collection Default Sorting
+
+Define a custom sorting rule specific to the collection (e.g., sort by the custom field "Publication Date" ascending) to override the default project sort order.
+
+---
+
+## Example Use Cases
+
+- **Review Dashboard**: A collection named "Pending Review" that displays assets where `metadata.status` equals `In Review`.
+- **Daily Deliverables**: A collection filtering files uploaded in the last 24 hours with `type` equal to `file`.
+- **Approved Marketing Assets**: A collection filtering assets matching `metadata.tag` contains `marketing` AND `metadata.approved` is `true`.
+
+![Collection Creation Placeholder](https://placehold.co/800x450/2C2E3E/D95A66?text=Create+Collection+Query+Builder)
+_Placeholder: Interface modal of the Collection builder, displaying how filters are added and previewed._

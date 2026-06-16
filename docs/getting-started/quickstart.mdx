@@ -1,0 +1,107 @@
+---
+title: Quickstart
+description: Get Shumai up and running in minutes using Docker, NPM, or from source.
+---
+
+We support three installation paths depending on your needs. For most users, **Docker Compose** is the fastest and easiest way to run Shumai.
+
+---
+
+## Option 1: Docker Compose (Recommended)
+
+Docker Compose configures and runs all required services (web application, PostgreSQL with pgvector, and S3 local storage) automatically.
+
+### Local Stack
+
+A lightweight setup to run the core API and frontend using pre-built images.
+
+1. Download the docker-compose configuration:
+   ```bash
+   curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose.yaml
+   ```
+2. Spin up the containers:
+   ```bash
+   docker compose up -d
+   ```
+3. Open your browser and navigate to **`http://localhost:3000`** to access the Shumai Web UI.
+
+### Temporal Stack (Production-Ready / Development)
+
+For details on running the full Temporal worker orchestration stack, refer to the [Docker Setup Guide](/getting-started/docker).
+
+---
+
+## Option 2: Install from NPM
+
+You can run Shumai as a global npm package. This requires installing the system-level dependencies manually.
+
+### Prerequisites
+
+1.  **FFmpeg & FFprobe**: Required for media transcoding and metadata extraction.
+    - **macOS**: `brew install ffmpeg`
+    - **Linux**: `sudo apt-get install ffmpeg`
+2.  **Sandbox Executable Dependencies**: Shumai runs AI agents inside secure, isolated sandboxes.
+    - **macOS**: Requires `ripgrep` (`brew install ripgrep`).
+    - **Linux**: Requires `bubblewrap`, `socat`, and `ripgrep` (`sudo apt-get install bubblewrap socat ripgrep`). On Ubuntu 24.04+, run:
+      ```bash
+      sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      ```
+
+### Step-by-Step NPM Setup
+
+1.  **Start PostgreSQL with pgvector**:
+    ```bash
+    docker run --name shumai_postgres \
+      -e POSTGRES_USER=shumai \
+      -e POSTGRES_PASSWORD=shumai_password \
+      -e POSTGRES_DB=shumai_db \
+      -p 5432:5432 \
+      -d pgvector/pgvector:pg18
+    ```
+2.  **Install Shumai globally**:
+    ```bash
+    npm install -g @shumai-one/shumai
+    ```
+3.  **Configure Environment Variables**:
+    Create a new directory and save a `.env` file inside it:
+    ```bash
+    mkdir shumai && cd shumai
+    ```
+    Create `.env`:
+    ```env
+    DATABASE_URL=postgresql://shumai:shumai_password@localhost:5432/shumai_db?schema=public
+    BETTER_AUTH_SECRET=your-random-32-byte-secret-key
+    STORAGE_BACKEND=local
+    AWS_ENDPOINT_URL_S3=http://localhost:3000
+    ```
+4.  **Run the application**:
+    ```bash
+    shumai
+    ```
+    Access the UI at `http://localhost:3000`.
+
+---
+
+## Option 3: Run from Source (For Developers)
+
+Follow these steps to run Shumai locally for development:
+
+1.  **Clone the Repository & Install Dependencies**:
+    ```bash
+    git clone https://github.com/shumaiOne/shumai.git
+    cd shumai
+    bun install
+    ```
+2.  **Start the Database**:
+    Spin up a `pgvector` container as shown in the NPM option above.
+3.  **Prepare Environment Variables**:
+    Copy the environment variables template or create a `.env` file at the root of the workspace.
+4.  **Run Database Migrations**:
+    ```bash
+    bun run db:migrate
+    ```
+5.  **Start the Development Server**:
+    ```bash
+    bun run dev
+    ```
+    This launches the React frontend (running on port `3000`) and the Hono API backend simultaneously.

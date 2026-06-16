@@ -1,0 +1,46 @@
+---
+title: Asset Metadata
+description: Customize your assets with dynamic, team-scoped metadata fields and AI autofill features.
+---
+
+Standard file systems restrict you to basic properties like file size and modified dates. Shumai allows you to create a custom, structured schema of metadata fields tailored to your production pipeline.
+
+---
+
+## Metadata Field Scopes
+
+Metadata fields can be scoped to different structural levels:
+
+- **System Scope**: Universal fields defined by system admins that appear across all teams and projects.
+- **Team Scope**: Fields inherited by all projects within a specific team. Useful for maintaining company-wide tagging or department standards.
+- **Project Scope**: Custom fields restricted to a single project workspace.
+
+---
+
+## Field Types
+
+When creating a new metadata field, you can choose from the following data types:
+
+- **String**: Simple text fields, descriptions, or status labels.
+- **Number**: Numeric values (e.g. frame rates, rating scores).
+- **Boolean**: Simple toggles (e.g. `Approved`, `Needs Transcoding`).
+- **Date**: Calendar selection (e.g. `Due Date`, `Publication Date`).
+- **JSON**: Structured JSON objects for storing complex key-value configurations or custom logs.
+
+---
+
+## Field Settings
+
+### Read-Only
+
+When enabled, standard users cannot edit the metadata value through the dashboard interface. This is ideal for system values populated by background services (like transcode resolutions or AI confidence scores).
+
+### AI Autofill
+
+If a field is flagged for **AI Autofill**, Shumai's background worker will automatically analyze the asset contents (using the team's default Gemini model) upon upload.
+
+- For video/images: The AI analyzes the visuals to extract descriptions, suggest tags, or classify genres.
+- The metadata values are updated automatically when the asset moves to `processed` status.
+
+![Metadata Manager Placeholder](https://placehold.co/800x400/2C2E3E/D95A66?text=Metadata+Schema+Builder)
+_Placeholder: Screenshot of the metadata builder interface, demonstrating creating a new field with the AI Autofill toggle._

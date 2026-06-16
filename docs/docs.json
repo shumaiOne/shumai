@@ -16,7 +16,47 @@
     "groups": [
       {
         "group": "Getting Started",
-        "pages": ["introduction", "getting-started/docker"]
+        "pages": [
+          "introduction",
+          "getting-started/overview",
+          "getting-started/quickstart",
+          "getting-started/docker"
+        ]
+      },
+      {
+        "group": "Using Shumai",
+        "pages": [
+          "using-shumai/upload",
+          "using-shumai/comments",
+          "using-shumai/version-stack",
+          "using-shumai/sort-and-search",
+          "using-shumai/team-project-management",
+          "using-shumai/notifications",
+          "using-shumai/metadata",
+          "using-shumai/collections",
+          "using-shumai/share-links"
+        ]
+      },
+      {
+        "group": "Shumai Agent (Admin)",
+        "pages": [
+          "using-shumai/agent-providers",
+          "using-shumai/agents",
+          "using-shumai/agent-skills",
+          "using-shumai/agent-sandbox"
+        ]
+      },
+      {
+        "group": "Media Transcoding (Admin)",
+        "pages": ["using-shumai/transcode-settings"]
+      },
+      {
+        "group": "Advanced Search",
+        "pages": ["using-shumai/semantic-search"]
+      },
+      {
+        "group": "Configuration",
+        "pages": ["configuration/env-variables"]
       }
     ]
   }

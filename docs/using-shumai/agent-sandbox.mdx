@@ -1,0 +1,40 @@
+---
+title: Agent Sandbox
+description: Secure execution environment and network domain restrictions for AI agent scripts.
+---
+
+Running untrusted or LLM-generated code poses security risks. Shumai resolves this by executing all agent skills inside a secure, containerized, and restricted **Agent Sandbox** environment.
+
+---
+
+## Sandbox Architecture
+
+The sandbox restricts the execution process from accessing the host filesystem, system processes, and internal networks:
+
+- **macOS Isolation**: Uses the native `sandbox-exec` utility with custom profiles that prevent unauthorized read/write access.
+- **Linux Isolation**: Uses `bubblewrap` (bwrap) to build an unprivileged user namespace container with a minimal read-only root mount and strict seccomp system call filters.
+- **Network Bridging**: External network calls from inside the sandbox are intercepted and routed through a secure proxy bridge (`socat`).
+
+---
+
+## Domain Whitelisting
+
+By default, sandboxed code cannot make outbound HTTP requests to the internet. Team Owners must explicitly authorize external APIs by managing domain access:
+
+### Allowed Domains
+
+A list of domains (with wildcard support) that sandboxed scripts are permitted to access.
+
+- Default whitelisted domains include standard package registries: `registry.npmjs.org`, `pypi.org`, and public repositories like `github.com`.
+- If a script needs to call a webhook or external API (e.g. `api.slack.com`), the admin must add it to the allowed list.
+
+### Pending Domains
+
+When an agent script attempts to reach a domain that is not currently authorized:
+
+1.  The outbound connection is blocked immediately.
+2.  The target domain is logged and added to the **Pending Domains** list in settings.
+3.  Admins can review this list and click **Approve** to transfer it to Allowed Domains, or **Reject** to keep it blocked.
+
+![Agent Sandbox Settings Placeholder](https://placehold.co/800x400/2C2E3E/D95A66?text=Agent+Sandbox+Domain+Manager)
+_Placeholder: Security settings page showing lists of Allowed Domains, Pending Domains with Approve/Deny buttons, and sandbox audit logs._

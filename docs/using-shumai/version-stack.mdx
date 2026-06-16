@@ -1,0 +1,42 @@
+---
+title: File Version Stack
+description: Group multiple revisions of an asset under a single version-controlled stack.
+---
+
+When collaborating on creative assets, files naturally go through multiple iterations (e.g. `edit_v1.mp4`, `edit_v2.mp4`, `edit_final.mp4`). To prevent workspace clutter, Shumai allows you to bundle these revisions into a **Version Stack**.
+
+---
+
+## What is a Version Stack?
+
+A **Version Stack** is a special asset type (`AssetType.version_stack`) that acts as a container for multiple files. Instead of showing three separate files in the directory list, Shumai collapses them into a single file entry with a version selector dropdown.
+
+![Version Stack Selector Placeholder](https://placehold.co/800x350/2C2E3E/D95A66?text=Version+Stack+Selector)
+_Placeholder: File list view showing an asset with a version badge (e.g., "V3") and a dropdown list of older versions._
+
+---
+
+## Creating a Version Stack
+
+1.  Select two or more files inside a folder using the checkboxes.
+2.  Click **Create Version Stack** in the bulk actions toolbar.
+3.  The system creates a new version stack asset. The selected files are moved inside the stack, and their parent folder's file count is updated accordingly.
+
+_Note: All files grouped into a version stack must reside in the same parent folder._
+
+---
+
+## Managing Versions
+
+### Active Version
+
+The file with the highest priority (first in the list) is the **Active Version**. This is the version displayed on the project dashboard, search results, and metadata panels.
+
+### Reordering and Reverting Versions
+
+You can promote a past version or reorder the stack structure:
+
+- Open the version stack details view.
+- Drag and drop the versions to change their order.
+- Shumai uses fractional indexing (`sortIndex` column in the database) to instantly update the list order in transactions, avoiding global re-indexing.
+- To remove a file from the version stack, drag it out or select **Unstack**. This moves the file back to the parent directory as a standalone asset.

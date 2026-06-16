@@ -1,0 +1,39 @@
+---
+title: AI Providers
+description: Connect Shumai to OpenAI, Anthropic, Gemini, or custom LLM gateways.
+---
+
+<ctrl94>thought
+<ctrl95>To enable AI Agents, metadata autofill, and semantic search, Shumai must be connected to an AI model provider. Team Owners can manage these credentials under the **AI Providers** settings tab.
+
+---
+
+## Built-In Providers
+
+Shumai ships with pre-configured settings for major LLM providers:
+
+- **Google Gemini**: Recommended for multimodal asset tagging (Autofill Agent) and reasoning tasks.
+- **OpenAI**: Supports GPT-4, GPT-4o, and reasoning models.
+- **Anthropic**: Supports the Claude 3.5 Sonnet and Haiku models.
+
+### Global Keys (Environment-level)
+
+If you define environment variables like `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `ANTHROPIC_API_KEY` in your `.env` file, the respective built-in provider will use these global credentials automatically, making them immediately available to the entire team.
+
+---
+
+## Custom Provider Configurations
+
+If you want to use local models (e.g. via Ollama or vLLM) or private enterprise proxy gateways, you can register custom providers:
+
+1.  Navigate to **Team Settings** > **AI Providers**.
+2.  Click **Add Provider**.
+3.  Fill in the configuration parameters:
+    - **Provider Name**: e.g., `Ollama-Local` or `Enterprise-Gateway`.
+    - **Base URL**: The target API URL (e.g., `http://localhost:11434/v1` for Ollama).
+    - **API Key**: The authentication token (use `nokey` if local/unauthenticated).
+4.  **Register Models**: Define the list of model IDs and names (e.g., model ID `llama3`, name `Llama 3`) that this provider exposes.
+5.  Click **Save**.
+
+![AI Providers List Placeholder](https://placehold.co/800x400/2C2E3E/D95A66?text=AI+Providers+Management)
+_Placeholder: Table view of active AI providers showing their status, built-in badges, and active models._
