@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { workflowService } from './workflow'
@@ -343,6 +343,48 @@ describe('LocalExecutor Integration Tests', () => {
 
       expect(limiter.getActiveCount()).toBe(0)
       expect(limiter.getQueueLength()).toBe(0)
+    })
+  })
+
+  describe('Environment Variable Concurrency Config', () => {
+    let originalTranscode: string | undefined
+    let originalAgent: string | undefined
+
+    beforeEach(() => {
+      originalTranscode = process.env.CONCURRENCY_TRANSCODE
+      originalAgent = process.env.CONCURRENCY_AGENT
+    })
+
+    afterEach(() => {
+      if (originalTranscode === undefined) {
+        delete process.env.CONCURRENCY_TRANSCODE
+      } else {
+        process.env.CONCURRENCY_TRANSCODE = originalTranscode
+      }
+
+      if (originalAgent === undefined) {
+        delete process.env.CONCURRENCY_AGENT
+      } else {
+        process.env.CONCURRENCY_AGENT = originalAgent
+      }
+    })
+
+    it('should initialize with values from environment variables', () => {
+      process.env.CONCURRENCY_TRANSCODE = '2'
+      process.env.CONCURRENCY_AGENT = '8'
+
+      const customExecutor = new LocalExecutor()
+      expect(customExecutor.getTranscodeConcurrencyLimit()).toBe(2)
+      expect(customExecutor.getAgentConcurrencyLimit()).toBe(8)
+    })
+
+    it('should fallback to defaults when environment variables are not set', () => {
+      delete process.env.CONCURRENCY_TRANSCODE
+      delete process.env.CONCURRENCY_AGENT
+
+      const defaultExecutor = new LocalExecutor()
+      expect(defaultExecutor.getTranscodeConcurrencyLimit()).toBe(1)
+      expect(defaultExecutor.getAgentConcurrencyLimit()).toBe(5)
     })
   })
 })

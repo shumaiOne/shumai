@@ -35,6 +35,10 @@ export class ConcurrencyLimiter {
 
   constructor(private readonly limit: number) {}
 
+  getLimit(): number {
+    return this.limit
+  }
+
   async run<T>(fn: () => Promise<T>): Promise<T> {
     if (this.activeCount >= this.limit) {
       await new Promise<void>((resolve) => this.queue.push(resolve))
@@ -68,9 +72,28 @@ export class LocalExecutor implements Executor {
   private interval: Timer | null = null
   private processingTasks = new Set<string>()
 
-  // 1 concurrency for transcode, 5 for other workflows
-  private transcodeLimiter = new ConcurrencyLimiter(1)
-  private generalLimiter = new ConcurrencyLimiter(5)
+  private transcodeLimiter: ConcurrencyLimiter
+  private generalLimiter: ConcurrencyLimiter
+
+  constructor() {
+    const transcodeLimit = process.env.CONCURRENCY_TRANSCODE
+      ? parseInt(process.env.CONCURRENCY_TRANSCODE, 10)
+      : 1
+    const agentLimit = process.env.CONCURRENCY_AGENT
+      ? parseInt(process.env.CONCURRENCY_AGENT, 10)
+      : 5
+
+    this.transcodeLimiter = new ConcurrencyLimiter(transcodeLimit)
+    this.generalLimiter = new ConcurrencyLimiter(agentLimit)
+  }
+
+  getTranscodeConcurrencyLimit(): number {
+    return this.transcodeLimiter.getLimit()
+  }
+
+  getAgentConcurrencyLimit(): number {
+    return this.generalLimiter.getLimit()
+  }
 
   async submit(task: WorkflowTask): Promise<string> {
     if (task.status !== WorkflowTaskStatus.pending) {
