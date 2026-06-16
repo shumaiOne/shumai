@@ -1,34 +1,40 @@
 ---
 title: Sort & Search
-description: Fast filtering, text search, and sorting controls for assets.
+description: Find assets using the search dialog and organize them with custom sort orders.
 ---
 
-As your projects grow, finding the right media files quickly is critical. Shumai provides search options and customizable sorting parameters.
+As your projects grow, finding the right media files quickly is critical. Shumai provides a powerful search dialog and flexible sorting controls.
 
 ---
 
 ## Searching Assets
 
-The search bar at the top of the file explorer allows you to perform exact and partial keyword matches.
+Searching is performed inside a dedicated **Search Dialog** that you can open by clicking the search icon in the toolbar.
 
-![Search Bar UI Placeholder](https://placehold.co/800x250/2C2E3E/D95A66?text=File+Explorer+Search+Bar)
-_Placeholder: Screenshot of the search input with toggle buttons for "Recursive Search" and "Filter by Type"._
+![Search Dialog Placeholder](https://placehold.co/800x450/2C2E3E/D95A66?text=Search+Filter+Dialog+UI)
+_Placeholder: Screenshot of the Search Dialog showing a keyword input, custom metadata criteria inputs, and the "Save as Collection" button._
 
-### Search Filters
+### Search Dialog Features
 
-- **Partial Matching**: Search matches any part of a file name as you type.
-- **Recursive Search Toggle**: Choose whether to search only inside the **Current Folder** or search **Recursively** down the entire nested folder tree.
-- **Asset Type**: Restrict your search to return only folders or only files.
-- **Show Links**: Toggle whether virtual links (shortcuts to files in other projects or directories) should be displayed in your search results.
+- **Keyword Matches**: Type a keyword in the text input to instantly filter file and folder names.
+- **Advanced Filtering**: Click to expand the filters panel and build multi-conditional queries (e.g. searching for files where the custom field "Status" equals "In Progress" AND the file type is "Video").
+- **Semantic Search Toggle**: If enabled by your team administrator, toggle "Semantic" on to search by conceptual meaning (e.g. searching "sunny beach" to find clips of oceans even if the filenames do not contain those words).
+- **Save as Collection**: Easily convert your active search criteria into a dynamic folder. Click **Save as Collection** inside the dialog to create the collection and navigate to it instantly.
+- **Infinite Scroll Results**: Search results load dynamically in real-time as you type or adjust filters.
 
 ---
 
-## Sorting Assets
+## Sorting and Reordering Assets
 
-You can sort your files by clicking the column headers or selecting a preference from the sort dropdown:
+You can change the sorting order of the asset list using the sort dropdown or by clicking metadata column headers:
 
-- **Newest Upload**: Lists the most recently uploaded files first (default).
-- **Name**: Sorts alphabetically (A-Z or Z-A).
-- **Size**: Sorts by file size.
-- **Type**: Groups folders together followed by files and version stacks.
-- **Custom Metadata Columns**: If your project has custom columns defined (such as "Due Date" or "Priority"), you can click those headers to sort the file list by these custom criteria.
+- **Custom Sort (Default)**: By default, the project file explorer is set to **Custom** sorting. In this mode, you can manually drag and drop files and folders to reorder them exactly as you wish.
+- **Standard Sort Options**: You can also sort files by:
+  - _Newest Upload_: Displays recently uploaded assets first.
+  - _Name_: Sorts alphabetically (A-Z or Z-A).
+  - _Size_: Sorts by file size.
+  - _Type_: Groups folders together at the top, followed by version stacks and individual files.
+  - _Custom Columns_: Sorts by dynamic metadata fields (e.g., sorting by "Due Date" or "Priority").
+
+> [!NOTE]
+> **Drag and Drop Reordering Limit**: Drag-and-drop manual reordering is **only** available when the sort order is set to **Custom**. If you select any other sort option (such as Name or Size), manual reordering is disabled.
