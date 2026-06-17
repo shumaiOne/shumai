@@ -6,11 +6,11 @@ import { Badge } from '@/ui/components/ui/badge'
 import { Button } from '@/ui/components/ui/button'
 import { Checkbox } from '@/ui/components/ui/checkbox'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu'
 import { EditableText } from '@/ui/components/ui/editable-text'
 import { Skeleton } from '@/ui/components/ui/skeleton'
@@ -23,7 +23,7 @@ import type { DragState } from '../dnd-types'
 import FieldRenderer from '../field-renderer'
 import { FilePreview } from './file-preview'
 
-import { type FieldInfo as MetadataFieldInfo, FieldType } from '@shumai/dtos'
+import { FieldType, type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
 import { FIELD_TYPE_ICONS } from '../fields-manager'
 
 interface FileCardProps {

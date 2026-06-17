@@ -172,7 +172,7 @@ export const SkillsConfigCard: React.FC<SkillsConfigCardProps> = ({ teamId }) =>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive hover:bg-destructive/90 text-white"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
               onClick={() => {
                 if (selectedSkill) {
                   deleteMutation.mutate(selectedSkill.id)
@@ -222,7 +222,7 @@ const SkillItem = ({
                   e.stopPropagation()
                   onDelete()
                 }}
-                className="text-red-500 focus:text-red-500 gap-2 cursor-pointer"
+                className="text-destructive focus:text-destructive gap-2 cursor-pointer"
               >
                 <Trash2 className="w-4 h-4" /> Delete
               </DropdownMenuItem>
@@ -382,8 +382,8 @@ const AddSkillDialog = ({
               className={cn(
                 'group relative h-32 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer',
                 isProcessing
-                  ? 'opacity-50 cursor-not-allowed bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800'
-                  : 'hover:bg-blue-50/50 dark:hover:bg-blue-900/10 hover:border-blue-500/50 border-slate-200 dark:border-slate-800',
+                  ? 'opacity-50 cursor-not-allowed bg-muted/50 border-border'
+                  : 'hover:bg-primary/5 hover:border-primary/50 border-border',
               )}
             >
               <input
@@ -393,20 +393,20 @@ const AddSkillDialog = ({
                 accept=".zip"
                 onChange={(e) => handleFileUpload(e.target.files)}
               />
-              <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-full group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 transition-colors">
-                <Upload className="w-6 h-6 text-slate-400 group-hover:text-blue-500" />
+              <div className="p-3 bg-muted rounded-full group-hover:bg-primary/10 transition-colors">
+                <Upload className="w-6 h-6 text-muted-foreground group-hover:text-primary" />
               </div>
               <div className="mt-3 text-center">
-                <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                <p className="text-sm font-medium text-foreground">
                   Select ZIP file
                 </p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-wider font-semibold">
+                <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider font-semibold">
                   Packages must contain a SKILL.md
                 </p>
               </div>
             </div>
             {isProcessing && !githubUrl && (
-              <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 justify-center bg-blue-50 dark:bg-blue-900/10 py-2 rounded-lg animate-pulse">
+              <div className="flex items-center gap-2 text-sm text-primary justify-center bg-primary/10 py-2 rounded-lg animate-pulse">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Processing package...
               </div>
@@ -415,10 +415,10 @@ const AddSkillDialog = ({
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-slate-200 dark:border-slate-800" />
+              <span className="w-full border-t border-border" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white dark:bg-slate-950 px-2 text-slate-500 font-bold">OR</span>
+              <span className="bg-background px-2 text-muted-foreground font-bold">OR</span>
             </div>
           </div>
 
@@ -428,7 +428,7 @@ const AddSkillDialog = ({
               <Label htmlFor="githubUrl">GitHub Repository URL</Label>
               <div className="flex gap-2">
                 <div className="relative flex-1">
-                  <Github className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                  <Github className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
                   <Input
                     id="githubUrl"
                     placeholder="https://github.com/owner/repo"
@@ -450,7 +450,7 @@ const AddSkillDialog = ({
                   )}
                 </Button>
               </div>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 italic">
+              <p className="text-[10px] text-muted-foreground italic">
                 Example: https://github.com/google/gemini-cli
               </p>
             </div>
@@ -540,7 +540,7 @@ const ConfigSkillDialog = ({
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2">
-              <Code className="w-5 h-5 text-blue-500" />
+              <Code className="w-5 h-5 text-primary" />
               Configure Skill: {skill.name}
             </DialogTitle>
           </div>
@@ -551,8 +551,8 @@ const ConfigSkillDialog = ({
 
         <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
           {envVars.length === 0 ? (
-            <div className="text-center py-10 bg-slate-50 dark:bg-slate-900 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
-              <p className="text-slate-500 dark:text-slate-400 text-sm italic">
+            <div className="text-center py-10 bg-muted/50 rounded-xl border border-dashed border-border">
+              <p className="text-muted-foreground text-sm italic">
                 No environment variables found. Click "Add Variable" to create one.
               </p>
             </div>
@@ -560,38 +560,38 @@ const ConfigSkillDialog = ({
             envVars.map((env: { name: string; default?: string | undefined }, index: number) => (
               <div
                 key={index}
-                className="p-4 bg-slate-100/50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3 relative group"
+                className="p-4 bg-muted/50 rounded-xl border border-border space-y-3 relative group"
               >
                 <button
                   onClick={() => removeEnvVar(index)}
-                  className="absolute top-2 right-2 p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+                  className="absolute top-2 right-2 p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors opacity-0 group-hover:opacity-100"
                 >
                   <X className="w-4 h-4" />
                 </button>
 
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] uppercase tracking-wider font-bold text-slate-400">
+                  <Label className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
                     Variable Name
                   </Label>
                   <Input
                     value={env.name}
                     onChange={(e) => handleEnvVarNameChange(index, e.target.value)}
                     placeholder="e.app. API_KEY"
-                    className="h-8 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-sm font-mono"
+                    className="h-8 bg-background border-border text-sm font-mono"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] uppercase tracking-wider font-bold text-slate-400">
+                  <Label className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
                     Default Value
                   </Label>
                   <Input
                     value={env.default || ''}
                     onChange={(e) => handleEnvVarValueChange(index, e.target.value)}
                     placeholder="Optional default value..."
-                    className="h-8 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-sm"
+                    className="h-8 bg-background border-border text-sm"
                   />
-                  <p className="text-[10px] text-slate-500 italic">
+                  <p className="text-[10px] text-muted-foreground italic">
                     If left empty, the value will be read from the host machine's environment.
                   </p>
                 </div>
@@ -600,12 +600,12 @@ const ConfigSkillDialog = ({
           )}
         </div>
 
-        <DialogFooter className="flex items-center justify-between sm:justify-between w-full pt-2 border-t border-slate-100 dark:border-slate-800">
+        <DialogFooter className="flex items-center justify-between sm:justify-between w-full pt-2 border-t border-border">
           <Button
             variant="ghost"
             size="sm"
             onClick={addEnvVar}
-            className="h-8 gap-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
+            className="h-8 gap-1.5 text-primary hover:text-primary hover:bg-primary/10"
           >
             <Plus className="w-3.5 h-3.5" /> Add Variable
           </Button>
@@ -616,7 +616,7 @@ const ConfigSkillDialog = ({
             <Button
               onClick={handleSave}
               disabled={isSaving}
-              className="px-8 bg-blue-600 hover:bg-blue-700 text-white"
+              className="px-8"
             >
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Save Changes
