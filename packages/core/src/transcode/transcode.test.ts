@@ -145,6 +145,29 @@ describe('TranscodeService', () => {
     )
   })
 
+  it('should handle rational fraction frame rate for video transcoding', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(child_process.execFile as any).mockImplementation((file: string, args: string[], cb: any) => {
+      cb(null, { stdout: '', stderr: '' })
+    })
+
+    const outputFile = path.join(tempDir, 'output_rational.mp4')
+    await transcodeService.transcodeVideo({
+      inputFile: 'input.mp4',
+      outputFile,
+      width: 1280,
+      height: 720,
+      frameRate: '160000/142512',
+      disableAudio: true,
+    })
+
+    expect(child_process.execFile).toHaveBeenCalledWith(
+      'ffmpeg',
+      expect.arrayContaining(['-filter_complex', expect.stringContaining('fps=160000/142512')]),
+      expect.any(Function),
+    )
+  })
+
   it('should use sharp for image transcoding', async () => {
     const outputFile = path.join(tempDir, 'output.webp')
     await transcodeService.transcodeImage('input.png', outputFile, 480, 80)

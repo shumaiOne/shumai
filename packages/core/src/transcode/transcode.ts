@@ -32,7 +32,7 @@ export interface TranscodeVideoParams {
   outputFile: string
   width: number
   height: number
-  frameRate?: number
+  frameRate?: number | string
   disableAudio?: boolean
 }
 

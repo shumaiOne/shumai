@@ -166,7 +166,7 @@ export async function transcodeVideoActivity(
   const outputFile = path.join(tmpDir, `video-${params.videoSpec.height}p.mp4`)
 
   try {
-    let targetFps = 0
+    let targetFps: number | string = 0
     let disableAudio = false
 
     if (params.videoSpec.resolution === '180p') {
@@ -175,8 +175,8 @@ export async function transcodeVideoActivity(
       if (params.originalFps > 0 && params.originalFps < 24.0) {
         targetFps = params.originalFps
       }
-      if (params.duration * targetFps > 1600) {
-        targetFps = 1600 / params.duration
+      if (params.duration * (targetFps as number) > 1600) {
+        targetFps = `160000/${Math.floor(params.duration * 100)}`
       }
     }
 
