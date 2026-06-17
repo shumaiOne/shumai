@@ -159,7 +159,7 @@ export const SpriteScrubber: React.FC<SpriteScrubberProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`relative w-full h-full overflow-hidden cursor-crosshair group bg-gray-900 select-none ${className}`}
+      className={`relative w-full h-full overflow-hidden cursor-crosshair group bg-black select-none ${className}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onMouseMove={handleMouseMove}
