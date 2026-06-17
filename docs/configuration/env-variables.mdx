@@ -1,0 +1,72 @@
+---
+title: Environment Variables
+description: Comprehensive configuration reference for Shumai.
+---
+
+Shumai is configured via environment variables. You can define these variables in a `.env` file at the root of your application workspace, or pass them directly to your Docker containers.
+
+---
+
+## Database Config
+
+| Variable       | Description                                                                                | Example / Default                                        |
+| :------------- | :----------------------------------------------------------------------------------------- | :------------------------------------------------------- |
+| `DATABASE_URL` | PostgreSQL connection URL. Must target a database with the `pgvector` extension installed. | `postgresql://user:pass@localhost:5432/db?schema=public` |
+
+---
+
+## Authentication Config
+
+| Variable             | Description                                                            | Example / Default                       |
+| :------------------- | :--------------------------------------------------------------------- | :-------------------------------------- |
+| `BETTER_AUTH_SECRET` | A secure, random 32-byte secret used to sign session cookies and JWTs. | Generate with `openssl rand -base64 32` |
+| `BETTER_AUTH_URL`    | The public URL of your Hono backend API. Used for redirect flows.      | `http://localhost:3000`                 |
+
+---
+
+## Storage Config
+
+Shumai supports storing files locally or on S3-compatible endpoints.
+
+| Variable                   | Description                                                                                       | Example / Default                 |
+| :------------------------- | :------------------------------------------------------------------------------------------------ | :-------------------------------- |
+| `STORAGE_BACKEND`          | Storage type. Use `local` for local file system storage, or `s3` for S3-compatible cloud storage. | `local` (default) or `s3`         |
+| `AWS_ENDPOINT_URL_S3`      | Custom endpoint for S3 storage. Must change to public domain/IP if deploying remotely.            | `http://localhost:3000` (default) |
+| `S3_BUCKET`                | S3 bucket name.                                                                                   | `shumai` (default)                |
+| `S3_ACCESS_KEY_ID`         | Access key credentials for S3.                                                                    | `minioadmin` (default)            |
+| `S3_SECRET_ACCESS_KEY`     | Secret key credentials for S3.                                                                    | `minioadmin` (default)            |
+| `S3_REGION`                | S3 storage region.                                                                                | `auto` (default)                  |
+| `S3_USE_SSL`               | Set to `true` to use HTTPS for S3 endpoints.                                                      | `false` (default)                 |
+| `PRESIGNED_URL_EXPIRES_IN` | Number of hours for which generated presigned download/upload links are valid.                    | `5` (default)                     |
+
+---
+
+## Workflow Config
+
+Configures whether background transcoding and AI agents are executed locally or offloaded to a Temporal cluster.
+
+| Variable            | Description                                                                                        | Example / Default               |
+| :------------------ | :------------------------------------------------------------------------------------------------- | :------------------------------ |
+| `WORKFLOW_EXECUTOR` | Engine choice. Use `local` for in-process database polling, or `temporal` for distributed workers. | `local` (default) or `temporal` |
+| `TEMPORAL_ADDRESS`  | Host and port of the Temporal cluster gRPC service.                                                | `localhost:7233` (default)      |
+
+---
+
+## Logging Config
+
+| Variable     | Description                                                                                          | Example / Default |
+| :----------- | :--------------------------------------------------------------------------------------------------- | :---------------- |
+| `LOG_LEVEL`  | Pino logging level. Options: `debug`, `info`, `warn`, `error`.                                       | `info` (default)  |
+| `LOG_FORMAT` | Log format style. Use `json` for production logging, or `pretty` for human-readable terminal output. | `json` (default)  |
+
+---
+
+## LLM API Key
+
+API keys to AI providers on startup.
+
+| Variable            | Description                         | Example / Default |
+| :------------------ | :---------------------------------- | :---------------- |
+| `GEMINI_API_KEY`    | API key for Google Gemini provider. | `AIzaSy...`       |
+| `OPENAI_API_KEY`    | API key for OpenAI provider.        | `sk-proj-...`     |
+| `ANTHROPIC_API_KEY` | API key for Anthropic provider.     | `sk-ant-...`      |

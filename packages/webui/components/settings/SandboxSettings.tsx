@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { client } from '@/ui/api/client'
+import { ScrollArea } from '@/ui/components/ui/scroll-area'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card'
 import { Input } from '@/ui/components/ui/input'
 import { Button } from '@/ui/components/ui/button'
@@ -79,129 +80,133 @@ export function SandboxSettings({ teamId }: { teamId: string }) {
   }
 
   return (
-    <div className="h-full overflow-y-auto space-y-6 pr-1">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Globe className="w-5 h-5 text-blue-500" />
-            <CardTitle>Network Sandbox</CardTitle>
-          </div>
-          <CardDescription>
-            Configure allowed domains for the sandboxed agent. By default, only essential domains
-            are allowed.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleAddDomain} className="flex gap-2 mb-6">
-            <Input
-              placeholder="e.g. api.openai.com"
-              value={newDomain}
-              onChange={(e) => setNewDomain(e.target.value)}
-              disabled={isUpdating}
-            />
-            <Button type="submit" disabled={isUpdating}>
-              {isUpdating ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Plus className="w-4 h-4 mr-2" />
-              )}
-              Add Domain
-            </Button>
-          </form>
-
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium text-slate-500 mb-3">Allowed Domains</h4>
-            <div className="flex flex-wrap gap-2">
-              {sandbox?.allowedDomains.map((domain) => (
-                <div
-                  key={domain}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full text-sm border border-slate-200 dark:border-slate-700 transition-all hover:border-slate-300 dark:hover:border-slate-600"
-                >
-                  <span className="font-medium text-slate-700 dark:text-slate-300">{domain}</span>
-                  <button
-                    onClick={() => handleRemoveDomain(domain)}
-                    className="ml-1 text-slate-400 hover:text-red-500 transition-colors"
-                    disabled={isUpdating}
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
-              {sandbox?.allowedDomains.length === 0 && (
-                <div className="text-sm text-slate-400 italic">No custom domains allowed</div>
-              )}
+    <ScrollArea className="h-full">
+      <div className="space-y-6 pr-4 pb-8">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Globe className="w-5 h-5 text-primary" />
+              <CardTitle>Network Sandbox</CardTitle>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+            <CardDescription>
+              Configure allowed domains for the sandboxed agent. By default, only essential domains
+              are allowed.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleAddDomain} className="flex gap-2 mb-6">
+              <Input
+                placeholder="e.g. api.openai.com"
+                value={newDomain}
+                onChange={(e) => setNewDomain(e.target.value)}
+                disabled={isUpdating}
+              />
+              <Button type="submit" disabled={isUpdating}>
+                {isUpdating ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4 mr-2" />
+                )}
+                Add Domain
+              </Button>
+            </form>
 
-      {/* Pending Domains Section */}
-      <Card className="border-amber-200 dark:border-amber-900 bg-amber-50/10 dark:bg-amber-950/5">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <ShieldAlert className="w-5 h-5 text-amber-500" />
-            <CardTitle>Pending Domain Approvals</CardTitle>
-          </div>
-          <CardDescription>
-            These domains were blocked during agent execution. You can approve them to allow future
-            network requests, or delete them from this list.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {sandbox?.pendingDomains && sandbox.pendingDomains.length > 0 ? (
-              <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                {sandbox.pendingDomains.map((domain) => (
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-muted-foreground mb-3">Allowed Domains</h4>
+              <div className="flex flex-wrap gap-2">
+                {sandbox?.allowedDomains.map((domain) => (
                   <div
                     key={domain}
-                    className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0"
+                    className="flex items-center gap-1 px-3 py-1.5 bg-muted rounded-full text-sm border border-border transition-all hover:border-muted-foreground/50"
                   >
-                    <span className="font-mono text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded break-all">
-                      {domain}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:border-emerald-900 dark:text-emerald-400 dark:hover:bg-emerald-950/20"
-                        onClick={() => handleApproveDomain(domain)}
-                        disabled={isUpdating}
-                      >
-                        <Check className="w-4 h-4 mr-1.5" />
-                        Approve
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/20"
-                        onClick={() => handleDeletePendingDomain(domain)}
-                        disabled={isUpdating}
-                      >
-                        <Trash2 className="w-4 h-4 mr-1.5" />
-                        Delete
-                      </Button>
-                    </div>
+                    <span className="font-medium text-foreground">{domain}</span>
+                    <button
+                      onClick={() => handleRemoveDomain(domain)}
+                      className="ml-1 text-muted-foreground hover:text-destructive transition-colors"
+                      disabled={isUpdating}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 ))}
+                {sandbox?.allowedDomains.length === 0 && (
+                  <div className="text-sm text-muted-foreground italic">
+                    No custom domains allowed
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="text-sm text-slate-400 italic py-2">
-                No pending domains requiring approval
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+            </div>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Filesystem Restriction</CardTitle>
-          <CardDescription>
-            The agent is restricted to reading and writing only within the <code>.pi</code> and{' '}
-            <code>/tmp</code> folders. These settings are currently hardcoded for security.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    </div>
+        {/* Pending Domains Section */}
+        <Card className="border-orange-500/20 bg-orange-500/5">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-orange-500" />
+              <CardTitle>Pending Domain Approvals</CardTitle>
+            </div>
+            <CardDescription>
+              These domains were blocked during agent execution. You can approve them to allow
+              future network requests, or delete them from this list.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {sandbox?.pendingDomains && sandbox.pendingDomains.length > 0 ? (
+                <div className="divide-y divide-border">
+                  {sandbox.pendingDomains.map((domain) => (
+                    <div
+                      key={domain}
+                      className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0"
+                    >
+                      <span className="font-mono text-sm text-foreground bg-muted px-2 py-1 rounded break-all">
+                        {domain}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 border-emerald-500/20 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-600 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
+                          onClick={() => handleApproveDomain(domain)}
+                          disabled={isUpdating}
+                        >
+                          <Check className="w-4 h-4 mr-1.5" />
+                          Approve
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 border-destructive/20 text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDeletePendingDomain(domain)}
+                          disabled={isUpdating}
+                        >
+                          <Trash2 className="w-4 h-4 mr-1.5" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground italic py-2">
+                  No pending domains requiring approval
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Filesystem Restriction</CardTitle>
+            <CardDescription>
+              The agent is restricted to reading and writing only within the <code>.pi</code> and{' '}
+              <code>/tmp</code> folders. These settings are currently hardcoded for security.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    </ScrollArea>
   )
 }

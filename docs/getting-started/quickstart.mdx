@@ -1,0 +1,106 @@
+---
+title: Quickstart
+description: Get Shumai up and running using Docker, NPM, or from source.
+---
+
+We support three installation options. For most administrators, **Docker Compose** is the fastest and easiest way to deploy Shumai.
+
+---
+
+## Option 1: Docker Compose (Recommended)
+
+Docker Compose automatically configures and spins up all required services (the web application, a database, and local storage).
+
+1.  **Download the Configuration**:
+    ```bash
+    curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose.yaml
+    ```
+2.  **Start the Services**:
+    ```bash
+    docker compose up -d
+    ```
+3.  **Access the Dashboard**:
+    Open your browser and navigate to **`http://localhost:3000`** to access the Shumai Web UI.
+
+### Production Deployments (Temporal)
+
+If you are deploying Shumai for a production team with high-volume video uploads, we recommend setting up a distributed deployment using **Temporal** and an S3-compatible storage backend. This offloads resource-heavy video transcoding and AI agents to separate, dedicated worker nodes to keep your main dashboard fast and responsive. For setup instructions, see the [Deploy with Temporal](/configuration/temporal) guide.
+
+---
+
+## Option 2: Install via NPM
+
+You can run Shumai as a global service using the Node Package Manager (NPM).
+
+### System Prerequisites
+
+To handle media processing and security isolation, the host machine must have the following system utilities installed:
+
+- **FFmpeg & FFprobe**: Required for video transcoding and metadata extraction.
+  - _macOS_: `brew install ffmpeg`
+  - _Linux (Ubuntu/Debian)_: `sudo apt-get install ffmpeg`
+- **Agent Sandbox Utilities**: Used to run custom automation scripts securely.
+  - _macOS_: `brew install ripgrep`
+  - _Linux (Ubuntu/Debian)_: `sudo apt-get install bubblewrap socat ripgrep`
+
+### Step-by-Step Setup
+
+1.  **Start a Database**:
+    Shumai requires a PostgreSQL database with the `pgvector` extension. Start a database container:
+    ```bash
+    docker run --name shumai_postgres \
+      -e POSTGRES_USER=shumai \
+      -e POSTGRES_PASSWORD=shumai_password \
+      -e POSTGRES_DB=shumai_db \
+      -p 5432:5432 \
+      -d pgvector/pgvector:pg18
+    ```
+2.  **Install Shumai**:
+    ```bash
+    npm install -g @shumai-one/shumai
+    ```
+3.  **Configure Environment Variables**:
+    Create a new directory, navigate into it, and create a `.env` file:
+    ```bash
+    mkdir shumai && cd shumai
+    ```
+    Create a `.env` file with the following variables:
+    ```env
+    DATABASE_URL=postgresql://shumai:shumai_password@localhost:5432/shumai_db?schema=public
+    BETTER_AUTH_SECRET=your-random-32-character-secret-key
+    STORAGE_BACKEND=local
+    AWS_ENDPOINT_URL_S3=http://localhost:3000
+    ```
+4.  **Start Shumai**:
+    ```bash
+    shumai
+    ```
+    Open your browser to `http://localhost:3000`.
+
+---
+
+## Option 3: Run from Source (For Developers)
+
+If you wish to run Shumai locally to customize the platform or contribute:
+
+1.  **Clone the Repository**:
+    ```bash
+    git clone https://github.com/shumaiOne/shumai.git
+    cd shumai
+    ```
+2.  **Install Dependencies**:
+    ```bash
+    bun install
+    ```
+3.  **Start a Database**:
+    Launch a local database container (as described in the NPM section above).
+4.  **Run Migrations**:
+    Set up your `.env` file at the root, then apply database migrations:
+    ```bash
+    bun run db:migrate
+    ```
+5.  **Start the Dev Server**:
+    ```bash
+    bun run dev
+    ```
+    This spins up the web server on port `3000` with hot-reloading active.

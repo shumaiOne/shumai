@@ -1,0 +1,37 @@
+---
+title: Overview
+description: Learn about Shumai, a modern collaboration and media review platform.
+---
+
+## What is Shumai?
+
+**Shumai** is a self-hosted media collaboration platform designed for creative teams, video editors, designers, and clients. It provides a centralized workspace where you can upload, organize, and review assets (video, audio, images, and documents) in real-time. With built-in AI capabilities and background transcoding, Shumai helps streamline asset organization and feedback workflows.
+
+![Shumai Dashboard](/screenshot.webp)
+
+---
+
+## Core Features
+
+- **Secure Storage**: Host your creative assets locally on your server or connect directly to any S3-compatible cloud storage provider (like AWS S3, Cloudflare R2, or MinIO).
+- **Media Commenting & Drawing**: Speed up review cycles with frame-level comments and drawing tools that let you sketch directly onto video frames or images.
+- **Version Control**: Stack multiple versions of the same file into a single entry to keep your workspace organized and track revision history.
+- **AI-Powered Tags & Search**: Automatically tag your files on upload using Google Gemini, and find assets based on visual or conceptual meaning.
+- **Custom Automations**: Build tailored background workflows using custom scripts to automate repetitive team actions.
+- **Proxy Transcoding**: Automatically convert heavy camera and design files in the background into web-friendly streaming formats for smooth playback.
+
+---
+
+## Deployment Scales
+
+Depending on your team size and production volume, Shumai can be configured to run in one of two modes:
+
+### 1. Single-Server Deployment (Default)
+
+Ideal for small teams, local development, or low-volume workflows. In this setup, the main web server, database, and background tasks (like transcoding and AI tagging) all run on a single machine.
+
+### 2. High-Scale Distributed Deployment
+
+Recommended for production environments with high-volume video uploads. In this setup, background tasks are managed via a centralized queue (Temporal). This allows you to offload heavy workloads to specialized worker machines (for example, putting video transcoding tasks on high-CPU/GPU machines and AI agents on separate sandboxed environments).
+
+_Note: S3-compatible cloud storage is required for distributed deployments so that all workers can access the uploaded files._

@@ -23,7 +23,7 @@ import type { DragState } from '../dnd-types'
 import FieldRenderer from '../field-renderer'
 import { FilePreview } from './file-preview'
 
-import { type FieldInfo as MetadataFieldInfo, FieldType } from '@shumai/dtos'
+import { FieldType, type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
 import { FIELD_TYPE_ICONS } from '../fields-manager'
 
 interface FileCardProps {
