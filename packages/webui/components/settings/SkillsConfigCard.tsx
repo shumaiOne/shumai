@@ -5,6 +5,7 @@ import React, { useState, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card'
 import { Button } from '@/ui/components/ui/button'
 import { cn } from '@/ui/lib/utils'
+import { ScrollArea } from '@/ui/components/ui/scroll-area'
 import {
   Dialog,
   DialogContent,
@@ -397,9 +398,7 @@ const AddSkillDialog = ({
                 <Upload className="w-6 h-6 text-muted-foreground group-hover:text-primary" />
               </div>
               <div className="mt-3 text-center">
-                <p className="text-sm font-medium text-foreground">
-                  Select ZIP file
-                </p>
+                <p className="text-sm font-medium text-foreground">Select ZIP file</p>
                 <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider font-semibold">
                   Packages must contain a SKILL.md
                 </p>
@@ -549,56 +548,58 @@ const ConfigSkillDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-          {envVars.length === 0 ? (
-            <div className="text-center py-10 bg-muted/50 rounded-xl border border-dashed border-border">
-              <p className="text-muted-foreground text-sm italic">
-                No environment variables found. Click "Add Variable" to create one.
-              </p>
-            </div>
-          ) : (
-            envVars.map((env: { name: string; default?: string | undefined }, index: number) => (
-              <div
-                key={index}
-                className="p-4 bg-muted/50 rounded-xl border border-border space-y-3 relative group"
-              >
-                <button
-                  onClick={() => removeEnvVar(index)}
-                  className="absolute top-2 right-2 p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors opacity-0 group-hover:opacity-100"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
-                    Variable Name
-                  </Label>
-                  <Input
-                    value={env.name}
-                    onChange={(e) => handleEnvVarNameChange(index, e.target.value)}
-                    placeholder="e.app. API_KEY"
-                    className="h-8 bg-background border-border text-sm font-mono"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
-                    Default Value
-                  </Label>
-                  <Input
-                    value={env.default || ''}
-                    onChange={(e) => handleEnvVarValueChange(index, e.target.value)}
-                    placeholder="Optional default value..."
-                    className="h-8 bg-background border-border text-sm"
-                  />
-                  <p className="text-[10px] text-muted-foreground italic">
-                    If left empty, the value will be read from the host machine's environment.
-                  </p>
-                </div>
+        <ScrollArea className="max-h-[60vh]">
+          <div className="py-4 space-y-4 pr-4">
+            {envVars.length === 0 ? (
+              <div className="text-center py-10 bg-muted/50 rounded-xl border border-dashed border-border">
+                <p className="text-muted-foreground text-sm italic">
+                  No environment variables found. Click "Add Variable" to create one.
+                </p>
               </div>
-            ))
-          )}
-        </div>
+            ) : (
+              envVars.map((env: { name: string; default?: string | undefined }, index: number) => (
+                <div
+                  key={index}
+                  className="p-4 bg-muted/50 rounded-xl border border-border space-y-3 relative group"
+                >
+                  <button
+                    onClick={() => removeEnvVar(index)}
+                    className="absolute top-2 right-2 p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
+                      Variable Name
+                    </Label>
+                    <Input
+                      value={env.name}
+                      onChange={(e) => handleEnvVarNameChange(index, e.target.value)}
+                      placeholder="e.app. API_KEY"
+                      className="h-8 bg-background border-border text-sm font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
+                      Default Value
+                    </Label>
+                    <Input
+                      value={env.default || ''}
+                      onChange={(e) => handleEnvVarValueChange(index, e.target.value)}
+                      placeholder="Optional default value..."
+                      className="h-8 bg-background border-border text-sm"
+                    />
+                    <p className="text-[10px] text-muted-foreground italic">
+                      If left empty, the value will be read from the host machine's environment.
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </ScrollArea>
 
         <DialogFooter className="flex items-center justify-between sm:justify-between w-full pt-2 border-t border-border">
           <Button
@@ -613,11 +614,7 @@ const ConfigSkillDialog = ({
             <Button variant="ghost" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="px-8"
-            >
+            <Button onClick={handleSave} disabled={isSaving} className="px-8">
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Save Changes
             </Button>
