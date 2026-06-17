@@ -1,10 +1,22 @@
 import { z } from 'zod'
 export { z }
 
+export const KNOWN_APIS = [
+  'openai-completions',
+  'mistral-conversations',
+  'openai-responses',
+  'azure-openai-responses',
+  'openai-codex-responses',
+  'anthropic-messages',
+  'bedrock-converse-stream',
+  'google-generative-ai',
+  'google-vertex',
+] as const
+
 // We define a serializable version of ProviderConfig for our API and DB
 // as the original ProviderConfig interface includes non-serializable fields (functions)
 export const providerModelConfigSchema = z.object({
-  api: z.string().optional(),
+  api: z.enum(KNOWN_APIS).optional(),
   reasoning: z.boolean().default(false),
   input: z.array(z.enum(['text', 'image'])).default(['text']),
   contextWindow: z.number().int().positive().default(128000),
@@ -27,7 +39,7 @@ export const providerModelSchema = z.object({
 export const providerConfigSchema = z.object({
   baseUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   apiKey: z.string().optional().or(z.literal('')),
-  api: z.string().min(1, 'API Protocol is required'),
+  api: z.enum(KNOWN_APIS),
   headers: z.record(z.string(), z.string()).optional(),
   authHeader: z.boolean().optional(),
 })

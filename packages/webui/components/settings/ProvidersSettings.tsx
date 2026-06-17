@@ -38,7 +38,7 @@ import {
   SelectValue,
 } from '@/ui/components/ui/select'
 import { Switch } from '@/ui/components/ui/switch'
-import { providerConfigSchema, providerModelSchema } from '@shumai/dtos'
+import { providerConfigSchema, providerModelSchema, KNOWN_APIS } from '@shumai/dtos'
 import { useForm } from '@tanstack/react-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { InferResponseType } from 'hono/client'
@@ -59,6 +59,18 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
+
+const API_PROTOCOL_LABELS: Record<(typeof KNOWN_APIS)[number], string> = {
+  'openai-completions': 'OpenAI Completions',
+  'mistral-conversations': 'Mistral Conversations',
+  'openai-responses': 'OpenAI Responses',
+  'azure-openai-responses': 'Azure OpenAI Responses',
+  'openai-codex-responses': 'OpenAI Codex Responses',
+  'anthropic-messages': 'Anthropic Messages',
+  'bedrock-converse-stream': 'AWS Bedrock',
+  'google-generative-ai': 'Google Generative AI',
+  'google-vertex': 'Google Vertex',
+}
 
 const providerFormSchemaBase = z.object({
   name: z.string().min(1, 'Provider name is required'),
@@ -292,7 +304,6 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-32">
                       <DropdownMenuItem
-                        disabled={provider.isBuiltin}
                         onClick={(e) => {
                           e.stopPropagation()
                           setProviderToDelete(provider)
@@ -490,8 +501,8 @@ function ProviderFormDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
-        <DialogHeader className="p-6 pb-2">
+      <DialogContent className="sm:max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden">
+        <DialogHeader className="p-6 pb-2 shrink-0">
           <DialogTitle className="text-xl">{title}</DialogTitle>
           <DialogDescription>
             Configure authentication and model details for your AI provider.
@@ -504,373 +515,382 @@ function ProviderFormDialog({
             e.stopPropagation()
             form.handleSubmit()
           }}
-          className="flex flex-col flex-1 overflow-hidden"
+          className="flex-1 flex flex-col min-h-0 overflow-hidden"
         >
-          <ScrollArea className="flex-1 min-h-0">
-            <div className="p-6 pt-2 space-y-8 pr-4">
-              {/* Row 1: Basic Config */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 rounded-2xl border">
-                <form.Field
-                  name="name"
-                  children={(field) => {
-                    const isInvalid = !!field.state.meta.errors.length && field.state.meta.isTouched
-                    return (
-                      <Field data-invalid={isInvalid}>
-                        <FieldLabel htmlFor={field.name}>Provider Name</FieldLabel>
-                        <Input
-                          id={field.name}
-                          name={field.name}
-                          value={field.state.value}
-                          onBlur={field.handleBlur}
-                          onChange={(e) => field.handleChange(e.target.value)}
-                          placeholder="e.g., My OpenAI"
-                          disabled={isBuiltin}
-                          aria-invalid={isInvalid}
-                        />
-                        {isInvalid && <FieldError errors={mapErrors(field.state.meta.errors)} />}
-                      </Field>
-                    )
-                  }}
-                />
-
-                <form.Field
-                  name="config.api"
-                  children={(field) => {
-                    const isInvalid = !!field.state.meta.errors.length && field.state.meta.isTouched
-                    return (
-                      <Field data-invalid={isInvalid}>
-                        <FieldLabel htmlFor={field.name}>Global API Protocol</FieldLabel>
-                        <Select
-                          onValueChange={field.handleChange}
-                          value={field.state.value}
-                          disabled={isBuiltin}
-                        >
-                          <SelectTrigger id={field.name} aria-invalid={isInvalid}>
-                            <SelectValue placeholder="Select API Protocol" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="openai-completions">OpenAI Completions</SelectItem>
-                            <SelectItem value="anthropic-messages">Anthropic Messages</SelectItem>
-                            <SelectItem value="google-genai">Google GenAI</SelectItem>
-                            <SelectItem value="bedrock-converse-stream">AWS Bedrock</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        {isInvalid && <FieldError errors={mapErrors(field.state.meta.errors)} />}
-                      </Field>
-                    )
-                  }}
-                />
-
-                <div className="md:col-span-2">
+          <div className="flex-1 min-h-0">
+            <ScrollArea className="h-full">
+              <div className="p-6 pt-2 space-y-8 pr-6">
+                {/* Row 1: Basic Config */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 rounded-2xl border">
                   <form.Field
-                    name="config.baseUrl"
+                    name="name"
                     children={(field) => {
                       const isInvalid =
                         !!field.state.meta.errors.length && field.state.meta.isTouched
                       return (
                         <Field data-invalid={isInvalid}>
-                          <FieldLabel htmlFor={field.name}>Base URL (Optional)</FieldLabel>
+                          <FieldLabel htmlFor={field.name}>Provider Name</FieldLabel>
                           <Input
                             id={field.name}
                             name={field.name}
-                            value={field.state.value || ''}
+                            value={field.state.value}
                             onBlur={field.handleBlur}
                             onChange={(e) => field.handleChange(e.target.value)}
-                            placeholder="https://api.openai.com/v1"
+                            placeholder="e.g., My OpenAI"
+                            disabled={isBuiltin}
                             aria-invalid={isInvalid}
                           />
-                          <FieldDescription>Override the default endpoint.</FieldDescription>
                           {isInvalid && <FieldError errors={mapErrors(field.state.meta.errors)} />}
                         </Field>
                       )
                     }}
                   />
-                </div>
-              </div>
 
-              {/* Row 2: API Key Card */}
-              <Card className="rounded-2xl border bg-transparent">
-                <CardContent className="p-6 pt-2">
                   <form.Field
-                    name="config.apiKey"
+                    name="config.api"
                     children={(field) => {
                       const isInvalid =
                         !!field.state.meta.errors.length && field.state.meta.isTouched
                       return (
                         <Field data-invalid={isInvalid}>
-                          <FieldLabel htmlFor={field.name} className="text-base font-semibold">
-                            API Key
-                          </FieldLabel>
-                          <Input
-                            id={field.name}
-                            name={field.name}
-                            type="text"
-                            value={field.state.value || ''}
-                            onBlur={field.handleBlur}
-                            onChange={(e) => field.handleChange(e.target.value)}
-                            placeholder="Enter API Key or Environment Variable"
-                            aria-invalid={isInvalid}
-                          />
-                          <FieldDescription className="text-xs mt-2">
-                            You can provide a literal value (e.g.{' '}
-                            <code className="bg-muted px-1 rounded text-primary">sk-...</code>) or
-                            an Environment variable name (e.g.{' '}
-                            <code className="bg-muted px-1 rounded text-primary">MY_API_KEY</code>
-                            ).
-                          </FieldDescription>
-                          {isInvalid && <FieldError errors={mapErrors(field.state.meta.errors)} />}
-                        </Field>
-                      )
-                    }}
-                  />
-                </CardContent>
-              </Card>
-
-              {/* Models Section */}
-              <div className="space-y-4">
-                <form.Field
-                  name="models"
-                  mode="array"
-                  children={(modelsField) => (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-lg font-bold">Models Configuration</Label>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            modelsField.pushValue({
-                              modelId: '',
-                              name: '',
-                              config: {
-                                api: form.getFieldValue('config.api'),
-                                reasoning: false,
-                                input: ['text'],
-                                contextWindow: 128000,
-                                maxTokens: 4096,
-                                cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-                              },
-                            })
-                          }
-                          className="gap-2"
-                        >
-                          <Plus className="w-4 h-4" />
-                          Add Model
-                        </Button>
-                      </div>
-
-                      <div className="space-y-6">
-                        {modelsField.state.value.map((_, index) => (
-                          <div
-                            key={index}
-                            className="group relative p-6 bg-transparent rounded-2xl border shadow-sm animate-in fade-in zoom-in-95 duration-300"
+                          <FieldLabel htmlFor={field.name}>Global API Protocol</FieldLabel>
+                          <Select
+                            onValueChange={field.handleChange as (value: string) => void}
+                            value={field.state.value}
+                            disabled={isBuiltin}
                           >
-                            {/* Row 1: ID and Name */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                              <form.Field
-                                name={`models[${index}].modelId`}
-                                children={(field) => {
-                                  const isInvalid =
-                                    !!field.state.meta.errors.length && field.state.meta.isTouched
-                                  return (
-                                    <Field data-invalid={isInvalid}>
-                                      <FieldLabel htmlFor={field.name}>Model ID</FieldLabel>
-                                      <Input
-                                        id={field.name}
-                                        name={field.name}
-                                        value={field.state.value}
-                                        onBlur={field.handleBlur}
-                                        onChange={(e) => field.handleChange(e.target.value)}
-                                        placeholder="gpt-4o"
-                                        aria-invalid={isInvalid}
-                                      />
-                                      {isInvalid && (
-                                        <FieldError errors={mapErrors(field.state.meta.errors)} />
-                                      )}
-                                    </Field>
-                                  )
-                                }}
-                              />
-                              <form.Field
-                                name={`models[${index}].name`}
-                                children={(field) => {
-                                  const isInvalid =
-                                    !!field.state.meta.errors.length && field.state.meta.isTouched
-                                  return (
-                                    <Field data-invalid={isInvalid}>
+                            <SelectTrigger id={field.name} aria-invalid={isInvalid}>
+                              <SelectValue placeholder="Select API Protocol" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {KNOWN_APIS.map((api) => (
+                                <SelectItem key={api} value={api}>
+                                  {API_PROTOCOL_LABELS[api]}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {isInvalid && <FieldError errors={mapErrors(field.state.meta.errors)} />}
+                        </Field>
+                      )
+                    }}
+                  />
+
+                  <div className="md:col-span-2">
+                    <form.Field
+                      name="config.baseUrl"
+                      children={(field) => {
+                        const isInvalid =
+                          !!field.state.meta.errors.length && field.state.meta.isTouched
+                        return (
+                          <Field data-invalid={isInvalid}>
+                            <FieldLabel htmlFor={field.name}>Base URL (Optional)</FieldLabel>
+                            <Input
+                              id={field.name}
+                              name={field.name}
+                              value={field.state.value || ''}
+                              onBlur={field.handleBlur}
+                              onChange={(e) => field.handleChange(e.target.value)}
+                              placeholder="https://api.openai.com/v1"
+                              aria-invalid={isInvalid}
+                            />
+                            <FieldDescription>Override the default endpoint.</FieldDescription>
+                            {isInvalid && (
+                              <FieldError errors={mapErrors(field.state.meta.errors)} />
+                            )}
+                          </Field>
+                        )
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Row 2: API Key Card */}
+                <Card className="rounded-2xl border bg-transparent">
+                  <CardContent className="p-6 pt-2">
+                    <form.Field
+                      name="config.apiKey"
+                      children={(field) => {
+                        const isInvalid =
+                          !!field.state.meta.errors.length && field.state.meta.isTouched
+                        return (
+                          <Field data-invalid={isInvalid}>
+                            <FieldLabel htmlFor={field.name} className="text-base font-semibold">
+                              API Key
+                            </FieldLabel>
+                            <Input
+                              id={field.name}
+                              name={field.name}
+                              type="text"
+                              value={field.state.value || ''}
+                              onBlur={field.handleBlur}
+                              onChange={(e) => field.handleChange(e.target.value)}
+                              placeholder="Enter API Key or Environment Variable"
+                              aria-invalid={isInvalid}
+                            />
+                            <FieldDescription className="text-xs mt-2">
+                              You can provide a literal value (e.g.{' '}
+                              <code className="bg-muted px-1 rounded text-primary">sk-...</code>) or
+                              an Environment variable name (e.g.{' '}
+                              <code className="bg-muted px-1 rounded text-primary">MY_API_KEY</code>
+                              ).
+                            </FieldDescription>
+                            {isInvalid && (
+                              <FieldError errors={mapErrors(field.state.meta.errors)} />
+                            )}
+                          </Field>
+                        )
+                      }}
+                    />
+                  </CardContent>
+                </Card>
+
+                {/* Models Section */}
+                <div className="space-y-4">
+                  <form.Field
+                    name="models"
+                    mode="array"
+                    children={(modelsField) => (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-lg font-bold">Models Configuration</Label>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              modelsField.pushValue({
+                                modelId: '',
+                                name: '',
+                                config: {
+                                  api: form.getFieldValue('config.api'),
+                                  reasoning: false,
+                                  input: ['text'],
+                                  contextWindow: 128000,
+                                  maxTokens: 4096,
+                                  cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+                                },
+                              })
+                            }
+                            className="gap-2"
+                          >
+                            <Plus className="w-4 h-4" />
+                            Add Model
+                          </Button>
+                        </div>
+
+                        <div className="space-y-6">
+                          {modelsField.state.value.map((_, index) => (
+                            <div
+                              key={index}
+                              className="group relative p-6 bg-transparent rounded-2xl border shadow-sm animate-in fade-in zoom-in-95 duration-300"
+                            >
+                              {/* Row 1: ID and Name */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <form.Field
+                                  name={`models[${index}].modelId`}
+                                  children={(field) => {
+                                    const isInvalid =
+                                      !!field.state.meta.errors.length && field.state.meta.isTouched
+                                    return (
+                                      <Field data-invalid={isInvalid}>
+                                        <FieldLabel htmlFor={field.name}>Model ID</FieldLabel>
+                                        <Input
+                                          id={field.name}
+                                          name={field.name}
+                                          value={field.state.value}
+                                          onBlur={field.handleBlur}
+                                          onChange={(e) => field.handleChange(e.target.value)}
+                                          placeholder="gpt-4o"
+                                          aria-invalid={isInvalid}
+                                        />
+                                        {isInvalid && (
+                                          <FieldError errors={mapErrors(field.state.meta.errors)} />
+                                        )}
+                                      </Field>
+                                    )
+                                  }}
+                                />
+                                <form.Field
+                                  name={`models[${index}].name`}
+                                  children={(field) => {
+                                    const isInvalid =
+                                      !!field.state.meta.errors.length && field.state.meta.isTouched
+                                    return (
+                                      <Field data-invalid={isInvalid}>
+                                        <FieldLabel htmlFor={field.name}>
+                                          Display Name (Optional)
+                                        </FieldLabel>
+                                        <Input
+                                          id={field.name}
+                                          name={field.name}
+                                          value={field.state.value}
+                                          onBlur={field.handleBlur}
+                                          onChange={(e) => field.handleChange(e.target.value)}
+                                          placeholder="e.g., GPT-4o"
+                                          aria-invalid={isInvalid}
+                                          disabled={isBuiltin}
+                                        />
+                                        {isInvalid && (
+                                          <FieldError errors={mapErrors(field.state.meta.errors)} />
+                                        )}
+                                      </Field>
+                                    )
+                                  }}
+                                />
+                              </div>
+
+                              {/* Row 2: Reasoning and Context Window */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                                <form.Field
+                                  name={`models[${index}].config.reasoning`}
+                                  children={(field) => (
+                                    <Field
+                                      orientation="horizontal"
+                                      className="rounded-lg border border-border p-3 shadow-sm bg-muted/50 justify-between"
+                                    >
                                       <FieldLabel htmlFor={field.name}>
-                                        Display Name (Optional)
+                                        Reasoning Support
                                       </FieldLabel>
-                                      <Input
+                                      <Switch
                                         id={field.name}
-                                        name={field.name}
-                                        value={field.state.value}
-                                        onBlur={field.handleBlur}
-                                        onChange={(e) => field.handleChange(e.target.value)}
-                                        placeholder="e.g., GPT-4o"
-                                        aria-invalid={isInvalid}
+                                        checked={field.state.value}
+                                        onCheckedChange={field.handleChange}
                                         disabled={isBuiltin}
                                       />
-                                      {isInvalid && (
-                                        <FieldError errors={mapErrors(field.state.meta.errors)} />
-                                      )}
                                     </Field>
-                                  )
-                                }}
-                              />
-                            </div>
+                                  )}
+                                />
+                                <form.Field
+                                  name={`models[${index}].config.contextWindow`}
+                                  children={(field) => {
+                                    const isInvalid =
+                                      !!field.state.meta.errors.length && field.state.meta.isTouched
+                                    return (
+                                      <Field data-invalid={isInvalid}>
+                                        <FieldLabel htmlFor={field.name} className="text-xs">
+                                          Context Window (tokens)
+                                        </FieldLabel>
+                                        <Input
+                                          id={field.name}
+                                          name={field.name}
+                                          type="number"
+                                          value={field.state.value}
+                                          onBlur={field.handleBlur}
+                                          onChange={(e) =>
+                                            field.handleChange(parseInt(e.target.value) || 0)
+                                          }
+                                          aria-invalid={isInvalid}
+                                          disabled={isBuiltin}
+                                        />
+                                        {isInvalid && (
+                                          <FieldError errors={mapErrors(field.state.meta.errors)} />
+                                        )}
+                                      </Field>
+                                    )
+                                  }}
+                                />
+                              </div>
 
-                            {/* Row 2: Reasoning and Context Window */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                              <form.Field
-                                name={`models[${index}].config.reasoning`}
-                                children={(field) => (
-                                  <Field
-                                    orientation="horizontal"
-                                    className="rounded-lg border border-border p-3 shadow-sm bg-muted/50 justify-between"
-                                  >
-                                    <FieldLabel htmlFor={field.name}>Reasoning Support</FieldLabel>
-                                    <Switch
-                                      id={field.name}
-                                      checked={field.state.value}
-                                      onCheckedChange={field.handleChange}
-                                      disabled={isBuiltin}
-                                    />
-                                  </Field>
-                                )}
-                              />
-                              <form.Field
-                                name={`models[${index}].config.contextWindow`}
-                                children={(field) => {
-                                  const isInvalid =
-                                    !!field.state.meta.errors.length && field.state.meta.isTouched
-                                  return (
-                                    <Field data-invalid={isInvalid}>
-                                      <FieldLabel htmlFor={field.name} className="text-xs">
-                                        Context Window (tokens)
-                                      </FieldLabel>
-                                      <Input
-                                        id={field.name}
-                                        name={field.name}
-                                        type="number"
-                                        value={field.state.value}
-                                        onBlur={field.handleBlur}
-                                        onChange={(e) =>
-                                          field.handleChange(parseInt(e.target.value) || 0)
-                                        }
-                                        aria-invalid={isInvalid}
-                                        disabled={isBuiltin}
-                                      />
-                                      {isInvalid && (
-                                        <FieldError errors={mapErrors(field.state.meta.errors)} />
-                                      )}
-                                    </Field>
-                                  )
-                                }}
-                              />
-                            </div>
+                              {/* Row 3: Constraints and Cost */}
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                                <form.Field
+                                  name={`models[${index}].config.maxTokens`}
+                                  children={(field) => {
+                                    const isInvalid =
+                                      !!field.state.meta.errors.length && field.state.meta.isTouched
+                                    return (
+                                      <Field data-invalid={isInvalid}>
+                                        <FieldLabel htmlFor={field.name} className="text-xs">
+                                          Max Output Tokens
+                                        </FieldLabel>
+                                        <Input
+                                          id={field.name}
+                                          name={field.name}
+                                          type="number"
+                                          value={field.state.value}
+                                          onBlur={field.handleBlur}
+                                          onChange={(e) =>
+                                            field.handleChange(parseInt(e.target.value) || 0)
+                                          }
+                                          aria-invalid={isInvalid}
+                                          disabled={isBuiltin}
+                                        />
+                                        {isInvalid && (
+                                          <FieldError errors={mapErrors(field.state.meta.errors)} />
+                                        )}
+                                      </Field>
+                                    )
+                                  }}
+                                />
+                                <form.Field
+                                  name={`models[${index}].config.cost.input`}
+                                  children={(field) => {
+                                    const isInvalid =
+                                      !!field.state.meta.errors.length && field.state.meta.isTouched
+                                    return (
+                                      <Field data-invalid={isInvalid}>
+                                        <FieldLabel
+                                          htmlFor={field.name}
+                                          className="text-xs flex items-center gap-1"
+                                        >
+                                          <DollarSign className="w-3 h-3" /> Input Cost (1M)
+                                        </FieldLabel>
+                                        <Input
+                                          id={field.name}
+                                          name={field.name}
+                                          type="number"
+                                          step="0.01"
+                                          value={field.state.value}
+                                          onBlur={field.handleBlur}
+                                          onChange={(e) =>
+                                            field.handleChange(parseFloat(e.target.value) || 0)
+                                          }
+                                          aria-invalid={isInvalid}
+                                          disabled={isBuiltin}
+                                        />
+                                        {isInvalid && (
+                                          <FieldError errors={mapErrors(field.state.meta.errors)} />
+                                        )}
+                                      </Field>
+                                    )
+                                  }}
+                                />
+                                <form.Field
+                                  name={`models[${index}].config.cost.output`}
+                                  children={(field) => {
+                                    const isInvalid =
+                                      !!field.state.meta.errors.length && field.state.meta.isTouched
+                                    return (
+                                      <Field data-invalid={isInvalid}>
+                                        <FieldLabel
+                                          htmlFor={field.name}
+                                          className="text-xs flex items-center gap-1"
+                                        >
+                                          <DollarSign className="w-3 h-3" /> Output Cost (1M)
+                                        </FieldLabel>
+                                        <Input
+                                          id={field.name}
+                                          name={field.name}
+                                          type="number"
+                                          step="0.01"
+                                          value={field.state.value}
+                                          onBlur={field.handleBlur}
+                                          onChange={(e) =>
+                                            field.handleChange(parseFloat(e.target.value) || 0)
+                                          }
+                                          aria-invalid={isInvalid}
+                                          disabled={isBuiltin}
+                                        />
+                                        {isInvalid && (
+                                          <FieldError errors={mapErrors(field.state.meta.errors)} />
+                                        )}
+                                      </Field>
+                                    )
+                                  }}
+                                />
+                              </div>
 
-                            {/* Row 3: Constraints and Cost */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                              <form.Field
-                                name={`models[${index}].config.maxTokens`}
-                                children={(field) => {
-                                  const isInvalid =
-                                    !!field.state.meta.errors.length && field.state.meta.isTouched
-                                  return (
-                                    <Field data-invalid={isInvalid}>
-                                      <FieldLabel htmlFor={field.name} className="text-xs">
-                                        Max Output Tokens
-                                      </FieldLabel>
-                                      <Input
-                                        id={field.name}
-                                        name={field.name}
-                                        type="number"
-                                        value={field.state.value}
-                                        onBlur={field.handleBlur}
-                                        onChange={(e) =>
-                                          field.handleChange(parseInt(e.target.value) || 0)
-                                        }
-                                        aria-invalid={isInvalid}
-                                        disabled={isBuiltin}
-                                      />
-                                      {isInvalid && (
-                                        <FieldError errors={mapErrors(field.state.meta.errors)} />
-                                      )}
-                                    </Field>
-                                  )
-                                }}
-                              />
-                              <form.Field
-                                name={`models[${index}].config.cost.input`}
-                                children={(field) => {
-                                  const isInvalid =
-                                    !!field.state.meta.errors.length && field.state.meta.isTouched
-                                  return (
-                                    <Field data-invalid={isInvalid}>
-                                      <FieldLabel
-                                        htmlFor={field.name}
-                                        className="text-xs flex items-center gap-1"
-                                      >
-                                        <DollarSign className="w-3 h-3" /> Input Cost (1M)
-                                      </FieldLabel>
-                                      <Input
-                                        id={field.name}
-                                        name={field.name}
-                                        type="number"
-                                        step="0.01"
-                                        value={field.state.value}
-                                        onBlur={field.handleBlur}
-                                        onChange={(e) =>
-                                          field.handleChange(parseFloat(e.target.value) || 0)
-                                        }
-                                        aria-invalid={isInvalid}
-                                        disabled={isBuiltin}
-                                      />
-                                      {isInvalid && (
-                                        <FieldError errors={mapErrors(field.state.meta.errors)} />
-                                      )}
-                                    </Field>
-                                  )
-                                }}
-                              />
-                              <form.Field
-                                name={`models[${index}].config.cost.output`}
-                                children={(field) => {
-                                  const isInvalid =
-                                    !!field.state.meta.errors.length && field.state.meta.isTouched
-                                  return (
-                                    <Field data-invalid={isInvalid}>
-                                      <FieldLabel
-                                        htmlFor={field.name}
-                                        className="text-xs flex items-center gap-1"
-                                      >
-                                        <DollarSign className="w-3 h-3" /> Output Cost (1M)
-                                      </FieldLabel>
-                                      <Input
-                                        id={field.name}
-                                        name={field.name}
-                                        type="number"
-                                        step="0.01"
-                                        value={field.state.value}
-                                        onBlur={field.handleBlur}
-                                        onChange={(e) =>
-                                          field.handleChange(parseFloat(e.target.value) || 0)
-                                        }
-                                        aria-invalid={isInvalid}
-                                        disabled={isBuiltin}
-                                      />
-                                      {isInvalid && (
-                                        <FieldError errors={mapErrors(field.state.meta.errors)} />
-                                      )}
-                                    </Field>
-                                  )
-                                }}
-                              />
-                            </div>
-
-                            {!isBuiltin && (
                               <Button
                                 type="button"
                                 variant="ghost"
@@ -880,18 +900,18 @@ function ProviderFormDialog({
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
-                            )}
-                          </div>
-                        ))}
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
-                />
+                    )}
+                  />
+                </div>
               </div>
-            </div>
-          </ScrollArea>
+            </ScrollArea>
+          </div>
 
-          <DialogFooter className="p-6 pt-4 border-t border-border gap-2">
+          <DialogFooter className="p-6 pt-4 border-t border-border gap-2 shrink-0">
             <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
               Cancel
             </Button>

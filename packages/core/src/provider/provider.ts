@@ -143,10 +143,6 @@ export class ProviderService {
       throw new Error('Provider not found')
     }
 
-    if (provider.isBuiltin) {
-      throw new Error('Cannot delete builtin provider')
-    }
-
     return this.prismaClient.provider.delete({
       where: { id, teamId },
     })
