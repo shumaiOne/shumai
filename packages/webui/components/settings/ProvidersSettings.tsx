@@ -304,7 +304,6 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-32">
                       <DropdownMenuItem
-                        disabled={provider.isBuiltin}
                         onClick={(e) => {
                           e.stopPropagation()
                           setProviderToDelete(provider)
@@ -892,17 +891,15 @@ function ProviderFormDialog({
                                 />
                               </div>
 
-                              {!isBuiltin && (
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-background border border-border text-muted-foreground hover:text-destructive transition-colors shadow-sm"
-                                  onClick={() => modelsField.removeValue(index)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              )}
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-background border border-border text-muted-foreground hover:text-destructive transition-colors shadow-sm"
+                                onClick={() => modelsField.removeValue(index)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
                           ))}
                         </div>
