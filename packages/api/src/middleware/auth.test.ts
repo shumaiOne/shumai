@@ -83,10 +83,10 @@ describe('authMiddleware', () => {
       vi.mocked(auth.api.getSession).mockResolvedValue({ user: { id: 'user1' } } as any)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user1' } as any)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(prisma.teamMember.findFirst).mockResolvedValue({
         id: 'member1',
         role: 'owner',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any)
 
       const res = await app.request('/test', { method: 'POST' })
@@ -98,10 +98,10 @@ describe('authMiddleware', () => {
       vi.mocked(auth.api.getSession).mockResolvedValue({ user: { id: 'user1' } } as any)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user1' } as any)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(prisma.teamMember.findFirst).mockResolvedValue({
         id: 'member1',
         role: 'editor',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any)
 
       const res = await app.request('/test', { method: 'POST' })
