@@ -38,7 +38,7 @@ describe('ProviderService', () => {
     expect(providers[0].name).toBe(firstInGenerated)
   })
 
-  it('should prevent deletion of builtin providers', async () => {
+  it('should allow deletion of builtin providers', async () => {
     const team = await teamService.ensureDefaultTeam()
     await providerService.initBuiltinProviders(team.id)
 
@@ -46,9 +46,9 @@ describe('ProviderService', () => {
     const builtin = providers.find((p) => p.isBuiltin)
     expect(builtin).toBeDefined()
 
-    await expect(providerService.delete(team.id, builtin!.id)).rejects.toThrow(
-      'Cannot delete builtin provider',
-    )
+    await providerService.delete(team.id, builtin!.id)
+    const afterDelete = await providerService.listByTeam(team.id)
+    expect(afterDelete.find((p) => p.id === builtin!.id)).toBeUndefined()
   })
 
   it('should allow editing builtin providers', async () => {
