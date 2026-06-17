@@ -25,6 +25,7 @@
           "using-shumai/comments",
           "using-shumai/version-stack",
           "using-shumai/sort-and-search",
+          "using-shumai/semantic-search",
           "using-shumai/team-project-management",
           "using-shumai/notifications",
           "using-shumai/metadata",
@@ -33,7 +34,7 @@
         ]
       },
       {
-        "group": "Shumai Agent (Admin)",
+        "group": "Shumai Agent Settings",
         "pages": [
           "using-shumai/agent-providers",
           "using-shumai/agents",
@@ -42,20 +43,16 @@
         ]
       },
       {
-        "group": "Media Transcoding (Admin)",
+        "group": "Media Transcoding Settings",
         "pages": ["using-shumai/transcode-settings"]
-      },
-      {
-        "group": "Advanced Search",
-        "pages": ["using-shumai/semantic-search"]
-      },
-      {
-        "group": "Advanced Deployment",
-        "pages": ["configuration/temporal"]
       },
       {
         "group": "Configuration",
         "pages": ["configuration/env-variables"]
+      },
+      {
+        "group": "Temporal Deployment",
+        "pages": ["configuration/temporal"]
       }
     ]
   }

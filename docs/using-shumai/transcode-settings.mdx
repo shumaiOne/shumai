@@ -5,30 +5,32 @@ description: Configure video transcode strategies and preview proxy generation.
 
 High-resolution camera formats and raw media files cannot be rendered natively in web browsers. Shumai transcodes these assets into web-friendly streaming formats in the background.
 
+Regardless of the selected transcoding strategy, Shumai's pipeline will **always** generate at least one lightweight `180p` proxy version of the raw file to ensure fast scrubbing, thumbnail generation, and instant previews.
+
 ---
 
 ## Video Transcode Strategies
 
-Team Owners can select how the transcoding engine handles uploaded files:
+Team Owners can select how the transcoding engine handles uploaded files. Shumai evaluates the original file's dimensions against its standard target resolutions (2160p, 1080p, 720p, 540p, and 360p) to determine the output.
 
-### 1. Best Match (`best_match`)
+### 1. Best Match
 
-- **Behavior**: Shumai checks the parameters of the uploaded file.
-- **Skip Transcoding**: If the file is already in a web-compatible format that browser engines can play directly (like standard MP4s), transcoding is skipped.
-- **Transcode**: If the file format is incompatible, it is transcoded. This is the recommended option as it saves processing time and storage space.
+- **Behavior**: Shumai checks the longest dimension (width or height) of the uploaded file. It then finds the highest standard resolution that is equal to or smaller than the original file, preventing unnecessary upscaling. If the original video is exceptionally small, it defaults to a minimum target of `360p`.
+- **Output**: Generates exactly two web-optimized files: the universal `180p` proxy and the single calculated "best match" resolution.
+- **Use Case**: This is the recommended option. It ensures web compatibility without wasting processing time and storage space on redundant lower-resolution versions.
 
-### 2. Transcode All (`all`)
+### 2. Transcode All
 
-- **Behavior**: Every single uploaded video is sent through the transcoding pipeline.
-- **Output**: Converts the file into a standardized, web-optimized MP4 profile. This ensures consistent streaming performance and compatibility across all client devices and browsers, regardless of the source.
+- **Behavior**: Shumai calculates the "best match" resolution exactly as it does in the previous strategy. However, instead of stopping at one version, it processes the video into the best match _and_ every standard resolution smaller than it.
+- **Output**: Generates a full cascade of files. For example, if the best match for an upload is `1080p`, Shumai will generate the `180p` proxy, `1080p`, `720p`, `540p`, and `360p` versions.
+- **Use Case**: Ideal for environments requiring adaptive bitrate streaming, ensuring consistent playback performance across all client devices regardless of varying network conditions.
 
-![Transcode Settings Placeholder](https://placehold.co/800x350/2C2E3E/D95A66?text=Media+Processing+Transcode+Strategy)
-_Placeholder: Web UI Settings screen displaying the Media Processing tab with the strategy toggle selectors._
+![Transcode Settings](../transcode.webp)
 
 ---
 
 ## Processing Architecture
 
-Transcoding is resource-intensive. Depending on your scaling needs, your administrator can run the transcode engine on the main server (Local Single-Server mode) or delegate tasks to specialized transcoding worker machines (Distributed High-Scale mode).
+Transcoding is resource-intensive. Depending on your scaling needs, your administrator can run the transcode engine on the main server (Single-Server mode) or delegate tasks to specialized transcoding worker machines (Temporal Worker mode).
 
-_Note: In all modes, the processing machine must have the standard system media utilities (`ffmpeg` and `ffprobe`) installed._
+Note: In all modes, the processing machine must have the standard system media utilities (`ffmpeg` and `ffprobe`) installed.

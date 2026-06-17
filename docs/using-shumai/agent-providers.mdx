@@ -3,36 +3,47 @@ title: AI Providers
 description: Connect Shumai to OpenAI, Anthropic, Gemini, or custom LLM gateways.
 ---
 
-To enable AI Agents, metadata autofill, and semantic search, Shumai must be connected to an AI model provider. Team Owners can manage these credentials under the **AI Providers** settings tab.
+When creating agents for chat or metadata autofill, you must select an underlying AI model. The available models and providers are configured globally within your team settings.
+
+> 🔒 **Access Control:** Only **Team Owner** can manage AI providers. To update these settings, click your avatar, navigate to **Settings**, and select **Providers** from the left sidebar.
 
 ---
 
 ## Built-In Providers
 
-Shumai ships with pre-configured settings for major LLM providers:
+Shumai ships with pre-configured configurations for major LLM providers. Because Shumai uses [Pi](https://github.com/earendil-works/pi) as its core agent framework, the supported provider and model configurations are automatically synchronized with Pi's capabilities.
 
-- **Google Gemini**: Recommended for multimodal asset tagging (Autofill Agent) and reasoning tasks.
-- **OpenAI**: Supports GPT-4, GPT-4o, and reasoning models.
-- **Anthropic**: Supports the Claude 3.5 Sonnet and Haiku models.
-
-### Global Credentials
-
-If your system administrator has configured global keys (like `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `ANTHROPIC_API_KEY`) in the server's environment variables, the respective built-in provider will use these credentials automatically, making them immediately available to the entire team.
+Team Owner can freely edit, delete, or add new providers. All configured provider and model settings are injected directly into the Pi framework at runtime.
 
 ---
 
-## Custom Providers
+## Configuration Reference
 
-If you want to use local models (via Ollama or vLLM) or private enterprise proxy gateways, you can register custom providers:
+### Provider Settings
 
-1.  Navigate to **Team Settings** > **AI Providers**.
-2.  Click **Add Provider**.
-3.  Fill in the configuration parameters:
-    - **Provider Name**: E.g., `Ollama-Local` or `Enterprise-Gateway`.
-    - **Base URL**: The target API URL (e.g., `http://localhost:11434/v1` for Ollama).
-    - **API Key**: The authentication token (use `nokey` if local/unauthenticated).
-4.  **Register Models**: Define the list of model IDs and names (e.g., model ID `llama3`, name `Llama 3`) that this provider exposes.
-5.  Click **Save**.
+When configuring a provider, you will need to specify the following fields:
 
-![AI Providers List Placeholder](https://placehold.co/800x400/2C2E3E/D95A66?text=AI+Providers+Management)
-_Placeholder: Table view of active AI providers showing their status, built-in badges, and active models._
+| Field             | Description                                                                | Example / Notes                                                                                                                  |
+| :---------------- | :------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------- |
+| **Provider Name** | A unique, human-readable label for the provider.                           | `Ollama-Local`, `Enterprise-Gateway`                                                                                             |
+| **Base URL**      | The target API endpoint URL.                                               | `http://localhost:11434/v1`                                                                                                      |
+| **API Protocol**  | The streaming and payload implementation format.                           | Most OpenAI-compatible gateways use `openai-completions`.                                                                        |
+| **API Key**       | The authentication token. Leave blank for unauthenticated or local setups. | Accepts a literal value (`sk-...`) or an environment variable name (`MY_API_KEY`) to load secrets securely from the host system. |
+
+### Model Settings
+
+Each provider can host multiple models. You can configure the following attributes per model:
+
+| Field                 | Description                                                 | Example / Notes                                    |
+| :-------------------- | :---------------------------------------------------------- | :------------------------------------------------- |
+| **Model ID**          | The exact identifier string expected by the upstream API.   | `gpt-4o`, `claude-3-5-sonnet-20240620`             |
+| **Display Name**      | An optional, friendly label shown to users in dropdowns.    | `GPT-4 Omni`, `Claude 3.5`                         |
+| **Reasoning Support** | Toggle to enable extended thinking protocols.               | Use for models with native reasoning capabilities. |
+| **Context Window**    | The maximum total token capacity (input + output).          |                                                    |
+| **Max Output Tokens** | The hard ceiling for generated response tokens per request. |                                                    |
+| **Input Cost**        | Cost tracking specified per million input tokens.           | Optional; used to calculate usage metrics.         |
+| **Output Cost**       | Cost tracking specified per million output tokens.          | Optional; used to calculate usage metrics.         |
+
+---
+
+![AI Providers List](../providers.webp)
