@@ -28,6 +28,7 @@ describe('authMiddleware', () => {
     .use('*', authMiddleware)
     .get('/test', (c) => c.text('ok'))
     .post('/test', (c) => c.text('ok'))
+    .post('/test/search', (c) => c.text('ok'))
 
   beforeEach(() => {
     vi.resetAllMocks()
@@ -76,6 +77,16 @@ describe('authMiddleware', () => {
       const res = await app.request('/test', { method: 'POST' })
       expect(res.status).toBe(403)
       expect(await res.json()).toEqual({ error: 'System is in read-only mode' })
+    })
+
+    it('allows POST /search for reviewer', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.mocked(auth.api.getSession).mockResolvedValue({ user: { id: 'user1' } } as any)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user1' } as any)
+
+      const res = await app.request('/test/search', { method: 'POST' })
+      expect(res.status).toBe(200)
     })
 
     it('allows POST for owner', async () => {

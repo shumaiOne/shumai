@@ -31,7 +31,8 @@ export const authMiddleware = createMiddleware<{
 
     if (process.env.REVIEWER_READ_ONLY === '1') {
       const method = c.req.method.toUpperCase()
-      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+      const path = c.req.path
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && !path.endsWith('/search')) {
         const member = await prisma.teamMember.findFirst({
           where: {
             userId: user.id,
