@@ -1,62 +1,62 @@
 import { client } from '@/ui/api/client'
-import { Card, CardContent } from '@/ui/components/ui/card'
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/ui/components/ui/alert-dialog'
+import { Badge } from '@/ui/components/ui/badge'
 import { Button } from '@/ui/components/ui/button'
+import { Card, CardContent } from '@/ui/components/ui/card'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/ui/components/ui/dialog'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/ui/components/ui/dropdown-menu'
+import { Field, FieldDescription, FieldError, FieldLabel } from '@/ui/components/ui/field'
 import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/ui/components/ui/dialog'
-import { Field, FieldLabel, FieldDescription, FieldError } from '@/ui/components/ui/field'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '@/ui/components/ui/select'
 import { Switch } from '@/ui/components/ui/switch'
-import { Badge } from '@/ui/components/ui/badge'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/ui/components/ui/alert-dialog'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useForm } from '@tanstack/react-form'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/ui/components/ui/dropdown-menu'
-import {
-  Loader2,
-  Plus,
-  Trash2,
-  Cpu,
-  Globe,
-  ChevronRight,
-  Info,
-  DollarSign,
-  Maximize2,
-  Zap,
-  Search,
-  MoreVertical,
-} from 'lucide-react'
-import { useState, useMemo, useEffect } from 'react'
-import { toast } from 'sonner'
-import { InferResponseType } from 'hono/client'
 import { providerConfigSchema, providerModelSchema } from '@shumai/dtos'
+import { useForm } from '@tanstack/react-form'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { InferResponseType } from 'hono/client'
+import {
+    ChevronRight,
+    Cpu,
+    DollarSign,
+    Globe,
+    Info,
+    Loader2,
+    Maximize2,
+    MoreVertical,
+    Plus,
+    Search,
+    Trash2,
+    Zap,
+} from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { z } from 'zod'
 
 const providerFormSchemaBase = z.object({
@@ -379,7 +379,7 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setProviderToDelete(null)}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive hover:bg-destructive/90 text-white"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
               onClick={() => {
                 if (providerToDelete) {
                   deleteMutation.mutate(providerToDelete.id)
@@ -507,7 +507,7 @@ function ProviderFormDialog({
         >
           <div className="flex-1 overflow-y-auto p-6 pt-2 space-y-8">
             {/* Row 1: Basic Config */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 rounded-2xl border">
               <form.Field
                 name="name"
                 children={(field) => {
@@ -586,8 +586,8 @@ function ProviderFormDialog({
             </div>
 
             {/* Row 2: API Key Card */}
-            <Card className="bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-              <CardContent className="p-6">
+            <Card className="rounded-2xl border bg-transparent">
+              <CardContent className="p-6 pt-2">
                 <form.Field
                   name="config.apiKey"
                   children={(field) => {
@@ -609,13 +609,9 @@ function ProviderFormDialog({
                         />
                         <FieldDescription className="text-xs mt-2">
                           You can provide a literal value (e.g.{' '}
-                          <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded text-blue-600 dark:text-blue-400">
-                            sk-...
-                          </code>
-                          ) or an Environment variable name (e.g.{' '}
-                          <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded text-blue-600 dark:text-blue-400">
-                            MY_API_KEY
-                          </code>
+                          <code className="bg-muted px-1 rounded text-primary">sk-...</code>) or an
+                          Environment variable name (e.g.{' '}
+                          <code className="bg-muted px-1 rounded text-primary">MY_API_KEY</code>
                           ).
                         </FieldDescription>
                         {isInvalid && <FieldError errors={mapErrors(field.state.meta.errors)} />}
@@ -664,7 +660,7 @@ function ProviderFormDialog({
                       {modelsField.state.value.map((_, index) => (
                         <div
                           key={index}
-                          className="group relative p-6 bg-white dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm animate-in fade-in zoom-in-95 duration-300"
+                          className="group relative p-6 bg-transparent rounded-2xl border shadow-sm animate-in fade-in zoom-in-95 duration-300"
                         >
                           {/* Row 1: ID and Name */}
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -728,7 +724,7 @@ function ProviderFormDialog({
                               children={(field) => (
                                 <Field
                                   orientation="horizontal"
-                                  className="rounded-lg border p-3 shadow-sm bg-slate-50 dark:bg-slate-900 justify-between"
+                                  className="rounded-lg border border-border p-3 shadow-sm bg-muted/50 justify-between"
                                 >
                                   <FieldLabel htmlFor={field.name}>Reasoning Support</FieldLabel>
                                   <Switch
@@ -875,7 +871,7 @@ function ProviderFormDialog({
                               type="button"
                               variant="ghost"
                               size="icon"
-                              className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400 hover:text-red-600 transition-colors shadow-sm"
+                              className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-background border border-border text-muted-foreground hover:text-destructive transition-colors shadow-sm"
                               onClick={() => modelsField.removeValue(index)}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -890,7 +886,7 @@ function ProviderFormDialog({
             </div>
           </div>
 
-          <DialogFooter className="p-6 pt-4 border-t dark:border-slate-800 gap-2">
+          <DialogFooter className="p-6 pt-4 border-t border-border gap-2">
             <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
               Cancel
             </Button>
@@ -899,7 +895,7 @@ function ProviderFormDialog({
               children={([canSubmit, isSubmitting]) => (
                 <Button
                   type="submit"
-                  className="bg-blue-600 hover:bg-blue-700 text-white min-w-[120px]"
+                  className="min-w-[120px]"
                   disabled={!canSubmit || isSubmitting || isLoading}
                 >
                   {isSubmitting || isLoading ? (
@@ -926,7 +922,7 @@ function ProviderFormDialog({
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
               onClick={() => {
                 onDelete?.()
                 setIsDeleteDialogOpen(false)
