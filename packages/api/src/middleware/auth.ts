@@ -28,6 +28,24 @@ export const authMiddleware = createMiddleware<{
     }
 
     c.set('user', user)
+
+    if (process.env.REVIEWER_READ_ONLY === '1') {
+      const method = c.req.method.toUpperCase()
+      const path = c.req.path
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && !path.endsWith('/search')) {
+        const member = await prisma.teamMember.findFirst({
+          where: {
+            userId: user.id,
+            role: { in: ['owner', 'editor'] },
+          },
+        })
+
+        if (!member) {
+          return c.json({ error: 'System is in read-only mode' }, 403)
+        }
+      }
+    }
+
     await next()
   } catch {
     return c.json({ error: 'Authentication failed' }, 401)
