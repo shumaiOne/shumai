@@ -315,7 +315,7 @@ describe('AuthzService', () => {
 
     // Provider
     const provider = await prisma.provider.create({
-      data: { name: 'Prov 1', teamId: team.id, config: { api: 'openai' } },
+      data: { name: 'Prov 1', teamId: team.id, config: { api: 'openai-completions' } },
     })
 
     // Invite

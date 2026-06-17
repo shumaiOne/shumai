@@ -38,7 +38,7 @@ import {
   SelectValue,
 } from '@/ui/components/ui/select'
 import { Switch } from '@/ui/components/ui/switch'
-import { providerConfigSchema, providerModelSchema } from '@shumai/dtos'
+import { providerConfigSchema, providerModelSchema, KNOWN_APIS } from '@shumai/dtos'
 import { useForm } from '@tanstack/react-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { InferResponseType } from 'hono/client'
@@ -59,6 +59,18 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
+
+const API_PROTOCOL_LABELS: Record<(typeof KNOWN_APIS)[number], string> = {
+  'openai-completions': 'OpenAI Completions',
+  'mistral-conversations': 'Mistral Conversations',
+  'openai-responses': 'OpenAI Responses',
+  'azure-openai-responses': 'Azure OpenAI Responses',
+  'openai-codex-responses': 'OpenAI Codex Responses',
+  'anthropic-messages': 'Anthropic Messages',
+  'bedrock-converse-stream': 'AWS Bedrock',
+  'google-generative-ai': 'Google Generative AI',
+  'google-vertex': 'Google Vertex',
+}
 
 const providerFormSchemaBase = z.object({
   name: z.string().min(1, 'Provider name is required'),
@@ -541,7 +553,7 @@ function ProviderFormDialog({
                       <Field data-invalid={isInvalid}>
                         <FieldLabel htmlFor={field.name}>Global API Protocol</FieldLabel>
                         <Select
-                          onValueChange={field.handleChange}
+                          onValueChange={field.handleChange as (value: string) => void}
                           value={field.state.value}
                           disabled={isBuiltin}
                         >
@@ -549,10 +561,11 @@ function ProviderFormDialog({
                             <SelectValue placeholder="Select API Protocol" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="openai-completions">OpenAI Completions</SelectItem>
-                            <SelectItem value="anthropic-messages">Anthropic Messages</SelectItem>
-                            <SelectItem value="google-genai">Google GenAI</SelectItem>
-                            <SelectItem value="bedrock-converse-stream">AWS Bedrock</SelectItem>
+                            {KNOWN_APIS.map((api) => (
+                              <SelectItem key={api} value={api}>
+                                {API_PROTOCOL_LABELS[api]}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         {isInvalid && <FieldError errors={mapErrors(field.state.meta.errors)} />}

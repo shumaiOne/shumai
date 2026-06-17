@@ -306,7 +306,7 @@ describe('Agent Database Activities Integration', () => {
           teamId: team.id,
           name: 'openai',
           config: {
-            api: 'openai',
+            api: 'openai-completions',
             apiKey: 'mock-key',
           },
         },
