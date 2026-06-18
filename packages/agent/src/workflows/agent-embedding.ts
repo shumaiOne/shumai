@@ -154,7 +154,9 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
 
       for (let start = 0.0; start < duration; start += step) {
         let end = start + limit
-        if (end > duration) end = duration
+        if (end >= duration) {
+          end = duration
+        }
 
         // Step A: Slice chunk on transcode worker and upload to S3
         const chunkRes = await executeActivity(transcodeWorkerQueue, transcodeVideoChunkActivity, {
@@ -191,6 +193,11 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
           await executeActivity(transcodeWorkerQueue, deleteS3ObjectActivity, {
             key: chunkKey,
           })
+        }
+
+        // If this chunk reached the end of the video, stop to avoid redundant overlapping chunks
+        if (end >= duration) {
+          break
         }
       }
     }

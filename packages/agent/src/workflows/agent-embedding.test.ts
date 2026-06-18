@@ -395,4 +395,40 @@ describe('Agent Embedding Workflow', () => {
       output: { error: 'AI Service Unavailable' },
     })
   })
+
+  it('should not create redundant chunks when video exactly matches chunk duration', async () => {
+    mockActivities.getEmbeddingContextActivity.mockResolvedValue({
+      agent: { id: 'b1' },
+      asset: {
+        id: 'a1',
+        mediaType: 'video/mp4',
+        storageKey: { key: 'test.mp4' },
+        media: {
+          duration: 60.0,
+        },
+      },
+      chunkDuration: 60.0,
+      chunkOverlap: 5.0,
+    })
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'ai_embedding',
+        status: 'pending',
+        assetId: 'a1',
+        teamId: 't1',
+      },
+    })
+
+    await agentEmbeddingMedia(task)
+
+    // Verify only 1 chunk was created instead of 2 (0-60 and 55-60)
+    expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenCalledTimes(1)
+    expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        startTime: 0,
+        endTime: 60,
+      }),
+    )
+  })
 })
