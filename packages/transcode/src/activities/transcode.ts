@@ -561,6 +561,8 @@ export async function transcodeVideoChunkActivity(
     // Slice video segment using ffmpeg
     await execFileAsync('ffmpeg', [
       '-y',
+      '-loglevel',
+      'warning',
       '-i',
       params.filePath,
       '-ss',

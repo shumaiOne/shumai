@@ -140,6 +140,8 @@ export async function generateEmbeddingActivity(params: GenerateEmbeddingParams)
         const chunkTmp = path.join(os.tmpdir(), `video-chunk-${Date.now()}.mp4`)
         await execFileAsync('ffmpeg', [
           '-y',
+          '-loglevel',
+          'warning',
           '-i',
           tmpFile,
           '-ss',

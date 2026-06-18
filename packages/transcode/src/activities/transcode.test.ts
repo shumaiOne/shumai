@@ -379,7 +379,11 @@ describe('Transcode Activities', () => {
       // Mock child_process.execFile to simulate ffmpeg succeeding
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ;(child_process.execFile as any).mockImplementation(
-        (file: string, args: string[], cb: any) => {
+        (
+          file: string,
+          args: string[],
+          cb: (err: Error | null, result: { stdout: string; stderr: string }) => void,
+        ) => {
           cb(null, { stdout: '', stderr: '' })
         },
       )
