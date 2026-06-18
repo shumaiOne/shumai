@@ -29,7 +29,7 @@ export const authMiddleware = createMiddleware<{
 
     c.set('user', user)
 
-    if (process.env.PUBLIC_DEMO_MODE === '1') {
+    if (process.env.SHUMAI_DEMO_MODE === '1') {
       const method = c.req.method.toUpperCase()
       const path = c.req.path
       if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && !path.endsWith('/search')) {

@@ -34,7 +34,7 @@ export const auth = betterAuth({
 
         const info = await teamService.getSignupInfo()
 
-        if (info.userCount > 0) {
+        if (info.initialized) {
           if (!inviteCode) {
             console.log('[Better Auth Hook] Public signup is disabled')
             return ctx.json(

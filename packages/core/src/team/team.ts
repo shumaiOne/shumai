@@ -349,7 +349,9 @@ export class TeamService {
     const count = await prisma.user.count()
 
     return {
+      initialized: count > 0,
       userCount: count,
+      demoMode: process.env.SHUMAI_DEMO_MODE === '1',
     }
   }
 

@@ -17,7 +17,8 @@ const route = app
   .get('/signup-info', async (c) => {
     const info = await teamService.getSignupInfo()
     return c.json({
-      userCount: info.userCount,
+      initialized: info.initialized,
+      demoMode: info.demoMode,
     })
   })
   .get('/me', async (c) => {

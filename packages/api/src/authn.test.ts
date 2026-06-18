@@ -17,7 +17,8 @@ describe('authn api', () => {
 
   it('GET /signup-info', async () => {
     mockGetSignupInfo.mockResolvedValue({
-      userCount: 5,
+      initialized: true,
+      demoMode: false,
     })
 
     const app = new Hono().route('/', authnRoute)
@@ -25,7 +26,8 @@ describe('authn api', () => {
 
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({
-      userCount: 5,
+      initialized: true,
+      demoMode: false,
     })
   })
 })
