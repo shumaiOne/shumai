@@ -1,8 +1,4 @@
-import type { SearchCondition, SearchConditionOperator } from '@shumai/dtos'
-import { type FieldInfo } from '@shumai/dtos'
 import { Button } from '@/ui/components/ui/button'
-import { DebouncedInput } from '@/ui/components/ui/debounced-input'
-import { Input } from '@/ui/components/ui/input'
 import {
   Combobox,
   ComboboxChip,
@@ -14,6 +10,8 @@ import {
   ComboboxList,
   useComboboxAnchor,
 } from '@/ui/components/ui/combobox'
+import { DebouncedInput } from '@/ui/components/ui/debounced-input'
+import { Input } from '@/ui/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -22,6 +20,8 @@ import {
   SelectValue,
 } from '@/ui/components/ui/select'
 import { cn } from '@/ui/lib/utils'
+import type { SearchCondition, SearchConditionOperator } from '@shumai/dtos'
+import { type FieldInfo } from '@shumai/dtos'
 import { Trash2 } from 'lucide-react'
 
 interface FilterPanelProps {
@@ -54,7 +54,7 @@ export function FilterPanel({
       id: f.id!,
       label: f.config?.name || f.description || 'Unknown',
       type: getFieldType(f),
-      options: f.config?.select?.options,
+      options: f.config?.select?.options || f.config?.selectMulti?.options,
     })),
   ].filter((f) => !excludeFields?.includes(f.id))
 
