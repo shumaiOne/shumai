@@ -2,46 +2,49 @@
 import { client } from '@/ui/api/client'
 import type { InferRequestType, InferResponseType } from 'hono/client'
 
-import type { AssetInfo } from '@shumai/dtos'
-import type { CollectionInfo } from '@shumai/dtos'
-import type { SearchCondition, SearchSort } from '@shumai/dtos'
-import type { ShareLinkInfo } from '@shumai/dtos'
-import type { CreateUploadTaskRequest } from '@shumai/dtos'
-import { formatSize } from '@/ui/lib/format'
-import { ulid } from 'ulid'
 import { usePermissions } from '@/ui/hooks/use-permissions'
+import { getAllFilesFromEntries } from '@/ui/lib/dnd-utils'
+import { formatSize } from '@/ui/lib/format'
 import { useFieldStore } from '@/ui/stores/fields'
 import { useUploadStore } from '@/ui/stores/upload'
+import type {
+    AssetInfo,
+    CollectionInfo,
+    CreateUploadTaskRequest,
+    SearchCondition,
+    SearchSort,
+    ShareLinkInfo,
+} from '@shumai/dtos'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { Download, AlertTriangle, Loader2, UploadCloud } from 'lucide-react'
+import { AlertTriangle, Download, Loader2 } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { getAllFilesFromEntries } from '@/ui/lib/dnd-utils'
 import { toast } from 'sonner'
+import { ulid } from 'ulid'
 import type { DragState } from '../dnd-types'
 import { MoveCopyDialog } from '../move-copy-dialog'
 import { FileBrowserContextMenu } from './context-menu'
 
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
 } from '../ui/alert-dialog'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '../ui/dialog'
 import { Button } from '../ui/button'
 import { ContextMenu, ContextMenuTrigger } from '../ui/context-menu'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '../ui/dialog'
 import { FileCard } from './file-card'
 import { FileListItem } from './file-list-item'
 import { FolderCard } from './folder-card'
@@ -143,6 +146,12 @@ export function FileBrowser({
   const [externalOverFolderId, setExternalOverFolderId] = useState<string | null>(null)
   const dragCounter = useRef(0)
 
+  const resetExternalDragState = useCallback(() => {
+    setIsExternalDragging(false)
+    setExternalOverFolderId(null)
+    dragCounter.current = 0
+  }, [])
+
   // Prevent default window behavior to avoid browser replacing page on accidental drops
   useEffect(() => {
     const preventDefault = (e: DragEvent) => {
@@ -190,9 +199,7 @@ export function FileBrowser({
 
     const files = await getAllFilesFromEntries(e.dataTransfer)
 
-    setIsExternalDragging(false)
-    setExternalOverFolderId(null)
-    dragCounter.current = 0
+    resetExternalDragState()
 
     if (files.length > 0) {
       processAndUploadFiles(files)
@@ -614,6 +621,7 @@ export function FileBrowser({
       isExternalDragging,
       externalOverFolderId,
       setExternalOverFolderId,
+      resetExternalDragState,
       onExternalDrop: (files: File[], folderId: string) => {
         processAndUploadFiles(files, folderId)
       },
@@ -960,6 +968,7 @@ export function FileBrowser({
                   isExternalDragging={isExternalDragging}
                   externalOverFolderId={externalOverFolderId}
                   setExternalOverFolderId={setExternalOverFolderId}
+                  resetExternalDragState={resetExternalDragState}
                   onExternalDrop={(files, folderId) => processAndUploadFiles(files, folderId)}
                 />
               ) : (
@@ -1047,11 +1056,8 @@ export function FileBrowser({
             )}
             {isExternalDragging && !externalOverFolderId && (
               <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-in fade-in slide-in-from-bottom-4 duration-300">
-                <div className="flex items-center gap-3 px-6 py-3 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/20 border border-primary/20 backdrop-blur-md">
-                  <UploadCloud className="h-5 w-5 animate-bounce" />
-                  <span className="font-medium text-sm">
-                    Drop here to upload files to the current folder
-                  </span>
+                <div className="flex items-center gap-3 px-6 py-3 rounded-full bg-primary/80 text-primary-foreground shadow-lg shadow-primary/20 border border-primary/20 backdrop-blur-md">
+                  <span className="font-medium text-sm">Drop files here to upload</span>
                 </div>
               </div>
             )}

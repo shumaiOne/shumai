@@ -27,6 +27,7 @@ interface ListRowProps {
   isExternalDragging?: boolean
   externalOverFolderId?: string | null
   setExternalOverFolderId?: (id: string | null) => void
+  resetExternalDragState?: () => void
   onExternalDrop?: (files: File[], folderId: string) => void
 }
 
@@ -42,6 +43,7 @@ function ListRow({
   isExternalDragging,
   externalOverFolderId,
   setExternalOverFolderId,
+  resetExternalDragState,
   onExternalDrop,
 }: ListRowProps) {
   const isDraggingItem = dragState?.draggedIds.has(item.id!)
@@ -130,7 +132,7 @@ function ListRow({
           ? async (e) => {
               e.preventDefault()
               e.stopPropagation()
-              setExternalOverFolderId?.(null)
+              resetExternalDragState?.()
               const files = await getAllFilesFromEntries(e.dataTransfer)
               onExternalDrop?.(files, item.id!)
             }
@@ -193,6 +195,7 @@ interface FileBrowserListViewProps {
   isExternalDragging?: boolean
   externalOverFolderId?: string | null
   setExternalOverFolderId?: (id: string | null) => void
+  resetExternalDragState?: () => void
   onExternalDrop?: (files: File[], folderId: string) => void
 }
 
@@ -225,6 +228,7 @@ export function FileBrowserListView({
   isExternalDragging,
   externalOverFolderId,
   setExternalOverFolderId,
+  resetExternalDragState,
   onExternalDrop,
 }: FileBrowserListViewProps) {
   const [columnSizing, setColumnSizing] = useState<Record<string, number>>({})
@@ -514,6 +518,7 @@ export function FileBrowserListView({
                 isExternalDragging={isExternalDragging}
                 externalOverFolderId={externalOverFolderId}
                 setExternalOverFolderId={setExternalOverFolderId}
+                resetExternalDragState={resetExternalDragState}
                 onExternalDrop={onExternalDrop}
               />
             )

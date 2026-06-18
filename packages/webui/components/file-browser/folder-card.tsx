@@ -42,6 +42,7 @@ interface FolderCardProps {
   isExternalDragging?: boolean
   externalOverFolderId?: string | null
   setExternalOverFolderId?: (id: string | null) => void
+  resetExternalDragState?: () => void
   onExternalDrop?: (files: File[], folderId: string) => void
 }
 
@@ -122,6 +123,7 @@ export function FolderCard({
   isExternalDragging,
   externalOverFolderId,
   setExternalOverFolderId,
+  resetExternalDragState,
   onExternalDrop,
 }: FolderCardProps) {
   const [name, setName] = useState(item.name || '')
@@ -262,7 +264,7 @@ export function FolderCard({
           ? async (e) => {
               e.preventDefault()
               e.stopPropagation()
-              setExternalOverFolderId?.(null)
+              resetExternalDragState?.()
               const files = await getAllFilesFromEntries(e.dataTransfer)
               onExternalDrop?.(files, item.id!)
             }
