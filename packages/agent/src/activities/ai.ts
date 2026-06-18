@@ -316,8 +316,7 @@ export async function getEmbeddingContextActivity(params: { teamId: string; asse
     Number.isFinite(parsedDuration) && parsedDuration > 0 ? parsedDuration : 60.0
 
   const parsedOverlap = parseFloat(process.env.EMBEDDING_CHUNK_OVERLAP || '')
-  const chunkOverlap =
-    Number.isFinite(parsedOverlap) && parsedOverlap >= 0 ? parsedOverlap : 5.0
+  const chunkOverlap = Number.isFinite(parsedOverlap) && parsedOverlap >= 0 ? parsedOverlap : 5.0
 
   return {
     agent,
