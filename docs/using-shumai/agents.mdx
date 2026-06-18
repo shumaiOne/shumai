@@ -34,6 +34,7 @@ A specialized utility agent that processes assets to generate search indexes. Yo
 - Once created and enabled, Shumai automatically runs embedding generation for new file uploads if the file type is supported (image or video).
 - These search indexes are saved to power Shumai's natural language semantic search capabilities.
 - **Note:** The Embedding Agent is hardcoded to use `google-embedding-2` as the LLM model. Because of this, you cannot choose a provider or model. Make sure you set the `GEMINI_API_KEY` environment variable to make it work.
+- **Chunk Duration:** You can configure the duration of chunks used for long video indexing via the `EMBEDDING_CHUNK_DURATION` environment variable (defaults to 60 seconds).
 
 ---
 

@@ -1,25 +1,48 @@
 import { ApplicationFailure } from '@temporalio/workflow'
 import type { WorkflowTask } from '@shumai/db'
-import { getActivities, executeActivity, TaskQueueAgent } from '@shumai/workflow-core'
+import {
+  getActivities,
+  executeActivity,
+  TaskQueueAgent,
+  TaskQueueTranscode,
+} from '@shumai/workflow-core'
+
+export interface GeneratedEmbedding {
+  embedding: number[]
+  startTime?: number
+  endTime?: number
+}
 
 export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
   const {
     updateTaskStatusActivity,
     getEmbeddingContextActivity,
-    generateEmbeddingActivity,
+    generateImageEmbeddingActivity,
+    generateVideoChunkEmbeddingActivity,
     saveAssetEmbeddingsActivity,
     updateTaskUsageActivity,
     createCommentActivity,
     updateCommentActivity,
     getAgentWorkerQueueActivity,
+    getTranscodeWorkerQueueActivity,
+    downloadMediaToTmpActivity,
+    cleanupTmpDirActivity,
+    transcodeVideoChunkActivity,
+    deleteS3ObjectActivity,
   } = getActivities()
 
   let placeholderCommentId: string | undefined
   let agentWorkerQueue = ''
+  let transcodeWorkerQueue = ''
+  let tmpDir: string | undefined
 
   try {
-    // 0. Discover queue
+    // 0. Discover queues
     agentWorkerQueue = await executeActivity(TaskQueueAgent, getAgentWorkerQueueActivity)
+    transcodeWorkerQueue = await executeActivity(
+      TaskQueueTranscode,
+      getTranscodeWorkerQueueActivity,
+    )
 
     // Update status to processing
     await executeActivity(agentWorkerQueue, updateTaskStatusActivity, {
@@ -47,30 +70,144 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
       assetId: task.assetId,
     })
 
-    // Call the activity to generate embeddings
-    const result = await executeActivity(agentWorkerQueue, generateEmbeddingActivity, {
-      teamId: task.teamId,
-      assetId: task.assetId,
-      context,
-    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { asset, chunkDuration } = context as any
+
+    const isImage = asset.mediaType?.startsWith('image/')
+    const isVideo = asset.mediaType?.startsWith('video/')
+
+    if (!isImage && !isVideo) {
+      throw ApplicationFailure.create({
+        message: `unsupported media type for embeddings: ${asset.mediaType}`,
+        nonRetryable: true,
+      })
+    }
+
+    // Resolve the S3 key to use for embedding (preferring transcoded version)
+    let embeddingKey = asset.storageKey?.key
+    let embeddingMediaType = asset.mediaType
+    if (asset.media) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const media = asset.media as any
+      if (isVideo) {
+        if (media.videoTranscodes && media.videoTranscodes.length > 0) {
+          // Find first non-raw transcode or fallback to first transcode
+          const transcode =
+            media.videoTranscodes.find((t: PrismaJson.VideoTranscode) => !t.isRaw) ||
+            media.videoTranscodes[0]
+          if (transcode?.key) {
+            embeddingKey = transcode.key
+          }
+        }
+      } else if (isImage) {
+        if (media.imageTranscodes && media.imageTranscodes.length > 0) {
+          // Find first non-raw transcode or fallback to first transcode
+          const transcode =
+            media.imageTranscodes.find((t: PrismaJson.ImageTranscode) => !t.isRaw) ||
+            media.imageTranscodes[0]
+          if (transcode?.key) {
+            embeddingKey = transcode.key
+            if (transcode.format) {
+              embeddingMediaType = `image/${transcode.format}`
+            }
+          }
+        }
+      }
+    }
+
+    if (!embeddingKey) {
+      throw ApplicationFailure.create({ message: 'asset has no key', nonRetryable: true })
+    }
+
+    const results: GeneratedEmbedding[] = []
+    const usage = {
+      model: 'gemini-embedding-2',
+      inputTokens: 0,
+      outputTokens: 0,
+    }
+
+    if (isImage) {
+      const result = await executeActivity(agentWorkerQueue, generateImageEmbeddingActivity, {
+        teamId: task.teamId,
+        assetKey: embeddingKey,
+        mediaType: embeddingMediaType,
+      })
+      results.push({ embedding: result.embedding })
+      if (result.usage) {
+        usage.inputTokens += result.usage.inputTokens || 0
+        usage.outputTokens += result.usage.outputTokens || 0
+      }
+    } else if (isVideo) {
+      // 1. Download full video to transcode worker temp space
+      const download = await executeActivity(transcodeWorkerQueue, downloadMediaToTmpActivity, {
+        assetKey: embeddingKey,
+      })
+      const { filePath } = download
+      tmpDir = download.tmpDir
+
+      // Get video duration
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const duration = (asset.media as any)?.duration || 0
+      const limit = chunkDuration || 60.0
+
+      for (let start = 0.0; start < duration; start += limit) {
+        let end = start + limit
+        if (end > duration) end = duration
+
+        // Step A: Slice chunk on transcode worker and upload to S3
+        const chunkRes = await executeActivity(transcodeWorkerQueue, transcodeVideoChunkActivity, {
+          assetId: asset.id,
+          filePath,
+          startTime: start,
+          endTime: end,
+        })
+        const { chunkKey } = chunkRes
+
+        try {
+          // Step B: Generate embedding on agent worker
+          const chunkResult = await executeActivity(
+            agentWorkerQueue,
+            generateVideoChunkEmbeddingActivity,
+            {
+              teamId: task.teamId,
+              chunkKey,
+            },
+          )
+
+          results.push({
+            embedding: chunkResult.embedding,
+            startTime: start,
+            endTime: end,
+          })
+
+          if (chunkResult.usage) {
+            usage.inputTokens += chunkResult.usage.inputTokens || 0
+            usage.outputTokens += chunkResult.usage.outputTokens || 0
+          }
+        } finally {
+          // Step C: Delete temporary chunk from S3
+          await executeActivity(transcodeWorkerQueue, deleteS3ObjectActivity, {
+            key: chunkKey,
+          })
+        }
+      }
+    }
 
     // Save computed embeddings
-    if (result.embeddings.length > 0) {
+    if (results.length > 0) {
       await executeActivity(agentWorkerQueue, saveAssetEmbeddingsActivity, {
         assetId: task.assetId,
-        embeddings: result.embeddings,
+        embeddings: results,
       })
     }
 
     // Update Usage
-    if (result.usage) {
-      await executeActivity(agentWorkerQueue, updateTaskUsageActivity, {
-        taskId: task.id,
-        inputTokens: result.usage.inputTokens,
-        outputTokens: result.usage.outputTokens,
-        model: result.usage.model,
-      })
-    }
+    await executeActivity(agentWorkerQueue, updateTaskUsageActivity, {
+      taskId: task.id,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      model: usage.model,
+    })
 
     // 7. Update Placeholder Comment
     if (placeholderCommentId) {
@@ -109,6 +246,14 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
       })
     }
     throw err
+  } finally {
+    if (tmpDir && transcodeWorkerQueue) {
+      try {
+        await executeActivity(transcodeWorkerQueue, cleanupTmpDirActivity, { tmpDir })
+      } catch (cleanupErr) {
+        console.error('Failed to cleanup transcode worker tmp dir:', cleanupErr)
+      }
+    }
   }
 }
 

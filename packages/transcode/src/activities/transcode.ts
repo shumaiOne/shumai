@@ -1,10 +1,16 @@
-import { prisma } from '@shumai/db'
+import { prisma, WorkflowTaskType, WorkflowTaskStatus } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { transcodeService } from '@shumai/core'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { ApplicationFailure } from '@temporalio/activity'
 import * as path from 'path'
 import * as fs from 'fs'
+import * as os from 'os'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
+import { ulid } from 'ulid'
+
+const execFileAsync = promisify(execFile)
 
 export interface GetMediaInfoActivityParams {
   assetId: string
@@ -467,4 +473,133 @@ export async function overlayAnnotationsActivity(params: {
     }
     throw err
   }
+}
+
+export interface CreateEmbeddingTaskIfEnabledParams {
+  assetId: string
+  teamId: string | null
+  projectId: string | null
+}
+
+export async function createEmbeddingTaskIfEnabledActivity(
+  params: CreateEmbeddingTaskIfEnabledParams,
+): Promise<void> {
+  let teamId = params.teamId
+  let projectId = params.projectId
+
+  // Resolve teamId and projectId from asset if missing
+  if (!teamId || !projectId) {
+    const asset = await prisma.asset.findUnique({
+      where: { id: params.assetId },
+      include: {
+        project: true,
+      },
+    })
+    if (asset) {
+      projectId = projectId || asset.projectId
+      teamId = teamId || asset.project?.teamId || null
+    }
+  }
+
+  if (!teamId) {
+    return
+  }
+
+  // Check if there is an active embedding agent for the team
+  const embeddingAgent = await prisma.agent.findFirst({
+    where: {
+      type: 'embedding',
+      enabled: true,
+      user: { teamMembers: { some: { teamId } } },
+    },
+  })
+
+  if (!embeddingAgent) {
+    return
+  }
+
+  // Check if a pending/processing embedding task already exists for this asset to avoid duplicates
+  const existing = await prisma.workflowTask.findFirst({
+    where: {
+      assetId: params.assetId,
+      type: WorkflowTaskType.ai_embedding,
+      status: { in: [WorkflowTaskStatus.pending, WorkflowTaskStatus.processing] },
+    },
+  })
+  if (existing) {
+    return
+  }
+
+  // Create embedding task
+  await prisma.workflowTask.create({
+    data: {
+      assetId: params.assetId,
+      type: WorkflowTaskType.ai_embedding,
+      status: WorkflowTaskStatus.pending,
+      teamId,
+      projectId,
+      payload: {
+        projectId: projectId ?? '',
+        agent: { agentId: embeddingAgent.id },
+      },
+    },
+  })
+}
+
+export interface TranscodeVideoChunkParams {
+  assetId: string
+  filePath: string
+  startTime: number
+  endTime: number
+}
+
+export async function transcodeVideoChunkActivity(
+  params: TranscodeVideoChunkParams,
+): Promise<{ chunkKey: string }> {
+  const chunkTmp = path.join(os.tmpdir(), `video-chunk-${Date.now()}.mp4`)
+  try {
+    // Slice video segment using ffmpeg
+    await execFileAsync('ffmpeg', [
+      '-y',
+      '-loglevel',
+      'warning',
+      '-i',
+      params.filePath,
+      '-ss',
+      params.startTime.toString(),
+      '-t',
+      (params.endTime - params.startTime).toString(),
+      '-c',
+      'copy',
+      chunkTmp,
+    ])
+
+    const chunkData = fs.readFileSync(chunkTmp)
+
+    // Upload to S3
+    const bucket = process.env.S3_BUCKET || 'shumai'
+    const key = `files/${params.assetId}/tmp-embedding-chunks/chunk-${params.startTime}-${params.endTime}-${ulid()}.mp4`
+
+    await s3Service.putObject(bucket, key, chunkData, chunkData.length, 'video/mp4')
+
+    return { chunkKey: key }
+  } catch (err) {
+    throw ApplicationFailure.create({
+      message: `Failed to transcode video chunk for ${params.startTime}-${params.endTime}: ${err instanceof Error ? err.message : String(err)}`,
+      nonRetryable: false,
+    })
+  } finally {
+    if (fs.existsSync(chunkTmp)) {
+      try {
+        fs.unlinkSync(chunkTmp)
+      } catch (e) {
+        console.error('Failed to cleanup local chunk file:', e)
+      }
+    }
+  }
+}
+
+export async function deleteS3ObjectActivity(params: { key: string }): Promise<void> {
+  const bucket = process.env.S3_BUCKET || 'shumai'
+  await s3Service.deleteObject(bucket, params.key)
 }

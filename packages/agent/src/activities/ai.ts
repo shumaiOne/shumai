@@ -140,6 +140,8 @@ export async function generateEmbeddingActivity(params: GenerateEmbeddingParams)
         const chunkTmp = path.join(os.tmpdir(), `video-chunk-${Date.now()}.mp4`)
         await execFileAsync('ffmpeg', [
           '-y',
+          '-loglevel',
+          'warning',
           '-i',
           tmpFile,
           '-ss',
@@ -309,9 +311,14 @@ export async function getEmbeddingContextActivity(params: { teamId: string; asse
     throw ApplicationFailure.create({ message: 'asset has no media type', nonRetryable: true })
   }
 
+  const parsedDuration = parseFloat(process.env.EMBEDDING_CHUNK_DURATION || '')
+  const chunkDuration =
+    Number.isFinite(parsedDuration) && parsedDuration > 0 ? parsedDuration : 60.0
+
   return {
     agent,
     asset,
+    chunkDuration,
   }
 }
 
@@ -336,5 +343,93 @@ export async function saveAssetEmbeddingsActivity(params: {
         VALUES (gen_random_uuid()::text, ${params.assetId}, ${embVec}::vector, NOW())
       `
     }
+  }
+}
+
+export interface GenerateImageEmbeddingParams {
+  teamId: string
+  assetKey: string
+  mediaType: string
+}
+
+export async function generateImageEmbeddingActivity(
+  params: GenerateImageEmbeddingParams,
+): Promise<{
+  embedding: number[]
+  usage: Usage
+}> {
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) {
+    throw ApplicationFailure.create({
+      message: 'GEMINI_API_KEY environment variable is not configured',
+      nonRetryable: true,
+    })
+  }
+
+  const resolvedApiKey = process.env[apiKey] || apiKey
+  const ai = new GoogleGenAI({ apiKey: resolvedApiKey })
+
+  const usage: Usage = {
+    model: 'gemini-embedding-2',
+    inputTokens: 0,
+    outputTokens: 0,
+  }
+
+  const { buffer: data } = await s3Service.getObject(
+    process.env.S3_BUCKET || 'shumai',
+    params.assetKey,
+  )
+  const embVec = await generateMultimodalEmbedding(ai, data, params.mediaType)
+
+  return {
+    embedding: embVec,
+    usage,
+  }
+}
+
+export interface GenerateVideoChunkEmbeddingParams {
+  teamId: string
+  chunkKey: string
+}
+
+export async function generateVideoChunkEmbeddingActivity(
+  params: GenerateVideoChunkEmbeddingParams,
+): Promise<{
+  embedding: number[]
+  usage: Usage
+}> {
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) {
+    throw ApplicationFailure.create({
+      message: 'GEMINI_API_KEY environment variable is not configured',
+      nonRetryable: true,
+    })
+  }
+
+  const resolvedApiKey = process.env[apiKey] || apiKey
+  const ai = new GoogleGenAI({ apiKey: resolvedApiKey })
+
+  const usage: Usage = {
+    model: 'gemini-embedding-2',
+    inputTokens: 0,
+    outputTokens: 0,
+  }
+
+  try {
+    const { buffer: data } = await s3Service.getObject(
+      process.env.S3_BUCKET || 'shumai',
+      params.chunkKey,
+    )
+
+    const embVec = await generateMultimodalEmbedding(ai, data, 'video/mp4')
+    return {
+      embedding: embVec,
+      usage,
+    }
+  } catch (err) {
+    throw ApplicationFailure.create({
+      message: `Failed to generate video chunk embedding for key ${params.chunkKey}: ${err instanceof Error ? err.message : String(err)}`,
+      nonRetryable: false,
+    })
   }
 }

@@ -4,6 +4,11 @@ import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { transcodeService } from '@shumai/core'
+import * as child_process from 'child_process'
+
+vi.mock('child_process', () => ({
+  execFile: vi.fn(),
+}))
 import {
   getMediaInfoActivity,
   overlayAnnotationsActivity,
@@ -13,6 +18,8 @@ import {
   downloadMediaToTmpActivity,
   transcodeImageActivity,
   generateSpriteActivity,
+  transcodeVideoChunkActivity,
+  deleteS3ObjectActivity,
 } from './transcode'
 
 vi.mock('@shumai/core/src/s3/s3', () => ({
@@ -22,6 +29,7 @@ vi.mock('@shumai/core/src/s3/s3', () => ({
     headObject: vi.fn(),
     presign: vi.fn(),
     downloadToFile: vi.fn(),
+    deleteObject: vi.fn(),
   },
 }))
 
@@ -363,6 +371,62 @@ describe('Transcode Activities', () => {
           annotations: [],
         }),
       ).rejects.toThrowError(/Overlay annotations failed/)
+    })
+  })
+
+  describe('Video Chunk Activities', () => {
+    it('should transcode video chunk using ffmpeg and upload to S3', async () => {
+      // Mock child_process.execFile to simulate ffmpeg succeeding
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(child_process.execFile as any).mockImplementation(
+        (
+          file: string,
+          args: string[],
+          cb: (err: Error | null, result: { stdout: string; stderr: string }) => void,
+        ) => {
+          cb(null, { stdout: '', stderr: '' })
+        },
+      )
+
+      const res = await transcodeVideoChunkActivity({
+        assetId: 'asset-abc',
+        filePath: '/tmp/full-video.mp4',
+        startTime: 10,
+        endTime: 25,
+      })
+
+      // Verify ffmpeg command args
+      expect(child_process.execFile).toHaveBeenCalledWith(
+        'ffmpeg',
+        expect.arrayContaining([
+          '-y',
+          '-i',
+          '/tmp/full-video.mp4',
+          '-ss',
+          '10',
+          '-t',
+          '15',
+          '-c',
+          'copy',
+        ]),
+        expect.any(Function),
+      )
+
+      // Verify S3 upload
+      expect(s3Service.putObject).toHaveBeenCalledWith(
+        'shumai',
+        expect.stringMatching(/^files\/asset-abc\/tmp-embedding-chunks\/chunk-10-25-.*\.mp4$/),
+        expect.any(Buffer),
+        expect.any(Number),
+        'video/mp4',
+      )
+
+      expect(res.chunkKey).toMatch(/^files\/asset-abc\/tmp-embedding-chunks\/chunk-10-25-.*\.mp4$/)
+    })
+
+    it('should delete S3 object successfully', async () => {
+      await deleteS3ObjectActivity({ key: 'files/test-key.mp4' })
+      expect(s3Service.deleteObject).toHaveBeenCalledWith('shumai', 'files/test-key.mp4')
     })
   })
 })

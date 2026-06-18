@@ -1,16 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
-  generateEmbeddingActivity,
   generateTextEmbeddingActivity,
   extractAiMetadataActivity,
   getEmbeddingContextActivity,
   saveAssetEmbeddingsActivity,
+  generateImageEmbeddingActivity,
+  generateVideoChunkEmbeddingActivity,
 } from './ai'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { transcodeService } from '@shumai/core'
 import { prisma, AssetType, AssetStatus } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
-import * as fs from 'fs'
 
 vi.mock('fs', async (importOriginal) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- importOriginal returns the raw fs module, typed dynamically as any here
@@ -93,19 +93,13 @@ describe('AI Activities Unit Tests', () => {
       contentType: 'image/png',
     } as unknown as { buffer: Buffer; contentType: string })
 
-    const context = {
-      agent: { config: { provider: 'google', model: 'gemini' } },
-      asset: { id: 'a1', mediaType: 'image/png', storageKey: { key: 'test.png' } },
-    }
-
-    const res = await generateEmbeddingActivity({
+    const res = await generateImageEmbeddingActivity({
       teamId: 't1',
-      assetId: 'a1',
-      context,
+      assetKey: 'test.png',
+      mediaType: 'image/png',
     })
 
-    expect(res.embeddings.length).toBe(1)
-    expect(res.embeddings[0].embedding).toEqual([0.1, 0.2, 0.3])
+    expect(res.embedding).toEqual([0.1, 0.2, 0.3])
     expect(s3Service.getObject).toHaveBeenCalledWith('shumai', 'test.png')
   })
 
@@ -115,25 +109,16 @@ describe('AI Activities Unit Tests', () => {
       contentType: 'video/mp4',
     } as unknown as { buffer: Buffer; contentType: string })
 
-    const context = {
-      agent: { config: { provider: 'google', model: 'gemini' } },
-      asset: { id: 'a2', mediaType: 'video/mp4', storageKey: { key: 'test.mp4' } },
-    }
-
-    const res = await generateEmbeddingActivity({
+    const res = await generateVideoChunkEmbeddingActivity({
       teamId: 't1',
-      assetId: 'a2',
-      context,
+      chunkKey: 'files/a1/tmp-embedding-chunks/chunk-0-60.mp4',
     })
 
-    // Duration is 120s, chunks are 60s, so it should generate 2 chunks (0-60, 60-120)
-    expect(res.embeddings.length).toBe(2)
-    expect(res.embeddings[0]).toEqual({ embedding: [0.1, 0.2, 0.3], startTime: 0, endTime: 60 })
-    expect(res.embeddings[1]).toEqual({ embedding: [0.1, 0.2, 0.3], startTime: 60, endTime: 120 })
-
-    expect(vi.mocked(fs.writeFileSync)).toHaveBeenCalled()
-    expect(vi.mocked(fs.readFileSync)).toHaveBeenCalled()
-    expect(vi.mocked(fs.unlinkSync)).toHaveBeenCalled()
+    expect(res.embedding).toEqual([0.1, 0.2, 0.3])
+    expect(s3Service.getObject).toHaveBeenCalledWith(
+      'shumai',
+      'files/a1/tmp-embedding-chunks/chunk-0-60.mp4',
+    )
   })
 
   it('should generate text embedding successfully', async () => {
@@ -290,6 +275,68 @@ describe('AI Database Activities Integration', () => {
       expect(ctx.agent.id).toBe(user.id)
       expect(ctx.asset.id).toBe(asset.id)
       expect(ctx.asset.mediaType).toBe('video/mp4')
+    })
+
+    it('should parse valid positive chunk duration and fallback on invalid or negative ones', async () => {
+      // Create embedding agent if not already present
+      const existingAgent = await prisma.agent.findUnique({ where: { id: user.id } })
+      if (!existingAgent) {
+        await prisma.agent.create({
+          data: {
+            id: user.id,
+            teamId: team.id,
+            type: 'embedding',
+            enabled: true,
+            config: {
+              provider: 'openai',
+              model: 'gpt-4',
+            },
+          },
+        })
+      }
+
+      // Test default/fallback
+      delete process.env.EMBEDDING_CHUNK_DURATION
+      let ctx = await getEmbeddingContextActivity({
+        teamId: team.id,
+        assetId: asset.id,
+      })
+      expect(ctx.chunkDuration).toBe(60.0)
+
+      // Test valid positive
+      process.env.EMBEDDING_CHUNK_DURATION = '45.5'
+      ctx = await getEmbeddingContextActivity({
+        teamId: team.id,
+        assetId: asset.id,
+      })
+      expect(ctx.chunkDuration).toBe(45.5)
+
+      // Test negative
+      process.env.EMBEDDING_CHUNK_DURATION = '-10.0'
+      ctx = await getEmbeddingContextActivity({
+        teamId: team.id,
+        assetId: asset.id,
+      })
+      expect(ctx.chunkDuration).toBe(60.0)
+
+      // Test zero
+      process.env.EMBEDDING_CHUNK_DURATION = '0'
+      ctx = await getEmbeddingContextActivity({
+        teamId: team.id,
+        assetId: asset.id,
+      })
+      expect(ctx.chunkDuration).toBe(60.0)
+
+      // Test non-numeric
+      process.env.EMBEDDING_CHUNK_DURATION = 'invalid'
+      ctx = await getEmbeddingContextActivity({
+        teamId: team.id,
+        assetId: asset.id,
+      })
+      expect(ctx.chunkDuration).toBe(60.0)
+
+      // Cleanup env
+      delete process.env.EMBEDDING_CHUNK_DURATION
     })
   })
 

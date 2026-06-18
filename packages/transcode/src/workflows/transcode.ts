@@ -18,6 +18,7 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
     cleanupTmpDirActivity,
     takeScreenshotsActivity,
     overlayAnnotationsActivity,
+    createEmbeddingTaskIfEnabledActivity,
   } = getActivities()
 
   let tmpDir: string | undefined
@@ -243,6 +244,13 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
     await executeActivity(workerQueue, updateAssetStatusActivity, {
       assetId: asset.id,
       status: 'processed',
+    })
+
+    // 11.5 Create AI embedding task if enabled
+    await executeActivity(workerQueue, createEmbeddingTaskIfEnabledActivity, {
+      assetId: asset.id,
+      teamId: task.teamId,
+      projectId: task.projectId,
     })
 
     // 12. Update Task Status

@@ -294,33 +294,6 @@ export class UploadService {
       })
     }
 
-    // Ai Embedding if enabled via agent
-    const embeddingAgent = await tx.agent.findFirst({
-      where: {
-        type: 'embedding',
-        enabled: true,
-        user: { teamMembers: { some: { teamId: team.id } } },
-      },
-    })
-
-    if (embeddingAgent) {
-      if (asset.mediaType?.startsWith('video/') || asset.mediaType?.startsWith('image/')) {
-        await tx.workflowTask.create({
-          data: {
-            assetId: asset.id,
-            type: WorkflowTaskType.ai_embedding,
-            status: WorkflowTaskStatus.pending,
-            teamId: team.id,
-            projectId,
-            payload: {
-              projectId,
-              agent: { agentId: embeddingAgent.id },
-            },
-          },
-        })
-      }
-    }
-
     const isVideo = asset.mediaType?.startsWith('video/')
     const isImage = asset.mediaType?.startsWith('image/')
     if (!isVideo && !isImage) {

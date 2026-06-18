@@ -41,6 +41,9 @@ describe('Transcode Workflow', () => {
     overlayAnnotationsActivity: Object.assign(vi.fn(), {
       _activityName: 'overlayAnnotationsActivity',
     }),
+    createEmbeddingTaskIfEnabledActivity: Object.assign(vi.fn(), {
+      _activityName: 'createEmbeddingTaskIfEnabledActivity',
+    }),
   }
 
   beforeEach(() => {
@@ -134,6 +137,12 @@ describe('Transcode Workflow', () => {
       status: AssetStatus.processed,
     })
 
+    expect(mockActivities.createEmbeddingTaskIfEnabledActivity).toHaveBeenCalledWith({
+      assetId: 'asset-1',
+      teamId: 'team-1',
+      projectId: 'proj-1',
+    })
+
     expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
       taskId: 'task-1',
       status: WorkflowTaskStatus.completed,
@@ -204,6 +213,12 @@ describe('Transcode Workflow', () => {
     expect(mockActivities.updateAssetStatusActivity).toHaveBeenCalledWith({
       assetId: 'asset-image',
       status: AssetStatus.processed,
+    })
+
+    expect(mockActivities.createEmbeddingTaskIfEnabledActivity).toHaveBeenCalledWith({
+      assetId: 'asset-image',
+      teamId: 'team-1',
+      projectId: 'proj-1',
     })
   })
 

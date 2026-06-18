@@ -154,7 +154,7 @@ export class TranscodeService {
 
     args.push('-movflags', '+faststart', '-max_muxing_queue_size', '1024', params.outputFile)
 
-    await execFileAsync('ffmpeg', ['-y', ...args])
+    await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
   }
 
   async transcodeImage(
@@ -222,12 +222,12 @@ export class TranscodeService {
       '1024',
       outputPoster,
     ]
-    await execFileAsync('ffmpeg', ['-y', ...args])
+    await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
   }
 
   async extractAudio(inputFile: string, outputFile: string, bitrate: string): Promise<void> {
     const args = ['-i', inputFile, '-vn', '-acodec', 'libmp3lame', '-b:a', bitrate, outputFile]
-    await execFileAsync('ffmpeg', ['-y', ...args])
+    await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
   }
 
   async extractVideoFrames(params: ExtractVideoFramesParams): Promise<string[]> {
@@ -252,7 +252,7 @@ export class TranscodeService {
       '80',
       outputPattern,
     ]
-    await execFileAsync('ffmpeg', ['-y', ...args])
+    await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
 
     const files = fs.readdirSync(params.outputDir)
     return files
@@ -370,7 +370,7 @@ export class TranscodeService {
           '80',
           localShotPath,
         ]
-        await execFileAsync('ffmpeg', ['-y', ...args])
+        await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
 
         // 5. Overlay annotations if timestamp matches commentTimestamp exactly
         if (
