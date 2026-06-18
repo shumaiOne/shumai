@@ -102,11 +102,12 @@ Create a `.env` file in this folder and add the following configuration (which a
 DATABASE_URL=postgresql://shumai:shumai_password@localhost:5432/shumai_db?schema=public
 BETTER_AUTH_SECRET=ySxs7DxzHDZBbeeHNPEwBuspYwipBqz5Gk5XdBjNhWw=
 STORAGE_BACKEND=local
+SHUMAI_SERVER_PORT=3000
 AWS_ENDPOINT_URL_S3=http://localhost:3000
 ```
 
 > [!NOTE]
-> If you are deploying on a remote server, make sure to change `AWS_ENDPOINT_URL_S3` from `http://localhost:3000` to your server's public IP address or domain name.
+> If you are deploying on a remote server, make sure to change `AWS_ENDPOINT_URL_S3` from `http://localhost:3000` to your server's public IP address or domain name. `SHUMAI_SERVER_PORT` defaults to `3000` if not set.
 
 #### Step 4: Run Shumai
 

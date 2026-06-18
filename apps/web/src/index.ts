@@ -44,10 +44,12 @@ if (process.env.WORKFLOW_EXECUTOR === 'temporal') {
 
 const isProd = process.env.NODE_ENV === 'production'
 
+const port = process.env.SHUMAI_SERVER_PORT ? parseInt(process.env.SHUMAI_SERVER_PORT) : 3000
+
 const server = Bun.serve(
   isProd
     ? {
-        port: 3000,
+        port,
         maxRequestBodySize: process.env.MAX_REQUEST_BODY_SIZE
           ? parseInt(process.env.MAX_REQUEST_BODY_SIZE)
           : 1024 * 1024 * 1024 * 10, // Default 10GB
@@ -88,7 +90,7 @@ const server = Bun.serve(
         },
       }
     : {
-        port: 3000,
+        port,
         maxRequestBodySize: process.env.MAX_REQUEST_BODY_SIZE
           ? parseInt(process.env.MAX_REQUEST_BODY_SIZE)
           : 1024 * 1024 * 1024 * 10, // Default 10GB
