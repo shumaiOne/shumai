@@ -5,6 +5,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 function PublicShareFilePage() {
   const { shareId, fileId } = Route.useParams()
+  const { start } = Route.useSearch()
 
   const { data: shareInfo } = useQuery({
     queryKey: ['share-info', shareId],
@@ -27,10 +28,16 @@ function PublicShareFilePage() {
         isDisabled: shareInfo.isDisabled ?? false,
       }}
       initialFileId={fileId}
+      startTime={start}
     />
   )
 }
 
 export const Route = createFileRoute('/share/$shareId/files/$fileId')({
   component: PublicShareFilePage,
+  validateSearch: (search: Record<string, unknown>) => {
+    return {
+      start: search.start ? Number(search.start) : undefined,
+    } as { start?: number }
+  },
 })

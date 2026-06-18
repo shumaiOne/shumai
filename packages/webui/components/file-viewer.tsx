@@ -18,6 +18,7 @@ type FileViewerProps = {
   onPause?: () => void
   onTimeUpdate?: (time: number) => void
   annotations?: Annotation[]
+  startTime?: number
   children?: ReactNode
 }
 
@@ -28,6 +29,7 @@ export function FileViewer({
   onPause,
   onTimeUpdate,
   annotations,
+  startTime,
   children,
 }: FileViewerProps) {
   const { width: screenWidth } = useScreenSize()
@@ -308,6 +310,7 @@ export function FileViewer({
           onPause={onPause}
           onTimeUpdate={onTimeUpdate}
           annotations={displayAnnotations}
+          startTime={startTime}
         >
           {children}
         </VideoPlayer>

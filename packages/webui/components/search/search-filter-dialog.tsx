@@ -242,7 +242,10 @@ export function SearchFilterDialog({
       navigate({
         to: '/projects/$projectId/files/$fileId',
         params: { projectId, fileId: item.versionStack ? item.versionStack.id : item.id! },
-        search: { version: undefined },
+        search: {
+          version: undefined,
+          start: item.startTime && item.startTime > 0 ? item.startTime : undefined,
+        },
       })
     }
     onOpenChange(false)

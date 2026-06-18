@@ -21,7 +21,8 @@ import type Player from 'video.js/dist/types/player'
 function FileViewPage() {
   const { projectId, fileId } = Route.useParams()
   const search = Route.useSearch()
-  const versionAssetId = (search as { version?: string }).version
+  const versionAssetId = search.version
+  const startTime = search.start
   const activeFileId = versionAssetId || fileId
 
   const videoRef = useRef<Player | null>(null)
@@ -328,6 +329,7 @@ function FileViewPage() {
             onPlay={handlePlay}
             onTimeUpdate={setCurrentTime}
             annotations={annotations}
+            startTime={startTime}
           >
             {carouselState.show && (
               <FileViewerLeftSidebar
@@ -373,6 +375,7 @@ export const Route = createFileRoute('/projects/$projectId/files/$fileId')({
   validateSearch: (search: Record<string, unknown>) => {
     return {
       version: (search.version as string) || undefined,
-    }
+      start: search.start ? Number(search.start) : undefined,
+    } as { version?: string; start?: number }
   },
 })
