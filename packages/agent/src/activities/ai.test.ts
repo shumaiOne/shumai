@@ -279,6 +279,68 @@ describe('AI Database Activities Integration', () => {
       expect(ctx.asset.id).toBe(asset.id)
       expect(ctx.asset.mediaType).toBe('video/mp4')
     })
+
+    it('should parse valid positive chunk duration and fallback on invalid or negative ones', async () => {
+      // Create embedding agent if not already present
+      const existingAgent = await prisma.agent.findUnique({ where: { id: user.id } })
+      if (!existingAgent) {
+        await prisma.agent.create({
+          data: {
+            id: user.id,
+            teamId: team.id,
+            type: 'embedding',
+            enabled: true,
+            config: {
+              provider: 'openai',
+              model: 'gpt-4',
+            },
+          },
+        })
+      }
+
+      // Test default/fallback
+      delete process.env.EMBEDDING_CHUNK_DURATION
+      let ctx = await getEmbeddingContextActivity({
+        teamId: team.id,
+        assetId: asset.id,
+      })
+      expect(ctx.chunkDuration).toBe(60.0)
+
+      // Test valid positive
+      process.env.EMBEDDING_CHUNK_DURATION = '45.5'
+      ctx = await getEmbeddingContextActivity({
+        teamId: team.id,
+        assetId: asset.id,
+      })
+      expect(ctx.chunkDuration).toBe(45.5)
+
+      // Test negative
+      process.env.EMBEDDING_CHUNK_DURATION = '-10.0'
+      ctx = await getEmbeddingContextActivity({
+        teamId: team.id,
+        assetId: asset.id,
+      })
+      expect(ctx.chunkDuration).toBe(60.0)
+
+      // Test zero
+      process.env.EMBEDDING_CHUNK_DURATION = '0'
+      ctx = await getEmbeddingContextActivity({
+        teamId: team.id,
+        assetId: asset.id,
+      })
+      expect(ctx.chunkDuration).toBe(60.0)
+
+      // Test non-numeric
+      process.env.EMBEDDING_CHUNK_DURATION = 'invalid'
+      ctx = await getEmbeddingContextActivity({
+        teamId: team.id,
+        assetId: asset.id,
+      })
+      expect(ctx.chunkDuration).toBe(60.0)
+
+      // Cleanup env
+      delete process.env.EMBEDDING_CHUNK_DURATION
+    })
   })
 
   describe('saveAssetEmbeddingsActivity', () => {

@@ -148,6 +148,38 @@ describe('Agent Embedding Workflow', () => {
     })
   })
 
+  it('should run agent embedding workflow successfully for image with transcoded format', async () => {
+    mockActivities.getEmbeddingContextActivity.mockResolvedValue({
+      agent: { id: 'b1' },
+      asset: {
+        id: 'a1',
+        mediaType: 'image/png',
+        storageKey: { key: 'test.png' },
+        media: {
+          imageTranscodes: [{ key: 'test-transcoded.webp', isRaw: false, format: 'webp' }]
+        }
+      },
+      chunkDuration: 60.0,
+    })
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'ai_embedding',
+        status: 'pending',
+        assetId: 'a1',
+        teamId: 't1',
+      },
+    })
+
+    await agentEmbeddingMedia(task)
+
+    expect(mockActivities.generateImageEmbeddingActivity).toHaveBeenCalledWith({
+      teamId: 't1',
+      assetKey: 'test-transcoded.webp',
+      mediaType: 'image/webp',
+    })
+  })
+
   it('should run agent embedding workflow successfully for video in chunks', async () => {
     mockActivities.getEmbeddingContextActivity.mockResolvedValue({
       agent: { id: 'b1' },

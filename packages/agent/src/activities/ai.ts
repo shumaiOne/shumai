@@ -309,7 +309,8 @@ export async function getEmbeddingContextActivity(params: { teamId: string; asse
     throw ApplicationFailure.create({ message: 'asset has no media type', nonRetryable: true })
   }
 
-  const chunkDuration = parseFloat(process.env.EMBEDDING_CHUNK_DURATION || '60.0') || 60.0
+  const parsedDuration = parseFloat(process.env.EMBEDDING_CHUNK_DURATION || '')
+  const chunkDuration = Number.isFinite(parsedDuration) && parsedDuration > 0 ? parsedDuration : 60.0
 
   return {
     agent,

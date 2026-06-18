@@ -69,15 +69,15 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
 
     // Resolve the S3 key to use for embedding (preferring transcoded version)
     let embeddingKey = asset.storageKey?.key
+    let embeddingMediaType = asset.mediaType
     if (asset.media) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const media = asset.media as any
       if (isVideo) {
         if (media.videoTranscodes && media.videoTranscodes.length > 0) {
           // Find first non-raw transcode or fallback to first transcode
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const transcode =
-            media.videoTranscodes.find((t: any) => !t.isRaw) || media.videoTranscodes[0]
+            media.videoTranscodes.find((t: PrismaJson.VideoTranscode) => !t.isRaw) || media.videoTranscodes[0]
           if (transcode?.key) {
             embeddingKey = transcode.key
           }
@@ -85,11 +85,13 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
       } else if (isImage) {
         if (media.imageTranscodes && media.imageTranscodes.length > 0) {
           // Find first non-raw transcode or fallback to first transcode
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const transcode =
-            media.imageTranscodes.find((t: any) => !t.isRaw) || media.imageTranscodes[0]
+            media.imageTranscodes.find((t: PrismaJson.ImageTranscode) => !t.isRaw) || media.imageTranscodes[0]
           if (transcode?.key) {
             embeddingKey = transcode.key
+            if (transcode.format) {
+              embeddingMediaType = `image/${transcode.format}`
+            }
           }
         }
       }
@@ -110,7 +112,7 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
       const result = await executeActivity(agentWorkerQueue, generateImageEmbeddingActivity, {
         teamId: task.teamId,
         assetKey: embeddingKey,
-        mediaType: asset.mediaType,
+        mediaType: embeddingMediaType,
       })
       results.push({ embedding: result.embedding })
       if (result.usage) {
