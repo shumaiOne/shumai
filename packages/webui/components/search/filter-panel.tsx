@@ -298,8 +298,7 @@ function isMultiSelectOperator(fieldType: string, operator: SearchConditionOpera
     return operator === 'in' || operator === 'notIn'
   }
   if (fieldType === 'selectMulti') {
-    // All selectMulti operators that take values are multi-select
-    return true
+    return operator !== 'eq'
   }
   return false
 }
@@ -410,7 +409,12 @@ function ConditionValueInput({
         <SelectContent>
           {field.options.map((opt) => (
             <SelectItem key={opt.id} value={opt.id}>
-              {opt.displayName}
+              <span
+                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                style={getOptionStyle(opt.color)}
+              >
+                {opt.displayName}
+              </span>
             </SelectItem>
           ))}
         </SelectContent>
