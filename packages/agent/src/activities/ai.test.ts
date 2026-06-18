@@ -302,41 +302,36 @@ describe('AI Database Activities Integration', () => {
         assetId: asset.id,
       })
       expect(ctx.chunkDuration).toBe(60.0)
+      expect(ctx.chunkOverlap).toBe(5.0)
 
       // Test valid positive
       process.env.EMBEDDING_CHUNK_DURATION = '45.5'
+      process.env.EMBEDDING_CHUNK_OVERLAP = '10.0'
       ctx = await getEmbeddingContextActivity({
         teamId: team.id,
         assetId: asset.id,
       })
       expect(ctx.chunkDuration).toBe(45.5)
+      expect(ctx.chunkOverlap).toBe(10.0)
 
-      // Test negative
-      process.env.EMBEDDING_CHUNK_DURATION = '-10.0'
+      // Test negative/invalid for overlap
+      process.env.EMBEDDING_CHUNK_OVERLAP = '-5.0'
       ctx = await getEmbeddingContextActivity({
         teamId: team.id,
         assetId: asset.id,
       })
-      expect(ctx.chunkDuration).toBe(60.0)
+      expect(ctx.chunkOverlap).toBe(5.0)
 
-      // Test zero
-      process.env.EMBEDDING_CHUNK_DURATION = '0'
+      process.env.EMBEDDING_CHUNK_OVERLAP = 'invalid'
       ctx = await getEmbeddingContextActivity({
         teamId: team.id,
         assetId: asset.id,
       })
-      expect(ctx.chunkDuration).toBe(60.0)
-
-      // Test non-numeric
-      process.env.EMBEDDING_CHUNK_DURATION = 'invalid'
-      ctx = await getEmbeddingContextActivity({
-        teamId: team.id,
-        assetId: asset.id,
-      })
-      expect(ctx.chunkDuration).toBe(60.0)
+      expect(ctx.chunkOverlap).toBe(5.0)
 
       // Cleanup env
       delete process.env.EMBEDDING_CHUNK_DURATION
+      delete process.env.EMBEDDING_CHUNK_OVERLAP
     })
   })
 

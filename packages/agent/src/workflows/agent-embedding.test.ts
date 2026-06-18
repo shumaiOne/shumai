@@ -73,6 +73,7 @@ describe('Agent Embedding Workflow', () => {
         storageKey: { key: 'test.png' },
       },
       chunkDuration: 60.0,
+      chunkOverlap: 5.0,
     })
     mockActivities.generateImageEmbeddingActivity.mockResolvedValue({
       embedding: [0.1, 0.2],
@@ -189,6 +190,7 @@ describe('Agent Embedding Workflow', () => {
         },
       },
       chunkDuration: 60.0,
+      chunkOverlap: 5.0,
     })
 
     const task = await prisma.workflowTask.create({
@@ -222,6 +224,7 @@ describe('Agent Embedding Workflow', () => {
         },
       },
       chunkDuration: 60.0,
+      chunkOverlap: 5.0,
     })
 
     const task = await prisma.workflowTask.create({
@@ -256,13 +259,13 @@ describe('Agent Embedding Workflow', () => {
     expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenNthCalledWith(2, {
       assetId: 'a1',
       filePath: '/tmp/test.mp4',
-      startTime: 60,
-      endTime: 120,
+      startTime: 55,
+      endTime: 115,
     })
     expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenNthCalledWith(3, {
       assetId: 'a1',
       filePath: '/tmp/test.mp4',
-      startTime: 120,
+      startTime: 110,
       endTime: 150,
     })
 
@@ -274,11 +277,11 @@ describe('Agent Embedding Workflow', () => {
     })
     expect(mockActivities.generateVideoChunkEmbeddingActivity).toHaveBeenNthCalledWith(2, {
       teamId: 't1',
-      chunkKey: 'files/a1/tmp-embedding-chunks/chunk-60-120.mp4',
+      chunkKey: 'files/a1/tmp-embedding-chunks/chunk-55-115.mp4',
     })
     expect(mockActivities.generateVideoChunkEmbeddingActivity).toHaveBeenNthCalledWith(3, {
       teamId: 't1',
-      chunkKey: 'files/a1/tmp-embedding-chunks/chunk-120-150.mp4',
+      chunkKey: 'files/a1/tmp-embedding-chunks/chunk-110-150.mp4',
     })
 
     // Verify deletion of temporary chunks from S3
@@ -305,8 +308,8 @@ describe('Agent Embedding Workflow', () => {
       assetId: 'a1',
       embeddings: [
         { embedding: [0.3, 0.4], startTime: 0, endTime: 60 },
-        { embedding: [0.3, 0.4], startTime: 60, endTime: 120 },
-        { embedding: [0.3, 0.4], startTime: 120, endTime: 150 },
+        { embedding: [0.3, 0.4], startTime: 55, endTime: 115 },
+        { embedding: [0.3, 0.4], startTime: 110, endTime: 150 },
       ],
     })
   })
@@ -342,6 +345,7 @@ describe('Agent Embedding Workflow', () => {
         },
       },
       chunkDuration: 60.0,
+      chunkOverlap: 5.0,
     })
 
     const task = await prisma.workflowTask.create({
