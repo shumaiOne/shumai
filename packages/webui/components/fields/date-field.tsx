@@ -119,31 +119,35 @@ const DateField: React.FC<FieldProps<string>> = ({ value, config, onSave, readOn
   if (isEditing) {
     return (
       <div className="relative w-full" ref={containerRef}>
-        <div className="w-full px-2 py-1 border border-blue-500 rounded bg-white text-sm shadow-sm min-h-[28px] flex items-center">
-          {value ? getDisplayValue(value) : <span className="text-gray-400">Select date...</span>}
+        <div className="w-full px-2 py-1 border border-ring rounded bg-background text-sm shadow-sm min-h-[28px] flex items-center">
+          {value ? (
+            getDisplayValue(value)
+          ) : (
+            <span className="text-muted-foreground">Select date...</span>
+          )}
         </div>
 
-        <div className="absolute z-50 top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl flex flex-col md:flex-row overflow-hidden min-w-[280px]">
+        <div className="absolute z-50 top-full left-0 mt-1 bg-popover border border-border rounded-lg shadow-xl flex flex-col md:flex-row overflow-hidden min-w-[280px]">
           {/* Date Picker */}
           <div className="p-4 w-64">
             <div className="flex justify-between items-center mb-4">
               {/* Replaced subMonths with addMonths(-1) */}
               <button
                 onClick={() => setViewDate(addMonths(viewDate, -1))}
-                className="p-1 hover:bg-gray-100 rounded"
+                className="p-1 hover:bg-accent rounded"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <span className="font-semibold text-sm">{format(viewDate, 'MMMM yyyy')}</span>
               <button
                 onClick={() => setViewDate(addMonths(viewDate, 1))}
-                className="p-1 hover:bg-gray-100 rounded"
+                className="p-1 hover:bg-accent rounded"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="grid grid-cols-7 gap-1 text-center text-xs mb-2 text-gray-500">
+            <div className="grid grid-cols-7 gap-1 text-center text-xs mb-2 text-muted-foreground">
               {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d) => (
                 <div key={d}>{d}</div>
               ))}
@@ -166,8 +170,10 @@ const DateField: React.FC<FieldProps<string>> = ({ value, config, onSave, readOn
                   <button
                     key={date.toString()}
                     onClick={() => handleDateClick(date)}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center hover:bg-blue-50 transition-colors ${
-                      isSelected ? 'bg-blue-50 text-white hover:bg-blue-600' : 'text-gray-700'
+                    className={`w-8 h-8 rounded-full flex items-center justify-center hover:bg-accent transition-colors ${
+                      isSelected
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                        : 'text-foreground'
                     }`}
                   >
                     {getDate(date)}
@@ -179,17 +185,17 @@ const DateField: React.FC<FieldProps<string>> = ({ value, config, onSave, readOn
 
           {/* Time Picker */}
           {dateConfig?.includeTime && (
-            <div className="border-l border-gray-200 bg-gray-50 w-32 flex flex-col">
-              <div className="p-2 border-b border-gray-200 text-xs font-semibold text-gray-500 flex items-center justify-center gap-1">
+            <div className="border-l border-border bg-muted w-32 flex flex-col">
+              <div className="p-2 border-b border-border text-xs font-semibold text-muted-foreground flex items-center justify-center gap-1">
                 <Clock className="w-3 h-3" /> Time
               </div>
               <div className="flex flex-1 h-64">
-                <div className="flex-1 overflow-y-auto scrollbar-hide border-r border-gray-200">
+                <div className="flex-1 overflow-y-auto scrollbar-hide border-r border-border">
                   {hours.map((h) => (
                     <div
                       key={h}
                       onClick={() => handleTimeChange('hour', h)}
-                      className={`px-2 py-1 text-center text-sm cursor-pointer hover:bg-gray-200 ${getHours(safeDate) === h ? 'bg-blue-100 font-medium text-blue-700' : ''}`}
+                      className={`px-2 py-1 text-center text-sm cursor-pointer hover:bg-accent ${getHours(safeDate) === h ? 'bg-primary/10 font-medium text-primary' : ''}`}
                     >
                       {h.toString().padStart(2, '0')}
                     </div>
@@ -200,7 +206,7 @@ const DateField: React.FC<FieldProps<string>> = ({ value, config, onSave, readOn
                     <div
                       key={m}
                       onClick={() => handleTimeChange('minute', m)}
-                      className={`px-2 py-1 text-center text-sm cursor-pointer hover:bg-gray-200 ${getMinutes(safeDate) === m ? 'bg-blue-100 font-medium text-blue-700' : ''}`}
+                      className={`px-2 py-1 text-center text-sm cursor-pointer hover:bg-accent ${getMinutes(safeDate) === m ? 'bg-primary/10 font-medium text-primary' : ''}`}
                     >
                       {m.toString().padStart(2, '0')}
                     </div>
@@ -217,11 +223,11 @@ const DateField: React.FC<FieldProps<string>> = ({ value, config, onSave, readOn
   return (
     <div
       onClick={handleStartEdit}
-      className={`w-full min-h-[28px] px-2 py-1 text-sm text-gray-800 rounded border border-transparent transition-colors ${
-        !readOnly ? 'cursor-pointer hover:bg-gray-100 hover:border-gray-200' : ''
+      className={`w-full min-h-[28px] px-2 py-1 text-sm text-foreground rounded border border-transparent transition-colors ${
+        !readOnly ? 'cursor-pointer hover:bg-accent hover:border-border' : ''
       }`}
     >
-      {value ? getDisplayValue(value) : <span className="text-gray-400 italic">Empty</span>}
+      {value ? getDisplayValue(value) : <span className="text-muted-foreground italic">Empty</span>}
     </div>
   )
 }

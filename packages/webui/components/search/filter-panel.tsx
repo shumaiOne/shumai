@@ -1,8 +1,7 @@
-import type { SearchCondition, SearchConditionOperator } from '@shumai/dtos'
-import { type FieldInfo } from '@shumai/dtos'
 import { Button } from '@/ui/components/ui/button'
-import { Input } from '@/ui/components/ui/input'
 import { DebouncedInput } from '@/ui/components/ui/debounced-input'
+import { Input } from '@/ui/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -11,7 +10,10 @@ import {
   SelectValue,
 } from '@/ui/components/ui/select'
 import { cn } from '@/ui/lib/utils'
-import { Trash2 } from 'lucide-react'
+import type { SearchCondition, SearchConditionOperator } from '@shumai/dtos'
+import { type FieldInfo } from '@shumai/dtos'
+import { Check, ChevronDown, Trash2 } from 'lucide-react'
+import { getOptionStyle } from '../fields-manager'
 
 interface FilterPanelProps {
   fields: FieldInfo[]
@@ -43,7 +45,7 @@ export function FilterPanel({
       id: f.id!,
       label: f.config?.name || f.description || 'Unknown',
       type: getFieldType(f),
-      options: f.config?.select?.options,
+      options: f.config?.select?.options || f.config?.selectMulti?.options,
     })),
   ].filter((f) => !excludeFields?.includes(f.id))
 
@@ -74,6 +76,29 @@ export function FilterPanel({
       if (field) {
         newConditions[index].operator = getDefaultOperator(field.type)
         newConditions[index].value = ''
+      }
+    }
+
+    // Convert value format when switching between single/multi-select operators
+    if (key === 'operator') {
+      const field = allFields.find((f) => f.id === newConditions[index].field)
+      if (field && (field.type === 'select' || field.type === 'selectMulti')) {
+        const oldOperator = conditions[index].operator
+        const newOperator = value as SearchConditionOperator
+        const wasMulti = isMultiSelectOperator(field.type, oldOperator)
+        const isMulti = isMultiSelectOperator(field.type, newOperator)
+
+        if (wasMulti && !isMulti) {
+          // Multi -> Single: take first item or empty string
+          const arr = Array.isArray(newConditions[index].value)
+            ? (newConditions[index].value as string[])
+            : []
+          newConditions[index].value = arr[0] || ''
+        } else if (!wasMulti && isMulti) {
+          // Single -> Multi: wrap in array if non-empty
+          const str = newConditions[index].value as string
+          newConditions[index].value = str ? [str] : []
+        }
       }
     }
 
@@ -132,6 +157,7 @@ export function FilterPanel({
               {condition.operator !== 'isEmpty' && condition.operator !== 'isNotEmpty' && (
                 <ConditionValueInput
                   field={allFields.find((f) => f.id === condition.field)}
+                  operator={condition.operator}
                   value={condition.value}
                   onChange={(val) => handleConditionChange(index, 'value', val)}
                 />
@@ -254,67 +280,141 @@ function getOperators(field: { id: string; label: string; type: string }): {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type FieldType = any
+interface SelectOptionItem {
+  id: string
+  displayName: string
+  color?: string
+}
+
+interface FilterField {
+  id: string
+  label: string
+  type: string
+  options?: SelectOptionItem[]
+}
+
+function isMultiSelectOperator(fieldType: string, operator: SearchConditionOperator): boolean {
+  if (fieldType === 'select') {
+    return operator === 'in' || operator === 'notIn'
+  }
+  if (fieldType === 'selectMulti') {
+    return operator !== 'eq'
+  }
+  return false
+}
+
+function MultiSelectValueInput({
+  options,
+  selected,
+  onChange,
+}: {
+  options: SelectOptionItem[]
+  selected: string[]
+  onChange: (val: string[]) => void
+}) {
+  const selectedOptions = options.filter((opt) => selected.includes(opt.id))
+
+  const toggleOption = (optionId: string) => {
+    let newVal
+    if (selected.includes(optionId)) {
+      newVal = selected.filter((id) => id !== optionId)
+    } else {
+      newVal = [...selected, optionId]
+    }
+    onChange(newVal)
+  }
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex min-h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-1.5 text-sm shadow-xs hover:bg-accent/50 focus:outline-hidden focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 text-left"
+        >
+          <div className="flex flex-wrap gap-1 items-center max-w-[90%]">
+            {selectedOptions.length === 0 ? (
+              <span className="text-muted-foreground">Select options...</span>
+            ) : (
+              selectedOptions.map((option) => (
+                <span
+                  key={option.id}
+                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border border-transparent whitespace-nowrap h-[20px]"
+                  style={getOptionStyle(option.color)}
+                >
+                  {option.displayName}
+                </span>
+              ))
+            )}
+          </div>
+          <ChevronDown className="h-4 w-4 shrink-0 opacity-50 ml-2" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-64 p-1 bg-popover border border-border rounded-lg shadow-xl max-h-60 overflow-auto"
+        align="start"
+      >
+        {options.map((option) => {
+          const isSelected = selected.includes(option.id)
+          return (
+            <div
+              key={option.id}
+              onClick={() => toggleOption(option.id)}
+              className="px-3 py-2 hover:bg-accent cursor-pointer flex items-center justify-between rounded-sm"
+            >
+              <span
+                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                style={getOptionStyle(option.color)}
+              >
+                {option.displayName}
+              </span>
+              {isSelected && <Check className="w-4 h-4 text-primary" />}
+            </div>
+          )
+        })}
+      </PopoverContent>
+    </Popover>
+  )
+}
 
 function ConditionValueInput({
   field,
+  operator,
   value,
   onChange,
 }: {
-  field: FieldType
+  field: FilterField | undefined
+  operator: SearchConditionOperator
   value: unknown
   onChange: (val: unknown) => void
 }) {
   if (!field) return <Input disabled />
 
-  if (field.type === 'select' && field.options) {
+  if ((field.type === 'select' || field.type === 'selectMulti') && field.options) {
+    if (isMultiSelectOperator(field.type, operator)) {
+      const selected = Array.isArray(value) ? (value as string[]) : []
+      return (
+        <MultiSelectValueInput
+          options={field.options}
+          selected={selected}
+          onChange={(val) => onChange(val)}
+        />
+      )
+    }
+    // Single-select
     return (
       <Select value={value as string} onValueChange={onChange}>
         <SelectTrigger>
           <SelectValue placeholder="Select option" />
         </SelectTrigger>
         <SelectContent>
-          {field.options.map((opt: FieldType) => (
+          {field.options.map((opt) => (
             <SelectItem key={opt.id} value={opt.id}>
-              {opt.displayName}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    )
-  }
-
-  if (field.type === 'selectMulti' && field.options) {
-    const selected = Array.isArray(value) ? value : []
-    return (
-      <Select
-        value={selected[0] || ''}
-        onValueChange={(val) => {
-          if (selected.includes(val)) {
-            onChange(selected.filter((v) => v !== val))
-          } else {
-            onChange([...selected, val])
-          }
-        }}
-      >
-        <SelectTrigger>
-          <SelectValue
-            placeholder={selected.length > 0 ? `${selected.length} selected` : 'Select options'}
-          />
-        </SelectTrigger>
-        <SelectContent>
-          {field.options.map((opt: FieldType) => (
-            <SelectItem key={opt.id} value={opt.id}>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={selected.includes(opt.id)}
-                  readOnly
-                  className="pointer-events-none"
-                />
+              <span
+                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                style={getOptionStyle(opt.color)}
+              >
                 {opt.displayName}
-              </div>
+              </span>
             </SelectItem>
           ))}
         </SelectContent>

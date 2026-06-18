@@ -62,7 +62,7 @@ const NumberField: React.FC<FieldProps<number | undefined>> = ({
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         onDoubleClick={(e) => e.stopPropagation()}
-        className="w-full px-2 py-1 border border-blue-500 rounded bg-white text-sm outline-none shadow-sm text-left font-mono"
+        className="w-full px-2 py-1 border border-ring rounded bg-background text-sm outline-none shadow-sm text-left font-mono"
       />
     )
   }
@@ -71,14 +71,14 @@ const NumberField: React.FC<FieldProps<number | undefined>> = ({
     <div
       onClick={handleStartEdit}
       onDoubleClick={(e) => e.stopPropagation()}
-      className={`w-full min-h-[28px] px-2 py-1 text-sm text-gray-800 rounded border border-transparent transition-colors text-left font-mono ${
-        !readOnly ? 'cursor-pointer hover:bg-gray-100 hover:border-gray-200' : ''
+      className={`w-full min-h-[28px] px-2 py-1 text-sm text-foreground rounded border border-transparent transition-colors text-left font-mono ${
+        !readOnly ? 'cursor-pointer hover:bg-accent hover:border-border' : ''
       }`}
     >
       {value !== undefined && value !== null ? (
         formatNumber(value)
       ) : (
-        <span className="text-gray-400 italic font-sans text-left block">Empty</span>
+        <span className="text-muted-foreground italic font-sans text-left block">Empty</span>
       )}
     </div>
   )
