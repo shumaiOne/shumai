@@ -558,7 +558,7 @@ export async function transcodeVideoChunkActivity(
 ): Promise<{ chunkKey: string }> {
   const chunkTmp = path.join(os.tmpdir(), `video-chunk-${Date.now()}.mp4`)
   try {
-    // Slice video segment using ffmpeg
+    // Slice video segment using ffmpeg, force 1fps and remove audio for gemini-embedding-2 optimization
     await execFileAsync('ffmpeg', [
       '-y',
       '-loglevel',
@@ -569,8 +569,15 @@ export async function transcodeVideoChunkActivity(
       params.startTime.toString(),
       '-t',
       (params.endTime - params.startTime).toString(),
-      '-c',
-      'copy',
+      '-vf',
+      'fps=1',
+      '-c:v',
+      'libx264',
+      '-preset',
+      'ultrafast',
+      '-crf',
+      '28',
+      '-an',
       chunkTmp,
     ])
 

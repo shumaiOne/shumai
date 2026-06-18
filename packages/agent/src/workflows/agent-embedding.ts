@@ -71,7 +71,7 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
     })
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { asset, chunkDuration } = context as any
+    const { asset, chunkDuration, chunkOverlap } = context as any
 
     const isImage = asset.mediaType?.startsWith('image/')
     const isVideo = asset.mediaType?.startsWith('video/')
@@ -149,10 +149,14 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const duration = (asset.media as any)?.duration || 0
       const limit = chunkDuration || 60.0
+      const overlap = chunkOverlap ?? 5.0
+      const step = Math.max(1, limit - overlap)
 
-      for (let start = 0.0; start < duration; start += limit) {
+      for (let start = 0.0; start < duration; start += step) {
         let end = start + limit
-        if (end > duration) end = duration
+        if (end >= duration) {
+          end = duration
+        }
 
         // Step A: Slice chunk on transcode worker and upload to S3
         const chunkRes = await executeActivity(transcodeWorkerQueue, transcodeVideoChunkActivity, {
@@ -189,6 +193,11 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
           await executeActivity(transcodeWorkerQueue, deleteS3ObjectActivity, {
             key: chunkKey,
           })
+        }
+
+        // If this chunk reached the end of the video, stop to avoid redundant overlapping chunks
+        if (end >= duration) {
+          break
         }
       }
     }
