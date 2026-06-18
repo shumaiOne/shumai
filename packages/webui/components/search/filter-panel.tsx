@@ -1,17 +1,7 @@
 import { Button } from '@/ui/components/ui/button'
-import {
-  Combobox,
-  ComboboxChip,
-  ComboboxChips,
-  ComboboxChipsInput,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxItem,
-  ComboboxList,
-  useComboboxAnchor,
-} from '@/ui/components/ui/combobox'
 import { DebouncedInput } from '@/ui/components/ui/debounced-input'
 import { Input } from '@/ui/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -22,7 +12,8 @@ import {
 import { cn } from '@/ui/lib/utils'
 import type { SearchCondition, SearchConditionOperator } from '@shumai/dtos'
 import { type FieldInfo } from '@shumai/dtos'
-import { Trash2 } from 'lucide-react'
+import { Check, ChevronDown, Trash2 } from 'lucide-react'
+import { getOptionStyle } from '../fields-manager'
 
 interface FilterPanelProps {
   fields: FieldInfo[]
@@ -322,29 +313,67 @@ function MultiSelectValueInput({
   selected: string[]
   onChange: (val: string[]) => void
 }) {
-  const anchorRef = useComboboxAnchor()
-  const comboboxOptions = options.map((opt) => ({ value: opt.id, label: opt.displayName }))
+  const selectedOptions = options.filter((opt) => selected.includes(opt.id))
+
+  const toggleOption = (optionId: string) => {
+    let newVal
+    if (selected.includes(optionId)) {
+      newVal = selected.filter((id) => id !== optionId)
+    } else {
+      newVal = [...selected, optionId]
+    }
+    onChange(newVal)
+  }
 
   return (
-    <Combobox multiple value={selected} onValueChange={onChange}>
-      <ComboboxChips ref={anchorRef} className="min-h-9 w-full">
-        {selected.map((val) => {
-          const opt = options.find((o) => o.id === val)
-          return <ComboboxChip key={val}>{opt?.displayName || val}</ComboboxChip>
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex min-h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-1.5 text-sm shadow-xs hover:bg-accent/50 focus:outline-hidden focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 text-left"
+        >
+          <div className="flex flex-wrap gap-1 items-center max-w-[90%]">
+            {selectedOptions.length === 0 ? (
+              <span className="text-muted-foreground">Select options...</span>
+            ) : (
+              selectedOptions.map((option) => (
+                <span
+                  key={option.id}
+                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border border-transparent whitespace-nowrap h-[20px]"
+                  style={getOptionStyle(option.color)}
+                >
+                  {option.displayName}
+                </span>
+              ))
+            )}
+          </div>
+          <ChevronDown className="h-4 w-4 shrink-0 opacity-50 ml-2" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-64 p-1 bg-popover border border-border rounded-lg shadow-xl max-h-60 overflow-auto"
+        align="start"
+      >
+        {options.map((option) => {
+          const isSelected = selected.includes(option.id)
+          return (
+            <div
+              key={option.id}
+              onClick={() => toggleOption(option.id)}
+              className="px-3 py-2 hover:bg-accent cursor-pointer flex items-center justify-between rounded-sm"
+            >
+              <span
+                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                style={getOptionStyle(option.color)}
+              >
+                {option.displayName}
+              </span>
+              {isSelected && <Check className="w-4 h-4 text-primary" />}
+            </div>
+          )
         })}
-        <ComboboxChipsInput placeholder={selected.length === 0 ? 'Select options...' : ''} />
-      </ComboboxChips>
-      <ComboboxContent anchor={anchorRef}>
-        <ComboboxList>
-          <ComboboxEmpty>No options found</ComboboxEmpty>
-          {comboboxOptions.map((opt) => (
-            <ComboboxItem key={opt.value} value={opt.value}>
-              {opt.label}
-            </ComboboxItem>
-          ))}
-        </ComboboxList>
-      </ComboboxContent>
-    </Combobox>
+      </PopoverContent>
+    </Popover>
   )
 }
 
