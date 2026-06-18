@@ -27,13 +27,6 @@ function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  let isDemoEnv
-  try {
-    isDemoEnv = process.env.PUBLIC_DEMO_MODE === '1'
-  } catch {
-    isDemoEnv = false
-  }
-
   const { data: signupInfo, isLoading: isSignupInfoLoading } = useQuery({
     queryKey: ['/signup-info'],
     queryFn: async () => {
@@ -44,10 +37,12 @@ function LoginPage() {
   })
 
   useEffect(() => {
-    if (signupInfo?.userCount === 0) {
+    if (signupInfo && !signupInfo.initialized) {
       navigate({ to: '/signup', search: { inviteCode: '' } })
     }
   }, [signupInfo, navigate])
+
+  const isDemoEnv = signupInfo?.demoMode === true
 
   const form = useForm<LoginSchema>({
     resolver: zodResolver(loginSchema),

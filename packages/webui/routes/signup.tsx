@@ -96,7 +96,7 @@ function SignupPage() {
     )
   }
 
-  const isFirstUser = signupInfo?.userCount === 0
+  const isFirstUser = !signupInfo?.initialized
   const isPublicSignupDisabled = !isFirstUser && !inviteCode
 
   if (isPublicSignupDisabled) {
