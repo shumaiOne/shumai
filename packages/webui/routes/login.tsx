@@ -1,18 +1,18 @@
 import { client } from '@/ui/api/client'
-import { useQuery } from '@tanstack/react-query'
+import { AuthLayout } from '@/ui/components/auth-layout'
 import { Button } from '@/ui/components/ui/button'
+import { ShumaiLogo } from '@/ui/components/ui/icons'
 import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
+import { signIn } from '@/ui/lib/auth-client'
 import { useAuthStore } from '@/ui/stores/auth'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import { ArrowRight, Loader2, Lock, LogIn, Mail } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { signIn } from '@/ui/lib/auth-client'
-import { Loader2, Mail, Lock, ArrowRight, LogIn } from 'lucide-react'
-import { ShumaiLogo } from '@/ui/components/ui/icons'
-import { AuthLayout } from '@/ui/components/auth-layout'
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -26,6 +26,13 @@ function LoginPage() {
   const setUser = useAuthStore((state) => state.setUser)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  let isDemoEnv
+  try {
+    isDemoEnv = process.env.PUBLIC_DEMO_MODE === '1'
+  } catch {
+    isDemoEnv = false
+  }
 
   const { data: signupInfo, isLoading: isSignupInfoLoading } = useQuery({
     queryKey: ['/signup-info'],
@@ -87,6 +94,15 @@ function LoginPage() {
           Enter your credentials to access your account.
         </p>
       </div>
+
+      {isDemoEnv && (
+        <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-400 rounded-xl text-sm leading-relaxed">
+          <p>
+            <strong>Demo Access:</strong> Use <strong>"foo@bar.com"</strong> as the email and{' '}
+            <strong>"foo"</strong> as the password to login.
+          </p>
+        </div>
+      )}
 
       {error && (
         <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 rounded-xl text-sm text-center font-medium">

@@ -32,7 +32,7 @@ describe('authMiddleware', () => {
 
   beforeEach(() => {
     vi.resetAllMocks()
-    delete process.env.REVIEWER_READ_ONLY
+    delete process.env.PUBLIC_DEMO_MODE
   })
 
   it('allows access when authenticated', async () => {
@@ -54,7 +54,7 @@ describe('authMiddleware', () => {
 
   describe('read-only mode', () => {
     beforeEach(() => {
-      process.env.REVIEWER_READ_ONLY = '1'
+      process.env.PUBLIC_DEMO_MODE = '1'
     })
 
     it('allows GET for reviewer', async () => {
