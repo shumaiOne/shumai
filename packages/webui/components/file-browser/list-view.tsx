@@ -13,6 +13,7 @@ import React, { useMemo, useState, useEffect } from 'react'
 import { cn } from '../../lib/utils'
 import type { DragState } from '../dnd-types'
 import { Checkbox } from '../ui/checkbox'
+import { getAllFilesFromEntries } from '@/ui/lib/dnd-utils'
 
 interface ListRowProps {
   item: AssetInfo
@@ -23,6 +24,10 @@ interface ListRowProps {
   columnSizing?: Record<string, number>
   virtualRow: { start: number; index: number }
   measureElement: (el: HTMLElement | null) => void
+  isExternalDragging?: boolean
+  externalOverFolderId?: string | null
+  setExternalOverFolderId?: (id: string | null) => void
+  onExternalDrop?: (files: File[], folderId: string) => void
 }
 
 function ListRow({
@@ -34,6 +39,10 @@ function ListRow({
   columnSizing,
   virtualRow,
   measureElement,
+  isExternalDragging,
+  externalOverFolderId,
+  setExternalOverFolderId,
+  onExternalDrop,
 }: ListRowProps) {
   const isDraggingItem = dragState?.draggedIds.has(item.id!)
   const isDraggingAny = dragState?.isActive
@@ -83,7 +92,8 @@ function ListRow({
     return false
   }, [dragState, item.id, item.type])
 
-  const showDropFeedback = isRowOver && isValidDropTarget
+  const isExternalOver = isExternalDragging && externalOverFolderId === item.id
+  const showDropFeedback = (isRowOver && isValidDropTarget) || isExternalOver
 
   return (
     <div
@@ -92,6 +102,40 @@ function ListRow({
         measureElement(node)
       }}
       data-index={virtualRow.index}
+      onDragEnter={
+        isExternalDragging && item.type === 'folder'
+          ? () => {
+              setExternalOverFolderId?.(item.id!)
+            }
+          : undefined
+      }
+      onDragLeave={
+        isExternalDragging && item.type === 'folder'
+          ? (e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                setExternalOverFolderId?.(null)
+              }
+            }
+          : undefined
+      }
+      onDragOver={
+        isExternalDragging && item.type === 'folder'
+          ? (e) => {
+              e.preventDefault()
+            }
+          : undefined
+      }
+      onDrop={
+        isExternalDragging && item.type === 'folder'
+          ? async (e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setExternalOverFolderId?.(null)
+              const files = await getAllFilesFromEntries(e.dataTransfer)
+              onExternalDrop?.(files, item.id!)
+            }
+          : undefined
+      }
       className={cn(
         'group border-b border-border transition-colors hover:bg-primary/20 absolute top-0 left-0 w-full flex flex-col',
         isSelected && 'bg-primary/10',
@@ -146,6 +190,10 @@ interface FileBrowserListViewProps {
   handleEmptyAreaClick: (e: React.MouseEvent) => void
   dragState?: DragState
   sort?: SearchSort
+  isExternalDragging?: boolean
+  externalOverFolderId?: string | null
+  setExternalOverFolderId?: (id: string | null) => void
+  onExternalDrop?: (files: File[], folderId: string) => void
 }
 
 export function FileBrowserListView({
@@ -174,6 +222,10 @@ export function FileBrowserListView({
   handleEmptyAreaClick,
   dragState,
   sort,
+  isExternalDragging,
+  externalOverFolderId,
+  setExternalOverFolderId,
+  onExternalDrop,
 }: FileBrowserListViewProps) {
   const [columnSizing, setColumnSizing] = useState<Record<string, number>>({})
 
@@ -459,6 +511,10 @@ export function FileBrowserListView({
                 columnSizing={columnSizing}
                 virtualRow={virtualRow}
                 measureElement={rowVirtualizer.measureElement}
+                isExternalDragging={isExternalDragging}
+                externalOverFolderId={externalOverFolderId}
+                setExternalOverFolderId={setExternalOverFolderId}
+                onExternalDrop={onExternalDrop}
               />
             )
           })}

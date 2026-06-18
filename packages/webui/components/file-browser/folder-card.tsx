@@ -14,6 +14,7 @@ import { Download, Edit, History, MoreHorizontal, Trash2 } from 'lucide-react'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { DragState } from '../dnd-types'
 import { FilePreview } from './file-preview'
+import { getAllFilesFromEntries } from '@/ui/lib/dnd-utils'
 
 interface FolderCardProps {
   item: AssetInfo
@@ -38,6 +39,10 @@ interface FolderCardProps {
   selectedCount?: number
   canEdit?: boolean
   isShareView?: boolean
+  isExternalDragging?: boolean
+  externalOverFolderId?: string | null
+  setExternalOverFolderId?: (id: string | null) => void
+  onExternalDrop?: (files: File[], folderId: string) => void
 }
 
 const FolderPreviewGrid = ({ items }: { items: ChildPreview[] }) => {
@@ -114,6 +119,10 @@ export function FolderCard({
   selectedCount,
   canEdit = true,
   isShareView,
+  isExternalDragging,
+  externalOverFolderId,
+  setExternalOverFolderId,
+  onExternalDrop,
 }: FolderCardProps) {
   const [name, setName] = useState(item.name || '')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -153,7 +162,8 @@ export function FolderCard({
     return true
   }, [dragState, item.id])
 
-  const showDropFeedback = isOver && isValidDropTarget
+  const isExternalOver = isExternalDragging && externalOverFolderId === item.id
+  const showDropFeedback = (isOver && isValidDropTarget) || isExternalOver
   const opacity = isBeingDragged ? 0.5 : 1
 
   useEffect(() => {
@@ -224,6 +234,40 @@ export function FolderCard({
           e.preventDefault()
         }
       }}
+      onDragEnter={
+        isExternalDragging
+          ? () => {
+              setExternalOverFolderId?.(item.id!)
+            }
+          : undefined
+      }
+      onDragLeave={
+        isExternalDragging
+          ? (e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                setExternalOverFolderId?.(null)
+              }
+            }
+          : undefined
+      }
+      onDragOver={
+        isExternalDragging
+          ? (e) => {
+              e.preventDefault()
+            }
+          : undefined
+      }
+      onDrop={
+        isExternalDragging
+          ? async (e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setExternalOverFolderId?.(null)
+              const files = await getAllFilesFromEntries(e.dataTransfer)
+              onExternalDrop?.(files, item.id!)
+            }
+          : undefined
+      }
       className={cn(
         'group relative w-full max-w-[340px] select-none cursor-pointer isolate flex flex-col items-center h-full',
       )}

@@ -14,8 +14,9 @@ import { useFieldStore } from '@/ui/stores/fields'
 import { useUploadStore } from '@/ui/stores/upload'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { Download, AlertTriangle, Loader2 } from 'lucide-react'
+import { Download, AlertTriangle, Loader2, UploadCloud } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { getAllFilesFromEntries } from '@/ui/lib/dnd-utils'
 import { toast } from 'sonner'
 import type { DragState } from '../dnd-types'
 import { MoveCopyDialog } from '../move-copy-dialog'
@@ -137,6 +138,66 @@ export function FileBrowser({
   const [itemsToMoveCopy, setItemsToMoveCopy] = useState<AssetInfo[]>([])
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+
+  const [isExternalDragging, setIsExternalDragging] = useState(false)
+  const [externalOverFolderId, setExternalOverFolderId] = useState<string | null>(null)
+  const dragCounter = useRef(0)
+
+  // Prevent default window behavior to avoid browser replacing page on accidental drops
+  useEffect(() => {
+    const preventDefault = (e: DragEvent) => {
+      e.preventDefault()
+    }
+    window.addEventListener('dragover', preventDefault)
+    window.addEventListener('drop', preventDefault)
+    return () => {
+      window.removeEventListener('dragover', preventDefault)
+      window.removeEventListener('drop', preventDefault)
+    }
+  }, [])
+
+  const handleGlobalDragEnter = (e: React.DragEvent) => {
+    if (!canEdit || isRecentlyDeleted) return
+    e.preventDefault()
+    if (e.dataTransfer.types.includes('Files')) {
+      dragCounter.current++
+      setIsExternalDragging(true)
+    }
+  }
+
+  const handleGlobalDragLeave = (e: React.DragEvent) => {
+    if (!canEdit || isRecentlyDeleted) return
+    e.preventDefault()
+    if (e.dataTransfer.types.includes('Files')) {
+      dragCounter.current--
+      if (dragCounter.current <= 0) {
+        dragCounter.current = 0
+        setIsExternalDragging(false)
+        setExternalOverFolderId(null)
+      }
+    }
+  }
+
+  const handleGlobalDragOver = (e: React.DragEvent) => {
+    if (!canEdit || isRecentlyDeleted) return
+    e.preventDefault()
+  }
+
+  const handleGlobalDrop = async (e: React.DragEvent) => {
+    if (!canEdit || isRecentlyDeleted) return
+    e.preventDefault()
+    e.stopPropagation()
+
+    const files = await getAllFilesFromEntries(e.dataTransfer)
+
+    setIsExternalDragging(false)
+    setExternalOverFolderId(null)
+    dragCounter.current = 0
+
+    if (files.length > 0) {
+      processAndUploadFiles(files)
+    }
+  }
 
   const [localUploadingFiles, setLocalUploadingFiles] = useState<AssetInfo[]>([])
 
@@ -550,6 +611,12 @@ export function FileBrowser({
       isShareView,
       fields: displayedFields,
       canEdit,
+      isExternalDragging,
+      externalOverFolderId,
+      setExternalOverFolderId,
+      onExternalDrop: (files: File[], folderId: string) => {
+        processAndUploadFiles(files, folderId)
+      },
     }
     if (displayStyle === 'card') {
       if (effectiveType === 'folder') return <FolderCard key={item.id} {...props} />
@@ -812,6 +879,10 @@ export function FileBrowser({
           <div
             className="flex-1 bg-background relative flex flex-col min-h-0 overflow-hidden"
             onContextMenu={(e) => onContextMenu(e)}
+            onDragEnter={handleGlobalDragEnter}
+            onDragLeave={handleGlobalDragLeave}
+            onDragOver={handleGlobalDragOver}
+            onDrop={handleGlobalDrop}
           >
             {!isShareView && !isPublic && onFilterChange && onSortChange && (
               <FileBrowserToolbar
@@ -886,6 +957,10 @@ export function FileBrowser({
                   handleEmptyAreaClick={handleEmptyAreaClick}
                   dragState={dragState}
                   sort={sort}
+                  isExternalDragging={isExternalDragging}
+                  externalOverFolderId={externalOverFolderId}
+                  setExternalOverFolderId={setExternalOverFolderId}
+                  onExternalDrop={(files, folderId) => processAndUploadFiles(files, folderId)}
                 />
               ) : (
                 <FileBrowserGridView
@@ -968,6 +1043,16 @@ export function FileBrowser({
                   <Download className="h-4 w-4" />
                   Download
                 </Button>
+              </div>
+            )}
+            {isExternalDragging && !externalOverFolderId && (
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-in fade-in slide-in-from-bottom-4 duration-300">
+                <div className="flex items-center gap-3 px-6 py-3 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/20 border border-primary/20 backdrop-blur-md">
+                  <UploadCloud className="h-5 w-5 animate-bounce" />
+                  <span className="font-medium text-sm">
+                    Drop here to upload files to the current folder
+                  </span>
+                </div>
               </div>
             )}
           </div>
