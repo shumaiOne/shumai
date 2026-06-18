@@ -1,7 +1,7 @@
-import { PrismaClient, WorkflowTask } from './generated/prisma/client'
-import { PrismaTestingHelper } from './prisma-testing-helper'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { Pool } from 'pg'
+import { PrismaClient, WorkflowTask } from './generated/prisma/client'
+import { PrismaTestingHelper } from './prisma-testing-helper'
 import { generateNgrams } from './utils/ngram'
 
 // Global callback for workflow task creation (decouples db package from workflow engine)
@@ -26,6 +26,7 @@ function createPrismaClient() {
   const pool = new Pool({ connectionString })
   const adapter = new PrismaPg(pool)
   const client = new PrismaClient({ adapter, log: ['error'] })
+
   return client.$extends({
     query: {
       workflowTask: {
@@ -48,7 +49,14 @@ function createPrismaClient() {
           if (typeof args.data.name === 'string') {
             args.data.nameNgram = generateNgrams(args.data.name)
           }
-          return query(args)
+          const result = await query(args)
+          if (args.where) {
+            await client.project.updateMany({
+              where: { assets: { some: args.where } },
+              data: { updatedAt: new Date() },
+            })
+          }
+          return result
         },
         async upsert({ args, query }) {
           if (typeof args.create.name === 'string') {
@@ -95,5 +103,5 @@ export function getPrismaTestingHelper() {
   return prismaTestingHelper
 }
 
-export * from './utils/ngram'
 export * from './generated/prisma/client'
+export * from './utils/ngram'
