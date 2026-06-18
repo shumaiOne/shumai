@@ -44,7 +44,7 @@ The easiest way to run Shumai is using Docker Compose. You do not need to clone 
    curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose.yaml
    ```
 2. Configure environment variables (if deploying remotely):
-   If you are deploying Shumai to a remote server (e.g., AWS ECS, EC2, VPS), you must edit `docker-compose.yaml`, set `AWS_ENDPOINT_URL_S3` to your server's public IP or domain name (e.g., `http://12.345.567.789:3000`).
+   If you are deploying Shumai to a remote server (e.g., AWS ECS, EC2, VPS), you must edit `docker-compose.yaml`, set `AWS_ENDPOINT_URL_S3` to your server's public IP or domain name (e.g., `http://12.345.567.789`).
 3. Start the services:
    ```bash
    docker compose up -d
@@ -102,11 +102,12 @@ Create a `.env` file in this folder and add the following configuration (which a
 DATABASE_URL=postgresql://shumai:shumai_password@localhost:5432/shumai_db?schema=public
 BETTER_AUTH_SECRET=ySxs7DxzHDZBbeeHNPEwBuspYwipBqz5Gk5XdBjNhWw=
 STORAGE_BACKEND=local
-AWS_ENDPOINT_URL_S3=http://localhost:3000
+SHUMAI_SERVER_PORT=3000
+AWS_ENDPOINT_URL_S3=http://localhost
 ```
 
 > [!NOTE]
-> If you are deploying on a remote server, make sure to change `AWS_ENDPOINT_URL_S3` from `http://localhost:3000` to your server's public IP address or domain name.
+> If you are deploying on a remote server, make sure to change `AWS_ENDPOINT_URL_S3` from `http://localhost` to your server's public IP address or domain name. `SHUMAI_SERVER_PORT` defaults to `3000` if not set.
 
 #### Step 4: Run Shumai
 
@@ -189,7 +190,7 @@ DATABASE_URL=postgresql://shumai:shumai_password@<host-ip>:5432/shumai_db?schema
 WORKFLOW_EXECUTOR=temporal
 TEMPORAL_ADDRESS=<host-ip>:7233
 STORAGE_BACKEND=s3
-AWS_ENDPOINT_URL_S3=http://<host-ip>:3000 # Or your public S3/R2 endpoint URL
+AWS_ENDPOINT_URL_S3=http://<host-ip> # Or your public S3/R2 endpoint URL
 S3_REGION=us-east-1
 S3_BUCKET=shumai
 S3_ACCESS_KEY_ID=your-access-key-id
