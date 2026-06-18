@@ -1,7 +1,7 @@
-import { PrismaClient, WorkflowTask } from './generated/prisma/client'
-import { PrismaTestingHelper } from './prisma-testing-helper'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { Pool } from 'pg'
+import { PrismaClient, WorkflowTask } from './generated/prisma/client'
+import { PrismaTestingHelper } from './prisma-testing-helper'
 import { generateNgrams } from './utils/ngram'
 
 // Global callback for workflow task creation (decouples db package from workflow engine)
@@ -27,27 +27,6 @@ function createPrismaClient() {
   const adapter = new PrismaPg(pool)
   const client = new PrismaClient({ adapter, log: ['error'] })
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function touchProjectsByAssetWhere(assetWhere: any) {
-    if (!assetWhere) return
-    client.project
-      .updateMany({
-        where: { assets: { some: assetWhere } },
-        data: { updatedAt: new Date() },
-      })
-      .catch((e) => console.error('Failed to touch project updatedAt by asset where', e))
-  }
-
-  function touchProjectById(projectId: string) {
-    if (!projectId) return
-    client.project
-      .updateMany({
-        where: { id: projectId },
-        data: { updatedAt: new Date() },
-      })
-      .catch((e) => console.error('Failed to touch project updatedAt by id', e))
-  }
-
   return client.$extends({
     query: {
       workflowTask: {
@@ -64,24 +43,7 @@ function createPrismaClient() {
           if (typeof args.data.name === 'string') {
             args.data.nameNgram = generateNgrams(args.data.name)
           }
-          const result = await query(args)
-          // Use any here because result and args.data are complex Prisma types in extensions
-          const projectId =
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (result as any)?.projectId ||
-            args.data?.projectId ||
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (args.data?.project as any)?.connect?.id
-          if (projectId) {
-            touchProjectById(projectId)
-          } else if (
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (result as any)?.id
-          ) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            touchProjectsByAssetWhere({ id: (result as any).id })
-          }
-          return result
+          return query(args)
         },
         async update({ args, query }) {
           if (typeof args.data.name === 'string') {
@@ -89,7 +51,10 @@ function createPrismaClient() {
           }
           const result = await query(args)
           if (args.where) {
-            touchProjectsByAssetWhere(args.where)
+            await client.project.updateMany({
+              where: { assets: { some: args.where } },
+              data: { updatedAt: new Date() },
+            })
           }
           return result
         },
@@ -100,21 +65,13 @@ function createPrismaClient() {
           if (typeof args.update.name === 'string') {
             args.update.nameNgram = generateNgrams(args.update.name)
           }
-          const result = await query(args)
-          if (args.where) {
-            touchProjectsByAssetWhere(args.where)
-          }
-          return result
+          return query(args)
         },
         async updateMany({ args, query }) {
           if (typeof args.data.name === 'string') {
             args.data.nameNgram = generateNgrams(args.data.name)
           }
-          const result = await query(args)
-          if (args.where) {
-            touchProjectsByAssetWhere(args.where)
-          }
-          return result
+          return query(args)
         },
         async createMany({ args, query }) {
           if (Array.isArray(args.data)) {
@@ -124,27 +81,7 @@ function createPrismaClient() {
               }
             }
           }
-          const result = await query(args)
-          const projectIds = new Set<string>()
-          if (Array.isArray(args.data)) {
-            for (const item of args.data) {
-              if (item.projectId) projectIds.add(item.projectId)
-            }
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          } else if ((args.data as any)?.projectId) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            projectIds.add((args.data as any).projectId)
-          }
-
-          if (projectIds.size > 0) {
-            client.project
-              .updateMany({
-                where: { id: { in: Array.from(projectIds) } },
-                data: { updatedAt: new Date() },
-              })
-              .catch((e) => console.error('Failed to touch projects by createMany', e))
-          }
-          return result
+          return query(args)
         },
       },
     },
@@ -166,5 +103,5 @@ export function getPrismaTestingHelper() {
   return prismaTestingHelper
 }
 
-export * from './utils/ngram'
 export * from './generated/prisma/client'
+export * from './utils/ngram'
