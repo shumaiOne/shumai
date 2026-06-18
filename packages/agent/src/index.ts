@@ -380,6 +380,8 @@ export {
   generateTextEmbeddingActivity,
   type ExtractAiMetadataParams,
   extractAiMetadataActivity,
+  generateImageEmbeddingActivity,
+  generateVideoChunkEmbeddingActivity,
 } from './activities/ai'
 export * from './workflows/agent-autofill'
 export * from './workflows/agent-chat'

@@ -54,10 +54,11 @@ Shumai supports storing files locally or on S3-compatible endpoints.
 
 Configures whether background transcoding and AI agents are executed locally or offloaded to a Temporal cluster.
 
-| Variable            | Description                                                                                        | Example / Default               |
-| :------------------ | :------------------------------------------------------------------------------------------------- | :------------------------------ |
-| `WORKFLOW_EXECUTOR` | Engine choice. Use `local` for in-process database polling, or `temporal` for distributed workers. | `local` (default) or `temporal` |
-| `TEMPORAL_ADDRESS`  | Host and port of the Temporal cluster gRPC service.                                                | `localhost:7233` (default)      |
+| Variable                   | Description                                                                                        | Example / Default               |
+| :------------------------- | :------------------------------------------------------------------------------------------------- | :------------------------------ |
+| `WORKFLOW_EXECUTOR`        | Engine choice. Use `local` for in-process database polling, or `temporal` for distributed workers. | `local` (default) or `temporal` |
+| `TEMPORAL_ADDRESS`         | Host and port of the Temporal cluster gRPC service.                                                | `localhost:7233` (default)      |
+| `EMBEDDING_CHUNK_DURATION` | The duration in seconds for each video chunk when generating video embeddings.                     | `60.0` (default)                |
 
 ---
 

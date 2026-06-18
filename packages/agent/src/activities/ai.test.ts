@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
-  generateEmbeddingActivity,
   generateTextEmbeddingActivity,
   extractAiMetadataActivity,
   getEmbeddingContextActivity,
   saveAssetEmbeddingsActivity,
+  generateImageEmbeddingActivity,
+  generateVideoChunkEmbeddingActivity,
 } from './ai'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { transcodeService } from '@shumai/core'
@@ -93,19 +94,13 @@ describe('AI Activities Unit Tests', () => {
       contentType: 'image/png',
     } as unknown as { buffer: Buffer; contentType: string })
 
-    const context = {
-      agent: { config: { provider: 'google', model: 'gemini' } },
-      asset: { id: 'a1', mediaType: 'image/png', storageKey: { key: 'test.png' } },
-    }
-
-    const res = await generateEmbeddingActivity({
+    const res = await generateImageEmbeddingActivity({
       teamId: 't1',
-      assetId: 'a1',
-      context,
+      assetKey: 'test.png',
+      mediaType: 'image/png',
     })
 
-    expect(res.embeddings.length).toBe(1)
-    expect(res.embeddings[0].embedding).toEqual([0.1, 0.2, 0.3])
+    expect(res.embedding).toEqual([0.1, 0.2, 0.3])
     expect(s3Service.getObject).toHaveBeenCalledWith('shumai', 'test.png')
   })
 
@@ -115,22 +110,15 @@ describe('AI Activities Unit Tests', () => {
       contentType: 'video/mp4',
     } as unknown as { buffer: Buffer; contentType: string })
 
-    const context = {
-      agent: { config: { provider: 'google', model: 'gemini' } },
-      asset: { id: 'a2', mediaType: 'video/mp4', storageKey: { key: 'test.mp4' } },
-    }
-
-    const res = await generateEmbeddingActivity({
+    const res = await generateVideoChunkEmbeddingActivity({
       teamId: 't1',
-      assetId: 'a2',
-      context,
+      assetKey: 'test.mp4',
+      startTime: 0,
+      endTime: 60,
     })
 
-    // Duration is 120s, chunks are 60s, so it should generate 2 chunks (0-60, 60-120)
-    expect(res.embeddings.length).toBe(2)
-    expect(res.embeddings[0]).toEqual({ embedding: [0.1, 0.2, 0.3], startTime: 0, endTime: 60 })
-    expect(res.embeddings[1]).toEqual({ embedding: [0.1, 0.2, 0.3], startTime: 60, endTime: 120 })
-
+    expect(res.embedding).toEqual([0.1, 0.2, 0.3])
+    expect(s3Service.getObject).toHaveBeenCalledWith('shumai', 'test.mp4')
     expect(vi.mocked(fs.writeFileSync)).toHaveBeenCalled()
     expect(vi.mocked(fs.readFileSync)).toHaveBeenCalled()
     expect(vi.mocked(fs.unlinkSync)).toHaveBeenCalled()

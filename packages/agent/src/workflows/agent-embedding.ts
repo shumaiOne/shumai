@@ -2,11 +2,18 @@ import { ApplicationFailure } from '@temporalio/workflow'
 import type { WorkflowTask } from '@shumai/db'
 import { getActivities, executeActivity, TaskQueueAgent } from '@shumai/workflow-core'
 
+export interface GeneratedEmbedding {
+  embedding: number[]
+  startTime?: number
+  endTime?: number
+}
+
 export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
   const {
     updateTaskStatusActivity,
     getEmbeddingContextActivity,
-    generateEmbeddingActivity,
+    generateImageEmbeddingActivity,
+    generateVideoChunkEmbeddingActivity,
     saveAssetEmbeddingsActivity,
     updateTaskUsageActivity,
     createCommentActivity,
@@ -47,30 +54,118 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
       assetId: task.assetId,
     })
 
-    // Call the activity to generate embeddings
-    const result = await executeActivity(agentWorkerQueue, generateEmbeddingActivity, {
-      teamId: task.teamId,
-      assetId: task.assetId,
-      context,
-    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { asset, chunkDuration } = context as any
+
+    const isImage = asset.mediaType?.startsWith('image/')
+    const isVideo = asset.mediaType?.startsWith('video/')
+
+    if (!isImage && !isVideo) {
+      throw ApplicationFailure.create({
+        message: `unsupported media type for embeddings: ${asset.mediaType}`,
+        nonRetryable: true,
+      })
+    }
+
+    // Resolve the S3 key to use for embedding (preferring transcoded version)
+    let embeddingKey = asset.storageKey?.key
+    if (asset.media) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const media = asset.media as any
+      if (isVideo) {
+        if (media.videoTranscodes && media.videoTranscodes.length > 0) {
+          // Find first non-raw transcode or fallback to first transcode
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const transcode =
+            media.videoTranscodes.find((t: any) => !t.isRaw) || media.videoTranscodes[0]
+          if (transcode?.key) {
+            embeddingKey = transcode.key
+          }
+        }
+      } else if (isImage) {
+        if (media.imageTranscodes && media.imageTranscodes.length > 0) {
+          // Find first non-raw transcode or fallback to first transcode
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const transcode =
+            media.imageTranscodes.find((t: any) => !t.isRaw) || media.imageTranscodes[0]
+          if (transcode?.key) {
+            embeddingKey = transcode.key
+          }
+        }
+      }
+    }
+
+    if (!embeddingKey) {
+      throw ApplicationFailure.create({ message: 'asset has no key', nonRetryable: true })
+    }
+
+    const results: GeneratedEmbedding[] = []
+    const usage = {
+      model: 'gemini-embedding-2',
+      inputTokens: 0,
+      outputTokens: 0,
+    }
+
+    if (isImage) {
+      const result = await executeActivity(agentWorkerQueue, generateImageEmbeddingActivity, {
+        teamId: task.teamId,
+        assetKey: embeddingKey,
+        mediaType: asset.mediaType,
+      })
+      results.push({ embedding: result.embedding })
+      if (result.usage) {
+        usage.inputTokens += result.usage.inputTokens || 0
+        usage.outputTokens += result.usage.outputTokens || 0
+      }
+    } else if (isVideo) {
+      // Get video duration
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const duration = (asset.media as any)?.duration || 0
+      const limit = chunkDuration || 60.0
+
+      for (let start = 0.0; start < duration; start += limit) {
+        let end = start + limit
+        if (end > duration) end = duration
+
+        const chunkResult = await executeActivity(
+          agentWorkerQueue,
+          generateVideoChunkEmbeddingActivity,
+          {
+            teamId: task.teamId,
+            assetKey: embeddingKey,
+            startTime: start,
+            endTime: end,
+          },
+        )
+
+        results.push({
+          embedding: chunkResult.embedding,
+          startTime: start,
+          endTime: end,
+        })
+
+        if (chunkResult.usage) {
+          usage.inputTokens += chunkResult.usage.inputTokens || 0
+          usage.outputTokens += chunkResult.usage.outputTokens || 0
+        }
+      }
+    }
 
     // Save computed embeddings
-    if (result.embeddings.length > 0) {
+    if (results.length > 0) {
       await executeActivity(agentWorkerQueue, saveAssetEmbeddingsActivity, {
         assetId: task.assetId,
-        embeddings: result.embeddings,
+        embeddings: results,
       })
     }
 
     // Update Usage
-    if (result.usage) {
-      await executeActivity(agentWorkerQueue, updateTaskUsageActivity, {
-        taskId: task.id,
-        inputTokens: result.usage.inputTokens,
-        outputTokens: result.usage.outputTokens,
-        model: result.usage.model,
-      })
-    }
+    await executeActivity(agentWorkerQueue, updateTaskUsageActivity, {
+      taskId: task.id,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      model: usage.model,
+    })
 
     // 7. Update Placeholder Comment
     if (placeholderCommentId) {
