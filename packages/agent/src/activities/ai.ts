@@ -310,7 +310,8 @@ export async function getEmbeddingContextActivity(params: { teamId: string; asse
   }
 
   const parsedDuration = parseFloat(process.env.EMBEDDING_CHUNK_DURATION || '')
-  const chunkDuration = Number.isFinite(parsedDuration) && parsedDuration > 0 ? parsedDuration : 60.0
+  const chunkDuration =
+    Number.isFinite(parsedDuration) && parsedDuration > 0 ? parsedDuration : 60.0
 
   return {
     agent,
@@ -386,9 +387,7 @@ export async function generateImageEmbeddingActivity(
 
 export interface GenerateVideoChunkEmbeddingParams {
   teamId: string
-  assetKey: string
-  startTime: number
-  endTime: number
+  chunkKey: string
 }
 
 export async function generateVideoChunkEmbeddingActivity(
@@ -414,44 +413,21 @@ export async function generateVideoChunkEmbeddingActivity(
     outputTokens: 0,
   }
 
-  const { buffer: data } = await s3Service.getObject(
-    process.env.S3_BUCKET || 'shumai',
-    params.assetKey,
-  )
-
-  const tmpFile = path.join(os.tmpdir(), `video-chunk-source-${Date.now()}.mp4`)
-  fs.writeFileSync(tmpFile, data)
-
-  const chunkTmp = path.join(os.tmpdir(), `video-chunk-${Date.now()}.mp4`)
   try {
-    await execFileAsync('ffmpeg', [
-      '-y',
-      '-i',
-      tmpFile,
-      '-ss',
-      params.startTime.toString(),
-      '-t',
-      (params.endTime - params.startTime).toString(),
-      '-c',
-      'copy',
-      chunkTmp,
-    ])
+    const { buffer: data } = await s3Service.getObject(
+      process.env.S3_BUCKET || 'shumai',
+      params.chunkKey,
+    )
 
-    const chunkData = fs.readFileSync(chunkTmp)
-    fs.unlinkSync(chunkTmp)
-
-    const embVec = await generateMultimodalEmbedding(ai, chunkData, 'video/mp4')
+    const embVec = await generateMultimodalEmbedding(ai, data, 'video/mp4')
     return {
       embedding: embVec,
       usage,
     }
   } catch (err) {
     throw ApplicationFailure.create({
-      message: `Failed to generate video chunk embedding for ${params.startTime}-${params.endTime}: ${err instanceof Error ? err.message : String(err)}`,
+      message: `Failed to generate video chunk embedding for key ${params.chunkKey}: ${err instanceof Error ? err.message : String(err)}`,
       nonRetryable: false,
     })
-  } finally {
-    if (fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile)
-    if (fs.existsSync(chunkTmp)) fs.unlinkSync(chunkTmp)
   }
 }

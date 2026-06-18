@@ -11,7 +11,6 @@ import { s3Service } from '@shumai/core/src/s3/s3'
 import { transcodeService } from '@shumai/core'
 import { prisma, AssetType, AssetStatus } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
-import * as fs from 'fs'
 
 vi.mock('fs', async (importOriginal) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- importOriginal returns the raw fs module, typed dynamically as any here
@@ -112,16 +111,14 @@ describe('AI Activities Unit Tests', () => {
 
     const res = await generateVideoChunkEmbeddingActivity({
       teamId: 't1',
-      assetKey: 'test.mp4',
-      startTime: 0,
-      endTime: 60,
+      chunkKey: 'files/a1/tmp-embedding-chunks/chunk-0-60.mp4',
     })
 
     expect(res.embedding).toEqual([0.1, 0.2, 0.3])
-    expect(s3Service.getObject).toHaveBeenCalledWith('shumai', 'test.mp4')
-    expect(vi.mocked(fs.writeFileSync)).toHaveBeenCalled()
-    expect(vi.mocked(fs.readFileSync)).toHaveBeenCalled()
-    expect(vi.mocked(fs.unlinkSync)).toHaveBeenCalled()
+    expect(s3Service.getObject).toHaveBeenCalledWith(
+      'shumai',
+      'files/a1/tmp-embedding-chunks/chunk-0-60.mp4',
+    )
   })
 
   it('should generate text embedding successfully', async () => {

@@ -44,9 +44,25 @@ describe('Agent Embedding Workflow', () => {
       getAgentWorkerQueueActivity: Object.assign(vi.fn(), {
         _activityName: 'getAgentWorkerQueueActivity',
       }),
+      getTranscodeWorkerQueueActivity: Object.assign(vi.fn(), {
+        _activityName: 'getTranscodeWorkerQueueActivity',
+      }),
+      downloadMediaToTmpActivity: Object.assign(vi.fn(), {
+        _activityName: 'downloadMediaToTmpActivity',
+      }),
+      cleanupTmpDirActivity: Object.assign(vi.fn(), {
+        _activityName: 'cleanupTmpDirActivity',
+      }),
+      transcodeVideoChunkActivity: Object.assign(vi.fn(), {
+        _activityName: 'transcodeVideoChunkActivity',
+      }),
+      deleteS3ObjectActivity: Object.assign(vi.fn(), {
+        _activityName: 'deleteS3ObjectActivity',
+      }),
     }
 
     mockActivities.getAgentWorkerQueueActivity.mockResolvedValue('agent_queue')
+    mockActivities.getTranscodeWorkerQueueActivity.mockResolvedValue('transcode_queue')
     mockActivities.updateTaskStatusActivity.mockResolvedValue({})
     mockActivities.createCommentActivity.mockResolvedValue({ id: 'comment-placeholder-id' })
     mockActivities.getEmbeddingContextActivity.mockResolvedValue({
@@ -66,6 +82,19 @@ describe('Agent Embedding Workflow', () => {
       embedding: [0.3, 0.4],
       usage: { inputTokens: 3, outputTokens: 3, model: 'gpt' },
     })
+    mockActivities.downloadMediaToTmpActivity.mockResolvedValue({
+      filePath: '/tmp/test.mp4',
+      tmpDir: '/tmp/test-dir',
+    })
+    mockActivities.transcodeVideoChunkActivity.mockImplementation(
+      async (params: { assetId: string; startTime: number; endTime: number }) => {
+        return {
+          chunkKey: `files/${params.assetId}/tmp-embedding-chunks/chunk-${params.startTime}-${params.endTime}.mp4`,
+        }
+      },
+    )
+    mockActivities.deleteS3ObjectActivity.mockResolvedValue(undefined)
+    mockActivities.cleanupTmpDirActivity.mockResolvedValue(undefined)
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mockActivities contains vi.fn mock functions which are cast to expected activity proxy types
     vi.mocked(workflowUtils.getActivities).mockReturnValue(mockActivities as any)
@@ -156,8 +185,8 @@ describe('Agent Embedding Workflow', () => {
         mediaType: 'image/png',
         storageKey: { key: 'test.png' },
         media: {
-          imageTranscodes: [{ key: 'test-transcoded.webp', isRaw: false, format: 'webp' }]
-        }
+          imageTranscodes: [{ key: 'test-transcoded.webp', isRaw: false, format: 'webp' }],
+        },
       },
       chunkDuration: 60.0,
     })
@@ -210,25 +239,57 @@ describe('Agent Embedding Workflow', () => {
 
     await agentEmbeddingMedia(task)
 
-    // Verify video chunk embedding generation (3 chunks: 0-60, 60-120, 120-150)
-    expect(mockActivities.generateVideoChunkEmbeddingActivity).toHaveBeenCalledTimes(3)
-    expect(mockActivities.generateVideoChunkEmbeddingActivity).toHaveBeenNthCalledWith(1, {
-      teamId: 't1',
+    // Verify video transcode queue discovery & download
+    expect(mockActivities.getTranscodeWorkerQueueActivity).toHaveBeenCalled()
+    expect(mockActivities.downloadMediaToTmpActivity).toHaveBeenCalledWith({
       assetKey: 'test-transcoded.mp4',
+    })
+
+    // Verify video chunk slicing activity called 3 times on transcode queue
+    expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenCalledTimes(3)
+    expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenNthCalledWith(1, {
+      assetId: 'a1',
+      filePath: '/tmp/test.mp4',
       startTime: 0,
       endTime: 60,
     })
-    expect(mockActivities.generateVideoChunkEmbeddingActivity).toHaveBeenNthCalledWith(2, {
-      teamId: 't1',
-      assetKey: 'test-transcoded.mp4',
+    expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenNthCalledWith(2, {
+      assetId: 'a1',
+      filePath: '/tmp/test.mp4',
       startTime: 60,
       endTime: 120,
     })
-    expect(mockActivities.generateVideoChunkEmbeddingActivity).toHaveBeenNthCalledWith(3, {
-      teamId: 't1',
-      assetKey: 'test-transcoded.mp4',
+    expect(mockActivities.transcodeVideoChunkActivity).toHaveBeenNthCalledWith(3, {
+      assetId: 'a1',
+      filePath: '/tmp/test.mp4',
       startTime: 120,
       endTime: 150,
+    })
+
+    // Verify video chunk embedding generation (3 chunks) on agent queue
+    expect(mockActivities.generateVideoChunkEmbeddingActivity).toHaveBeenCalledTimes(3)
+    expect(mockActivities.generateVideoChunkEmbeddingActivity).toHaveBeenNthCalledWith(1, {
+      teamId: 't1',
+      chunkKey: 'files/a1/tmp-embedding-chunks/chunk-0-60.mp4',
+    })
+    expect(mockActivities.generateVideoChunkEmbeddingActivity).toHaveBeenNthCalledWith(2, {
+      teamId: 't1',
+      chunkKey: 'files/a1/tmp-embedding-chunks/chunk-60-120.mp4',
+    })
+    expect(mockActivities.generateVideoChunkEmbeddingActivity).toHaveBeenNthCalledWith(3, {
+      teamId: 't1',
+      chunkKey: 'files/a1/tmp-embedding-chunks/chunk-120-150.mp4',
+    })
+
+    // Verify deletion of temporary chunks from S3
+    expect(mockActivities.deleteS3ObjectActivity).toHaveBeenCalledTimes(3)
+    expect(mockActivities.deleteS3ObjectActivity).toHaveBeenNthCalledWith(1, {
+      key: 'files/a1/tmp-embedding-chunks/chunk-0-60.mp4',
+    })
+
+    // Verify temp directory cleanup on transcode queue
+    expect(mockActivities.cleanupTmpDirActivity).toHaveBeenCalledWith({
+      tmpDir: '/tmp/test-dir',
     })
 
     // Verify usage update (3 chunks * 3 tokens = 9)
