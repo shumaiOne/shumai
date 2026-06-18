@@ -14,7 +14,8 @@ Semantic search translates text queries and file contents into conceptual profil
 1.  **Index Generation**: When you upload an asset, Shumai's background agent scans the file's visual elements, text contents, or descriptions, translating them into a concept profile.
     -   **Video Processing**: Shumai uses **gemini-embedding-2** for video indexing. 
         -   **Chunking**: For long videos, Shumai breaks them into chunks to ensure high-quality indexing. By default, chunks are **60 seconds** long with a **5-second overlap** to ensure no context is lost at the boundaries.
-        -   **Sampling**: The model processes a maximum of 32 frames per chunk: short chunks (≤32s) are sampled at 1 fps, while longer chunks are uniformly sampled to 32 frames. Note that audio tracks are not processed.
+        -   **Sampling**: The model processes a maximum of 32 frames per chunk: short chunks (≤32s) are sampled at 1 fps, while longer chunks are uniformly sampled to 32 frames. 
+        -   **Optimization**: To optimize processing, Shumai automatically transcodes each chunk to **1 FPS** and **removes the audio track** before sending it to the embedding agent.
         -   **Configuration**: Administrators can customize these settings using the `EMBEDDING_CHUNK_DURATION` and `EMBEDDING_CHUNK_OVERLAP` environment variables.
 2.  **Concept Matching**: When you search with the "Semantic" toggle enabled, Shumai matches the conceptual meaning of your query against your assets.
 3.  **Result**: Searching "sunset at the beach" will successfully find a video file of ocean waves at dusk, even if the filename is `IMG_4029.mp4`.
