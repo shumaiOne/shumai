@@ -8,12 +8,12 @@ import { formatSize } from '@/ui/lib/format'
 import { useFieldStore } from '@/ui/stores/fields'
 import { useUploadStore } from '@/ui/stores/upload'
 import type {
-    AssetInfo,
-    CollectionInfo,
-    CreateUploadTaskRequest,
-    SearchCondition,
-    SearchSort,
-    ShareLinkInfo,
+  AssetInfo,
+  CollectionInfo,
+  CreateUploadTaskRequest,
+  SearchCondition,
+  SearchSort,
+  ShareLinkInfo,
 } from '@shumai/dtos'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -26,24 +26,24 @@ import { MoveCopyDialog } from '../move-copy-dialog'
 import { FileBrowserContextMenu } from './context-menu'
 
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from '../ui/alert-dialog'
 import { Button } from '../ui/button'
 import { ContextMenu, ContextMenuTrigger } from '../ui/context-menu'
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '../ui/dialog'
 import { FileCard } from './file-card'
 import { FileListItem } from './file-list-item'
@@ -166,7 +166,7 @@ export function FileBrowser({
   }, [])
 
   const handleGlobalDragEnter = (e: React.DragEvent) => {
-    if (!canEdit || isRecentlyDeleted) return
+    if (!canEdit || isRecentlyDeleted || isShareView || isPublic || !!collection) return
     e.preventDefault()
     if (e.dataTransfer.types.includes('Files')) {
       dragCounter.current++
@@ -175,7 +175,7 @@ export function FileBrowser({
   }
 
   const handleGlobalDragLeave = (e: React.DragEvent) => {
-    if (!canEdit || isRecentlyDeleted) return
+    if (!canEdit || isRecentlyDeleted || isShareView || isPublic || !!collection) return
     e.preventDefault()
     if (e.dataTransfer.types.includes('Files')) {
       dragCounter.current--
@@ -188,12 +188,12 @@ export function FileBrowser({
   }
 
   const handleGlobalDragOver = (e: React.DragEvent) => {
-    if (!canEdit || isRecentlyDeleted) return
+    if (!canEdit || isRecentlyDeleted || isShareView || isPublic || !!collection) return
     e.preventDefault()
   }
 
   const handleGlobalDrop = async (e: React.DragEvent) => {
-    if (!canEdit || isRecentlyDeleted) return
+    if (!canEdit || isRecentlyDeleted || isShareView || isPublic || !!collection) return
     e.preventDefault()
     e.stopPropagation()
 
