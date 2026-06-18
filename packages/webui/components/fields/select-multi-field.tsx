@@ -120,12 +120,12 @@ const SelectMultiField: React.FC<FieldProps<string[]>> = ({
             onClick={handlePlaceholderClick}
             className={`w-full px-1 py-1 flex flex-wrap gap-1 rounded border border-transparent transition-all box-border h-[32px] overflow-hidden ${
               !readOnly || hiddenCount > 0
-                ? 'cursor-pointer hover:bg-gray-100 hover:border-gray-200'
+                ? 'cursor-pointer hover:bg-accent hover:border-border'
                 : ''
             }`}
           >
             {selectedOptions.length === 0 && (
-              <span className="text-gray-400 text-sm italic px-1 pt-0.5">Empty</span>
+              <span className="text-muted-foreground text-sm italic px-1 pt-0.5">Empty</span>
             )}
 
             {/* Render visible items */}
@@ -140,7 +140,7 @@ const SelectMultiField: React.FC<FieldProps<string[]>> = ({
             ))}
 
             {hiddenCount > 0 && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-600 h-[22px]">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground h-[22px]">
                 +{hiddenCount}
               </span>
             )}
@@ -148,10 +148,10 @@ const SelectMultiField: React.FC<FieldProps<string[]>> = ({
         </PopoverTrigger>
 
         <PopoverContent
-          className={`p-1 bg-white border rounded-lg shadow-xl max-h-60 overflow-auto ${
+          className={`p-1 bg-popover border rounded-lg shadow-xl max-h-60 overflow-auto ${
             expanded && !isEditing
-              ? 'w-[--radix-popover-trigger-width] min-w-[200px] flex flex-wrap gap-1 border-blue-500 min-h-[32px] h-auto cursor-pointer'
-              : 'w-64 border-gray-200'
+              ? 'w-[--radix-popover-trigger-width] min-w-[200px] flex flex-wrap gap-1 border-ring min-h-[32px] h-auto cursor-pointer'
+              : 'w-64 border-border'
           }`}
           align="start"
           onClick={expanded && !isEditing ? handleOverlayClick : undefined}
@@ -159,7 +159,7 @@ const SelectMultiField: React.FC<FieldProps<string[]>> = ({
           {expanded && !isEditing ? (
             <>
               {selectedOptions.length === 0 && (
-                <span className="text-gray-400 text-sm italic px-1 pt-0.5">Empty</span>
+                <span className="text-muted-foreground text-sm italic px-1 pt-0.5">Empty</span>
               )}
               {selectedOptions.map((option: SelectOption) => (
                 <span
@@ -178,7 +178,7 @@ const SelectMultiField: React.FC<FieldProps<string[]>> = ({
                 <div
                   key={option.id}
                   onClick={() => toggleOption(option.id)}
-                  className="px-3 py-2 hover:bg-gray-50 cursor-pointer flex items-center justify-between"
+                  className="px-3 py-2 hover:bg-accent cursor-pointer flex items-center justify-between"
                 >
                   <span
                     className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
@@ -186,7 +186,7 @@ const SelectMultiField: React.FC<FieldProps<string[]>> = ({
                   >
                     {option.displayName}
                   </span>
-                  {isSelected && <Check className="w-4 h-4 text-blue-500" />}
+                  {isSelected && <Check className="w-4 h-4 text-primary" />}
                 </div>
               )
             })

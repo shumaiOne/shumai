@@ -43,7 +43,7 @@ const RatingField: React.FC<FieldProps<number>> = ({ value, config, onSave, read
           >
             <Star
               className={`w-5 h-5 transition-colors ${
-                isFilled ? 'fill-yellow-400 text-yellow-400' : 'fill-gray-100 text-gray-300'
+                isFilled ? 'fill-yellow-400 text-yellow-400' : 'fill-muted text-muted-foreground/30'
               }`}
             />
           </button>

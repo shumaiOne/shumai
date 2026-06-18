@@ -43,7 +43,7 @@ const TextField: React.FC<FieldProps<string>> = ({ value, onSave, readOnly }) =>
         onChange={(e) => setLocalValue(e.target.value)}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
-        className="w-full px-2 py-1 border border-blue-500 rounded bg-white text-sm outline-none shadow-sm"
+        className="w-full px-2 py-1 border border-ring rounded bg-background text-sm outline-none shadow-sm"
       />
     )
   }
@@ -51,11 +51,11 @@ const TextField: React.FC<FieldProps<string>> = ({ value, onSave, readOnly }) =>
   return (
     <div
       onClick={handleStartEdit}
-      className={`w-full min-h-[28px] px-2 py-1 text-sm text-gray-800 rounded truncate border border-transparent transition-colors ${
-        !readOnly ? 'cursor-pointer hover:bg-gray-100 hover:border-gray-200' : ''
+      className={`w-full min-h-[28px] px-2 py-1 text-sm text-foreground rounded truncate border border-transparent transition-colors ${
+        !readOnly ? 'cursor-pointer hover:bg-accent hover:border-border' : ''
       }`}
     >
-      {value || <span className="text-gray-400 italic">Empty</span>}
+      {value || <span className="text-muted-foreground italic">Empty</span>}
     </div>
   )
 }

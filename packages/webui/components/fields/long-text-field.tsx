@@ -63,7 +63,7 @@ const LongTextField: React.FC<FieldProps<string>> = ({ value, onSave, readOnly }
         value={localValue}
         onChange={(e) => setLocalValue(e.target.value)}
         onBlur={handleBlur}
-        className="w-full min-h-[80px] p-2 border border-blue-500 rounded bg-white text-sm outline-none shadow-sm resize-none"
+        className="w-full min-h-[80px] p-2 border border-ring rounded bg-background text-sm outline-none shadow-sm resize-none"
       />
     )
   }
@@ -73,23 +73,23 @@ const LongTextField: React.FC<FieldProps<string>> = ({ value, onSave, readOnly }
       {/* Placeholder */}
       <div
         onClick={handlePlaceholderClick}
-        className={`w-full text-gray-800 rounded border border-transparent transition-all px-2 py-1 line-clamp-2 max-h-[3rem] overflow-hidden ${
-          !readOnly ? 'cursor-pointer hover:bg-gray-100 hover:border-gray-200' : 'cursor-pointer'
+        className={`w-full text-foreground rounded border border-transparent transition-all px-2 py-1 line-clamp-2 max-h-[3rem] overflow-hidden ${
+          !readOnly ? 'cursor-pointer hover:bg-accent hover:border-border' : 'cursor-pointer'
         }`}
         title="Click to expand"
       >
-        {value ? value : <span className="text-gray-400 italic">Empty</span>}
+        {value ? value : <span className="text-muted-foreground italic">Empty</span>}
       </div>
 
       {/* Expanded Overlay */}
       {expanded && (
         <div
           onClick={handleOverlayClick}
-          className={`absolute top-0 left-0 w-full min-h-full h-auto z-50 bg-white border border-blue-500 rounded shadow-lg px-2 py-1 whitespace-pre-wrap ${
+          className={`absolute top-0 left-0 w-full min-h-full h-auto z-50 bg-background border border-ring rounded shadow-lg px-2 py-1 whitespace-pre-wrap ${
             !readOnly ? 'cursor-text' : ''
           }`}
         >
-          {value ? value : <span className="text-gray-400 italic">Empty</span>}
+          {value ? value : <span className="text-muted-foreground italic">Empty</span>}
         </div>
       )}
     </div>

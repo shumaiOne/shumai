@@ -1,8 +1,19 @@
 import type { SearchCondition, SearchConditionOperator } from '@shumai/dtos'
 import { type FieldInfo } from '@shumai/dtos'
 import { Button } from '@/ui/components/ui/button'
-import { Input } from '@/ui/components/ui/input'
 import { DebouncedInput } from '@/ui/components/ui/debounced-input'
+import { Input } from '@/ui/components/ui/input'
+import {
+  Combobox,
+  ComboboxChip,
+  ComboboxChips,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxList,
+  useComboboxAnchor,
+} from '@/ui/components/ui/combobox'
 import {
   Select,
   SelectContent,
@@ -77,6 +88,29 @@ export function FilterPanel({
       }
     }
 
+    // Convert value format when switching between single/multi-select operators
+    if (key === 'operator') {
+      const field = allFields.find((f) => f.id === newConditions[index].field)
+      if (field && (field.type === 'select' || field.type === 'selectMulti')) {
+        const oldOperator = conditions[index].operator
+        const newOperator = value as SearchConditionOperator
+        const wasMulti = isMultiSelectOperator(field.type, oldOperator)
+        const isMulti = isMultiSelectOperator(field.type, newOperator)
+
+        if (wasMulti && !isMulti) {
+          // Multi -> Single: take first item or empty string
+          const arr = Array.isArray(newConditions[index].value)
+            ? (newConditions[index].value as string[])
+            : []
+          newConditions[index].value = arr[0] || ''
+        } else if (!wasMulti && isMulti) {
+          // Single -> Multi: wrap in array if non-empty
+          const str = newConditions[index].value as string
+          newConditions[index].value = str ? [str] : []
+        }
+      }
+    }
+
     onChange(newConditions)
   }
 
@@ -132,6 +166,7 @@ export function FilterPanel({
               {condition.operator !== 'isEmpty' && condition.operator !== 'isNotEmpty' && (
                 <ConditionValueInput
                   field={allFields.find((f) => f.id === condition.field)}
+                  operator={condition.operator}
                   value={condition.value}
                   onChange={(val) => handleConditionChange(index, 'value', val)}
                 />
@@ -254,67 +289,99 @@ function getOperators(field: { id: string; label: string; type: string }): {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type FieldType = any
+interface SelectOptionItem {
+  id: string
+  displayName: string
+  color?: string
+}
+
+interface FilterField {
+  id: string
+  label: string
+  type: string
+  options?: SelectOptionItem[]
+}
+
+function isMultiSelectOperator(fieldType: string, operator: SearchConditionOperator): boolean {
+  if (fieldType === 'select') {
+    return operator === 'in' || operator === 'notIn'
+  }
+  if (fieldType === 'selectMulti') {
+    // All selectMulti operators that take values are multi-select
+    return true
+  }
+  return false
+}
+
+function MultiSelectValueInput({
+  options,
+  selected,
+  onChange,
+}: {
+  options: SelectOptionItem[]
+  selected: string[]
+  onChange: (val: string[]) => void
+}) {
+  const anchorRef = useComboboxAnchor()
+  const comboboxOptions = options.map((opt) => ({ value: opt.id, label: opt.displayName }))
+
+  return (
+    <Combobox multiple value={selected} onValueChange={onChange}>
+      <ComboboxChips ref={anchorRef} className="min-h-9 w-full">
+        {selected.map((val) => {
+          const opt = options.find((o) => o.id === val)
+          return <ComboboxChip key={val}>{opt?.displayName || val}</ComboboxChip>
+        })}
+        <ComboboxChipsInput placeholder={selected.length === 0 ? 'Select options...' : ''} />
+      </ComboboxChips>
+      <ComboboxContent anchor={anchorRef}>
+        <ComboboxList>
+          <ComboboxEmpty>No options found</ComboboxEmpty>
+          {comboboxOptions.map((opt) => (
+            <ComboboxItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </ComboboxItem>
+          ))}
+        </ComboboxList>
+      </ComboboxContent>
+    </Combobox>
+  )
+}
 
 function ConditionValueInput({
   field,
+  operator,
   value,
   onChange,
 }: {
-  field: FieldType
+  field: FilterField | undefined
+  operator: SearchConditionOperator
   value: unknown
   onChange: (val: unknown) => void
 }) {
   if (!field) return <Input disabled />
 
-  if (field.type === 'select' && field.options) {
+  if ((field.type === 'select' || field.type === 'selectMulti') && field.options) {
+    if (isMultiSelectOperator(field.type, operator)) {
+      const selected = Array.isArray(value) ? (value as string[]) : []
+      return (
+        <MultiSelectValueInput
+          options={field.options}
+          selected={selected}
+          onChange={(val) => onChange(val)}
+        />
+      )
+    }
+    // Single-select
     return (
       <Select value={value as string} onValueChange={onChange}>
         <SelectTrigger>
           <SelectValue placeholder="Select option" />
         </SelectTrigger>
         <SelectContent>
-          {field.options.map((opt: FieldType) => (
+          {field.options.map((opt) => (
             <SelectItem key={opt.id} value={opt.id}>
               {opt.displayName}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    )
-  }
-
-  if (field.type === 'selectMulti' && field.options) {
-    const selected = Array.isArray(value) ? value : []
-    return (
-      <Select
-        value={selected[0] || ''}
-        onValueChange={(val) => {
-          if (selected.includes(val)) {
-            onChange(selected.filter((v) => v !== val))
-          } else {
-            onChange([...selected, val])
-          }
-        }}
-      >
-        <SelectTrigger>
-          <SelectValue
-            placeholder={selected.length > 0 ? `${selected.length} selected` : 'Select options'}
-          />
-        </SelectTrigger>
-        <SelectContent>
-          {field.options.map((opt: FieldType) => (
-            <SelectItem key={opt.id} value={opt.id}>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={selected.includes(opt.id)}
-                  readOnly
-                  className="pointer-events-none"
-                />
-                {opt.displayName}
-              </div>
             </SelectItem>
           ))}
         </SelectContent>
