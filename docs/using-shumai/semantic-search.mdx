@@ -20,6 +20,14 @@ Semantic search translates text queries and file contents into conceptual profil
 2.  **Concept Matching**: When you search with the "Semantic" toggle enabled, Shumai matches the conceptual meaning of your query against your assets.
 3.  **Result**: Searching "sunset at the beach" will successfully find a video file of ocean waves at dusk, even if the filename is `IMG_4029.mp4`.
 
+### Understanding Search Results
+
+Semantic search works differently than traditional keyword filtering:
+
+- **Sort vs. Filter**: Semantic search acts more like a **sort** than a strict filter. While the most relevant results will appear at the top, less related content may still be present further down the list, ranked lower. If you need to exclude specific types of files, use the **Filter** panel in conjunction with semantic search.
+- **Video Chunks**: Because Shumai indexes videos in chunks, a single long video may appear multiple times in your search results. Each result corresponds to a specific segment of the video where the match was found.
+- **Match Timestamps**: When a search result comes from a video chunk, Shumai displays the matching start and end time. Clicking on these results will open the video and automatically jump to the relevant timestamp.
+
 ---
 
 ## Activating Semantic Search

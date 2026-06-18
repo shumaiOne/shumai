@@ -53,6 +53,7 @@ interface VideoPlayerProps {
   onPause?: () => void
   onTimeUpdate?: (time: number) => void
   annotations?: Annotation[]
+  startTime?: number
   children?: React.ReactNode
 }
 
@@ -311,6 +312,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   onPause,
   onTimeUpdate,
   annotations,
+  startTime,
   children,
 }) => {
   const localPlayerRef = useRef<Player | null>(null)
@@ -550,6 +552,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     // Set initial state
     player.volume(state.volume)
 
+    // Seek to startTime if provided
+    if (startTime && startTime > 0) {
+      player.ready(() => {
+        player.currentTime(startTime)
+      })
+    }
+
     // 4. Cleanup
     return () => {
       if (player && !player.isDisposed()) {
@@ -558,6 +567,18 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       }
     }
   }, [data])
+
+  // Handle changes to startTime (e.g., clicking different chunks in search results)
+  useEffect(() => {
+    const player = playerRef.current
+    if (player && startTime !== undefined && startTime !== null && startTime > 0) {
+      // Only seek if the difference is significant (e.g., > 1s) to avoid jumping due to small precision differences
+      const current = player.currentTime() || 0
+      if (Math.abs(current - startTime) > 1) {
+        player.currentTime(startTime)
+      }
+    }
+  }, [startTime, playerRef])
 
   // Smooth progress updates using requestAnimationFrame when playing
   useEffect(() => {

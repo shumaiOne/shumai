@@ -33,12 +33,14 @@ interface PublicShareManagerProps {
   }
   initialFolderId?: string
   initialFileId?: string
+  startTime?: number
 }
 
 export function PublicShareManager({
   shareInfo,
   initialFolderId,
   initialFileId,
+  startTime,
 }: PublicShareManagerProps) {
   const navigate = useNavigate()
   const [password, setPassword] = useState(() => {
@@ -387,6 +389,7 @@ export function PublicShareManager({
                 onPlay={handlePlay}
                 onTimeUpdate={setCurrentTime}
                 annotations={annotations}
+                startTime={startTime}
               />
             )}
           </div>
