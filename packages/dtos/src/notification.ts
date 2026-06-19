@@ -21,6 +21,9 @@ export const assetPreviewSchema = z.object({
   mediaType: z.string().optional(),
   name: z.string().optional(),
   preview: z.string().optional(),
+  thumbnailUrl: z.string().optional(),
+  originalWidth: z.number().optional(),
+  originalHeight: z.number().optional(),
 })
 
 export type AssetPreview = z.infer<typeof assetPreviewSchema>
