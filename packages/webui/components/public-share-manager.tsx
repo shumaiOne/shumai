@@ -205,8 +205,14 @@ export function PublicShareManager({
     }
   }, [foldersError, shareInfo.id])
 
-  const folders = foldersData?.pages.flatMap((page) => page.data ?? []) ?? []
-  const files = filesData?.pages.flatMap((page) => page.data ?? []) ?? []
+  const folders = useMemo(
+    () => foldersData?.pages.flatMap((page) => page.data ?? []) ?? [],
+    [foldersData],
+  )
+  const files = useMemo(
+    () => filesData?.pages.flatMap((page) => page.data ?? []) ?? [],
+    [filesData],
+  )
 
   const currentSelectedItem = useMemo(() => {
     if (viewingFileData) return viewingFileData
