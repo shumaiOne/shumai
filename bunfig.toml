@@ -4,6 +4,3 @@ plugins = ["bun-plugin-tailwind"]
 [install]
 minimumReleaseAge = 604800 # 7 days in seconds
 exact = true
-
-[define]
-"__APP_VERSION__" = "'0.0.8'"

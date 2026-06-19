@@ -1,24 +1,25 @@
 import { client } from '@/ui/api/client'
 import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/ui/avatar'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
-  DropdownMenuPortal,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuPortal,
+    DropdownMenuSeparator,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
+    DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu'
 import { useTeamId } from '@/ui/hooks/use-team-id'
 import { signOut } from '@/ui/lib/auth-client'
 import { useAuthStore } from '@/ui/stores/auth'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { useTheme } from './theme-provider'
 import { Check } from 'lucide-react'
+import { APP_VERSION } from '../version'
+import { useTheme } from './theme-provider'
 
 const Github = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
@@ -145,13 +146,13 @@ export function UserMenu() {
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          className="text-xs text-muted-foreground flex items-center gap-2 cursor-pointer focus:bg-accent focus:text-accent-foreground"
+          className="text-xs text-muted-foreground flex items-center gap-2 cursor-pointer focus:bg-accent focus:text-accent-foreground justify-center bg-accent border"
           onClick={() =>
             window.open('https://github.com/shumaiOne/shumai', '_blank', 'noopener,noreferrer')
           }
         >
           <Github className="size-3.5" />
-          <span>Version {__APP_VERSION__}</span>
+          <span>Version {APP_VERSION}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

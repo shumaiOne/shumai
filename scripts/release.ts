@@ -92,20 +92,10 @@ function updateVersions(newVersion: string) {
     console.log(`  Updated version in ${file}`)
   }
 
-  if (existsSync('bunfig.toml')) {
-    let content = readFileSync('bunfig.toml', 'utf-8')
-    const appVersionLine = `"__APP_VERSION__" = "'${newVersion}'"`
-    if (content.includes('__APP_VERSION__')) {
-      content = content.replace(/"__APP_VERSION__"\s*=\s*['"].*?['"]/, appVersionLine)
-    } else {
-      if (content.includes('[define]')) {
-        content = content.replace('[define]', `[define]\n${appVersionLine}`)
-      } else {
-        content = content.trimEnd() + `\n\n[define]\n${appVersionLine}\n`
-      }
-    }
-    writeFileSync('bunfig.toml', content, 'utf-8')
-    console.log('  Updated version in bunfig.toml')
+  const versionFile = 'packages/webui/version.ts'
+  if (existsSync(versionFile)) {
+    writeFileSync(versionFile, `export const APP_VERSION = '${newVersion}'\n`, 'utf-8')
+    console.log(`  Updated version in ${versionFile}`)
   }
 }
 
