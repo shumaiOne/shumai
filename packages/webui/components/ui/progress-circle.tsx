@@ -1,4 +1,5 @@
 import React from 'react'
+import { cn } from '@/ui/lib/utils'
 
 interface ProgressCircleProps {
   progress: number
@@ -8,15 +9,15 @@ interface ProgressCircleProps {
 export const ProgressCircle: React.FC<ProgressCircleProps> = ({ progress, className }) => {
   const radius = 20
   const circumference = 2 * Math.PI * radius
-  const offset = circumference - (progress / 100) * circumference
+  const offset = circumference - (Math.min(100, Math.max(0, progress)) / 100) * circumference
 
   return (
-    <svg width="50" height="50" viewBox="0 0 50 50" className={className}>
+    <svg viewBox="0 0 50 50" className={cn('w-12 h-12', className)}>
       <circle
         cx="25"
         cy="25"
         r={radius}
-        className="stroke-current text-gray-200"
+        className="stroke-muted"
         strokeWidth="4"
         fill="transparent"
       />
@@ -24,12 +25,11 @@ export const ProgressCircle: React.FC<ProgressCircleProps> = ({ progress, classN
         cx="25"
         cy="25"
         r={radius}
-        className="stroke-current text-blue-600"
+        className="stroke-primary transition-all duration-300 ease-out"
         strokeWidth="4"
         fill="transparent"
         strokeDasharray={circumference}
         strokeDashoffset={offset}
-        style={{ transition: 'stroke-dashoffset 0.3s' }}
         transform="rotate(-90 25 25)"
       />
       <text
@@ -37,7 +37,7 @@ export const ProgressCircle: React.FC<ProgressCircleProps> = ({ progress, classN
         y="50%"
         textAnchor="middle"
         dy=".3em"
-        className="text-xs font-semibold text-gray-700"
+        className="fill-foreground text-[10px] font-bold"
       >
         {`${Math.round(progress)}%`}
       </text>
