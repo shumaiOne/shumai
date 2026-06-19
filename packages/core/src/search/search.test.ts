@@ -303,6 +303,7 @@ describe('SearchService', () => {
       // SelectMulti Metadata
       { field: 'multi', op: 'hasAny', val: ['a'], expected: ['multi-a-b'] },
       { field: 'multi', op: 'hasAny', val: ['b'], expected: ['multi-a-b', 'multi-b-c'] },
+      { field: 'multi', op: 'hasAny', val: ['a', 'c'], expected: ['multi-a-b', 'multi-b-c'] },
       { field: 'multi', op: 'hasAll', val: ['a', 'b'], expected: ['multi-a-b'] },
       { field: 'multi', op: 'hasAll', val: ['a', 'c'], expected: [] },
       {
@@ -317,6 +318,23 @@ describe('SearchService', () => {
           'bool-true',
           'bool-false',
           'multi-b-c',
+          'date-today',
+          'date-yesterday',
+          'name-contains-test',
+          'nothing',
+        ],
+      },
+      {
+        field: 'multi',
+        op: 'hasNone',
+        val: ['a', 'c'],
+        expected: [
+          'str-apple',
+          'str-banana',
+          'num-10',
+          'num-20',
+          'bool-true',
+          'bool-false',
           'date-today',
           'date-yesterday',
           'name-contains-test',
