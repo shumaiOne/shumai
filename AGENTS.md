@@ -396,6 +396,7 @@ To prevent Temporal from indefinitely retrying fatal, expected business validati
 ## Radix UI / Shadcn UI Patterns
 
 - **Modal Overlays**: When triggering a dialog (e.g., `Dialog`, `AlertDialog`) from inside a `DropdownMenu`, you must set `modal={false}` on the `<DropdownMenu>` component. Failing to do so will cause the UI to freeze due to conflicting focus management between the two modal components.
+- **Scrollable Content**: Always use the Shadcn `ScrollArea` component (`@/ui/components/ui/scroll-area`) for scrollable content containers to ensure consistent custom scrollbar UI across the application.
 
 ## Logging
 

@@ -4,6 +4,7 @@ import type { SearchCondition } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
 import { Button } from '@/ui/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog'
+import { ScrollArea } from '@/ui/components/ui/scroll-area'
 import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
 import { Switch } from '@/ui/components/ui/switch'
@@ -255,7 +256,7 @@ export function SearchFilterDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px] p-0 gap-0 overflow-hidden bg-background border-border rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+      <DialogContent className="sm:max-w-[900px] p-0 gap-0 overflow-hidden bg-background border-border rounded-2xl shadow-2xl flex flex-col h-[85vh]">
         <DialogHeader className="px-6 pt-3 pb-0 text-left">
           <DialogTitle className="text-lg font-bold">Search</DialogTitle>
         </DialogHeader>
@@ -328,17 +329,20 @@ export function SearchFilterDialog({
             </div>
           </form>
 
-          <div
-            onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
-            className="flex items-center justify-between py-1.5 px-1 mt-1 rounded-lg hover:bg-accent/50 cursor-pointer select-none transition-colors group"
-          >
+          <div className="flex items-center justify-between py-1.5 px-1 mt-1 select-none">
             <div className="flex items-center gap-2">
-              {isFiltersExpanded ? (
-                <ChevronUp className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
-              )}
-              <span className="text-xs font-semibold text-foreground/80">Filters</span>
+              <button
+                type="button"
+                onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
+                className="flex items-center gap-2 py-1 px-1.5 rounded-lg hover:bg-accent/50 cursor-pointer transition-colors group text-left"
+              >
+                {isFiltersExpanded ? (
+                  <ChevronUp className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
+                )}
+                <span className="text-xs font-semibold text-foreground/80">Filters</span>
+              </button>
 
               {activeFiltersCount > 0 && (
                 <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/10 text-primary border border-primary/20">
@@ -362,148 +366,155 @@ export function SearchFilterDialog({
           </div>
 
           {isFiltersExpanded && (
-            <div className="mt-1 p-4 bg-muted/40 border border-border rounded-xl flex flex-col gap-3 animate-in slide-in-from-top-1 duration-200">
-              <FilterPanel
-                fields={fields}
-                conditions={conditions}
-                onChange={setConditions}
-                excludeFields={['name']}
-                hidePrefix={true}
-                className="p-0 bg-transparent space-y-2"
-              />
-            </div>
+            <ScrollArea className="mt-1 max-h-[28vh] rounded-xl border border-border bg-muted/40">
+              <div className="p-4 flex flex-col gap-3 animate-in slide-in-from-top-1 duration-200">
+                <FilterPanel
+                  fields={fields}
+                  conditions={conditions}
+                  onChange={setConditions}
+                  excludeFields={['name']}
+                  hidePrefix={true}
+                  className="p-0 bg-transparent space-y-2"
+                />
+              </div>
+            </ScrollArea>
           )}
         </div>
 
         {/* Results Body ported from Demo */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-5 bg-background">
-          <div className="flex items-center justify-between mb-3 px-1">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/60 font-mono">
-              Search Results
-            </span>
-            {isLoading && (
-              <span className="inline-flex items-center gap-1.5 text-xs text-primary">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                {isSemantic
-                  ? 'Semantic search using media intelligence might be slow...'
-                  : 'Querying database...'}
+        <ScrollArea className="flex-1 bg-background">
+          <div className="p-4 md:p-5">
+            <div className="flex items-center justify-between mb-3 px-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/60 font-mono">
+                Search Results
               </span>
-            )}
-          </div>
+              {isLoading && (
+                <span className="inline-flex items-center gap-1.5 text-xs text-primary">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  {isSemantic
+                    ? 'Semantic search using media intelligence might be slow...'
+                    : 'Querying database...'}
+                </span>
+              )}
+            </div>
 
-          <div className="flex flex-col border border-border rounded-xl divide-y divide-border overflow-hidden">
-            {!hasActiveCriteria ? (
-              <div className="py-20 text-center flex flex-col items-center justify-center bg-muted/20 px-4">
-                <Search className="w-10 h-10 text-muted-foreground/30 mb-2" />
-                <h3 className="text-sm font-semibold text-foreground/80">Ready to Search</h3>
-                <p className="text-xs text-muted-foreground max-w-sm mt-1 mx-auto">
-                  Type your query above and click the Search button to display results.
-                </p>
-                {isSemantic && (
-                  <p className="text-xs text-muted-foreground/80 max-w-md mt-4 mx-auto border-t border-border/60 pt-3">
-                    Semantic search results will be ordered by their relevance to the search query
-                    text, but won't be strictly filtered. If you need accurate filtering, please add
-                    filter conditions to control that.
+            <div className="flex flex-col border border-border rounded-xl divide-y divide-border overflow-hidden">
+              {!hasActiveCriteria ? (
+                <div className="py-20 text-center flex flex-col items-center justify-center bg-muted/20 px-4">
+                  <Search className="w-10 h-10 text-muted-foreground/30 mb-2" />
+                  <h3 className="text-sm font-semibold text-foreground/80">Ready to Search</h3>
+                  <p className="text-xs text-muted-foreground max-w-sm mt-1 mx-auto">
+                    Type your query above and click the Search button to display results.
                   </p>
-                )}
-              </div>
-            ) : searchError ? (
-              <div className="py-12 px-4 text-center flex flex-col items-center justify-center bg-muted/20">
-                <AlertCircle className="w-10 h-10 text-destructive/50 mb-2" />
-                <h3 className="text-sm font-semibold text-foreground/80">Search failed</h3>
-                <p className="text-xs text-muted-foreground max-w-sm mt-1 mx-auto">
-                  {searchError.message.includes('Embedding agent not configured')
-                    ? 'Please create and enable an embedding agent in the team settings to use semantic search.'
-                    : searchError.message}
-                </p>
-              </div>
-            ) : isLoading ? (
-              Array.from({ length: 3 }).map((_, idx) => (
-                <div key={idx} className="p-3.5 flex items-center gap-3 animate-pulse bg-muted/10">
-                  <div className="w-11 h-11 rounded-xl bg-muted shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-muted rounded w-1/3" />
-                    <div className="h-3 bg-muted/50 rounded w-1/4" />
-                  </div>
+                  {isSemantic && (
+                    <p className="text-xs text-muted-foreground/80 max-w-md mt-4 mx-auto border-t border-border/60 pt-3">
+                      Semantic search results will be ordered by their relevance to the search query
+                      text, but won't be strictly filtered. If you need accurate filtering, please
+                      add filter conditions to control that.
+                    </p>
+                  )}
                 </div>
-              ))
-            ) : flattenedResults.length === 0 ? (
-              <div className="py-12 px-4 text-center flex flex-col items-center justify-center bg-muted/20">
-                <AlertCircle className="w-10 h-10 text-muted-foreground/30 mb-2" />
-                <h3 className="text-sm font-semibold text-foreground/80">
-                  No records matched your criteria
-                </h3>
-                <p className="text-xs text-muted-foreground max-w-sm mt-1 mx-auto">
-                  Try adjusting spelling or removing filter rows.
-                </p>
-              </div>
-            ) : (
-              <>
-                {flattenedResults.map((record) => (
+              ) : searchError ? (
+                <div className="py-12 px-4 text-center flex flex-col items-center justify-center bg-muted/20">
+                  <AlertCircle className="w-10 h-10 text-destructive/50 mb-2" />
+                  <h3 className="text-sm font-semibold text-foreground/80">Search failed</h3>
+                  <p className="text-xs text-muted-foreground max-w-sm mt-1 mx-auto">
+                    {searchError.message.includes('Embedding agent not configured')
+                      ? 'Please create and enable an embedding agent in the team settings to use semantic search.'
+                      : searchError.message}
+                  </p>
+                </div>
+              ) : isLoading ? (
+                Array.from({ length: 3 }).map((_, idx) => (
                   <div
-                    key={record.id}
-                    onClick={() => handleResultClick(record)}
-                    className="p-3.5 flex items-center gap-3 hover:bg-muted/40 transition-colors group/record cursor-pointer"
+                    key={idx}
+                    className="p-3.5 flex items-center gap-3 animate-pulse bg-muted/10"
                   >
-                    <div
-                      className={cn(
-                        'shrink-0 w-11 h-11 rounded-xl shadow-xs flex items-center justify-center text-white font-bold relative group-hover/record:scale-105 transition-transform bg-muted overflow-hidden',
-                        record.type === 'folder' ? 'bg-primary/5' : '',
-                      )}
-                    >
-                      {record.preview?.thumbnailUrl ? (
-                        <img
-                          src={record.preview.thumbnailUrl}
-                          alt=""
-                          className="w-full h-full object-cover rounded-xl"
-                        />
-                      ) : record.type === 'folder' ? (
-                        <FolderIcon className="h-6 w-6 text-primary/70" />
-                      ) : (
-                        <FileIcon className="h-6 w-6 text-muted-foreground" />
-                      )}
+                    <div className="w-11 h-11 rounded-xl bg-muted shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-muted rounded w-1/3" />
+                      <div className="h-3 bg-muted/50 rounded w-1/4" />
                     </div>
+                  </div>
+                ))
+              ) : flattenedResults.length === 0 ? (
+                <div className="py-12 px-4 text-center flex flex-col items-center justify-center bg-muted/20">
+                  <AlertCircle className="w-10 h-10 text-muted-foreground/30 mb-2" />
+                  <h3 className="text-sm font-semibold text-foreground/80">
+                    No records matched your criteria
+                  </h3>
+                  <p className="text-xs text-muted-foreground max-w-sm mt-1 mx-auto">
+                    Try adjusting spelling or removing filter rows.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {flattenedResults.map((record) => (
+                    <div
+                      key={record.id}
+                      onClick={() => handleResultClick(record)}
+                      className="p-3.5 flex items-center gap-3 hover:bg-muted/40 transition-colors group/record cursor-pointer"
+                    >
+                      <div
+                        className={cn(
+                          'shrink-0 w-11 h-11 rounded-xl shadow-xs flex items-center justify-center text-white font-bold relative group-hover/record:scale-105 transition-transform bg-muted overflow-hidden',
+                          record.type === 'folder' ? 'bg-primary/5' : '',
+                        )}
+                      >
+                        {record.preview?.thumbnailUrl ? (
+                          <img
+                            src={record.preview.thumbnailUrl}
+                            alt=""
+                            className="w-full h-full object-cover rounded-xl"
+                          />
+                        ) : record.type === 'folder' ? (
+                          <FolderIcon className="h-6 w-6 text-primary/70" />
+                        ) : (
+                          <FileIcon className="h-6 w-6 text-muted-foreground" />
+                        )}
+                      </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="truncate">
-                          <span className="font-medium text-sm text-foreground group-hover/record:text-primary transition-colors block truncate">
-                            {record.name}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="truncate">
+                            <span className="font-medium text-sm text-foreground group-hover/record:text-primary transition-colors block truncate">
+                              {record.name}
+                            </span>
+                            <span className="text-xs text-muted-foreground block mt-0.5 truncate">
+                              {record.type === 'folder'
+                                ? 'Folder'
+                                : `Size: ${formatSize(record.sizeByte || 0)}`}
+                            </span>
+                            {record.startTime !== undefined &&
+                              record.startTime !== null &&
+                              record.endTime !== undefined &&
+                              record.endTime !== null && (
+                                <span className="text-[10px] font-semibold text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded mt-1 inline-block">
+                                  Match found at {formatTimestamp(record.startTime)} -{' '}
+                                  {formatTimestamp(record.endTime)}
+                                </span>
+                              )}
+                          </div>
+                          <span className="text-xs text-muted-foreground font-mono shrink-0">
+                            {new Date(record.createdAt).toLocaleDateString(undefined, {
+                              year: 'numeric',
+                              month: 'short',
+                            })}
                           </span>
-                          <span className="text-xs text-muted-foreground block mt-0.5 truncate">
-                            {record.type === 'folder'
-                              ? 'Folder'
-                              : `Size: ${formatSize(record.sizeByte || 0)}`}
-                          </span>
-                          {record.startTime !== undefined &&
-                            record.startTime !== null &&
-                            record.endTime !== undefined &&
-                            record.endTime !== null && (
-                              <span className="text-[10px] font-semibold text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded mt-1 inline-block">
-                                Match found at {formatTimestamp(record.startTime)} -{' '}
-                                {formatTimestamp(record.endTime)}
-                              </span>
-                            )}
                         </div>
-                        <span className="text-xs text-muted-foreground font-mono shrink-0">
-                          {new Date(record.createdAt).toLocaleDateString(undefined, {
-                            year: 'numeric',
-                            month: 'short',
-                          })}
-                        </span>
                       </div>
                     </div>
-                  </div>
-                ))}
-                {(hasNextPage || isFetchingNextPage) && (
-                  <div ref={ref} className="p-4 flex justify-center items-center">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                )}
-              </>
-            )}
+                  ))}
+                  {(hasNextPage || isFetchingNextPage) && (
+                    <div ref={ref} className="p-4 flex justify-center items-center">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        </ScrollArea>
 
         {/* Footer ported from Demo */}
         <div className="p-4 border-t border-border bg-muted/30 flex items-center justify-between shrink-0">
