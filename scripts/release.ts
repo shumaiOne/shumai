@@ -91,6 +91,12 @@ function updateVersions(newVersion: string) {
     writeFileSync(file, JSON.stringify(content, null, 2) + '\n', 'utf-8')
     console.log(`  Updated version in ${file}`)
   }
+
+  const versionFile = 'packages/webui/version.ts'
+  if (existsSync(versionFile)) {
+    writeFileSync(versionFile, `export const APP_VERSION = '${newVersion}'\n`, 'utf-8')
+    console.log(`  Updated version in ${versionFile}`)
+  }
 }
 
 function shellQuote(value: string) {
