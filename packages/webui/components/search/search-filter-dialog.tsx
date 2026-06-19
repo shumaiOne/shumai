@@ -382,7 +382,7 @@ export function SearchFilterDialog({
         </div>
 
         {/* Results Body ported from Demo */}
-        <ScrollArea className="flex-1 bg-background">
+        <ScrollArea className="flex-1 min-h-0 bg-background">
           <div className="p-4 md:p-5">
             <div className="flex items-center justify-between mb-3 px-1">
               <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/60 font-mono">
