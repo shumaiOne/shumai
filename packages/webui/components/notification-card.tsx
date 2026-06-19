@@ -1,6 +1,7 @@
 import type { NotificationInfo } from '@shumai/dtos'
 import { formatTimeAgo } from '@/ui/lib/time'
 import { cn } from '@/ui/lib/utils'
+import { SpriteScrubber } from './sprite-scrubber'
 
 interface NotificationCardProps {
   notification: NotificationInfo
@@ -76,6 +77,13 @@ export const NotificationCard = ({ notification }: NotificationCardProps) => {
     }
   })()
 
+  const isVideoWithSprite =
+    asset?.mediaType?.startsWith('video/') &&
+    asset.preview &&
+    asset.thumbnailUrl &&
+    asset.originalWidth &&
+    asset.originalHeight
+
   const hasPreview =
     asset?.preview && (asset.mediaType?.startsWith('image') || asset.mediaType?.startsWith('video'))
 
@@ -98,7 +106,16 @@ export const NotificationCard = ({ notification }: NotificationCardProps) => {
 
       {hasPreview && (
         <div className="w-18 h-18 ml-2 rounded-md overflow-hidden flex-shrink-0 bg-muted border border-border flex items-center justify-center mt-0.5">
-          <img src={asset!.preview} alt={asset!.name} className="w-full h-full object-cover" />
+          {isVideoWithSprite ? (
+            <SpriteScrubber
+              spriteUrl={asset.preview!}
+              thumbnailUrl={asset.thumbnailUrl!}
+              videoWidth={asset.originalWidth!}
+              videoHeight={asset.originalHeight!}
+            />
+          ) : (
+            <img src={asset!.preview} alt={asset!.name} className="w-full h-full object-cover" />
+          )}
         </div>
       )}
     </div>

@@ -371,6 +371,9 @@ export class NotificationService {
     if (n.asset) {
       const a = n.asset
       let previewUrl = ''
+      let thumbnailUrl = ''
+      let originalWidth = 0
+      let originalHeight = 0
 
       const media = a.media as PrismaJson.MediaInfo | null
 
@@ -379,8 +382,16 @@ export class NotificationService {
         try {
           if (media.sprite) {
             previewUrl = await s3Service.presign(bucket, media.sprite.key, 'GET')
+            if (media.poster) {
+              thumbnailUrl = await s3Service.presign(bucket, media.poster.key || '', 'GET')
+            }
+            if (media.metadata) {
+              originalWidth = media.metadata.originalWidth
+              originalHeight = media.metadata.originalHeight
+            }
           } else if (media.thumbnail) {
             previewUrl = await s3Service.presign(bucket, media.thumbnail.key || '', 'GET')
+            thumbnailUrl = previewUrl
           }
         } catch (e) {
           console.error('Failed to generate presigned url for notification asset preview:', e)
@@ -392,6 +403,9 @@ export class NotificationService {
         name: a.name,
         mediaType: a.mediaType || undefined,
         preview: previewUrl || undefined,
+        thumbnailUrl: thumbnailUrl || undefined,
+        originalWidth: originalWidth || undefined,
+        originalHeight: originalHeight || undefined,
       }
     }
 
