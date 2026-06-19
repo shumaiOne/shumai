@@ -355,11 +355,16 @@ export class SqlQueryBuilder {
         const valNumArr = valArr.map((v) => Number(v)).filter((v) => !isNaN(v))
         return Prisma.sql`a.id NOT IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field} AND (string_value = ANY(${valArr}) OR number_value = ANY(${valNumArr}::double precision[])))`
       }
-      case 'hasAny':
       case 'hasAll':
         return Prisma.sql`a.id IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field} AND json_value @> ${JSON.stringify(value)}::jsonb)`
-      case 'hasNone':
-        return Prisma.sql`a.id NOT IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field} AND json_value @> ${JSON.stringify(value)}::jsonb)`
+      case 'hasAny': {
+        const valArr = (Array.isArray(value) ? value : [value]).map(String)
+        return Prisma.sql`a.id IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field} AND jsonb_exists_any(json_value, ${valArr}::text[]))`
+      }
+      case 'hasNone': {
+        const valArr = (Array.isArray(value) ? value : [value]).map(String)
+        return Prisma.sql`a.id NOT IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field} AND jsonb_exists_any(json_value, ${valArr}::text[]))`
+      }
       case 'isWithin': {
         const range = this.parseDateRange(value)
         return Prisma.sql`a.id IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field} AND date_value >= ${range.start} AND date_value <= ${range.end})`
