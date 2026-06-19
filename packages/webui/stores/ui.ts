@@ -14,6 +14,12 @@ interface UiState {
   fileListRightSidebarCollapsed: boolean
   setFileListRightSidebarCollapsed: (collapsed: boolean) => void
 
+  shareConfigLeftSidebarCollapsed: boolean
+  setShareConfigLeftSidebarCollapsed: (collapsed: boolean) => void
+
+  shareConfigRightSidebarCollapsed: boolean
+  setShareConfigRightSidebarCollapsed: (collapsed: boolean) => void
+
   viewModes: { [projectId: string]: 'card' | 'list' }
   setViewMode: (projectId: string, mode: 'card' | 'list') => void
 }
@@ -36,6 +42,14 @@ export const useUiStore = create<UiState>()(
       fileListRightSidebarCollapsed: true,
       setFileListRightSidebarCollapsed: (collapsed) =>
         set({ fileListRightSidebarCollapsed: collapsed }),
+
+      shareConfigLeftSidebarCollapsed: false,
+      setShareConfigLeftSidebarCollapsed: (collapsed) =>
+        set({ shareConfigLeftSidebarCollapsed: collapsed }),
+
+      shareConfigRightSidebarCollapsed: false,
+      setShareConfigRightSidebarCollapsed: (collapsed) =>
+        set({ shareConfigRightSidebarCollapsed: collapsed }),
 
       viewModes: {},
       setViewMode: (projectId, mode) =>

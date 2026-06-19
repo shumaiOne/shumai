@@ -86,8 +86,8 @@ export default function ShareManager({
   const [rightSidebarWidth, setRightSidebarWidth] = useState(360)
 
   const {
-    fileListLeftSidebarCollapsed: isLeftSidebarCollapsed,
-    fileListRightSidebarCollapsed: isRightSidebarCollapsed,
+    shareConfigLeftSidebarCollapsed: isLeftSidebarCollapsed,
+    shareConfigRightSidebarCollapsed: isRightSidebarCollapsed,
     viewModes,
   } = useUiStore()
 
