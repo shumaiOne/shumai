@@ -382,8 +382,8 @@ export class NotificationService {
         try {
           if (media.sprite) {
             previewUrl = await s3Service.presign(bucket, media.sprite.key, 'GET')
-            if (media.thumbnail) {
-              thumbnailUrl = await s3Service.presign(bucket, media.thumbnail.key || '', 'GET')
+            if (media.poster) {
+              thumbnailUrl = await s3Service.presign(bucket, media.poster.key || '', 'GET')
             }
             if (media.metadata) {
               originalWidth = media.metadata.originalWidth

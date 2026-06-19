@@ -362,4 +362,70 @@ describe('NotificationService', () => {
     count = await notificationService.getUnreadCount(tm.id, u1.id)
     expect(count).toBe(0)
   })
+
+  it('toNotificationInfo maps video sprite and poster urls', async () => {
+    const tm = await prisma.team.create({ data: { name: 'Team 1' } })
+
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'test-video.mp4',
+        type: 'file',
+        mediaType: 'video/mp4',
+        status: 'processed',
+        media: {
+          duration: 10,
+          filesize: 1024,
+          fps: 24,
+          frames: 240,
+          videoPreview: { width: 640, height: 360 },
+          videoTranscodes: [],
+          imageTranscodes: [],
+          sprite: { key: 'sprites/test-video.jpg', tileX: 10, tileY: 10, frames: 100 },
+          poster: { key: 'posters/test-video.jpg' },
+          thumbnail: {
+            key: 'thumbnails/test-video.jpg',
+            width: 120,
+            height: 90,
+            format: 'jpg',
+            quality: 80,
+          },
+          metadata: {
+            originalWidth: 1280,
+            originalHeight: 720,
+            duration: 10,
+            bitRate: 1000,
+            frameRate: 24,
+            hasAudio: false,
+            format: {},
+          },
+          finishedAt: new Date().toISOString(),
+          mimeType: 'video/mp4',
+          original: null,
+        },
+      },
+    })
+
+    const n = await prisma.notification.create({
+      data: {
+        teamId: tm.id,
+        type: NotificationType.comment_created,
+        assetId: asset.id,
+      },
+    })
+
+    const svc = notificationService
+    const info = await svc['toNotificationInfo'](
+      await prisma.notification.findUniqueOrThrow({
+        where: { id: n.id },
+        include: { creator: true, team: true, project: true, asset: true, user: true },
+      }),
+      null,
+    )
+
+    expect(info.asset?.preview).toBeDefined()
+    expect(info.asset?.thumbnailUrl).toBeDefined()
+    expect(info.asset?.thumbnailUrl).toContain('posters/test-video.jpg')
+    expect(info.asset?.originalWidth).toBe(1280)
+    expect(info.asset?.originalHeight).toBe(720)
+  })
 })
