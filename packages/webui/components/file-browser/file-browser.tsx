@@ -457,18 +457,45 @@ export function FileBrowser({
   const { mutate: createUploadTaskMutation } = useMutation<
     InferResponseType<typeof $createUploadTask>,
     Error,
-    InferRequestType<typeof $createUploadTask>
+    InferRequestType<typeof $createUploadTask>,
+    { files: FileWithId[] }
   >({
     mutationFn: async (request) => {
       const res = await $createUploadTask(request)
       if (!res.ok) throw new Error('Failed to create upload task')
       return (await res.json()) as InferResponseType<typeof $createUploadTask>
     },
-    onSuccess: async (data, variables) => {
+    onMutate: () => {
+      return { files: [...filesToUpload] }
+    },
+    onSuccess: async (data, variables, context) => {
+      const currentFiles = context?.files || []
       const isCurrentFolderUpload = variables.json.parentId === assetId
 
+      // Register task and files in the store for real-time progress tracking
+      const filesProgressInfo = currentFiles
+        .map((f) => {
+          const urlInfo = (
+            data.presignedUrls as { id?: string; url?: string; fileId?: string }[] | undefined
+          )?.find((p) => p.id === f.id)
+          return {
+            fileId: urlInfo?.fileId || f.id,
+            name: f.file.name,
+            size: f.file.size,
+          }
+        })
+        .filter((info) => !!info.fileId)
+
+      const visibleFiles = currentFiles.filter((f) => !f.file.name.startsWith('.'))
+      const taskName =
+        visibleFiles.length === 1 ? visibleFiles[0].file.name : `${visibleFiles.length} Items`
+
+      if (data.taskId) {
+        startTask(data.taskId, taskName, filesProgressInfo)
+      }
+
       if (isCurrentFolderUpload) {
-        const newLocalFiles: AssetInfo[] = filesToUpload
+        const newLocalFiles: AssetInfo[] = currentFiles
           .filter((f) => {
             const path = (f.file.webkitRelativePath || f.file.name).split('/')
             return path.length === 1
@@ -500,7 +527,7 @@ export function FileBrowser({
 
       // The RPC client returns an object that we cast to the expected type
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await uploadFiles(filesToUpload, data.presignedUrls as any, data.taskId!)
+      await uploadFiles(currentFiles, data.presignedUrls as any, data.taskId!)
       queryClient.invalidateQueries({
         queryKey: ['search', teamId, assetId],
       })
@@ -509,6 +536,10 @@ export function FileBrowser({
 
   const incrementUploading = useUploadStore((state) => state.increment)
   const decrementUploading = useUploadStore((state) => state.decrement)
+  const startTask = useUploadStore((state) => state.startTask)
+  const updateFileProgress = useUploadStore((state) => state.updateFileProgress)
+  const completeFile = useUploadStore((state) => state.completeFile)
+  const failFile = useUploadStore((state) => state.failFile)
   const { fields } = useFieldStore()
   const displayedFields = useMemo(() => {
     if (!isShareView) return fields.filter((f) => f.visible)
@@ -688,25 +719,53 @@ export function FileBrowser({
             incrementUploading()
             try {
               try {
-                const resp = await fetch(uploadInfo.url, {
-                  method: 'PUT',
-                  body: file.file,
-                  headers: {
-                    'Content-Type': file.file.type,
+                const xhr = new XMLHttpRequest()
+                const uploadPromise = new Promise<{ ok: boolean; status: number }>(
+                  (resolve, reject) => {
+                    xhr.open('PUT', uploadInfo.url)
+                    xhr.setRequestHeader('Content-Type', file.file.type)
+
+                    xhr.upload.onprogress = (event) => {
+                      if (event.lengthComputable) {
+                        updateFileProgress(taskId, uploadInfo.fileId, event.loaded)
+                      }
+                    }
+
+                    xhr.onload = () => {
+                      if (xhr.status >= 200 && xhr.status < 300) {
+                        resolve({ ok: true, status: xhr.status })
+                      } else {
+                        resolve({ ok: false, status: xhr.status })
+                      }
+                    }
+
+                    xhr.onerror = () => {
+                      reject(new Error('Network error'))
+                    }
+
+                    xhr.onabort = () => {
+                      reject(new Error('Upload aborted'))
+                    }
+
+                    xhr.send(file.file)
                   },
-                })
+                )
+
+                const resp = await uploadPromise
 
                 if (resp.ok) {
+                  completeFile(taskId, uploadInfo.fileId)
                   await confirmUpload({
-                    param: { teamId: teamId, taskId: taskId },
+                    param: { teamId: teamId!, taskId: taskId },
                     json: {
                       fileId: uploadInfo.fileId,
                     },
                   })
                 } else {
+                  failFile(taskId, uploadInfo.fileId)
                   toast.error(`Failed to upload file: ${file.file.name}`)
                   await confirmUpload({
-                    param: { teamId: teamId, taskId: taskId },
+                    param: { teamId: teamId!, taskId: taskId },
                     json: {
                       fileId: uploadInfo.fileId,
                       errorMessage: `upload failed with status: ${resp.status}`,
@@ -715,9 +774,10 @@ export function FileBrowser({
                   return
                 }
               } catch (error) {
+                failFile(taskId, uploadInfo.fileId)
                 toast.error(`Failed to upload file: ${file.file.name}`)
                 await confirmUpload({
-                  param: { teamId: teamId, taskId: taskId },
+                  param: { teamId: teamId!, taskId: taskId },
                   json: {
                     fileId: uploadInfo.fileId,
                     errorMessage: `upload failed with error: ${error instanceof Error ? error.message : String(error)}`,

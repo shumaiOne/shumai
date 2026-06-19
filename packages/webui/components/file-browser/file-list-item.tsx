@@ -11,6 +11,8 @@ import FieldRenderer from '../field-renderer'
 import { Badge } from '@/ui/components/ui/badge'
 import { Checkbox } from '@/ui/components/ui/checkbox'
 import { EditableText } from '@/ui/components/ui/editable-text'
+import { useUploadStore } from '@/ui/stores/upload'
+import { ProgressCircle } from '@/ui/components/ui/progress-circle'
 
 import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
 
@@ -59,6 +61,13 @@ export function FileListItem({
 }: FileListItemProps) {
   const [name, setName] = useState(item.name)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  const fileUploadState = useUploadStore((state) => state.fileProgress[item.id || ''])
+  const uploadPercent = fileUploadState
+    ? fileUploadState.total > 0
+      ? (fileUploadState.loaded / fileUploadState.total) * 100
+      : 0
+    : 0
 
   const shouldPoll =
     (item.type === 'file' || item.type === 'version_stack') &&
@@ -197,7 +206,9 @@ export function FileListItem({
             className="h-4 w-4 shrink-0 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
           />
           <div className="w-8 h-8 shrink-0 flex items-center justify-center bg-muted rounded overflow-hidden">
-            {displayItem.preview?.thumbnailUrl ? (
+            {displayItem.status === 'uploading' ? (
+              <ProgressCircle progress={uploadPercent} className="w-7 h-7" />
+            ) : displayItem.preview?.thumbnailUrl ? (
               <img
                 src={displayItem.preview.thumbnailUrl}
                 alt=""

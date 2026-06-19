@@ -6,11 +6,11 @@ import { Badge } from '@/ui/components/ui/badge'
 import { Button } from '@/ui/components/ui/button'
 import { Checkbox } from '@/ui/components/ui/checkbox'
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu'
 import { EditableText } from '@/ui/components/ui/editable-text'
 import { Skeleton } from '@/ui/components/ui/skeleton'
@@ -22,6 +22,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { DragState } from '../dnd-types'
 import FieldRenderer from '../field-renderer'
 import { FilePreview } from './file-preview'
+import { useUploadStore } from '@/ui/stores/upload'
+import { ProgressCircle } from '@/ui/components/ui/progress-circle'
 
 import { FieldType, type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
 import { FIELD_TYPE_ICONS } from '../fields-manager'
@@ -81,6 +83,13 @@ export function FileCard({
 }: FileCardProps) {
   const [name, setName] = useState(item.name)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  const fileUploadState = useUploadStore((state) => state.fileProgress[item.id || ''])
+  const uploadPercent = fileUploadState
+    ? fileUploadState.total > 0
+      ? (fileUploadState.loaded / fileUploadState.total) * 100
+      : 0
+    : 0
 
   const shouldPoll =
     (item.type === 'file' || item.type === 'version_stack') &&
@@ -247,20 +256,24 @@ export function FileCard({
             {displayItem.status !== 'error' && (
               <Skeleton className="absolute inset-0 h-full w-full" />
             )}
-            <span
-              className={cn(
-                'z-10 font-medium px-2 text-center text-sm',
-                displayItem.status === 'error'
-                  ? 'text-destructive font-semibold'
-                  : 'text-muted-foreground capitalize',
-              )}
-            >
-              {displayItem.status === 'uploaded'
-                ? 'Processing'
-                : displayItem.status === 'error'
-                  ? 'Failed to upload'
-                  : displayItem.status}
-            </span>
+            {displayItem.status === 'uploading' ? (
+              <ProgressCircle progress={uploadPercent} className="w-16 h-16 z-10" />
+            ) : (
+              <span
+                className={cn(
+                  'z-10 font-medium px-2 text-center text-sm',
+                  displayItem.status === 'error'
+                    ? 'text-destructive font-semibold'
+                    : 'text-muted-foreground capitalize',
+                )}
+              >
+                {displayItem.status === 'uploaded'
+                  ? 'Processing'
+                  : displayItem.status === 'error'
+                    ? 'Failed to upload'
+                    : displayItem.status}
+              </span>
+            )}
           </div>
         ) : (
           <FilePreview item={displayItem} />

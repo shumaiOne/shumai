@@ -4,7 +4,7 @@ import { useTeamId } from '@/ui/hooks/use-team-id'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useUploadStore } from '@/ui/stores/upload'
 import { Loader2, CheckCircle2, Clock, UploadCloud } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useInView } from 'react-intersection-observer'
 import { format, parseISO, isToday, isYesterday } from 'date-fns'
 import { Progress } from '@/ui/components/ui/progress'
@@ -24,9 +24,28 @@ function formatDayHeader(dateString: string): string {
   return format(date, 'MMMM d, yyyy')
 }
 
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+}
+
 function UploadTaskItem({ task }: { task: TaskInfo }) {
-  const isCompleted = task.uploaded === task.total
-  const percent = task.total > 0 ? (task.uploaded / task.total) * 100 : 0
+  const clientProgress = useUploadStore((state) => state.tasks[task.id])
+
+  const isCompleted = clientProgress
+    ? clientProgress.loaded === clientProgress.total && task.uploaded === task.total
+    : task.uploaded === task.total
+
+  const percent = clientProgress
+    ? clientProgress.total > 0
+      ? (clientProgress.loaded / clientProgress.total) * 100
+      : 0
+    : task.total > 0
+      ? (task.uploaded / task.total) * 100
+      : 0
 
   let formattedTime: string
   try {
@@ -72,7 +91,9 @@ function UploadTaskItem({ task }: { task: TaskInfo }) {
       <div className="space-y-1.5 mt-auto">
         <div className="flex items-center justify-between text-xs font-semibold">
           <span className="text-muted-foreground/80">
-            {task.uploaded} / {task.total} {task.total === 1 ? 'file' : 'files'}
+            {clientProgress
+              ? `${formatBytes(clientProgress.loaded)} / ${formatBytes(clientProgress.total)} (${task.uploaded} / ${task.total} ${task.total === 1 ? 'file' : 'files'})`
+              : `${task.uploaded} / ${task.total} ${task.total === 1 ? 'file' : 'files'}`}
           </span>
           {!isCompleted && (
             <span className="text-sidebar-primary font-mono font-bold">{Math.round(percent)}%</span>
@@ -92,6 +113,7 @@ interface TaskGroup {
 export function UploadTasks() {
   const teamId = useTeamId()
   const uploading = useUploadStore((state) => state.uploading)
+  const clientActiveTasks = useUploadStore((state) => state.tasks)
   const {
     data: tasksData,
     fetchNextPage,
@@ -126,6 +148,27 @@ export function UploadTasks() {
 
   const tasks = tasksData?.pages.flatMap((page) => page.data ?? []) ?? []
 
+  const combinedTasks = useMemo(() => {
+    const serverTaskIds = new Set(tasks.map((t) => t.id))
+    const clientOnlyTasks: TaskInfo[] = Object.values(clientActiveTasks)
+      .filter((ct) => !serverTaskIds.has(ct.taskId))
+      .map((ct) => {
+        const completedCount = Object.values(ct.files).filter(
+          (f) => f.status === 'completed' || f.status === 'failed',
+        ).length
+
+        return {
+          id: ct.taskId,
+          name: ct.name,
+          total: Object.keys(ct.files).length,
+          uploaded: completedCount,
+          createdAt: new Date().toISOString(),
+        }
+      })
+
+    return [...clientOnlyTasks, ...tasks].sort((a, b) => b.id.localeCompare(a.id))
+  }, [tasks, clientActiveTasks])
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -134,7 +177,7 @@ export function UploadTasks() {
     )
   }
 
-  if (tasks.length === 0) {
+  if (combinedTasks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center border border-dashed border-border rounded-xl bg-muted/10 my-4">
         <UploadCloud className="h-8 w-8 text-muted-foreground/50 mb-3" />
@@ -148,7 +191,7 @@ export function UploadTasks() {
 
   // Group tasks by day (maintaining desc ordering)
   const taskGroups: TaskGroup[] = []
-  tasks.forEach((task) => {
+  combinedTasks.forEach((task) => {
     const day = formatDayHeader(task.createdAt)
     let group = taskGroups.find((g) => g.day === day)
     if (!group) {
