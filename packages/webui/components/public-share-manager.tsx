@@ -2,6 +2,7 @@
 
 import { client } from '@/ui/api/client'
 import { useTopNavStore } from '@/ui/stores/top-nav'
+import { useUiStore } from '@/ui/stores/ui'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { TopNav } from './top-nav'
@@ -30,6 +31,8 @@ interface PublicShareManagerProps {
     hasPassword: boolean
     rootFolderId: string
     projectId: string
+    viewMode?: string | null
+    defaultSortOrder?: string | null
   }
   initialFolderId?: string
   initialFileId?: string
@@ -88,7 +91,10 @@ export function PublicShareManager({
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [rightSidebarWidth, setRightSidebarWidth] = useState(360)
-  const [isRightSidebarCollapsed] = useState(false)
+  const { fileViewRightSidebarCollapsed, shareConfigRightSidebarCollapsed } = useUiStore()
+  const isRightSidebarCollapsed = viewingFileId
+    ? fileViewRightSidebarCollapsed
+    : shareConfigRightSidebarCollapsed
   const videoRef = useRef<Player | null>(null)
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [currentTime, setCurrentTime] = useState(0)
@@ -314,6 +320,7 @@ export function PublicShareManager({
         isRootFolder: currentFolderId === shareInfo.rootFolderId && !viewingFileId,
         isPublic: true,
         shareId: shareInfo.id,
+        fileId: viewingFileId || undefined,
         onFolderClick: handleBreadcrumbClick,
       })
     }
@@ -420,7 +427,7 @@ export function PublicShareManager({
             }}
             onItemDoubleClick={handleItemDoubleClick}
             onSaveField={() => {}}
-            displayStyle="card"
+            displayStyle={(shareInfo.viewMode as 'card' | 'list') ?? 'card'}
             onClearSelection={() => setSelectedIds(new Set())}
             fetchNextFoldersPage={fetchNextFoldersPage}
             hasNextFoldersPage={hasNextPageFolders}
