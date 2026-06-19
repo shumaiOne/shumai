@@ -13,6 +13,7 @@ import { Button } from '@/ui/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -22,6 +23,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/ui/components/ui/dropdown-menu'
 import { Input } from '@/ui/components/ui/input'
 import { usePermissions } from '@/ui/hooks/use-permissions'
@@ -31,12 +33,15 @@ import type { AssetInfo, AssetInfoPaginatedList, CollectionInfo, ShareLinkInfo }
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMatch, useNavigate, useParams } from '@tanstack/react-router'
 import {
+  AlertTriangle,
   Bookmark,
   ChevronDown,
   ChevronRight,
   ChevronsDownUp,
   ChevronsUpDown,
   Clapperboard,
+  Download,
+  Edit,
   Folder,
   LayoutGrid,
   Loader2,
@@ -222,15 +227,128 @@ export function FolderTree({
     from: '/projects/$projectId/shares/$shareId',
     shouldThrow: false,
   })
+  const folderParams = useParams({
+    from: '/projects/$projectId/folders/$folderId',
+    shouldThrow: false,
+  })
 
   const [renameId, setRenameId] = useState<string | null>(null)
-  const [renameType, setRenameType] = useState<'collection' | 'share'>('collection')
+  const [renameType, setRenameType] = useState<'collection' | 'share' | 'folder'>('collection')
   const [renameName, setRenameName] = useState('')
   const [isRenameOpen, setIsRenameOpen] = useState(false)
 
   const [deleteId, setDeleteId] = useState<string | null>(null)
-  const [deleteType, setDeleteType] = useState<'collection' | 'share'>('collection')
+  const [deleteType, setDeleteType] = useState<'collection' | 'share' | 'folder'>('collection')
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+
+  const { mutate: renameFolder } = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const res = await client.api.folders[':folderId'].$put({
+        param: { folderId: id },
+        json: { name },
+      })
+      if (!res.ok) throw new Error('Failed to rename folder')
+      return await res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['search', teamId] })
+      queryClient.invalidateQueries({ queryKey: ['folders'] })
+      toast.success('Folder renamed')
+      setIsRenameOpen(false)
+    },
+    onError: (err) => {
+      toast.error(`Error: ${err.message}`)
+    },
+  })
+
+  const { mutate: deleteFolder } = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await client.api.folders.$delete({
+        json: { ids: [id] },
+      })
+      if (!res.ok) throw new Error('Failed to delete folder')
+      return id
+    },
+    onSuccess: (deletedId) => {
+      queryClient.invalidateQueries({ queryKey: ['search', teamId] })
+      queryClient.invalidateQueries({ queryKey: ['folders'] })
+      toast.success('Folder deleted')
+      setIsDeleteOpen(false)
+      if (folderParams?.folderId === deletedId) {
+        navigate({
+          to: '/projects/$projectId',
+          params: { projectId },
+        })
+      }
+    },
+    onError: (err) => {
+      toast.error(`Error: ${err.message}`)
+    },
+  })
+
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false)
+  const [isLoadingLinks, setIsLoadingLinks] = useState(false)
+  const [resolvedFiles, setResolvedFiles] = useState<
+    Array<{ id: string; name: string; url: string }>
+  >([])
+
+  const handleDownloadFolder = async (folderId: string) => {
+    setIsDownloadOpen(true)
+    setIsLoadingLinks(true)
+    setResolvedFiles([])
+    try {
+      const res = await client.api.files['download-links'].$post({
+        json: { ids: [folderId] },
+      })
+      if (!res.ok) throw new Error('Failed to prepare download links')
+      const data = await res.json()
+      setResolvedFiles(data.files)
+    } catch (error) {
+      toast.error('Failed to prepare download links')
+      setIsDownloadOpen(false)
+      console.error(error)
+    } finally {
+      setIsLoadingLinks(false)
+    }
+  }
+
+  const startDownload = () => {
+    const files = [...resolvedFiles]
+    setIsDownloadOpen(false)
+
+    if (files.length === 0) return
+
+    toast.info(
+      `Starting download of ${files.length} files. Please allow multiple downloads if prompted by your browser.`,
+      {
+        duration: 5000,
+      },
+    )
+
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+    const runQueue = async () => {
+      const batchSize = 5
+      for (let i = 0; i < files.length; i += batchSize) {
+        const chunk = files.slice(i, i + batchSize)
+        for (const file of chunk) {
+          const a = document.createElement('a')
+          a.href = file.url
+          a.download = file.name
+          a.target = '_blank'
+          document.body.appendChild(a)
+          a.click()
+          a.remove()
+        }
+        await delay(1000)
+      }
+    }
+
+    runQueue().catch((err) => {
+      console.error('Background downloads failed:', err)
+      toast.error('Some downloads could not be started')
+    })
+  }
 
   const { mutate: renameCollection } = useMutation({
     mutationFn: async ({ id, name }: { id: string; name: string }) => {
@@ -338,9 +456,6 @@ export function FolderTree({
               <ChevronsUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
             )}
           </div>
-          <button className="text-muted-foreground hover:text-foreground flex-none">
-            <Plus className="h-3.5 w-3.5" />
-          </button>
         </header>
 
         <div
@@ -372,6 +487,20 @@ export function FolderTree({
             onSelect={onSelect}
             selectedFolderId={selectedFolderId}
             canEdit={canEdit}
+            onRenameTrigger={(id, currentName) => {
+              setRenameId(id)
+              setRenameType('folder')
+              setRenameName(currentName)
+              setIsRenameOpen(true)
+            }}
+            onDeleteTrigger={(id) => {
+              setDeleteId(id)
+              setDeleteType('folder')
+              setIsDeleteOpen(true)
+            }}
+            onDownloadTrigger={(id) => {
+              handleDownloadFolder(id)
+            }}
           />
 
           {canEdit && (
@@ -619,7 +748,12 @@ export function FolderTree({
         <DialogContent onClick={(e) => e.stopPropagation()}>
           <DialogHeader>
             <DialogTitle>
-              Rename {renameType === 'collection' ? 'Collection' : 'Share Link'}
+              Rename{' '}
+              {renameType === 'collection'
+                ? 'Collection'
+                : renameType === 'share'
+                  ? 'Share Link'
+                  : 'Folder'}
             </DialogTitle>
           </DialogHeader>
           <div className="py-4">
@@ -631,8 +765,10 @@ export function FolderTree({
                 if (e.key === 'Enter' && renameName.trim()) {
                   if (renameType === 'collection') {
                     renameCollection({ id: renameId!, name: renameName })
-                  } else {
+                  } else if (renameType === 'share') {
                     renameShareLink({ id: renameId!, name: renameName })
+                  } else if (renameType === 'folder') {
+                    renameFolder({ id: renameId!, name: renameName })
                   }
                 }
               }}
@@ -647,8 +783,10 @@ export function FolderTree({
               onClick={() => {
                 if (renameType === 'collection') {
                   renameCollection({ id: renameId!, name: renameName })
-                } else {
+                } else if (renameType === 'share') {
                   renameShareLink({ id: renameId!, name: renameName })
+                } else if (renameType === 'folder') {
+                  renameFolder({ id: renameId!, name: renameName })
                 }
               }}
             >
@@ -663,12 +801,22 @@ export function FolderTree({
         <AlertDialogContent onClick={(e) => e.stopPropagation()}>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Delete {deleteType === 'collection' ? 'Collection' : 'Share Link'}?
+              Delete{' '}
+              {deleteType === 'collection'
+                ? 'Collection'
+                : deleteType === 'share'
+                  ? 'Share Link'
+                  : 'Folder'}
+              ?
             </AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete this{' '}
-              {deleteType === 'collection' ? 'collection' : 'share link'}? This action cannot be
-              undone.
+              {deleteType === 'collection'
+                ? 'collection'
+                : deleteType === 'share'
+                  ? 'share link'
+                  : 'folder'}
+              ? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -678,8 +826,10 @@ export function FolderTree({
               onClick={() => {
                 if (deleteType === 'collection') {
                   deleteCollection(deleteId!)
-                } else {
+                } else if (deleteType === 'share') {
                   deleteShareLink(deleteId!)
+                } else if (deleteType === 'folder') {
+                  deleteFolder(deleteId!)
                 }
               }}
             >
@@ -688,6 +838,69 @@ export function FolderTree({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Folder Download Dialog */}
+      <Dialog open={isDownloadOpen} onOpenChange={setIsDownloadOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{isLoadingLinks ? 'Preparing Download' : 'Confirm Download'}</DialogTitle>
+            <DialogDescription>
+              {isLoadingLinks
+                ? 'Resolving all files and folders. Please wait...'
+                : 'Selected folder files will be prepared for download.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {isLoadingLinks ? (
+            <div className="space-y-4 py-6 flex flex-col items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="text-sm font-medium text-muted-foreground mt-2">
+                Preparing download links...
+              </span>
+            </div>
+          ) : (
+            <div className="space-y-4 py-2">
+              <div className="text-sm text-muted-foreground">
+                This download will include{' '}
+                <span className="font-semibold text-foreground">{resolvedFiles.length}</span>{' '}
+                file(s).
+              </div>
+              <div className="flex items-start gap-3 p-3 text-sm rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/30">
+                <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold">No Folder Structure</p>
+                  <p className="mt-0.5 text-xs text-amber-700/90 dark:text-amber-400/90">
+                    Folder hierarchy will be flattened. All nested files will be downloaded directly
+                    into your default download folder.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            {!isLoadingLinks ? (
+              <>
+                <Button variant="outline" onClick={() => setIsDownloadOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={startDownload}
+                  className="gap-2"
+                  disabled={resolvedFiles.length === 0}
+                >
+                  <Download className="h-4 w-4" />
+                  Start Download
+                </Button>
+              </>
+            ) : (
+              <Button disabled variant="outline">
+                Cancel
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -795,6 +1008,9 @@ interface FolderTreeItemProps {
   onSelect?: (folder: AssetInfo) => void
   selectedFolderId?: string
   canEdit?: boolean
+  onRenameTrigger: (id: string, name: string) => void
+  onDeleteTrigger: (id: string) => void
+  onDownloadTrigger: (id: string) => void
 }
 
 function FolderTreeItem({
@@ -807,6 +1023,9 @@ function FolderTreeItem({
   onSelect,
   selectedFolderId,
   canEdit,
+  onRenameTrigger,
+  onDeleteTrigger,
+  onDownloadTrigger,
 }: FolderTreeItemProps) {
   const [isExpanded, setIsExpanded] = useState(isRoot || false)
   const navigate = useNavigate()
@@ -954,6 +1173,53 @@ function FolderTreeItem({
           <Folder className="h-4 w-4 text-sidebar-primary" />
         )}
         <span className="flex-1 truncate text-sidebar-foreground">{folder.name}</span>
+
+        {canEdit && !isRoot && (
+          <div
+            className="opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="h-6 w-6 shrink-0 hover:bg-muted hover:text-muted-foreground p-0"
+                >
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-32">
+                <DropdownMenuItem
+                  onClick={() => {
+                    onRenameTrigger(folder.id!, folder.name)
+                  }}
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  Rename
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    onDownloadTrigger(folder.id!)
+                  }}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                  onClick={() => {
+                    onDeleteTrigger(folder.id!)
+                  }}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
       </div>
 
       {isExpanded && (
@@ -977,6 +1243,9 @@ function FolderTreeItem({
               onSelect={onSelect}
               selectedFolderId={selectedFolderId}
               canEdit={canEdit}
+              onRenameTrigger={onRenameTrigger}
+              onDeleteTrigger={onDeleteTrigger}
+              onDownloadTrigger={onDownloadTrigger}
             />
           ))}
           {hasNextPage && (

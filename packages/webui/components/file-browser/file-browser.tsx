@@ -275,7 +275,7 @@ export function FileBrowser({
               },
             })
             queryClient.invalidateQueries({ queryKey: ['search', teamId] })
-            queryClient.invalidateQueries({ queryKey: ['folders', teamId] })
+            queryClient.invalidateQueries({ queryKey: ['folders'] })
             setMoveCopyMode(null)
             setItemsToMoveCopy([])
             onClearSelection()
@@ -305,7 +305,7 @@ export function FileBrowser({
               },
             })
             queryClient.invalidateQueries({ queryKey: ['search', teamId] })
-            queryClient.invalidateQueries({ queryKey: ['folders', teamId] })
+            queryClient.invalidateQueries({ queryKey: ['folders'] })
             setMoveCopyMode(null)
             setItemsToMoveCopy([])
             onClearSelection()

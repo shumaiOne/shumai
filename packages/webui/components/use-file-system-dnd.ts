@@ -299,7 +299,7 @@ export function useFileSystemDnd({
                 queryKey: ['search', teamId, assetId],
               })
               queryClient.invalidateQueries({
-                queryKey: ['folders', teamId],
+                queryKey: ['folders'],
               })
               // Clear selection after move
               onClearSelection()

@@ -222,9 +222,6 @@ export function SearchFilterDialog({
 
   const handleClearFilters = () => {
     setConditions([])
-    setSearchInput('')
-    setTriggerQuery('')
-    setIsSemantic(false)
   }
 
   const formatTimestamp = (seconds: number) => {
@@ -351,7 +348,7 @@ export function SearchFilterDialog({
               )}
             </div>
 
-            {(activeFiltersCount > 0 || searchInput) && (
+            {activeFiltersCount > 0 && (
               <button
                 type="button"
                 onClick={(e) => {

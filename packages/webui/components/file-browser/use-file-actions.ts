@@ -159,6 +159,9 @@ export function useFileActions({
             queryClient.invalidateQueries({
               queryKey: ['search', teamId, assetId],
             })
+            queryClient.invalidateQueries({
+              queryKey: ['folders'],
+            })
           },
         },
       )
@@ -273,7 +276,7 @@ export function useFileActions({
             queryKey: ['search', teamId],
           })
           queryClient.invalidateQueries({
-            queryKey: ['folders', teamId],
+            queryKey: ['folders'],
           })
           if (data?.id) {
             setEditingItemId(data.id)
@@ -293,7 +296,7 @@ export function useFileActions({
               queryKey: ['search', teamId],
             })
             queryClient.invalidateQueries({
-              queryKey: ['folders', teamId],
+              queryKey: ['folders'],
             })
           },
         },
@@ -310,7 +313,7 @@ export function useFileActions({
               queryKey: ['search', teamId],
             })
             queryClient.invalidateQueries({
-              queryKey: ['folders', teamId],
+              queryKey: ['folders'],
             })
           },
         },
