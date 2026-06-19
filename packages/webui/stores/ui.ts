@@ -33,7 +33,7 @@ export const useUiStore = create<UiState>()(
       setFileListLeftSidebarCollapsed: (collapsed) =>
         set({ fileListLeftSidebarCollapsed: collapsed }),
 
-      fileListRightSidebarCollapsed: false,
+      fileListRightSidebarCollapsed: true,
       setFileListRightSidebarCollapsed: (collapsed) =>
         set({ fileListRightSidebarCollapsed: collapsed }),
 
