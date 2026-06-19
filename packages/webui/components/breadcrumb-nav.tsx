@@ -240,7 +240,7 @@ export function BreadcrumbNav({
         )}
       </div>
 
-      {!fileId && (
+      {(!fileId || isPublic) && (
         <div className="flex flex-shrink-0 items-center gap-1 rounded-md border border-border bg-background p-1">
           {/* Left Sidebar Toggle */}
           {!isPublic && onLeftSidebarToggle && (

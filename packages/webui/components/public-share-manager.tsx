@@ -2,7 +2,6 @@
 
 import { client } from '@/ui/api/client'
 import { useTopNavStore } from '@/ui/stores/top-nav'
-import { useUiStore } from '@/ui/stores/ui'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { TopNav } from './top-nav'
@@ -91,10 +90,7 @@ export function PublicShareManager({
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [rightSidebarWidth, setRightSidebarWidth] = useState(360)
-  const { fileViewRightSidebarCollapsed, shareConfigRightSidebarCollapsed } = useUiStore()
-  const isRightSidebarCollapsed = viewingFileId
-    ? fileViewRightSidebarCollapsed
-    : shareConfigRightSidebarCollapsed
+  const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false)
   const videoRef = useRef<Player | null>(null)
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [currentTime, setCurrentTime] = useState(0)
@@ -322,6 +318,8 @@ export function PublicShareManager({
         shareId: shareInfo.id,
         fileId: viewingFileId || undefined,
         onFolderClick: handleBreadcrumbClick,
+        isRightSidebarCollapsed,
+        onRightSidebarToggle: () => setIsRightSidebarCollapsed((prev) => !prev),
       })
     }
 
@@ -336,6 +334,7 @@ export function PublicShareManager({
     ancestorFolders,
     setProjectState,
     clearProjectState,
+    isRightSidebarCollapsed,
   ])
 
   let content
