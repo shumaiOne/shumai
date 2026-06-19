@@ -27,23 +27,41 @@ export function TopNav() {
 
   const isFileView = !!fileId
 
+  const isShareConfig = !!shareId && !isFileView
+
   const isLeftSidebarCollapsed = isFileView
     ? uiStore.fileViewLeftSidebarCollapsed
-    : uiStore.fileListLeftSidebarCollapsed
+    : isShareConfig
+      ? uiStore.shareConfigLeftSidebarCollapsed
+      : uiStore.fileListLeftSidebarCollapsed
   const onLeftSidebarToggle = isPublic
     ? undefined
     : () =>
         isFileView
           ? uiStore.setFileViewLeftSidebarCollapsed(!uiStore.fileViewLeftSidebarCollapsed)
-          : uiStore.setFileListLeftSidebarCollapsed(!uiStore.fileListLeftSidebarCollapsed)
+          : isShareConfig
+            ? uiStore.setShareConfigLeftSidebarCollapsed(!uiStore.shareConfigLeftSidebarCollapsed)
+            : uiStore.setFileListLeftSidebarCollapsed(!uiStore.fileListLeftSidebarCollapsed)
 
-  const isRightSidebarCollapsed = isFileView
-    ? uiStore.fileViewRightSidebarCollapsed
-    : uiStore.fileListRightSidebarCollapsed
-  const onRightSidebarToggle = () =>
-    isFileView
-      ? uiStore.setFileViewRightSidebarCollapsed(!uiStore.fileViewRightSidebarCollapsed)
-      : uiStore.setFileListRightSidebarCollapsed(!uiStore.fileListRightSidebarCollapsed)
+  const isRightSidebarCollapsed =
+    isPublic && projectState.isRightSidebarCollapsed !== undefined
+      ? projectState.isRightSidebarCollapsed
+      : isFileView
+        ? uiStore.fileViewRightSidebarCollapsed
+        : isShareConfig
+          ? uiStore.shareConfigRightSidebarCollapsed
+          : uiStore.fileListRightSidebarCollapsed
+  const onRightSidebarToggle =
+    isPublic && projectState.onRightSidebarToggle
+      ? projectState.onRightSidebarToggle
+      : () =>
+          isFileView
+            ? uiStore.setFileViewRightSidebarCollapsed(!uiStore.fileViewRightSidebarCollapsed)
+            : isShareConfig
+              ? uiStore.setShareConfigRightSidebarCollapsed(
+                  !uiStore.shareConfigRightSidebarCollapsed,
+                )
+              : uiStore.setFileListRightSidebarCollapsed(!uiStore.fileListRightSidebarCollapsed)
 
   const displayStyle = projectId ? (uiStore.viewModes[projectId] ?? 'card') : 'card'
   const onDisplayStyleChange = isPublic
@@ -60,8 +78,8 @@ export function TopNav() {
       ancestorFolders={ancestorFolders}
       currentAsset={currentAsset}
       isRootFolder={isRootFolder}
-      displayStyle={isFileView ? undefined : displayStyle}
-      onDisplayStyleChange={isFileView ? undefined : onDisplayStyleChange}
+      displayStyle={isFileView || isShareConfig ? undefined : displayStyle}
+      onDisplayStyleChange={isFileView || isShareConfig ? undefined : onDisplayStyleChange}
       isLeftSidebarCollapsed={isLeftSidebarCollapsed}
       onLeftSidebarToggle={onLeftSidebarToggle}
       isRightSidebarCollapsed={isRightSidebarCollapsed}

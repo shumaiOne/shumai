@@ -48,6 +48,8 @@ const route = app
         hasPassword: shareLink.hasPassword,
         rootFolderId: shareLink.rootFolderId,
         projectId: shareLink.projectId,
+        viewMode: shareLink.viewMode,
+        defaultSortOrder: shareLink.defaultSortOrder,
       })
     } catch (err) {
       return c.json({ error: (err as Error).message }, 404)

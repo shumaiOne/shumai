@@ -65,8 +65,8 @@ function SharesPage() {
   const [leftSidebarWidth, setLeftSidebarWidth] = useState(240)
 
   const {
-    fileListLeftSidebarCollapsed: isLeftSidebarCollapsed,
-    setFileListLeftSidebarCollapsed: setIsLeftSidebarCollapsed,
+    shareConfigLeftSidebarCollapsed: isLeftSidebarCollapsed,
+    setShareConfigLeftSidebarCollapsed: setIsLeftSidebarCollapsed,
   } = useUiStore()
 
   const {

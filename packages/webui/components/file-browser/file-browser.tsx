@@ -215,7 +215,7 @@ export function FileBrowser({
   }, [files, localUploadingFiles])
 
   const { data: shareLinksData } = useQuery({
-    queryKey: ['shares', projectId],
+    queryKey: ['shares', projectId, 'list'],
     queryFn: async () => {
       const res = await client.api.projects[':projectId'].shares.$get({
         param: { projectId },

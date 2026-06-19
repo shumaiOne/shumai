@@ -1,16 +1,14 @@
-import type { AncestorFolder } from '@shumai/dtos'
-import { usePermissions } from '@/ui/hooks/use-permissions'
 import { Badge } from '@/ui/components/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
   DropdownMenuPortal,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu'
 import {
   DockToLeft,
@@ -18,9 +16,11 @@ import {
   DockToRight,
   DockToRightFilled,
 } from '@/ui/components/ui/icons'
-import { Link, useNavigate } from '@tanstack/react-router'
-import { ChevronDown, LayoutGrid, List, History, Check, FileIcon } from 'lucide-react'
+import { usePermissions } from '@/ui/hooks/use-permissions'
 import { cn } from '@/ui/lib/utils'
+import type { AncestorFolder } from '@shumai/dtos'
+import { Link, useNavigate } from '@tanstack/react-router'
+import { Check, ChevronDown, FileIcon, History, LayoutGrid, List } from 'lucide-react'
 
 interface BreadcrumbNavProps {
   teamId: string

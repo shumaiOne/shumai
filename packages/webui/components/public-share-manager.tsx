@@ -30,6 +30,8 @@ interface PublicShareManagerProps {
     hasPassword: boolean
     rootFolderId: string
     projectId: string
+    viewMode?: string | null
+    defaultSortOrder?: string | null
   }
   initialFolderId?: string
   initialFileId?: string
@@ -88,7 +90,7 @@ export function PublicShareManager({
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [rightSidebarWidth, setRightSidebarWidth] = useState(360)
-  const [isRightSidebarCollapsed] = useState(false)
+  const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(() => !initialFileId)
   const videoRef = useRef<Player | null>(null)
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [currentTime, setCurrentTime] = useState(0)
@@ -205,8 +207,14 @@ export function PublicShareManager({
     }
   }, [foldersError, shareInfo.id])
 
-  const folders = foldersData?.pages.flatMap((page) => page.data ?? []) ?? []
-  const files = filesData?.pages.flatMap((page) => page.data ?? []) ?? []
+  const folders = useMemo(
+    () => foldersData?.pages.flatMap((page) => page.data ?? []) ?? [],
+    [foldersData],
+  )
+  const files = useMemo(
+    () => filesData?.pages.flatMap((page) => page.data ?? []) ?? [],
+    [filesData],
+  )
 
   const currentSelectedItem = useMemo(() => {
     if (viewingFileData) return viewingFileData
@@ -308,7 +316,10 @@ export function PublicShareManager({
         isRootFolder: currentFolderId === shareInfo.rootFolderId && !viewingFileId,
         isPublic: true,
         shareId: shareInfo.id,
+        fileId: viewingFileId || undefined,
         onFolderClick: handleBreadcrumbClick,
+        isRightSidebarCollapsed,
+        onRightSidebarToggle: () => setIsRightSidebarCollapsed((prev) => !prev),
       })
     }
 
@@ -323,6 +334,7 @@ export function PublicShareManager({
     ancestorFolders,
     setProjectState,
     clearProjectState,
+    isRightSidebarCollapsed,
   ])
 
   let content
@@ -414,7 +426,7 @@ export function PublicShareManager({
             }}
             onItemDoubleClick={handleItemDoubleClick}
             onSaveField={() => {}}
-            displayStyle="card"
+            displayStyle={(shareInfo.viewMode as 'card' | 'list') ?? 'card'}
             onClearSelection={() => setSelectedIds(new Set())}
             fetchNextFoldersPage={fetchNextFoldersPage}
             hasNextFoldersPage={hasNextPageFolders}

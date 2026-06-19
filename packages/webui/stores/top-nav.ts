@@ -23,6 +23,8 @@ export interface TopNavProjectState {
   isPublic?: boolean
   shareId?: string
   onFolderClick?: (folderId: string) => void
+  isRightSidebarCollapsed?: boolean
+  onRightSidebarToggle?: () => void
 }
 
 interface TopNavStore {

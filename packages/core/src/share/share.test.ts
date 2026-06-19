@@ -224,17 +224,21 @@ describe('ShareService', () => {
     )
   })
 
-  it('updates a share link including fieldVisibility', async () => {
+  it('updates a share link including fieldVisibility, viewMode, and defaultSortOrder', async () => {
     const shareLink = await shareService.createShareLink(projectId, { name: 'Old Name' })
     const updated = await shareService.updateShareLink(shareLink.id, {
       name: 'New Name',
       password: 'new-password',
       fieldVisibility: { field1: true, field2: false },
+      viewMode: 'list',
+      defaultSortOrder: 'name:desc',
     })
 
     expect(updated.name).toBe('New Name')
     expect(updated.hasPassword).toBe(true)
     expect(updated.fieldVisibility).toEqual({ field1: true, field2: false })
+    expect(updated.viewMode).toBe('list')
+    expect(updated.defaultSortOrder).toBe('name:desc')
 
     const rootAsset = await prisma.asset.findUnique({ where: { id: shareLink.rootFolderId } })
     expect(rootAsset?.name).toBe('New Name')
