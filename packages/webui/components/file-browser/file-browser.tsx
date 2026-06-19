@@ -457,18 +457,23 @@ export function FileBrowser({
   const { mutate: createUploadTaskMutation } = useMutation<
     InferResponseType<typeof $createUploadTask>,
     Error,
-    InferRequestType<typeof $createUploadTask>
+    InferRequestType<typeof $createUploadTask>,
+    { files: FileWithId[] }
   >({
     mutationFn: async (request) => {
       const res = await $createUploadTask(request)
       if (!res.ok) throw new Error('Failed to create upload task')
       return (await res.json()) as InferResponseType<typeof $createUploadTask>
     },
-    onSuccess: async (data, variables) => {
+    onMutate: () => {
+      return { files: [...filesToUpload] }
+    },
+    onSuccess: async (data, variables, context) => {
+      const currentFiles = context?.files || []
       const isCurrentFolderUpload = variables.json.parentId === assetId
 
       // Register task and files in the store for real-time progress tracking
-      const filesProgressInfo = filesToUpload
+      const filesProgressInfo = currentFiles
         .map((f) => {
           const urlInfo = (
             data.presignedUrls as { id?: string; url?: string; fileId?: string }[] | undefined
@@ -481,7 +486,7 @@ export function FileBrowser({
         })
         .filter((info) => !!info.fileId)
 
-      const visibleFiles = filesToUpload.filter((f) => !f.file.name.startsWith('.'))
+      const visibleFiles = currentFiles.filter((f) => !f.file.name.startsWith('.'))
       const taskName =
         visibleFiles.length === 1 ? visibleFiles[0].file.name : `${visibleFiles.length} Items`
 
@@ -490,7 +495,7 @@ export function FileBrowser({
       }
 
       if (isCurrentFolderUpload) {
-        const newLocalFiles: AssetInfo[] = filesToUpload
+        const newLocalFiles: AssetInfo[] = currentFiles
           .filter((f) => {
             const path = (f.file.webkitRelativePath || f.file.name).split('/')
             return path.length === 1
@@ -522,7 +527,7 @@ export function FileBrowser({
 
       // The RPC client returns an object that we cast to the expected type
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await uploadFiles(filesToUpload, data.presignedUrls as any, data.taskId!)
+      await uploadFiles(currentFiles, data.presignedUrls as any, data.taskId!)
       queryClient.invalidateQueries({
         queryKey: ['search', teamId, assetId],
       })
