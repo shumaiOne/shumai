@@ -90,7 +90,7 @@ export function PublicShareManager({
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [rightSidebarWidth, setRightSidebarWidth] = useState(360)
-  const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false)
+  const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(() => !initialFileId)
   const videoRef = useRef<Player | null>(null)
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [currentTime, setCurrentTime] = useState(0)
