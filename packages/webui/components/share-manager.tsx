@@ -272,7 +272,7 @@ export default function ShareManager({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex h-screen flex-col bg-background">
+      <div className="flex flex-1 flex-col bg-background min-h-0">
         <div className="flex flex-1 overflow-hidden relative">
           {!isLeftSidebarCollapsed && (
             <>
