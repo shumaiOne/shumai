@@ -11,19 +11,39 @@ import {
   Copy,
   ExternalLink,
   Shield,
-  Settings2,
   Palette,
   ListFilter,
   SortAsc,
+  LayoutGrid,
+  List,
+  ArrowDownUp,
 } from 'lucide-react'
 import React, { useState } from 'react'
 import { toast } from 'sonner'
 import { DateTimePicker } from '@/ui/components/datetime-picker'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/ui/components/ui/select'
+
 interface ShareSettingsSidebarProps {
   shareLink: ShareLinkInfo
+  viewMode: 'card' | 'list'
+  onViewModeChange: (mode: 'card' | 'list') => void
+  defaultSortOrder: string | null
+  onSortOrderChange: (sortOrder: string | null) => void
 }
 
-export function ShareSettingsSidebar({ shareLink }: ShareSettingsSidebarProps) {
+export function ShareSettingsSidebar({
+  shareLink,
+  viewMode,
+  onViewModeChange,
+  defaultSortOrder,
+  onSortOrderChange,
+}: ShareSettingsSidebarProps) {
   const queryClient = useQueryClient()
   const [password, setPassword] = useState('')
   const [expireAt, setExpireAt] = useState<Date | undefined>(
@@ -74,6 +94,15 @@ export function ShareSettingsSidebar({ shareLink }: ShareSettingsSidebarProps) {
     updateShare({ fieldVisibility: next })
   }
 
+  // Parse current sort field and order
+  let currentSortField = 'index'
+  let currentSortOrder = 'asc'
+  if (defaultSortOrder) {
+    const parts = defaultSortOrder.split(':')
+    currentSortField = parts[0]
+    currentSortOrder = parts[1] || 'asc'
+  }
+
   return (
     <div className="flex flex-col h-full bg-background border-l border-border">
       <div className="flex-1 overflow-y-auto">
@@ -87,29 +116,20 @@ export function ShareSettingsSidebar({ shareLink }: ShareSettingsSidebarProps) {
               />
             </div>
 
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Input value={shareUrl} readOnly className="pr-10 bg-muted/50 text-xs" />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-full"
-                  onClick={() => copyToClipboard(shareUrl)}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-              <Button variant="outline" className="px-3">
-                <Settings2 className="h-4 w-4 mr-2" />
-                Public
+            <div className="relative w-full">
+              <Input value={shareUrl} readOnly className="pr-10 bg-muted/50 text-xs" />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-0 top-0 h-full"
+                onClick={() => copyToClipboard(shareUrl)}
+              >
+                <Copy className="h-4 w-4" />
               </Button>
             </div>
-
-            <Input placeholder="Send to name or email" className="text-sm" />
           </div>
 
           <div className="space-y-1">
-            <SidebarAccordionItem title="Permissions" icon={<Settings2 className="h-4 w-4" />} />
             <SidebarAccordionItem title="Security" icon={<Shield className="h-4 w-4" />}>
               <div className="p-3 space-y-4 pt-0">
                 <div className="space-y-2">
@@ -167,7 +187,28 @@ export function ShareSettingsSidebar({ shareLink }: ShareSettingsSidebarProps) {
                 </div>
               </div>
             </SidebarAccordionItem>
-            <SidebarAccordionItem title="Appearance" icon={<Palette className="h-4 w-4" />} />
+            <SidebarAccordionItem title="Appearance" icon={<Palette className="h-4 w-4" />}>
+              <div className="p-3 space-y-3 pt-0 flex gap-2">
+                <Button
+                  variant={viewMode === 'card' ? 'secondary' : 'outline'}
+                  size="sm"
+                  className="flex-1 gap-2 text-xs"
+                  onClick={() => onViewModeChange('card')}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                  Grid
+                </Button>
+                <Button
+                  variant={viewMode === 'list' ? 'secondary' : 'outline'}
+                  size="sm"
+                  className="flex-1 gap-2 text-xs"
+                  onClick={() => onViewModeChange('list')}
+                >
+                  <List className="h-4 w-4" />
+                  List
+                </Button>
+              </div>
+            </SidebarAccordionItem>
             <SidebarAccordionItem title="Fields" icon={<ListFilter className="h-4 w-4" />}>
               <div className="p-3 space-y-3 pt-0">
                 {(fields as MetadataFieldInfo[])?.map((field) => (
@@ -181,7 +222,65 @@ export function ShareSettingsSidebar({ shareLink }: ShareSettingsSidebarProps) {
                 ))}
               </div>
             </SidebarAccordionItem>
-            <SidebarAccordionItem title="Sort by" icon={<SortAsc className="h-4 w-4" />} />
+            <SidebarAccordionItem title="Sort by" icon={<SortAsc className="h-4 w-4" />}>
+              <div className="p-3 space-y-4 pt-0">
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Field</Label>
+                  <Select
+                    value={currentSortField}
+                    onValueChange={(val) => {
+                      if (val === 'index') {
+                        onSortOrderChange(null)
+                      } else {
+                        onSortOrderChange(`${val}:${currentSortOrder}`)
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-full text-xs h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="index">Custom</SelectItem>
+                      <SelectItem value="name">Name</SelectItem>
+                      <SelectItem value="createdAt">Date Created</SelectItem>
+                      <SelectItem value="size">Size</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Order</Label>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-between font-normal text-xs h-9"
+                    disabled={currentSortField === 'index'}
+                    onClick={() => {
+                      const nextOrder = currentSortOrder === 'asc' ? 'desc' : 'asc'
+                      onSortOrderChange(`${currentSortField}:${nextOrder}`)
+                    }}
+                  >
+                    <span>
+                      {currentSortField === 'name'
+                        ? currentSortOrder === 'asc'
+                          ? 'A → Z'
+                          : 'Z → A'
+                        : currentSortField === 'createdAt'
+                          ? currentSortOrder === 'asc'
+                            ? 'Oldest → Newest'
+                            : 'Newest → Oldest'
+                          : currentSortField === 'size'
+                            ? currentSortOrder === 'asc'
+                              ? 'Smallest → Largest'
+                              : 'Largest → Smallest'
+                            : currentSortOrder === 'asc'
+                              ? 'Ascending'
+                              : 'Descending'}
+                    </span>
+                    <ArrowDownUp className="h-4 w-4 opacity-50" />
+                  </Button>
+                </div>
+              </div>
+            </SidebarAccordionItem>
           </div>
         </div>
       </div>

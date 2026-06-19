@@ -338,6 +338,7 @@ model ShareLink {
   password         String?
   isDisabled       Boolean   @default(false) @map("is_disabled")
   defaultSortOrder String?   @map("default_sort_order")
+  viewMode         String?   @map("view_mode")
   /// [ShareLinkFieldVisibility]
   fieldVisibility  Json?     @map("field_visibility")
   createdAt        DateTime  @default(now()) @map("created_at")

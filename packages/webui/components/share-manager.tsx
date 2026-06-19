@@ -1,4 +1,9 @@
-import type { AncestorFolder, AssetInfo, AssetInfoPaginatedList } from '@shumai/dtos'
+import type {
+  AncestorFolder,
+  AssetInfo,
+  AssetInfoPaginatedList,
+  UpdateShareLinkRequest,
+} from '@shumai/dtos'
 import { client } from '@/ui/api/client'
 import { useMutation, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState, useMemo } from 'react'
@@ -88,10 +93,18 @@ export default function ShareManager({
   const {
     shareConfigLeftSidebarCollapsed: isLeftSidebarCollapsed,
     shareConfigRightSidebarCollapsed: isRightSidebarCollapsed,
-    viewModes,
   } = useUiStore()
 
-  const displayStyle = viewModes[projectId] ?? 'card'
+  const defaultSortOrder = shareLink?.defaultSortOrder || null
+  let sort: string | undefined
+  let order: string | undefined
+  if (defaultSortOrder) {
+    const parts = defaultSortOrder.split(':')
+    sort = parts[0]
+    order = parts[1]
+  }
+
+  const displayStyle = (shareLink?.viewMode as 'card' | 'list') ?? 'card'
 
   const {
     data: foldersData,
@@ -99,13 +112,15 @@ export default function ShareManager({
     hasNextPage: hasNextPageFolders,
     isFetchingNextPage: isFetchingNextFoldersPage,
   } = useInfiniteQuery<AssetInfoPaginatedList>({
-    queryKey: ['folder-children', teamId, currentFolderId, 'folder'],
+    queryKey: ['folder-children', teamId, currentFolderId, 'folder', sort, order],
     queryFn: async ({ pageParam }) => {
       const res = await client.api.folders[':folderId'].children.$get({
         param: { folderId: currentFolderId! },
         query: {
           assetType: 'folder',
           after: pageParam as string,
+          sort,
+          order,
         },
       })
       if (!res.ok) throw new Error('Failed to fetch folders')
@@ -122,13 +137,15 @@ export default function ShareManager({
     hasNextPage: hasNextPageFiles,
     isFetchingNextPage: isFetchingNextFilesPage,
   } = useInfiniteQuery<AssetInfoPaginatedList>({
-    queryKey: ['folder-children', teamId, currentFolderId, 'file'],
+    queryKey: ['folder-children', teamId, currentFolderId, 'file', sort, order],
     queryFn: async ({ pageParam }) => {
       const res = await client.api.folders[':folderId'].children.$get({
         param: { folderId: currentFolderId! },
         query: {
           assetType: 'file',
           after: pageParam as string,
+          sort,
+          order,
         },
       })
       if (!res.ok) throw new Error('Failed to fetch files')
@@ -209,6 +226,22 @@ export default function ShareManager({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['folder-children', teamId, currentFolderId] })
       toast.success('Removed from share')
+    },
+  })
+
+  const $updateShare = client.api.shares[':shareId'].$put
+  const { mutate: updateShare } = useMutation({
+    mutationFn: async (json: UpdateShareLinkRequest) => {
+      const res = await $updateShare({
+        param: { shareId },
+        json,
+      })
+      if (!res.ok) throw new Error('Failed to update')
+      return await res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['share', shareId] })
+      toast.success('Settings updated')
     },
   })
 
@@ -305,8 +338,14 @@ export default function ShareManager({
                   setRightSidebarWidth((p) => Math.max(240, Math.min(600, p - delta)))
                 }
               />
-              <div style={{ width: rightSidebarWidth }} className="flex-shrink-0">
-                <ShareSettingsSidebar shareLink={shareLink} />
+              <div style={{ width: rightSidebarWidth }} className="flex-shrink-0 h-full">
+                <ShareSettingsSidebar
+                  shareLink={shareLink}
+                  viewMode={displayStyle}
+                  onViewModeChange={(mode) => updateShare({ viewMode: mode })}
+                  defaultSortOrder={defaultSortOrder}
+                  onSortOrderChange={(sortOrder) => updateShare({ defaultSortOrder: sortOrder })}
+                />
               </div>
             </>
           )}

@@ -8,6 +8,7 @@ export interface ShareLinkInfo {
   isDisabled: boolean
   hasPassword: boolean
   defaultSortOrder?: string
+  viewMode?: string
   fieldVisibility?: Record<string, boolean>
   rootFolderId: string
   projectId: string
@@ -23,6 +24,7 @@ export const createShareLinkRequestSchema = z.object({
   password: z.string().optional(),
   isDisabled: z.boolean().optional(),
   defaultSortOrder: z.string().optional(),
+  viewMode: z.string().optional(),
 })
 
 export type CreateShareLinkRequest = z.infer<typeof createShareLinkRequestSchema>
@@ -33,6 +35,7 @@ export const updateShareLinkRequestSchema = z.object({
   password: z.string().optional().nullable(),
   isDisabled: z.boolean().optional(),
   defaultSortOrder: z.string().optional().nullable(),
+  viewMode: z.string().optional().nullable(),
   fieldVisibility: z.record(z.string(), z.boolean()).optional().nullable(),
 })
 

@@ -70,8 +70,8 @@ export function TopNav() {
       ancestorFolders={ancestorFolders}
       currentAsset={currentAsset}
       isRootFolder={isRootFolder}
-      displayStyle={isFileView ? undefined : displayStyle}
-      onDisplayStyleChange={isFileView ? undefined : onDisplayStyleChange}
+      displayStyle={isFileView || isShareConfig ? undefined : displayStyle}
+      onDisplayStyleChange={isFileView || isShareConfig ? undefined : onDisplayStyleChange}
       isLeftSidebarCollapsed={isLeftSidebarCollapsed}
       onLeftSidebarToggle={onLeftSidebarToggle}
       isRightSidebarCollapsed={isRightSidebarCollapsed}
