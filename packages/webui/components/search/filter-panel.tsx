@@ -14,6 +14,7 @@ import type { SearchCondition, SearchConditionOperator } from '@shumai/dtos'
 import { type FieldInfo } from '@shumai/dtos'
 import { Check, ChevronDown, Trash2 } from 'lucide-react'
 import { getOptionStyle } from '../fields-manager'
+import RatingField from '../fields/rating-field'
 
 interface FilterPanelProps {
   fields: FieldInfo[]
@@ -46,6 +47,7 @@ export function FilterPanel({
       label: f.config?.name || f.description || 'Unknown',
       type: getFieldType(f),
       options: f.config?.select?.options || f.config?.selectMulti?.options,
+      config: f.config,
     })),
   ].filter((f) => !excludeFields?.includes(f.id))
 
@@ -189,7 +191,7 @@ function getFieldType(field: FieldInfo): string {
   if (field.config?.type === 'selectMulti') return 'selectMulti'
   if (field.config?.type === 'number') return 'number'
   if (field.config?.type === 'date') return 'date'
-  if (field.config?.type === 'rating') return 'number'
+  if (field.config?.type === 'rating') return 'rating'
   if (field.config?.type === 'toggle') return 'toggle'
   return 'text'
 }
@@ -199,6 +201,7 @@ function getDefaultOperator(type: string): SearchConditionOperator {
     case 'selectMulti':
       return 'hasAny' as SearchConditionOperator
     case 'number':
+    case 'rating':
     case 'date':
       return 'eq'
     default:
@@ -233,6 +236,7 @@ function getOperators(field: { id: string; label: string; type: string }): {
         { value: 'isNotEmpty' as SearchConditionOperator, label: 'is not empty' },
       ]
     case 'number':
+    case 'rating':
       return [
         { value: 'eq' as SearchConditionOperator, label: '=' },
         { value: 'neq' as SearchConditionOperator, label: '≠' },
@@ -291,6 +295,7 @@ interface FilterField {
   label: string
   type: string
   options?: SelectOptionItem[]
+  config?: FieldInfo['config']
 }
 
 function isMultiSelectOperator(fieldType: string, operator: SearchConditionOperator): boolean {
@@ -474,6 +479,16 @@ function ConditionValueInput({
         type="number"
         value={value as string}
         onChange={(val) => onChange(Number(val))}
+      />
+    )
+  }
+
+  if (field.type === 'rating') {
+    return (
+      <RatingField
+        value={Number(value) || 0}
+        config={field.config || { name: field.label, type: 'rating' }}
+        onSave={onChange}
       />
     )
   }

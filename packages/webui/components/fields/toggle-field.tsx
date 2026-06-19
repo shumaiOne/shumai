@@ -1,3 +1,4 @@
+import { Switch } from '@/ui/components/ui/switch'
 import type { FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
 import React from 'react'
 
@@ -9,32 +10,20 @@ interface FieldProps {
 }
 
 const ToggleField: React.FC<FieldProps> = ({ value, onSave, readOnly }) => {
-  // Toggle is instant edit, doesn't really have a separate "Edit mode" UI structure other than interaction.
-  const handleToggle = (e: React.MouseEvent) => {
-    e.stopPropagation()
+  const handleToggle = (checked: boolean) => {
     if (!readOnly) {
-      const newValue = !value
-      onSave(newValue)
+      onSave(checked)
     }
   }
 
   return (
-    <div
-      onClick={handleToggle}
-      className={`flex items-center h-[28px] w-full ${!readOnly ? 'cursor-pointer' : ''}`}
-    >
-      <div
-        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
-          value ? 'bg-primary' : 'bg-input'
-        } ${readOnly ? 'opacity-70' : ''}`}
-      >
-        <span
-          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-background transition duration-200 ease-in-out ${
-            value ? 'translate-x-4.5' : 'translate-x-1'
-          }`}
-          style={{ transform: value ? 'translateX(18px)' : 'translateX(4px)' }}
-        />
-      </div>
+    <div className="flex items-center h-[28px] w-full" onClick={(e) => e.stopPropagation()}>
+      <Switch
+        checked={value}
+        onCheckedChange={handleToggle}
+        disabled={readOnly}
+        className="cursor-pointer"
+      />
     </div>
   )
 }

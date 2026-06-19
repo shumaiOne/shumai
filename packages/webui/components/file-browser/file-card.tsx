@@ -6,11 +6,11 @@ import { Badge } from '@/ui/components/ui/badge'
 import { Button } from '@/ui/components/ui/button'
 import { Checkbox } from '@/ui/components/ui/checkbox'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu'
 import { EditableText } from '@/ui/components/ui/editable-text'
 import { Skeleton } from '@/ui/components/ui/skeleton'
@@ -372,13 +372,13 @@ export function FileCard({
         </DropdownMenu>
       </div>
       {fields && fields.length > 0 && (
-        <div className="space-y-2 border-t p-3 mx-2">
+        <div className="space-y-2 border-t p-1 pt-3 mx-2">
           {fields.map((field) => {
             const Icon = field.config?.type
               ? FIELD_TYPE_ICONS[field.config.type as FieldType]
               : null
             return (
-              <div key={field.id} className="space-y-1">
+              <div key={field.id} className="space-y-1 bg-muted/50 p-1 rounded border">
                 <label className="text-xs text-muted-foreground tracking-wide flex items-center gap-1">
                   {Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
                   <span>{field.config?.name}</span>
