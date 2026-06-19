@@ -62,7 +62,7 @@ export function FileListItem({
   const [name, setName] = useState(item.name)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const fileUploadState = useUploadStore((state) => state.fileProgress[displayItem.id || ''])
+  const fileUploadState = useUploadStore((state) => state.fileProgress[item.id || ''])
   const uploadPercent = fileUploadState
     ? fileUploadState.total > 0
       ? (fileUploadState.loaded / fileUploadState.total) * 100
