@@ -8,7 +8,7 @@ import {
   watch,
   statSync,
   createReadStream,
-  createWriteStream,
+  openSync,
 } from 'node:fs'
 import { join } from 'node:path'
 import { homedir } from 'node:os'
@@ -97,7 +97,9 @@ function startDaemon(appName: string, pidFile: string, logFile: string): void {
     if (!isNaN(pid)) {
       try {
         process.kill(pid, 0)
-        console.error(`${appName} is already running (PID: ${pid}). Use '${appName} stop' or '${appName} restart'.`)
+        console.error(
+          `${appName} is already running (PID: ${pid}). Use '${appName} stop' or '${appName} restart'.`,
+        )
         process.exit(1)
       } catch {
         try {
@@ -110,13 +112,13 @@ function startDaemon(appName: string, pidFile: string, logFile: string): void {
   }
 
   console.log(`Starting ${appName} in background...`)
-  const logStream = createWriteStream(logFile, { flags: 'a' })
+  const logFd = openSync(logFile, 'a')
 
   const childArgs = process.argv.slice(1).filter((arg) => arg !== '-d' && arg !== 'restart')
 
   const child = spawn(process.argv[0], childArgs, {
     detached: true,
-    stdio: ['ignore', logStream, logStream],
+    stdio: ['ignore', logFd, logFd],
     env: {
       ...process.env,
       SHUMAI_DAEMONIZED: 'true',
@@ -173,7 +175,10 @@ function viewLogs(appName: string, logFile: string): void {
   process.on('SIGTERM', cleanup)
 }
 
-export async function handleDaemonCommands(appName: string, runFn: () => Promise<void>): Promise<void> {
+export async function handleDaemonCommands(
+  appName: string,
+  runFn: () => Promise<void>,
+): Promise<void> {
   const pidFile = join(PID_DIR, `${appName}.pid`)
   const logFile = join(LOG_DIR, `${appName}.log`)
 
@@ -216,7 +221,9 @@ export async function handleDaemonCommands(appName: string, runFn: () => Promise
     if (!isNaN(pid)) {
       try {
         process.kill(pid, 0)
-        console.error(`${appName} is already running (PID: ${pid}). Use '${appName} stop' or '${appName} restart'.`)
+        console.error(
+          `${appName} is already running (PID: ${pid}). Use '${appName} stop' or '${appName} restart'.`,
+        )
         process.exit(1)
       } catch {
         // Process is dead, clean up PID file

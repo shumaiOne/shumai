@@ -1,12 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach, type MockInstance } from 'vitest'
-import {
-  existsSync,
-  writeFileSync,
-  readFileSync,
-  rmSync,
-  mkdirSync,
-  createWriteStream,
-} from 'node:fs'
+import { existsSync, writeFileSync, readFileSync, rmSync, mkdirSync, openSync } from 'node:fs'
 import { join } from 'node:path'
 import { handleDaemonCommands } from './daemon'
 import { spawn } from 'node:child_process'
@@ -33,19 +26,12 @@ vi.mock('node:child_process', () => {
   }
 })
 
-// Mock node:fs to mock createWriteStream for ESM safety
+// Mock node:fs to mock openSync for ESM safety
 vi.mock('node:fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:fs')>()
-  const { Writable } = await import('node:stream')
   return {
     ...actual,
-    createWriteStream: vi.fn(() => {
-      return new Writable({
-        write(_chunk: unknown, _encoding: string, callback: (error?: Error | null) => void) {
-          callback()
-        },
-      })
-    }),
+    openSync: vi.fn(() => 42),
   }
 })
 
@@ -68,7 +54,7 @@ describe('handleDaemonCommands', () => {
     mockKill = vi.spyOn(process, 'kill').mockImplementation(() => true)
 
     vi.mocked(spawn).mockClear()
-    vi.mocked(createWriteStream).mockClear()
+    vi.mocked(openSync).mockClear()
   })
 
   afterEach(() => {
@@ -105,7 +91,7 @@ describe('handleDaemonCommands', () => {
     expect(runFn).not.toHaveBeenCalled()
     expect(mockKill).toHaveBeenCalledWith(12345, 'SIGTERM')
     expect(mockExit).toHaveBeenCalledWith(0)
-    expect(createWriteStream).not.toHaveBeenCalled()
+    expect(openSync).not.toHaveBeenCalled()
   })
 
   it('daemonizes the process if -d is passed', async () => {
