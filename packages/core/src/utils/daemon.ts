@@ -111,7 +111,7 @@ function startDaemon(appName: string, pidFile: string, logFile: string): void {
   }
 
   console.log(`Starting ${appName} in background...`)
-  const logFd = openSync(logFile, 'a')
+  const logFd = openSync(logFile, 'w')
 
   const childArgs = process.argv.slice(1).filter((arg) => arg !== '-d' && arg !== 'restart')
 
