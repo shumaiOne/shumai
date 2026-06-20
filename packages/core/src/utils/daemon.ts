@@ -94,7 +94,7 @@ function startDaemon(appName: string, pidFile: string, logFile: string): void {
   // Check if already running
   if (existsSync(pidFile)) {
     const pid = parseInt(readFileSync(pidFile, 'utf8').trim(), 10)
-    if (!isNaN(pid)) {
+    if (!isNaN(pid) && pid !== process.pid) {
       try {
         process.kill(pid, 0)
         console.error(
@@ -218,7 +218,7 @@ export async function handleDaemonCommands(
   // Normal Startup logic: check if already running
   if (existsSync(pidFile)) {
     const pid = parseInt(readFileSync(pidFile, 'utf8').trim(), 10)
-    if (!isNaN(pid)) {
+    if (!isNaN(pid) && pid !== process.pid) {
       try {
         process.kill(pid, 0)
         console.error(
