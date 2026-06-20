@@ -5,7 +5,6 @@ import {
   readFileSync,
   unlinkSync,
   mkdirSync,
-  watch,
   statSync,
   createReadStream,
   openSync,
@@ -150,9 +149,9 @@ function viewLogs(appName: string, logFile: string): void {
   process.stdout.write(lastLines + '\n')
 
   let cursor = statSync(logFile).size
-  const watcher = watch(logFile, (event) => {
-    if (event === 'change') {
-      try {
+  const interval = setInterval(() => {
+    try {
+      if (existsSync(logFile)) {
         const stats = statSync(logFile)
         if (stats.size > cursor) {
           const stream = createReadStream(logFile, { start: cursor, end: stats.size - 1 })
@@ -161,14 +160,14 @@ function viewLogs(appName: string, logFile: string): void {
         } else if (stats.size < cursor) {
           cursor = stats.size
         }
-      } catch {
-        // Ignore read errors
       }
+    } catch {
+      // Ignore read errors
     }
-  })
+  }, 250)
 
   const cleanup = () => {
-    watcher.close()
+    clearInterval(interval)
     process.exit(0)
   }
   process.on('SIGINT', cleanup)
