@@ -16,6 +16,18 @@ const SHUMAI_DIR = join(homedir(), '.shumai')
 const PID_DIR = join(SHUMAI_DIR, 'pids')
 const LOG_DIR = join(SHUMAI_DIR, 'logs')
 
+function isProcessRunning(pid: number): boolean {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (err) {
+    if (err && typeof err === 'object' && 'code' in err && err.code === 'EPERM') {
+      return true
+    }
+    return false
+  }
+}
+
 async function stopProcess(appName: string, pidFile: string): Promise<boolean> {
   if (!existsSync(pidFile)) {
     console.log(`No running instance of ${appName} found.`)
@@ -33,14 +45,7 @@ async function stopProcess(appName: string, pidFile: string): Promise<boolean> {
     return false
   }
 
-  let isRunning = false
-  try {
-    process.kill(pid, 0)
-    isRunning = true
-  } catch {
-    // Not running
-  }
-
+  let isRunning = isProcessRunning(pid)
   if (!isRunning) {
     console.log(`Process ${pid} is not running. Cleaning up PID file.`)
     try {
@@ -61,13 +66,11 @@ async function stopProcess(appName: string, pidFile: string): Promise<boolean> {
 
   // Wait for it to stop
   for (let i = 0; i < 30; i++) {
-    try {
-      process.kill(pid, 0)
-      await new Promise((resolve) => setTimeout(resolve, 100))
-    } catch {
+    if (!isProcessRunning(pid)) {
       isRunning = false
       break
     }
+    await new Promise((resolve) => setTimeout(resolve, 100))
   }
 
   if (isRunning) {
@@ -94,13 +97,12 @@ function startDaemon(appName: string, pidFile: string, logFile: string): void {
   if (existsSync(pidFile)) {
     const pid = parseInt(readFileSync(pidFile, 'utf8').trim(), 10)
     if (!isNaN(pid) && pid !== process.pid) {
-      try {
-        process.kill(pid, 0)
+      if (isProcessRunning(pid)) {
         console.error(
           `${appName} is already running (PID: ${pid}). Use '${appName} stop' or '${appName} restart'.`,
         )
         process.exit(1)
-      } catch {
+      } else {
         try {
           unlinkSync(pidFile)
         } catch {
@@ -218,13 +220,12 @@ export async function handleDaemonCommands(
   if (existsSync(pidFile)) {
     const pid = parseInt(readFileSync(pidFile, 'utf8').trim(), 10)
     if (!isNaN(pid) && pid !== process.pid) {
-      try {
-        process.kill(pid, 0)
+      if (isProcessRunning(pid)) {
         console.error(
           `${appName} is already running (PID: ${pid}). Use '${appName} stop' or '${appName} restart'.`,
         )
         process.exit(1)
-      } catch {
+      } else {
         // Process is dead, clean up PID file
         try {
           unlinkSync(pidFile)
