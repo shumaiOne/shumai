@@ -5,6 +5,11 @@ import { workflowService } from '@shumai/workflow-core'
 import { TaskQueueAgent } from '@shumai/workflow-core'
 import { initAgentWorkflows } from '@shumai/agent'
 
+if (process.argv.includes('--check')) {
+  console.log('✅ Agent worker evaluated successfully!')
+  process.exit(0)
+}
+
 async function run() {
   // Initialize workflows and activities
   initAgentWorkflows()

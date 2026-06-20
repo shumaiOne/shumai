@@ -11,6 +11,11 @@ import { initTranscodeWorkflows } from '@shumai/transcode'
 import { workflowService } from '@shumai/workflow-core'
 import { app } from '@shumai/api'
 
+if (process.argv.includes('--check')) {
+  console.log('✅ Web app evaluated successfully!')
+  process.exit(0)
+}
+
 // Initialize workflows and activities for local executor mode
 initAgentWorkflows()
 initTranscodeWorkflows()
