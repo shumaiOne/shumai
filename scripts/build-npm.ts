@@ -165,6 +165,7 @@ async function buildPlatformPackages(
   entrypoint: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   plugins: any[] = [],
+  external?: string[],
 ) {
   for (const target of targets) {
     const dirName = `${appName}-${target.platform}-${target.arch}`
@@ -180,6 +181,7 @@ async function buildPlatformPackages(
       binaryName,
       bunTarget: target.bunTarget,
       plugins,
+      external,
     })
 
     // Generate package.json for platform-specific package
@@ -209,6 +211,7 @@ async function buildMainPackage({
   entrypoint,
   plugins = [],
   extraDependencies = {},
+  external = commonExternal,
 }: {
   appName: string
   description: string
@@ -217,6 +220,7 @@ async function buildMainPackage({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   plugins?: any[]
   extraDependencies?: Record<string, string>
+  external?: string[]
 }) {
   console.log(`\n📄 Packaging wrapper app ${appName}...`)
   const mainOutDir = path.join(distDir, appName)
@@ -235,7 +239,7 @@ async function buildMainPackage({
     minify: true,
     naming: `${appName}-app.[ext]`,
     plugins,
-    external: commonExternal,
+    external,
     define: {
       'process.env.NODE_ENV': JSON.stringify('production'),
     },
@@ -373,7 +377,8 @@ console.log(\`ℹ️ [${appName}] Running from CWD: \${process.cwd()}\`)
 console.log(\`ℹ️ [${appName}] DATABASE_URL is: \${process.env.DATABASE_URL ? '(defined)' : '(undefined)'}\`)
 
 const prismaSchemaPath = join(__dirname, '..', 'prisma', 'schema.prisma')
-if (existsSync(prismaSchemaPath)) {
+const isUtilityCommand = process.argv.includes('stop') || process.argv.includes('logs')
+if (existsSync(prismaSchemaPath) && !isUtilityCommand) {
   console.log('🔄 Running database migrations...')
   activeProcess = spawn(
     binaryPath,
@@ -488,13 +493,15 @@ const shumaiPlugins = [
   }),
   tailwindPlugin,
 ]
-await buildPlatformPackages('shumai', dummyRunnerPath)
+const shumaiExternal = commonExternal.filter((dep) => dep !== 'zod')
+await buildPlatformPackages('shumai', dummyRunnerPath, shumaiPlugins, shumaiExternal)
 await buildMainPackage({
   appName: 'shumai',
   description: 'A fullstack AI-powered media workspace and workflow engine',
   hasPrisma: true,
   entrypoint: './apps/web/src/index.ts',
   plugins: shumaiPlugins,
+  external: shumaiExternal,
 })
 
 // 3. Build shumai-agent (Agent app & platform binaries)
