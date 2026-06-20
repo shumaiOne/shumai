@@ -1,9 +1,15 @@
 import { describe, expect, it, vi, beforeEach, afterEach, type MockInstance } from 'vitest'
-import { existsSync, writeFileSync, readFileSync, rmSync, mkdirSync, createWriteStream } from 'node:fs'
+import {
+  existsSync,
+  writeFileSync,
+  readFileSync,
+  rmSync,
+  mkdirSync,
+  createWriteStream,
+} from 'node:fs'
 import { join } from 'node:path'
 import { handleDaemonCommands } from './daemon'
 import { spawn } from 'node:child_process'
-import { Writable } from 'node:stream'
 
 // Mock os.homedir to return a temporary directory for test isolation
 vi.mock('node:os', async (importOriginal) => {
@@ -30,7 +36,7 @@ vi.mock('node:child_process', () => {
 // Mock node:fs to mock createWriteStream for ESM safety
 vi.mock('node:fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:fs')>()
-  const { Writable } = require('node:stream')
+  const { Writable } = await import('node:stream')
   return {
     ...actual,
     createWriteStream: vi.fn(() => {
@@ -60,7 +66,7 @@ describe('handleDaemonCommands', () => {
       throw new Error('process.exit')
     })
     mockKill = vi.spyOn(process, 'kill').mockImplementation(() => true)
-    
+
     vi.mocked(spawn).mockClear()
     vi.mocked(createWriteStream).mockClear()
   })
