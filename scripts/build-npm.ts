@@ -373,7 +373,8 @@ console.log(\`ℹ️ [${appName}] Running from CWD: \${process.cwd()}\`)
 console.log(\`ℹ️ [${appName}] DATABASE_URL is: \${process.env.DATABASE_URL ? '(defined)' : '(undefined)'}\`)
 
 const prismaSchemaPath = join(__dirname, '..', 'prisma', 'schema.prisma')
-if (existsSync(prismaSchemaPath)) {
+const isUtilityCommand = process.argv.includes('stop') || process.argv.includes('logs')
+if (existsSync(prismaSchemaPath) && !isUtilityCommand) {
   console.log('🔄 Running database migrations...')
   activeProcess = spawn(
     binaryPath,

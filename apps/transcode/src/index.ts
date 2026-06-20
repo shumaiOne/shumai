@@ -3,6 +3,7 @@ loadEnvConfig(process.cwd(), process.env.NODE_ENV !== 'production')
 
 import { initTranscodeWorkflows } from '@shumai/transcode'
 import { TaskQueueTranscode, workflowService } from '@shumai/workflow-core'
+import { handleDaemonCommands } from '@shumai/core/src/utils/daemon'
 
 if (process.argv.includes('--check')) {
   console.log('✅ Transcode worker evaluated successfully!')
@@ -27,7 +28,7 @@ async function run() {
   await workflowService.startWorkers(TaskQueueTranscode, options)
 }
 
-run().catch((err) => {
+handleDaemonCommands('shumai-transcode', run).catch((err) => {
   console.error(err)
   process.exit(1)
 })
