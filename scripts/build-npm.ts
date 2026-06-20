@@ -34,6 +34,7 @@ const commonExternal = [
   '@temporalio/worker',
   '@temporalio/workflow',
   'prisma',
+  'zod',
 ]
 
 // Extract exact dependency versions from workspace
