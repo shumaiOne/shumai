@@ -1,5 +1,5 @@
 import tailwindPlugin from 'bun-plugin-tailwind'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { cp, mkdir, readdir, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { temporalWorkflow } from '../packages/workflow-core/src/bun-temporal-plugin'
@@ -37,18 +37,45 @@ const commonExternal = [
   'zod',
 ]
 
-// Extract exact dependency versions from workspace
+// Extract exact dependency versions from workspace package.json files
 console.log('🔍 Extracting exact dependency versions for runtime packages...')
-const lsOutput = Bun.spawnSync(['bun', 'pm', 'ls', '--all']).stdout.toString()
 const dependencyVersions: Record<string, string> = {}
 
+// Find all workspace package.json files
+const packageJsonPaths = ['package.json']
+const workspaceDirs = ['packages', 'apps']
+for (const dir of workspaceDirs) {
+  if (existsSync(dir)) {
+    const subdirs = readdirSync(dir)
+    for (const subdir of subdirs) {
+      const p = path.join(dir, subdir, 'package.json')
+      if (existsSync(p)) {
+        packageJsonPaths.push(p)
+      }
+    }
+  }
+}
+
 for (const dep of commonExternal) {
-  const escapedDep = dep.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const regex = new RegExp(`(?:^|\\s)${escapedDep}@(\\d+\\.\\d+\\.\\d+[^\\s]*)`, 'g')
-  const match = regex.exec(lsOutput)
-  if (match && match[1]) {
-    dependencyVersions[dep] = match[1]
-    console.log(`  ✅ Found ${dep}@${match[1]}`)
+  let foundVersion: string | null = null
+  for (const p of packageJsonPaths) {
+    try {
+      const content = readFileSync(p, 'utf8')
+      const pkgJson = JSON.parse(content)
+      const version = pkgJson.dependencies?.[dep] || pkgJson.devDependencies?.[dep]
+      if (version) {
+        // Strip any leading range specifiers like ^ or ~ to get the base version
+        foundVersion = version.replace(/^[\^~]/, '')
+        break
+      }
+    } catch {
+      // ignore read/parse errors
+    }
+  }
+
+  if (foundVersion) {
+    dependencyVersions[dep] = foundVersion
+    console.log(`  ✅ Found ${dep}@${foundVersion}`)
   } else {
     console.warn(`  ⚠️ Warning: Could not find exact version for ${dep}`)
   }
