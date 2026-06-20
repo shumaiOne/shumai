@@ -4,6 +4,11 @@ loadEnvConfig(process.cwd(), process.env.NODE_ENV !== 'production')
 import { initTranscodeWorkflows } from '@shumai/transcode'
 import { TaskQueueTranscode, workflowService } from '@shumai/workflow-core'
 
+if (process.argv.includes('--check')) {
+  console.log('✅ Transcode worker evaluated successfully!')
+  process.exit(0)
+}
+
 async function run() {
   // Initialize workflows and activities
   initTranscodeWorkflows()
