@@ -256,7 +256,6 @@ export async function handleDaemonCommands(
   process.on('exit', cleanPidFile)
 
   const handleSignal = (signal: string) => {
-    cleanPidFile()
     if (process.listenerCount(signal) === 1) {
       process.exit(0)
     }
