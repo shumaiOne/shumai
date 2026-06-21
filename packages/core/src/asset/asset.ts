@@ -1628,6 +1628,7 @@ export class AssetService {
         createdAt: a.createdAt.toISOString(),
         updatedAt: a.updatedAt.toISOString(),
         deletedAt: a.deletedAt ? a.deletedAt.toISOString() : null,
+        projectId: a.projectId,
         creator,
         fieldValues,
         sortIndex: a.sortIndex,

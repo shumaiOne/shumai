@@ -185,3 +185,9 @@ To set up Shumai locally for development:
    ```
 
 ---
+
+## Command Line Interface (CLI)
+
+Shumai provides a Command Line Interface (CLI) tool to manage projects, folders, and assets, upload files/folders, and create new versions directly from your terminal.
+
+For more details on installation and usage, see the [CLI Readme](apps/cli/README.md).

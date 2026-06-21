@@ -80,6 +80,7 @@ export const ModelName = {
   Model: 'Model',
   Provider: 'Provider',
   Collection: 'Collection',
+  ApiToken: 'ApiToken',
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -547,6 +548,18 @@ export const CollectionScalarFieldEnum = {
 
 export type CollectionScalarFieldEnum =
   (typeof CollectionScalarFieldEnum)[keyof typeof CollectionScalarFieldEnum]
+
+export const ApiTokenScalarFieldEnum = {
+  id: 'id',
+  token: 'token',
+  name: 'name',
+  userId: 'userId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+} as const
+
+export type ApiTokenScalarFieldEnum =
+  (typeof ApiTokenScalarFieldEnum)[keyof typeof ApiTokenScalarFieldEnum]
 
 export const SortOrder = {
   asc: 'asc',

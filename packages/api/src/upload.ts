@@ -15,8 +15,10 @@ import type { Prisma } from '@shumai/db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
-const route = new Hono<{ Variables: { user: User } }>()
-  .put('/upload/local', zValidator('query', localUploadQuerySchema), async (c) => {
+export const localUploadRoute = new Hono().put(
+  '/upload/local',
+  zValidator('query', localUploadQuerySchema),
+  async (c) => {
     const { bucket, key, Signature } = c.req.valid('query')
 
     if (!verifyLocalUrlSignature(bucket, key, Signature)) {
@@ -46,7 +48,10 @@ const route = new Hono<{ Variables: { user: User } }>()
     await s3Service.putObject(bucket, key, buffer, size, finalContentType)
 
     return c.json({ success: true })
-  })
+  },
+)
+
+const route = new Hono<{ Variables: { user: User } }>()
   .get('/teams/:teamId/upload/tasks', zValidator('query', paginationParamsSchema), async (c) => {
     const teamId = c.req.param('teamId')
     const user = c.get('user')

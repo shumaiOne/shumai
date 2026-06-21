@@ -12,12 +12,56 @@ import {
   updateProjectMemberRoleRequestSchema,
   addProjectMemberRequestSchema,
 } from '@shumai/dtos'
-import { listMembersQuerySchema } from '@shumai/dtos'
+import { listMembersQuerySchema, paginationParamsSchema } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
+import { prisma } from '@shumai/db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
 const route = new Hono<{ Variables: { user: User } }>()
+  .get('/projects', zValidator('query', paginationParamsSchema), async (c) => {
+    const user = c.get('user')
+    const req = c.req.valid('query')
+    const limit = req.first ? Math.min(req.first, 200) : 200
+
+    const teamMembers = await prisma.teamMember.findMany({
+      where: { userId: user.id },
+    })
+
+    type ProjectType = Prisma.ProjectGetPayload<Record<string, never>>
+    const allProjects: ProjectType[] = []
+
+    for (const member of teamMembers) {
+      const where: Prisma.ProjectWhereInput = {
+        teamId: member.teamId,
+      }
+      if (member.scope === 'project') {
+        where.members = {
+          some: { teamMemberId: member.id },
+        }
+      }
+      const teamProjects = await prisma.project.findMany({
+        where,
+        orderBy: { id: 'desc' },
+        take: limit - allProjects.length,
+      })
+      allProjects.push(...teamProjects)
+      if (allProjects.length >= limit) {
+        break
+      }
+    }
+
+    return c.json({
+      data: allProjects.map((p) => ({
+        id: p.id,
+        name: p.name,
+        teamId: p.teamId,
+        rootFolder: p.rootFolderId || undefined,
+        enableNotification: p.enableNotification,
+        updatedAt: p.updatedAt.toISOString(),
+      })),
+    })
+  })
   .post('/teams/:teamId/projects', zValidator('json', createProjectRequestSchema), async (c) => {
     const teamId = c.req.param('teamId')
     const user = c.get('user')

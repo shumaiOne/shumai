@@ -9,6 +9,7 @@ import folderRoute from './folder'
 import inviteRoute from './invite'
 import metadataRoute from './metadata'
 import { authMiddleware } from './middleware/auth'
+import { tokenAuthMiddleware } from './middleware/tokenAuth'
 import notificationRoute from './notification'
 import projectRoute from './project'
 import providerRoute from './provider'
@@ -18,7 +19,7 @@ import s3Route from './s3'
 import shareRoute from './share'
 import skillRoute from './skill'
 import teamRoute from './team'
-import uploadRoute from './upload'
+import uploadRoute, { localUploadRoute } from './upload'
 import versionStackRoute from './versionStack'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
@@ -30,6 +31,15 @@ const apiRoute = new Hono<{ Variables: { user: User } }>()
   .route('/', authnRoute)
   .route('/', publicInviteRoute)
   .route('/', publicShareRoute)
+  .route('/', localUploadRoute)
+
+  // Selected routes supporting API token authentication
+  .use('/projects', tokenAuthMiddleware)
+  .use('/projects/*', tokenAuthMiddleware)
+  .use('/folders', tokenAuthMiddleware)
+  .use('/folders/*', tokenAuthMiddleware)
+  .use('/teams/:teamId/upload/tasks', tokenAuthMiddleware)
+  .use('/teams/:teamId/upload/tasks/*', tokenAuthMiddleware)
 
   // Protected Routes
   .use('*', authMiddleware)

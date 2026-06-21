@@ -534,6 +534,65 @@ await buildMainPackage({
   plugins: transcodePlugins,
 })
 
+// 5. Build shumai-cli (pure Node.js bundle)
+async function buildCliPackage() {
+  console.log('\n📄 Packaging CLI app shumai-cli...')
+  const cliOutDir = path.join(distDir, 'shumai-cli')
+  const binOutDir = path.join(cliOutDir, 'bin')
+  await mkdir(binOutDir, { recursive: true })
+
+  const buildResult = await Bun.build({
+    entrypoints: ['./apps/cli/src/index.ts'],
+    root: '.',
+    target: 'node',
+    outdir: binOutDir,
+    minify: true,
+    naming: 'shumai-cli.js',
+    external: [],
+    define: {
+      'process.env.NODE_ENV': JSON.stringify('production'),
+    },
+  })
+
+  if (!buildResult.success) {
+    console.error('❌ JS bundling failed for shumai-cli!')
+    for (const log of buildResult.logs) {
+      console.error(log)
+    }
+    process.exit(1)
+  }
+
+  // Prepend shebang #!/usr/bin/env node to the output bundle
+  const bundlePath = path.join(binOutDir, 'shumai-cli.js')
+  const bundleContent = await Bun.file(bundlePath).text()
+  await writeFile(bundlePath, `#!/usr/bin/env node\n${bundleContent}`, {
+    encoding: 'utf-8',
+    mode: 0o755,
+  })
+
+  // Generate package.json for CLI
+  const packageJson = {
+    name: '@shumai-one/cli',
+    version,
+    description: 'Command line interface for the shumai media workspace',
+    type: 'module',
+    bin: {
+      'shumai-cli': './bin/shumai-cli.js',
+    },
+    files: ['bin'],
+    repository: rootPackageJson.repository,
+  }
+
+  await writeFile(
+    path.join(cliOutDir, 'package.json'),
+    JSON.stringify(packageJson, null, 2),
+    'utf-8',
+  )
+  console.log('✅ CLI package built successfully!')
+}
+
+await buildCliPackage()
+
 if (existsSync(dummyRunnerPath)) {
   await rm(dummyRunnerPath)
 }

@@ -18,6 +18,7 @@ export type UpdateProjectRequest = z.infer<typeof updateProjectRequestSchema>
 export const projectInfoSchema = z.object({
   id: z.string(),
   name: z.string(),
+  teamId: z.string(),
   rootFolder: z.string().optional(),
   coverImage: z.string().optional(),
   coverImageKey: z.string().optional(),

@@ -13,8 +13,10 @@ import {
   updateSandboxSettingsRequestSchema,
   updateMeRequestSchema,
   updateTeamMemberRoleRequestSchema,
+  createApiTokenRequestSchema,
 } from '@shumai/dtos'
 import { updateUserMetadataRequestSchema } from '@shumai/dtos'
+import { apiTokenService } from '@shumai/core/src/user/api-token'
 import type { Prisma } from '@shumai/db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
@@ -255,5 +257,61 @@ const route = new Hono<{ Variables: { user: User } }>()
       return c.json({ key: metadata.key, value: metadata.value })
     },
   )
+  .get('/teams/:teamId/api-tokens', async (c) => {
+    const user = c.get('user')
+    const teamId = c.req.param('teamId')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Team,
+      id: teamId,
+    })
+
+    const tokens = await apiTokenService.listTokens(user.id)
+    return c.json(
+      tokens.map((t) => ({
+        id: t.id,
+        token: t.token,
+        name: t.name,
+        createdAt: t.createdAt.toISOString(),
+      })),
+    )
+  })
+  .post('/teams/:teamId/api-tokens', zValidator('json', createApiTokenRequestSchema), async (c) => {
+    const user = c.get('user')
+    const teamId = c.req.param('teamId')
+    const req = c.req.valid('json')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Team,
+      id: teamId,
+    })
+
+    const token = await apiTokenService.createToken(user.id, req.name)
+    return c.json({
+      id: token.id,
+      token: token.token,
+      name: token.name,
+      createdAt: token.createdAt.toISOString(),
+    })
+  })
+  .delete('/teams/:teamId/api-tokens/:tokenId', async (c) => {
+    const user = c.get('user')
+    const teamId = c.req.param('teamId')
+    const tokenId = c.req.param('tokenId')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Team,
+      id: teamId,
+    })
+
+    await apiTokenService.deleteToken(user.id, tokenId)
+    return c.json({ success: true })
+  })
 
 export default route

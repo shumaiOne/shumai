@@ -64,6 +64,7 @@ export const assetInfoSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   deletedAt: z.string().nullable().optional(),
+  projectId: z.string().optional().nullable(),
   creator: assetUserInfoSchema.nullable().optional(),
   fieldValues: z.array(fieldValueInfoSchema).optional(),
   sortIndex: z.string().optional().nullable(),
