@@ -1,15 +1,15 @@
-import { join } from 'node:path'
 import { loadEnvConfig } from '@shumai/core/src/env-loader'
+import { join } from 'node:path'
 loadEnvConfig(process.cwd(), process.env.NODE_ENV !== 'production')
 
 import index from '@shumai/webui/index.html'
 
 import { initAgentWorkflows } from '@shumai/agent'
+import { app } from '@shumai/api'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { initTranscodeWorkflows } from '@shumai/transcode'
 import { workflowService } from '@shumai/workflow-core'
-import { app } from '@shumai/api'
 
 import { handleDaemonCommands } from '@shumai/core/src/utils/daemon'
 
@@ -54,69 +54,68 @@ async function run() {
 
   const port = process.env.SHUMAI_SERVER_PORT ? parseInt(process.env.SHUMAI_SERVER_PORT) : 3000
 
-  const server = Bun.serve(
-    isProd
-      ? {
-          port,
-          maxRequestBodySize: process.env.MAX_REQUEST_BODY_SIZE
-            ? parseInt(process.env.MAX_REQUEST_BODY_SIZE)
-            : 1024 * 1024 * 1024 * 10, // Default 10GB
-          development: false,
-          async fetch(req) {
-            const url = new URL(req.url)
+  interface HtmlBundleFile {
+    input: string
+    path: string
+    loader: string
+    isEntry: boolean
+    headers: Record<string, string>
+  }
 
-            if (!url.pathname.startsWith('/api/') && !url.pathname.startsWith('/files/')) {
-              const filepath = join(import.meta.dir, url.pathname)
-              const file = Bun.file(filepath)
-              if (await file.exists()) {
-                try {
-                  const stat = await file.stat()
-                  if (stat.isFile()) {
-                    return new Response(file)
-                  }
-                } catch {
-                  // ignore stat errors
-                }
-              }
+  interface HtmlBundle {
+    index: string
+    files: HtmlBundleFile[]
+  }
 
-              const htmlFile = Bun.file(join(import.meta.dir, 'index.html'))
-              if (await htmlFile.exists()) {
-                return new Response(htmlFile, {
-                  headers: { 'Content-Type': 'text/html' },
-                })
-              }
+  // Bun's native Serve config routes require specific handler types that are hard
+  // to dynamically construct without using 'any'.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const routes: Record<string, any> = {
+    '/api/*': app.fetch,
+    '/files/*': app.fetch,
+  }
 
-              const htmlFileNpm = Bun.file(join(import.meta.dir, 'shumai-app.html'))
-              if (await htmlFileNpm.exists()) {
-                return new Response(htmlFileNpm, {
-                  headers: { 'Content-Type': 'text/html' },
-                })
-              }
-            }
+  if (isProd) {
+    const bundle = index as unknown as HtmlBundle
+    if (bundle && typeof bundle === 'object' && 'files' in bundle && Array.isArray(bundle.files)) {
+      for (const file of bundle.files) {
+        const routePath = file.path.startsWith('.') ? file.path.slice(1) : file.path
+        const filePath = join(import.meta.dir, file.path)
+        routes[routePath] = () => new Response(Bun.file(filePath), { headers: file.headers })
+      }
 
-            return app.fetch(req)
-          },
-        }
-      : {
-          port,
-          maxRequestBodySize: process.env.MAX_REQUEST_BODY_SIZE
-            ? parseInt(process.env.MAX_REQUEST_BODY_SIZE)
-            : 1024 * 1024 * 1024 * 10, // Default 10GB
-          development: true,
-          fetch: app.fetch,
-          routes: {
-            // Serve index.html for root
-            '/': index,
+      const mainHtmlPath = join(import.meta.dir, bundle.index)
+      const mainHtmlFile = Bun.file(mainHtmlPath)
+      const mainHtmlHeaders = bundle.files.find((f) => f.path === bundle.index)?.headers || {
+        'content-type': 'text/html;charset=utf-8',
+      }
+      const serveMainHtml = () => new Response(mainHtmlFile, { headers: mainHtmlHeaders })
 
-            // Proxy API requests to Hono
-            '/api/*': app.fetch,
-            '/files/*': app.fetch,
+      routes['/'] = serveMainHtml
+      routes['/*'] = serveMainHtml
+    } else {
+      const fallbackHtmlPath = join(import.meta.dir, 'shumai-app.html')
+      const serveFallbackHtml = () =>
+        new Response(Bun.file(fallbackHtmlPath), {
+          headers: { 'content-type': 'text/html;charset=utf-8' },
+        })
+      routes['/'] = serveFallbackHtml
+      routes['/*'] = serveFallbackHtml
+    }
+  } else {
+    routes['/'] = index
+    routes['/*'] = index
+  }
 
-            // Catch-all for SPA routing (fallback to index.html)
-            '/*': index,
-          },
-        },
-  )
+  const server = Bun.serve({
+    port,
+    maxRequestBodySize: process.env.MAX_REQUEST_BODY_SIZE
+      ? parseInt(process.env.MAX_REQUEST_BODY_SIZE)
+      : 1024 * 1024 * 1024 * 10, // Default 10GB
+    development: !isProd,
+    fetch: app.fetch,
+    routes,
+  })
 
   console.log(`🚀 Server running at ${server.url}`)
 
