@@ -140,6 +140,25 @@ Start the application from your workspace folder:
 shumai
 ```
 
+Alternatively, you can run and manage Shumai in daemon mode:
+
+- **Start in daemon mode**:
+  ```bash
+  shumai -d
+  ```
+- **Stop Shumai**:
+  ```bash
+  shumai stop
+  ```
+- **Restart Shumai**:
+  ```bash
+  shumai restart
+  ```
+- **Show/tail logs**:
+  ```bash
+  shumai logs
+  ```
+
 On startup, Shumai will automatically run database migrations and start the web server at `http://localhost:3000`.
 
 ---
