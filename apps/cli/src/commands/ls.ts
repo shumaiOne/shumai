@@ -1,3 +1,4 @@
+import { newTablePrinter, withTruncate } from '@shumai/tableprinter'
 import type { AssetInfo } from '@shumai/dtos'
 import { getClient } from '../client'
 
@@ -61,38 +62,24 @@ export async function ls(parentId: string) {
       return
     }
 
-    const idWidth = 26
-    const nameWidth = 35
-    const typeWidth = 10
-    const sizeWidth = 12
+    const isTty = process.stdout.isTTY
+    const maxWidth = process.stdout.columns || 80
+    const tp = newTablePrinter(process.stdout, isTty, maxWidth)
 
-    console.log(
-      'ID'.padEnd(idWidth) +
-        ' | ' +
-        'Name'.padEnd(nameWidth) +
-        ' | ' +
-        'Type'.padEnd(typeWidth) +
-        ' | ' +
-        'Size'.padEnd(sizeWidth),
-    )
-    console.log('-'.repeat(idWidth + nameWidth + typeWidth + sizeWidth + 9))
+    tp.addHeader(['ID', 'Name', 'Type', 'Size'])
 
     for (const item of items) {
-      const id = item.id || ''
-      const name = item.name || ''
-      const type = item.typeDisplay
-      const size = item.typeDisplay === 'folder' ? '-' : formatSize(item.sizeByte || 0)
-
-      console.log(
-        id.padEnd(idWidth) +
-          ' | ' +
-          name.padEnd(nameWidth) +
-          ' | ' +
-          type.padEnd(typeWidth) +
-          ' | ' +
-          size.padEnd(sizeWidth),
+      tp.addField(item.id || '', withTruncate(null))
+      tp.addField(item.name || '')
+      tp.addField(item.typeDisplay, withTruncate(null))
+      tp.addField(
+        item.typeDisplay === 'folder' ? '-' : formatSize(item.sizeByte || 0),
+        withTruncate(null),
       )
+      tp.endRow()
     }
+
+    tp.render()
   } catch (err) {
     console.error('Error connecting to API server:', err instanceof Error ? err.message : err)
     process.exit(1)

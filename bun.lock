@@ -42,7 +42,7 @@
         "@shumai/workflow-core": "workspace:*",
       },
     },
-    "apps/shumai-cli": {
+    "apps/cli": {
       "name": "@shumai/cli",
       "version": "0.0.10",
       "bin": {
@@ -52,6 +52,7 @@
         "@shumai/api": "workspace:*",
         "@shumai/core": "workspace:*",
         "@shumai/dtos": "workspace:*",
+        "@shumai/tableprinter": "workspace:*",
         "hono": "4.12.23",
         "ulid": "^3.0.2",
       },
@@ -170,6 +171,10 @@
       "dependencies": {
         "zod": "4.4.3",
       },
+    },
+    "packages/tableprinter": {
+      "name": "@shumai/tableprinter",
+      "version": "0.0.10",
     },
     "packages/transcode": {
       "name": "@shumai/transcode",
@@ -982,13 +987,15 @@
 
     "@shumai/api": ["@shumai/api@workspace:packages/api"],
 
-    "@shumai/cli": ["@shumai/cli@workspace:apps/shumai-cli"],
+    "@shumai/cli": ["@shumai/cli@workspace:apps/cli"],
 
     "@shumai/core": ["@shumai/core@workspace:packages/core"],
 
     "@shumai/db": ["@shumai/db@workspace:packages/db"],
 
     "@shumai/dtos": ["@shumai/dtos@workspace:packages/dtos"],
+
+    "@shumai/tableprinter": ["@shumai/tableprinter@workspace:packages/tableprinter"],
 
     "@shumai/transcode": ["@shumai/transcode@workspace:packages/transcode"],
 

@@ -1,0 +1,9 @@
+{
+  "name": "@shumai/tableprinter",
+  "version": "0.0.10",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {}
+}

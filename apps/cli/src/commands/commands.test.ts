@@ -12,6 +12,8 @@ describe('CLI Commands', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let logSpy: any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let writeSpy: any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let errorSpy: any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let exitSpy: any
@@ -48,6 +50,7 @@ describe('CLI Commands', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
     errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     exitSpy = vi
       .spyOn(process, 'exit')
@@ -60,6 +63,7 @@ describe('CLI Commands', () => {
 
   afterEach(() => {
     logSpy.mockRestore()
+    writeSpy.mockRestore()
     errorSpy.mockRestore()
     exitSpy.mockRestore()
   })
@@ -82,8 +86,8 @@ describe('CLI Commands', () => {
       expect(mockClient.api.projects.$get).toHaveBeenCalledWith({
         query: { first: '200' },
       })
-      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Proj 1'))
-      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Proj 2'))
+      expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining('Proj 1'))
+      expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining('Proj 2'))
     })
   })
 
@@ -108,8 +112,8 @@ describe('CLI Commands', () => {
       await ls('parentId123')
 
       expect(mockClient.api.folders[':folderId'].children.$get).toHaveBeenCalledTimes(2)
-      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Sub 1'))
-      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('doc.pdf'))
+      expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining('Sub 1'))
+      expect(writeSpy).toHaveBeenCalledWith(expect.stringContaining('doc.pdf'))
     })
   })
 

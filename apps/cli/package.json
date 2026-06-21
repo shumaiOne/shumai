@@ -10,6 +10,7 @@
     "@shumai/api": "workspace:*",
     "@shumai/core": "workspace:*",
     "@shumai/dtos": "workspace:*",
+    "@shumai/tableprinter": "workspace:*",
     "hono": "4.12.23",
     "ulid": "^3.0.2"
   }

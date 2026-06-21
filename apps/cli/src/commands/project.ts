@@ -1,3 +1,4 @@
+import { newTablePrinter } from '@shumai/tableprinter'
 import { getClient } from '../client'
 
 export async function projectLs() {
@@ -20,28 +21,20 @@ export async function projectLs() {
       return
     }
 
-    const idWidth = 26
-    const nameWidth = 30
-    const rootWidth = 26
+    const isTty = process.stdout.isTTY
+    const maxWidth = process.stdout.columns || 80
+    const tp = newTablePrinter(process.stdout, isTty, maxWidth)
 
-    console.log(
-      'ID'.padEnd(idWidth) +
-        ' | ' +
-        'Name'.padEnd(nameWidth) +
-        ' | ' +
-        'Root Folder ID'.padEnd(rootWidth),
-    )
-    console.log('-'.repeat(idWidth + nameWidth + rootWidth + 6))
+    tp.addHeader(['ID', 'Name', 'Root Folder ID'])
 
     for (const p of projects) {
-      const id = p.id || ''
-      const name = p.name || ''
-      const rootFolder = p.rootFolder || ''
-
-      console.log(
-        id.padEnd(idWidth) + ' | ' + name.padEnd(nameWidth) + ' | ' + rootFolder.padEnd(rootWidth),
-      )
+      tp.addField(p.id || '')
+      tp.addField(p.name || '')
+      tp.addField(p.rootFolder || '')
+      tp.endRow()
     }
+
+    tp.render()
   } catch (err) {
     console.error('Error connecting to API server:', err instanceof Error ? err.message : err)
     process.exit(1)
