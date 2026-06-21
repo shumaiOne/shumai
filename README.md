@@ -50,7 +50,7 @@ Docker Compose is the fastest way to get Shumai running. You do not need to clon
    curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose.yaml
    ```
 3. **Configure Environment Variables (Remote Deployments only):**
-   If deploying Shumai to a remote server (e.g., AWS EC2, VPS), edit `docker-compose.yaml` and set `AWS_ENDPOINT_URL_S3` to your server's public IP address or domain name (e.g., `http://12.34.56.78`).
+   If deploying Shumai to a remote server (e.g., AWS EC2, VPS), edit docker-compose.yaml and add AWS_ENDPOINT_URL_S3 under the environment section, setting it to your server's public IP address or domain name (e.g., http://12.34.56.78).
 4. Start the services in detached mode:
    ```bash
    docker compose up -d
