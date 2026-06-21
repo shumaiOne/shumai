@@ -181,6 +181,7 @@ const wrapperAppNames = [
   '@shumai-one/shumai',
   '@shumai-one/shumai-agent',
   '@shumai-one/shumai-transcode',
+  '@shumai-one/cli',
 ]
 const dependencies = Object.fromEntries(
   packages
@@ -215,3 +216,4 @@ console.log('\nTo run the locally packed CLI apps from outside the repository:')
 console.log(`  npx --prefix ${nodeInstallDirectory} shumai`)
 console.log(`  npx --prefix ${nodeInstallDirectory} shumai-agent`)
 console.log(`  npx --prefix ${nodeInstallDirectory} shumai-transcode`)
+console.log(`  npx --prefix ${nodeInstallDirectory} shumai-cli`)
