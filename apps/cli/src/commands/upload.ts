@@ -15,7 +15,7 @@ interface CliFileNode {
   mediaType?: string
 }
 
-function getMediaType(filename: string): string {
+export function getMediaType(filename: string): string {
   const ext = path.extname(filename).toLowerCase()
   const mimeMap: Record<string, string> = {
     '.png': 'image/png',
@@ -79,7 +79,7 @@ async function buildFileTree(
   }
 }
 
-class ProgressTracker {
+export class ProgressTracker {
   private uploads = new Map<string, { name: string; size: number; uploadedBytes: number }>()
   private isTty = process.stdout.isTTY
   private linesPrinted = 0
@@ -124,7 +124,7 @@ class ProgressTracker {
   }
 }
 
-async function uploadFileWithProgress(
+export async function uploadFileWithProgress(
   url: string,
   filePath: string,
   contentType: string,

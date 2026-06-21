@@ -4,6 +4,7 @@ import { ls } from './ls'
 import { mkdir } from './mkdir'
 import { getClient } from '../client'
 import { upload } from './upload'
+import { createVersion } from './create-version'
 import fs from 'node:fs'
 import http from 'node:http'
 
@@ -235,6 +236,128 @@ describe('CLI Commands', () => {
         fs.unlinkSync(tempFile)
       } catch {
         // Ignore if file doesn't exist
+      }
+    })
+  })
+
+  describe('create-version', () => {
+    it('fails if local path is a directory', async () => {
+      const tempDir = 'temp-test-dir'
+      fs.mkdirSync(tempDir, { recursive: true })
+
+      await expect(createVersion(tempDir, 'file-123')).rejects.toThrow('process.exit(1)')
+
+      try {
+        fs.rmdirSync(tempDir)
+      } catch {
+        // Ignore
+      }
+    })
+
+    it('fails if parent asset is not file or version_stack', async () => {
+      const tempFile = 'temp-test-file-ver.txt'
+      fs.writeFileSync(tempFile, 'hello ver')
+
+      mockClient.api.folders[':folderId'].$get.mockResolvedValue({
+        ok: true,
+        json: async () => ({ type: 'folder', projectId: 'p123' }),
+        // We use any here because we are mocking the hono client response shape in a unit test context
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      await expect(createVersion(tempFile, 'folder-123')).rejects.toThrow('process.exit(1)')
+
+      try {
+        fs.unlinkSync(tempFile)
+      } catch {
+        // Ignore
+      }
+    })
+
+    it('succeeds if parent asset is a file', async () => {
+      const tempFile = 'temp-test-file-ver.txt'
+      fs.writeFileSync(tempFile, 'hello ver')
+
+      mockClient.api.folders[':folderId'].$get.mockResolvedValue({
+        ok: true,
+        json: async () => ({ type: 'file', projectId: 'p123' }),
+        // We use any here because we are mocking the hono client response shape in a unit test context
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      mockClient.api.projects[':projectId'].$get.mockResolvedValue({
+        ok: true,
+        json: async () => ({ teamId: 't123' }),
+        // We use any here because we are mocking the hono client response shape in a unit test context
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      mockClient.api.teams[':teamId'].upload.tasks.$post.mockImplementation(
+        async (req: unknown) => {
+          const rootNodeId = (req as { json: { files: { id: string }[] } }).json.files[0].id
+          return {
+            ok: true,
+            json: async () => ({
+              taskId: 'task123',
+              presignedUrls: [
+                { id: rootNodeId, fileId: 'file-123', url: 'http://localhost/upload' },
+              ],
+              createdAssets: [{ tempId: rootNodeId, assetId: 'file-123' }],
+            }),
+            // We use any here because we are mocking the hono client response shape in a unit test context
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any
+        },
+      )
+
+      mockClient.api.teams[':teamId'].upload.tasks[':taskId'].$patch.mockResolvedValue({
+        ok: true,
+        // We use any here because we are mocking the hono client response shape in a unit test context
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      const mockRes = {
+        statusCode: 200,
+        resume: vi.fn(),
+      }
+      let mockReqCallback: ((res: { statusCode: number; resume: () => void }) => void) | null = null
+      const mockReq = {
+        on: vi.fn().mockImplementation(() => {
+          return mockReq
+        }),
+        write: vi.fn(),
+        end: vi.fn().mockImplementation(() => {
+          if (mockReqCallback) {
+            mockReqCallback(mockRes)
+          }
+        }),
+        destroy: vi.fn(),
+      }
+
+      vi.mocked(http.request).mockImplementation(((
+        _options: unknown,
+        callback: (res: { statusCode: number; resume: () => void }) => void,
+      ) => {
+        mockReqCallback = callback
+        return mockReq
+        // We use any here because we are mocking the http request function in a unit test context
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      }) as any)
+
+      await createVersion(tempFile, 'file-123')
+
+      expect(mockClient.api.folders[':folderId'].$get).toHaveBeenCalledWith({
+        param: { folderId: 'file-123' },
+      })
+      expect(mockClient.api.teams[':teamId'].upload.tasks.$post).toHaveBeenCalledWith({
+        param: { teamId: 't123' },
+        json: expect.objectContaining({ parentId: 'file-123' }),
+      })
+
+      try {
+        fs.unlinkSync(tempFile)
+      } catch {
+        // Ignore
       }
     })
   })
