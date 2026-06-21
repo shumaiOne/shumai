@@ -19,7 +19,7 @@ import s3Route from './s3'
 import shareRoute from './share'
 import skillRoute from './skill'
 import teamRoute from './team'
-import uploadRoute from './upload'
+import uploadRoute, { localUploadRoute } from './upload'
 import versionStackRoute from './versionStack'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
@@ -31,6 +31,7 @@ const apiRoute = new Hono<{ Variables: { user: User } }>()
   .route('/', authnRoute)
   .route('/', publicInviteRoute)
   .route('/', publicShareRoute)
+  .route('/', localUploadRoute)
 
   // Selected routes supporting API token authentication
   .use('/projects', tokenAuthMiddleware)

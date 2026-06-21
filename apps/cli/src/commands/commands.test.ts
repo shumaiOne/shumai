@@ -3,9 +3,18 @@ import { projectLs } from './project'
 import { ls } from './ls'
 import { mkdir } from './mkdir'
 import { getClient } from '../client'
+import { upload } from './upload'
+import fs from 'node:fs'
+import http from 'node:http'
 
 vi.mock('../client', () => ({
   getClient: vi.fn(),
+}))
+
+vi.mock('node:http', () => ({
+  default: {
+    request: vi.fn(),
+  },
 }))
 
 describe('CLI Commands', () => {
@@ -22,6 +31,9 @@ describe('CLI Commands', () => {
     api: {
       projects: {
         $get: vi.fn(),
+        ':projectId': {
+          $get: vi.fn(),
+        },
       },
       folders: {
         $post: vi.fn(),
@@ -131,6 +143,99 @@ describe('CLI Commands', () => {
         json: { name: 'NewFolder', parentId: 'parent_ulid' },
       })
       expect(logSpy).toHaveBeenCalledWith('Created folder with ID: new_folder_ulid')
+    })
+  })
+
+  describe('upload', () => {
+    it('uploads a file successfully and confirms the task', async () => {
+      const tempFile = 'temp-test-file.txt'
+      fs.writeFileSync(tempFile, 'hello world')
+
+      mockClient.api.folders[':folderId'].$get.mockResolvedValue({
+        ok: true,
+        json: async () => ({ projectId: 'p123' }),
+        // We use any here because we are mocking the hono client response shape in a unit test context
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      mockClient.api.projects[':projectId'].$get.mockResolvedValue({
+        ok: true,
+        json: async () => ({ teamId: 't123' }),
+        // We use any here because we are mocking the hono client response shape in a unit test context
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      mockClient.api.teams[':teamId'].upload.tasks.$post.mockImplementation(
+        async (req: unknown) => {
+          const rootNodeId = (req as { json: { files: { id: string }[] } }).json.files[0].id
+          return {
+            ok: true,
+            json: async () => ({
+              taskId: 'task123',
+              presignedUrls: [
+                { id: rootNodeId, fileId: 'file-123', url: 'http://localhost/upload' },
+              ],
+              createdAssets: [{ tempId: rootNodeId, assetId: 'file-123' }],
+            }),
+            // We use any here because we are mocking the hono client response shape in a unit test context
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any
+        },
+      )
+
+      mockClient.api.teams[':teamId'].upload.tasks[':taskId'].$patch.mockResolvedValue({
+        ok: true,
+        // We use any here because we are mocking the hono client response shape in a unit test context
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      const mockRes = {
+        statusCode: 200,
+        resume: vi.fn(),
+      }
+      let mockReqCallback: ((res: { statusCode: number; resume: () => void }) => void) | null = null
+      const mockReq = {
+        on: vi.fn().mockImplementation(() => {
+          return mockReq
+        }),
+        write: vi.fn(),
+        end: vi.fn().mockImplementation(() => {
+          if (mockReqCallback) {
+            mockReqCallback(mockRes)
+          }
+        }),
+        destroy: vi.fn(),
+      }
+
+      vi.mocked(http.request).mockImplementation(((
+        _options: unknown,
+        callback: (res: { statusCode: number; resume: () => void }) => void,
+      ) => {
+        mockReqCallback = callback
+        return mockReq
+        // We use any here because we are mocking the http request function in a unit test context
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      }) as any)
+
+      await upload(tempFile, 'folder-123')
+
+      expect(mockClient.api.folders[':folderId'].$get).toHaveBeenCalledWith({
+        param: { folderId: 'folder-123' },
+      })
+      expect(mockClient.api.projects[':projectId'].$get).toHaveBeenCalledWith({
+        param: { projectId: 'p123' },
+      })
+      expect(mockClient.api.teams[':teamId'].upload.tasks.$post).toHaveBeenCalled()
+      expect(mockClient.api.teams[':teamId'].upload.tasks[':taskId'].$patch).toHaveBeenCalledWith({
+        param: { teamId: 't123', taskId: 'task123' },
+        json: { fileId: 'file-123' },
+      })
+
+      try {
+        fs.unlinkSync(tempFile)
+      } catch {
+        // Ignore if file doesn't exist
+      }
     })
   })
 })

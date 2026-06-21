@@ -1,5 +1,7 @@
 import fs from 'node:fs'
 import fsPromises from 'node:fs/promises'
+import http from 'node:http'
+import https from 'node:https'
 import path from 'node:path'
 import { ulid } from 'ulid'
 import { getClient } from '../client'
@@ -87,6 +89,8 @@ class ProgressTracker {
     if (this.isTty) {
       console.log(`${name.padEnd(30)} [${'░'.repeat(20)}] 0%`)
       this.linesPrinted++
+      console.log('')
+      this.linesPrinted++
     }
   }
 
@@ -96,7 +100,7 @@ class ProgressTracker {
     item.uploadedBytes = uploadedBytes
 
     if (this.isTty) {
-      process.stdout.write(`\x1B[${this.linesPrinted}A`)
+      process.stdout.write('\x1B[' + this.linesPrinted + 'A')
       this.linesPrinted = 0
       for (const upload of this.uploads.values()) {
         const pct =
@@ -107,6 +111,8 @@ class ProgressTracker {
         const filledLength = Math.round((pct / 100) * barLength)
         const bar = '█'.repeat(filledLength) + '░'.repeat(barLength - filledLength)
         console.log(`${upload.name.padEnd(30)} [${bar}] ${pct}%`)
+        this.linesPrinted++
+        console.log('')
         this.linesPrinted++
       }
     } else {
@@ -127,42 +133,53 @@ async function uploadFileWithProgress(
   const stat = fs.statSync(filePath)
   const totalSize = stat.size
 
-  const fileStream = fs.createReadStream(filePath)
-  let bytesUploaded = 0
+  const parsedUrl = new URL(url)
+  const isHttps = parsedUrl.protocol === 'https:'
+  const requestModule = isHttps ? https : http
 
-  const trackingStream = new ReadableStream({
-    start(controller) {
-      fileStream.on('data', (chunk) => {
-        bytesUploaded += chunk.length
-        onProgress(bytesUploaded)
-        controller.enqueue(chunk)
-      })
-      fileStream.on('end', () => {
-        controller.close()
-      })
-      fileStream.on('error', (err) => {
-        controller.error(err)
-      })
-    },
-    cancel() {
-      fileStream.destroy()
-    },
-  })
-
-  const response = await fetch(url, {
+  const options = {
     method: 'PUT',
-    body: trackingStream,
+    hostname: parsedUrl.hostname,
+    port: parsedUrl.port || (isHttps ? 443 : 80),
+    path: parsedUrl.pathname + parsedUrl.search,
     headers: {
       'Content-Type': contentType,
       'Content-Length': totalSize.toString(),
     },
-    // @ts-expect-error - duplex is required for streaming request bodies in modern fetch
-    duplex: 'half',
-  })
-
-  if (!response.ok) {
-    throw new Error(`Failed to upload to S3: ${response.statusText}`)
   }
+
+  return new Promise<void>((resolve, reject) => {
+    const req = requestModule.request(options, (res) => {
+      res.resume()
+      if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+        resolve()
+      } else {
+        reject(new Error(`Failed to upload to S3: ${res.statusCode} ${res.statusMessage}`))
+      }
+    })
+
+    req.on('error', (err) => {
+      reject(err)
+    })
+
+    const fileStream = fs.createReadStream(filePath)
+    let bytesUploaded = 0
+
+    fileStream.on('data', (chunk) => {
+      bytesUploaded += chunk.length
+      onProgress(bytesUploaded)
+      req.write(chunk)
+    })
+
+    fileStream.on('end', () => {
+      req.end()
+    })
+
+    fileStream.on('error', (err) => {
+      req.destroy()
+      reject(err)
+    })
+  })
 }
 
 export async function upload(localPath: string, parentId: string) {
