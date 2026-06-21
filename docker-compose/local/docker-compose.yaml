@@ -22,7 +22,7 @@ services:
     ports:
       - '3000:3000'
     volumes:
-      - ../../data:/app/data
+      - ./data:/app/data
     environment:
       # Database Configuration
       DATABASE_URL: postgres://shumai:shumai_password@shumai_postgres:5432/shumai_db?search_path=public&sslmode=disable
