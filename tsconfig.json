@@ -25,7 +25,7 @@
       "@shumai/agent/src/*": ["./packages/agent/src/*"],
       "@shumai/transcode": ["./packages/transcode/src/index.ts"],
       "@shumai/transcode/src/*": ["./packages/transcode/src/*"],
-      "@shumai/cli": ["./apps/shumai-cli/src/index.ts"]
+      "@shumai/cli": ["./apps/cli/src/index.ts"]
     }
   },
   "exclude": ["node_modules"]
