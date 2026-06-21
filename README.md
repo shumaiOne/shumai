@@ -33,6 +33,14 @@
 
 ---
 
+## Command Line Interface (CLI)
+
+Shumai provides a Command Line Interface (CLI) tool to manage projects, folders, and assets, upload files/folders, and create new versions directly from your terminal.
+
+For more details on installation and usage, see the [CLI Readme](apps/cli/README.md).
+
+---
+
 ## Installation
 
 Below is a quickstart guide for running Shumai with local storage. For advanced configuration options (including S3-compatible storage and Temporal workflow orchestration), see our [Documentation](https://docs.shumai.one/getting-started/overview).
