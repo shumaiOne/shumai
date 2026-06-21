@@ -548,7 +548,7 @@ async function buildCliPackage() {
     outdir: binOutDir,
     minify: true,
     naming: 'shumai-cli.js',
-    external: ['hono', 'ulid'],
+    external: [],
     define: {
       'process.env.NODE_ENV': JSON.stringify('production'),
     },
@@ -580,10 +580,6 @@ async function buildCliPackage() {
       'shumai-cli': './bin/shumai-cli.js',
     },
     files: ['bin'],
-    dependencies: {
-      hono: '4.12.23',
-      ulid: '^3.0.2',
-    },
     repository: rootPackageJson.repository,
   }
 
