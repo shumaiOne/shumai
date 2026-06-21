@@ -9,6 +9,7 @@ import folderRoute from './folder'
 import inviteRoute from './invite'
 import metadataRoute from './metadata'
 import { authMiddleware } from './middleware/auth'
+import { tokenAuthMiddleware } from './middleware/tokenAuth'
 import notificationRoute from './notification'
 import projectRoute from './project'
 import providerRoute from './provider'
@@ -30,6 +31,14 @@ const apiRoute = new Hono<{ Variables: { user: User } }>()
   .route('/', authnRoute)
   .route('/', publicInviteRoute)
   .route('/', publicShareRoute)
+
+  // Selected routes supporting API token authentication
+  .use('/projects', tokenAuthMiddleware)
+  .use('/projects/*', tokenAuthMiddleware)
+  .use('/folders', tokenAuthMiddleware)
+  .use('/folders/*', tokenAuthMiddleware)
+  .use('/teams/:teamId/upload/tasks', tokenAuthMiddleware)
+  .use('/teams/:teamId/upload/tasks/*', tokenAuthMiddleware)
 
   // Protected Routes
   .use('*', authMiddleware)

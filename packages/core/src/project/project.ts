@@ -385,6 +385,7 @@ export class ProjectService {
     const pi: ProjectInfo = {
       id: p.id,
       name: p.name,
+      teamId: p.teamId,
       enableNotification: p.enableNotification ?? true,
       coverImageKey: p.coverImageKey || undefined,
       updatedAt: p.updatedAt,

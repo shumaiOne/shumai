@@ -176,3 +176,8 @@ export type Provider = Prisma.ProviderModel
  *
  */
 export type Collection = Prisma.CollectionModel
+/**
+ * Model ApiToken
+ *
+ */
+export type ApiToken = Prisma.ApiTokenModel

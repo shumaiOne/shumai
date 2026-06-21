@@ -407,6 +407,7 @@ export const ModelName = {
   Model: 'Model',
   Provider: 'Provider',
   Collection: 'Collection',
+  ApiToken: 'ApiToken',
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -459,6 +460,7 @@ export type TypeMap<
       | 'model'
       | 'provider'
       | 'collection'
+      | 'apiToken'
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2844,6 +2846,80 @@ export type TypeMap<
         }
       }
     }
+    ApiToken: {
+      payload: Prisma.$ApiTokenPayload<ExtArgs>
+      fields: Prisma.ApiTokenFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ApiTokenFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApiTokenPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ApiTokenFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApiTokenPayload>
+        }
+        findFirst: {
+          args: Prisma.ApiTokenFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApiTokenPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ApiTokenFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApiTokenPayload>
+        }
+        findMany: {
+          args: Prisma.ApiTokenFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApiTokenPayload>[]
+        }
+        create: {
+          args: Prisma.ApiTokenCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApiTokenPayload>
+        }
+        createMany: {
+          args: Prisma.ApiTokenCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ApiTokenCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApiTokenPayload>[]
+        }
+        delete: {
+          args: Prisma.ApiTokenDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApiTokenPayload>
+        }
+        update: {
+          args: Prisma.ApiTokenUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApiTokenPayload>
+        }
+        deleteMany: {
+          args: Prisma.ApiTokenDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ApiTokenUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ApiTokenUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApiTokenPayload>[]
+        }
+        upsert: {
+          args: Prisma.ApiTokenUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApiTokenPayload>
+        }
+        aggregate: {
+          args: Prisma.ApiTokenAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateApiToken>
+        }
+        groupBy: {
+          args: Prisma.ApiTokenGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ApiTokenGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ApiTokenCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ApiTokenCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -3333,6 +3409,18 @@ export const CollectionScalarFieldEnum = {
 export type CollectionScalarFieldEnum =
   (typeof CollectionScalarFieldEnum)[keyof typeof CollectionScalarFieldEnum]
 
+export const ApiTokenScalarFieldEnum = {
+  id: 'id',
+  token: 'token',
+  name: 'name',
+  userId: 'userId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+} as const
+
+export type ApiTokenScalarFieldEnum =
+  (typeof ApiTokenScalarFieldEnum)[keyof typeof ApiTokenScalarFieldEnum]
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc',
@@ -3813,6 +3901,7 @@ export type GlobalOmitConfig = {
   model?: Prisma.ModelOmit
   provider?: Prisma.ProviderOmit
   collection?: Prisma.CollectionOmit
+  apiToken?: Prisma.ApiTokenOmit
 }
 
 /* Types for Logging */

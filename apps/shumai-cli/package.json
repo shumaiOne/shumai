@@ -1,0 +1,16 @@
+{
+  "name": "@shumai/cli",
+  "version": "0.0.10",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "shumai-cli": "./src/index.ts"
+  },
+  "dependencies": {
+    "@shumai/api": "workspace:*",
+    "@shumai/core": "workspace:*",
+    "@shumai/dtos": "workspace:*",
+    "hono": "4.12.23",
+    "ulid": "^3.0.2"
+  }
+}

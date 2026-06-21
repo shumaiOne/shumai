@@ -5,11 +5,12 @@ import { ProvidersSettings } from '@/ui/components/settings/ProvidersSettings'
 import { SandboxSettings } from '@/ui/components/settings/SandboxSettings'
 import { SkillsConfigCard } from '@/ui/components/settings/SkillsConfigCard'
 import { NotificationSettings } from '@/ui/components/settings/NotificationSettings'
+import { DeveloperSettings } from '@/ui/components/settings/DeveloperSettings'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card'
 import { cn } from '@/ui/lib/utils'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { Bot, Cpu, Film, Loader2, Puzzle, Shield, User, Bell } from 'lucide-react'
+import { Bot, Cpu, Film, Loader2, Puzzle, Shield, User, Bell, Key } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/ui/avatar'
 import { Input } from '@/ui/components/ui/input'
@@ -25,6 +26,7 @@ type SettingsTab =
   | 'agents'
   | 'sandbox'
   | 'notifications'
+  | 'developer'
 
 function TeamSettingsPage() {
   const { teamId } = Route.useParams()
@@ -267,6 +269,22 @@ function TeamSettingsPage() {
               )}
             </button>
 
+            <button
+              onClick={() => setActiveTab('developer')}
+              className={cn(
+                'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
+                activeTab === 'developer'
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
+                  : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+              )}
+            >
+              <Key className="w-5 h-5" />
+              API Tokens
+              {activeTab === 'developer' && (
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
+              )}
+            </button>
+
             {me?.role === 'owner' && (
               <>
                 <div className="mt-6 mb-2 px-4 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider pt-4 border-t border-sidebar-border">
@@ -354,6 +372,7 @@ function TeamSettingsPage() {
                   {activeTab === 'agents' && 'AI Agents'}
                   {activeTab === 'sandbox' && 'Agent Sandbox Settings'}
                   {activeTab === 'notifications' && 'Notification Settings'}
+                  {activeTab === 'developer' && 'Developer Settings'}
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">
                   {activeTab === 'general' && 'View your personal information and team role.'}
@@ -367,6 +386,8 @@ function TeamSettingsPage() {
                     'Configure security and network restrictions for the AI agent.'}
                   {activeTab === 'notifications' &&
                     'Configure your personal notification preferences for this team.'}
+                  {activeTab === 'developer' &&
+                    'Generate and manage API keys for developers and automated workflows.'}
                 </p>
               </div>
             </div>
@@ -559,6 +580,8 @@ function TeamSettingsPage() {
               )}
 
               {activeTab === 'notifications' && <NotificationSettings teamId={teamId} />}
+
+              {activeTab === 'developer' && <DeveloperSettings teamId={teamId} />}
             </div>
           </div>
         </main>

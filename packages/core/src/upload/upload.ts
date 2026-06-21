@@ -67,6 +67,8 @@ export class UploadService {
     const isParentFile = parentAsset.type === AssetType.file
     const targetParentId = isParentFile ? parentAsset.parentId! : parentAsset.id
 
+    const createdAssets: { tempId: string; assetId: string }[] = []
+
     await this.prismaClient.$transaction(async (tx) => {
       const ids = await this.createAssetsRecursively(
         tx,
@@ -76,6 +78,7 @@ export class UploadService {
         targetParentId,
         req.files,
         presignedUrls,
+        createdAssets,
       )
 
       if (isParentFile && ids.length > 0) {
@@ -97,6 +100,7 @@ export class UploadService {
     return {
       taskId: task.id,
       presignedUrls: presignedUrls,
+      createdAssets: createdAssets,
     }
   }
 
@@ -108,6 +112,7 @@ export class UploadService {
     parentId: string,
     files: FileNode[],
     presignedUrls: PresignedUrl[],
+    createdAssets: { tempId: string; assetId: string }[],
   ): Promise<string[]> {
     const firstFile = await tx.asset.findFirst({
       where: { parentId },
@@ -144,6 +149,10 @@ export class UploadService {
         },
       })
       createdIds.push(newAsset.id)
+      createdAssets.push({
+        tempId: file.id,
+        assetId: newAsset.id,
+      })
 
       if (assetType === AssetType.folder && parentId) {
         await tx.asset.update({
@@ -161,6 +170,7 @@ export class UploadService {
           newAsset.id,
           file.children,
           presignedUrls,
+          createdAssets,
         )
       } else if (assetType === AssetType.file && key) {
         const url = await s3Service.presign(process.env.S3_BUCKET || 'shumai', key, 'PUT')

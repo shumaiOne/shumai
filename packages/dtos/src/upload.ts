@@ -36,6 +36,14 @@ export type PresignedUrl = z.infer<typeof presignedUrlSchema>
 export const createUploadTaskResponseSchema = z.object({
   taskId: z.string(),
   presignedUrls: z.array(presignedUrlSchema),
+  createdAssets: z
+    .array(
+      z.object({
+        tempId: z.string(),
+        assetId: z.string(),
+      }),
+    )
+    .optional(),
 })
 export type CreateUploadTaskResponse = z.infer<typeof createUploadTaskResponseSchema>
 

@@ -18,6 +18,16 @@ vi.mock('./middleware/auth', () => ({
 vi.mock('@shumai/core/src/authz/authz')
 vi.mock('@shumai/core/src/project/project')
 vi.mock('@shumai/core/src/asset/asset')
+vi.mock('@shumai/db', () => ({
+  prisma: {
+    teamMember: {
+      findMany: vi.fn(),
+    },
+    project: {
+      findMany: vi.fn(),
+    },
+  },
+}))
 
 describe('project api', () => {
   const app = new Hono<{ Variables: { user: { id: string; name: string } } }>()
@@ -245,5 +255,48 @@ describe('project api', () => {
       id: 'p1',
     })
     expect(projectService.getProjectMe).toHaveBeenCalledWith('p1', 'user1')
+  })
+
+  it('GET /projects', async () => {
+    const { prisma } = await import('@shumai/db')
+    vi.mocked(prisma.teamMember.findMany).mockResolvedValue([
+      { id: 'tm1', teamId: 'team1', userId: 'user1', scope: 'team' },
+      // Mocking complex Prisma client returns requires any here
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ] as any)
+    vi.mocked(prisma.project.findMany).mockResolvedValue([
+      {
+        id: 'proj1',
+        name: 'My Project',
+        teamId: 'team1',
+        rootFolderId: 'folder1',
+        enableNotification: true,
+        updatedAt: new Date('2026-06-21T00:00:00.000Z'),
+      },
+      // Mocking complex Prisma client returns requires any here
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ] as any)
+
+    const res = await app.request('/projects?first=10')
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.data).toHaveLength(1)
+    expect(json.data[0]).toEqual({
+      id: 'proj1',
+      name: 'My Project',
+      teamId: 'team1',
+      rootFolder: 'folder1',
+      enableNotification: true,
+      updatedAt: '2026-06-21T00:00:00.000Z',
+    })
+    expect(prisma.teamMember.findMany).toHaveBeenCalledWith({
+      where: { userId: 'user1' },
+    })
+    expect(prisma.project.findMany).toHaveBeenCalledWith({
+      where: { teamId: 'team1' },
+      orderBy: { id: 'desc' },
+      take: 10,
+    })
   })
 })

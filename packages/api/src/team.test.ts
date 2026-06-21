@@ -29,6 +29,14 @@ vi.mock('./middleware/auth', () => ({
   },
 }))
 
+vi.mock('@shumai/core/src/user/api-token', () => ({
+  apiTokenService: {
+    listTokens: vi.fn(),
+    createToken: vi.fn(),
+    deleteToken: vi.fn(),
+  },
+}))
+
 describe('team api', () => {
   const app = new Hono().use('*', authMiddleware).route('/', teamRoute)
   let mockCreateTeam: any // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -315,6 +323,85 @@ describe('team api', () => {
     expect(mockUpdateSandboxSettings).toHaveBeenCalledWith('t1', {
       allowedDomains: ['new.com'],
       pendingDomains: ['new-pending.com'],
+    })
+  })
+
+  describe('API Tokens', () => {
+    it('GET /teams/:teamId/api-tokens', async () => {
+      const { apiTokenService } = await import('@shumai/core/src/user/api-token')
+      const mockDate = new Date('2026-06-21T00:00:00.000Z')
+      vi.mocked(apiTokenService.listTokens).mockResolvedValue([
+        {
+          id: 'token1',
+          token: 'ulid1',
+          name: 'cli-key',
+          userId: 'user1',
+          createdAt: mockDate,
+          updatedAt: mockDate,
+        },
+        // Mocking return value of listTokens is simpler with any casting
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ] as any)
+
+      const res = await app.request('/teams/t1/api-tokens')
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data).toHaveLength(1)
+      expect(data[0]).toEqual({
+        id: 'token1',
+        token: 'ulid1',
+        name: 'cli-key',
+        createdAt: '2026-06-21T00:00:00.000Z',
+      })
+      expect(apiTokenService.listTokens).toHaveBeenCalledWith('user1')
+    })
+
+    it('POST /teams/:teamId/api-tokens', async () => {
+      const { apiTokenService } = await import('@shumai/core/src/user/api-token')
+      const mockDate = new Date('2026-06-21T00:00:00.000Z')
+      vi.mocked(apiTokenService.createToken).mockResolvedValue({
+        id: 'token1',
+        token: 'ulid1',
+        name: 'cli-key',
+        userId: 'user1',
+        createdAt: mockDate,
+        updatedAt: mockDate,
+        // Mocking return value of createToken is simpler with any casting
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      const res = await app.request('/teams/t1/api-tokens', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'cli-key' }),
+      })
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data).toEqual({
+        id: 'token1',
+        token: 'ulid1',
+        name: 'cli-key',
+        createdAt: '2026-06-21T00:00:00.000Z',
+      })
+      expect(apiTokenService.createToken).toHaveBeenCalledWith('user1', 'cli-key')
+    })
+
+    it('DELETE /teams/:teamId/api-tokens/:tokenId', async () => {
+      const { apiTokenService } = await import('@shumai/core/src/user/api-token')
+      // Mocking return value of deleteToken is simpler with any casting
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.mocked(apiTokenService.deleteToken).mockResolvedValue({} as any)
+
+      const res = await app.request('/teams/t1/api-tokens/token1', {
+        method: 'DELETE',
+      })
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data).toEqual({ success: true })
+      expect(apiTokenService.deleteToken).toHaveBeenCalledWith('user1', 'token1')
     })
   })
 })

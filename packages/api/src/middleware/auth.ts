@@ -10,6 +10,11 @@ export const authMiddleware = createMiddleware<{
     user: User
   }
 }>(async (c, next) => {
+  if (c.get('user')) {
+    await next()
+    return
+  }
+
   const session = await auth.api.getSession({
     headers: c.req.raw.headers,
   })

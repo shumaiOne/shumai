@@ -147,6 +147,7 @@ model User {
   userMetadata         UserMetadata[]   @relation("UserToUserMetadata")
   collections          Collection[]     @relation("UserToCollection")
   shareLinks           ShareLink[]      @relation("UserToShareLink")
+  apiTokens            ApiToken[]       @relation("UserToApiToken")
 
   @@map("users")
 }
@@ -777,4 +778,16 @@ model Collection {
 
   @@index([projectId, createdAt(sort: Desc)])
   @@map("collections")
+}
+
+model ApiToken {
+  id        String   @id @default(ulid())
+  token     String   @unique @default(ulid())
+  name      String
+  userId    String   @map("user_id")
+  user      User     @relation("UserToApiToken", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("api_tokens")
 }
