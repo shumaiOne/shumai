@@ -400,17 +400,19 @@ export function AgentFormDialog({
                         children={(field) => (
                           <Field>
                             <FieldLabel>Thinking Level</FieldLabel>
-                            <Select value={field.state.value} onValueChange={(val) => field.handleChange(val as ThinkingLevel)}>
+                            <Select
+                              value={field.state.value}
+                              onValueChange={(val) => field.handleChange(val as ThinkingLevel)}
+                            >
                               <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="off">Off</SelectItem>
-                                <SelectItem value="minimal">Minimal</SelectItem>
-                                <SelectItem value="low">Low (Fast)</SelectItem>
-                                <SelectItem value="medium">Medium (Balanced)</SelectItem>
-                                <SelectItem value="high">High (Reasoning)</SelectItem>
-                                <SelectItem value="xhigh">Extra High</SelectItem>
+                                {thinkingLevelSchema.options.map((level) => (
+                                  <SelectItem key={level} value={level}>
+                                    {level.charAt(0).toUpperCase() + level.slice(1)}
+                                  </SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                           </Field>
