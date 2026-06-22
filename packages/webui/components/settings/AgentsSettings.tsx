@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { AgentInfo, AgentType } from '@shumai/dtos'
+import { AgentInfo, AgentType, ThinkingLevel } from '@shumai/dtos'
 import { AgentFormDialog } from './AgentFormDialog'
 import {
   DropdownMenu,
@@ -104,7 +104,7 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
       avatar?: string
       providerId?: string
       modelId?: string
-      thinkingLevel?: string
+      thinkingLevel?: ThinkingLevel
       systemPrompt?: string
       soul?: string
       skills?: string[]

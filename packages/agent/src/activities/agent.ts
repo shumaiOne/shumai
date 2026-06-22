@@ -97,12 +97,16 @@ If you need to create files in the local filesystem (for example, a temporary fi
     systemPrompt += `\n\nYour current model supports the following input types: ${modelConfig.input.join(', ')}.`
   }
 
+  const agentConfig = agent.config as PrismaJson.AgentConfig | null | undefined
+  const thinkingLevel = agentConfig?.thinkingLevel || 'off'
+
   const { session, harness } = await createAgentSession({
     teamId: params.teamId,
     agentId: params.agentId,
     providerName,
     modelId,
     systemPrompt,
+    thinkingLevel,
     teamSkills: teamSkills.map((s) => ({
       id: s.id,
       name: s.name,
