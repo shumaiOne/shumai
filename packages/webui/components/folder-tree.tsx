@@ -469,7 +469,7 @@ export function FolderTree({
 
         <ScrollArea
           className={cn(
-            'flex-1 min-h-0 transition-all duration-300 ease-in-out',
+            'flex-1 min-h-0 transition-all duration-300 ease-in-out [&>div>div]:block!',
             isAssetsExpanded
               ? 'opacity-100 visible pointer-events-auto'
               : 'opacity-0 invisible pointer-events-none h-0',
@@ -569,7 +569,7 @@ export function FolderTree({
 
           <ScrollArea
             className={cn(
-              'flex-1 min-h-0 transition-all duration-300 ease-in-out',
+              'flex-1 min-h-0 transition-all duration-300 ease-in-out [&>div>div]:block!',
               isCollectionsExpanded
                 ? 'opacity-100 visible pointer-events-auto'
                 : 'opacity-0 invisible pointer-events-none h-0',
@@ -599,7 +599,7 @@ export function FolderTree({
                   <div
                     key={collection.id}
                     className={cn(
-                      'group flex cursor-pointer items-center justify-between rounded-md px-2 py-1 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                      'group flex cursor-pointer items-center justify-between rounded-md px-2 py-1 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground min-w-0',
                       isColActive && 'bg-sidebar-accent text-sidebar-accent-foreground font-medium',
                     )}
                     onClick={() =>
@@ -620,7 +620,7 @@ export function FolderTree({
 
                     {canEdit && (
                       <div
-                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <DropdownMenu modal={false}>
@@ -705,7 +705,7 @@ export function FolderTree({
 
           <ScrollArea
             className={cn(
-              'flex-1 min-h-0 transition-all duration-300 ease-in-out',
+              'flex-1 min-h-0 transition-all duration-300 ease-in-out [&>div>div]:block!',
               isSharesExpanded
                 ? 'opacity-100 visible pointer-events-auto'
                 : 'opacity-0 invisible pointer-events-none h-0',
@@ -958,7 +958,7 @@ function ShareLinkItem({
     <div
       ref={setDroppableRef}
       className={cn(
-        'group flex cursor-pointer items-center justify-between rounded-md px-2 py-1 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+        'group flex cursor-pointer items-center justify-between rounded-md px-2 py-1 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground min-w-0',
         isActive && 'bg-sidebar-accent text-sidebar-accent-foreground font-medium',
         isOver && isValidDropTarget && 'bg-sidebar-accent ring-2 ring-primary ring-inset',
       )}
@@ -978,7 +978,7 @@ function ShareLinkItem({
 
       {canEdit && (
         <div
-          className="opacity-0 group-hover:opacity-100 transition-opacity"
+          className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
           onClick={(e) => e.stopPropagation()}
         >
           <DropdownMenu modal={false}>
@@ -1176,7 +1176,7 @@ function FolderTreeItem({
       <div
         ref={setNodeRef}
         className={cn(
-          'group flex cursor-pointer items-center gap-1 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+          'group flex cursor-pointer items-center gap-1 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground min-w-0',
           (isActive || isSelected) &&
             'bg-sidebar-accent text-sidebar-accent-foreground font-medium',
           isDragging && 'opacity-50',
@@ -1188,7 +1188,10 @@ function FolderTreeItem({
         onClick={handleFolderClick}
       >
         {!isRoot && (
-          <button onClick={handleToggleExpand} className="flex h-4 w-4 items-center justify-center">
+          <button
+            onClick={handleToggleExpand}
+            className="flex h-4 w-4 items-center justify-center shrink-0"
+          >
             {isExpanded ? (
               <ChevronDown className="h-3 w-3" />
             ) : (
@@ -1197,15 +1200,15 @@ function FolderTreeItem({
           </button>
         )}
         {isRoot ? (
-          <Clapperboard className="h-4 w-4 text-sidebar-primary" />
+          <Clapperboard className="h-4 w-4 text-sidebar-primary shrink-0" />
         ) : (
-          <Folder className="h-4 w-4 text-sidebar-primary" />
+          <Folder className="h-4 w-4 text-sidebar-primary shrink-0" />
         )}
         <span className="flex-1 truncate text-sidebar-foreground">{folder.name}</span>
 
         {canEdit && !isRoot && (
           <div
-            className="opacity-0 group-hover:opacity-100 transition-opacity"
+            className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
             onClick={(e) => e.stopPropagation()}
           >
             <DropdownMenu modal={false}>
