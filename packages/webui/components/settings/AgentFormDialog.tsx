@@ -116,7 +116,7 @@ export function AgentFormDialog({
   const form = useForm({
     defaultValues: {
       name: initialValues?.name || '',
-      type: type || initialValues?.type || 'chat',
+      type: initialValues?.type || type || 'chat',
       avatar: initialValues?.avatar || AVAILABLE_AVATARS[0],
       providerId: initialValues?.providerId || '',
       modelId: initialValues?.modelId || '',
