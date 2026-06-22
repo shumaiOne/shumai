@@ -475,7 +475,7 @@ export function FolderTree({
               : 'opacity-0 invisible pointer-events-none h-0',
           )}
         >
-          <div className="space-y-0.5 pr-1">
+          <div className="space-y-0.5 pr-3">
             <FolderTreeItem
               key={rootFolderId}
               teamId={teamId}
@@ -575,7 +575,7 @@ export function FolderTree({
                 : 'opacity-0 invisible pointer-events-none h-0',
             )}
           >
-            <div className="space-y-0.5 pr-1">
+            <div className="space-y-0.5 pr-3">
               <div
                 className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 onClick={() =>
@@ -711,7 +711,7 @@ export function FolderTree({
                 : 'opacity-0 invisible pointer-events-none h-0',
             )}
           >
-            <div className="space-y-0.5 pr-1">
+            <div className="space-y-0.5 pr-3">
               <div
                 className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 onClick={() =>
