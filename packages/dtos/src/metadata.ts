@@ -9,6 +9,8 @@ export const FieldType = {
   number: 'number',
   toggle: 'toggle',
   date: 'date',
+  user: 'user',
+  userMulti: 'userMulti',
 } as const
 
 export type FieldType = (typeof FieldType)[keyof typeof FieldType]
@@ -22,7 +24,18 @@ export type SelectOption = z.infer<typeof selectOptionSchema>
 
 export const fieldConfigSchema = z.object({
   name: z.string(),
-  type: z.enum(['text', 'longText', 'select', 'selectMulti', 'rating', 'number', 'toggle', 'date']),
+  type: z.enum([
+    'text',
+    'longText',
+    'select',
+    'selectMulti',
+    'rating',
+    'number',
+    'toggle',
+    'date',
+    'user',
+    'userMulti',
+  ]),
   text: z.any().optional(),
   longText: z.any().optional(),
   select: z.any().optional(),
@@ -31,6 +44,8 @@ export const fieldConfigSchema = z.object({
   number: z.any().optional(),
   toggle: z.any().optional(),
   date: z.any().optional(),
+  user: z.any().optional(),
+  userMulti: z.any().optional(),
 })
 
 export const createFieldRequestSchema = z.object({

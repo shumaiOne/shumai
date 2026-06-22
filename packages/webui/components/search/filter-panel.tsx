@@ -15,6 +15,9 @@ import { type FieldInfo } from '@shumai/dtos'
 import { Check, ChevronDown, Trash2 } from 'lucide-react'
 import { getOptionStyle } from '../fields-manager'
 import RatingField from '../fields/rating-field'
+import { useEffect, useMemo } from 'react'
+import { useMemberStore } from '@/ui/stores/members'
+import { useTeamId } from '@/ui/hooks/use-team-id'
 
 interface FilterPanelProps {
   fields: FieldInfo[]
@@ -40,13 +43,33 @@ export function FilterPanel({
   excludeFields,
   hidePrefix,
 }: FilterPanelProps) {
+  const teamId = useTeamId()
+  const { members, fetchMembers } = useMemberStore()
+
+  useEffect(() => {
+    if (teamId) {
+      fetchMembers(teamId)
+    }
+  }, [teamId, fetchMembers])
+
+  const memberOptions = useMemo(() => {
+    return members.map((m) => ({
+      id: m.id,
+      displayName: m.name,
+      color: 'system',
+    }))
+  }, [members])
+
   const allFields = [
     ...SYSTEM_FIELDS,
     ...fields.map((f) => ({
       id: f.id!,
       label: f.config?.name || f.description || 'Unknown',
       type: getFieldType(f),
-      options: f.config?.select?.options || f.config?.selectMulti?.options,
+      options:
+        f.config?.type === 'user' || f.config?.type === 'userMulti'
+          ? memberOptions
+          : f.config?.select?.options || f.config?.selectMulti?.options,
       config: f.config,
     })),
   ].filter((f) => !excludeFields?.includes(f.id))
@@ -187,8 +210,9 @@ export function FilterPanel({
 }
 
 function getFieldType(field: FieldInfo): string {
-  if (field.config?.type === 'select') return 'select'
-  if (field.config?.type === 'selectMulti') return 'selectMulti'
+  if (field.config?.type === 'select' || field.config?.type === 'user') return 'select'
+  if (field.config?.type === 'selectMulti' || field.config?.type === 'userMulti')
+    return 'selectMulti'
   if (field.config?.type === 'number') return 'number'
   if (field.config?.type === 'date') return 'date'
   if (field.config?.type === 'rating') return 'rating'

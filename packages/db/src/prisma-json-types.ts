@@ -173,6 +173,8 @@ declare global {
       | 'number'
       | 'toggle'
       | 'date'
+      | 'user'
+      | 'userMulti'
 
     export interface SelectOption {
       id: string
@@ -208,6 +210,9 @@ declare global {
       timeFormat: string // 'twelve_hour' | 'twenty_four_hour'
     }
 
+    export type UserConfig = Record<string, never>
+    export type UserMultiConfig = Record<string, never>
+
     export interface FieldConfig {
       name: string
       type: FieldType
@@ -219,6 +224,8 @@ declare global {
       number?: NumberConfig
       toggle?: ToggleConfig
       date?: DateConfig
+      user?: UserConfig
+      userMulti?: UserMultiConfig
     }
 
     // ----------------------------------------------------------------------
