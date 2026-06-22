@@ -17,7 +17,7 @@ services:
       retries: 5
 
   shumai:
-    image: shumaione/shumai:main
+    image: shumaione/shumai:latest
     container_name: shumai_app
     ports:
       - '3000:3000'
