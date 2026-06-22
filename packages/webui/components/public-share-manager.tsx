@@ -21,48 +21,81 @@ import type { Annotation } from '@/ui/types'
 import { useNavigate } from '@tanstack/react-router'
 
 interface PublicShareManagerProps {
-  shareInfo: {
-    id: string
-    name: string
-    expireAt: string | null
-    isDisabled: boolean
-    isExpired: boolean
-    hasPassword: boolean
-    rootFolderId: string
-    projectId: string
-    viewMode?: string | null
-    defaultSortOrder?: string | null
-  }
+  shareId: string
   initialFolderId?: string
   initialFileId?: string
   startTime?: number
 }
 
+interface PublicShareInfo {
+  id: string
+  name: string
+  expireAt: string | null
+  isDisabled: boolean
+  isExpired: boolean
+  hasPassword: boolean
+  rootFolderId: string
+  projectId: string
+  viewMode?: string | null
+  defaultSortOrder?: string | null
+}
+
 export function PublicShareManager({
-  shareInfo,
+  shareId,
   initialFolderId,
   initialFileId,
   startTime,
 }: PublicShareManagerProps) {
   const navigate = useNavigate()
   const [password, setPassword] = useState(() => {
-    return localStorage.getItem(`share_pwd_${shareInfo.id}`) || ''
+    return localStorage.getItem(`share_pwd_${shareId}`) || ''
   })
   const [passwordInput, setPasswordInput] = useState('')
-  const [isPasswordValid, setIsPasswordValid] = useState(!shareInfo.hasPassword || !!password)
 
-  const currentFolderId = initialFolderId || shareInfo.rootFolderId
+  const {
+    data: shareInfo,
+    error: shareInfoError,
+    isLoading: isShareInfoLoading,
+  } = useQuery<PublicShareInfo>({
+    queryKey: ['share-info', shareId, password],
+    queryFn: async () => {
+      const res = await client.api.shares[':shareId'].info.$get(
+        {
+          param: { shareId },
+        },
+        {
+          headers: {
+            'x-share-password': password,
+          },
+        },
+      )
+      if (res.status === 401) {
+        throw new Error('Unauthorized')
+      }
+      if (res.status === 403) {
+        const body = (await res.json()) as { error?: string }
+        throw new Error(body.error || 'Forbidden')
+      }
+      if (!res.ok) {
+        throw new Error('Failed to fetch share info')
+      }
+      return (await res.json()) as unknown as PublicShareInfo
+    },
+    retry: false,
+  })
+
+  const currentFolderId = initialFolderId || shareInfo?.rootFolderId
   const viewingFileId = initialFileId || null
 
   const [ancestorFolders, setAncestorFolders] = useState<AncestorFolder[]>([])
 
   // Fetch ancestors for breadcrumb
   const { data: folderInfo } = useQuery({
-    queryKey: ['public-share-folder', shareInfo.id, currentFolderId, password],
+    queryKey: ['public-share-folder', shareId, currentFolderId, password],
     queryFn: async () => {
       const res = await client.api.shares[':shareId'].files[':fileId'].$get(
         {
-          param: { shareId: shareInfo.id, fileId: currentFolderId },
+          param: { shareId, fileId: currentFolderId! },
         },
         {
           headers: {
@@ -73,11 +106,11 @@ export function PublicShareManager({
       if (res.status === 401) throw new Error('Unauthorized')
       return (await res.json()) as unknown as AssetInfo
     },
-    enabled: isPasswordValid && !shareInfo.isExpired && !shareInfo.isDisabled,
+    enabled: !!shareInfo && !!currentFolderId,
   })
 
   useEffect(() => {
-    if (folderInfo?.ancestorFolders) {
+    if (folderInfo?.ancestorFolders && shareInfo) {
       // Filter ancestors to only those within the share root
       const rootIndex = folderInfo.ancestorFolders.findIndex((f) => f.id === shareInfo.rootFolderId)
       if (rootIndex !== -1) {
@@ -86,7 +119,7 @@ export function PublicShareManager({
         setAncestorFolders([])
       }
     }
-  }, [folderInfo, shareInfo.rootFolderId, currentFolderId])
+  }, [folderInfo, shareInfo, currentFolderId])
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [rightSidebarWidth, setRightSidebarWidth] = useState(360)
@@ -103,11 +136,11 @@ export function PublicShareManager({
     isFetchingNextPage: isFetchingNextFoldersPage,
     error: foldersError,
   } = useInfiniteQuery<AssetInfoPaginatedList>({
-    queryKey: ['public-share-children', shareInfo.id, currentFolderId, 'folder', password],
+    queryKey: ['public-share-children', shareId, currentFolderId, 'folder', password],
     queryFn: async ({ pageParam }) => {
       const res = await client.api.shares[':shareId'].folders[':folderId'].children.$get(
         {
-          param: { shareId: shareInfo.id, folderId: currentFolderId },
+          param: { shareId, folderId: currentFolderId! },
           query: {
             assetType: 'folder',
             after: pageParam as string,
@@ -123,7 +156,7 @@ export function PublicShareManager({
       if (res.status === 403) throw new Error('Expired')
       return (await res.json()) as unknown as AssetInfoPaginatedList
     },
-    enabled: isPasswordValid && !shareInfo.isExpired && !shareInfo.isDisabled,
+    enabled: !!shareInfo && !!currentFolderId,
     initialPageParam: '',
     getNextPageParam: (lastPage) => lastPage.pageInfo?.cursor || undefined,
     retry: false,
@@ -135,11 +168,11 @@ export function PublicShareManager({
     hasNextPage: hasNextPageFiles,
     isFetchingNextPage: isFetchingNextFilesPage,
   } = useInfiniteQuery<AssetInfoPaginatedList>({
-    queryKey: ['public-share-children', shareInfo.id, currentFolderId, 'file', password],
+    queryKey: ['public-share-children', shareId, currentFolderId, 'file', password],
     queryFn: async ({ pageParam }) => {
       const res = await client.api.shares[':shareId'].folders[':folderId'].children.$get(
         {
-          param: { shareId: shareInfo.id, folderId: currentFolderId },
+          param: { shareId, folderId: currentFolderId! },
           query: {
             assetType: 'file',
             after: pageParam as string,
@@ -155,18 +188,18 @@ export function PublicShareManager({
       if (res.status === 403) throw new Error('Expired')
       return (await res.json()) as unknown as AssetInfoPaginatedList
     },
-    enabled: isPasswordValid && !shareInfo.isExpired && !shareInfo.isDisabled,
+    enabled: !!shareInfo && !!currentFolderId,
     initialPageParam: '',
     getNextPageParam: (lastPage) => lastPage.pageInfo?.cursor || undefined,
     retry: false,
   })
 
   const { data: publicFields } = useQuery({
-    queryKey: ['public-share-fields', shareInfo.id, password],
+    queryKey: ['public-share-fields', shareId, password],
     queryFn: async () => {
       const res = await client.api.shares[':shareId'].fields.$get(
         {
-          param: { shareId: shareInfo.id },
+          param: { shareId },
         },
         {
           headers: {
@@ -177,15 +210,15 @@ export function PublicShareManager({
       if (res.status === 401) throw new Error('Unauthorized')
       return (await res.json()) as unknown as FieldInfo[]
     },
-    enabled: isPasswordValid && !shareInfo.isExpired && !shareInfo.isDisabled,
+    enabled: !!shareInfo,
   })
 
   const { data: viewingFileData, isLoading: isViewingFileLoading } = useQuery({
-    queryKey: ['public-share-file', shareInfo.id, viewingFileId, password],
+    queryKey: ['public-share-file', shareId, viewingFileId, password],
     queryFn: async () => {
       const res = await client.api.shares[':shareId'].files[':fileId'].$get(
         {
-          param: { shareId: shareInfo.id, fileId: viewingFileId! },
+          param: { shareId, fileId: viewingFileId! },
         },
         {
           headers: {
@@ -196,16 +229,15 @@ export function PublicShareManager({
       if (res.status === 401) throw new Error('Unauthorized')
       return (await res.json()) as unknown as AssetInfo
     },
-    enabled: !!viewingFileId && isPasswordValid && !shareInfo.isExpired && !shareInfo.isDisabled,
+    enabled: !!viewingFileId && !!shareInfo,
   })
 
   useEffect(() => {
     if (foldersError?.message === 'Unauthorized') {
-      setIsPasswordValid(false)
       setPassword('')
-      localStorage.removeItem(`share_pwd_${shareInfo.id}`)
+      localStorage.removeItem(`share_pwd_${shareId}`)
     }
-  }, [foldersError, shareInfo.id])
+  }, [foldersError, shareId])
 
   const folders = useMemo(
     () => foldersData?.pages.flatMap((page) => page.data ?? []) ?? [],
@@ -226,21 +258,20 @@ export function PublicShareManager({
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setPassword(passwordInput)
-    setIsPasswordValid(true)
-    localStorage.setItem(`share_pwd_${shareInfo.id}`, passwordInput)
+    localStorage.setItem(`share_pwd_${shareId}`, passwordInput)
   }
 
   const handleItemDoubleClick = (item: AssetInfo) => {
     if (item.type === 'folder' || item.targetType === 'folder') {
       navigate({
         to: '/share/$shareId/folders/$folderId',
-        params: { shareId: shareInfo.id, folderId: item.id! },
+        params: { shareId, folderId: item.id! },
       })
     } else {
       navigate({
         to: '/share/$shareId/files/$fileId',
         params: {
-          shareId: shareInfo.id,
+          shareId,
           fileId: item.versionStack ? item.versionStack.id : item.id!,
         },
       })
@@ -249,17 +280,18 @@ export function PublicShareManager({
   }
 
   const handleBreadcrumbClick = (folderId: string) => {
+    if (!shareInfo) return
     const targetId = folderId === 'root' ? shareInfo.rootFolderId : folderId
 
     if (targetId === shareInfo.rootFolderId) {
       navigate({
         to: '/share/$shareId',
-        params: { shareId: shareInfo.id },
+        params: { shareId },
       })
     } else {
       navigate({
         to: '/share/$shareId/folders/$folderId',
-        params: { shareId: shareInfo.id, folderId: targetId },
+        params: { shareId, folderId: targetId },
       })
     }
     setSelectedIds(new Set())
@@ -294,7 +326,7 @@ export function PublicShareManager({
   const { setProjectState, clearProjectState } = useTopNavStore()
 
   useEffect(() => {
-    if (isPasswordValid && !shareInfo.isExpired && !shareInfo.isDisabled) {
+    if (shareInfo && currentFolderId) {
       const currentFolderName =
         currentFolderId === shareInfo.rootFolderId
           ? shareInfo.name
@@ -315,7 +347,7 @@ export function PublicShareManager({
         },
         isRootFolder: currentFolderId === shareInfo.rootFolderId && !viewingFileId,
         isPublic: true,
-        shareId: shareInfo.id,
+        shareId,
         fileId: viewingFileId || undefined,
         onFolderClick: handleBreadcrumbClick,
         isRightSidebarCollapsed,
@@ -325,7 +357,6 @@ export function PublicShareManager({
 
     return () => clearProjectState()
   }, [
-    isPasswordValid,
     shareInfo,
     currentFolderId,
     folders,
@@ -339,49 +370,73 @@ export function PublicShareManager({
 
   let content
 
-  if (shareInfo.isExpired || shareInfo.isDisabled) {
+  if (isShareInfoLoading && !shareInfoError) {
     content = (
-      <div className="flex flex-1 items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
-              <AlertCircle className="h-6 w-6 text-destructive" />
-            </div>
-            <CardTitle>Share {shareInfo.isDisabled ? 'Disabled' : 'Expired'}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-center text-muted-foreground">
-            {shareInfo.isDisabled
-              ? 'This share link has been disabled by the owner.'
-              : 'This share link has expired and is no longer accessible.'}
-          </CardContent>
-        </Card>
+      <div className="flex flex-1 items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     )
-  } else if (!isPasswordValid) {
+  } else if (shareInfoError) {
+    if (shareInfoError.message === 'Unauthorized') {
+      const isPasswordWrong = password !== ''
+      content = (
+        <div className="flex flex-1 items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                <Lock className="h-6 w-6 text-primary" />
+              </div>
+              <CardTitle>Password Protected</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Input
+                    type="password"
+                    placeholder="Enter password"
+                    value={passwordInput}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    autoFocus
+                  />
+                  {isPasswordWrong && (
+                    <p className="text-sm font-medium text-destructive">
+                      Incorrect password. Please try again.
+                    </p>
+                  )}
+                </div>
+                <Button type="submit" className="w-full">
+                  Access Share
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )
+    } else {
+      const isExpired = shareInfoError.message.includes('expired')
+      const isDisabled = shareInfoError.message.includes('disabled')
+      content = (
+        <div className="flex flex-1 items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+                <AlertCircle className="h-6 w-6 text-destructive" />
+              </div>
+              <CardTitle>
+                {isExpired ? 'Share Expired' : isDisabled ? 'Share Disabled' : 'Error'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-center text-muted-foreground">
+              {shareInfoError.message}
+            </CardContent>
+          </Card>
+        </div>
+      )
+    }
+  } else if (!shareInfo) {
     content = (
-      <div className="flex flex-1 items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-              <Lock className="h-6 w-6 text-primary" />
-            </div>
-            <CardTitle>Password Protected</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handlePasswordSubmit} className="space-y-4">
-              <Input
-                type="password"
-                placeholder="Enter password"
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
-                autoFocus
-              />
-              <Button type="submit" className="w-full">
-                Access Share
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+      <div className="flex flex-1 items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     )
   } else {
@@ -406,37 +461,39 @@ export function PublicShareManager({
             )}
           </div>
         ) : (
-          <FileBrowser
-            teamId=""
-            projectId={shareInfo.projectId}
-            assetId={currentFolderId}
-            folders={folders}
-            files={files}
-            selectedItem={null}
-            selectedIds={selectedIds}
-            onItemSelect={(item, e) => {
-              if (e.metaKey || e.ctrlKey) {
-                const next = new Set(selectedIds)
-                if (next.has(item.id!)) next.delete(item.id!)
-                else next.add(item.id!)
-                setSelectedIds(next)
-              } else {
-                setSelectedIds(new Set([item.id!]))
-              }
-            }}
-            onItemDoubleClick={handleItemDoubleClick}
-            onSaveField={() => {}}
-            displayStyle={(shareInfo.viewMode as 'card' | 'list') ?? 'card'}
-            onClearSelection={() => setSelectedIds(new Set())}
-            fetchNextFoldersPage={fetchNextFoldersPage}
-            hasNextFoldersPage={hasNextPageFolders}
-            isFetchingNextFoldersPage={isFetchingNextFoldersPage}
-            fetchNextFilesPage={fetchNextFilesPage}
-            hasNextFilesPage={hasNextPageFiles}
-            isFetchingNextFilesPage={isFetchingNextFilesPage}
-            isShareView={true}
-            isPublic={true}
-          />
+          currentFolderId && (
+            <FileBrowser
+              teamId=""
+              projectId={shareInfo.projectId}
+              assetId={currentFolderId}
+              folders={folders}
+              files={files}
+              selectedItem={null}
+              selectedIds={selectedIds}
+              onItemSelect={(item, e) => {
+                if (e.metaKey || e.ctrlKey) {
+                  const next = new Set(selectedIds)
+                  if (next.has(item.id!)) next.delete(item.id!)
+                  else next.add(item.id!)
+                  setSelectedIds(next)
+                } else {
+                  setSelectedIds(new Set([item.id!]))
+                }
+              }}
+              onItemDoubleClick={handleItemDoubleClick}
+              onSaveField={() => {}}
+              displayStyle={(shareInfo.viewMode as 'card' | 'list') ?? 'card'}
+              onClearSelection={() => setSelectedIds(new Set())}
+              fetchNextFoldersPage={fetchNextFoldersPage}
+              hasNextFoldersPage={hasNextPageFolders}
+              isFetchingNextFoldersPage={isFetchingNextFoldersPage}
+              fetchNextFilesPage={fetchNextFilesPage}
+              hasNextFilesPage={hasNextPageFiles}
+              isFetchingNextFilesPage={isFetchingNextFilesPage}
+              isShareView={true}
+              isPublic={true}
+            />
+          )
         )}
 
         {!isRightSidebarCollapsed && (
@@ -457,7 +514,7 @@ export function PublicShareManager({
                 publicFields={publicFields}
                 onCommentSelect={handleCommentSelect}
                 isPublic={true}
-                shareId={shareInfo.id}
+                shareId={shareId}
                 currentTime={currentTime}
                 onTyping={() => {
                   if (videoRef.current) {

@@ -37,8 +37,10 @@ const sharedChildrenRequestSchema = paginationParamsSchema.extend({
 const route = app
   .get('/shares/:shareId/info', async (c) => {
     const shareId = c.req.param('shareId')
+    const password = c.req.header('x-share-password')
     try {
       const shareLink = await shareService.getShareLink(shareId)
+      await shareService.verifyPublicAccess(shareLink.rootFolderId, password)
       return c.json({
         id: shareLink.id,
         name: shareLink.name,
@@ -52,7 +54,21 @@ const route = app
         defaultSortOrder: shareLink.defaultSortOrder,
       })
     } catch (err) {
-      return c.json({ error: (err as Error).message }, 404)
+      const msg = (err as Error).message
+      if (msg === 'Invalid password for share link') {
+        return c.json({ error: 'Unauthorized' }, 401)
+      }
+      if (msg === 'Share link has expired' || msg === 'Share link is disabled') {
+        return c.json({ error: msg }, 403)
+      }
+      if (
+        msg === 'Share link not found' ||
+        msg === 'Share link not found for this asset' ||
+        msg === 'Asset is not shared'
+      ) {
+        return c.json({ error: msg }, 404)
+      }
+      return c.json({ error: msg }, 500)
     }
   })
   .get('/shares/:shareId/fields', async (c) => {

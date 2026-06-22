@@ -57,15 +57,74 @@ describe('Share API', () => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
+      vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue({
+        id: 'share1',
+        name: 'Public Share',
+        rootFolderId: 'folder1',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
 
       const res = await app.request('/shares/share1/info', {
         method: 'GET',
+        headers: { 'x-share-password': 'pass' },
       })
 
       expect(res.status).toBe(200)
       const body = await res.json()
       expect(body.name).toBe('Public Share')
       expect(body.hasPassword).toBe(true)
+      expect(shareService.verifyPublicAccess).toHaveBeenCalledWith('folder1', 'pass')
+    })
+
+    test('Unauthorized', async () => {
+      vi.spyOn(shareService, 'getShareLink').mockResolvedValue({
+        id: 'share1',
+        name: 'Public Share',
+        isDisabled: false,
+        isExpired: false,
+        hasPassword: true,
+        rootFolderId: 'folder1',
+        projectId: 'project1',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+      vi.spyOn(shareService, 'verifyPublicAccess').mockRejectedValue(
+        new Error('Invalid password for share link'),
+      )
+
+      const res = await app.request('/shares/share1/info', {
+        method: 'GET',
+        headers: { 'x-share-password': 'wrong' },
+      })
+
+      expect(res.status).toBe(401)
+      const body = await res.json()
+      expect(body.error).toBe('Unauthorized')
+    })
+
+    test('Expired/Disabled', async () => {
+      vi.spyOn(shareService, 'getShareLink').mockResolvedValue({
+        id: 'share1',
+        name: 'Public Share',
+        isDisabled: false,
+        isExpired: false,
+        hasPassword: true,
+        rootFolderId: 'folder1',
+        projectId: 'project1',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+      vi.spyOn(shareService, 'verifyPublicAccess').mockRejectedValue(
+        new Error('Share link has expired'),
+      )
+
+      const res = await app.request('/shares/share1/info', {
+        method: 'GET',
+      })
+
+      expect(res.status).toBe(403)
+      const body = await res.json()
+      expect(body.error).toBe('Share link has expired')
     })
   })
 
