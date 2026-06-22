@@ -26,6 +26,7 @@ import {
   DropdownMenuSeparator,
 } from '@/ui/components/ui/dropdown-menu'
 import { Input } from '@/ui/components/ui/input'
+import { ScrollArea } from '@/ui/components/ui/scroll-area'
 import { usePermissions } from '@/ui/hooks/use-permissions'
 import { cn } from '@/ui/lib/utils'
 import { useDraggable, useDroppable } from '@dnd-kit/react'
@@ -466,72 +467,75 @@ export function FolderTree({
           </div>
         </header>
 
-        <div
+        <ScrollArea
           className={cn(
-            'flex-1 overflow-y-auto min-h-0 space-y-0.5 pr-1 transition-all duration-300 ease-in-out',
+            'flex-1 min-h-0 transition-all duration-300 ease-in-out',
             isAssetsExpanded
               ? 'opacity-100 visible pointer-events-auto'
               : 'opacity-0 invisible pointer-events-none h-0',
           )}
         >
-          <FolderTreeItem
-            key={rootFolderId}
-            teamId={teamId}
-            projectId={projectId}
-            folder={{
-              id: rootFolderId,
-              name: projectName,
-              type: 'folder',
-              sizeByte: 0,
-              fileCount: 0,
-              status: 'processed',
-              mediaType: null,
-              createdAt: '',
-              updatedAt: '',
-            }}
-            level={0}
-            isRoot={true}
-            dragState={dragState}
-            onSelect={onSelect}
-            selectedFolderId={selectedFolderId}
-            canEdit={canEdit}
-            onRenameTrigger={(id, currentName) => {
-              setRenameId(id)
-              setRenameType('folder')
-              setRenameName(currentName)
-              setIsRenameOpen(true)
-            }}
-            onDeleteTrigger={(id) => {
-              setDeleteId(id)
-              setDeleteType('folder')
-              setIsDeleteOpen(true)
-            }}
-            onDownloadTrigger={(id) => {
-              handleDownloadFolder(id)
-            }}
-            ancestorFolders={ancestorFolders}
-          />
+          <div className="space-y-0.5 pr-1">
+            <FolderTreeItem
+              key={rootFolderId}
+              teamId={teamId}
+              projectId={projectId}
+              folder={{
+                id: rootFolderId,
+                name: projectName,
+                type: 'folder',
+                sizeByte: 0,
+                fileCount: 0,
+                status: 'processed',
+                mediaType: null,
+                createdAt: '',
+                updatedAt: '',
+              }}
+              level={0}
+              isRoot={true}
+              dragState={dragState}
+              onSelect={onSelect}
+              selectedFolderId={selectedFolderId}
+              canEdit={canEdit}
+              onRenameTrigger={(id, currentName) => {
+                setRenameId(id)
+                setRenameType('folder')
+                setRenameName(currentName)
+                setIsRenameOpen(true)
+              }}
+              onDeleteTrigger={(id) => {
+                setDeleteId(id)
+                setDeleteType('folder')
+                setIsDeleteOpen(true)
+              }}
+              onDownloadTrigger={(id) => {
+                handleDownloadFolder(id)
+              }}
+              ancestorFolders={ancestorFolders}
+            />
 
-          {canEdit && (
-            <div
-              className={cn(
-                'group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                isRecentlyDeleted && 'bg-sidebar-accent text-sidebar-accent-foreground font-medium',
-              )}
-              onClick={() =>
-                navigate({
-                  to: '/projects/$projectId/recently-deleted',
-                  params: { projectId },
-                })
-              }
-            >
-              <div className="flex h-4 w-4 items-center justify-center">
-                <Trash2 className="h-4 w-4 text-sidebar-primary" />
+            {canEdit && (
+              <div
+                className={cn(
+                  'group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                  isRecentlyDeleted &&
+                    'bg-sidebar-accent text-sidebar-accent-foreground font-medium',
+                )}
+                onClick={() =>
+                  navigate({
+                    to: '/projects/$projectId/recently-deleted',
+                    params: { projectId },
+                  })
+                }
+              >
+                <div className="flex h-4 w-4 items-center justify-center">
+                  <Trash2 className="h-4 w-4 text-sidebar-primary" />
+                </div>
+                <span className="flex-1 truncate text-sidebar-foreground">Recently Deleted</span>
               </div>
-              <span className="flex-1 truncate text-sidebar-foreground">Recently Deleted</span>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        </ScrollArea>
       </div>
 
       {!hideCollections && (
@@ -563,106 +567,108 @@ export function FolderTree({
             )}
           </header>
 
-          <div
+          <ScrollArea
             className={cn(
-              'flex-1 overflow-y-auto min-h-0 space-y-0.5 pr-1 transition-all duration-300 ease-in-out',
+              'flex-1 min-h-0 transition-all duration-300 ease-in-out',
               isCollectionsExpanded
                 ? 'opacity-100 visible pointer-events-auto'
                 : 'opacity-0 invisible pointer-events-none h-0',
             )}
           >
-            <div
-              className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              onClick={() =>
-                navigate({
-                  to: '/projects/$projectId/collections',
-                  params: { projectId },
-                })
-              }
-            >
-              <div className="flex h-4 w-4 items-center justify-center">
-                <LayoutGrid className="h-4 w-4 text-sidebar-primary" />
-              </div>
-              <span className="flex-1 truncate text-sidebar-foreground">
-                All Collections ({collectionsData?.pages[0]?.pageInfo?.total || 0})
-              </span>
-            </div>
-
-            {collections.map((collection) => {
-              const isColActive = params?.collectionId === collection.id
-              return (
-                <div
-                  key={collection.id}
-                  className={cn(
-                    'group flex cursor-pointer items-center justify-between rounded-md px-2 py-1 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                    isColActive && 'bg-sidebar-accent text-sidebar-accent-foreground font-medium',
-                  )}
-                  onClick={() =>
-                    navigate({
-                      to: '/projects/$projectId/collections/$collectionId',
-                      params: { projectId, collectionId: collection.id },
-                    })
-                  }
-                >
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <div className="flex h-4 w-4 items-center justify-center shrink-0">
-                      <Bookmark className="h-4 w-4 text-sidebar-primary" />
-                    </div>
-                    <span className="truncate text-sidebar-foreground flex-1">
-                      {collection.name}
-                    </span>
-                  </div>
-
-                  {canEdit && (
-                    <div
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <DropdownMenu modal={false}>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            className="h-6 w-6 shrink-0 hover:bg-muted hover:text-muted-foreground p-0"
-                          >
-                            <MoreHorizontal className="h-3.5 w-3.5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-32">
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setRenameId(collection.id)
-                              setRenameType('collection')
-                              setRenameName(collection.name)
-                              setIsRenameOpen(true)
-                            }}
-                          >
-                            Rename
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                            onClick={() => {
-                              setDeleteId(collection.id)
-                              setDeleteType('collection')
-                              setIsDeleteOpen(true)
-                            }}
-                          >
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  )}
+            <div className="space-y-0.5 pr-1">
+              <div
+                className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                onClick={() =>
+                  navigate({
+                    to: '/projects/$projectId/collections',
+                    params: { projectId },
+                  })
+                }
+              >
+                <div className="flex h-4 w-4 items-center justify-center">
+                  <LayoutGrid className="h-4 w-4 text-sidebar-primary" />
                 </div>
-              )
-            })}
-            <div ref={collectionsInViewRef} className="h-1" />
-            {isFetchingNextCollections && (
-              <div className="flex justify-center p-2">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                <span className="flex-1 truncate text-sidebar-foreground">
+                  All Collections ({collectionsData?.pages[0]?.pageInfo?.total || 0})
+                </span>
               </div>
-            )}
-          </div>
+
+              {collections.map((collection) => {
+                const isColActive = params?.collectionId === collection.id
+                return (
+                  <div
+                    key={collection.id}
+                    className={cn(
+                      'group flex cursor-pointer items-center justify-between rounded-md px-2 py-1 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                      isColActive && 'bg-sidebar-accent text-sidebar-accent-foreground font-medium',
+                    )}
+                    onClick={() =>
+                      navigate({
+                        to: '/projects/$projectId/collections/$collectionId',
+                        params: { projectId, collectionId: collection.id },
+                      })
+                    }
+                  >
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className="flex h-4 w-4 items-center justify-center shrink-0">
+                        <Bookmark className="h-4 w-4 text-sidebar-primary" />
+                      </div>
+                      <span className="truncate text-sidebar-foreground flex-1">
+                        {collection.name}
+                      </span>
+                    </div>
+
+                    {canEdit && (
+                      <div
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <DropdownMenu modal={false}>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              className="h-6 w-6 shrink-0 hover:bg-muted hover:text-muted-foreground p-0"
+                            >
+                              <MoreHorizontal className="h-3.5 w-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-32">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setRenameId(collection.id)
+                                setRenameType('collection')
+                                setRenameName(collection.name)
+                                setIsRenameOpen(true)
+                              }}
+                            >
+                              Rename
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                              onClick={() => {
+                                setDeleteId(collection.id)
+                                setDeleteType('collection')
+                                setIsDeleteOpen(true)
+                              }}
+                            >
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+              <div ref={collectionsInViewRef} className="h-1" />
+              {isFetchingNextCollections && (
+                <div className="flex justify-center p-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              )}
+            </div>
+          </ScrollArea>
         </div>
       )}
 
@@ -697,58 +703,60 @@ export function FolderTree({
             )}
           </header>
 
-          <div
+          <ScrollArea
             className={cn(
-              'flex-1 overflow-y-auto min-h-0 space-y-0.5 pr-1 transition-all duration-300 ease-in-out',
+              'flex-1 min-h-0 transition-all duration-300 ease-in-out',
               isSharesExpanded
                 ? 'opacity-100 visible pointer-events-auto'
                 : 'opacity-0 invisible pointer-events-none h-0',
             )}
           >
-            <div
-              className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              onClick={() =>
-                navigate({
-                  to: '/projects/$projectId/shares',
-                  params: { projectId },
-                })
-              }
-            >
-              <div className="flex h-4 w-4 items-center justify-center">
-                <LayoutGrid className="h-4 w-4 text-sidebar-primary" />
+            <div className="space-y-0.5 pr-1">
+              <div
+                className="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                onClick={() =>
+                  navigate({
+                    to: '/projects/$projectId/shares',
+                    params: { projectId },
+                  })
+                }
+              >
+                <div className="flex h-4 w-4 items-center justify-center">
+                  <LayoutGrid className="h-4 w-4 text-sidebar-primary" />
+                </div>
+                <span className="flex-1 truncate text-sidebar-foreground">
+                  All Share Links ({shareLinksData?.pages[0]?.pageInfo?.total || 0})
+                </span>
               </div>
-              <span className="flex-1 truncate text-sidebar-foreground">
-                All Share Links ({shareLinksData?.pages[0]?.pageInfo?.total || 0})
-              </span>
-            </div>
 
-            {shareLinks.map((link) => (
-              <ShareLinkItem
-                key={link.id}
-                link={link}
-                projectId={projectId}
-                dragState={dragState}
-                canEdit={canEdit}
-                onRenameTrigger={(id, currentName) => {
-                  setRenameId(id)
-                  setRenameType('share')
-                  setRenameName(currentName)
-                  setIsRenameOpen(true)
-                }}
-                onDeleteTrigger={(id) => {
-                  setDeleteId(id)
-                  setDeleteType('share')
-                  setIsDeleteOpen(true)
-                }}
-              />
-            ))}
-            <div ref={sharesInViewRef} className="h-1" />
-            {isFetchingNextShareLinks && (
-              <div className="flex justify-center p-2">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              </div>
-            )}
-          </div>
+              {shareLinks.map((link) => (
+                <ShareLinkItem
+                  key={link.id}
+                  link={link}
+                  projectId={projectId}
+                  dragState={dragState}
+                  canEdit={canEdit}
+                  onRenameTrigger={(id, currentName) => {
+                    setRenameId(id)
+                    setRenameType('share')
+                    setRenameName(currentName)
+                    setIsRenameOpen(true)
+                  }}
+                  onDeleteTrigger={(id) => {
+                    setDeleteId(id)
+                    setDeleteType('share')
+                    setIsDeleteOpen(true)
+                  }}
+                />
+              ))}
+              <div ref={sharesInViewRef} className="h-1" />
+              {isFetchingNextShareLinks && (
+                <div className="flex justify-center p-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              )}
+            </div>
+          </ScrollArea>
         </div>
       )}
 
