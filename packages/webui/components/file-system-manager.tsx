@@ -448,6 +448,7 @@ export default function FileSystemManager({
                   projectName={projectName}
                   rootFolderId={rootFolderId}
                   dragState={dragState}
+                  ancestorFolders={folderInfo?.ancestorFolders ?? []}
                 />
               </div>
               <ResizeHandle

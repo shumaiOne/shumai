@@ -29,7 +29,13 @@ import { Input } from '@/ui/components/ui/input'
 import { usePermissions } from '@/ui/hooks/use-permissions'
 import { cn } from '@/ui/lib/utils'
 import { useDraggable, useDroppable } from '@dnd-kit/react'
-import type { AssetInfo, AssetInfoPaginatedList, CollectionInfo, ShareLinkInfo } from '@shumai/dtos'
+import type {
+  AssetInfo,
+  AssetInfoPaginatedList,
+  CollectionInfo,
+  ShareLinkInfo,
+  AncestorFolder,
+} from '@shumai/dtos'
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMatch, useNavigate, useParams } from '@tanstack/react-router'
 import {
@@ -65,6 +71,7 @@ interface FolderTreeProps {
   selectedFolderId?: string
   hideCollections?: boolean
   hideShares?: boolean
+  ancestorFolders?: AncestorFolder[]
 }
 
 export function FolderTree({
@@ -77,6 +84,7 @@ export function FolderTree({
   selectedFolderId,
   hideCollections,
   hideShares,
+  ancestorFolders,
 }: FolderTreeProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -501,6 +509,7 @@ export function FolderTree({
             onDownloadTrigger={(id) => {
               handleDownloadFolder(id)
             }}
+            ancestorFolders={ancestorFolders}
           />
 
           {canEdit && (
@@ -1011,6 +1020,7 @@ interface FolderTreeItemProps {
   onRenameTrigger: (id: string, name: string) => void
   onDeleteTrigger: (id: string) => void
   onDownloadTrigger: (id: string) => void
+  ancestorFolders?: AncestorFolder[]
 }
 
 function FolderTreeItem({
@@ -1026,8 +1036,19 @@ function FolderTreeItem({
   onRenameTrigger,
   onDeleteTrigger,
   onDownloadTrigger,
+  ancestorFolders,
 }: FolderTreeItemProps) {
-  const [isExpanded, setIsExpanded] = useState(isRoot || false)
+  const isAncestor = useMemo(() => {
+    return ancestorFolders?.some((f) => f.id === folder.id) ?? false
+  }, [ancestorFolders, folder.id])
+
+  const [isExpanded, setIsExpanded] = useState(isRoot || isAncestor)
+
+  useEffect(() => {
+    if (isAncestor) {
+      setIsExpanded(true)
+    }
+  }, [isAncestor])
   const navigate = useNavigate()
   const params = useParams({
     from: '/projects/$projectId/folders/$folderId',
@@ -1246,6 +1267,7 @@ function FolderTreeItem({
               onRenameTrigger={onRenameTrigger}
               onDeleteTrigger={onDeleteTrigger}
               onDownloadTrigger={onDownloadTrigger}
+              ancestorFolders={ancestorFolders}
             />
           ))}
           {hasNextPage && (
