@@ -66,7 +66,7 @@ const UserField: React.FC<FieldProps<string>> = ({ value, onSave, readOnly }) =>
         <PopoverTrigger asChild>
           <div
             onClick={handleStartEdit}
-            className={`flex items-center justify-between w-full min-h-[28px] px-2 py-1 rounded border border-transparent transition-colors ${
+            className={`flex items-center justify-between w-full h-[28px] px-2 rounded border border-transparent transition-colors ${
               !readOnly ? 'cursor-pointer hover:bg-accent hover:border-border group' : ''
             }`}
           >
