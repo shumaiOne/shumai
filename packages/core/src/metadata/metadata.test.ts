@@ -204,4 +204,61 @@ describe('MetadataService', () => {
     })
     expect(val?.stringValue).toBe('some value')
   })
+
+  it('should save and retrieve user and userMulti metadata fields', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'test-team' },
+    })
+    const project = await prisma.project.create({
+      data: { name: 'test-project', teamId: team.id },
+    })
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'test-asset',
+        project: { connect: { id: project.id } },
+        type: 'file',
+        status: 'uploaded',
+        sizeByte: 100,
+      },
+    })
+
+    const userField = await prisma.metadataField.create({
+      data: {
+        key: 'assigned_user',
+        scope: 'PROJECT',
+        project: { connect: { id: project.id } },
+        config: { name: 'Assigned User', type: 'user' },
+      },
+    })
+
+    const userMultiField = await prisma.metadataField.create({
+      data: {
+        key: 'reviewers',
+        scope: 'PROJECT',
+        project: { connect: { id: project.id } },
+        config: { name: 'Reviewers', type: 'userMulti' },
+      },
+    })
+
+    const singleUserId = 'user_ulid_123'
+    const multiUserIds = ['user_ulid_456', 'user_ulid_789']
+
+    const reqs = [
+      { key: userField.key, value: singleUserId },
+      { key: userMultiField.key, value: multiUserIds },
+    ]
+
+    await metadataService.updateAssetMetadata(asset.id, reqs)
+
+    const values = await prisma.assetMetadataValue.findMany({
+      where: { assetId: asset.id },
+    })
+    expect(values).toHaveLength(2)
+
+    const singleVal = values.find((v) => v.fieldKey === userField.key)
+    expect(singleVal?.stringValue).toBe(singleUserId)
+
+    const multiVal = values.find((v) => v.fieldKey === userMultiField.key)
+    expect(multiVal?.jsonValue).toEqual(multiUserIds)
+  })
 })

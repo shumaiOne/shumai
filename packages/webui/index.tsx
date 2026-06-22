@@ -5,6 +5,18 @@ import ReactDOM from 'react-dom/client'
 import { ThemeProvider } from './components/theme-provider'
 import { routeTree } from './routeTree.gen'
 
+if (typeof window !== 'undefined') {
+  const resizeObserverErrorNames = [
+    'ResizeObserver loop limit exceeded',
+    'ResizeObserver loop completed with undelivered notifications.',
+  ]
+  window.addEventListener('error', (e) => {
+    if (resizeObserverErrorNames.includes(e.message)) {
+      e.stopImmediatePropagation()
+    }
+  })
+}
+
 const queryClient = new QueryClient()
 
 // Set up a Router instance

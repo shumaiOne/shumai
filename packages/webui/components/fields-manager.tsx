@@ -86,6 +86,8 @@ import {
   ToggleLeft,
   Type,
   X,
+  User,
+  Users,
 } from 'lucide-react'
 import { useMemo, useState, useEffect } from 'react'
 
@@ -98,6 +100,8 @@ export const FIELD_TYPE_ICONS: Record<FieldType, React.ComponentType<{ className
   [FieldType.number]: Hash,
   [FieldType.toggle]: ToggleLeft,
   [FieldType.date]: Calendar,
+  [FieldType.user]: User,
+  [FieldType.userMulti]: Users,
 }
 
 type SortableFieldItemProps = {

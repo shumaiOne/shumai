@@ -8,6 +8,8 @@ import SelectField from './fields/select-field'
 import SelectMultiField from './fields/select-multi-field'
 import TextField from './fields/text-field'
 import ToggleField from './fields/toggle-field'
+import UserField from './fields/user-field'
+import UserMultiField from './fields/user-multi-field'
 
 interface FieldRendererProps {
   config: FieldInfo['config']
@@ -83,6 +85,22 @@ const FieldRenderer: React.FC<FieldRendererProps> = (props) => {
           {...props}
           value={props.value as string}
           onSave={props.onSave as (value: string) => void}
+        />
+      )
+    case 'user':
+      return (
+        <UserField
+          {...props}
+          value={props.value as string}
+          onSave={props.onSave as (value: string) => void}
+        />
+      )
+    case 'userMulti':
+      return (
+        <UserMultiField
+          {...props}
+          value={props.value as string[]}
+          onSave={props.onSave as (value: string[]) => void}
         />
       )
     default:
