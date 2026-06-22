@@ -80,3 +80,6 @@ Run this on your sandboxed agent execution nodes (requires sandbox dependencies 
 npm install -g @shumai-one/shumai-agent
 shumai-agent
 ```
+
+> [!IMPORTANT]
+> **For Bun Users:** Since the worker package binaries contain a `#!/usr/bin/env node` shebang, running `shumai-transcode` or `shumai-agent` directly will run under Node.js. If you wish to run them using Bun, prefix the commands with `bun run --bun` (e.g., `bun run --bun shumai-transcode` or `bun run --bun shumai-agent`).

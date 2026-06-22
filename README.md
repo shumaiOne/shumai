@@ -134,6 +134,9 @@ AWS_ENDPOINT_URL_S3=http://localhost
 
 #### Step 6: Run Shumai
 
+> [!IMPORTANT]
+> **For Bun Users:** Since the published package binaries contain a `#!/usr/bin/env node` shebang, running the global command directly (e.g., `shumai`) will execute under Node.js. If you installed with Bun and want to run under the Bun runtime, you must prefix all commands with `bun run --bun` (e.g., `bun run --bun shumai`, `bun run --bun shumai -d`, `bun run --bun shumai stop`).
+
 Start the application from your workspace folder:
 
 ```bash

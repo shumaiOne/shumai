@@ -26,6 +26,9 @@ export SHUMAI_API_KEY="your-developer-api-token"
 
 ## Usage
 
+> [!IMPORTANT]
+> **For Bun Users:** Since the package binary contains a `#!/usr/bin/env node` shebang, running `shumai-cli` directly will run under Node.js. If you wish to run it using Bun, prefix the command with `bun run --bun` (e.g., `bun run --bun shumai-cli project ls`).
+
 Run `shumai-cli` or query specific commands:
 
 ```bash
