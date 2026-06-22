@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import type { Context } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { shareService } from '@shumai/core/src/share/share'
 import { assetService } from '@shumai/core/src/asset/asset'
@@ -11,6 +12,12 @@ import { auth } from '@shumai/core/src/auth/auth'
 import { prisma } from '@shumai/db'
 import { createCommentRequestSchema } from '@shumai/dtos'
 import { notificationService } from '@shumai/core/src/notification/notification'
+import {
+  ShareLinkNotFoundError,
+  ShareLinkDisabledError,
+  ShareLinkExpiredError,
+  ShareLinkPasswordInvalidError,
+} from '@shumai/core/src/share/errors'
 
 const app = new Hono()
 
@@ -28,6 +35,22 @@ function toFieldInfo(
     description: f.description,
     aiAutofill: f.aiAutofill,
   }
+}
+
+export function handlePublicShareError(c: Context, err: unknown) {
+  if (err instanceof ShareLinkPasswordInvalidError) {
+    return c.json({ error: 'Unauthorized' }, 401)
+  }
+  if (err instanceof ShareLinkExpiredError || err instanceof ShareLinkDisabledError) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return c.json({ error: msg }, 403)
+  }
+  if (err instanceof ShareLinkNotFoundError) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return c.json({ error: msg }, 404)
+  }
+  const msg = err instanceof Error ? err.message : String(err)
+  return c.json({ error: msg }, 500)
 }
 
 const sharedChildrenRequestSchema = paginationParamsSchema.extend({
@@ -54,21 +77,7 @@ const route = app
         defaultSortOrder: shareLink.defaultSortOrder,
       })
     } catch (err) {
-      const msg = (err as Error).message
-      if (msg === 'Invalid password for share link') {
-        return c.json({ error: 'Unauthorized' }, 401)
-      }
-      if (msg === 'Share link has expired' || msg === 'Share link is disabled') {
-        return c.json({ error: msg }, 403)
-      }
-      if (
-        msg === 'Share link not found' ||
-        msg === 'Share link not found for this asset' ||
-        msg === 'Asset is not shared'
-      ) {
-        return c.json({ error: msg }, 404)
-      }
-      return c.json({ error: msg }, 500)
+      return handlePublicShareError(c, err)
     }
   })
   .get('/shares/:shareId/fields', async (c) => {
@@ -88,14 +97,7 @@ const route = app
           .map((f) => toFieldInfo(f.field, f.visible)),
       )
     } catch (err) {
-      const msg = (err as Error).message
-      if (msg === 'Invalid password for share link') {
-        return c.json({ error: 'Unauthorized' }, 401)
-      }
-      if (msg === 'Share link has expired' || msg === 'Share link is disabled') {
-        return c.json({ error: msg }, 403)
-      }
-      return c.json({ error: msg }, 500)
+      return handlePublicShareError(c, err)
     }
   })
   .get(
@@ -128,14 +130,7 @@ const route = app
 
         return c.json(res)
       } catch (err) {
-        const msg = (err as Error).message
-        if (msg === 'Invalid password for share link') {
-          return c.json({ error: 'Unauthorized' }, 401)
-        }
-        if (msg === 'Share link has expired' || msg === 'Share link is disabled') {
-          return c.json({ error: msg }, 403)
-        }
-        return c.json({ error: msg }, 500)
+        return handlePublicShareError(c, err)
       }
     },
   )
@@ -149,14 +144,7 @@ const route = app
       const asset = await assetService.getAsset({ assetId: fileId })
       return c.json(asset)
     } catch (err) {
-      const msg = (err as Error).message
-      if (msg === 'Invalid password for share link') {
-        return c.json({ error: 'Unauthorized' }, 401)
-      }
-      if (msg === 'Share link has expired' || msg === 'Share link is disabled') {
-        return c.json({ error: msg }, 403)
-      }
-      return c.json({ error: msg }, 500)
+      return handlePublicShareError(c, err)
     }
   })
   .get(
@@ -174,14 +162,7 @@ const route = app
         const res = await assetService.listComments(targetFileId, req)
         return c.json(res)
       } catch (err) {
-        const msg = (err as Error).message
-        if (msg === 'Invalid password for share link') {
-          return c.json({ error: 'Unauthorized' }, 401)
-        }
-        if (msg === 'Share link has expired' || msg === 'Share link is disabled') {
-          return c.json({ error: msg }, 403)
-        }
-        return c.json({ error: msg }, 500)
+        return handlePublicShareError(c, err)
       }
     },
   )
@@ -253,14 +234,7 @@ const route = app
 
         return c.json(comment, 201)
       } catch (err) {
-        const msg = (err as Error).message
-        if (msg === 'Invalid password for share link') {
-          return c.json({ error: 'Unauthorized' }, 401)
-        }
-        if (msg === 'Share link has expired' || msg === 'Share link is disabled') {
-          return c.json({ error: msg }, 403)
-        }
-        return c.json({ error: msg }, 500)
+        return handlePublicShareError(c, err)
       }
     },
   )

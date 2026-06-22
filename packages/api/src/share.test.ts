@@ -6,6 +6,7 @@ import { authMiddleware } from './middleware/auth'
 import { shareService } from '@shumai/core/src/share/share'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import { ShareLinkPasswordInvalidError, ShareLinkExpiredError } from '@shumai/core/src/share/errors'
 
 vi.mock('./middleware/auth', () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -89,7 +90,7 @@ describe('Share API', () => {
         updatedAt: new Date().toISOString(),
       })
       vi.spyOn(shareService, 'verifyPublicAccess').mockRejectedValue(
-        new Error('Invalid password for share link'),
+        new ShareLinkPasswordInvalidError('Invalid password for share link'),
       )
 
       const res = await app.request('/shares/share1/info', {
@@ -115,7 +116,7 @@ describe('Share API', () => {
         updatedAt: new Date().toISOString(),
       })
       vi.spyOn(shareService, 'verifyPublicAccess').mockRejectedValue(
-        new Error('Share link has expired'),
+        new ShareLinkExpiredError('Share link has expired'),
       )
 
       const res = await app.request('/shares/share1/info', {
