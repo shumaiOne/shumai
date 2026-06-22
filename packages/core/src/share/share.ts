@@ -301,6 +301,7 @@ export class ShareService {
       expireAt: l.expireAt?.toISOString(),
       isDisabled: l.isDisabled,
       hasPassword: !!l.password,
+      password: l.password,
       defaultSortOrder: l.defaultSortOrder,
       viewMode: l.viewMode,
       fieldVisibility: l.fieldVisibility as Record<string, boolean> | undefined,

@@ -45,10 +45,14 @@ export function ShareSettingsSidebar({
   onSortOrderChange,
 }: ShareSettingsSidebarProps) {
   const queryClient = useQueryClient()
-  const [password, setPassword] = useState('')
+  const [password, setPassword] = useState(shareLink.password || '')
   const [expireAt, setExpireAt] = useState<Date | undefined>(
     shareLink.expireAt ? new Date(shareLink.expireAt) : undefined,
   )
+
+  React.useEffect(() => {
+    setPassword(shareLink.password || '')
+  }, [shareLink.password])
   const [isPasswordEnabled, setIsPasswordEnabled] = useState(shareLink.hasPassword)
   const [isExpireEnabled, setIsExpireEnabled] = useState(!!shareLink.expireAt)
 
@@ -146,10 +150,10 @@ export function ShareSettingsSidebar({
                   {isPasswordEnabled && (
                     <div className="flex gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
                       <Input
-                        type="password"
+                        type="text"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder={shareLink.hasPassword ? '••••••••' : 'Set password'}
+                        placeholder="Enter password"
                         className="text-xs"
                       />
                       <Button size="sm" onClick={() => updateShare({ password })}>
