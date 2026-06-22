@@ -7,6 +7,7 @@ export interface ShareLinkInfo {
   expireAt?: string
   isDisabled: boolean
   hasPassword: boolean
+  password?: string | null
   defaultSortOrder?: string
   viewMode?: string
   fieldVisibility?: Record<string, boolean>

@@ -9,6 +9,12 @@ import {
 } from '@shumai/dtos'
 import { PaginatedData, paginateQuery } from '@shumai/core/src/pagination'
 import { getAvatarUrl } from '@shumai/core/src/user/avatar'
+import {
+  ShareLinkNotFoundError,
+  ShareLinkDisabledError,
+  ShareLinkExpiredError,
+  ShareLinkPasswordInvalidError,
+} from './errors'
 
 export class ShareService {
   async createShareLink(
@@ -143,7 +149,7 @@ export class ShareService {
       where: { id: shareLinkId },
       include: { creator: true },
     })
-    if (!shareLink) throw new Error('Share link not found')
+    if (!shareLink) throw new ShareLinkNotFoundError('Share link not found')
     return await this.toShareLinkInfo(shareLink)
   }
 
@@ -264,7 +270,7 @@ export class ShareService {
     `
 
     if (rows.length === 0) {
-      throw new Error('Asset is not shared')
+      throw new ShareLinkNotFoundError('Asset is not shared')
     }
 
     const shareRootId = rows[0].shareRootId
@@ -273,19 +279,19 @@ export class ShareService {
     })
 
     if (!shareLink) {
-      throw new Error('Share link not found for this asset')
+      throw new ShareLinkNotFoundError('Share link not found for this asset')
     }
 
     if (shareLink.isDisabled) {
-      throw new Error('Share link is disabled')
+      throw new ShareLinkDisabledError('Share link is disabled')
     }
 
     if (shareLink.expireAt && shareLink.expireAt < new Date()) {
-      throw new Error('Share link has expired')
+      throw new ShareLinkExpiredError('Share link has expired')
     }
 
     if (shareLink.password && shareLink.password !== providedPassword) {
-      throw new Error('Invalid password for share link')
+      throw new ShareLinkPasswordInvalidError('Invalid password for share link')
     }
 
     return shareLink
@@ -301,6 +307,7 @@ export class ShareService {
       expireAt: l.expireAt?.toISOString(),
       isDisabled: l.isDisabled,
       hasPassword: !!l.password,
+      password: l.password,
       defaultSortOrder: l.defaultSortOrder,
       viewMode: l.viewMode,
       fieldVisibility: l.fieldVisibility as Record<string, boolean> | undefined,
