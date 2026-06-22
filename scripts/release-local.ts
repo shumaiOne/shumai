@@ -181,7 +181,7 @@ const wrapperAppNames = [
   '@shumai-one/shumai',
   '@shumai-one/shumai-agent',
   '@shumai-one/shumai-transcode',
-  '@shumai-one/cli',
+  '@shumai-one/shumai-cli',
 ]
 const dependencies = Object.fromEntries(
   packages
