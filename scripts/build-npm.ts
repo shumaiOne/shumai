@@ -572,7 +572,7 @@ async function buildCliPackage() {
 
   // Generate package.json for CLI
   const packageJson = {
-    name: '@shumai-one/cli',
+    name: '@shumai-one/shumai-cli',
     version,
     description: 'Command line interface for the shumai media workspace',
     type: 'module',
