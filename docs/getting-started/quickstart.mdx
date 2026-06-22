@@ -72,9 +72,14 @@ To handle media processing and security isolation, the host machine must have th
     AWS_ENDPOINT_URL_S3=http://localhost
     ```
 4.  **Start Shumai**:
+
+    > [!IMPORTANT]
+    > **For Bun Users:** Since the published package binaries contain a `#!/usr/bin/env node` shebang, running `shumai` directly will execute under Node.js. If you installed using Bun and want to run it under the Bun runtime, prefix the command with `bun run --bun` (e.g., `bun run --bun shumai`).
+
     ```bash
     shumai
     ```
+
     Open your browser to `http://localhost:3000`.
 
 ---
