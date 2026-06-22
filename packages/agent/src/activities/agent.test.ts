@@ -127,6 +127,54 @@ describe('Agent Activities', () => {
     expect(res.text).toBe('Error: API key not valid')
   })
 
+  it('should pass thinkingLevel from agent config to createAgentSession', async () => {
+    const mockHarness = {
+      prompt: vi.fn().mockResolvedValue({
+        content: [],
+        usage: { input: 0, output: 0 },
+      }),
+      getThinkingLevel: vi.fn().mockReturnValue('high'),
+    }
+    const mockSession = {
+      getEntries: vi.fn().mockResolvedValue([]),
+      getStorage: vi.fn().mockReturnValue({ sessionId: 'mock-session-id' }),
+    }
+
+    vi.mocked(piAgent.createAgentSession).mockResolvedValue({
+      session: mockSession as unknown as Session<DatabaseSessionMetadata>,
+      harness: mockHarness as unknown as AgentHarness,
+    })
+
+    const context = {
+      agent: {
+        id: 'b1',
+        provider: { name: 'google' },
+        modelRef: { modelId: 'gemini' },
+        config: { thinkingLevel: 'high' },
+      },
+      dbProviders: [],
+      teamSkills: [],
+      allowedDomains: [],
+    } as unknown as AgentExecutionContext
+
+    await agentChatActivity({
+      teamId: 't1',
+      agentId: 'b1',
+      message: 'Hi',
+      imageUrls: [],
+      projectId: 'p1',
+      folderId: 'f1',
+      sessionId: 'mock-session-id',
+      context,
+    })
+
+    expect(piAgent.createAgentSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        thinkingLevel: 'high',
+      }),
+    )
+  })
+
   it('should call autofillAiActivity and run autofill tool', async () => {
     const mockHarness = {
       prompt: vi.fn().mockResolvedValue({

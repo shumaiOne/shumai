@@ -1,5 +1,10 @@
 import { SandboxManager } from '@anthropic-ai/sandbox-runtime'
-import { AgentHarness, Session, type AgentTool } from '@earendil-works/pi-agent-core'
+import {
+  AgentHarness,
+  Session,
+  type AgentTool,
+  type ThinkingLevel,
+} from '@earendil-works/pi-agent-core'
 import { NodeExecutionEnv } from '@earendil-works/pi-agent-core/node'
 import { getModel } from '@earendil-works/pi-ai'
 import { Type, type TSchema } from '@sinclair/typebox'
@@ -29,6 +34,7 @@ export interface CreateAgentSessionParams {
   userId?: string
   userCommentId?: string | null
   customTools?: AgentTool[]
+  thinkingLevel?: string
   providers: Array<{
     name: string
     config: PrismaJson.ProviderConfig
@@ -53,6 +59,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     userId,
     userCommentId: passedUserCommentId,
     customTools = [],
+    thinkingLevel,
   } = params
 
   const storage = await DatabaseSessionStorage.create({
@@ -233,6 +240,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     env: new NodeExecutionEnv({ cwd: process.cwd() }),
     session,
     model,
+    thinkingLevel: (thinkingLevel || 'off') as ThinkingLevel,
     systemPrompt: async () => {
       let prompt = systemPrompt
 

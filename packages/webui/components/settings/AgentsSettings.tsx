@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { AgentInfo, AgentType } from '@shumai/dtos'
+import { AgentInfo, AgentType, ThinkingLevel } from '@shumai/dtos'
 import { AgentFormDialog } from './AgentFormDialog'
 import {
   DropdownMenu,
@@ -104,7 +104,7 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
       avatar?: string
       providerId?: string
       modelId?: string
-      thinkingLevel?: string
+      thinkingLevel?: ThinkingLevel
       systemPrompt?: string
       soul?: string
       skills?: string[]
@@ -206,6 +206,7 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
           {AGENT_TYPES.map((section) => {
             const typeAgents = agents.filter((a) => a.type === section.type)
             const Icon = section.icon
+            const isSingleAgentType = section.type === 'autofill' || section.type === 'embedding'
 
             return (
               <div
@@ -213,20 +214,24 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
                 className="bg-card rounded-xl border border-border overflow-hidden"
               >
                 <div
-                  className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => toggleSection(section.type)}
+                  className={cn(
+                    'px-6 py-4 flex items-center justify-between',
+                    !isSingleAgentType && 'cursor-pointer hover:bg-muted/50 transition-colors',
+                  )}
+                  onClick={!isSingleAgentType ? () => toggleSection(section.type) : undefined}
                 >
                   <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-foreground">{section.label} Agents</h3>
-                    <Badge variant="secondary" className="h-5 px-1.5 min-w-[1.25rem] text-[10px]">
-                      {typeAgents.length}
-                    </Badge>
+                    <h3 className="font-semibold text-foreground">
+                      {section.label} {isSingleAgentType ? 'Agent' : 'Agents'}
+                    </h3>
+                    {!isSingleAgentType && (
+                      <Badge variant="secondary" className="h-5 px-1.5 min-w-[1.25rem] text-[10px]">
+                        {typeAgents.length}
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
-                    {!(
-                      (section.type === 'autofill' || section.type === 'embedding') &&
-                      typeAgents.length > 0
-                    ) && (
+                    {!(isSingleAgentType && typeAgents.length > 0) && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -240,16 +245,18 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
                         <Plus className="w-4 h-4" />
                       </Button>
                     )}
-                    <ChevronDown
-                      className={cn(
-                        'w-5 h-5 text-muted-foreground transition-transform duration-200',
-                        expandedSections[section.type] ? 'rotate-180' : '',
-                      )}
-                    />
+                    {!isSingleAgentType && (
+                      <ChevronDown
+                        className={cn(
+                          'w-5 h-5 text-muted-foreground transition-transform duration-200',
+                          expandedSections[section.type] ? 'rotate-180' : '',
+                        )}
+                      />
+                    )}
                   </div>
                 </div>
 
-                {expandedSections[section.type] && (
+                {(isSingleAgentType || expandedSections[section.type]) && (
                   <div className="px-6 pb-6 pt-2 space-y-3">
                     <div className="grid grid-cols-1 gap-4">
                       {typeAgents.map((agent) => (
@@ -338,7 +345,7 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
                             <Icon className="w-5 h-5 text-muted-foreground" />
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            No {section.label} agents found
+                            No {section.label} {isSingleAgentType ? 'agent' : 'agents'} found
                           </p>
                           <Button
                             variant="link"

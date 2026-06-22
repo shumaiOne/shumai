@@ -24,7 +24,7 @@ import { useForm, useStore } from '@tanstack/react-form'
 import { Loader2, Puzzle } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
 import { toast } from 'sonner'
-import { AgentInfo, AgentType } from '@shumai/dtos'
+import { AgentInfo, AgentType, ThinkingLevel, thinkingLevelSchema } from '@shumai/dtos'
 import { Textarea } from '@/ui/components/ui/textarea'
 import { ScrollArea } from '@/ui/components/ui/scroll-area'
 import { z } from 'zod'
@@ -47,7 +47,7 @@ const agentFormSchema = z.object({
   providerId: z.string().optional(),
   modelId: z.string().optional(),
   soul: z.string().optional(),
-  thinkingLevel: z.string().optional(),
+  thinkingLevel: thinkingLevelSchema.optional(),
   systemPrompt: z.string().optional(),
   skills: z.array(z.string()).optional(),
 })
@@ -116,12 +116,12 @@ export function AgentFormDialog({
   const form = useForm({
     defaultValues: {
       name: initialValues?.name || '',
-      type: type || initialValues?.type || 'chat',
+      type: initialValues?.type || type || 'chat',
       avatar: initialValues?.avatar || AVAILABLE_AVATARS[0],
       providerId: initialValues?.providerId || '',
       modelId: initialValues?.modelId || '',
       soul: initialValues?.soul || '',
-      thinkingLevel: initialValues?.thinkingLevel || 'medium',
+      thinkingLevel: initialValues?.thinkingLevel || 'off',
       systemPrompt: initialValues?.systemPrompt || '',
       skills: initialValues?.skills?.map((s) => s.skillId) || ([] as string[]),
     } as AgentFormValues,
@@ -400,14 +400,19 @@ export function AgentFormDialog({
                         children={(field) => (
                           <Field>
                             <FieldLabel>Thinking Level</FieldLabel>
-                            <Select value={field.state.value} onValueChange={field.handleChange}>
+                            <Select
+                              value={field.state.value}
+                              onValueChange={(val) => field.handleChange(val as ThinkingLevel)}
+                            >
                               <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="low">Low (Fast)</SelectItem>
-                                <SelectItem value="medium">Medium (Balanced)</SelectItem>
-                                <SelectItem value="high">High (Reasoning)</SelectItem>
+                                {thinkingLevelSchema.options.map((level) => (
+                                  <SelectItem key={level} value={level}>
+                                    {level.charAt(0).toUpperCase() + level.slice(1)}
+                                  </SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                           </Field>

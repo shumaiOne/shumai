@@ -257,4 +257,76 @@ describe('Sandbox Network isolation integration', () => {
       resetSpy.mockRestore()
     }
   })
+
+  it('should pass thinkingLevel to AgentHarness and default to off', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'Test Team' },
+    })
+
+    await prisma.user.create({
+      data: {
+        id: 'test-agent-1',
+        name: 'Agent 1',
+        email: 'agent1@test.com',
+        type: 'agent',
+      },
+    })
+    await prisma.agent.create({
+      data: {
+        id: 'test-agent-1',
+        teamId: team.id,
+        type: 'chat',
+        config: { provider: 'google', model: 'gemini' },
+      },
+    })
+
+    await prisma.user.create({
+      data: {
+        id: 'test-agent-2',
+        name: 'Agent 2',
+        email: 'agent2@test.com',
+        type: 'agent',
+      },
+    })
+    await prisma.agent.create({
+      data: {
+        id: 'test-agent-2',
+        teamId: team.id,
+        type: 'chat',
+        config: { provider: 'google', model: 'gemini' },
+      },
+    })
+
+    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
+    try {
+      // Call createAgentSession with thinkingLevel
+      const { harness: harnessHigh } = await createAgentSession({
+        teamId: team.id,
+        agentId: 'test-agent-1',
+        providerName: 'google',
+        modelId: 'gemini',
+        systemPrompt: 'prompt',
+        teamSkills: [],
+        allowedDomains: [],
+        providers: [],
+        thinkingLevel: 'high',
+      })
+      expect(harnessHigh.getThinkingLevel()).toBe('high')
+
+      // Call createAgentSession without thinkingLevel
+      const { harness: harnessDefault } = await createAgentSession({
+        teamId: team.id,
+        agentId: 'test-agent-2',
+        providerName: 'google',
+        modelId: 'gemini',
+        systemPrompt: 'prompt',
+        teamSkills: [],
+        allowedDomains: [],
+        providers: [],
+      })
+      expect(harnessDefault.getThinkingLevel()).toBe('off')
+    } finally {
+      initializeSpy.mockRestore()
+    }
+  })
 })

@@ -3,6 +3,9 @@ import { z } from 'zod'
 export const agentTypeSchema = z.enum(['chat', 'autofill', 'embedding'])
 export type AgentType = z.infer<typeof agentTypeSchema>
 
+export const thinkingLevelSchema = z.enum(['off', 'minimal', 'low', 'medium', 'high', 'xhigh'])
+export type ThinkingLevel = z.infer<typeof thinkingLevelSchema>
+
 export const agentSkillSchema = z.object({
   id: z.string().optional(),
   skillId: z.string(),
@@ -23,7 +26,7 @@ export const agentInfoSchema = z.object({
   avatar: z.string().optional(),
   providerId: z.string().optional(),
   modelId: z.string().optional(),
-  thinkingLevel: z.string().optional().default(''),
+  thinkingLevel: thinkingLevelSchema.optional().default('off'),
   systemPrompt: z.string().optional(),
   soul: z.string().optional(),
   skills: z.array(agentSkillSchema).optional(),
@@ -37,7 +40,7 @@ const baseAgentRequest = z.object({
   avatar: z.string().optional(),
   providerId: z.string().optional(),
   modelId: z.string().optional(),
-  thinkingLevel: z.string().optional().default(''),
+  thinkingLevel: thinkingLevelSchema.optional().default('off'),
   systemPrompt: z.string().optional(),
   soul: z.string().optional(),
   skills: z.array(z.string()).optional(),

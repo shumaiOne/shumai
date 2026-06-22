@@ -39,7 +39,7 @@ const route = new Hono<{ Variables: { user: User } }>()
           avatar: (await getAvatarUrl(agent.user.image)) || undefined,
           providerId: agent.providerId || undefined,
           modelId: agent.modelId || undefined,
-          thinkingLevel: config.thinkingLevel || '',
+          thinkingLevel: config.thinkingLevel || 'off',
           systemPrompt: config.systemPrompt,
           soul: agent.soul || undefined,
           skills: agent.skills.map((s) => ({
@@ -81,7 +81,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       avatar: (await getAvatarUrl(agent.user.image)) || undefined,
       providerId: agent.providerId || undefined,
       modelId: agent.modelId || undefined,
-      thinkingLevel: config.thinkingLevel || '',
+      thinkingLevel: config.thinkingLevel || 'off',
       systemPrompt: config.systemPrompt,
       soul: agent.soul || undefined,
       skills: agent.skills.map((s) => ({
@@ -119,7 +119,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       avatar: (await getAvatarUrl(agent.user.image)) || undefined,
       providerId: agent.providerId || undefined,
       modelId: agent.modelId || undefined,
-      thinkingLevel: config.thinkingLevel || '',
+      thinkingLevel: config.thinkingLevel || 'off',
       systemPrompt: config.systemPrompt,
       soul: agent.soul || undefined,
       skills: agent.skills.map((s) => ({

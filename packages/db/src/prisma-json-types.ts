@@ -27,7 +27,7 @@ declare global {
     export interface AgentConfig {
       provider: string
       model: string
-      thinkingLevel?: string
+      thinkingLevel?: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'
       systemPrompt?: string
       appendSystemPrompt?: string[]
     }
