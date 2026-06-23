@@ -29,6 +29,7 @@ services:
 
       # S3 Configuration
       STORAGE_BACKEND: local
+      AWS_ENDPOINT_URL_S3: http://localhost
 
       # Better Auth
       BETTER_AUTH_SECRET: qSxs9DxzHDZBbeeTNPEwBuspYwipBqz5Gk5XdBjNhWw=
