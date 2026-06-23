@@ -58,7 +58,7 @@ export class VersionStackService {
         throw new Error('parent not found')
       }
 
-      const firstFile = files[0]
+      const firstFile = files.find((f) => f.id === fileIds[0])
       const sortIndex = firstFile?.sortIndex || null
 
       const stack = await tx.asset.create({

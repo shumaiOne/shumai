@@ -47,6 +47,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     socat \
     ca-certificates \
     bubblewrap \
+    gosu \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -68,6 +69,13 @@ COPY --chown=bun:bun --from=builder /app/prisma.config.ts.prod ./prisma.config.t
 
 # Expose port (Bun Hono defaults to 3000)
 EXPOSE 3000
+
+# Switch back to root at the end so the container runs the entrypoint as root
+USER root
+COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+ENTRYPOINT ["docker-entrypoint.sh"]
 
 # Default command: run migrations and start API server
 CMD ["sh", "-c", "bun prisma migrate deploy && bun index.js"]
