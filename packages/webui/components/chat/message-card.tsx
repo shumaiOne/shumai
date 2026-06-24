@@ -34,6 +34,7 @@ interface MessageCardProps {
   frameRate?: number
   rootParentId?: string
   timeMode?: 'standard' | 'frames' | 'timecode'
+  startTimecode?: string
 }
 
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -57,6 +58,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   onSelect,
   frameRate,
   timeMode = 'standard',
+  startTimecode,
 }) => {
   const message = initialMessage
   const hasDrawInfo =
@@ -180,6 +182,11 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                 if (timeMode === 'timecode') {
                   if (message.timecode) return message.timecode
                   try {
+                    if (startTimecode) {
+                      return new Timecode(startTimecode, frameRate)
+                        .add(Math.round(message.second * frameRate))
+                        .toString()
+                    }
                     return new Timecode(message.second * frameRate, frameRate).toString()
                   } catch (e) {
                     console.error('Failed to create Timecode for message:', e)

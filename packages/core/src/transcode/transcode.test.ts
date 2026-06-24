@@ -41,7 +41,7 @@ describe('TranscodeService', () => {
   it('should parse video info correctly from ffprobe output', async () => {
     /* eslint-disable @typescript-eslint/naming-convention */
     const mockOutput = JSON.stringify({
-      format: { duration: '10.5', bit_rate: '128000' },
+      format: { duration: '10.5', bit_rate: '128000', tags: { timecode: '01:00:00:00' } },
       streams: [
         {
           codec_type: 'video',
@@ -84,6 +84,7 @@ describe('TranscodeService', () => {
     expect(info.audioChannels).toBe(2)
     expect(info.audioSampleRate).toBe(48000)
     expect(info.audioBitDepth).toBe(16)
+    expect(info.startTimecode).toBe('01:00:00:00')
 
     expect(child_process.execFile).toHaveBeenCalledWith(
       'ffprobe',

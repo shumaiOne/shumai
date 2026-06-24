@@ -57,6 +57,7 @@ interface ChatInputProps {
   frameRate?: number
   onTyping?: () => void
   timeMode?: 'standard' | 'frames' | 'timecode'
+  startTimecode?: string
 }
 
 const PREDEFINED_COLORS = [
@@ -88,6 +89,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
       frameRate,
       onTyping,
       timeMode = 'standard',
+      startTimecode,
     },
     ref,
   ) => {
@@ -654,6 +656,11 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
                 }
                 if (timeMode === 'timecode') {
                   try {
+                    if (startTimecode) {
+                      return new Timecode(startTimecode, frameRate)
+                        .add(Math.round(currentTime * frameRate))
+                        .toString()
+                    }
                     return new Timecode(currentTime * frameRate, frameRate).toString()
                   } catch (e) {
                     console.error('Failed to create Timecode for message-input:', e)

@@ -88,6 +88,7 @@ describe('Transcode Activities', () => {
       audioSampleRate: 48000,
       audioBitDepth: 16,
       mimeType: 'video/mp4',
+      startTimecode: '01:00:00:00',
     })
 
     const result = await getMediaInfoActivity({
@@ -104,6 +105,7 @@ describe('Transcode Activities', () => {
     expect(result.metadata?.audioChannels).toBe(2)
     expect(result.metadata?.audioSampleRate).toBe(48000)
     expect(result.metadata?.audioBitDepth).toBe(16)
+    expect(result.metadata?.startTimecode).toBe('01:00:00:00')
     expect(metadataService.updateAssetMetadata).toHaveBeenCalledWith(
       asset.id,
       expect.arrayContaining([{ key: 'file_type', value: 'video' }]),

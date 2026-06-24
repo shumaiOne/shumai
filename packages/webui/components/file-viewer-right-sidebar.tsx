@@ -253,8 +253,13 @@ export function FileViewerRightSidebar({
     let timecode: string | undefined = undefined
     if (second !== null && second !== undefined && file?.media?.metadata?.frameRate) {
       const fps = file.media.metadata.frameRate
+      const startTc = file?.media?.metadata?.startTimecode
       try {
-        timecode = new Timecode(second * fps, fps).toString()
+        if (startTc) {
+          timecode = new Timecode(startTc, fps).add(Math.round(second * fps)).toString()
+        } else {
+          timecode = new Timecode(second * fps, fps).toString()
+        }
       } catch (e) {
         console.error('Failed to create Timecode in handleSendMessage:', e)
       }
@@ -390,6 +395,7 @@ export function FileViewerRightSidebar({
                       onCommentSelect?.(comment)
                     }}
                     timeMode={timeMode}
+                    startTimecode={file?.media?.metadata?.startTimecode}
                   />
                   {comment.replies?.map((reply, index) => (
                     <div key={reply.id}>
@@ -412,6 +418,7 @@ export function FileViewerRightSidebar({
                           onCommentSelect?.(reply)
                         }}
                         timeMode={timeMode}
+                        startTimecode={file?.media?.metadata?.startTimecode}
                       />
                     </div>
                   ))}
@@ -443,6 +450,7 @@ export function FileViewerRightSidebar({
                   }
                   onTyping={onTyping}
                   timeMode={timeMode}
+                  startTimecode={file?.media?.metadata?.startTimecode}
                 />
               </GuestIdentityPopup>
             </div>

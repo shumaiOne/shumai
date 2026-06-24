@@ -25,6 +25,7 @@ export interface MediaMetadata {
   audioSampleRate?: number
   audioBitDepth?: number
   mimeType: string
+  startTimecode?: string
 }
 
 export interface TranscodeVideoParams {
@@ -93,6 +94,8 @@ export class TranscodeService {
     const frameRateParts = videoStream.r_frame_rate.split('/')
     const frameRate = parseFloat(frameRateParts[0]) / parseFloat(frameRateParts[1])
 
+    const startTimecode = info.format?.tags?.timecode ?? videoStream?.tags?.timecode
+
     return {
       originalWidth: videoStream.width,
       originalHeight: videoStream.height,
@@ -108,6 +111,7 @@ export class TranscodeService {
         this.safeParseInt(audioStream?.bits_per_raw_sample) ??
         this.safeParseInt(audioStream?.bits_per_sample),
       mimeType: '',
+      startTimecode,
     }
   }
 

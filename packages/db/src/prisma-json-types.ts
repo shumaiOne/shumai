@@ -112,6 +112,7 @@ declare global {
       audioSampleRate?: number
       audioBitDepth?: number
       format: unknown
+      startTimecode?: string
     }
 
     export interface OriginalInfo {

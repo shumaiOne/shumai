@@ -28,9 +28,12 @@ import ProgressBar from './progress-bar'
 import { formatFrame, formatTime } from './utils'
 import { Timecode } from '@shumai/timecode'
 
-const formatTimecode = (seconds: number, fps: number): string => {
+const formatTimecode = (seconds: number, fps: number, startTimecode?: string): string => {
   if (isNaN(seconds)) return '00:00:00:00'
   try {
+    if (startTimecode) {
+      return new Timecode(startTimecode, fps).add(Math.round(seconds * fps)).toString()
+    }
     return new Timecode(seconds * fps, fps).toString()
   } catch {
     return '00:00:00:00'
@@ -206,7 +209,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
               </>
             )}
             {state.timeMode === 'timecode' &&
-              `${formatTimecode(state.currentTime, data.media.metadata.frameRate ?? 30)} / ${formatTimecode(state.duration, data.media.metadata.frameRate ?? 30)}`}
+              `${formatTimecode(state.currentTime, data.media.metadata.frameRate ?? 30, data.media.metadata.startTimecode)} / ${formatTimecode(state.duration, data.media.metadata.frameRate ?? 30, data.media.metadata.startTimecode)}`}
           </div>
         </div>
 

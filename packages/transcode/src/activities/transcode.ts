@@ -98,6 +98,7 @@ export async function getMediaInfoActivity(params: {
         audioSampleRate: info.audioSampleRate,
         audioBitDepth: info.audioBitDepth,
         format: {},
+        startTimecode: info.startTimecode,
       }
       metadataUpdates.push(
         { key: 'resolution_width', value: info.originalWidth },
