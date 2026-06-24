@@ -99,7 +99,9 @@ export class TranscodeService {
     return {
       originalWidth: videoStream.width,
       originalHeight: videoStream.height,
-      duration: parseFloat(info.format.duration),
+      duration: videoStream.duration
+        ? parseFloat(videoStream.duration)
+        : parseFloat(info.format.duration),
       bitRate: parseFloat(info.format.bit_rate),
       frameRate,
       hasAudio: !!audioStream,

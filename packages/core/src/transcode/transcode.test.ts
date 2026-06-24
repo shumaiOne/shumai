@@ -49,6 +49,7 @@ describe('TranscodeService', () => {
           width: 1920,
           height: 1080,
           r_frame_rate: '30/1',
+          duration: '10.5',
           tags: {
             mime_codec_string: 'avc1.4d401e',
           },
