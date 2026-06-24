@@ -152,6 +152,29 @@ export class TranscodeService {
       args.push('-map', '0:a?')
     }
 
+    let fps: number
+    if (params.frameRate) {
+      if (typeof params.frameRate === 'number') {
+        fps = params.frameRate
+      } else {
+        const parts = params.frameRate.split('/')
+        if (parts.length === 2) {
+          fps = parseFloat(parts[0]) / parseFloat(parts[1])
+        } else {
+          fps = parseFloat(params.frameRate)
+        }
+      }
+    } else {
+      try {
+        const info = await this.getVideoInfo(params.inputFile)
+        fps = info.frameRate || 30
+      } catch {
+        fps = 30
+      }
+    }
+
+    const gop = Math.round(fps) || 30
+
     args.push(
       '-c:v',
       'libx264',
@@ -160,9 +183,9 @@ export class TranscodeService {
       '-crf',
       '23',
       '-g',
-      '30',
+      gop.toString(),
       '-keyint_min',
-      '30',
+      gop.toString(),
       '-sc_threshold',
       '0',
     )
@@ -171,7 +194,7 @@ export class TranscodeService {
       args.push('-c:a', 'aac', '-b:a', '128k')
     }
 
-    args.push('-vsync', 'cfr')
+    args.push('-fps_mode', 'cfr')
     args.push('-movflags', '+faststart', '-max_muxing_queue_size', '1024', params.outputFile)
 
     await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
