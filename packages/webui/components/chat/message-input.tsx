@@ -27,7 +27,8 @@ import { Button } from '../ui/button'
 import { DrawAnnotation } from '../ui/icons'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { ProgressCircle } from '../ui/progress-circle'
-import { formatTimestamp } from '../viewers/utils'
+import { formatTime, formatTimestamp, formatFrame } from '../viewers/utils'
+import { Timecode } from '@shumai/timecode'
 
 type UploadingFile = {
   id: string // A unique ID for the file, e.g., timestamp + name
@@ -55,6 +56,7 @@ interface ChatInputProps {
   currentTime?: number
   frameRate?: number
   onTyping?: () => void
+  timeMode?: 'standard' | 'frames' | 'timecode'
 }
 
 const PREDEFINED_COLORS = [
@@ -85,6 +87,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
       currentTime,
       frameRate,
       onTyping,
+      timeMode = 'standard',
     },
     ref,
   ) => {
@@ -645,7 +648,20 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
               }}
               className="float-left select-none bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-2.5 py-0.5 mt-3 mr-2 rounded-sm text-xs font-mono font-bold flex items-center gap-1 cursor-text"
             >
-              {formatTimestamp(currentTime, frameRate)}
+              {(() => {
+                if (timeMode === 'frames') {
+                  return `${formatFrame(currentTime, frameRate)} fr`
+                }
+                if (timeMode === 'timecode') {
+                  try {
+                    return new Timecode(currentTime * frameRate, frameRate).toString()
+                  } catch (e) {
+                    console.error('Failed to create Timecode for message-input:', e)
+                    return formatTimestamp(currentTime, frameRate)
+                  }
+                }
+                return formatTime(currentTime)
+              })()}
             </div>
           )}
           <div

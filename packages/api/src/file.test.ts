@@ -178,6 +178,7 @@ describe('file api', () => {
       message: 'hello',
       annotations: null,
       second: null,
+      timecode: null,
       creator: { id: 'user-id', name: 'Test User' },
       replies: [],
       attachments: [],
@@ -197,12 +198,28 @@ describe('file api', () => {
     const res = await app.request('/files/test-id/comments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: 'hello', attachmentIds: [] }),
+      body: JSON.stringify({
+        message: 'hello',
+        attachmentIds: [],
+        second: 5.5,
+        timecode: '00:00:05:15',
+      }),
     })
 
     expect(res.status).toBe(201)
     const json = await res.json()
     expect(json.message).toBe('hello')
+
+    expect(assetService.createComment).toHaveBeenCalledWith({
+      assetId: 'test-id',
+      userId: 'user1',
+      message: 'hello',
+      attachmentIds: [],
+      replyToId: undefined,
+      annotations: undefined,
+      second: 5.5,
+      timecode: '00:00:05:15',
+    })
 
     expect(authzService.hasPermission).toHaveBeenCalledWith({
       user: { id: 'user1', name: 'Test User' },
@@ -227,6 +244,7 @@ describe('file api', () => {
       message: 'hello reply',
       annotations: null,
       second: null,
+      timecode: null,
       creator: { id: 'user-id', name: 'Test User' },
       replies: [],
       attachments: [],
@@ -283,6 +301,7 @@ describe('file api', () => {
           message: 'hello',
           annotations: null,
           second: null,
+          timecode: null,
           creator: { id: 'user-id', name: 'Test User' },
           replies: [],
           attachments: [],

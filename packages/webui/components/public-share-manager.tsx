@@ -128,6 +128,7 @@ export function PublicShareManager({
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [currentTime, setCurrentTime] = useState(0)
   const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null)
+  const [timeMode, setTimeMode] = useState<'standard' | 'frames' | 'timecode'>('standard')
 
   const {
     data: foldersData,
@@ -457,6 +458,8 @@ export function PublicShareManager({
                 onTimeUpdate={setCurrentTime}
                 annotations={annotations}
                 startTime={startTime}
+                timeMode={timeMode}
+                onTimeModeChange={setTimeMode}
               />
             )}
           </div>
@@ -516,6 +519,7 @@ export function PublicShareManager({
                 isPublic={true}
                 shareId={shareId}
                 currentTime={currentTime}
+                timeMode={timeMode}
                 onTyping={() => {
                   if (videoRef.current) {
                     videoRef.current.pause()

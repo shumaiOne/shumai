@@ -154,6 +154,7 @@ const route = new Hono<{ Variables: { user: User } }>()
         message: req.message,
         annotations: req.annotations,
         second: req.second,
+        timecode: req.timecode,
         attachmentIds: req.attachmentIds,
       })
 

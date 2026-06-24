@@ -17,7 +17,8 @@ import Markdown from 'react-markdown'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { DrawAnnotation } from '../ui/icons'
 import { Skeleton } from '../ui/skeleton'
-import { formatTimestamp } from '../viewers/utils'
+import { formatTime, formatTimestamp, formatFrame } from '../viewers/utils'
+import { Timecode } from '@shumai/timecode'
 
 interface MessageCardProps {
   teamId?: string
@@ -32,6 +33,7 @@ interface MessageCardProps {
   onSelect?: () => void
   frameRate?: number
   rootParentId?: string
+  timeMode?: 'standard' | 'frames' | 'timecode'
 }
 
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -54,6 +56,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   isSelected,
   onSelect,
   frameRate,
+  timeMode = 'standard',
 }) => {
   const message = initialMessage
   const hasDrawInfo =
@@ -170,7 +173,21 @@ export const MessageCard: React.FC<MessageCardProps> = ({
         <div className="flow-root mt-1">
           {message.second !== null && message.second !== undefined && frameRate && (
             <div className="float-left select-none bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-2.5 py-1 mt-[2px] mr-2 rounded-sm text-xs leading-none font-mono font-bold flex items-center gap-1">
-              {formatTimestamp(message.second, frameRate)}
+              {(() => {
+                if (timeMode === 'frames') {
+                  return `${formatFrame(message.second, frameRate)} fr`
+                }
+                if (timeMode === 'timecode') {
+                  if (message.timecode) return message.timecode
+                  try {
+                    return new Timecode(message.second * frameRate, frameRate).toString()
+                  } catch (e) {
+                    console.error('Failed to create Timecode for message:', e)
+                    return formatTimestamp(message.second, frameRate)
+                  }
+                }
+                return formatTime(message.second)
+              })()}
             </div>
           )}
 

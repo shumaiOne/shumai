@@ -83,6 +83,7 @@
     "date-fns": "4.4.0",
     "hono": "4.12.23",
     "@shumai/dtos": "workspace:*",
+    "@shumai/timecode": "workspace:*",
     "ulid": "3.0.2"
   },
   "devDependencies": {

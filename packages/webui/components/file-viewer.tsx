@@ -19,6 +19,8 @@ type FileViewerProps = {
   onTimeUpdate?: (time: number) => void
   annotations?: Annotation[]
   startTime?: number
+  timeMode?: 'standard' | 'frames' | 'timecode'
+  onTimeModeChange?: (mode: 'standard' | 'frames' | 'timecode') => void
   children?: ReactNode
 }
 
@@ -30,6 +32,8 @@ export function FileViewer({
   onTimeUpdate,
   annotations,
   startTime,
+  timeMode,
+  onTimeModeChange,
   children,
 }: FileViewerProps) {
   const { width: screenWidth } = useScreenSize()
@@ -311,6 +315,8 @@ export function FileViewer({
           onTimeUpdate={onTimeUpdate}
           annotations={displayAnnotations}
           startTime={startTime}
+          timeMode={timeMode}
+          onTimeModeChange={onTimeModeChange}
         >
           {children}
         </VideoPlayer>

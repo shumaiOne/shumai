@@ -743,6 +743,32 @@ describe('AssetService', () => {
     expect(list.data[0].second).toBe(5.5)
   })
 
+  it('can create and retrieve comments with video timecode', async () => {
+    const { user, assets } = await setupBasicAssets()
+
+    const comment = await assetService.createComment({
+      assetId: assets.fileA1.id,
+      userId: user.id,
+      message: 'Interesting point with SMPTE timecode',
+      second: 5.5,
+      timecode: '00:00:05:15',
+      attachmentIds: [],
+    })
+
+    expect(comment.second).toBe(5.5)
+    expect(comment.timecode).toBe('00:00:05:15')
+
+    const retrieved = await assetService.getComment(comment.id)
+    expect(retrieved.second).toBe(5.5)
+    expect(retrieved.timecode).toBe('00:00:05:15')
+
+    const list = await assetService.listComments(assets.fileA1.id, {
+      first: 10,
+    })
+    expect(list.data[0].second).toBe(5.5)
+    expect(list.data[0].timecode).toBe('00:00:05:15')
+  })
+
   it('correctly handles AI comments with agent identity', async () => {
     const { assets, project } = await setupBasicAssets()
 

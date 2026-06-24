@@ -15,6 +15,7 @@ import { ChatInput } from './chat/message-input'
 import FieldRenderer from './field-renderer'
 import { GuestIdentityPopup } from './guest-identity-popup'
 import { ScrollArea } from './ui/scroll-area'
+import { Timecode } from '@shumai/timecode'
 
 interface FileViewerRightSidebarProps {
   teamId: string
@@ -31,6 +32,7 @@ interface FileViewerRightSidebarProps {
   currentTime?: number
   onTyping?: () => void
   selectedCommentId?: string | null
+  timeMode?: 'standard' | 'frames' | 'timecode'
 }
 
 export function FileViewerRightSidebar({
@@ -48,6 +50,7 @@ export function FileViewerRightSidebar({
   currentTime,
   onTyping,
   selectedCommentId,
+  timeMode = 'standard',
 }: FileViewerRightSidebarProps) {
   const { canEdit } = usePermissions(projectId)
   const { fields, setFields } = useFieldStore()
@@ -62,6 +65,7 @@ export function FileViewerRightSidebar({
     annotations?: Annotation[]
     replyToId?: string | null
     second?: number | null
+    timecode?: string | null
   } | null>(null)
 
   const { data: apiFields } = useQuery({
@@ -149,6 +153,7 @@ export function FileViewerRightSidebar({
       replyToId,
       guestUserId,
       second,
+      timecode,
     }: {
       text: string
       attachmentIds: string[]
@@ -156,6 +161,7 @@ export function FileViewerRightSidebar({
       replyToId?: string | null
       guestUserId?: string
       second?: number | null
+      timecode?: string | null
     }) => {
       if (isPublic) {
         const password = localStorage.getItem(`share_pwd_${shareId}`) || ''
@@ -168,6 +174,7 @@ export function FileViewerRightSidebar({
               replyToId: replyToId ?? undefined,
               annotations: annotations,
               second: second ?? undefined,
+              timecode: timecode ?? undefined,
             },
           },
           {
@@ -188,6 +195,7 @@ export function FileViewerRightSidebar({
             replyToId: replyToId ?? undefined,
             annotations: annotations,
             second: second ?? undefined,
+            timecode: timecode ?? undefined,
           },
         })
         if (!res.ok) throw new Error('Failed to create comment')
@@ -242,6 +250,16 @@ export function FileViewerRightSidebar({
   ) => {
     if (!file?.id) return
 
+    let timecode: string | undefined = undefined
+    if (second !== null && second !== undefined && file?.media?.metadata?.frameRate) {
+      const fps = file.media.metadata.frameRate
+      try {
+        timecode = new Timecode(second * fps, fps).toString()
+      } catch (e) {
+        console.error('Failed to create Timecode in handleSendMessage:', e)
+      }
+    }
+
     if (isPublic) {
       // Check if logged in
       console.log('[handleSendMessage] checking auth status')
@@ -254,16 +272,24 @@ export function FileViewerRightSidebar({
         console.log('[handleSendMessage] guestUserId from storage:', guestUserId)
         if (!guestUserId) {
           console.log('[handleSendMessage] no guest ID, opening popup')
-          setPendingComment({ text, attachmentIds, annotations, replyToId, second })
+          setPendingComment({ text, attachmentIds, annotations, replyToId, second, timecode })
           setIsGuestPopupOpen(true)
           return
         }
-        createComment({ text, attachmentIds, annotations, replyToId, guestUserId, second })
+        createComment({
+          text,
+          attachmentIds,
+          annotations,
+          replyToId,
+          guestUserId,
+          second,
+          timecode,
+        })
       } else {
-        createComment({ text, attachmentIds, annotations, replyToId, second })
+        createComment({ text, attachmentIds, annotations, replyToId, second, timecode })
       }
     } else {
-      createComment({ text, attachmentIds, annotations, replyToId, second })
+      createComment({ text, attachmentIds, annotations, replyToId, second, timecode })
     }
     setReplyingTo(null)
   }
@@ -363,6 +389,7 @@ export function FileViewerRightSidebar({
                     onSelect={() => {
                       onCommentSelect?.(comment)
                     }}
+                    timeMode={timeMode}
                   />
                   {comment.replies?.map((reply, index) => (
                     <div key={reply.id}>
@@ -384,6 +411,7 @@ export function FileViewerRightSidebar({
                         onSelect={() => {
                           onCommentSelect?.(reply)
                         }}
+                        timeMode={timeMode}
                       />
                     </div>
                   ))}
@@ -414,6 +442,7 @@ export function FileViewerRightSidebar({
                       : undefined
                   }
                   onTyping={onTyping}
+                  timeMode={timeMode}
                 />
               </GuestIdentityPopup>
             </div>

@@ -219,6 +219,7 @@ const route = app
           message: req.message,
           annotations: req.annotations,
           second: req.second,
+          timecode: req.timecode,
           attachmentIds: req.attachmentIds,
         })
 

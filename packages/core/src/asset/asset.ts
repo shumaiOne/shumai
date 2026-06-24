@@ -1282,6 +1282,7 @@ export class AssetService {
           message: req.message,
           annotation: req.annotations,
           second: req.second,
+          timecode: req.timecode,
           replyToId: actualReplyToId,
         },
       })
@@ -1961,6 +1962,7 @@ export class AssetService {
       message: c.message,
       annotations: c.annotation,
       second: c.second,
+      timecode: c.timecode,
       creator,
       replies,
       attachments,

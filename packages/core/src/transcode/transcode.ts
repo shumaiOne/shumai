@@ -146,12 +146,26 @@ export class TranscodeService {
       args.push('-map', '0:a?')
     }
 
-    args.push('-c:v', 'libx264', '-preset', 'fast', '-crf', '23')
+    args.push(
+      '-c:v',
+      'libx264',
+      '-preset',
+      'fast',
+      '-crf',
+      '23',
+      '-g',
+      '30',
+      '-keyint_min',
+      '30',
+      '-sc_threshold',
+      '0',
+    )
 
     if (!params.disableAudio) {
       args.push('-c:a', 'aac', '-b:a', '128k')
     }
 
+    args.push('-vsync', 'cfr')
     args.push('-movflags', '+faststart', '-max_muxing_queue_size', '1024', params.outputFile)
 
     await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])

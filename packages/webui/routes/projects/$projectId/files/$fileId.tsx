@@ -31,6 +31,7 @@ function FileViewPage() {
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [currentTime, setCurrentTime] = useState(0)
   const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null)
+  const [timeMode, setTimeMode] = useState<'standard' | 'frames' | 'timecode'>('standard')
   const [carouselState, setCarouselState] = useState<{
     show: boolean
     files: AssetInfo[]
@@ -330,6 +331,8 @@ function FileViewPage() {
             onTimeUpdate={setCurrentTime}
             annotations={annotations}
             startTime={startTime}
+            timeMode={timeMode}
+            onTimeModeChange={setTimeMode}
           >
             {carouselState.show && (
               <FileViewerLeftSidebar
@@ -357,6 +360,7 @@ function FileViewPage() {
             members={members}
             onCommentSelect={handleCommentSelect}
             currentTime={currentTime}
+            timeMode={timeMode}
             onTyping={() => {
               if (videoRef.current) {
                 videoRef.current.pause()

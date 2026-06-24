@@ -26,6 +26,16 @@ import {
 import { Slider } from '../ui/slider'
 import ProgressBar from './progress-bar'
 import { formatFrame, formatTime } from './utils'
+import { Timecode } from '@shumai/timecode'
+
+const formatTimecode = (seconds: number, fps: number): string => {
+  if (isNaN(seconds)) return '00:00:00:00'
+  try {
+    return new Timecode(seconds * fps, fps).toString()
+  } catch {
+    return '00:00:00:00'
+  }
+}
 
 import type { Annotation } from '@/ui/types'
 import DrawingCanvas from '../drawing-canvas'
@@ -41,7 +51,7 @@ export interface PlayerState {
   isLooping: boolean
   playbackRate: number
   isFullScreen: boolean
-  showFrames: boolean // Toggle between time (02:30) and frames (1234)
+  timeMode: 'standard' | 'frames' | 'timecode'
   currentResolution: string // 'Original' or '720p', '480p' etc.
   currentSrc?: string
 }
@@ -54,6 +64,8 @@ interface VideoPlayerProps {
   onTimeUpdate?: (time: number) => void
   annotations?: Annotation[]
   startTime?: number
+  timeMode?: 'standard' | 'frames' | 'timecode'
+  onTimeModeChange?: (mode: 'standard' | 'frames' | 'timecode') => void
   children?: React.ReactNode
 }
 
@@ -71,12 +83,12 @@ interface ControlBarProps {
   handleSeek: (time: number) => void
   toggleMute: () => void
   handleVolumeChange: (newVolume: number) => void
-  setState: React.Dispatch<React.SetStateAction<PlayerState>>
   changePlaybackRate: (rate: number) => void
   changeResolution: (res: DisplayTranscode) => void
   handleDownload: (url: string, resolution: string) => void
   toggleFullScreen: () => void
   onZoomChange: (zoom: number) => void
+  toggleTimeMode: () => void
 }
 
 const ControlBar: React.FC<ControlBarProps> = ({
@@ -91,12 +103,12 @@ const ControlBar: React.FC<ControlBarProps> = ({
   handleSeek,
   toggleMute,
   handleVolumeChange,
-  setState,
   changePlaybackRate,
   changeResolution,
   handleDownload,
   toggleFullScreen,
   onZoomChange,
+  toggleTimeMode,
 }) => {
   if (!data.media?.metadata) {
     return null
@@ -181,16 +193,20 @@ const ControlBar: React.FC<ControlBarProps> = ({
           </div>
 
           <div
-            className="min-w-[100px] cursor-pointer text-sm font-medium tabular-nums hover:text-primary"
-            onClick={() => setState((p) => ({ ...p, showFrames: !p.showFrames }))}
-            title="Click to toggle Time/Frames"
+            className="min-w-[120px] cursor-pointer text-sm font-medium tabular-nums hover:text-primary select-none"
+            onClick={toggleTimeMode}
+            title="Click to toggle Time/Frames/Timecode"
           >
-            {state.showFrames
-              ? `${formatFrame(state.currentTime, data.media.metadata.frameRate ?? 30)} / ${formatFrame(state.duration, data.media.metadata.frameRate ?? 30)}`
-              : `${formatTime(state.currentTime)} / ${formatTime(state.duration)}`}
-            <span className="ml-1 text-xs text-muted-foreground">
-              {state.showFrames ? 'fr' : ''}
-            </span>
+            {state.timeMode === 'standard' &&
+              `${formatTime(state.currentTime)} / ${formatTime(state.duration)}`}
+            {state.timeMode === 'frames' && (
+              <>
+                {`${formatFrame(state.currentTime, data.media.metadata.frameRate ?? 30)} / ${formatFrame(state.duration, data.media.metadata.frameRate ?? 30)}`}
+                <span className="ml-1 text-xs text-muted-foreground">fr</span>
+              </>
+            )}
+            {state.timeMode === 'timecode' &&
+              `${formatTimecode(state.currentTime, data.media.metadata.frameRate ?? 30)} / ${formatTimecode(state.duration, data.media.metadata.frameRate ?? 30)}`}
           </div>
         </div>
 
@@ -313,6 +329,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   onTimeUpdate,
   annotations,
   startTime,
+  timeMode,
+  onTimeModeChange,
   children,
 }) => {
   const localPlayerRef = useRef<Player | null>(null)
@@ -439,10 +457,25 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     isLooping: false,
     playbackRate: 1,
     isFullScreen: false,
-    showFrames: false,
+    timeMode: timeMode || 'standard',
     currentResolution: initialRes.resolution,
     currentSrc: initialRes.url,
   })
+
+  // Sync timeMode prop to player state
+  useEffect(() => {
+    if (timeMode) {
+      setState((prev) => ({ ...prev, timeMode }))
+    }
+  }, [timeMode])
+
+  const toggleTimeMode = useCallback(() => {
+    const modes: ('standard' | 'frames' | 'timecode')[] = ['standard', 'frames', 'timecode']
+    const currentIndex = modes.indexOf(state.timeMode)
+    const nextMode = modes[(currentIndex + 1) % modes.length]
+    setState((prev) => ({ ...prev, timeMode: nextMode }))
+    onTimeModeChange?.(nextMode)
+  }, [state.timeMode, onTimeModeChange])
 
   const [buffered, setBuffered] = useState(0)
   const [isControlsVisible, setIsControlsVisible] = useState(true)
@@ -882,12 +915,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         handleSeek={handleSeek}
         toggleMute={toggleMute}
         handleVolumeChange={handleVolumeChange}
-        setState={setState}
         changePlaybackRate={changePlaybackRate}
         changeResolution={changeResolution}
         handleDownload={handleDownload}
         toggleFullScreen={toggleFullScreen}
         onZoomChange={setZoom}
+        toggleTimeMode={toggleTimeMode}
       />
     </div>
   )

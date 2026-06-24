@@ -175,6 +175,7 @@ export const createCommentRequestSchema = z.object({
 
   annotations: z.any().optional(),
   second: z.number().optional(),
+  timecode: z.string().optional(),
   attachmentIds: z.array(z.string()),
 })
 export type CreateCommentRequest = z.infer<typeof createCommentRequestSchema>
@@ -194,6 +195,7 @@ export type CommentInfo = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   annotations: any
   second: number | null
+  timecode: string | null
   creator: AssetUserInfo
   replies: CommentInfo[]
   attachments: AttachmentInfo[]
@@ -210,6 +212,7 @@ export const commentInfoSchema: z.ZodType<CommentInfo> = z.object({
 
   annotations: z.any(),
   second: z.number().nullable(),
+  timecode: z.string().nullable(),
   creator: assetUserInfoSchema,
   replies: z.array(z.lazy(() => commentInfoSchema)),
   attachments: z.array(attachmentInfoSchema),

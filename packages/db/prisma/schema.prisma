@@ -460,6 +460,7 @@ model AssetComment {
   /// [AnnotationList]
   annotation  Json?
   second      Float?
+  timecode    String?
   sessionId   String?       @map("session_id")
   session     AgentSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
   createdAt   DateTime @default(now()) @map("created_at")
