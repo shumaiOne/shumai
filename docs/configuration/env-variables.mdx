@@ -48,6 +48,18 @@ Shumai supports storing files locally or on S3-compatible endpoints.
 | `S3_USE_SSL`               | Set to `true` to use HTTPS for S3 endpoints.                                                                                                            | `false` (default)                                                         |
 | `PRESIGNED_URL_EXPIRES_IN` | Number of hours for which generated presigned download/upload links are valid.                                                                          | `5` (default)                                                             |
 
+### Local Storage Port Configuration
+
+When `STORAGE_BACKEND` is set to `local` (default):
+
+- `SHUMAI_SERVER_PORT` configures the port on which the Shumai web server starts and listens.
+- `AWS_ENDPOINT_URL_S3` configures the public/external endpoint used by client browsers to upload and download files. It must include the scheme and port.
+
+For example, if you deploy Shumai on a remote server at `http://123.456.7.8` and configure port mapping `12345:3000` (exposing port 3000 internally as port 12345 externally) in Docker Compose:
+
+- Set `SHUMAI_SERVER_PORT` to `3000`.
+- Set `AWS_ENDPOINT_URL_S3` to `http://123.456.7.8:12345`.
+
 ---
 
 ## Workflow Config

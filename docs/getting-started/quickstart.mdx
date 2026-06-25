@@ -61,16 +61,23 @@ To handle media processing and security isolation, the host machine must have th
     ```
 3.  **Configure Environment Variables**:
     Create a new directory, navigate into it, and create a `.env` file:
+
     ```bash
     mkdir shumai && cd shumai
     ```
+
     Create a `.env` file with the following variables:
+
     ```env
     DATABASE_URL=postgresql://shumai:shumai_password@localhost:5432/shumai_db?schema=public
     BETTER_AUTH_SECRET=your-random-32-character-secret-key
     STORAGE_BACKEND=local
     AWS_ENDPOINT_URL_S3=http://localhost:3000
     ```
+
+    > [!TIP]
+    > `AWS_ENDPOINT_URL_S3` must include the scheme and port (e.g. `http://localhost:3000`) where Shumai is publicly accessible. This URL is used directly by client browsers for file uploads.
+
 4.  **Start Shumai**:
 
     > [!IMPORTANT]
