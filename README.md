@@ -60,7 +60,7 @@ Docker Compose is the fastest way to get Shumai running. You do not need to clon
       S3_ACCESS_KEY_ID: ID
       S3_SECRET_ACCESS_KEY: KEY
       ```
-   * If you use local storage and expose Shumai on a custom host/port combination, set `AWS_ENDPOINT_URL_S3` to the external URL that browsers will use to upload files.
+   * By default, `AWS_ENDPOINT_URL_S3` is set to: `http://localhost:{SHUMAI_SERVER_PORT}`, if you use local storage and expose Shumai on a custom host/port combination, set `AWS_ENDPOINT_URL_S3` to the external URL that browsers will use to upload files.
 
      For example, if you change the port mapping in `docker-compose.yaml` from `3000:3000` to `12345:3000` and deploy on a server with IP address `12.34.56.78`, set:
 
