@@ -50,7 +50,7 @@ Docker Compose is the fastest way to get Shumai running. You do not need to clon
    curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose.yaml
    ```
 3. **Configure Environment Variables (Remote Deployments only):**
-   If deploying Shumai to a remote server (e.g., AWS EC2, VPS), edit docker-compose.yaml and add AWS_ENDPOINT_URL_S3 under the environment section, setting it to your server's public IP address or domain name (e.g., http://12.34.56.78).
+   If deploying Shumai to a remote server (e.g., AWS EC2, VPS), edit docker-compose.yaml and set `AWS_ENDPOINT_URL_S3` under the environment section to your server's public IP address or domain name along with the mapped port (e.g., `http://12.34.56.78:3000`).
 4. Start the services in detached mode:
    ```bash
    docker compose up -d
@@ -126,11 +126,12 @@ DATABASE_URL=postgresql://shumai:shumai_password@localhost:5432/shumai_db?schema
 BETTER_AUTH_SECRET=ySxs7DxzHDZBbeeHNPEwBuspYwipBqz5Gk5XdBjNhWw=
 STORAGE_BACKEND=local
 SHUMAI_SERVER_PORT=3000
-AWS_ENDPOINT_URL_S3=http://localhost
+AWS_ENDPOINT_URL_S3=http://localhost:3000
 ```
 
 > [!NOTE]
-> If deploying on a remote server, update `AWS_ENDPOINT_URL_S3` from `http://localhost` to your server's public IP address or domain name.
+> `SHUMAI_SERVER_PORT` sets the port the server starts on, while `AWS_ENDPOINT_URL_S3` is used by the browser to build file upload URLs.
+> If deploying on a remote server (e.g. `http://123.456.7.8`) with a mapped port (e.g. `12345:3000` in docker-compose), set `AWS_ENDPOINT_URL_S3` to `http://123.456.7.8:12345`.
 
 #### Step 6: Run Shumai
 
