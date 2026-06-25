@@ -64,8 +64,8 @@ Docker Compose is the fastest way to get Shumai running. You do not need to clon
 
      For example, if you change the port mapping in `docker-compose.yaml` from `3000:3000` to `12345:3000` and deploy on a server with IP address `12.34.56.78`, set:
 
-     ```bash
-     AWS_ENDPOINT_URL_S3=http://12.34.56.78:12345
+     ```
+     AWS_ENDPOINT_URL_S3: http://12.34.56.78:12345
      ```
 
      This value must be reachable from client browsers and should include the externally exposed port.
