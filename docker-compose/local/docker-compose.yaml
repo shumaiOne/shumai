@@ -27,6 +27,9 @@ services:
       # Database Configuration
       DATABASE_URL: postgres://shumai:shumai_password@shumai_postgres:5432/shumai_db?search_path=public&sslmode=disable
 
+      # Server Configuration
+      SHUMAI_SERVER_PORT: 3000
+
       # S3 Configuration
       STORAGE_BACKEND: local
       AWS_ENDPOINT_URL_S3: http://localhost:3000

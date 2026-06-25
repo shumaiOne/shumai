@@ -49,8 +49,10 @@ Docker Compose is the fastest way to get Shumai running. You do not need to clon
    ```bash
    curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose.yaml
    ```
-3. **Configure Environment Variables (Remote Deployments only):**
-   If deploying Shumai to a remote server (e.g., AWS EC2, VPS), edit docker-compose.yaml and set `AWS_ENDPOINT_URL_S3` under the environment section to your server's public IP address or domain name along with the mapped port (e.g., `http://12.34.56.78:3000`).
+3. **Configure Environment Variables (Remote / Custom Port Deployments only):**
+   If exposing Shumai on a custom host/port combination (for example, if you change host port mapping to `12345:3000` in `docker-compose.yaml` and deploy on server `http://12.34.56.78`):
+   - Set `SHUMAI_SERVER_PORT: 3000` (the internal port the app starts on inside the container).
+   - Set `AWS_ENDPOINT_URL_S3: http://12.34.56.78:12345` (the external address including port used by client browsers to upload files).
 4. Start the services in detached mode:
    ```bash
    docker compose up -d
