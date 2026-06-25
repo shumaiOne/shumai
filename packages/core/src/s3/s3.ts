@@ -452,7 +452,7 @@ export class LocalStorageService implements S3Service {
 
 const storageBackend = process.env.STORAGE_BACKEND || 'local'
 const port = process.env.SHUMAI_SERVER_PORT || '3000'
-const s3Endpoint = process.env.AWS_ENDPOINT_URL_S3 || 'http://localhost'
+const s3Endpoint = process.env.AWS_ENDPOINT_URL_S3 || `http://localhost:${port}`
 
 export const s3Service: S3Service =
   storageBackend === 's3'
@@ -464,4 +464,4 @@ export const s3Service: S3Service =
         process.env.S3_USE_SSL === 'true',
         process.env.S3_REGION || 'auto',
       )
-    : new LocalStorageService(`${s3Endpoint}:${port}`)
+    : new LocalStorageService(s3Endpoint)
