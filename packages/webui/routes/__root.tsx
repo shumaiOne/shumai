@@ -127,9 +127,9 @@ interface MyRouterContext {
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     if (typeof window !== 'undefined') {
-      const pathname = window.location.pathname
+      const pathname = location.pathname
       const teamId = await resolveTeamIdFromPath(pathname)
 
       if (teamId) {
