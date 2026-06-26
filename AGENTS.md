@@ -444,7 +444,7 @@ bun run i18n:watch
 Import the compiled message namespace `m` and call it as a function:
 
 ```typescript
-import { m } from '@/ui/src/paraglide/messages.js'
+import { m } from '@/ui/paraglide/messages.js'
 
 export function MyComponent() {
   return (
@@ -455,4 +455,4 @@ export function MyComponent() {
 }
 ```
 
-Always use the absolute workspace alias path `@/ui/src/paraglide/messages.js` (or `runtime.js` for runtime features) when importing Paraglide outputs.
+Always use the absolute workspace alias path `@/ui/paraglide/messages.js` (or `runtime.js` for runtime features) when importing Paraglide outputs.

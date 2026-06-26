@@ -8,7 +8,7 @@ import {
 } from '@/ui/components/ui/dialog'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { m } from '@/ui/src/paraglide/messages.js'
+import { m } from '@/ui/paraglide/messages.js'
 
 export function TeamSelector() {
   const navigate = useNavigate()

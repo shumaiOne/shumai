@@ -6,7 +6,7 @@ import { client } from '@/ui/api/client'
 import { usePermissions } from '@/ui/hooks/use-permissions'
 import { useMutation } from '@tanstack/react-query'
 import { InferRequestType, InferResponseType } from 'hono/client'
-import { m } from '@/ui/src/paraglide/messages.js'
+import { m } from '@/ui/paraglide/messages.js'
 
 import { useFieldStore } from '@/ui/stores/fields'
 import { useMemberStore } from '@/ui/stores/members'

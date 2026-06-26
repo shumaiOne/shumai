@@ -4,7 +4,7 @@ import { client } from '@/ui/api/client'
 import { MembersDialog } from '@/ui/components/members-dialog'
 import { ProjectDialog } from '@/ui/components/project-dialog'
 import { SortDropdown } from '@/ui/components/sort-dropdown'
-import { m } from '@/ui/src/paraglide/messages.js'
+import { m } from '@/ui/paraglide/messages.js'
 import {
   AlertDialog,
   AlertDialogAction,

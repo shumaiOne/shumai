@@ -16,8 +16,8 @@ import {
   useRouterState,
 } from '@tanstack/react-router'
 import { useEffect } from 'react'
-import { getLocale, setLocale } from '@/ui/src/paraglide/runtime.js'
-import { m } from '@/ui/src/paraglide/messages.js'
+import { getLocale, setLocale } from '@/ui/paraglide/runtime.js'
+import { m } from '@/ui/paraglide/messages.js'
 import { useUserMetadataStore } from '@/ui/stores/user-metadata'
 
 async function resolveTeamIdFromPath(pathname: string): Promise<string | null> {

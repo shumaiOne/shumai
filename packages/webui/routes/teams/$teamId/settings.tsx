@@ -25,8 +25,8 @@ import {
   SelectValue,
 } from '@/ui/components/ui/select'
 import { useUserMetadataStore } from '@/ui/stores/user-metadata'
-import { getLocale, setLocale } from '@/ui/src/paraglide/runtime.js'
-import { m } from '@/ui/src/paraglide/messages.js'
+import { getLocale, setLocale } from '@/ui/paraglide/runtime.js'
+import { m } from '@/ui/paraglide/messages.js'
 
 type SettingsTab =
   | 'general'

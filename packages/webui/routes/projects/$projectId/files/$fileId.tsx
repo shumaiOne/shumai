@@ -1,7 +1,7 @@
 import { client } from '@/ui/api/client'
 import { FileViewer } from '@/ui/components/file-viewer'
 import { FileViewerLeftSidebar } from '@/ui/components/file-viewer-left-sidebar'
-import { m } from '@/ui/src/paraglide/messages.js'
+import { m } from '@/ui/paraglide/messages.js'
 import { FileViewerRightSidebar } from '@/ui/components/file-viewer-right-sidebar'
 import { ResizeHandle } from '@/ui/components/resize-handle'
 import { FileDetailSkeleton } from '@/ui/components/loading-skeletons'

@@ -158,9 +158,9 @@ const TREE_SHAKE_PREFERRED_LANGUAGE_STRATEGY_USED = false
 const TREE_SHAKE_DEFAULT_URL_PATTERN_USED = true
 const TREE_SHAKE_LOCAL_STORAGE_STRATEGY_USED = false
 
-/** @type {any} */ globalThis.__paraglide = /** @type {any} */ (globalThis).__paraglide ?? {}
-/** @type {any} */
-globalThis.__paraglide.ssr = /** @type {any} */ (globalThis).__paraglide.ssr ?? {}
+/** @type {any} */ ;(globalThis).__paraglide = /** @type {any} */ (globalThis).__paraglide ?? {}
+/** @type {any} */ ;(globalThis).__paraglide.ssr =
+  /** @type {any} */ (globalThis).__paraglide.ssr ?? {}
 
 /**
  * This is a fallback to get started with a custom

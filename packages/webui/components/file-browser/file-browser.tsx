@@ -1,7 +1,7 @@
 'use client'
 import { client } from '@/ui/api/client'
 import type { InferRequestType, InferResponseType } from 'hono/client'
-import { m } from '@/ui/src/paraglide/messages.js'
+import { m } from '@/ui/paraglide/messages.js'
 
 import { usePermissions } from '@/ui/hooks/use-permissions'
 import { getAllFilesFromEntries } from '@/ui/lib/dnd-utils'

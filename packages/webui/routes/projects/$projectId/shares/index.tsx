@@ -1,7 +1,7 @@
 import { client } from '@/ui/api/client'
 import { FolderTree } from '@/ui/components/folder-tree'
 import { ResizeHandle } from '@/ui/components/resize-handle'
-import { m } from '@/ui/src/paraglide/messages.js'
+import { m } from '@/ui/paraglide/messages.js'
 import { Switch } from '@/ui/components/ui/switch'
 import { Button } from '@/ui/components/ui/button'
 import {

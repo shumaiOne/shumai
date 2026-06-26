@@ -14,7 +14,7 @@ import { signUp } from '@/ui/lib/auth-client'
 import { useState } from 'react'
 import { ShumaiLogo } from '@/ui/components/ui/icons'
 import { AuthLayout } from '@/ui/components/auth-layout'
-import { m } from '@/ui/src/paraglide/messages.js'
+import { m } from '@/ui/paraglide/messages.js'
 
 const signupSchema = z.object({
   email: z.string().email('Invalid email address'),

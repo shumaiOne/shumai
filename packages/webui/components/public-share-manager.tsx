@@ -2,7 +2,7 @@
 
 import { client } from '@/ui/api/client'
 import { useTopNavStore } from '@/ui/stores/top-nav'
-import { m } from '@/ui/src/paraglide/messages.js'
+import { m } from '@/ui/paraglide/messages.js'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { TopNav } from './top-nav'

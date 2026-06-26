@@ -13,7 +13,7 @@ import { ArrowRight, Loader2, Lock, LogIn, Mail } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { m } from '@/ui/src/paraglide/messages.js'
+import { m } from '@/ui/paraglide/messages.js'
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),

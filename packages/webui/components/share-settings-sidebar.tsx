@@ -1,6 +1,6 @@
 import { ShareLinkInfo, UpdateShareLinkRequest } from '@shumai/dtos'
 import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
-import { m } from '@/ui/src/paraglide/messages.js'
+import { m } from '@/ui/paraglide/messages.js'
 import { client } from '@/ui/api/client'
 import { Button } from '@/ui/components/ui/button'
 import { Input } from '@/ui/components/ui/input'
