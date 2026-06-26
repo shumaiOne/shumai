@@ -415,8 +415,8 @@ All user-facing text in the WebUI (`packages/webui`) MUST be internationalized u
 
 ### Message Definition
 
-1. Define your English message strings in [packages/webui/messages/en.json](file:///Users/yiling/Projects/shumai/packages/webui/messages/en.json).
-2. Define the corresponding Chinese translation strings in [packages/webui/messages/zh.json](file:///Users/yiling/Projects/shumai/packages/webui/messages/zh.json).
+1. Define your English message strings in [packages/webui/messages/en.json](packages/webui/messages/en.json).
+2. Define the corresponding Chinese translation strings in [packages/webui/messages/zh.json](packages/webui/messages/zh.json).
 3. Keys should use `snake_case`.
 
 Example (`en.json`):
