@@ -2,6 +2,7 @@
 
 import { client } from '@/ui/api/client'
 import { useTopNavStore } from '@/ui/stores/top-nav'
+import { m } from '@/ui/src/paraglide/messages.js'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { TopNav } from './top-nav'
@@ -386,7 +387,7 @@ export function PublicShareManager({
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
                 <Lock className="h-6 w-6 text-primary" />
               </div>
-              <CardTitle>Password Protected</CardTitle>
+              <CardTitle>{m.password_protected()}</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handlePasswordSubmit} className="space-y-4">

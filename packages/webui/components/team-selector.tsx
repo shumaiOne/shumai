@@ -8,6 +8,7 @@ import {
 } from '@/ui/components/ui/dialog'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
+import { m } from '@/ui/src/paraglide/messages.js'
 
 export function TeamSelector() {
   const navigate = useNavigate()
@@ -37,7 +38,7 @@ export function TeamSelector() {
     <Dialog open={true}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Select a Team</DialogTitle>
+          <DialogTitle>{m.select_a_team()}</DialogTitle>
           <DialogDescription>
             You are a member of multiple teams. Please select one to continue.
           </DialogDescription>

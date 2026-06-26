@@ -1,5 +1,6 @@
 import { ShareLinkInfo, UpdateShareLinkRequest } from '@shumai/dtos'
 import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
+import { m } from '@/ui/src/paraglide/messages.js'
 import { client } from '@/ui/api/client'
 import { Button } from '@/ui/components/ui/button'
 import { Input } from '@/ui/components/ui/input'
@@ -113,7 +114,7 @@ export function ShareSettingsSidebar({
         <div className="p-4 space-y-6">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium">Link Visibility</h3>
+              <h3 className="text-sm font-medium">{m.link_visibility()}</h3>
               <Switch
                 checked={!shareLink.isDisabled}
                 onCheckedChange={(checked) => updateShare({ isDisabled: !checked })}

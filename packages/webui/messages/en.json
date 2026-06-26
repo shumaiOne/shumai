@@ -7,5 +7,16 @@
   "personal_info": "Personal Info",
   "language_settings": "Language Settings",
   "select_preferred_language": "Select your preferred display language.",
-  "settings": "Settings"
+  "settings": "Settings",
+  "welcome_back": "Welcome Back",
+  "create_account": "Create Account",
+  "select_a_team": "Select a Team",
+  "projects": "Projects",
+  "select_asset_to_view_details": "Select an asset to view details",
+  "all_collections": "All Collections",
+  "file_not_found": "File not found.",
+  "recently_deleted_notice": "Items are automatically deleted after 30 days.",
+  "all_share_links": "All Share Links",
+  "link_visibility": "Link Visibility",
+  "password_protected": "Password Protected"
 }

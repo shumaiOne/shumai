@@ -14,6 +14,7 @@ import { signUp } from '@/ui/lib/auth-client'
 import { useState } from 'react'
 import { ShumaiLogo } from '@/ui/components/ui/icons'
 import { AuthLayout } from '@/ui/components/auth-layout'
+import { m } from '@/ui/src/paraglide/messages.js'
 
 const signupSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -139,7 +140,7 @@ function SignupPage() {
     <AuthLayout>
       <div className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Create Account
+          {m.create_account()}
         </h1>
         <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-1 mb-4">
           Start building and organizing your space.

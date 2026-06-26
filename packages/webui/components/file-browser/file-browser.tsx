@@ -1,6 +1,7 @@
 'use client'
 import { client } from '@/ui/api/client'
 import type { InferRequestType, InferResponseType } from 'hono/client'
+import { m } from '@/ui/src/paraglide/messages.js'
 
 import { usePermissions } from '@/ui/hooks/use-permissions'
 import { getAllFilesFromEntries } from '@/ui/lib/dnd-utils'
@@ -972,7 +973,7 @@ export function FileBrowser({
               <div className="flex items-center justify-between px-4 py-2.5 bg-muted/20 border-b border-border text-sm shrink-0 animate-in fade-in slide-in-from-top-2 duration-300">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
-                  <span>Items are automatically deleted after 30 days.</span>
+                  <span>{m.recently_deleted_notice()}</span>
                 </div>
                 {canAdmin && (
                   <Button

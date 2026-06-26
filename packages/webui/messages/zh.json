@@ -7,5 +7,16 @@
   "personal_info": "个人信息",
   "language_settings": "语言设置",
   "select_preferred_language": "选择您首选的显示语言。",
-  "settings": "设置"
+  "settings": "设置",
+  "welcome_back": "欢迎回来",
+  "create_account": "创建账户",
+  "select_a_team": "选择团队",
+  "projects": "项目",
+  "select_asset_to_view_details": "选择资产查看详情",
+  "all_collections": "所有收藏",
+  "file_not_found": "文件未找到。",
+  "recently_deleted_notice": "项目将在 30 天后自动删除。",
+  "all_share_links": "所有分享链接",
+  "link_visibility": "链接可见性",
+  "password_protected": "密码保护"
 }

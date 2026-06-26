@@ -242,7 +242,7 @@ function TeamSettingsPage() {
         <div className="w-full h-full md:w-72 bg-sidebar border-b md:border-b-0 md:border-r border-sidebar-border z-10 md:left-16 overflow-y-auto transition-colors duration-300">
           <nav className="p-4 space-y-1 mt-4">
             <div className="mb-2 px-4 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
-              Settings
+              {m.settings()}
             </div>
 
             <button

@@ -1,6 +1,7 @@
 import { client } from '@/ui/api/client'
 import { FolderTree } from '@/ui/components/folder-tree'
 import { ResizeHandle } from '@/ui/components/resize-handle'
+import { m } from '@/ui/src/paraglide/messages.js'
 import {
   Table,
   TableBody,
@@ -135,7 +136,7 @@ function CollectionsPage() {
           <header className="h-14 border-b flex items-center justify-between px-6 shrink-0 bg-background/50 backdrop-blur-sm sticky top-0 z-10">
             <div className="flex items-center gap-2">
               <Bookmark className="h-5 w-5 text-primary" />
-              <h1 className="font-bold text-lg text-foreground">All Collections</h1>
+              <h1 className="font-bold text-lg text-foreground">{m.all_collections()}</h1>
             </div>
           </header>
 

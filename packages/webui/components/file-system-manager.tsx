@@ -6,6 +6,7 @@ import { client } from '@/ui/api/client'
 import { usePermissions } from '@/ui/hooks/use-permissions'
 import { useMutation } from '@tanstack/react-query'
 import { InferRequestType, InferResponseType } from 'hono/client'
+import { m } from '@/ui/src/paraglide/messages.js'
 
 import { useFieldStore } from '@/ui/stores/fields'
 import { useMemberStore } from '@/ui/stores/members'
@@ -519,7 +520,7 @@ export default function FileSystemManager({
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center p-4 text-center text-sm text-muted-foreground">
-                    Select an asset to view details
+                    {m.select_asset_to_view_details()}
                   </div>
                 )}
               </div>

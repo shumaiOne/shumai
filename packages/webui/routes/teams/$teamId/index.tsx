@@ -4,6 +4,7 @@ import { client } from '@/ui/api/client'
 import { MembersDialog } from '@/ui/components/members-dialog'
 import { ProjectDialog } from '@/ui/components/project-dialog'
 import { SortDropdown } from '@/ui/components/sort-dropdown'
+import { m } from '@/ui/src/paraglide/messages.js'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -256,7 +257,7 @@ function TeamPage() {
   return (
     <div className="flex-1 overflow-y-auto p-4">
       <div className="flex flex-wrap items-center justify-between mb-4 gap-4">
-        <h1 className="text-2xl font-bold">Projects</h1>
+        <h1 className="text-2xl font-bold">{m.projects()}</h1>
         <div className="flex flex-wrap items-center gap-4">
           <div
             className="flex items-center -space-x-2 cursor-pointer hover:opacity-90"

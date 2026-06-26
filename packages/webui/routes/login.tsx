@@ -13,6 +13,7 @@ import { ArrowRight, Loader2, Lock, LogIn, Mail } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { m } from '@/ui/src/paraglide/messages.js'
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -83,7 +84,7 @@ function LoginPage() {
     <AuthLayout>
       <div className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Welcome Back
+          {m.welcome_back()}
         </h1>
         <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-1">
           Enter your credentials to access your account.
