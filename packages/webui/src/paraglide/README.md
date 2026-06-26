@@ -137,7 +137,6 @@ Framework adapters provide a `<ParaglideMessage>` component that accepts markup 
 
 ```jsx
 import { ParaglideMessage } from '@inlang/paraglide-js-react' // or -vue, -svelte, -solid
-
 ;<ParaglideMessage
   message={m.welcome}
   inputs={{ name: 'Ada' }}
