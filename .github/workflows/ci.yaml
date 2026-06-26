@@ -34,6 +34,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ripgrep bubblewrap socat
 
+      - name: Compile translations
+        run: bun run i18n:compile
+
       - name: Lint
         run: bun run lint
 
