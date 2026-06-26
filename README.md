@@ -50,17 +50,16 @@ Docker Compose is the fastest way to get Shumai running. You do not need to clon
    curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose.yaml
    ```
 3. Configure environment variables (optional):
-
-   * `SHUMAI_SERVER_PORT` controls the port the Shumai server listens on. The default is `3000`.
-   * By default, Shumai uses the bundled local storage service in this Docker Compose setup. To use an external S3-compatible storage instead, set `AWS_ENDPOINT_URL_S3` to the provider's endpoint URL and configure the corresponding AWS credentials and bucket settings as needed.
+   - `SHUMAI_SERVER_PORT` controls the port the Shumai server listens on. The default is `3000`.
+   - By default, Shumai uses the bundled local storage service in this Docker Compose setup. To use an external S3-compatible storage instead, set `AWS_ENDPOINT_URL_S3` to the provider's endpoint URL and configure the corresponding AWS credentials and bucket settings as needed.
      ```
       AWS_ENDPOINT_URL_S3: S3_ENDPOINT_URL
       S3_REGION: S3_REGION
       S3_BUCKET: BUCKET_NAME
       S3_ACCESS_KEY_ID: ID
       S3_SECRET_ACCESS_KEY: KEY
-      ```
-   * By default, `AWS_ENDPOINT_URL_S3` is set to: `http://localhost:{SHUMAI_SERVER_PORT}`, if you use local storage and expose Shumai on a custom host/port combination, set `AWS_ENDPOINT_URL_S3` to the external URL that browsers will use to upload files.
+     ```
+   - By default, `AWS_ENDPOINT_URL_S3` is set to: `http://localhost:{SHUMAI_SERVER_PORT}`, if you use local storage and expose Shumai on a custom host/port combination, set `AWS_ENDPOINT_URL_S3` to the external URL that browsers will use to upload files.
 
      For example, if you change the port mapping in `docker-compose.yaml` from `3000:3000` to `12345:3000` and deploy on a server with IP address `12.34.56.78`, set:
 
@@ -70,11 +69,11 @@ Docker Compose is the fastest way to get Shumai running. You do not need to clon
 
      This value must be reachable from client browsers and should include the externally exposed port.
 
-5. Start the services in detached mode:
+4. Start the services in detached mode:
    ```bash
    docker compose up -d
    ```
-6. Open your browser and access Shumai at `http://localhost:3000` (or `http://<your-server-ip>:3000` for remote deployments).
+5. Open your browser and access Shumai at `http://localhost:3000` (or `http://<your-server-ip>:3000` for remote deployments).
 
 ### Option 2: Install via NPM / Package Manager
 

@@ -16,6 +16,9 @@ import {
   useRouterState,
 } from '@tanstack/react-router'
 import { useEffect } from 'react'
+import { getLocale, setLocale } from '@/ui/src/paraglide/runtime.js'
+import { m } from '@/ui/src/paraglide/messages.js'
+import { useUserMetadataStore } from '@/ui/stores/user-metadata'
 
 function RootComponent() {
   const user = useAuthStore((state) => state.user)
@@ -75,7 +78,7 @@ function RootComponent() {
       <DualSidebar>
         <DualSidebarItem
           icon={<HomeIcon />}
-          label="Dashboard"
+          label={m.dashboard()}
           onItemClick={() => {
             if (storedTeamId) {
               navigate({
@@ -85,7 +88,7 @@ function RootComponent() {
             }
           }}
         />
-        <DualSidebarItem icon={<NotificationFillIcon />} label="Notifications" badge={badge}>
+        <DualSidebarItem icon={<NotificationFillIcon />} label={m.notifications()} badge={badge}>
           <NotificationList />
         </DualSidebarItem>
         <DualSidebarItem
@@ -95,7 +98,7 @@ function RootComponent() {
               className={uploading > 0 ? 'text-blue-500' : ''}
             />
           }
-          label="Uploads"
+          label={m.uploads()}
         >
           <UploadTasks />
         </DualSidebarItem>
@@ -117,5 +120,27 @@ interface MyRouterContext {
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
+  beforeLoad: async () => {
+    if (typeof window !== 'undefined') {
+      const pathname = window.location.pathname
+      const teamIdMatch = pathname.match(/^\/teams\/([^/]+)/)
+      const teamId = teamIdMatch ? teamIdMatch[1] : null
+
+      if (teamId) {
+        const { fetchMetadata, getMetadata } = useUserMetadataStore.getState()
+        try {
+          await fetchMetadata(teamId)
+          const savedLocale = getMetadata<string>('locale')
+          if ((savedLocale === 'en' || savedLocale === 'zh') && savedLocale !== getLocale()) {
+            setLocale(savedLocale, { reload: false })
+          }
+        } catch (e) {
+          console.error('Failed to load user locale metadata:', e)
+        }
+      }
+
+      document.documentElement.setAttribute('lang', getLocale())
+    }
+  },
   component: RootComponent,
 })

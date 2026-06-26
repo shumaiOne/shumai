@@ -1,0 +1,11 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "dashboard": "控制台",
+  "notifications": "通知中心",
+  "uploads": "上传管理",
+  "language": "语言",
+  "personal_info": "个人信息",
+  "language_settings": "语言设置",
+  "select_preferred_language": "选择您首选的显示语言。",
+  "settings": "设置"
+}

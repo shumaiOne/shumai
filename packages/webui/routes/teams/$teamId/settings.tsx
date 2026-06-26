@@ -17,6 +17,16 @@ import { Input } from '@/ui/components/ui/input'
 import { Button } from '@/ui/components/ui/button'
 import { AvatarCropDialog } from '@/ui/components/settings/AvatarCropDialog'
 import { toast } from 'sonner'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/ui/components/ui/select'
+import { useUserMetadataStore } from '@/ui/stores/user-metadata'
+import { getLocale, setLocale } from '@/ui/src/paraglide/runtime.js'
+import { m } from '@/ui/src/paraglide/messages.js'
 
 type SettingsTab =
   | 'general'
@@ -37,6 +47,22 @@ function TeamSettingsPage() {
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false)
+
+  const { setMetadata, getMetadata } = useUserMetadataStore()
+  const currentLocale = getMetadata<string>('locale') || getLocale()
+
+  const handleLanguageChange = async (newLocale: string) => {
+    if (newLocale === 'en' || newLocale === 'zh') {
+      try {
+        await setMetadata(teamId, 'locale', newLocale)
+        setLocale(newLocale)
+        toast.success('Language updated successfully')
+      } catch (e) {
+        console.error(e)
+        toast.error('Failed to update language')
+      }
+    }
+  }
 
   const {
     data: settings,
@@ -488,6 +514,26 @@ function TeamSettingsPage() {
                             Save Changes
                           </Button>
                         </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border border-slate-200 dark:border-slate-800 mt-6">
+                    <CardHeader>
+                      <CardTitle>{m.language_settings()}</CardTitle>
+                      <CardDescription>{m.select_preferred_language()}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="max-w-xs">
+                        <Select value={currentLocale} onValueChange={handleLanguageChange}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Language" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="en">English</SelectItem>
+                            <SelectItem value="zh">简体中文 (Chinese)</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </CardContent>
                   </Card>

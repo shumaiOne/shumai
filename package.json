@@ -13,6 +13,8 @@
   ],
   "scripts": {
     "dev": "bun run --hot apps/web/src/index.ts",
+    "i18n:compile": "paraglide-js compile --project ./packages/webui/project.inlang --outdir ./packages/webui/src/paraglide --emit-ts-declarations",
+    "i18n:watch": "paraglide-js compile --project ./packages/webui/project.inlang --outdir ./packages/webui/src/paraglide --watch --emit-ts-declarations",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "test": "bun --bun vitest run",

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "dashboard": "Dashboard",
+  "notifications": "Notifications",
+  "uploads": "Uploads",
+  "language": "Language",
+  "personal_info": "Personal Info",
+  "language_settings": "Language Settings",
+  "select_preferred_language": "Select your preferred display language.",
+  "settings": "Settings"
+}
