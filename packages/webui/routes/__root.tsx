@@ -20,6 +20,21 @@ import { getLocale, setLocale } from '@/ui/src/paraglide/runtime.js'
 import { m } from '@/ui/src/paraglide/messages.js'
 import { useUserMetadataStore } from '@/ui/stores/user-metadata'
 
+async function resolveTeamIdFromPath(pathname: string): Promise<string | null> {
+  const teamIdMatch = pathname.match(/^\/teams\/([^/]+)/)
+  const teamId = teamIdMatch ? teamIdMatch[1] : null
+  if (teamId) return teamId
+
+  const projectIdMatch = pathname.match(/^\/projects\/([^/]+)/)
+  const projectId = projectIdMatch ? projectIdMatch[1] : null
+  if (projectId) {
+    const { ensureTeamIdForProject } = useTeamContextStore.getState()
+    return await ensureTeamIdForProject(projectId)
+  }
+
+  return null
+}
+
 function RootComponent() {
   const user = useAuthStore((state) => state.user)
   const { uploading } = useUploadStore()
@@ -32,23 +47,15 @@ function RootComponent() {
     return <Outlet />
   }
 
-  // Extract teamId from pathname if possible
-  // Matches /teams/:teamId
-  const teamIdMatch = pathname.match(/^\/teams\/([^/]+)/)
-  const teamId = teamIdMatch ? teamIdMatch[1] : null
-
-  const projectIdMatch = pathname.match(/^\/projects\/([^/]+)/)
-  const projectId = projectIdMatch ? projectIdMatch[1] : null
-
-  const { teamId: storedTeamId, setTeamId, ensureTeamIdForProject } = useTeamContextStore()
+  const { teamId: storedTeamId, setTeamId } = useTeamContextStore()
 
   useEffect(() => {
-    if (teamId) {
-      setTeamId(teamId)
-    } else if (projectId) {
-      ensureTeamIdForProject(projectId)
-    }
-  }, [teamId, projectId, setTeamId, ensureTeamIdForProject])
+    resolveTeamIdFromPath(pathname).then((resolvedTeamId) => {
+      if (resolvedTeamId && resolvedTeamId !== storedTeamId) {
+        setTeamId(resolvedTeamId)
+      }
+    })
+  }, [pathname, storedTeamId, setTeamId])
 
   const { data: me } = useQuery({
     queryKey: ['teams', storedTeamId, 'me'],
@@ -123,8 +130,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
   beforeLoad: async () => {
     if (typeof window !== 'undefined') {
       const pathname = window.location.pathname
-      const teamIdMatch = pathname.match(/^\/teams\/([^/]+)/)
-      const teamId = teamIdMatch ? teamIdMatch[1] : null
+      const teamId = await resolveTeamIdFromPath(pathname)
 
       if (teamId) {
         const { fetchMetadata, getMetadata } = useUserMetadataStore.getState()
