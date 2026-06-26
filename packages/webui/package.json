@@ -86,8 +86,8 @@
     "ulid": "3.0.2"
   },
   "scripts": {
-    "i18n:compile": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide --emit-ts-declarations",
-    "i18n:watch": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide --watch --emit-ts-declarations"
+    "i18n:compile": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide --emit-ts-declarations --no-emit-git-ignore",
+    "i18n:watch": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide --watch --emit-ts-declarations --no-emit-git-ignore"
   },
   "devDependencies": {
     "typescript": "6.0.3",
