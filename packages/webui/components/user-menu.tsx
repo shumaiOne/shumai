@@ -20,6 +20,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { Check } from 'lucide-react'
 import { APP_VERSION } from '../version'
 import { useTheme } from './theme-provider'
+import { m } from '@/ui/paraglide/messages.js'
 
 const Github = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
@@ -101,28 +102,28 @@ export function UserMenu() {
           </>
         )}
         <DropdownMenuSub>
-          <DropdownMenuSubTrigger>Theme</DropdownMenuSubTrigger>
+          <DropdownMenuSubTrigger>{m.theme()}</DropdownMenuSubTrigger>
           <DropdownMenuPortal>
             <DropdownMenuSubContent>
               <DropdownMenuItem
                 className="justify-between flex items-center"
                 onClick={() => setTheme('light')}
               >
-                <span>Light</span>
+                <span>{m.light()}</span>
                 {theme === 'light' && <Check className="size-4" />}
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="justify-between flex items-center"
                 onClick={() => setTheme('dark')}
               >
-                <span>Dark</span>
+                <span>{m.dark()}</span>
                 {theme === 'dark' && <Check className="size-4" />}
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="justify-between flex items-center"
                 onClick={() => setTheme('system')}
               >
-                <span>System</span>
+                <span>{m.system()}</span>
                 {theme === 'system' && <Check className="size-4" />}
               </DropdownMenuItem>
             </DropdownMenuSubContent>
@@ -138,11 +139,11 @@ export function UserMenu() {
           }
           disabled={!teamId}
         >
-          Settings
+          {m.settings()}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem className="text-red-500 focus:text-red-500" onClick={handleLogout}>
-          Log out
+          {m.log_out()}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
@@ -152,7 +153,7 @@ export function UserMenu() {
           }
         >
           <Github className="size-3.5" />
-          <span>Version {APP_VERSION}</span>
+          <span>{m.version({ version: APP_VERSION })}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

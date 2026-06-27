@@ -59,6 +59,7 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import { m } from '@/ui/paraglide/messages.js'
 
 const API_PROTOCOL_LABELS: Record<(typeof KNOWN_APIS)[number], string> = {
   'openai-completions': 'OpenAI Completions',
@@ -73,9 +74,9 @@ const API_PROTOCOL_LABELS: Record<(typeof KNOWN_APIS)[number], string> = {
 }
 
 const providerFormSchemaBase = z.object({
-  name: z.string().min(1, 'Provider name is required'),
+  name: z.string().min(1, m.provider_name_is_required()),
   config: providerConfigSchema,
-  models: z.array(providerModelSchema).min(1, 'At least one model is required'),
+  models: z.array(providerModelSchema).min(1, m.at_least_one_model_required()),
 })
 
 type ProviderFormValues = z.infer<typeof providerFormSchemaBase>
@@ -153,10 +154,10 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'providers'] })
       setIsCreateDialogOpen(false)
-      toast.success('Provider created successfully')
+      toast.success(m.provider_created_successfully())
     },
     onError: (error) => {
-      toast.error(`Error: ${error.message}`)
+      toast.error(m.error_message({ message: error.message }))
     },
   })
 
@@ -176,10 +177,10 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'providers'] })
       setEditingProviderId(null)
-      toast.success('Provider updated successfully')
+      toast.success(m.provider_updated_successfully())
     },
     onError: (error) => {
-      toast.error(`Error: ${error.message}`)
+      toast.error(m.error_message({ message: error.message }))
     },
   })
 
@@ -197,10 +198,10 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
       setEditingProviderId(null)
       setIsDeleteDialogOpen(false)
       setProviderToDelete(null)
-      toast.success('Provider deleted successfully')
+      toast.success(m.provider_deleted_successfully())
     },
     onError: (error) => {
-      toast.error(`Error: ${error.message}`)
+      toast.error(m.error_message({ message: error.message }))
     },
   })
 
@@ -218,21 +219,21 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
             <Cpu className="w-5 h-5 text-primary" />
-            Configured AI Providers
+            {m.configured_ai_providers()}
           </h3>
           <Button
             onClick={() => setIsCreateDialogOpen(true)}
             className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
           >
             <Plus className="w-4 h-4" />
-            Add Provider
+            {m.add_provider()}
           </Button>
         </div>
 
         <div className="relative px-0.5">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search providers..."
+            placeholder={m.search_providers_placeholder()}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 bg-card border-border focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-0"
@@ -261,7 +262,7 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
                           variant="secondary"
                           className="flex-none text-[10px] uppercase tracking-wider font-bold h-5"
                         >
-                          Built-in
+                          {m.built_in()}
                         </Badge>
                       )}
                     </div>
@@ -282,7 +283,7 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
                       <span className="flex items-center gap-1 flex-none">
                         <span className="h-1 w-1 rounded-full bg-muted-foreground/30 flex-none" />
                         <Maximize2 className="w-3 h-3" />
-                        {provider.modelsCount} Models
+                        {m.n_models_count({ count: provider.modelsCount })}
                         {editingProviderId === provider.id && isModelsLoading && (
                           <Loader2 className="w-3 h-3 animate-spin ml-1" />
                         )}
@@ -311,7 +312,7 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
                         }}
                         className="text-destructive focus:text-destructive gap-2 cursor-pointer"
                       >
-                        <Trash2 className="w-4 h-4" /> Delete
+                        <Trash2 className="w-4 h-4" /> {m.delete()}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -324,19 +325,17 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
           {providers?.length === 0 && (
             <div className="text-center py-12 bg-muted/30 rounded-2xl border-2 border-dashed border-border">
               <Cpu className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
-              <h4 className="text-foreground font-medium">No Providers Configured</h4>
-              <p className="text-sm text-muted-foreground mt-1">
-                Add your first AI provider to get started.
-              </p>
+              <h4 className="text-foreground font-medium">{m.no_providers_configured()}</h4>
+              <p className="text-sm text-muted-foreground mt-1">{m.add_first_provider()}</p>
             </div>
           )}
 
           {providers && providers.length > 0 && filteredProviders.length === 0 && (
             <div className="text-center py-12">
               <Search className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
-              <h4 className="text-foreground font-medium">No matches found</h4>
+              <h4 className="text-foreground font-medium">{m.no_matches_found()}</h4>
               <p className="text-sm text-muted-foreground mt-1">
-                Try adjusting your search for "{searchQuery}"
+                {m.try_adjusting_search({ query: searchQuery })}
               </p>
               <Button
                 variant="ghost"
@@ -344,7 +343,7 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
                 onClick={() => setSearchQuery('')}
                 className="mt-4 text-primary hover:text-primary/90 hover:bg-primary/10"
               >
-                Clear search
+                {m.clear_search()}
               </Button>
             </div>
           )}
@@ -356,7 +355,7 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
         onClose={() => setIsCreateDialogOpen(false)}
         onSubmit={(values) => createMutation.mutate(values)}
         isLoading={createMutation.isPending}
-        title="Add New Provider"
+        title={m.add_new_provider()}
         existingProviderNames={existingProviderNames}
       />
 
@@ -376,20 +375,21 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
             : undefined
         }
         isBuiltin={editingProvider?.isBuiltin}
-        title={`Edit ${editingProvider?.name}`}
+        title={editingProvider ? m.edit_item({ name: editingProvider.name }) : ''}
         existingProviderNames={existingProviderNames}
       />
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogTitle>{m.are_you_absolutely_sure()}</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the provider "
-              {providerToDelete?.name}" and all associated model configurations.
+              {m.delete_provider_confirmation({ name: providerToDelete?.name ?? '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setProviderToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setProviderToDelete(null)}>
+              {m.cancel()}
+            </AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
               onClick={() => {
@@ -403,7 +403,7 @@ export function ProvidersSettings({ teamId }: ProvidersSettingsProps) {
               ) : (
                 <Trash2 className="w-4 h-4 mr-2" />
               )}
-              Delete
+              {m.delete()}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -504,9 +504,7 @@ function ProviderFormDialog({
       <DialogContent className="sm:max-w-4xl h-[90vh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="p-6 pb-2 shrink-0">
           <DialogTitle className="text-xl">{title}</DialogTitle>
-          <DialogDescription>
-            Configure authentication and model details for your AI provider.
-          </DialogDescription>
+          <DialogDescription>{m.configure_provider_description()}</DialogDescription>
         </DialogHeader>
 
         <form
@@ -529,14 +527,14 @@ function ProviderFormDialog({
                         !!field.state.meta.errors.length && field.state.meta.isTouched
                       return (
                         <Field data-invalid={isInvalid}>
-                          <FieldLabel htmlFor={field.name}>Provider Name</FieldLabel>
+                          <FieldLabel htmlFor={field.name}>{m.provider_name()}</FieldLabel>
                           <Input
                             id={field.name}
                             name={field.name}
                             value={field.state.value}
                             onBlur={field.handleBlur}
                             onChange={(e) => field.handleChange(e.target.value)}
-                            placeholder="e.g., My OpenAI"
+                            placeholder={m.provider_name_placeholder()}
                             disabled={isBuiltin}
                             aria-invalid={isInvalid}
                           />
@@ -553,14 +551,14 @@ function ProviderFormDialog({
                         !!field.state.meta.errors.length && field.state.meta.isTouched
                       return (
                         <Field data-invalid={isInvalid}>
-                          <FieldLabel htmlFor={field.name}>Global API Protocol</FieldLabel>
+                          <FieldLabel htmlFor={field.name}>{m.global_api_protocol()}</FieldLabel>
                           <Select
                             onValueChange={field.handleChange as (value: string) => void}
                             value={field.state.value}
                             disabled={isBuiltin}
                           >
                             <SelectTrigger id={field.name} aria-invalid={isInvalid}>
-                              <SelectValue placeholder="Select API Protocol" />
+                              <SelectValue placeholder={m.select_api_protocol()} />
                             </SelectTrigger>
                             <SelectContent>
                               {KNOWN_APIS.map((api) => (
@@ -584,7 +582,7 @@ function ProviderFormDialog({
                           !!field.state.meta.errors.length && field.state.meta.isTouched
                         return (
                           <Field data-invalid={isInvalid}>
-                            <FieldLabel htmlFor={field.name}>Base URL (Optional)</FieldLabel>
+                            <FieldLabel htmlFor={field.name}>{m.base_url_optional()}</FieldLabel>
                             <Input
                               id={field.name}
                               name={field.name}
@@ -594,7 +592,7 @@ function ProviderFormDialog({
                               placeholder="https://api.openai.com/v1"
                               aria-invalid={isInvalid}
                             />
-                            <FieldDescription>Override the default endpoint.</FieldDescription>
+                            <FieldDescription>{m.override_default_endpoint()}</FieldDescription>
                             {isInvalid && (
                               <FieldError errors={mapErrors(field.state.meta.errors)} />
                             )}
@@ -616,7 +614,7 @@ function ProviderFormDialog({
                         return (
                           <Field data-invalid={isInvalid}>
                             <FieldLabel htmlFor={field.name} className="text-base font-semibold">
-                              API Key
+                              {m.api_key()}
                             </FieldLabel>
                             <Input
                               id={field.name}
@@ -625,15 +623,11 @@ function ProviderFormDialog({
                               value={field.state.value || ''}
                               onBlur={field.handleBlur}
                               onChange={(e) => field.handleChange(e.target.value)}
-                              placeholder="Enter API Key or Environment Variable"
+                              placeholder={m.api_key_placeholder()}
                               aria-invalid={isInvalid}
                             />
                             <FieldDescription className="text-xs mt-2">
-                              You can provide a literal value (e.g.{' '}
-                              <code className="bg-muted px-1 rounded text-primary">sk-...</code>) or
-                              an Environment variable name (e.g.{' '}
-                              <code className="bg-muted px-1 rounded text-primary">MY_API_KEY</code>
-                              ).
+                              {m.api_key_description()}
                             </FieldDescription>
                             {isInvalid && (
                               <FieldError errors={mapErrors(field.state.meta.errors)} />
@@ -653,7 +647,7 @@ function ProviderFormDialog({
                     children={(modelsField) => (
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                          <Label className="text-lg font-bold">Models Configuration</Label>
+                          <Label className="text-lg font-bold">{m.models_configuration()}</Label>
                           <Button
                             type="button"
                             variant="outline"
@@ -675,7 +669,7 @@ function ProviderFormDialog({
                             className="gap-2"
                           >
                             <Plus className="w-4 h-4" />
-                            Add Model
+                            {m.add_model()}
                           </Button>
                         </div>
 
@@ -694,7 +688,7 @@ function ProviderFormDialog({
                                       !!field.state.meta.errors.length && field.state.meta.isTouched
                                     return (
                                       <Field data-invalid={isInvalid}>
-                                        <FieldLabel htmlFor={field.name}>Model ID</FieldLabel>
+                                        <FieldLabel htmlFor={field.name}>{m.model_id()}</FieldLabel>
                                         <Input
                                           id={field.name}
                                           name={field.name}
@@ -719,7 +713,7 @@ function ProviderFormDialog({
                                     return (
                                       <Field data-invalid={isInvalid}>
                                         <FieldLabel htmlFor={field.name}>
-                                          Display Name (Optional)
+                                          {m.display_name_optional()}
                                         </FieldLabel>
                                         <Input
                                           id={field.name}
@@ -750,7 +744,7 @@ function ProviderFormDialog({
                                       className="rounded-lg border border-border p-3 shadow-sm bg-muted/50 justify-between"
                                     >
                                       <FieldLabel htmlFor={field.name}>
-                                        Reasoning Support
+                                        {m.reasoning_support()}
                                       </FieldLabel>
                                       <Switch
                                         id={field.name}
@@ -769,7 +763,7 @@ function ProviderFormDialog({
                                     return (
                                       <Field data-invalid={isInvalid}>
                                         <FieldLabel htmlFor={field.name} className="text-xs">
-                                          Context Window (tokens)
+                                          {m.context_window_tokens()}
                                         </FieldLabel>
                                         <Input
                                           id={field.name}
@@ -802,7 +796,7 @@ function ProviderFormDialog({
                                     return (
                                       <Field data-invalid={isInvalid}>
                                         <FieldLabel htmlFor={field.name} className="text-xs">
-                                          Max Output Tokens
+                                          {m.max_output_tokens()}
                                         </FieldLabel>
                                         <Input
                                           id={field.name}
@@ -834,7 +828,7 @@ function ProviderFormDialog({
                                           htmlFor={field.name}
                                           className="text-xs flex items-center gap-1"
                                         >
-                                          <DollarSign className="w-3 h-3" /> Input Cost (1M)
+                                          <DollarSign className="w-3 h-3" /> {m.input_cost_1m()}
                                         </FieldLabel>
                                         <Input
                                           id={field.name}
@@ -867,7 +861,7 @@ function ProviderFormDialog({
                                           htmlFor={field.name}
                                           className="text-xs flex items-center gap-1"
                                         >
-                                          <DollarSign className="w-3 h-3" /> Output Cost (1M)
+                                          <DollarSign className="w-3 h-3" /> {m.output_cost_1m()}
                                         </FieldLabel>
                                         <Input
                                           id={field.name}
@@ -913,7 +907,7 @@ function ProviderFormDialog({
 
           <DialogFooter className="p-6 pt-4 border-t border-border gap-2 shrink-0">
             <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
-              Cancel
+              {m.cancel()}
             </Button>
             <form.Subscribe
               selector={(state) => [state.canSubmit, state.isSubmitting]}
@@ -926,7 +920,7 @@ function ProviderFormDialog({
                   {isSubmitting || isLoading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    'Save Configuration'
+                    m.save_configuration()
                   )}
                 </Button>
               )}
@@ -938,14 +932,15 @@ function ProviderFormDialog({
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogTitle>{m.are_you_absolutely_sure()}</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the provider and all
-              associated model configurations.
+              {m.delete_provider_confirmation({ name: initialValues?.name ?? '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)}>
+              {m.cancel()}
+            </AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
               onClick={() => {
@@ -953,7 +948,7 @@ function ProviderFormDialog({
                 setIsDeleteDialogOpen(false)
               }}
             >
-              Delete
+              {m.delete()}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

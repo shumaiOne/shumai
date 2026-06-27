@@ -85,13 +85,9 @@
     "@shumai/dtos": "workspace:*",
     "ulid": "3.0.2"
   },
-  "scripts": {
-    "i18n:compile": "paraglide-js compile --project ./project.inlang --outdir ./paraglide --emit-ts-declarations --no-emit-git-ignore",
-    "i18n:watch": "paraglide-js compile --project ./project.inlang --outdir ./paraglide --watch --emit-ts-declarations --no-emit-git-ignore"
-  },
   "devDependencies": {
     "typescript": "6.0.3",
-    "@inlang/paraglide-js": "^2.20.0",
+    "@inlang/paraglide-js": "2.20.2",
     "@tailwindcss/postcss": "4.3.0",
     "@tailwindcss/vite": "4.3.0",
     "@tanstack/router-cli": "1.167.13",

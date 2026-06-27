@@ -13,8 +13,8 @@
   ],
   "scripts": {
     "dev": "bun run --hot apps/web/src/index.ts",
-    "i18n:compile": "paraglide-js compile --project ./packages/webui/project.inlang --outdir ./packages/webui/paraglide --emit-ts-declarations --no-emit-git-ignore",
-    "i18n:watch": "paraglide-js compile --project ./packages/webui/project.inlang --outdir ./packages/webui/paraglide --watch --emit-ts-declarations --no-emit-git-ignore",
+    "i18n:compile": "bunx @inlang/paraglide-js compile --project ./packages/webui/project.inlang --outdir ./packages/webui/paraglide --emit-ts-declarations --no-emit-git-ignore",
+    "i18n:watch": "bunx @inlang/paraglide-js compile --project ./packages/webui/project.inlang --outdir ./packages/webui/paraglide --watch --emit-ts-declarations --no-emit-git-ignore",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "test": "bun --bun vitest run",

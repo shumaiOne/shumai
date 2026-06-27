@@ -23,6 +23,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm, useStore } from '@tanstack/react-form'
 import { Loader2, Puzzle } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
+import { m } from '@/ui/paraglide/messages.js'
 import { toast } from 'sonner'
 import { AgentInfo, AgentType, ThinkingLevel, thinkingLevelSchema } from '@shumai/dtos'
 import { Textarea } from '@/ui/components/ui/textarea'
@@ -41,7 +42,7 @@ interface AgentFormDialogProps {
 }
 
 const agentFormSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
+  name: z.string().min(1, m.name_is_required()),
   type: z.enum(['chat', 'autofill', 'embedding']),
   avatar: z.string().optional(),
   providerId: z.string().optional(),
@@ -98,14 +99,14 @@ export function AgentFormDialog({
         if (!data.providerId) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: 'Provider is required',
+            message: m.provider_is_required(),
             path: ['providerId'],
           })
         }
         if (!data.modelId) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: 'Model is required',
+            message: m.model_is_required(),
             path: ['modelId'],
           })
         }
@@ -167,10 +168,10 @@ export function AgentFormDialog({
     onSuccess: () => {
       onClose()
       queryClient.invalidateQueries({ queryKey: ['agents', teamId] })
-      toast.success('Agent created successfully')
+      toast.success(m.agent_created_successfully())
     },
     onError: (error) => {
-      toast.error(`Error: ${error.message}`)
+      toast.error(m.error_message({ message: error.message }))
     },
   })
 
@@ -186,10 +187,10 @@ export function AgentFormDialog({
     onSuccess: () => {
       onClose()
       queryClient.invalidateQueries({ queryKey: ['agents', teamId] })
-      toast.success('Agent updated successfully')
+      toast.success(m.agent_updated_successfully())
     },
     onError: (error) => {
-      toast.error(`Error: ${error.message}`)
+      toast.error(m.error_message({ message: error.message }))
     },
   })
 
@@ -217,9 +218,7 @@ export function AgentFormDialog({
       <DialogContent className="sm:max-w-3xl h-[90vh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="p-6 pb-2 flex-shrink-0">
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
-            Configure your AI agent's personality and capabilities.
-          </DialogDescription>
+          <DialogDescription>{m.configure_agent_description()}</DialogDescription>
         </DialogHeader>
 
         <form
@@ -239,12 +238,12 @@ export function AgentFormDialog({
                     const isInvalid = !!field.state.meta.errors.length && field.state.meta.isTouched
                     return (
                       <Field data-invalid={isInvalid}>
-                        <FieldLabel>Agent Name</FieldLabel>
+                        <FieldLabel>{m.agent_name()}</FieldLabel>
                         <Input
                           value={field.state.value}
                           onBlur={field.handleBlur}
                           onChange={(e) => field.handleChange(e.target.value)}
-                          placeholder="e.g., Support Assistant"
+                          placeholder={m.agent_name_placeholder()}
                           aria-invalid={isInvalid}
                         />
                         {isInvalid && <FieldError errors={mapErrors(field.state.meta.errors)} />}
@@ -257,7 +256,7 @@ export function AgentFormDialog({
                   name="type"
                   children={(field) => (
                     <Field>
-                      <FieldLabel>Agent Type</FieldLabel>
+                      <FieldLabel>{m.agent_type()}</FieldLabel>
                       <Select
                         value={field.state.value}
                         onValueChange={(val) => field.handleChange(val as AgentType)}
@@ -267,9 +266,9 @@ export function AgentFormDialog({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="chat">Chat</SelectItem>
-                          <SelectItem value="autofill">Autofill</SelectItem>
-                          <SelectItem value="embedding">Embedding</SelectItem>
+                          <SelectItem value="chat">{m.agent_type_chat()}</SelectItem>
+                          <SelectItem value="autofill">{m.agent_type_autofill()}</SelectItem>
+                          <SelectItem value="embedding">{m.agent_type_embedding()}</SelectItem>
                         </SelectContent>
                       </Select>
                     </Field>
@@ -280,7 +279,7 @@ export function AgentFormDialog({
                   name="avatar"
                   children={(field) => (
                     <Field className="md:col-span-2">
-                      <FieldLabel>Agent Avatar</FieldLabel>
+                      <FieldLabel>{m.agent_avatar()}</FieldLabel>
                       <div className="flex gap-4 mt-2">
                         {AVAILABLE_AVATARS.map((avatarPath) => {
                           const isSelected = field.state.value === avatarPath
@@ -299,7 +298,7 @@ export function AgentFormDialog({
                               <img
                                 src={avatarPath}
                                 className="w-full h-full object-cover"
-                                alt="Preset Avatar Option"
+                                alt={m.preset_avatar_option()}
                               />
                             </button>
                           )
@@ -312,7 +311,7 @@ export function AgentFormDialog({
                             <img
                               src={field.state.value}
                               className="w-full h-full object-cover"
-                              alt="Current Custom Avatar"
+                              alt={m.current_custom_avatar()}
                             />
                           </button>
                         )}
@@ -332,7 +331,7 @@ export function AgentFormDialog({
                           !!field.state.meta.errors.length && field.state.meta.isTouched
                         return (
                           <Field data-invalid={isInvalid}>
-                            <FieldLabel>Provider</FieldLabel>
+                            <FieldLabel>{m.provider()}</FieldLabel>
                             <Select
                               value={field.state.value}
                               onValueChange={(val) => {
@@ -341,7 +340,7 @@ export function AgentFormDialog({
                               }}
                             >
                               <SelectTrigger aria-invalid={isInvalid}>
-                                <SelectValue placeholder="Select Provider" />
+                                <SelectValue placeholder={m.select_provider()} />
                               </SelectTrigger>
                               <SelectContent>
                                 {providers?.map((p) => (
@@ -367,7 +366,7 @@ export function AgentFormDialog({
                         return (
                           <Field data-invalid={isInvalid}>
                             <FieldLabel className="flex items-center gap-2">
-                              Model
+                              {m.model()}
                               {isModelsLoading && <Loader2 className="w-3 h-3 animate-spin" />}
                             </FieldLabel>
                             <Select
@@ -376,7 +375,7 @@ export function AgentFormDialog({
                               disabled={!selectedProviderId || isModelsLoading}
                             >
                               <SelectTrigger aria-invalid={isInvalid}>
-                                <SelectValue placeholder="Select Model" />
+                                <SelectValue placeholder={m.select_model()} />
                               </SelectTrigger>
                               <SelectContent>
                                 {models?.map((m) => (
@@ -397,26 +396,34 @@ export function AgentFormDialog({
                     <div className="md:col-span-2">
                       <form.Field
                         name="thinkingLevel"
-                        children={(field) => (
-                          <Field>
-                            <FieldLabel>Thinking Level</FieldLabel>
-                            <Select
-                              value={field.state.value}
-                              onValueChange={(val) => field.handleChange(val as ThinkingLevel)}
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {thinkingLevelSchema.options.map((level) => (
-                                  <SelectItem key={level} value={level}>
-                                    {level.charAt(0).toUpperCase() + level.slice(1)}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </Field>
-                        )}
+                        children={(field) => {
+                          const thinkingLabels: Record<string, string> = {
+                            off: m.thinking_disable(),
+                            low: m.thinking_low(),
+                            medium: m.thinking_medium(),
+                            high: m.thinking_high(),
+                          }
+                          return (
+                            <Field>
+                              <FieldLabel>{m.thinking_level()}</FieldLabel>
+                              <Select
+                                value={field.state.value}
+                                onValueChange={(val) => field.handleChange(val as ThinkingLevel)}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {thinkingLevelSchema.options.map((level) => (
+                                    <SelectItem key={level} value={level}>
+                                      {thinkingLabels[level] || level}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </Field>
+                          )
+                        }}
                       />
                     </div>
                   </div>
@@ -425,12 +432,12 @@ export function AgentFormDialog({
                     name="soul"
                     children={(field) => (
                       <Field>
-                        <FieldLabel>Agent Soul (Personality)</FieldLabel>
+                        <FieldLabel>{m.agent_soul()}</FieldLabel>
                         <Textarea
                           value={field.state.value}
                           onBlur={field.handleBlur}
                           onChange={(e) => field.handleChange(e.target.value)}
-                          placeholder="Describe the agent's personality, tone, and behavior..."
+                          placeholder={m.agent_soul_placeholder()}
                           className="min-h-[120px]"
                         />
                       </Field>
@@ -440,7 +447,7 @@ export function AgentFormDialog({
                   <div className="space-y-4">
                     <Label className="text-base font-bold flex items-center gap-2">
                       <Puzzle className="w-5 h-5 text-primary" />
-                      Skills
+                      {m.skills()}
                     </Label>
 
                     <div className="space-y-2">
@@ -468,7 +475,7 @@ export function AgentFormDialog({
                                   </div>
                                   <div className="flex items-center gap-2">
                                     <span className="text-xs text-muted-foreground">
-                                      {isEnabled ? 'Enabled' : 'Disabled'}
+                                      {isEnabled ? m.enabled() : m.disabled()}
                                     </span>
                                     <Switch
                                       checked={isEnabled}
@@ -494,7 +501,7 @@ export function AgentFormDialog({
                             {allSkills.length === 0 && (
                               <div className="text-center py-8 border-2 border-dashed border-border rounded-xl">
                                 <p className="text-sm text-muted-foreground">
-                                  No skills available.
+                                  {m.no_skills_available()}
                                 </p>
                               </div>
                             )}
@@ -510,7 +517,7 @@ export function AgentFormDialog({
 
           <DialogFooter className="p-6 pt-4 border-t border-border flex-shrink-0">
             <Button variant="outline" onClick={onClose} type="button">
-              Cancel
+              {m.cancel()}
             </Button>
             <form.Subscribe
               selector={(state) => [state.canSubmit, state.isSubmitting]}
@@ -528,7 +535,7 @@ export function AgentFormDialog({
                   {(isSubmitting || createMutation.isPending || updateMutation.isPending) && (
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
                   )}
-                  {initialValues ? 'Save Changes' : 'Create Agent'}
+                  {initialValues ? m.save_changes() : m.create_agent()}
                 </Button>
               )}
             />

@@ -1,0 +1,32 @@
+/* eslint-disable */
+import { getLocale, experimentalStaticLocale } from '../runtime.js'
+
+/** @typedef {import('../runtime.js').LocalizedString} LocalizedString */
+
+/** @typedef {{}} Share_DisabledInputs */
+
+const en_share_disabled = /** @type {(inputs: Share_DisabledInputs) => LocalizedString} */ () => {
+  return /** @type {LocalizedString} */ (`Share Disabled`)
+}
+
+const zh_share_disabled = /** @type {(inputs: Share_DisabledInputs) => LocalizedString} */ () => {
+  return /** @type {LocalizedString} */ (`分享已禁用`)
+}
+
+/**
+ * | output |
+ * | --- |
+ * | "Share Disabled" |
+ *
+ * @param {Share_DisabledInputs} inputs
+ * @param {{ locale?: "en" | "zh" }} options
+ * @returns {LocalizedString}
+ */
+export const share_disabled =
+  /** @type {((inputs?: Share_DisabledInputs, options?: { locale?: "en" | "zh" }) => LocalizedString) & import('../runtime.js').MessageMetadata<Share_DisabledInputs, { locale?: "en" | "zh" }, {}>} */ (
+    (inputs = {}, options = {}) => {
+      const locale = experimentalStaticLocale ?? options.locale ?? getLocale()
+      if (locale === 'en') return en_share_disabled(inputs)
+      return zh_share_disabled(inputs)
+    }
+  )

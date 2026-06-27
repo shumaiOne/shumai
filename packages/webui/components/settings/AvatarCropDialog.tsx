@@ -8,6 +8,7 @@ import {
 } from '@/ui/components/ui/dialog'
 import { Button } from '@/ui/components/ui/button'
 import { Move, ZoomIn, ZoomOut, Loader2 } from 'lucide-react'
+import { m } from '@/ui/paraglide/messages.js'
 
 interface AvatarCropDialogProps {
   isOpen: boolean
@@ -141,7 +142,7 @@ export function AvatarCropDialog({ isOpen, onClose, imageSrc, onConfirm }: Avata
         <DialogHeader className="p-6 border-b border-border/40 bg-gradient-to-br from-primary/5 to-transparent">
           <DialogTitle className="text-xl font-bold flex items-center gap-2">
             <Move className="w-5 h-5 text-primary" />
-            Position and resize
+            {m.position_and_resize()}
           </DialogTitle>
         </DialogHeader>
 
@@ -163,7 +164,7 @@ export function AvatarCropDialog({ isOpen, onClose, imageSrc, onConfirm }: Avata
               <img
                 ref={imageRef}
                 src={imageSrc}
-                alt="Avatar Source"
+                alt={m.avatar_source()}
                 crossOrigin="anonymous"
                 className="absolute origin-center max-w-none pointer-events-none transition-transform duration-75 select-none"
                 style={{
@@ -206,16 +207,16 @@ export function AvatarCropDialog({ isOpen, onClose, imageSrc, onConfirm }: Avata
 
         <DialogFooter className="p-6 border-t border-border/40 bg-muted/20 flex flex-row justify-end gap-3">
           <Button variant="outline" onClick={onClose} disabled={isSaving}>
-            Cancel
+            {m.cancel()}
           </Button>
           <Button onClick={handleConfirm} disabled={isSaving || !imageSrc} className="min-w-[80px]">
             {isSaving ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                Saving
+                {m.saving()}
               </>
             ) : (
-              'Save'
+              m.save()
             )}
           </Button>
         </DialogFooter>

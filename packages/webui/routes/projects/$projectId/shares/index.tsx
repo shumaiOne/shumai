@@ -115,10 +115,10 @@ function SharesPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shares', projectId] })
-      toast.success('Share link status updated')
+      toast.success(m.share_link_status_updated())
     },
     onError: (err) => {
-      toast.error(`Error: ${err.message}`)
+      toast.error(m.error_message({ message: err.message }))
     },
   })
 
@@ -129,7 +129,7 @@ function SharesPage() {
   const handleCopyLink = (shareId: string) => {
     const url = `${window.location.origin}/share/${shareId}`
     navigator.clipboard.writeText(url)
-    toast.success('Link copied to clipboard')
+    toast.success(m.link_copied())
   }
 
   return (
@@ -178,21 +178,21 @@ function SharesPage() {
             ) : shares.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-muted-foreground gap-3">
                 <Link2 className="h-10 w-10 text-muted-foreground/50" />
-                <p>No share links created yet.</p>
+                <p>{m.no_share_links_yet()}</p>
               </div>
             ) : (
               <div className="border border-border rounded-xl bg-background overflow-hidden shadow-xs">
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent bg-muted/20">
-                      <TableHead className="font-semibold px-4 py-3">Name</TableHead>
-                      <TableHead className="font-semibold px-4 py-3">Public Link</TableHead>
-                      <TableHead className="font-semibold px-4 py-3">Creator</TableHead>
+                      <TableHead className="font-semibold px-4 py-3">{m.name()}</TableHead>
+                      <TableHead className="font-semibold px-4 py-3">{m.public_link()}</TableHead>
+                      <TableHead className="font-semibold px-4 py-3">{m.creator()}</TableHead>
                       <TableHead className="font-semibold px-4 py-3 w-[150px]">
-                        Created Date
+                        {m.created_date()}
                       </TableHead>
                       <TableHead className="font-semibold px-4 py-3 text-right w-[120px]">
-                        Active
+                        {m.active()}
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -219,7 +219,7 @@ function SharesPage() {
                               <span
                                 className="truncate text-xs font-mono bg-muted/50 text-muted-foreground px-2 py-1 rounded-md border border-border cursor-pointer hover:bg-muted transition-colors flex-1"
                                 onClick={() => handleCopyLink(share.id)}
-                                title="Click to copy link"
+                                title={m.click_to_copy_link()}
                               >
                                 {shareUrl}
                               </span>
@@ -256,7 +256,7 @@ function SharesPage() {
                                 </AvatarFallback>
                               </Avatar>
                               <span className="text-sm font-medium text-foreground truncate max-w-[150px]">
-                                {share.creator?.name || 'Unknown'}
+                                {share.creator?.name || m.unknown()}
                               </span>
                             </div>
                           </TableCell>

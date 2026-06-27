@@ -24,7 +24,7 @@ export function TeamSelector() {
   })
 
   if (isLoading) {
-    return <div>Loading...</div>
+    return <div>{m.loading()}</div>
   }
 
   const teams = teamsData?.data
@@ -39,9 +39,7 @@ export function TeamSelector() {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{m.select_a_team()}</DialogTitle>
-          <DialogDescription>
-            You are a member of multiple teams. Please select one to continue.
-          </DialogDescription>
+          <DialogDescription>{m.select_team_description()}</DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
           {teams?.map((team) => (

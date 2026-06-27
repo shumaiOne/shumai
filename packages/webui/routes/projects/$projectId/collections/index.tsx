@@ -148,17 +148,19 @@ function CollectionsPage() {
             ) : collections.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-muted-foreground gap-3">
                 <LayoutGrid className="h-10 w-10 text-muted-foreground/50" />
-                <p>No collections created yet.</p>
+                <p>{m.no_collections_yet()}</p>
               </div>
             ) : (
               <div className="border border-border rounded-xl bg-background overflow-hidden shadow-xs">
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent bg-muted/20">
-                      <TableHead className="font-semibold px-4 py-3">Collection Name</TableHead>
-                      <TableHead className="font-semibold px-4 py-3">Creator</TableHead>
+                      <TableHead className="font-semibold px-4 py-3">
+                        {m.collection_name()}
+                      </TableHead>
+                      <TableHead className="font-semibold px-4 py-3">{m.creator()}</TableHead>
                       <TableHead className="font-semibold px-4 py-3 w-[200px]">
-                        Created Date
+                        {m.created_date()}
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -197,7 +199,7 @@ function CollectionsPage() {
                               </AvatarFallback>
                             </Avatar>
                             <span className="text-sm font-medium text-foreground truncate max-w-[200px]">
-                              {collection.creator?.name || 'Unknown'}
+                              {collection.creator?.name || m.unknown()}
                             </span>
                           </div>
                         </TableCell>

@@ -4,6 +4,7 @@ import { useTeamContextStore } from '@/ui/stores/team-context'
 import { useMutation, useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect } from 'react'
+import { m } from '@/ui/paraglide/messages.js'
 
 const projectInfoQueryOptions = (projectId: string) => ({
   queryKey: ['projects', projectId],
@@ -71,7 +72,7 @@ function CollectionPage() {
   })
 
   if (!teamId || !rootFolderId || !rootFolder || !collection) {
-    return <div>Loading collection...</div>
+    return <div>{m.loading_collection()}</div>
   }
 
   const sourceFolderId = collection.filter.sourceFolderId || rootFolderId
@@ -94,5 +95,5 @@ export const Route = createFileRoute('/projects/$projectId/collections/$collecti
   component: CollectionPage,
   loader: ({ context: { queryClient }, params: { projectId } }) =>
     queryClient.ensureQueryData(projectInfoQueryOptions(projectId)),
-  pendingComponent: () => <div>Loading collection...</div>,
+  pendingComponent: () => <div>{m.loading_collection()}</div>,
 })

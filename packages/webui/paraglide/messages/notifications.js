@@ -10,7 +10,7 @@ const en_notifications = /** @type {(inputs: NotificationsInputs) => LocalizedSt
 }
 
 const zh_notifications = /** @type {(inputs: NotificationsInputs) => LocalizedString} */ () => {
-  return /** @type {LocalizedString} */ (`通知中心`)
+  return /** @type {LocalizedString} */ (`通知`)
 }
 
 /**
