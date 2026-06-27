@@ -762,5 +762,19 @@
   "click_toggle_time_frames": "点击切换时间/帧",
   "quality": "画质",
   "media_not_available": "媒体不可用。",
-  "original": "原始"
+  "original": "原始",
+
+  "collection": "收藏集",
+  "share_link": "分享链接",
+
+  "failed_fetch_share_links": "获取分享链接失败",
+  "failed_fetch_collections": "获取收藏集失败",
+  "failed_create_share_link": "创建分享链接失败",
+  "failed_rename_folder": "重命名文件夹失败",
+  "failed_delete_folder": "删除文件夹失败",
+  "failed_rename_collection": "重命名收藏集失败",
+  "failed_delete_collection": "删除收藏集失败",
+  "failed_rename_share_link": "重命名分享链接失败",
+  "failed_delete_share_link": "删除分享链接失败",
+  "failed_to_fetch_folder_children": "获取子文件夹失败"
 }

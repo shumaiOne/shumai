@@ -762,5 +762,19 @@
   "click_toggle_time_frames": "Click to toggle Time/Frames",
   "quality": "Quality",
   "media_not_available": "Media is not available.",
-  "original": "Original"
+  "original": "Original",
+
+  "collection": "collection",
+  "share_link": "share link",
+
+  "failed_fetch_share_links": "Failed to fetch share links",
+  "failed_fetch_collections": "Failed to fetch collections",
+  "failed_create_share_link": "Failed to create share link",
+  "failed_rename_folder": "Failed to rename folder",
+  "failed_delete_folder": "Failed to delete folder",
+  "failed_rename_collection": "Failed to rename collection",
+  "failed_delete_collection": "Failed to delete collection",
+  "failed_rename_share_link": "Failed to rename share link",
+  "failed_delete_share_link": "Failed to delete share link",
+  "failed_to_fetch_folder_children": "Failed to fetch folder children"
 }
