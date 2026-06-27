@@ -1,6 +1,7 @@
 import { client } from '@/ui/api/client'
 import { FolderTree } from '@/ui/components/folder-tree'
 import { ResizeHandle } from '@/ui/components/resize-handle'
+import { m } from '@/ui/paraglide/messages.js'
 import {
   Table,
   TableBody,
@@ -135,7 +136,7 @@ function CollectionsPage() {
           <header className="h-14 border-b flex items-center justify-between px-6 shrink-0 bg-background/50 backdrop-blur-sm sticky top-0 z-10">
             <div className="flex items-center gap-2">
               <Bookmark className="h-5 w-5 text-primary" />
-              <h1 className="font-bold text-lg text-foreground">All Collections</h1>
+              <h1 className="font-bold text-lg text-foreground">{m.all_collections()}</h1>
             </div>
           </header>
 
@@ -147,17 +148,19 @@ function CollectionsPage() {
             ) : collections.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-muted-foreground gap-3">
                 <LayoutGrid className="h-10 w-10 text-muted-foreground/50" />
-                <p>No collections created yet.</p>
+                <p>{m.no_collections_yet()}</p>
               </div>
             ) : (
               <div className="border border-border rounded-xl bg-background overflow-hidden shadow-xs">
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent bg-muted/20">
-                      <TableHead className="font-semibold px-4 py-3">Collection Name</TableHead>
-                      <TableHead className="font-semibold px-4 py-3">Creator</TableHead>
+                      <TableHead className="font-semibold px-4 py-3">
+                        {m.collection_name()}
+                      </TableHead>
+                      <TableHead className="font-semibold px-4 py-3">{m.creator()}</TableHead>
                       <TableHead className="font-semibold px-4 py-3 w-[200px]">
-                        Created Date
+                        {m.created_date()}
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -196,7 +199,7 @@ function CollectionsPage() {
                               </AvatarFallback>
                             </Avatar>
                             <span className="text-sm font-medium text-foreground truncate max-w-[200px]">
-                              {collection.creator?.name || 'Unknown'}
+                              {collection.creator?.name || m.unknown()}
                             </span>
                           </div>
                         </TableCell>

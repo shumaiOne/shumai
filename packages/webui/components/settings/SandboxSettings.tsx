@@ -7,6 +7,7 @@ import { Input } from '@/ui/components/ui/input'
 import { Button } from '@/ui/components/ui/button'
 import { Loader2, Plus, X, Globe, Check, Trash2, ShieldAlert } from 'lucide-react'
 import { toast } from 'sonner'
+import { m } from '@/ui/paraglide/messages.js'
 
 export function SandboxSettings({ teamId }: { teamId: string }) {
   const queryClient = useQueryClient()
@@ -18,7 +19,7 @@ export function SandboxSettings({ teamId }: { teamId: string }) {
       const res = await client.api.teams[':teamId'].sandbox.$get({
         param: { teamId },
       })
-      if (!res.ok) throw new Error('Failed to fetch sandbox settings')
+      if (!res.ok) throw new Error(m.failed_load_settings())
       return await res.json()
     },
   })
@@ -29,15 +30,15 @@ export function SandboxSettings({ teamId }: { teamId: string }) {
         param: { teamId },
         json: params,
       })
-      if (!res.ok) throw new Error('Failed to update sandbox settings')
+      if (!res.ok) throw new Error(m.failed_to_update_sandbox_settings())
       return await res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'sandbox'] })
-      toast.success('Sandbox settings updated')
+      toast.success(m.sandbox_settings_updated())
     },
     onError: (err) => {
-      toast.error(err instanceof Error ? err.message : 'Failed to update sandbox settings')
+      toast.error(err instanceof Error ? err.message : m.failed_to_update_sandbox_settings())
     },
   })
 
@@ -45,7 +46,7 @@ export function SandboxSettings({ teamId }: { teamId: string }) {
     e.preventDefault()
     if (!newDomain.trim()) return
     if (sandbox?.allowedDomains.includes(newDomain.trim())) {
-      toast.error('Domain already exists')
+      toast.error(m.domain_already_exists())
       return
     }
     const updatedAllowed = [...(sandbox?.allowedDomains || []), newDomain.trim()]
@@ -86,12 +87,9 @@ export function SandboxSettings({ teamId }: { teamId: string }) {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Globe className="w-5 h-5 text-primary" />
-              <CardTitle>Network Sandbox</CardTitle>
+              <CardTitle>{m.network_sandbox()}</CardTitle>
             </div>
-            <CardDescription>
-              Configure allowed domains for the sandboxed agent. By default, only essential domains
-              are allowed.
-            </CardDescription>
+            <CardDescription>{m.network_sandbox_description()}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleAddDomain} className="flex gap-2 mb-6">
@@ -107,12 +105,14 @@ export function SandboxSettings({ teamId }: { teamId: string }) {
                 ) : (
                   <Plus className="w-4 h-4 mr-2" />
                 )}
-                Add Domain
+                {m.add_domain()}
               </Button>
             </form>
 
             <div className="space-y-2">
-              <h4 className="text-sm font-medium text-muted-foreground mb-3">Allowed Domains</h4>
+              <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                {m.allowed_domains()}
+              </h4>
               <div className="flex flex-wrap gap-2">
                 {sandbox?.allowedDomains.map((domain) => (
                   <div
@@ -131,7 +131,7 @@ export function SandboxSettings({ teamId }: { teamId: string }) {
                 ))}
                 {sandbox?.allowedDomains.length === 0 && (
                   <div className="text-sm text-muted-foreground italic">
-                    No custom domains allowed
+                    {m.no_custom_domains_allowed()}
                   </div>
                 )}
               </div>
@@ -144,12 +144,9 @@ export function SandboxSettings({ teamId }: { teamId: string }) {
           <CardHeader>
             <div className="flex items-center gap-2">
               <ShieldAlert className="w-5 h-5 text-orange-500" />
-              <CardTitle>Pending Domain Approvals</CardTitle>
+              <CardTitle>{m.pending_domain_approvals()}</CardTitle>
             </div>
-            <CardDescription>
-              These domains were blocked during agent execution. You can approve them to allow
-              future network requests, or delete them from this list.
-            </CardDescription>
+            <CardDescription>{m.pending_domains_description()}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -172,7 +169,7 @@ export function SandboxSettings({ teamId }: { teamId: string }) {
                           disabled={isUpdating}
                         >
                           <Check className="w-4 h-4 mr-1.5" />
-                          Approve
+                          {m.approve()}
                         </Button>
                         <Button
                           size="sm"
@@ -182,7 +179,7 @@ export function SandboxSettings({ teamId }: { teamId: string }) {
                           disabled={isUpdating}
                         >
                           <Trash2 className="w-4 h-4 mr-1.5" />
-                          Delete
+                          {m.delete()}
                         </Button>
                       </div>
                     </div>
@@ -190,7 +187,7 @@ export function SandboxSettings({ teamId }: { teamId: string }) {
                 </div>
               ) : (
                 <div className="text-sm text-muted-foreground italic py-2">
-                  No pending domains requiring approval
+                  {m.no_pending_domains()}
                 </div>
               )}
             </div>
@@ -199,11 +196,8 @@ export function SandboxSettings({ teamId }: { teamId: string }) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Filesystem Restriction</CardTitle>
-            <CardDescription>
-              The agent is restricted to reading and writing only within the <code>.pi</code> and{' '}
-              <code>/tmp</code> folders. These settings are currently hardcoded for security.
-            </CardDescription>
+            <CardTitle>{m.filesystem_restriction()}</CardTitle>
+            <CardDescription>{m.filesystem_restriction_description()}</CardDescription>
           </CardHeader>
         </Card>
       </div>

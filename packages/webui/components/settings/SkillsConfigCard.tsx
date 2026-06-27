@@ -33,6 +33,7 @@ import {
   AlertDialogTitle,
 } from '@/ui/components/ui/alert-dialog'
 import { SkillInfo } from '@shumai/dtos'
+import { m } from '@/ui/paraglide/messages.js'
 
 const Github = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
@@ -68,7 +69,7 @@ export const SkillsConfigCard: React.FC<SkillsConfigCardProps> = ({ teamId }) =>
     queryKey: ['teams', teamId, 'skills'],
     queryFn: async () => {
       const res = await client.api.teams[':teamId'].skills.$get({ param: { teamId } })
-      if (!res.ok) throw new Error('Failed to fetch skills')
+      if (!res.ok) throw new Error(m.failed_load_settings())
       return await res.json()
     },
   })
@@ -79,7 +80,7 @@ export const SkillsConfigCard: React.FC<SkillsConfigCardProps> = ({ teamId }) =>
       const res = await client.api.skills[':id'].$delete({
         param: { id },
       })
-      if (!res.ok) throw new Error('Failed to delete skill')
+      if (!res.ok) throw new Error(m.failed_to_delete())
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'skills'] })
@@ -97,14 +98,12 @@ export const SkillsConfigCard: React.FC<SkillsConfigCardProps> = ({ teamId }) =>
             <Puzzle className="w-6 h-6" />
           </div>
           <div>
-            <CardTitle className="text-xl font-bold">Skills Management</CardTitle>
-            <CardDescription>
-              Extend your chatbot's capabilities with custom skills.
-            </CardDescription>
+            <CardTitle className="text-xl font-bold">{m.skills_management()}</CardTitle>
+            <CardDescription>{m.skills_management_description()}</CardDescription>
           </div>
         </div>
         <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
-          <Plus className="w-4 h-4" /> Add Skill
+          <Plus className="w-4 h-4" /> {m.add_skill()}
         </Button>
       </CardHeader>
       <CardContent>
@@ -117,9 +116,9 @@ export const SkillsConfigCard: React.FC<SkillsConfigCardProps> = ({ teamId }) =>
             <div className="mx-auto w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-4 text-muted-foreground">
               <Puzzle className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-medium text-foreground">No skills installed</h3>
+            <h3 className="text-lg font-medium text-foreground">{m.no_skills_installed()}</h3>
             <p className="text-muted-foreground mt-1 max-w-xs mx-auto">
-              Add a skill via GitHub URL or upload a ZIP file to get started.
+              {m.add_skill_to_get_started()}
             </p>
           </div>
         ) : (
@@ -164,14 +163,13 @@ export const SkillsConfigCard: React.FC<SkillsConfigCardProps> = ({ teamId }) =>
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogTitle>{m.are_you_absolutely_sure()}</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the skill "
-              {selectedSkill?.name}" and all its configurations.
+              {m.delete_skill_confirmation({ name: selectedSkill?.name ?? '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{m.cancel()}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
               onClick={() => {
@@ -185,7 +183,7 @@ export const SkillsConfigCard: React.FC<SkillsConfigCardProps> = ({ teamId }) =>
               ) : (
                 <Trash2 className="w-4 h-4 mr-2" />
               )}
-              Delete
+              {m.delete()}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -225,18 +223,20 @@ const SkillItem = ({
                 }}
                 className="text-destructive focus:text-destructive gap-2 cursor-pointer"
               >
-                <Trash2 className="w-4 h-4" /> Delete
+                <Trash2 className="w-4 h-4" /> {m.delete()}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
         <p className="text-sm text-muted-foreground line-clamp-2">
-          {skill.description || 'No description provided.'}
+          {skill.description || m.no_description_provided()}
         </p>
       </div>
       <div className="mt-4 flex items-center justify-between text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-        <span>Updated {new Date(skill.updatedAt).toLocaleDateString()}</span>
-        <div className="px-2 py-0.5 rounded-full bg-primary/10 text-primary">Installed</div>
+        <span>
+          {m.updated_date()} {new Date(skill.updatedAt).toLocaleDateString()}
+        </span>
+        <div className="px-2 py-0.5 rounded-full bg-primary/10 text-primary">{m.installed()}</div>
       </div>
     </div>
   )
@@ -284,13 +284,13 @@ const AddSkillDialog = ({
 
       if (res.status === 409) {
         const data = (await res.json()) as { error: string }
-        if (window.confirm(`${data.error}\n\nDo you want to override the existing skill?`)) {
+        if (window.confirm(`${data.error}\n\n${m.override_existing_skill()}`)) {
           await installSkill({ ...payload, override: true })
           return
         }
       } else if (!res.ok) {
         const errorData = (await res.json().catch(() => ({}))) as { error?: string }
-        throw new Error(errorData.error || 'Failed to install skill')
+        throw new Error(errorData.error || m.failed_to_install_skill())
       } else {
         queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'skills'] })
         onOpenChange(false)
@@ -300,7 +300,7 @@ const AddSkillDialog = ({
       if (err instanceof Error) {
         alert(err.message)
       } else {
-        alert('An unknown error occurred')
+        alert(m.an_unknown_error_occurred())
       }
     } finally {
       setIsProcessing(false)
@@ -312,13 +312,13 @@ const AddSkillDialog = ({
 
     const projectId = projectsData?.data?.[0]?.id
     if (!projectId) {
-      alert('You need at least one project in your team to upload skills.')
+      alert(m.need_project_to_upload_skills())
       return
     }
 
     const fileToUpload = files[0]
     if (!fileToUpload.name.toLowerCase().endsWith('.zip')) {
-      alert('Only .zip files are supported.')
+      alert(m.only_zip_files_supported())
       return
     }
 
@@ -357,7 +357,7 @@ const AddSkillDialog = ({
       if (err instanceof Error) {
         alert(err.message)
       } else {
-        alert('An unknown error occurred')
+        alert(m.an_unknown_error_occurred())
       }
     } finally {
       setIsProcessing(false)
@@ -368,16 +368,14 @@ const AddSkillDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[450px]">
         <DialogHeader>
-          <DialogTitle>Add New Skill</DialogTitle>
-          <DialogDescription>
-            Import a skill from a local ZIP archive or a GitHub repository.
-          </DialogDescription>
+          <DialogTitle>{m.add_new_skill()}</DialogTitle>
+          <DialogDescription>{m.import_skill_description()}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 pt-4">
           {/* File Upload Section */}
           <div className="space-y-3">
-            <Label>Package Upload</Label>
+            <Label>{m.package_upload()}</Label>
             <div
               onClick={() => !isProcessing && fileInputRef.current?.click()}
               className={cn(
@@ -398,16 +396,16 @@ const AddSkillDialog = ({
                 <Upload className="w-6 h-6 text-muted-foreground group-hover:text-primary" />
               </div>
               <div className="mt-3 text-center">
-                <p className="text-sm font-medium text-foreground">Select ZIP file</p>
+                <p className="text-sm font-medium text-foreground">{m.select_zip_file()}</p>
                 <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider font-semibold">
-                  Packages must contain a SKILL.md
+                  {m.packages_must_contain_skill_md()}
                 </p>
               </div>
             </div>
             {isProcessing && !githubUrl && (
               <div className="flex items-center gap-2 text-sm text-primary justify-center bg-primary/10 py-2 rounded-lg animate-pulse">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Processing package...
+                {m.processing_package()}
               </div>
             )}
           </div>
@@ -417,14 +415,14 @@ const AddSkillDialog = ({
               <span className="w-full border-t border-border" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground font-bold">OR</span>
+              <span className="bg-background px-2 text-muted-foreground font-bold">{m.or()}</span>
             </div>
           </div>
 
           {/* GitHub URL Section */}
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="githubUrl">GitHub Repository URL</Label>
+              <Label htmlFor="githubUrl">{m.github_repository_url()}</Label>
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <Github className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
@@ -445,13 +443,11 @@ const AddSkillDialog = ({
                   {isProcessing && githubUrl ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    'Install'
+                    m.install()
                   )}
                 </Button>
               </div>
-              <p className="text-[10px] text-muted-foreground italic">
-                Example: https://github.com/google/gemini-cli
-              </p>
+              <p className="text-[10px] text-muted-foreground italic">{m.github_url_example()}</p>
             </div>
           </div>
         </div>
@@ -524,7 +520,7 @@ const ConfigSkillDialog = ({
       if (err instanceof Error) {
         alert(err.message)
       } else {
-        alert('An unknown error occurred')
+        alert(m.an_unknown_error_occurred())
       }
     } finally {
       setIsSaving(false)
@@ -540,21 +536,17 @@ const ConfigSkillDialog = ({
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2">
               <Code className="w-5 h-5 text-primary" />
-              Configure Skill: {skill.name}
+              {m.configure_skill({ name: skill.name })}
             </DialogTitle>
           </div>
-          <DialogDescription>
-            Manage environment variables for this skill instance.
-          </DialogDescription>
+          <DialogDescription>{m.manage_env_vars_description()}</DialogDescription>
         </DialogHeader>
 
         <ScrollArea className="max-h-[60vh]">
           <div className="py-4 space-y-4 pr-4">
             {envVars.length === 0 ? (
               <div className="text-center py-10 bg-muted/50 rounded-xl border border-dashed border-border">
-                <p className="text-muted-foreground text-sm italic">
-                  No environment variables found. Click "Add Variable" to create one.
-                </p>
+                <p className="text-muted-foreground text-sm italic">{m.no_env_vars_found()}</p>
               </div>
             ) : (
               envVars.map((env: { name: string; default?: string | undefined }, index: number) => (
@@ -571,28 +563,28 @@ const ConfigSkillDialog = ({
 
                   <div className="space-y-1.5">
                     <Label className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
-                      Variable Name
+                      {m.variable_name()}
                     </Label>
                     <Input
                       value={env.name}
                       onChange={(e) => handleEnvVarNameChange(index, e.target.value)}
-                      placeholder="e.app. API_KEY"
+                      placeholder="e.g. API_KEY"
                       className="h-8 bg-background border-border text-sm font-mono"
                     />
                   </div>
 
                   <div className="space-y-1.5">
                     <Label className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
-                      Default Value
+                      {m.default_value()}
                     </Label>
                     <Input
                       value={env.default || ''}
                       onChange={(e) => handleEnvVarValueChange(index, e.target.value)}
-                      placeholder="Optional default value..."
+                      placeholder={m.optional_default_value_placeholder()}
                       className="h-8 bg-background border-border text-sm"
                     />
                     <p className="text-[10px] text-muted-foreground italic">
-                      If left empty, the value will be read from the host machine's environment.
+                      {m.env_var_empty_note()}
                     </p>
                   </div>
                 </div>
@@ -608,15 +600,15 @@ const ConfigSkillDialog = ({
             onClick={addEnvVar}
             className="h-8 gap-1.5 text-primary hover:text-primary hover:bg-primary/10"
           >
-            <Plus className="w-3.5 h-3.5" /> Add Variable
+            <Plus className="w-3.5 h-3.5" /> {m.add_variable()}
           </Button>
           <div className="flex gap-2">
             <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancel
+              {m.cancel()}
             </Button>
             <Button onClick={handleSave} disabled={isSaving} className="px-8">
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Save Changes
+              {m.save_changes()}
             </Button>
           </div>
         </DialogFooter>

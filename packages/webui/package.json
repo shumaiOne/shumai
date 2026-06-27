@@ -86,6 +86,7 @@
     "ulid": "3.0.2"
   },
   "devDependencies": {
+    "typescript": "6.0.3",
     "@tailwindcss/postcss": "4.3.0",
     "@tailwindcss/vite": "4.3.0",
     "@tanstack/router-cli": "1.167.13",

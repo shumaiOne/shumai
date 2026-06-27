@@ -61,6 +61,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useInView } from 'react-intersection-observer'
 import { toast } from 'sonner'
 import type { DragState } from './dnd-types'
+import { m } from '@/ui/paraglide/messages.js'
 
 interface FolderTreeProps {
   teamId: string
@@ -111,7 +112,7 @@ export function FolderTree({
         param: { projectId },
         query: { first: '20', after: pageParam as string },
       })
-      if (!res.ok) throw new Error('Failed to fetch share links')
+      if (!res.ok) throw new Error(m.failed_fetch_share_links())
       return (await res.json()) as unknown as {
         data: ShareLinkInfo[]
         pageInfo: { cursor?: string; total?: number }
@@ -134,7 +135,7 @@ export function FolderTree({
         param: { projectId },
         query: { first: '20', after: pageParam as string },
       })
-      if (!res.ok) throw new Error('Failed to fetch collections')
+      if (!res.ok) throw new Error(m.failed_fetch_collections())
       return (await res.json()) as unknown as {
         data: CollectionInfo[]
         pageInfo: { cursor?: string; total?: number }
@@ -174,7 +175,7 @@ export function FolderTree({
       const res = await client.api.projects[':projectId'].collections.$post({
         param: { projectId },
         json: {
-          name: 'Untitled Collection',
+          name: m.untitled_collection(),
           filter: {
             sourceFolderId: rootFolderId,
             searchFilter: {
@@ -184,12 +185,12 @@ export function FolderTree({
           },
         },
       })
-      if (!res.ok) throw new Error('Failed to create collection')
+      if (!res.ok) throw new Error(m.failed_create_collection())
       return await res.json()
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['collections', projectId] })
-      toast.success('Collection created')
+      toast.success(m.collection_created())
       navigate({
         to: '/projects/$projectId/collections/$collectionId',
         params: { projectId, collectionId: data.id },
@@ -212,12 +213,12 @@ export function FolderTree({
           }),
         },
       })
-      if (!res.ok) throw new Error('Failed to create share link')
+      if (!res.ok) throw new Error(m.failed_create_share_link())
       return await res.json()
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['shares', projectId] })
-      toast.success('Share link created')
+      toast.success(m.share_link_created())
       navigate({
         to: '/projects/$projectId/shares/$shareId',
         params: { projectId, shareId: data.id },
@@ -256,13 +257,13 @@ export function FolderTree({
         param: { folderId: id },
         json: { name },
       })
-      if (!res.ok) throw new Error('Failed to rename folder')
+      if (!res.ok) throw new Error(m.failed_rename_folder())
       return await res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['search', teamId] })
       queryClient.invalidateQueries({ queryKey: ['folders'] })
-      toast.success('Folder renamed')
+      toast.success(m.folder_renamed())
       setIsRenameOpen(false)
     },
     onError: (err) => {
@@ -275,13 +276,13 @@ export function FolderTree({
       const res = await client.api.folders.$delete({
         json: { ids: [id] },
       })
-      if (!res.ok) throw new Error('Failed to delete folder')
+      if (!res.ok) throw new Error(m.failed_delete_folder())
       return id
     },
     onSuccess: (deletedId) => {
       queryClient.invalidateQueries({ queryKey: ['search', teamId] })
       queryClient.invalidateQueries({ queryKey: ['folders'] })
-      toast.success('Folder deleted')
+      toast.success(m.folder_deleted())
       setIsDeleteOpen(false)
       if (folderParams?.folderId === deletedId) {
         navigate({
@@ -309,11 +310,11 @@ export function FolderTree({
       const res = await client.api.files['download-links'].$post({
         json: { ids: [folderId] },
       })
-      if (!res.ok) throw new Error('Failed to prepare download links')
+      if (!res.ok) throw new Error(m.failed_to_prepare_download_links())
       const data = await res.json()
       setResolvedFiles(data.files)
     } catch (error) {
-      toast.error('Failed to prepare download links')
+      toast.error(m.failed_to_prepare_download_links())
       setIsDownloadOpen(false)
       console.error(error)
     } finally {
@@ -327,12 +328,9 @@ export function FolderTree({
 
     if (files.length === 0) return
 
-    toast.info(
-      `Starting download of ${files.length} files. Please allow multiple downloads if prompted by your browser.`,
-      {
-        duration: 5000,
-      },
-    )
+    toast.info(m.starting_download_files({ count: files.length }), {
+      duration: 5000,
+    })
 
     const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -355,7 +353,7 @@ export function FolderTree({
 
     runQueue().catch((err) => {
       console.error('Background downloads failed:', err)
-      toast.error('Some downloads could not be started')
+      toast.error(m.some_downloads_failed())
     })
   }
 
@@ -365,12 +363,12 @@ export function FolderTree({
         param: { collectionId: id },
         json: { name },
       })
-      if (!res.ok) throw new Error('Failed to rename collection')
+      if (!res.ok) throw new Error(m.failed_rename_collection())
       return await res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['collections', projectId] })
-      toast.success('Collection renamed')
+      toast.success(m.collection_renamed())
       setIsRenameOpen(false)
     },
     onError: (err) => {
@@ -383,12 +381,12 @@ export function FolderTree({
       const res = await client.api.collections[':collectionId'].$delete({
         param: { collectionId: id },
       })
-      if (!res.ok) throw new Error('Failed to delete collection')
+      if (!res.ok) throw new Error(m.failed_delete_collection())
       return await res.json()
     },
     onSuccess: (_, deletedId) => {
       queryClient.invalidateQueries({ queryKey: ['collections', projectId] })
-      toast.success('Collection deleted')
+      toast.success(m.collection_deleted())
       setIsDeleteOpen(false)
       if (params?.collectionId === deletedId) {
         navigate({
@@ -408,12 +406,12 @@ export function FolderTree({
         param: { shareId: id },
         json: { name },
       })
-      if (!res.ok) throw new Error('Failed to rename share link')
+      if (!res.ok) throw new Error(m.failed_rename_share_link())
       return await res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shares', projectId] })
-      toast.success('Share link renamed')
+      toast.success(m.share_link_renamed())
       setIsRenameOpen(false)
     },
     onError: (err) => {
@@ -426,12 +424,12 @@ export function FolderTree({
       const res = await client.api.shares[':shareId'].$delete({
         param: { shareId: id },
       })
-      if (!res.ok) throw new Error('Failed to delete share link')
+      if (!res.ok) throw new Error(m.failed_delete_share_link())
       return id
     },
     onSuccess: (deletedId) => {
       queryClient.invalidateQueries({ queryKey: ['shares', projectId] })
-      toast.success('Share link deleted')
+      toast.success(m.share_link_deleted())
       setIsDeleteOpen(false)
       if (shareParams?.shareId === deletedId) {
         navigate({
@@ -458,7 +456,9 @@ export function FolderTree({
             className="flex-1 flex items-center gap-1.5 cursor-pointer select-none text-muted-foreground hover:text-foreground transition-colors"
             onClick={() => setIsAssetsExpanded(!isAssetsExpanded)}
           >
-            <h3 className="text-xs font-semibold uppercase tracking-wider">Assets</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wider">
+              {m.folder_tree_assets()}
+            </h3>
             {isAssetsExpanded ? (
               <ChevronsDownUp className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
             ) : (
@@ -531,7 +531,9 @@ export function FolderTree({
                 <div className="flex h-4 w-4 items-center justify-center">
                   <Trash2 className="h-4 w-4 text-sidebar-primary" />
                 </div>
-                <span className="flex-1 truncate text-sidebar-foreground">Recently Deleted</span>
+                <span className="flex-1 truncate text-sidebar-foreground">
+                  {m.recently_deleted()}
+                </span>
               </div>
             )}
           </div>
@@ -550,7 +552,7 @@ export function FolderTree({
               className="flex-1 flex items-center gap-1.5 cursor-pointer select-none text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setIsCollectionsExpanded(!isCollectionsExpanded)}
             >
-              <h3 className="text-xs font-semibold uppercase tracking-wider">Collections</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider">{m.collections()}</h3>
               {isCollectionsExpanded ? (
                 <ChevronsDownUp className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
               ) : (
@@ -589,7 +591,9 @@ export function FolderTree({
                   <LayoutGrid className="h-4 w-4 text-sidebar-primary" />
                 </div>
                 <span className="flex-1 truncate text-sidebar-foreground">
-                  All Collections ({collectionsData?.pages[0]?.pageInfo?.total || 0})
+                  {m.all_collections_count({
+                    count: collectionsData?.pages[0]?.pageInfo?.total || 0,
+                  })}
                 </span>
               </div>
 
@@ -642,7 +646,7 @@ export function FolderTree({
                                 setIsRenameOpen(true)
                               }}
                             >
-                              Rename
+                              {m.rename()}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive focus:bg-destructive/10"
@@ -652,7 +656,7 @@ export function FolderTree({
                                 setIsDeleteOpen(true)
                               }}
                             >
-                              Delete
+                              {m.delete()}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -684,7 +688,7 @@ export function FolderTree({
               className="flex-1 flex items-center gap-1.5 cursor-pointer select-none text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setIsSharesExpanded(!isSharesExpanded)}
             >
-              <h3 className="text-xs font-semibold uppercase tracking-wider">Share Links</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wider">{m.share_links()}</h3>
               {isSharesExpanded ? (
                 <ChevronsDownUp className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
               ) : (
@@ -725,7 +729,9 @@ export function FolderTree({
                   <LayoutGrid className="h-4 w-4 text-sidebar-primary" />
                 </div>
                 <span className="flex-1 truncate text-sidebar-foreground">
-                  All Share Links ({shareLinksData?.pages[0]?.pageInfo?.total || 0})
+                  {m.all_share_links_count({
+                    count: shareLinksData?.pages[0]?.pageInfo?.total || 0,
+                  })}
                 </span>
               </div>
 
@@ -765,19 +771,18 @@ export function FolderTree({
         <DialogContent onClick={(e) => e.stopPropagation()}>
           <DialogHeader>
             <DialogTitle>
-              Rename{' '}
               {renameType === 'collection'
-                ? 'Collection'
+                ? m.rename_collection()
                 : renameType === 'share'
-                  ? 'Share Link'
-                  : 'Folder'}
+                  ? m.rename_share_link()
+                  : m.rename_folder()}
             </DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <Input
               value={renameName}
               onChange={(e) => setRenameName(e.target.value)}
-              placeholder="Enter new name"
+              placeholder={m.enter_new_name()}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && renameName.trim()) {
                   if (renameType === 'collection') {
@@ -793,7 +798,7 @@ export function FolderTree({
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setIsRenameOpen(false)}>
-              Cancel
+              {m.cancel()}
             </Button>
             <Button
               disabled={!renameName.trim()}
@@ -807,7 +812,7 @@ export function FolderTree({
                 }
               }}
             >
-              Rename
+              {m.rename()}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -818,26 +823,25 @@ export function FolderTree({
         <AlertDialogContent onClick={(e) => e.stopPropagation()}>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Delete{' '}
               {deleteType === 'collection'
-                ? 'Collection'
+                ? m.delete_collection_confirm()
                 : deleteType === 'share'
-                  ? 'Share Link'
-                  : 'Folder'}
-              ?
+                  ? m.delete_share_link_confirm()
+                  : m.delete_folder_confirm()}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this{' '}
-              {deleteType === 'collection'
-                ? 'collection'
-                : deleteType === 'share'
-                  ? 'share link'
-                  : 'folder'}
-              ? This action cannot be undone.
+              {m.delete_confirm_description({
+                type:
+                  deleteType === 'collection'
+                    ? m.collection()
+                    : deleteType === 'share'
+                      ? m.share_link()
+                      : m.folder().toLowerCase(),
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{m.cancel()}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => {
@@ -850,7 +854,7 @@ export function FolderTree({
                 }
               }}
             >
-              Delete
+              {m.delete()}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -860,11 +864,11 @@ export function FolderTree({
       <Dialog open={isDownloadOpen} onOpenChange={setIsDownloadOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{isLoadingLinks ? 'Preparing Download' : 'Confirm Download'}</DialogTitle>
+            <DialogTitle>
+              {isLoadingLinks ? m.preparing_download() : m.confirm_download()}
+            </DialogTitle>
             <DialogDescription>
-              {isLoadingLinks
-                ? 'Resolving all files and folders. Please wait...'
-                : 'Selected folder files will be prepared for download.'}
+              {isLoadingLinks ? m.resolving_files_wait() : m.folder_files_download_description()}
             </DialogDescription>
           </DialogHeader>
 
@@ -872,23 +876,20 @@ export function FolderTree({
             <div className="space-y-4 py-6 flex flex-col items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <span className="text-sm font-medium text-muted-foreground mt-2">
-                Preparing download links...
+                {m.preparing_download_links()}
               </span>
             </div>
           ) : (
             <div className="space-y-4 py-2">
               <div className="text-sm text-muted-foreground">
-                This download will include{' '}
-                <span className="font-semibold text-foreground">{resolvedFiles.length}</span>{' '}
-                file(s).
+                {m.download_includes_files({ count: resolvedFiles.length })}
               </div>
               <div className="flex items-start gap-3 p-3 text-sm rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/30">
                 <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-semibold">No Folder Structure</p>
+                  <p className="font-semibold">{m.no_folder_structure()}</p>
                   <p className="mt-0.5 text-xs text-amber-700/90 dark:text-amber-400/90">
-                    Folder hierarchy will be flattened. All nested files will be downloaded directly
-                    into your default download folder.
+                    {m.folder_structure_warning()}
                   </p>
                 </div>
               </div>
@@ -899,7 +900,7 @@ export function FolderTree({
             {!isLoadingLinks ? (
               <>
                 <Button variant="outline" onClick={() => setIsDownloadOpen(false)}>
-                  Cancel
+                  {m.cancel()}
                 </Button>
                 <Button
                   onClick={startDownload}
@@ -907,12 +908,12 @@ export function FolderTree({
                   disabled={resolvedFiles.length === 0}
                 >
                   <Download className="h-4 w-4" />
-                  Start Download
+                  {m.start_download()}
                 </Button>
               </>
             ) : (
               <Button disabled variant="outline">
-                Cancel
+                {m.cancel()}
               </Button>
             )}
           </DialogFooter>
@@ -997,7 +998,7 @@ function ShareLinkItem({
                   onRenameTrigger(link.id, link.name)
                 }}
               >
-                Rename
+                {m.rename()}
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive focus:bg-destructive/10"
@@ -1005,7 +1006,7 @@ function ShareLinkItem({
                   onDeleteTrigger(link.id)
                 }}
               >
-                Delete
+                {m.delete()}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -1093,7 +1094,7 @@ function FolderTreeItem({
           first: '20',
         },
       })
-      if (!res.ok) throw new Error('failed to fetch folder children')
+      if (!res.ok) throw new Error(m.failed_to_fetch_folder_children())
       return (await res.json()) as unknown as AssetInfoPaginatedList
     },
     initialPageParam: '',
@@ -1228,7 +1229,7 @@ function FolderTreeItem({
                   }}
                 >
                   <Edit className="mr-2 h-4 w-4" />
-                  Rename
+                  {m.rename()}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => {
@@ -1236,7 +1237,7 @@ function FolderTreeItem({
                   }}
                 >
                   <Download className="mr-2 h-4 w-4" />
-                  Download
+                  {m.download()}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -1246,7 +1247,7 @@ function FolderTreeItem({
                   }}
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
+                  {m.delete()}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

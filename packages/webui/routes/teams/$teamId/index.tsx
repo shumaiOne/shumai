@@ -4,6 +4,7 @@ import { client } from '@/ui/api/client'
 import { MembersDialog } from '@/ui/components/members-dialog'
 import { ProjectDialog } from '@/ui/components/project-dialog'
 import { SortDropdown } from '@/ui/components/sort-dropdown'
+import { m } from '@/ui/paraglide/messages.js'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -135,12 +136,10 @@ function TeamPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'projects'] })
-      toast.success('Project notification settings updated')
+      toast.success(m.project_notification_updated())
     },
     onError: (err) => {
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to update project notification settings',
-      )
+      toast.error(err instanceof Error ? err.message : m.failed_update_project_notification())
     },
   })
 
@@ -256,7 +255,7 @@ function TeamPage() {
   return (
     <div className="flex-1 overflow-y-auto p-4">
       <div className="flex flex-wrap items-center justify-between mb-4 gap-4">
-        <h1 className="text-2xl font-bold">Projects</h1>
+        <h1 className="text-2xl font-bold">{m.projects()}</h1>
         <div className="flex flex-wrap items-center gap-4">
           <div
             className="flex items-center -space-x-2 cursor-pointer hover:opacity-90"
@@ -287,7 +286,7 @@ function TeamPage() {
               onClick={handleCreateProjectClick}
             >
               <PlusIcon className="w-4 h-4" />
-              Create Project
+              {m.create_project()}
             </Button>
           )}
         </div>
@@ -359,7 +358,7 @@ function TeamPage() {
               </div>
               <div className="px-2 h-10 flex justify-between items-center">
                 <p className="truncate pr-1 text-xs text-muted-foreground">
-                  Updated {formatDateAgo((project.updatedAt as string) ?? '')}
+                  {m.updated_ago()} {formatDateAgo((project.updatedAt as string) ?? '')}
                 </p>
                 <div onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu modal={false}>
@@ -376,7 +375,7 @@ function TeamPage() {
                             handleEditProjectClick(project)
                           }}
                         >
-                          Project Settings
+                          {m.project_settings()}
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem
@@ -386,7 +385,7 @@ function TeamPage() {
                           toggleProjectNotificationsMutation.mutate(project)
                         }}
                       >
-                        <span>Notification</span>
+                        <span>{m.notification()}</span>
                         <Switch
                           checked={project.enableNotification ?? true}
                           className="pointer-events-none"
@@ -397,7 +396,7 @@ function TeamPage() {
                           className="text-destructive focus:text-destructive"
                           onClick={() => handleDeleteProjectClick(project)}
                         >
-                          Delete
+                          {m.delete()}
                         </DropdownMenuItem>
                       )}
                     </DropdownMenuContent>
@@ -421,7 +420,7 @@ function TeamPage() {
               </div>
               <div className="px-2 h-10 flex items-center justify-center bg-zinc-400/10 border-t group-hover:bg-orange-600/10 transition-colors">
                 <p className="text-sm text-muted-foreground group-hover:text-orange-600 transition-colors">
-                  Create Project
+                  {m.create_project()}
                 </p>
               </div>
             </div>
@@ -440,18 +439,15 @@ function TeamPage() {
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogTitle>{m.are_you_sure()}</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the project &quot;
-              {projectToDelete?.name}&quot; and all its assets.
+              {m.delete_project_warning({ name: projectToDelete?.name ?? '' })}
               <div className="mt-4 flex flex-col gap-2 text-foreground">
-                <span className="text-sm font-medium">
-                  Type <strong>delete</strong> to confirm:
-                </span>
+                <span className="text-sm font-medium">{m.type_delete_to_confirm()}</span>
                 <Input
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  placeholder="delete"
+                  placeholder={m.delete_placeholder()}
                   className="h-9"
                   autoFocus
                 />
@@ -459,7 +455,9 @@ function TeamPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteProjectMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteProjectMutation.isPending}>
+              {m.cancel()}
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault()
@@ -468,7 +466,7 @@ function TeamPage() {
               disabled={deleteConfirmText !== 'delete' || deleteProjectMutation.isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteProjectMutation.isPending ? 'Deleting...' : 'Delete'}
+              {deleteProjectMutation.isPending ? m.deleting() : m.delete()}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -477,7 +475,7 @@ function TeamPage() {
       <MembersDialog
         open={isMembersDialogOpen}
         onOpenChange={setIsMembersDialogOpen}
-        title="Team Members"
+        title={m.team_members()}
         members={safeMembers}
         isOwner={me?.role === 'owner'}
         onInvite={handleInvite}

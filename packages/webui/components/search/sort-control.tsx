@@ -10,6 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/ui/components/ui/select'
+import { useMemo } from 'react'
+import { m } from '@/ui/paraglide/messages.js'
 
 interface SortControlProps {
   fields: MetadataFieldInfo[]
@@ -18,22 +20,21 @@ interface SortControlProps {
   disabled?: boolean
 }
 
-const SYSTEM_FIELDS = [
-  { id: 'custom', label: 'Custom' },
-  { id: 'name', label: 'Name' },
-  { id: 'createdAt', label: 'Date Created' },
-  { id: 'updatedAt', label: 'Date Modified' },
-  { id: 'sizeByte', label: 'Size' },
-]
-
 export function SortControl({ fields, sort, onSortChange, disabled }: SortControlProps) {
-  const allFields = [
-    ...SYSTEM_FIELDS,
-    ...fields.map((f) => ({
+  const allFields = useMemo(() => {
+    const sys = [
+      { id: 'custom', label: m.sort_custom() },
+      { id: 'name', label: m.sort_name() },
+      { id: 'createdAt', label: m.sort_date_created() },
+      { id: 'updatedAt', label: m.sort_date_modified() },
+      { id: 'sizeByte', label: m.sort_size() },
+    ]
+    const custom = fields.map((f) => ({
       id: f.id!,
-      label: f.config?.name || f.description || 'Unknown',
-    })),
-  ]
+      label: f.config?.name || f.description || m.unknown(),
+    }))
+    return [...sys, ...custom]
+  }, [fields])
 
   // Default to Custom if no sort selected
   const currentFieldId = sort?.field || 'custom'
@@ -43,15 +44,15 @@ export function SortControl({ fields, sort, onSortChange, disabled }: SortContro
 
   const getDirectionOptions = (fieldId: string) => {
     if (fieldId === 'name') {
-      return { asc: 'A → Z', desc: 'Z → A' }
+      return { asc: m.sort_a_to_z(), desc: m.sort_z_to_a() }
     }
     if (['createdAt', 'updatedAt'].includes(fieldId)) {
-      return { asc: 'Oldest → Newest', desc: 'Newest → Oldest' }
+      return { asc: m.sort_oldest_to_newest(), desc: m.sort_newest_to_oldest() }
     }
     if (fieldId === 'sizeByte') {
-      return { asc: 'Smallest → Largest', desc: 'Largest → Smallest' }
+      return { asc: m.sort_smallest_to_largest(), desc: m.sort_largest_to_smallest() }
     }
-    return { asc: 'Ascending', desc: 'Descending' }
+    return { asc: m.ascending(), desc: m.descending() }
   }
 
   const dirOptions = getDirectionOptions(currentFieldId)
@@ -79,13 +80,13 @@ export function SortControl({ fields, sort, onSortChange, disabled }: SortContro
           className="h-8"
           disabled={disabled}
         >
-          {sort ? `Sorted by ${currentField.label}` : 'Sort by'}
+          {sort ? m.sorted_by({ field: currentField.label }) : m.sort_by()}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[280px] p-3" align="end">
         <div className="grid gap-4">
           <div className="grid gap-2">
-            <span className="text-sm text-muted-foreground">Sort by</span>
+            <span className="text-sm text-muted-foreground">{m.sort_by()}</span>
             <Select value={currentFieldId} onValueChange={handleFieldChange}>
               <SelectTrigger className="w-full">
                 <SelectValue />
@@ -102,7 +103,7 @@ export function SortControl({ fields, sort, onSortChange, disabled }: SortContro
 
           {currentFieldId !== 'custom' && (
             <div className="grid gap-2">
-              <span className="text-sm text-muted-foreground">Order</span>
+              <span className="text-sm text-muted-foreground">{m.order()}</span>
               <Button
                 variant="outline"
                 className="w-full justify-between font-normal"

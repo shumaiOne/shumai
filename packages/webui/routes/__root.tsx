@@ -16,6 +16,24 @@ import {
   useRouterState,
 } from '@tanstack/react-router'
 import { useEffect } from 'react'
+import { getLocale, setLocale } from '@/ui/paraglide/runtime.js'
+import { m } from '@/ui/paraglide/messages.js'
+import { useUserMetadataStore } from '@/ui/stores/user-metadata'
+
+async function resolveTeamIdFromPath(pathname: string): Promise<string | null> {
+  const teamIdMatch = pathname.match(/^\/teams\/([^/]+)/)
+  const teamId = teamIdMatch ? teamIdMatch[1] : null
+  if (teamId) return teamId
+
+  const projectIdMatch = pathname.match(/^\/projects\/([^/]+)/)
+  const projectId = projectIdMatch ? projectIdMatch[1] : null
+  if (projectId) {
+    const { ensureTeamIdForProject } = useTeamContextStore.getState()
+    return await ensureTeamIdForProject(projectId)
+  }
+
+  return null
+}
 
 function RootComponent() {
   const user = useAuthStore((state) => state.user)
@@ -29,23 +47,15 @@ function RootComponent() {
     return <Outlet />
   }
 
-  // Extract teamId from pathname if possible
-  // Matches /teams/:teamId
-  const teamIdMatch = pathname.match(/^\/teams\/([^/]+)/)
-  const teamId = teamIdMatch ? teamIdMatch[1] : null
-
-  const projectIdMatch = pathname.match(/^\/projects\/([^/]+)/)
-  const projectId = projectIdMatch ? projectIdMatch[1] : null
-
-  const { teamId: storedTeamId, setTeamId, ensureTeamIdForProject } = useTeamContextStore()
+  const { teamId: storedTeamId, setTeamId } = useTeamContextStore()
 
   useEffect(() => {
-    if (teamId) {
-      setTeamId(teamId)
-    } else if (projectId) {
-      ensureTeamIdForProject(projectId)
-    }
-  }, [teamId, projectId, setTeamId, ensureTeamIdForProject])
+    resolveTeamIdFromPath(pathname).then((resolvedTeamId) => {
+      if (resolvedTeamId && resolvedTeamId !== storedTeamId) {
+        setTeamId(resolvedTeamId)
+      }
+    })
+  }, [pathname, storedTeamId, setTeamId])
 
   const { data: me } = useQuery({
     queryKey: ['teams', storedTeamId, 'me'],
@@ -75,7 +85,7 @@ function RootComponent() {
       <DualSidebar>
         <DualSidebarItem
           icon={<HomeIcon />}
-          label="Dashboard"
+          label={m.dashboard()}
           onItemClick={() => {
             if (storedTeamId) {
               navigate({
@@ -85,7 +95,7 @@ function RootComponent() {
             }
           }}
         />
-        <DualSidebarItem icon={<NotificationFillIcon />} label="Notifications" badge={badge}>
+        <DualSidebarItem icon={<NotificationFillIcon />} label={m.notifications()} badge={badge}>
           <NotificationList />
         </DualSidebarItem>
         <DualSidebarItem
@@ -95,7 +105,7 @@ function RootComponent() {
               className={uploading > 0 ? 'text-blue-500' : ''}
             />
           }
-          label="Uploads"
+          label={m.uploads()}
         >
           <UploadTasks />
         </DualSidebarItem>
@@ -117,5 +127,26 @@ interface MyRouterContext {
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
+  beforeLoad: async ({ location }) => {
+    if (typeof window !== 'undefined') {
+      const pathname = location.pathname
+      const teamId = await resolveTeamIdFromPath(pathname)
+
+      if (teamId) {
+        const { fetchMetadata, getMetadata } = useUserMetadataStore.getState()
+        try {
+          await fetchMetadata(teamId)
+          const savedLocale = getMetadata<string>('locale')
+          if ((savedLocale === 'en' || savedLocale === 'zh') && savedLocale !== getLocale()) {
+            setLocale(savedLocale, { reload: false })
+          }
+        } catch (e) {
+          console.error('Failed to load user locale metadata:', e)
+        }
+      }
+
+      document.documentElement.setAttribute('lang', getLocale())
+    }
+  },
   component: RootComponent,
 })

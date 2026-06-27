@@ -408,3 +408,51 @@ We use **pino** for logging. Always use **structured logging** to ensure logs ar
   logger.info({ userId: user.id, projectId }, 'Project deleted successfully')
   ```
 - **Levels**: Use appropriate levels: `debug`, `info`, `warn`, `error`.
+
+## Internationalization (i18n)
+
+All user-facing text in the WebUI (`packages/webui`) MUST be internationalized using **Paraglide JS**. Hardcoded text in UI components is strictly forbidden.
+
+### Message Definition
+
+1. Define your English message strings in [packages/webui/messages/en.json](packages/webui/messages/en.json).
+2. Define the corresponding Chinese translation strings in [packages/webui/messages/zh.json](packages/webui/messages/zh.json).
+3. Keys should use `snake_case`.
+
+Example (`en.json`):
+
+```json
+{
+  "my_key": "My English Text"
+}
+```
+
+### Compilation
+
+When you add or update translation keys, you must compile them to regenerate the type-safe functions:
+
+```bash
+# Compile once (generates type-safe TS/JS functions on disk)
+bun run i18n:compile
+
+# Watch and recompile on change during development
+bun run i18n:watch
+```
+
+### Usage in Components
+
+Import the compiled message namespace `m` and call it as a function:
+
+```typescript
+import { m } from '@/ui/paraglide/messages.js'
+
+export function MyComponent() {
+  return (
+    <div>
+      <h1>{m.my_key()}</h1>
+    </div>
+  )
+}
+```
+
+Always use the absolute workspace alias path `@/ui/paraglide/messages.js` (or `runtime.js` for runtime features) when importing Paraglide outputs.

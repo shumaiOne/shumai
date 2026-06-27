@@ -1,5 +1,6 @@
 import type { AssetInfo } from '@shumai/dtos'
 import type { ShareLinkInfo } from '@shumai/dtos'
+import { m } from '@/ui/paraglide/messages.js'
 import {
   ContextMenuContent,
   ContextMenuItem,
@@ -107,7 +108,7 @@ export function FileBrowserContextMenu({
       <ContextMenuContent>
         <ContextMenuItem onSelect={handleDownload}>
           <Download className="mr-2 h-4 w-4" />
-          <span>Download</span>
+          <span>{m.download()}</span>
         </ContextMenuItem>
         {canEdit && (
           <ContextMenuItem
@@ -115,7 +116,7 @@ export function FileBrowserContextMenu({
             className="text-destructive"
           >
             <Trash2 className="mr-2 h-4 w-4" />
-            <span>Remove from Share</span>
+            <span>{m.remove_from_share()}</span>
           </ContextMenuItem>
         )}
       </ContextMenuContent>
@@ -130,7 +131,7 @@ export function FileBrowserContextMenu({
       <ContextMenuContent>
         <ContextMenuItem onSelect={handleRestore}>
           <History className="mr-2 h-4 w-4" />
-          <span>Restore</span>
+          <span>{m.restore()}</span>
         </ContextMenuItem>
       </ContextMenuContent>
     )
@@ -147,19 +148,19 @@ export function FileBrowserContextMenu({
       >
         <ContextMenuItem onSelect={onUploadFile}>
           <UploadCloud className="mr-2 h-4 w-4" />
-          <span>Upload File</span>
+          <span>{m.upload_file()}</span>
         </ContextMenuItem>
         <ContextMenuItem onSelect={onUploadFolder}>
           <UploadCloud className="mr-2 h-4 w-4" />
-          <span>Upload Folder</span>
+          <span>{m.upload_folder()}</span>
         </ContextMenuItem>
         <ContextMenuItem
           onSelect={() => {
-            onNewFolder('New Folder')
+            onNewFolder(m.new_folder())
           }}
         >
           <FolderPlus className="mr-2 h-4 w-4" />
-          <span>New Folder</span>
+          <span>{m.new_folder()}</span>
         </ContextMenuItem>
       </ContextMenuContent>
     )
@@ -174,24 +175,24 @@ export function FileBrowserContextMenu({
       >
         <ContextMenuItem onSelect={handleDownload}>
           <Download className="mr-2 h-4 w-4" />
-          <span>Download</span>
+          <span>{m.download()}</span>
         </ContextMenuItem>
         {canEdit && (
           <ContextMenuItem onSelect={() => onMoveTo(itemsToModify)}>
             <ArrowRight className="mr-2 h-4 w-4" />
-            <span>Move to</span>
+            <span>{m.move_to()}</span>
           </ContextMenuItem>
         )}
         {canEdit && (
           <ContextMenuItem onSelect={() => onCopyTo(itemsToModify)}>
             <Copy className="mr-2 h-4 w-4" />
-            <span>Copy to</span>
+            <span>{m.copy_to()}</span>
           </ContextMenuItem>
         )}
         {canEdit && (
           <ContextMenuItem onSelect={handleDelete} className="text-destructive">
             <Trash2 className="mr-2 h-4 w-4" />
-            <span>Delete</span>
+            <span>{m.delete()}</span>
           </ContextMenuItem>
         )}
 
@@ -200,14 +201,14 @@ export function FileBrowserContextMenu({
             <ContextMenuSeparator />
             <ContextMenuItem onSelect={() => onCreateShareLink?.(itemsToModify)}>
               <Plus className="mr-2 h-4 w-4" />
-              <span>Create Share Link</span>
+              <span>{m.create_share_link()}</span>
             </ContextMenuItem>
 
             {shareLinks.length > 0 && (
               <ContextMenuSub>
                 <ContextMenuSubTrigger>
                   <Link className="mr-2 h-4 w-4" />
-                  <span>Add to Share Links</span>
+                  <span>{m.add_to_share_links()}</span>
                 </ContextMenuSubTrigger>
                 <ContextMenuPortal>
                   <ContextMenuSubContent className="w-48">
@@ -239,31 +240,31 @@ export function FileBrowserContextMenu({
             }}
           >
             <Edit className="mr-2 h-4 w-4" />
-            <span>Rename</span>
+            <span>{m.rename()}</span>
           </ContextMenuItem>
         )}
         <ContextMenuItem onSelect={handleDownload}>
           <Download className="mr-2 h-4 w-4" />
-          <span>Download</span>
+          <span>{m.download()}</span>
         </ContextMenuItem>
 
         {canEdit && (
           <ContextMenuItem onSelect={() => onMoveTo(itemsToModify)}>
             <ArrowRight className="mr-2 h-4 w-4" />
-            <span>Move to</span>
+            <span>{m.move_to()}</span>
           </ContextMenuItem>
         )}
         {canEdit && (
           <ContextMenuItem onSelect={() => onCopyTo(itemsToModify)}>
             <Copy className="mr-2 h-4 w-4" />
-            <span>Copy to</span>
+            <span>{m.copy_to()}</span>
           </ContextMenuItem>
         )}
 
         {canEdit && (item.type === 'file' || item.type === 'version_stack') && (
           <ContextMenuItem onSelect={() => onNewVersion(item)}>
             <UploadCloud className="mr-2 h-4 w-4" />
-            <span>Create new version</span>
+            <span>{m.create_new_version()}</span>
           </ContextMenuItem>
         )}
 
@@ -279,20 +280,20 @@ export function FileBrowserContextMenu({
             <ContextMenuSeparator />
             <ContextMenuItem onSelect={handleDelete} className="text-destructive">
               <Trash2 className="mr-2 h-4 w-4" />
-              <span>Delete</span>
+              <span>{m.delete()}</span>
             </ContextMenuItem>
 
             <ContextMenuSeparator />
             <ContextMenuItem onSelect={() => onCreateShareLink?.(itemsToModify)}>
               <Plus className="mr-2 h-4 w-4" />
-              <span>Create Share Link</span>
+              <span>{m.create_share_link()}</span>
             </ContextMenuItem>
 
             {shareLinks.length > 0 && (
               <ContextMenuSub>
                 <ContextMenuSubTrigger>
                   <Link className="mr-2 h-4 w-4" />
-                  <span>Add to Share Links</span>
+                  <span>{m.add_to_share_links()}</span>
                 </ContextMenuSubTrigger>
                 <ContextMenuPortal>
                   <ContextMenuSubContent className="w-48">

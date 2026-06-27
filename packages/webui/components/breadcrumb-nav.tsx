@@ -18,6 +18,7 @@ import {
 } from '@/ui/components/ui/icons'
 import { usePermissions } from '@/ui/hooks/use-permissions'
 import { cn } from '@/ui/lib/utils'
+import { m } from '@/ui/paraglide/messages.js'
 import type { AncestorFolder } from '@shumai/dtos'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { Check, ChevronDown, FileIcon, History, LayoutGrid, List } from 'lucide-react'
@@ -97,7 +98,7 @@ export function BreadcrumbNav({
           })),
       ]
     : [
-        { name: 'All Projects', path: `/teams/${teamId}`, isMuted: true },
+        { name: m.all_projects(), path: `/teams/${teamId}`, isMuted: true },
         { name: projectName, path: `/projects/${projectId}` },
         ...ancestorFolders
           .slice()

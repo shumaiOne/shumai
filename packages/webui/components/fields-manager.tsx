@@ -11,6 +11,7 @@ import { DragDropProvider, KeyboardSensor, PointerSensor, type DragEndEvent } fr
 import { useSortable } from '@dnd-kit/react/sortable'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { InferRequestType, InferResponseType } from 'hono/client'
+import { m } from '@/ui/paraglide/messages.js'
 
 import { Button } from '@/ui/components/ui/button'
 import {
@@ -165,7 +166,7 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
   >({
     mutationFn: async (request) => {
       const res = await $patchOrder(request)
-      if (!res.ok) throw new Error('Failed to update fields order')
+      if (!res.ok) throw new Error(m.failed_update_fields_order())
       return null as unknown as InferResponseType<typeof $patchOrder>
     },
   })
@@ -177,7 +178,7 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
   >({
     mutationFn: async (request) => {
       const res = await $post(request)
-      if (!res.ok) throw new Error('Failed to create field')
+      if (!res.ok) throw new Error(m.failed_create_field())
       return (await res.json()) as MetadataFieldInfo
     },
     onSuccess: (data) => {
@@ -268,10 +269,10 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
       <div className="w-80 p-4">
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="field-name">Name</Label>
+            <Label htmlFor="field-name">{m.field_name()}</Label>
             <Input
               id="field-name"
-              placeholder="New Field"
+              placeholder={m.new_field_placeholder()}
               value={newFieldName}
               onChange={(e) => setNewFieldName(e.target.value)}
               autoFocus
@@ -279,14 +280,16 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
           </div>
 
           <div className="space-y-2">
-            <Label>Type</Label>
+            <Label>{m.field_type()}</Label>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="w-full justify-between font-normal">
                   {newFieldType ? (
                     <span className="capitalize">{newFieldType.replace(/_/g, ' ')}</span>
                   ) : (
-                    <span className="text-muted-foreground border-dashed">Select field type</span>
+                    <span className="text-muted-foreground border-dashed">
+                      {m.select_field_type()}
+                    </span>
                   )}
                   <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
                 </Button>
@@ -309,10 +312,10 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="field-desc">Description</Label>
+            <Label htmlFor="field-desc">{m.description()}</Label>
             <Input
               id="field-desc"
-              placeholder="Description (Optional)"
+              placeholder={m.description_optional_placeholder()}
               value={newDescription}
               onChange={(e) => setNewDescription(e.target.value)}
             />
@@ -320,13 +323,13 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
 
           <div className="flex items-center space-x-2">
             <Switch id="ai-autofill" checked={newAiAutofill} onCheckedChange={setNewAiAutofill} />
-            <Label htmlFor="ai-autofill">AI Autofill</Label>
+            <Label htmlFor="ai-autofill">{m.ai_autofill()}</Label>
           </div>
 
           {(newFieldType === FieldType.select || newFieldType === FieldType.selectMulti) && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">Options</Label>
+                <Label className="text-sm font-medium">{m.options()}</Label>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -334,13 +337,13 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
                   onClick={() => {
                     const newOption: SelectOption = {
                       id: ulid(),
-                      displayName: 'New Option',
+                      displayName: m.new_option(),
                       color: '#808080',
                     }
                     setNewOptions([...newOptions, newOption])
                   }}
                 >
-                  <Plus className="h-4 w-4 mr-1" /> Add Option
+                  <Plus className="h-4 w-4 mr-1" /> {m.add_option()}
                 </Button>
               </div>
               <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
@@ -353,7 +356,7 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
                         updated[idx] = { ...opt, displayName: e.target.value }
                         setNewOptions(updated)
                       }}
-                      placeholder="Option name"
+                      placeholder={m.option_name_placeholder()}
                       className="h-8 flex-1"
                     />
                     <Popover>
@@ -414,14 +417,14 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
                 setNewOptions([])
               }}
             >
-              Cancel
+              {m.cancel()}
             </Button>
             <Button
               className="flex-1"
               onClick={handleCreateField}
               disabled={!newFieldName || !newFieldType}
             >
-              Save
+              {m.save()}
             </Button>
           </div>
         </div>
@@ -433,16 +436,16 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
     <div className="w-80 p-4">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold">
-          Fields{' '}
+          {m.fields()}{' '}
           <span className="text-muted-foreground text-sm font-normal">
-            ({visibleCount} visible)
+            {m.visible_count({ count: visibleCount })}
           </span>
         </h3>
       </div>
       <div className="relative mb-4">
         <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search fields"
+          placeholder={m.search_fields_placeholder()}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-8"
@@ -474,11 +477,11 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
         <div className="mt-4 space-y-2">
           <Button variant="secondary" className="w-full" onClick={onManageFields}>
             <Settings className="h-4 w-4 mr-2" />
-            Manage Fields
+            {m.manage_fields()}
           </Button>
           <Button className="w-full" onClick={() => setView('create')}>
             <Plus className="h-4 w-4 mr-2" />
-            New Field
+            {m.new_field()}
           </Button>
         </div>
       )}

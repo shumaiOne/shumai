@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Monitor, Moon, Sun } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { m } from '@/ui/paraglide/messages.js'
 
 type Theme = 'light' | 'dark' | 'system'
 
@@ -53,14 +54,14 @@ export function ThemeSwitcher() {
   }
 
   const options: { value: Theme; icon: typeof Sun; label: string }[] = [
-    { value: 'light', icon: Sun, label: 'Light' },
-    { value: 'dark', icon: Moon, label: 'Dark' },
-    { value: 'system', icon: Monitor, label: 'System' },
+    { value: 'light', icon: Sun, label: m.light() },
+    { value: 'dark', icon: Moon, label: m.dark() },
+    { value: 'system', icon: Monitor, label: m.system() },
   ]
 
   return (
     <div className="space-y-2">
-      <div className="px-1 text-xs font-semibold text-sidebar-foreground/60">THEME</div>
+      <div className="px-1 text-xs font-semibold text-sidebar-foreground/60">{m.theme()}</div>
       <div className="flex items-center gap-1 rounded-lg bg-sidebar-accent p-1">
         {options.map(({ value, icon: Icon, label }) => (
           <button

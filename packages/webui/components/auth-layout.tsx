@@ -1,6 +1,7 @@
 import { ShumaiLogo } from '@/ui/components/ui/icons'
 import { CheckCircle2 } from 'lucide-react'
 import { ReactNode } from 'react'
+import { m } from '@/ui/paraglide/messages.js'
 
 export function AuthLayout({ children }: { children: ReactNode }) {
   return (
@@ -27,41 +28,31 @@ export function AuthLayout({ children }: { children: ReactNode }) {
           {/* Marketing Copy / Feature Points */}
           <div className="relative my-8 md:my-0 space-y-6">
             <h2 className="text-3xl font-extrabold tracking-tight leading-tight text-zinc-900 dark:text-zinc-50">
-              One workspace
-              <br />
-              for all your
-              <br />
-              <span className="bg-gradient-to-r from-rose-500 to-orange-500 bg-clip-text text-transparent">
-                creative assets.
-              </span>
+              {m.auth_tagline()}
             </h2>
             <p className="text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed max-w-sm">
-              Upload and index your files, enrich them with custom metadata schemas, draw
-              annotations directly on media, and gather instant feedback — all in one modern
-              workspace built for creators.
+              {m.auth_description()}
             </p>
 
             <ul className="space-y-3.5 pt-4">
-              {[
-                'Instant asset uploads & high-fidelity media players',
-                'Custom metadata schemas & drawing canvas reviews',
-                'Frictionless team workspaces & secure sharing',
-              ].map((text, i) => (
-                <li
-                  key={i}
-                  className="flex items-center gap-3 text-sm text-zinc-700 dark:text-zinc-300 font-medium"
-                >
-                  <CheckCircle2 className="w-5 h-5 text-rose-500 flex-shrink-0" />
-                  <span>{text}</span>
-                </li>
-              ))}
+              {[m.auth_feature_uploads(), m.auth_feature_metadata(), m.auth_feature_teams()].map(
+                (text, i) => (
+                  <li
+                    key={i}
+                    className="flex items-center gap-3 text-sm text-zinc-700 dark:text-zinc-300 font-medium"
+                  >
+                    <CheckCircle2 className="w-5 h-5 text-rose-500 flex-shrink-0" />
+                    <span>{text}</span>
+                  </li>
+                ),
+              )}
             </ul>
           </div>
 
           {/* Footer Label */}
           <div className="relative pt-4 border-t border-zinc-200/30 dark:border-zinc-800/30">
             <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-              Join our community of developers and designers.
+              {m.auth_community_cta()}
             </p>
           </div>
         </div>

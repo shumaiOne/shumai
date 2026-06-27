@@ -18,6 +18,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { DrawAnnotation } from '../ui/icons'
 import { Skeleton } from '../ui/skeleton'
 import { formatTimestamp } from '../viewers/utils'
+import { m } from '@/ui/paraglide/messages.js'
 
 interface MessageCardProps {
   teamId?: string
@@ -445,7 +446,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                                 renderedBlocks.push(
                                   <div key={`tool-${idx}`} className="text-xs space-y-2 py-1">
                                     <div className="font-semibold text-violet-600 dark:text-violet-400 flex items-center gap-1.5">
-                                      Calling Tool:{' '}
+                                      {m.calling_tool()}{' '}
                                       <span className="font-mono bg-violet-500/10 px-1 py-0.5 rounded text-[11px]">
                                         {toolName}
                                       </span>
@@ -453,7 +454,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                                     {!!toolArgs && (
                                       <div className="space-y-1 pt-3">
                                         <div className="text-[10px] text-muted-foreground/60 uppercase font-bold tracking-wider">
-                                          Arguments
+                                          {m.tool_arguments()}
                                         </div>
                                         {renderToolCallArguments(toolArgs)}
                                       </div>

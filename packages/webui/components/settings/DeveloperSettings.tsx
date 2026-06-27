@@ -15,6 +15,7 @@ import {
 import { Loader2, Plus, Trash2, Copy, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ApiTokenResponse } from '@shumai/dtos'
+import { m } from '@/ui/paraglide/messages.js'
 
 export function DeveloperSettings({ teamId }: { teamId: string }) {
   const queryClient = useQueryClient()
@@ -44,10 +45,10 @@ export function DeveloperSettings({ teamId }: { teamId: string }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'api-tokens'] })
       setTokenName('')
-      toast.success('API token generated successfully')
+      toast.success(m.api_token_generated_successfully())
     },
     onError: (err) => {
-      toast.error(err instanceof Error ? err.message : 'Failed to generate token')
+      toast.error(err instanceof Error ? err.message : m.failed_to_generate_token())
     },
   })
 
@@ -61,10 +62,10 @@ export function DeveloperSettings({ teamId }: { teamId: string }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'api-tokens'] })
-      toast.success('API token revoked successfully')
+      toast.success(m.api_token_revoked_successfully())
     },
     onError: (err) => {
-      toast.error(err instanceof Error ? err.message : 'Failed to revoke token')
+      toast.error(err instanceof Error ? err.message : m.failed_to_revoke_token())
     },
   })
 
@@ -77,7 +78,7 @@ export function DeveloperSettings({ teamId }: { teamId: string }) {
   const handleCopy = (id: string, token: string) => {
     navigator.clipboard.writeText(token)
     setCopiedId(id)
-    toast.success('Copied API token to clipboard')
+    toast.success(m.copied_api_token_to_clipboard())
     setTimeout(() => setCopiedId(null), 2000)
   }
 
@@ -93,23 +94,20 @@ export function DeveloperSettings({ teamId }: { teamId: string }) {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>API Tokens</CardTitle>
-          <CardDescription>
-            Generate and manage API tokens. These tokens allow you or your agents to run terminal
-            commands via shumai-cli.
-          </CardDescription>
+          <CardTitle>{m.api_tokens()}</CardTitle>
+          <CardDescription>{m.api_tokens_description()}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <form onSubmit={handleGenerate} className="flex gap-4 items-end max-w-md">
             <div className="flex-1 space-y-2">
               <label htmlFor="tokenName" className="text-sm font-medium text-muted-foreground">
-                Token Name
+                {m.token_name()}
               </label>
               <Input
                 id="tokenName"
                 value={tokenName}
                 onChange={(e) => setTokenName(e.target.value)}
-                placeholder="e.g. My CLI token"
+                placeholder={m.token_name_placeholder()}
                 required
               />
             </div>
@@ -119,7 +117,7 @@ export function DeveloperSettings({ teamId }: { teamId: string }) {
               ) : (
                 <Plus className="w-4 h-4 mr-2" />
               )}
-              Generate
+              {m.generate()}
             </Button>
           </form>
 
@@ -127,10 +125,10 @@ export function DeveloperSettings({ teamId }: { teamId: string }) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Token</TableHead>
-                  <TableHead>Created At</TableHead>
-                  <TableHead className="w-[100px] text-right">Actions</TableHead>
+                  <TableHead>{m.name()}</TableHead>
+                  <TableHead>{m.token()}</TableHead>
+                  <TableHead>{m.created_at()}</TableHead>
+                  <TableHead className="w-[100px] text-right">{m.actions()}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -140,7 +138,7 @@ export function DeveloperSettings({ teamId }: { teamId: string }) {
                       colSpan={4}
                       className="text-center py-6 text-muted-foreground text-sm"
                     >
-                      No API tokens found. Generate one above to get started.
+                      {m.no_api_tokens_found()}
                     </TableCell>
                   </TableRow>
                 ) : (

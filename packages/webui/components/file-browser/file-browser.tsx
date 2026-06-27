@@ -1,6 +1,7 @@
 'use client'
 import { client } from '@/ui/api/client'
 import type { InferRequestType, InferResponseType } from 'hono/client'
+import { m } from '@/ui/paraglide/messages.js'
 
 import { usePermissions } from '@/ui/hooks/use-permissions'
 import { getAllFilesFromEntries } from '@/ui/lib/dnd-utils'
@@ -565,9 +566,13 @@ export function FileBrowser({
       (c) => c.field === 'name' && c.operator === 'contains',
     )
     if (isNameFilter && count === 10001) {
-      return `10000+ ${isFile ? 'Asset' : 'Folder'}s`
+      return isFile ? m.count_overflow_assets() : m.count_overflow_folders()
     }
-    return `${count} ${isFile ? 'Asset' : 'Folder'}${count !== 1 ? 's' : ''}`
+    if (isFile) {
+      return count === 1 ? m.n_assets_singular({ count }) : m.n_assets_plural({ count })
+    } else {
+      return count === 1 ? m.n_folders_singular({ count }) : m.n_folders_plural({ count })
+    }
   }
 
   const handleEmptyAreaClick = (e: React.MouseEvent) => {
@@ -972,7 +977,7 @@ export function FileBrowser({
               <div className="flex items-center justify-between px-4 py-2.5 bg-muted/20 border-b border-border text-sm shrink-0 animate-in fade-in slide-in-from-top-2 duration-300">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
-                  <span>Items are automatically deleted after 30 days.</span>
+                  <span>{m.recently_deleted_notice()}</span>
                 </div>
                 {canAdmin && (
                   <Button

@@ -1,9 +1,8 @@
-import type { AssetInfo } from '@shumai/dtos'
-import type { CollectionInfo } from '@shumai/dtos'
-import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
-import type { SearchCondition, SearchSort } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
 import { usePermissions } from '@/ui/hooks/use-permissions'
+import { m } from '@/ui/paraglide/messages.js'
+import type { AssetInfo, CollectionInfo, SearchCondition, SearchSort } from '@shumai/dtos'
+import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { InferRequestType, InferResponseType } from 'hono/client'
 import { useState } from 'react'
@@ -228,7 +227,7 @@ export function FileBrowserToolbar({
           <PopoverTrigger asChild>
             <div>
               <Button variant="ghost" size="sm">
-                Fields
+                {m.field()}
               </Button>
             </div>
           </PopoverTrigger>
@@ -341,7 +340,7 @@ export function FileBrowserToolbar({
             size="sm"
             className="inline-flex items-center gap-2 px-4 py-2 hover:bg-primary/10 font-semibold rounded-xl cursor-pointer h-8"
           >
-            <span>Search</span>
+            <span>{m.search()}</span>
             {activeFiltersCount > 0 && (
               <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/50 border border-primary-foreground/20">
                 {activeFiltersCount}

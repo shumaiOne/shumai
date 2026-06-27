@@ -14,10 +14,11 @@ import { signUp } from '@/ui/lib/auth-client'
 import { useState } from 'react'
 import { ShumaiLogo } from '@/ui/components/ui/icons'
 import { AuthLayout } from '@/ui/components/auth-layout'
+import { m } from '@/ui/paraglide/messages.js'
 
 const signupSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(3, 'Password must be at least 3 characters'),
+  email: z.string().email(m.invalid_email_address()),
+  password: z.string().min(3, m.password_min_length()),
   inviteCode: z.string().optional(),
 })
 
@@ -75,7 +76,7 @@ function SignupPage() {
 
     setLoading(false)
     if (signUpError) {
-      setError(signUpError.message || 'Signup failed')
+      setError(signUpError.message || m.signup_failed())
       return
     }
 
@@ -112,21 +113,20 @@ function SignupPage() {
               <ShumaiLogo className="h-16 w-16 shadow-lg shadow-rose-500/10 rounded-2xl" />
             </div>
             <CardTitle className="text-2xl font-bold tracking-tight bg-gradient-to-r from-rose-500 to-orange-500 bg-clip-text text-transparent">
-              Registration Disabled
+              {m.registration_disabled()}
             </CardTitle>
             <CardDescription className="mt-2 text-zinc-600 dark:text-zinc-400">
-              Public registration is currently disabled. You will need an invite code to join this
-              team.
+              {m.registration_disabled_description()}
             </CardDescription>
           </CardHeader>
           <CardFooter className="flex flex-col gap-4 pb-8 text-center text-sm border-t border-zinc-200/30 dark:border-zinc-800/30 pt-6">
             <p className="text-zinc-500 dark:text-zinc-400">
-              Already have an account?{' '}
+              {m.already_have_account()}{' '}
               <a
                 href="/login"
                 className="font-semibold text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 transition-colors hover:underline inline-flex items-center gap-1"
               >
-                Login here <ArrowRight className="w-3.5 h-3.5" />
+                {m.login_here()} <ArrowRight className="w-3.5 h-3.5" />
               </a>
             </p>
           </CardFooter>
@@ -139,26 +139,26 @@ function SignupPage() {
     <AuthLayout>
       <div className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Create Account
+          {m.create_account()}
         </h1>
-        <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-1 mb-4">
-          Start building and organizing your space.
-        </p>
+        <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-1 mb-4">{m.signup_subtitle()}</p>
 
         {/* Context Banners (First User / Invite Info) */}
         {isFirstUser && (
           <div className="flex items-start gap-3 p-3 bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 rounded-2xl text-xs leading-relaxed font-medium">
             <span>🎉</span>
-            <span>You will be the owner of the default workspace as the first user!</span>
+            <span>{m.first_user_notice()}</span>
           </div>
         )}
         {inviteInfo && !('error' in inviteInfo) && (
           <div className="flex items-start gap-3 p-3 bg-rose-500/10 border border-rose-500/20 text-rose-800 dark:text-rose-300 rounded-2xl text-xs leading-relaxed font-medium mt-3">
             <span>👋</span>
             <span>
-              <strong>{inviteInfo.inviterName}</strong> invited you to join{' '}
-              <strong>{inviteInfo.projectName || inviteInfo.teamName}</strong> as a{' '}
-              <strong>{inviteInfo.role}</strong>.
+              {m.invite_join_message({
+                inviterName: inviteInfo.inviterName,
+                targetName: inviteInfo.projectName || inviteInfo.teamName,
+                role: inviteInfo.role,
+              })}
             </span>
           </div>
         )}
@@ -176,7 +176,7 @@ function SignupPage() {
             htmlFor="email"
             className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 tracking-wide uppercase"
           >
-            Email Address
+            {m.email_address()}
           </Label>
           <div className="relative group">
             <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 dark:text-zinc-600 transition-colors group-focus-within:text-rose-500" />
@@ -200,7 +200,7 @@ function SignupPage() {
             htmlFor="password"
             className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 tracking-wide uppercase"
           >
-            Password
+            {m.password()}
           </Label>
           <div className="relative group">
             <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 dark:text-zinc-600 transition-colors group-focus-within:text-rose-500" />
@@ -208,7 +208,7 @@ function SignupPage() {
               id="password"
               type="password"
               {...form.register('password')}
-              placeholder="At least 3 characters"
+              placeholder={m.password_min_placeholder()}
               className="pl-10.5 h-11 border-zinc-200 dark:border-zinc-800 focus-visible:ring-rose-500/50 focus-visible:border-rose-500 rounded-xl transition-all shadow-sm"
             />
           </div>
@@ -227,24 +227,24 @@ function SignupPage() {
           {loading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Creating account...
+              {m.creating_account()}
             </>
           ) : (
             <>
               <UserPlus className="w-4 h-4" />
-              Sign Up
+              {m.sign_up()}
             </>
           )}
         </Button>
       </form>
 
       <div className="mt-8 pt-6 border-t border-zinc-200/30 dark:border-zinc-800/30 text-center text-sm">
-        <span className="text-zinc-500 dark:text-zinc-400">Already have an account? </span>
+        <span className="text-zinc-500 dark:text-zinc-400">{m.already_have_account()}</span>
         <a
           href="/login"
           className="font-semibold text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 transition-colors hover:underline inline-flex items-center gap-0.5"
         >
-          Login <ArrowRight className="w-3.5 h-3.5" />
+          {m.login()} <ArrowRight className="w-3.5 h-3.5" />
         </a>
       </div>
     </AuthLayout>

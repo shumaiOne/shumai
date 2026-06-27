@@ -1,6 +1,7 @@
 import { client } from '@/ui/api/client'
 import { FolderTree } from '@/ui/components/folder-tree'
 import { ResizeHandle } from '@/ui/components/resize-handle'
+import { m } from '@/ui/paraglide/messages.js'
 import { Switch } from '@/ui/components/ui/switch'
 import { Button } from '@/ui/components/ui/button'
 import {
@@ -114,10 +115,10 @@ function SharesPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shares', projectId] })
-      toast.success('Share link status updated')
+      toast.success(m.share_link_status_updated())
     },
     onError: (err) => {
-      toast.error(`Error: ${err.message}`)
+      toast.error(m.error_message({ message: err.message }))
     },
   })
 
@@ -128,7 +129,7 @@ function SharesPage() {
   const handleCopyLink = (shareId: string) => {
     const url = `${window.location.origin}/share/${shareId}`
     navigator.clipboard.writeText(url)
-    toast.success('Link copied to clipboard')
+    toast.success(m.link_copied())
   }
 
   return (
@@ -165,7 +166,7 @@ function SharesPage() {
           <header className="h-14 border-b flex items-center justify-between px-6 shrink-0 bg-background/50 backdrop-blur-sm sticky top-0 z-10">
             <div className="flex items-center gap-2">
               <Share2 className="h-5 w-5 text-primary" />
-              <h1 className="font-bold text-lg text-foreground">All Share Links</h1>
+              <h1 className="font-bold text-lg text-foreground">{m.all_share_links()}</h1>
             </div>
           </header>
 
@@ -177,21 +178,21 @@ function SharesPage() {
             ) : shares.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-muted-foreground gap-3">
                 <Link2 className="h-10 w-10 text-muted-foreground/50" />
-                <p>No share links created yet.</p>
+                <p>{m.no_share_links_yet()}</p>
               </div>
             ) : (
               <div className="border border-border rounded-xl bg-background overflow-hidden shadow-xs">
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent bg-muted/20">
-                      <TableHead className="font-semibold px-4 py-3">Name</TableHead>
-                      <TableHead className="font-semibold px-4 py-3">Public Link</TableHead>
-                      <TableHead className="font-semibold px-4 py-3">Creator</TableHead>
+                      <TableHead className="font-semibold px-4 py-3">{m.name()}</TableHead>
+                      <TableHead className="font-semibold px-4 py-3">{m.public_link()}</TableHead>
+                      <TableHead className="font-semibold px-4 py-3">{m.creator()}</TableHead>
                       <TableHead className="font-semibold px-4 py-3 w-[150px]">
-                        Created Date
+                        {m.created_date()}
                       </TableHead>
                       <TableHead className="font-semibold px-4 py-3 text-right w-[120px]">
-                        Active
+                        {m.active()}
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -218,7 +219,7 @@ function SharesPage() {
                               <span
                                 className="truncate text-xs font-mono bg-muted/50 text-muted-foreground px-2 py-1 rounded-md border border-border cursor-pointer hover:bg-muted transition-colors flex-1"
                                 onClick={() => handleCopyLink(share.id)}
-                                title="Click to copy link"
+                                title={m.click_to_copy_link()}
                               >
                                 {shareUrl}
                               </span>
@@ -255,7 +256,7 @@ function SharesPage() {
                                 </AvatarFallback>
                               </Avatar>
                               <span className="text-sm font-medium text-foreground truncate max-w-[150px]">
-                                {share.creator?.name || 'Unknown'}
+                                {share.creator?.name || m.unknown()}
                               </span>
                             </div>
                           </TableCell>

@@ -12,6 +12,7 @@ import { Textarea } from '@/ui/components/ui/textarea'
 import React from 'react'
 import { PROVIDERS } from './constants'
 import { ThinkingLevel } from './types'
+import { m } from '@/ui/paraglide/messages.js'
 
 // --- Section Header ---
 export const SectionLabel: React.FC<{
@@ -46,14 +47,14 @@ export const AgentTypeSelector: React.FC<{
 }> = ({ value, onChange }) => {
   return (
     <div className="space-y-2">
-      <SectionLabel label="Agent Type" />
+      <SectionLabel label={m.agent_type()} />
       <Select value={value} onValueChange={(val: 'chat' | 'autofill') => onChange(val)}>
         <SelectTrigger className="w-full">
-          <SelectValue placeholder="Select type" />
+          <SelectValue placeholder={m.select_type()} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="chat">Chat Agent</SelectItem>
-          <SelectItem value="autofill">Autofill Agent</SelectItem>
+          <SelectItem value="chat">{m.chat_agent()}</SelectItem>
+          <SelectItem value="autofill">{m.autofill_agent()}</SelectItem>
         </SelectContent>
       </Select>
     </div>
@@ -96,7 +97,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   models,
   onProviderChange,
   onModelChange,
-  label = 'AI Provider',
+  label = m.ai_provider(),
   subLabel,
 }) => {
   return (
@@ -105,7 +106,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
         <SectionLabel label={label} subLabel={subLabel} />
         <Select value={provider || ''} onValueChange={(val) => onProviderChange(val)}>
           <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select provider" />
+            <SelectValue placeholder={m.select_provider()} />
           </SelectTrigger>
           <SelectContent>
             {PROVIDERS.map((p) => (
@@ -118,10 +119,10 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
       </div>
 
       <div>
-        <SectionLabel label="Model" />
+        <SectionLabel label={m.model()} />
         <Select value={model || ''} onValueChange={(val) => onModelChange(val)}>
           <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select model" />
+            <SelectValue placeholder={m.select_model()} />
           </SelectTrigger>
           <SelectContent>
             {models.length > 0 ? (
@@ -132,7 +133,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
               ))
             ) : (
               <SelectItem value="none" disabled>
-                No models configured
+                {m.no_models_configured()}
               </SelectItem>
             )}
           </SelectContent>
@@ -154,22 +155,22 @@ export const ThinkingLevelSelector: React.FC<ThinkingLevelSelectorProps> = ({
   value,
   onChange,
   disabled,
-  label = 'Thinking Strength',
+  label = m.thinking_strength(),
 }) => {
   const levels = [
     {
       id: ThinkingLevel.DISABLED,
-      label: 'Disable',
-      desc: 'Standard generation',
+      label: m.thinking_disable(),
+      desc: m.standard_generation(),
     },
-    { id: ThinkingLevel.LOW, label: 'Low', desc: 'Quick reasoning' },
-    { id: ThinkingLevel.MEDIUM, label: 'Medium', desc: 'Balanced thought' },
-    { id: ThinkingLevel.HIGH, label: 'High', desc: 'Deep reasoning' },
+    { id: ThinkingLevel.LOW, label: m.thinking_low(), desc: m.quick_reasoning() },
+    { id: ThinkingLevel.MEDIUM, label: m.thinking_medium(), desc: m.balanced_thought() },
+    { id: ThinkingLevel.HIGH, label: m.thinking_high(), desc: m.deep_reasoning() },
   ]
 
   return (
     <div className={disabled ? 'opacity-50 pointer-events-none grayscale' : ''}>
-      <SectionLabel label={label} subLabel="Control the depth of reasoning for complex tasks." />
+      <SectionLabel label={label} subLabel={m.thinking_level_description()} />
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {levels.map((level) => {
           const isSelected = value === level.id

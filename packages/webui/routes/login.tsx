@@ -13,10 +13,11 @@ import { ArrowRight, Loader2, Lock, LogIn, Mail } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { m } from '@/ui/paraglide/messages.js'
 
 const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(1, 'Password is required'),
+  email: z.string().email(m.invalid_email_address()),
+  password: z.string().min(1, m.password_is_required()),
 })
 
 type LoginSchema = z.infer<typeof loginSchema>
@@ -58,7 +59,7 @@ function LoginPage() {
 
     setLoading(false)
     if (signInError) {
-      setError(signInError.message || 'Invalid credentials')
+      setError(signInError.message || m.invalid_credentials())
       return
     }
 
@@ -83,18 +84,15 @@ function LoginPage() {
     <AuthLayout>
       <div className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Welcome Back
+          {m.welcome_back()}
         </h1>
-        <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-1">
-          Enter your credentials to access your account.
-        </p>
+        <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-1">{m.login_subtitle()}</p>
       </div>
 
       {isDemoEnv && (
         <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-400 rounded-xl text-sm leading-relaxed">
           <p>
-            <strong>Demo Access:</strong> Use <strong>"foo@bar.com"</strong> as the email and{' '}
-            <strong>"foo"</strong> as the password to login.
+            <strong>{m.demo_access()}</strong> {m.demo_access_instructions()}
           </p>
         </div>
       )}
@@ -111,7 +109,7 @@ function LoginPage() {
             htmlFor="email"
             className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 tracking-wide uppercase"
           >
-            Email Address
+            {m.email_address()}
           </Label>
           <div className="relative group">
             <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 dark:text-zinc-600 transition-colors group-focus-within:text-rose-500" />
@@ -135,7 +133,7 @@ function LoginPage() {
             htmlFor="password"
             className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 tracking-wide uppercase"
           >
-            Password
+            {m.password()}
           </Label>
           <div className="relative group">
             <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 dark:text-zinc-600 transition-colors group-focus-within:text-rose-500" />
@@ -143,7 +141,7 @@ function LoginPage() {
               id="password"
               type="password"
               {...form.register('password')}
-              placeholder="Your password"
+              placeholder={m.password_placeholder()}
               className="pl-10.5 h-11 border-zinc-200 dark:border-zinc-800 focus-visible:ring-rose-500/50 focus-visible:border-rose-500 rounded-xl transition-all shadow-sm"
             />
           </div>
@@ -162,24 +160,24 @@ function LoginPage() {
           {loading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Logging in...
+              {m.logging_in()}
             </>
           ) : (
             <>
               <LogIn className="w-4 h-4" />
-              Login
+              {m.login()}
             </>
           )}
         </Button>
       </form>
 
       <div className="mt-8 pt-6 border-t border-zinc-200/30 dark:border-zinc-800/30 text-center text-sm">
-        <span className="text-zinc-500 dark:text-zinc-400">Don't have an account? </span>
+        <span className="text-zinc-500 dark:text-zinc-400">{m.no_account_prompt()}</span>
         <a
           href="/signup"
           className="font-semibold text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 transition-colors hover:underline inline-flex items-center gap-0.5"
         >
-          Sign up <ArrowRight className="w-3.5 h-3.5" />
+          {m.sign_up()} <ArrowRight className="w-3.5 h-3.5" />
         </a>
       </div>
     </AuthLayout>

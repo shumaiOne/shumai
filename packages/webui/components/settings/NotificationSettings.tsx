@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { NotificationSettings as Settings } from '@shumai/dtos'
+import { m } from '@/ui/paraglide/messages.js'
 
 export function NotificationSettings({ teamId }: { teamId: string }) {
   const queryClient = useQueryClient()
@@ -24,7 +25,7 @@ export function NotificationSettings({ teamId }: { teamId: string }) {
       const res = await client.api.teams[':teamId'].notifications.settings.$get({
         param: { teamId },
       })
-      if (!res.ok) throw new Error('Failed to fetch notification settings')
+      if (!res.ok) throw new Error(m.failed_load_settings())
       return (await res.json()) as Settings
     },
   })
@@ -35,16 +36,16 @@ export function NotificationSettings({ teamId }: { teamId: string }) {
         param: { teamId },
         json: updated,
       })
-      if (!res.ok) throw new Error('Failed to update notification settings')
+      if (!res.ok) throw new Error(m.failed_to_update_notification_settings())
       return await res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'notification-settings'] })
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'notifications'] })
-      toast.success('Notification settings updated')
+      toast.success(m.notification_settings_updated())
     },
     onError: (err) => {
-      toast.error(err instanceof Error ? err.message : 'Failed to update notification settings')
+      toast.error(err instanceof Error ? err.message : m.failed_to_update_notification_settings())
     },
   })
 
@@ -73,12 +74,9 @@ export function NotificationSettings({ teamId }: { teamId: string }) {
           <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
             <div className="flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-blue-500" />
-              <CardTitle className="text-lg">Comments & Replies</CardTitle>
+              <CardTitle className="text-lg">{m.comments_and_replies()}</CardTitle>
             </div>
-            <CardDescription>
-              Control notification preferences when other users comment on assets you collaborate on
-              or mention you.
-            </CardDescription>
+            <CardDescription>{m.comments_notification_description()}</CardDescription>
           </CardHeader>
           <CardContent className="divide-y divide-slate-100 dark:divide-slate-800 p-0">
             {/* General Comments */}
@@ -89,10 +87,10 @@ export function NotificationSettings({ teamId }: { teamId: string }) {
                 </div>
                 <div className="space-y-0.5">
                   <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
-                    General Comments
+                    {m.general_comments()}
                   </h4>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    When someone comments on an asset
+                    {m.when_someone_comments()}
                   </p>
                 </div>
               </div>
@@ -111,10 +109,10 @@ export function NotificationSettings({ teamId }: { teamId: string }) {
                 </div>
                 <div className="space-y-0.5">
                   <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Comment Replies
+                    {m.comment_replies()}
                   </h4>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    When someone replies to your comment
+                    {m.when_someone_replies()}
                   </p>
                 </div>
               </div>
@@ -133,10 +131,10 @@ export function NotificationSettings({ teamId }: { teamId: string }) {
                 </div>
                 <div className="space-y-0.5">
                   <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
-                    @Mentions
+                    {m.at_mentions()}
                   </h4>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    When someone @mentions you in a comment
+                    {m.when_someone_mentions()}
                   </p>
                 </div>
               </div>
@@ -154,11 +152,9 @@ export function NotificationSettings({ teamId }: { teamId: string }) {
           <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
             <div className="flex items-center gap-2">
               <UploadCloud className="w-5 h-5 text-emerald-500" />
-              <CardTitle className="text-lg">Assets & Statuses</CardTitle>
+              <CardTitle className="text-lg">{m.assets_and_statuses()}</CardTitle>
             </div>
-            <CardDescription>
-              Manage notifications related to file uploads and metadata field status updates.
-            </CardDescription>
+            <CardDescription>{m.assets_notification_description()}</CardDescription>
           </CardHeader>
           <CardContent className="divide-y divide-slate-100 dark:divide-slate-800 p-0">
             {/* Your Uploads */}
@@ -169,10 +165,10 @@ export function NotificationSettings({ teamId }: { teamId: string }) {
                 </div>
                 <div className="space-y-0.5">
                   <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Your Uploads
+                    {m.your_uploads()}
                   </h4>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    When you upload assets
+                    {m.when_you_upload_assets()}
                   </p>
                 </div>
               </div>
@@ -191,10 +187,10 @@ export function NotificationSettings({ teamId }: { teamId: string }) {
                 </div>
                 <div className="space-y-0.5">
                   <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Other Uploads
+                    {m.other_uploads()}
                   </h4>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    When other users upload assets
+                    {m.when_other_users_upload_assets()}
                   </p>
                 </div>
               </div>
@@ -213,10 +209,10 @@ export function NotificationSettings({ teamId }: { teamId: string }) {
                 </div>
                 <div className="space-y-0.5">
                   <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Status Updates
+                    {m.status_updates()}
                   </h4>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    When someone changes an asset’s status
+                    {m.when_someone_changes_status()}
                   </p>
                 </div>
               </div>

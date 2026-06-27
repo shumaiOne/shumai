@@ -17,6 +17,16 @@ import { Input } from '@/ui/components/ui/input'
 import { Button } from '@/ui/components/ui/button'
 import { AvatarCropDialog } from '@/ui/components/settings/AvatarCropDialog'
 import { toast } from 'sonner'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/ui/components/ui/select'
+import { useUserMetadataStore } from '@/ui/stores/user-metadata'
+import { getLocale, setLocale } from '@/ui/paraglide/runtime.js'
+import { m } from '@/ui/paraglide/messages.js'
 
 type SettingsTab =
   | 'general'
@@ -37,6 +47,22 @@ function TeamSettingsPage() {
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false)
+
+  const { setMetadata, getMetadata } = useUserMetadataStore()
+  const currentLocale = getMetadata<string>('locale') || getLocale()
+
+  const handleLanguageChange = async (newLocale: string) => {
+    if (newLocale === 'en' || newLocale === 'zh') {
+      try {
+        await setMetadata(teamId, 'locale', newLocale)
+        setLocale(newLocale)
+        toast.success(m.language_updated())
+      } catch (e) {
+        console.error(e)
+        toast.error(m.failed_update_language())
+      }
+    }
+  }
 
   const {
     data: settings,
@@ -111,12 +137,12 @@ function TeamSettingsPage() {
       })
       if (!patchRes.ok) throw new Error('Failed to save profile')
 
-      toast.success('Avatar updated successfully')
+      toast.success(m.avatar_updated())
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'me'] })
       setIsCropOpen(false)
     } catch (err) {
       console.error(err)
-      toast.error('Failed to update avatar')
+      toast.error(m.failed_update_avatar())
     } finally {
       setIsUpdatingProfile(false)
     }
@@ -131,11 +157,11 @@ function TeamSettingsPage() {
       })
       if (!patchRes.ok) throw new Error('Failed to remove avatar')
 
-      toast.success('Avatar removed successfully')
+      toast.success(m.avatar_removed())
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'me'] })
     } catch (err) {
       console.error(err)
-      toast.error('Failed to remove avatar')
+      toast.error(m.failed_remove_avatar())
     } finally {
       setIsUpdatingProfile(false)
     }
@@ -151,11 +177,11 @@ function TeamSettingsPage() {
       })
       if (!patchRes.ok) throw new Error('Failed to update name')
 
-      toast.success('Profile updated successfully')
+      toast.success(m.profile_updated())
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'me'] })
     } catch (err) {
       console.error(err)
-      toast.error('Failed to update profile')
+      toast.error(m.failed_update_profile())
     } finally {
       setIsUpdatingProfile(false)
     }
@@ -197,7 +223,7 @@ function TeamSettingsPage() {
   }
 
   if (settingsError) {
-    return <div className="p-8 text-center text-red-500">Failed to load settings.</div>
+    return <div className="p-8 text-center text-red-500">{m.failed_load_settings()}</div>
   }
 
   let currentVideoStrategy =
@@ -216,7 +242,7 @@ function TeamSettingsPage() {
         <div className="w-full h-full md:w-72 bg-sidebar border-b md:border-b-0 md:border-r border-sidebar-border z-10 md:left-16 overflow-y-auto transition-colors duration-300">
           <nav className="p-4 space-y-1 mt-4">
             <div className="mb-2 px-4 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
-              Settings
+              {m.settings()}
             </div>
 
             <button
@@ -229,7 +255,7 @@ function TeamSettingsPage() {
               )}
             >
               <User className="w-5 h-5" />
-              General
+              {m.general()}
               {activeTab === 'general' && (
                 <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
               )}
@@ -246,7 +272,7 @@ function TeamSettingsPage() {
                 )}
               >
                 <Film className="w-5 h-5" />
-                Media Processing
+                {m.media_processing()}
                 {activeTab === 'transcode' && (
                   <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
                 )}
@@ -263,7 +289,7 @@ function TeamSettingsPage() {
               )}
             >
               <Bell className="w-5 h-5" />
-              Notifications
+              {m.notifications()}
               {activeTab === 'notifications' && (
                 <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
               )}
@@ -279,7 +305,7 @@ function TeamSettingsPage() {
               )}
             >
               <Key className="w-5 h-5" />
-              API Tokens
+              {m.api_tokens()}
               {activeTab === 'developer' && (
                 <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
               )}
@@ -288,7 +314,7 @@ function TeamSettingsPage() {
             {me?.role === 'owner' && (
               <>
                 <div className="mt-6 mb-2 px-4 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider pt-4 border-t border-sidebar-border">
-                  AI
+                  {m.ai()}
                 </div>
 
                 <button
@@ -301,7 +327,7 @@ function TeamSettingsPage() {
                   )}
                 >
                   <Cpu className="w-5 h-5" />
-                  Providers
+                  {m.providers()}
                   {activeTab === 'providers' && (
                     <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
                   )}
@@ -317,7 +343,7 @@ function TeamSettingsPage() {
                   )}
                 >
                   <Puzzle className="w-5 h-5" />
-                  Skills
+                  {m.skills()}
                   {activeTab === 'skills' && (
                     <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
                   )}
@@ -333,7 +359,7 @@ function TeamSettingsPage() {
                   )}
                 >
                   <Bot className="w-5 h-5" />
-                  Agents
+                  {m.agents()}
                   {activeTab === 'agents' && (
                     <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
                   )}
@@ -349,7 +375,7 @@ function TeamSettingsPage() {
                   )}
                 >
                   <Shield className="w-5 h-5" />
-                  Agent Sandbox
+                  {m.agent_sandbox()}
                   {activeTab === 'sandbox' && (
                     <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
                   )}
@@ -365,29 +391,24 @@ function TeamSettingsPage() {
             <div className="flex-none flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-2xl font-bold text-foreground">
-                  {activeTab === 'general' && 'General Settings'}
-                  {activeTab === 'transcode' && 'Media Processing'}
-                  {activeTab === 'skills' && 'Skills Management'}
-                  {activeTab === 'providers' && 'AI Providers'}
-                  {activeTab === 'agents' && 'AI Agents'}
-                  {activeTab === 'sandbox' && 'Agent Sandbox Settings'}
-                  {activeTab === 'notifications' && 'Notification Settings'}
-                  {activeTab === 'developer' && 'Developer Settings'}
+                  {activeTab === 'general' && m.general_settings()}
+                  {activeTab === 'transcode' && m.media_processing()}
+                  {activeTab === 'skills' && m.skills_management()}
+                  {activeTab === 'providers' && m.ai_providers()}
+                  {activeTab === 'agents' && m.ai_agents()}
+                  {activeTab === 'sandbox' && m.agent_sandbox_settings()}
+                  {activeTab === 'notifications' && m.notification_settings()}
+                  {activeTab === 'developer' && m.developer_settings()}
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {activeTab === 'general' && 'View your personal information and team role.'}
-                  {activeTab === 'transcode' &&
-                    "Manage your team's media transcoding configurations."}
-                  {activeTab === 'skills' && 'Add, update and configure AI skills for the team.'}
-                  {activeTab === 'providers' &&
-                    'Configure AI providers and their models for this team.'}
-                  {activeTab === 'agents' && 'Manage AI agents and their personalities.'}
-                  {activeTab === 'sandbox' &&
-                    'Configure security and network restrictions for the AI agent.'}
-                  {activeTab === 'notifications' &&
-                    'Configure your personal notification preferences for this team.'}
-                  {activeTab === 'developer' &&
-                    'Generate and manage API keys for developers and automated workflows.'}
+                  {activeTab === 'general' && m.general_settings_description()}
+                  {activeTab === 'transcode' && m.transcode_description()}
+                  {activeTab === 'skills' && m.skills_description()}
+                  {activeTab === 'providers' && m.providers_description()}
+                  {activeTab === 'agents' && m.agents_description()}
+                  {activeTab === 'sandbox' && m.sandbox_description()}
+                  {activeTab === 'notifications' && m.notifications_description()}
+                  {activeTab === 'developer' && m.developer_description()}
                 </p>
               </div>
             </div>
@@ -397,14 +418,16 @@ function TeamSettingsPage() {
                 <div className="h-full overflow-y-auto space-y-6 pr-1">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Personal Info</CardTitle>
-                      <CardDescription>Manage your profile name and avatar image.</CardDescription>
+                      <CardTitle>{m.personal_info()}</CardTitle>
+                      <CardDescription>{m.personal_info_description()}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
                       <div className="flex flex-col md:flex-row gap-8 items-start">
                         {/* Avatar Column */}
                         <div className="flex flex-col items-center gap-3">
-                          <span className="text-sm font-medium text-muted-foreground">Avatar</span>
+                          <span className="text-sm font-medium text-muted-foreground">
+                            {m.avatar()}
+                          </span>
                           <div
                             className="group relative cursor-pointer overflow-hidden rounded-full w-24 h-24 border border-border/60 shadow-md transition-all hover:opacity-90"
                             onClick={() => fileInputRef.current?.click()}
@@ -422,7 +445,7 @@ function TeamSettingsPage() {
                               </AvatarFallback>
                             </Avatar>
                             <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <span className="text-white text-xs font-semibold">Change</span>
+                              <span className="text-white text-xs font-semibold">{m.change()}</span>
                             </div>
                           </div>
                           <div className="flex gap-2">
@@ -431,7 +454,7 @@ function TeamSettingsPage() {
                               size="sm"
                               onClick={() => fileInputRef.current?.click()}
                             >
-                              Upload
+                              {m.upload()}
                             </Button>
                             {me?.image && (
                               <Button
@@ -440,7 +463,7 @@ function TeamSettingsPage() {
                                 className="text-red-500 hover:text-red-600"
                                 onClick={handleRemoveAvatar}
                               >
-                                Remove
+                                {m.remove()}
                               </Button>
                             )}
                           </div>
@@ -457,18 +480,18 @@ function TeamSettingsPage() {
                         <div className="flex-1 space-y-4 w-full">
                           <div className="space-y-2">
                             <label className="text-sm font-medium text-muted-foreground">
-                              Name
+                              {m.name()}
                             </label>
                             <Input
                               value={profileName}
                               onChange={(e) => setProfileName(e.target.value)}
-                              placeholder="Enter your name"
+                              placeholder={m.enter_your_name()}
                               className="max-w-md"
                             />
                           </div>
                           <div className="space-y-2">
                             <label className="text-sm font-medium text-muted-foreground">
-                              Email
+                              {m.email()}
                             </label>
                             <Input
                               value={me?.email || ''}
@@ -476,7 +499,7 @@ function TeamSettingsPage() {
                               className="max-w-md bg-muted/50 cursor-not-allowed"
                             />
                             <p className="text-xs text-muted-foreground">
-                              Email address is managed by authentication provider.
+                              {m.email_managed_by_auth()}
                             </p>
                           </div>
                           <Button
@@ -485,9 +508,29 @@ function TeamSettingsPage() {
                             className="mt-2"
                           >
                             {isUpdatingProfile && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                            Save Changes
+                            {m.save_changes()}
                           </Button>
                         </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border border-slate-200 dark:border-slate-800 mt-6">
+                    <CardHeader>
+                      <CardTitle>{m.language_settings()}</CardTitle>
+                      <CardDescription>{m.select_preferred_language()}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="max-w-xs">
+                        <Select value={currentLocale} onValueChange={handleLanguageChange}>
+                          <SelectTrigger>
+                            <SelectValue placeholder={m.select_language()} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="en">{m.english()}</SelectItem>
+                            <SelectItem value="zh">{m.chinese()}</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </CardContent>
                   </Card>
@@ -505,21 +548,16 @@ function TeamSettingsPage() {
                 <div className="h-full overflow-y-auto pr-1">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Transcode Settings</CardTitle>
+                      <CardTitle>{m.transcode_settings()}</CardTitle>
                       <CardDescription>
-                        <span className="block mb-2">
-                          Manage your team&apos;s media transcoding configurations.
-                        </span>
-                        <span className="block">
-                          Strategy: We select the best resolution from your list that supports the
-                          input quality. Content is never upscaled.
-                        </span>
+                        <span className="block mb-2">{m.transcode_description()}</span>
+                        <span className="block">{m.transcode_strategy_note()}</span>
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
                       {/* Video Strategy */}
                       <div className="space-y-3">
-                        <h3 className="text-lg font-medium">Video Strategy</h3>
+                        <h3 className="text-lg font-medium">{m.video_strategy()}</h3>
                         <div className="space-y-3">
                           <div
                             className={cn(
@@ -532,9 +570,9 @@ function TeamSettingsPage() {
                               handleVideoStrategyChange(VideoTranscodeStrategy.best_match)
                             }
                           >
-                            <div className="font-semibold">Best match</div>
+                            <div className="font-semibold">{m.best_match()}</div>
                             <div className="text-sm text-muted-foreground">
-                              Generates a single optimal resolution matching the source quality.
+                              {m.best_match_description()}
                             </div>
                           </div>
 
@@ -547,9 +585,9 @@ function TeamSettingsPage() {
                             )}
                             onClick={() => handleVideoStrategyChange(VideoTranscodeStrategy.all)}
                           >
-                            <div className="font-semibold">All resolutions</div>
+                            <div className="font-semibold">{m.all_resolutions()}</div>
                             <div className="text-sm text-muted-foreground">
-                              Generates all supported resolutions up to the source quality.
+                              {m.all_resolutions_description()}
                             </div>
                           </div>
                         </div>

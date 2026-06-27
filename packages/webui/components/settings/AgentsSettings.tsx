@@ -37,6 +37,7 @@ import {
 import { cn } from '@/ui/lib/utils'
 import { ChevronDown } from 'lucide-react'
 import { Switch } from '@/ui/components/ui/switch'
+import { m } from '@/ui/paraglide/messages.js'
 
 interface AgentsSettingsProps {
   teamId: string
@@ -65,6 +66,12 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
     embedding: true,
   })
 
+  const getSectionLabel = (type: AgentType) => {
+    if (type === 'chat') return m.agent_type_chat()
+    if (type === 'autofill') return m.agent_type_autofill()
+    return m.agent_type_embedding()
+  }
+
   const { data: agents = [], isLoading } = useQuery({
     queryKey: ['agents', teamId],
     queryFn: async () => {
@@ -87,7 +94,7 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
     onSuccess: () => {
       setIsDeleteDialogOpen(false)
       queryClient.invalidateQueries({ queryKey: ['agents', teamId] })
-      toast.success('Agent deleted successfully')
+      toast.success(m.agent_deleted_successfully())
     },
     onError: (error) => {
       toast.error(error.message)
@@ -129,7 +136,7 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agents', teamId] })
-      toast.success('Agent updated successfully')
+      toast.success(m.agent_updated_successfully())
     },
     onError: (error) => {
       toast.error(error.message)
@@ -148,7 +155,11 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
       {(isCreateDialogOpen || editingAgent) && (
         <AgentFormDialog
           isOpen={true}
-          title={editingAgent ? `Edit ${editingAgent.name}` : `Create ${createType} Agent`}
+          title={
+            editingAgent
+              ? m.edit_item({ name: editingAgent.name })
+              : m.create_type_agent({ type: getSectionLabel(createType) })
+          }
           onClose={() => {
             setIsCreateDialogOpen(false)
             setAgentToEdit(null)
@@ -162,14 +173,13 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogTitle>{m.are_you_absolutely_sure()}</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the agent "
-              {agentToDelete?.name}" and remove all its data from our servers.
+              {m.delete_agent_confirmation({ name: agentToDelete?.name ?? '' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{m.cancel()}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90 text-white"
               onClick={(e) => {
@@ -185,7 +195,7 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
               {deleteAgentMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                'Delete Agent'
+                m.delete_agent()
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -222,7 +232,11 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
                 >
                   <div className="flex items-center gap-2">
                     <h3 className="font-semibold text-foreground">
-                      {section.label} {isSingleAgentType ? 'Agent' : 'Agents'}
+                      {section.type === 'chat'
+                        ? m.chat_agents()
+                        : section.type === 'autofill'
+                          ? m.autofill_agent()
+                          : m.embedding_agent()}
                     </h3>
                     {!isSingleAgentType && (
                       <Badge variant="secondary" className="h-5 px-1.5 min-w-[1.25rem] text-[10px]">
@@ -285,7 +299,7 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                                   <span className="flex items-center gap-1">
                                     <Puzzle className="w-3 h-3" />
-                                    {agent.skills?.length || 0} Skills
+                                    {m.skills_count_value({ count: agent.skills?.length || 0 })}
                                   </span>
                                 </div>
                               </div>
@@ -331,7 +345,7 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
                                     }}
                                     className="text-red-500 focus:text-red-500 gap-2 cursor-pointer"
                                   >
-                                    <Trash2 className="w-4 h-4" /> Delete
+                                    <Trash2 className="w-4 h-4" /> {m.delete()}
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>{' '}
@@ -345,7 +359,7 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
                             <Icon className="w-5 h-5 text-muted-foreground" />
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            No {section.label} {isSingleAgentType ? 'agent' : 'agents'} found
+                            {m.no_agents_found({ type: getSectionLabel(section.type) })}
                           </p>
                           <Button
                             variant="link"
@@ -356,7 +370,7 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
                               setIsCreateDialogOpen(true)
                             }}
                           >
-                            Create one now
+                            {m.create_one_now()}
                           </Button>
                         </div>
                       )}
