@@ -4,5 +4,6 @@ dist
 src/generated
 packages/db/src/generated
 src/ui/components/ui
+packages/webui/paraglide
 *.md
 **/*.md
