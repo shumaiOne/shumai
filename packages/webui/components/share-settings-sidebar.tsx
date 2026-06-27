@@ -63,7 +63,7 @@ export function ShareSettingsSidebar({
       const res = await client.api.projects[':projectId'].fields.$get({
         param: { projectId: shareLink.projectId },
       })
-      if (!res.ok) throw new Error('Failed to fetch fields')
+      if (!res.ok) throw new Error(m.failed_fetch_fields())
       return await res.json()
     },
     enabled: !!shareLink.projectId,
@@ -76,13 +76,13 @@ export function ShareSettingsSidebar({
         param: { shareId: shareLink.id },
         json,
       })
-      if (!res.ok) throw new Error('Failed to update')
+      if (!res.ok) throw new Error(m.failed_update())
       return await res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['shares', shareLink.projectId] })
       queryClient.invalidateQueries({ queryKey: ['share', shareLink.id] })
-      toast.success('Settings updated')
+      toast.success(m.settings_updated())
     },
   })
 
@@ -90,7 +90,7 @@ export function ShareSettingsSidebar({
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
-    toast.success('Copied to clipboard')
+    toast.success(m.copied_to_clipboard())
   }
 
   const toggleFieldVisibility = (fieldId: string) => {
@@ -135,11 +135,11 @@ export function ShareSettingsSidebar({
           </div>
 
           <div className="space-y-1">
-            <SidebarAccordionItem title="Security" icon={<Shield className="h-4 w-4" />}>
+            <SidebarAccordionItem title={m.security()} icon={<Shield className="h-4 w-4" />}>
               <div className="p-3 space-y-4 pt-0">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs">Password</Label>
+                    <Label className="text-xs">{m.password()}</Label>
                     <Switch
                       checked={isPasswordEnabled}
                       onCheckedChange={(checked) => {
@@ -154,18 +154,18 @@ export function ShareSettingsSidebar({
                         type="text"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter password"
+                        placeholder={m.enter_password()}
                         className="text-xs"
                       />
                       <Button size="sm" onClick={() => updateShare({ password })}>
-                        Save
+                        {m.save()}
                       </Button>
                     </div>
                   )}
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs">Expiration Date</Label>
+                    <Label className="text-xs">{m.expiration_date()}</Label>
                     <Switch
                       checked={isExpireEnabled}
                       onCheckedChange={(checked) => {
@@ -192,7 +192,7 @@ export function ShareSettingsSidebar({
                 </div>
               </div>
             </SidebarAccordionItem>
-            <SidebarAccordionItem title="Appearance" icon={<Palette className="h-4 w-4" />}>
+            <SidebarAccordionItem title={m.appearance()} icon={<Palette className="h-4 w-4" />}>
               <div className="p-3 space-y-3 pt-0 flex gap-2">
                 <Button
                   variant={viewMode === 'card' ? 'secondary' : 'outline'}
@@ -201,7 +201,7 @@ export function ShareSettingsSidebar({
                   onClick={() => onViewModeChange('card')}
                 >
                   <LayoutGrid className="h-4 w-4" />
-                  Grid
+                  {m.grid()}
                 </Button>
                 <Button
                   variant={viewMode === 'list' ? 'secondary' : 'outline'}
@@ -210,11 +210,11 @@ export function ShareSettingsSidebar({
                   onClick={() => onViewModeChange('list')}
                 >
                   <List className="h-4 w-4" />
-                  List
+                  {m.list()}
                 </Button>
               </div>
             </SidebarAccordionItem>
-            <SidebarAccordionItem title="Fields" icon={<ListFilter className="h-4 w-4" />}>
+            <SidebarAccordionItem title={m.fields()} icon={<ListFilter className="h-4 w-4" />}>
               <div className="p-3 space-y-3 pt-0">
                 {(fields as MetadataFieldInfo[])?.map((field) => (
                   <div key={field.id} className="flex items-center justify-between">
@@ -227,10 +227,10 @@ export function ShareSettingsSidebar({
                 ))}
               </div>
             </SidebarAccordionItem>
-            <SidebarAccordionItem title="Sort by" icon={<SortAsc className="h-4 w-4" />}>
+            <SidebarAccordionItem title={m.sort_by()} icon={<SortAsc className="h-4 w-4" />}>
               <div className="p-3 space-y-4 pt-0">
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Field</Label>
+                  <Label className="text-xs text-muted-foreground">{m.field()}</Label>
                   <Select
                     value={currentSortField}
                     onValueChange={(val) => {
@@ -245,16 +245,16 @@ export function ShareSettingsSidebar({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="index">Custom</SelectItem>
-                      <SelectItem value="name">Name</SelectItem>
-                      <SelectItem value="createdAt">Date Created</SelectItem>
-                      <SelectItem value="size">Size</SelectItem>
+                      <SelectItem value="index">{m.sort_custom()}</SelectItem>
+                      <SelectItem value="name">{m.sort_name()}</SelectItem>
+                      <SelectItem value="createdAt">{m.sort_date_created()}</SelectItem>
+                      <SelectItem value="size">{m.sort_size()}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Order</Label>
+                  <Label className="text-xs text-muted-foreground">{m.order()}</Label>
                   <Button
                     variant="outline"
                     className="w-full justify-between font-normal text-xs h-9"
@@ -267,19 +267,19 @@ export function ShareSettingsSidebar({
                     <span>
                       {currentSortField === 'name'
                         ? currentSortOrder === 'asc'
-                          ? 'A → Z'
-                          : 'Z → A'
+                          ? m.sort_a_to_z()
+                          : m.sort_z_to_a()
                         : currentSortField === 'createdAt'
                           ? currentSortOrder === 'asc'
-                            ? 'Oldest → Newest'
-                            : 'Newest → Oldest'
+                            ? m.sort_oldest_to_newest()
+                            : m.sort_newest_to_oldest()
                           : currentSortField === 'size'
                             ? currentSortOrder === 'asc'
-                              ? 'Smallest → Largest'
-                              : 'Largest → Smallest'
+                              ? m.sort_smallest_to_largest()
+                              : m.sort_largest_to_smallest()
                             : currentSortOrder === 'asc'
-                              ? 'Ascending'
-                              : 'Descending'}
+                              ? m.ascending()
+                              : m.descending()}
                     </span>
                     <ArrowDownUp className="h-4 w-4 opacity-50" />
                   </Button>
@@ -297,14 +297,14 @@ export function ShareSettingsSidebar({
           onClick={() => window.open(shareUrl, '_blank')}
         >
           <ExternalLink className="h-4 w-4 mr-2" />
-          Open Share Link
+          {m.open_share_link()}
         </Button>
         <Button
           className="w-full justify-center bg-blue-600 hover:bg-blue-700 text-white"
           onClick={() => copyToClipboard(shareUrl)}
         >
           <Copy className="h-4 w-4 mr-2" />
-          Copy Link
+          {m.copy_link()}
         </Button>
       </div>
     </div>

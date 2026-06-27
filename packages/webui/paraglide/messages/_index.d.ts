@@ -742,4 +742,5 @@ export * from "./failed_fetch_folders.js";
 export * from "./failed_fetch_files.js";
 export * from "./failed_remove.js";
 export * from "./failed_update.js";
+export * from "./failed_fetch_fields.js";
 export type LocalizedString = import("../runtime.js").LocalizedString;

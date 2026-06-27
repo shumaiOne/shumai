@@ -794,5 +794,6 @@
   "failed_fetch_folders": "Failed to fetch folders",
   "failed_fetch_files": "Failed to fetch files",
   "failed_remove": "Failed to remove",
-  "failed_update": "Failed to update"
+  "failed_update": "Failed to update",
+  "failed_fetch_fields": "Failed to fetch fields"
 }

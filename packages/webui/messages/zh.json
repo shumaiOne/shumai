@@ -794,5 +794,6 @@
   "failed_fetch_folders": "获取文件夹失败",
   "failed_fetch_files": "获取文件失败",
   "failed_remove": "移除失败",
-  "failed_update": "更新失败"
+  "failed_update": "更新失败",
+  "failed_fetch_fields": "获取字段列表失败"
 }
