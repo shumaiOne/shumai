@@ -782,5 +782,10 @@
   "failed_create_field": "创建字段失败",
   "failed_update_field": "更新字段失败",
   "failed_delete_field": "删除字段失败",
-  "new_label": "新建"
+  "new_label": "新建",
+
+  "n_assets_singular": "{count} 个资源",
+  "n_assets_plural": "{count} 个资源",
+  "n_folders_singular": "{count} 个文件夹",
+  "n_folders_plural": "{count} 个文件夹"
 }

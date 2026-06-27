@@ -732,4 +732,8 @@ export * from "./failed_create_field.js";
 export * from "./failed_update_field.js";
 export * from "./failed_delete_field.js";
 export * from "./new_label.js";
+export * from "./n_assets_singular.js";
+export * from "./n_assets_plural.js";
+export * from "./n_folders_singular.js";
+export * from "./n_folders_plural.js";
 export type LocalizedString = import("../runtime.js").LocalizedString;

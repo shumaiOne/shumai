@@ -566,9 +566,13 @@ export function FileBrowser({
       (c) => c.field === 'name' && c.operator === 'contains',
     )
     if (isNameFilter && count === 10001) {
-      return `10000+ ${isFile ? 'Asset' : 'Folder'}s`
+      return isFile ? m.count_overflow_assets() : m.count_overflow_folders()
     }
-    return `${count} ${isFile ? 'Asset' : 'Folder'}${count !== 1 ? 's' : ''}`
+    if (isFile) {
+      return count === 1 ? m.n_assets_singular({ count }) : m.n_assets_plural({ count })
+    } else {
+      return count === 1 ? m.n_folders_singular({ count }) : m.n_folders_plural({ count })
+    }
   }
 
   const handleEmptyAreaClick = (e: React.MouseEvent) => {
