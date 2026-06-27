@@ -739,7 +739,7 @@
   "tool_result": "Tool Result:",
   "role_thinking": "Thinking",
   "calling_tool": "Calling Tool:",
-  "arguments": "Arguments",
+  "tool_arguments": "Arguments",
   "image_object": "[Image Object]",
   "no_logs_found": "No logs found for this session.",
   "session_no_entries_yet": "The session might have been initialized but has not produced any entries yet.",

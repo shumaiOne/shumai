@@ -739,7 +739,7 @@
   "tool_result": "工具结果：",
   "role_thinking": "思考中",
   "calling_tool": "调用工具：",
-  "arguments": "参数",
+  "tool_arguments": "参数",
   "image_object": "[图片对象]",
   "no_logs_found": "未找到此会话的日志。",
   "session_no_entries_yet": "该会话可能已初始化但尚未产生任何条目。",
