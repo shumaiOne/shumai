@@ -26,6 +26,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useInView } from 'react-intersection-observer'
 import { toast } from 'sonner'
 import { FilterPanel } from './filter-panel'
+import { m } from '@/ui/paraglide/messages.js'
 
 interface SearchFilterDialogProps {
   open: boolean
@@ -72,7 +73,7 @@ export function SearchFilterDialog({
       const res = await client.api.teams[':teamId'].settings.$get({
         param: { teamId },
       })
-      if (!res.ok) throw new Error('Failed to fetch team settings')
+      if (!res.ok) throw new Error(m.failed_load_settings())
       return (await res.json()) as { semanticSearchEnabled: boolean }
     },
     enabled: open,
@@ -123,7 +124,7 @@ export function SearchFilterDialog({
         const fieldName = field?.config?.name || first.field
         name = `${fieldName} ${first.operator} ${first.value}`
       }
-      if (!name) name = 'Untitled Collection'
+      if (!name) name = m.untitled_collection()
 
       const res = await client.api.projects[':projectId'].collections.$post({
         param: { projectId },
@@ -140,12 +141,12 @@ export function SearchFilterDialog({
           },
         },
       })
-      if (!res.ok) throw new Error('Failed to save collection')
+      if (!res.ok) throw new Error(m.failed_save_collection())
       return await res.json()
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['collections', projectId] })
-      toast.success('Collection saved')
+      toast.success(m.collection_saved())
       onOpenChange(false)
       navigate({
         to: '/projects/$projectId/collections/$collectionId',
@@ -184,7 +185,7 @@ export function SearchFilterDialog({
       })
       if (!res.ok) {
         const errorData = (await res.json().catch(() => ({}))) as Record<string, unknown>
-        throw new Error((errorData.message as string) || 'Search failed')
+        throw new Error((errorData.message as string) || m.search_failed())
       }
       return (await res.json()) as {
         data: AssetInfo[]
@@ -255,7 +256,7 @@ export function SearchFilterDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[900px] p-0 gap-0 overflow-hidden bg-background border-border rounded-2xl shadow-2xl flex flex-col h-[85vh]">
         <DialogHeader className="px-6 pt-3 pb-0 text-left">
-          <DialogTitle className="text-lg font-bold">Search</DialogTitle>
+          <DialogTitle className="text-lg font-bold">{m.search_dialog_title()}</DialogTitle>
         </DialogHeader>
 
         <div className="px-6 pb-6 pt-4 border-b border-border bg-muted/30 flex flex-col gap-3">
@@ -271,7 +272,7 @@ export function SearchFilterDialog({
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder={
-                  isSemantic ? 'Search records by content...' : 'Search records by name...'
+                  isSemantic ? m.search_by_content_placeholder() : m.search_by_name_placeholder()
                 }
                 className="w-full pl-4 pr-24 py-3 bg-background border-border rounded-xl text-sm h-12 focus-visible:ring-2 focus-visible:ring-primary/20 shadow-sm"
               />
@@ -291,7 +292,7 @@ export function SearchFilterDialog({
                 type="submit"
                 className="absolute right-1.5 top-1.5 bottom-1.5 px-4 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold rounded-lg flex items-center justify-center transition-colors shadow-sm"
               >
-                Search
+                {m.search_button()}
               </button>
             </div>
 
@@ -315,12 +316,12 @@ export function SearchFilterDialog({
                     !semanticSearchEnabled && 'opacity-50 cursor-not-allowed',
                   )}
                 >
-                  Semantic Search
+                  {m.semantic_search()}
                 </Label>
               </div>
               {!semanticSearchEnabled && (
                 <span className="text-[10px] text-muted-foreground italic">
-                  * Semantic search requires an enabled embedding agent.
+                  {m.semantic_search_requires_embedding()}
                 </span>
               )}
             </div>
@@ -338,12 +339,12 @@ export function SearchFilterDialog({
                 ) : (
                   <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
                 )}
-                <span className="text-xs font-semibold text-foreground/80">Filters</span>
+                <span className="text-xs font-semibold text-foreground/80">{m.filters()}</span>
               </button>
 
               {activeFiltersCount > 0 && (
                 <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/10 text-primary border border-primary/20">
-                  {activeFiltersCount} active
+                  {activeFiltersCount} {m.active_filters()}
                 </span>
               )}
             </div>
@@ -357,7 +358,7 @@ export function SearchFilterDialog({
                 }}
                 className="text-[11px] font-medium text-destructive hover:text-destructive/80 underline underline-offset-2 transition-colors"
               >
-                Reset
+                {m.reset()}
               </button>
             )}
           </div>
@@ -383,14 +384,12 @@ export function SearchFilterDialog({
           <div className="p-4 md:p-5">
             <div className="flex items-center justify-between mb-3 px-1">
               <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/60 font-mono">
-                Search Results
+                {m.search_results()}
               </span>
               {isLoading && (
                 <span className="inline-flex items-center gap-1.5 text-xs text-primary">
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  {isSemantic
-                    ? 'Semantic search using media intelligence might be slow...'
-                    : 'Querying database...'}
+                  {isSemantic ? m.semantic_search_slow() : m.querying_database()}
                 </span>
               )}
             </div>
@@ -399,25 +398,25 @@ export function SearchFilterDialog({
               {!hasActiveCriteria ? (
                 <div className="py-20 text-center flex flex-col items-center justify-center bg-muted/20 px-4">
                   <Search className="w-10 h-10 text-muted-foreground/30 mb-2" />
-                  <h3 className="text-sm font-semibold text-foreground/80">Ready to Search</h3>
+                  <h3 className="text-sm font-semibold text-foreground/80">
+                    {m.ready_to_search()}
+                  </h3>
                   <p className="text-xs text-muted-foreground max-w-sm mt-1 mx-auto">
-                    Type your query above and click the Search button to display results.
+                    {m.type_query_instruction()}
                   </p>
                   {isSemantic && (
                     <p className="text-xs text-muted-foreground/80 max-w-md mt-4 mx-auto border-t border-border/60 pt-3">
-                      Semantic search results will be ordered by their relevance to the search query
-                      text, but won't be strictly filtered. If you need accurate filtering, please
-                      add filter conditions to control that.
+                      {m.semantic_search_note()}
                     </p>
                   )}
                 </div>
               ) : searchError ? (
                 <div className="py-12 px-4 text-center flex flex-col items-center justify-center bg-muted/20">
                   <AlertCircle className="w-10 h-10 text-destructive/50 mb-2" />
-                  <h3 className="text-sm font-semibold text-foreground/80">Search failed</h3>
+                  <h3 className="text-sm font-semibold text-foreground/80">{m.search_failed()}</h3>
                   <p className="text-xs text-muted-foreground max-w-sm mt-1 mx-auto">
                     {searchError.message.includes('Embedding agent not configured')
-                      ? 'Please create and enable an embedding agent in the team settings to use semantic search.'
+                      ? m.enable_embedding_agent_hint()
                       : searchError.message}
                   </p>
                 </div>
@@ -438,10 +437,10 @@ export function SearchFilterDialog({
                 <div className="py-12 px-4 text-center flex flex-col items-center justify-center bg-muted/20">
                   <AlertCircle className="w-10 h-10 text-muted-foreground/30 mb-2" />
                   <h3 className="text-sm font-semibold text-foreground/80">
-                    No records matched your criteria
+                    {m.no_records_matched()}
                   </h3>
                   <p className="text-xs text-muted-foreground max-w-sm mt-1 mx-auto">
-                    Try adjusting spelling or removing filter rows.
+                    {m.try_adjusting_spelling()}
                   </p>
                 </div>
               ) : (
@@ -479,15 +478,15 @@ export function SearchFilterDialog({
                             </span>
                             <span className="text-xs text-muted-foreground block mt-0.5 truncate">
                               {record.type === 'folder'
-                                ? 'Folder'
-                                : `Size: ${formatSize(record.sizeByte || 0)}`}
+                                ? m.folder()
+                                : `${m.size_prefix()} ${formatSize(record.sizeByte || 0)}`}
                             </span>
                             {record.startTime !== undefined &&
                               record.startTime !== null &&
                               record.endTime !== undefined &&
                               record.endTime !== null && (
                                 <span className="text-[10px] font-semibold text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded mt-1 inline-block">
-                                  Match found at {formatTimestamp(record.startTime)} -{' '}
+                                  {m.match_found_at()} {formatTimestamp(record.startTime)} -{' '}
                                   {formatTimestamp(record.endTime)}
                                 </span>
                               )}
@@ -516,13 +515,7 @@ export function SearchFilterDialog({
         {/* Footer ported from Demo */}
         <div className="p-4 border-t border-border bg-muted/30 flex items-center justify-between shrink-0">
           <div className="text-xs text-muted-foreground flex items-center gap-2">
-            <span>
-              Matched{' '}
-              <strong className="font-mono font-bold text-foreground">
-                {formatMatchedCount(totalCount)}
-              </strong>{' '}
-              items
-            </span>
+            <span>{m.matched_items({ count: formatMatchedCount(totalCount) })}</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -536,10 +529,10 @@ export function SearchFilterDialog({
               {isSaving ? (
                 <>
                   <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                  Saving...
+                  {m.saving_ellipsis()}
                 </>
               ) : (
-                'Save as collection'
+                m.save_as_collection()
               )}
             </Button>
 
@@ -548,7 +541,7 @@ export function SearchFilterDialog({
               className="h-8 text-[10px] font-semibold uppercase tracking-wider"
               onClick={isSemantic ? () => onOpenChange(false) : handleApply}
             >
-              {isSemantic ? 'Close' : 'Apply and Close'}
+              {isSemantic ? m.close() : m.apply_and_close()}
             </Button>
           </div>
         </div>

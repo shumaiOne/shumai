@@ -6,6 +6,7 @@ import {
   DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu'
 import { ArrowDownWideNarrow, ArrowUpNarrowWide, Check } from 'lucide-react'
+import { m } from '@/ui/paraglide/messages.js'
 
 interface SortDropdownProps {
   sortBy: string
@@ -26,11 +27,11 @@ export function SortDropdown({ sortBy, sortDirection, onSortChange }: SortDropdo
   const formatSortBy = (field: string) => {
     switch (field) {
       case 'name':
-        return 'Name'
+        return m.sort_name()
       case 'created_at':
-        return 'Created'
+        return m.sort_created()
       case 'updated_at':
-        return 'Updated'
+        return m.sort_updated()
       default:
         return field
     }
@@ -42,12 +43,12 @@ export function SortDropdown({ sortBy, sortDirection, onSortChange }: SortDropdo
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className="gap-2 bg-muted/50">
-          <span className="text-muted-foreground">Sorted by</span>
+          <span className="text-muted-foreground">{m.sorted_by_label()}</span>
           <span className="font-medium text-foreground">{formatSortBy(sortBy)}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56 p-2">
-        <div className="text-xs font-semibold text-muted-foreground mb-2 px-2">Sort by</div>
+        <div className="text-xs font-semibold text-muted-foreground mb-2 px-2">{m.sort_by()}</div>
 
         {/* Field Selection */}
         <DropdownMenu>
@@ -83,14 +84,14 @@ export function SortDropdown({ sortBy, sortDirection, onSortChange }: SortDropdo
           <span className="text-muted-foreground">
             {sortBy === 'name' ? (
               isAsc ? (
-                <>from A &rarr; Z</>
+                <>{m.sort_a_to_z()}</>
               ) : (
-                <>from Z &rarr; A</>
+                <>{m.sort_z_to_a()}</>
               )
             ) : isAsc ? (
-              <>Oldest &rarr; Newest</>
+              <>{m.sort_oldest_to_newest()}</>
             ) : (
-              <>Newest &rarr; Oldest</>
+              <>{m.sort_newest_to_oldest()}</>
             )}
           </span>
           {isAsc ? (

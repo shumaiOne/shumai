@@ -18,6 +18,7 @@ import RatingField from '../fields/rating-field'
 import { useEffect, useMemo } from 'react'
 import { useMemberStore } from '@/ui/stores/members'
 import { useTeamId } from '@/ui/hooks/use-team-id'
+import { m } from '@/ui/paraglide/messages.js'
 
 interface FilterPanelProps {
   fields: FieldInfo[]
@@ -27,13 +28,6 @@ interface FilterPanelProps {
   excludeFields?: string[]
   hidePrefix?: boolean
 }
-
-const SYSTEM_FIELDS = [
-  { id: 'name', label: 'Name', type: 'text' },
-  { id: 'createdAt', label: 'Created At', type: 'date' },
-  { id: 'updatedAt', label: 'Updated At', type: 'date' },
-  { id: 'sizeByte', label: 'Size', type: 'number' },
-]
 
 export function FilterPanel({
   fields,
@@ -60,19 +54,25 @@ export function FilterPanel({
     }))
   }, [members])
 
-  const allFields = [
-    ...SYSTEM_FIELDS,
-    ...fields.map((f) => ({
+  const allFields = useMemo(() => {
+    const sys = [
+      { id: 'name', label: m.sort_name(), type: 'text' },
+      { id: 'createdAt', label: m.field_created_at(), type: 'date' },
+      { id: 'updatedAt', label: m.field_updated_at(), type: 'date' },
+      { id: 'sizeByte', label: m.field_size(), type: 'number' },
+    ]
+    const custom = fields.map((f) => ({
       id: f.id!,
-      label: f.config?.name || f.description || 'Unknown',
+      label: f.config?.name || f.description || m.unknown(),
       type: getFieldType(f),
       options:
         f.config?.type === 'user' || f.config?.type === 'userMulti'
           ? memberOptions
           : f.config?.select?.options || f.config?.selectMulti?.options,
       config: f.config,
-    })),
-  ].filter((f) => !excludeFields?.includes(f.id))
+    }))
+    return [...sys, ...custom].filter((f) => !excludeFields?.includes(f.id))
+  }, [fields, memberOptions, excludeFields])
 
   const handleAddCondition = () => {
     onChange([
@@ -136,7 +136,7 @@ export function FilterPanel({
         <div key={index} className="flex items-center gap-2">
           {!hidePrefix && (
             <div className="w-16 text-sm text-muted-foreground font-medium text-right">
-              {index === 0 ? 'Where' : 'and'}
+              {index === 0 ? m.filter_where() : m.filter_and()}
             </div>
           )}
           <div className="flex-1 flex items-center gap-2">
@@ -145,7 +145,7 @@ export function FilterPanel({
               onValueChange={(val) => handleConditionChange(index, 'field', val)}
             >
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select field" />
+                <SelectValue placeholder={m.select_field()} />
               </SelectTrigger>
               <SelectContent>
                 {allFields.map((field) => (
@@ -161,7 +161,7 @@ export function FilterPanel({
               onValueChange={(val) => handleConditionChange(index, 'operator', val)}
             >
               <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Operator" />
+                <SelectValue placeholder={m.operator()} />
               </SelectTrigger>
               <SelectContent>
                 {getOperators(
@@ -202,7 +202,7 @@ export function FilterPanel({
           className="text-muted-foreground hover:text-foreground"
           onClick={handleAddCondition}
         >
-          + Add condition
+          {m.add_condition()}
         </Button>
       </div>
     </div>
@@ -242,22 +242,22 @@ function getOperators(field: { id: string; label: string; type: string }): {
 
   if (id === 'name') {
     return [
-      { value: 'eq' as SearchConditionOperator, label: 'is' },
-      { value: 'neq' as SearchConditionOperator, label: 'is not' },
-      { value: 'contains' as SearchConditionOperator, label: 'contains' },
-      { value: 'notContains' as SearchConditionOperator, label: 'does not contain' },
-      { value: 'isEmpty' as SearchConditionOperator, label: 'is empty' },
-      { value: 'isNotEmpty' as SearchConditionOperator, label: 'is not empty' },
+      { value: 'eq' as SearchConditionOperator, label: m.operator_is() },
+      { value: 'neq' as SearchConditionOperator, label: m.operator_is_not() },
+      { value: 'contains' as SearchConditionOperator, label: m.operator_contains() },
+      { value: 'notContains' as SearchConditionOperator, label: m.operator_does_not_contain() },
+      { value: 'isEmpty' as SearchConditionOperator, label: m.operator_is_empty() },
+      { value: 'isNotEmpty' as SearchConditionOperator, label: m.operator_is_not_empty() },
     ]
   }
 
   switch (type) {
     case 'text':
       return [
-        { value: 'eq' as SearchConditionOperator, label: 'is' },
-        { value: 'neq' as SearchConditionOperator, label: 'is not' },
-        { value: 'isEmpty' as SearchConditionOperator, label: 'is empty' },
-        { value: 'isNotEmpty' as SearchConditionOperator, label: 'is not empty' },
+        { value: 'eq' as SearchConditionOperator, label: m.operator_is() },
+        { value: 'neq' as SearchConditionOperator, label: m.operator_is_not() },
+        { value: 'isEmpty' as SearchConditionOperator, label: m.operator_is_empty() },
+        { value: 'isNotEmpty' as SearchConditionOperator, label: m.operator_is_not_empty() },
       ]
     case 'number':
     case 'rating':
@@ -268,43 +268,43 @@ function getOperators(field: { id: string; label: string; type: string }): {
         { value: 'lt' as SearchConditionOperator, label: '<' },
         { value: 'lte' as SearchConditionOperator, label: '≤' },
         { value: 'gte' as SearchConditionOperator, label: '≥' },
-        { value: 'isEmpty' as SearchConditionOperator, label: 'is empty' },
-        { value: 'isNotEmpty' as SearchConditionOperator, label: 'is not empty' },
+        { value: 'isEmpty' as SearchConditionOperator, label: m.operator_is_empty() },
+        { value: 'isNotEmpty' as SearchConditionOperator, label: m.operator_is_not_empty() },
       ]
     case 'select':
       return [
-        { value: 'eq' as SearchConditionOperator, label: 'is' },
-        { value: 'neq' as SearchConditionOperator, label: 'is not' },
-        { value: 'in' as SearchConditionOperator, label: 'is any of' },
-        { value: 'notIn' as SearchConditionOperator, label: 'is none of' },
-        { value: 'isEmpty' as SearchConditionOperator, label: 'is empty' },
-        { value: 'isNotEmpty' as SearchConditionOperator, label: 'is not empty' },
+        { value: 'eq' as SearchConditionOperator, label: m.operator_is() },
+        { value: 'neq' as SearchConditionOperator, label: m.operator_is_not() },
+        { value: 'in' as SearchConditionOperator, label: m.operator_is_any_of() },
+        { value: 'notIn' as SearchConditionOperator, label: m.operator_is_none_of() },
+        { value: 'isEmpty' as SearchConditionOperator, label: m.operator_is_empty() },
+        { value: 'isNotEmpty' as SearchConditionOperator, label: m.operator_is_not_empty() },
       ]
     case 'selectMulti':
       return [
-        { value: 'hasAny' as SearchConditionOperator, label: 'has any of' },
-        { value: 'hasAll' as SearchConditionOperator, label: 'has all of' },
-        { value: 'eq' as SearchConditionOperator, label: 'is exactly' },
-        { value: 'hasNone' as SearchConditionOperator, label: 'has none of' },
-        { value: 'isEmpty' as SearchConditionOperator, label: 'is empty' },
-        { value: 'isNotEmpty' as SearchConditionOperator, label: 'is not empty' },
+        { value: 'hasAny' as SearchConditionOperator, label: m.operator_has_any_of() },
+        { value: 'hasAll' as SearchConditionOperator, label: m.operator_has_all_of() },
+        { value: 'eq' as SearchConditionOperator, label: m.operator_is_exactly() },
+        { value: 'hasNone' as SearchConditionOperator, label: m.operator_has_none_of() },
+        { value: 'isEmpty' as SearchConditionOperator, label: m.operator_is_empty() },
+        { value: 'isNotEmpty' as SearchConditionOperator, label: m.operator_is_not_empty() },
       ]
     case 'date':
       return [
-        { value: 'eq' as SearchConditionOperator, label: 'is' },
-        { value: 'isWithin' as SearchConditionOperator, label: 'is within' },
-        { value: 'lt' as SearchConditionOperator, label: 'is before' },
-        { value: 'gt' as SearchConditionOperator, label: 'is after' },
-        { value: 'lte' as SearchConditionOperator, label: 'is on or before' },
-        { value: 'gte' as SearchConditionOperator, label: 'is on or after' },
-        { value: 'neq' as SearchConditionOperator, label: 'is not' },
-        { value: 'isEmpty' as SearchConditionOperator, label: 'is empty' },
-        { value: 'isNotEmpty' as SearchConditionOperator, label: 'is not empty' },
+        { value: 'eq' as SearchConditionOperator, label: m.operator_is() },
+        { value: 'isWithin' as SearchConditionOperator, label: m.operator_is_within() },
+        { value: 'lt' as SearchConditionOperator, label: m.operator_is_before() },
+        { value: 'gt' as SearchConditionOperator, label: m.operator_is_after() },
+        { value: 'lte' as SearchConditionOperator, label: m.operator_is_on_or_before() },
+        { value: 'gte' as SearchConditionOperator, label: m.operator_is_on_or_after() },
+        { value: 'neq' as SearchConditionOperator, label: m.operator_is_not() },
+        { value: 'isEmpty' as SearchConditionOperator, label: m.operator_is_empty() },
+        { value: 'isNotEmpty' as SearchConditionOperator, label: m.operator_is_not_empty() },
       ]
     case 'toggle':
-      return [{ value: 'eq' as SearchConditionOperator, label: 'is' }]
+      return [{ value: 'eq' as SearchConditionOperator, label: m.operator_is() }]
     default:
-      return [{ value: 'eq' as SearchConditionOperator, label: 'is' }]
+      return [{ value: 'eq' as SearchConditionOperator, label: m.operator_is() }]
   }
 }
 
@@ -362,7 +362,7 @@ function MultiSelectValueInput({
         >
           <div className="flex flex-wrap gap-1 items-center max-w-[90%]">
             {selectedOptions.length === 0 ? (
-              <span className="text-muted-foreground">Select options...</span>
+              <span className="text-muted-foreground">{m.select_options()}</span>
             ) : (
               selectedOptions.map((option) => (
                 <span
@@ -433,7 +433,7 @@ function ConditionValueInput({
     return (
       <Select value={value as string} onValueChange={onChange}>
         <SelectTrigger>
-          <SelectValue placeholder="Select option" />
+          <SelectValue placeholder={m.select_option()} />
         </SelectTrigger>
         <SelectContent>
           {field.options.map((opt) => (
@@ -453,13 +453,13 @@ function ConditionValueInput({
 
   if (field.type === 'date') {
     const relativeDates = [
-      { value: 'today', label: 'Today' },
-      { value: 'yesterday', label: 'Yesterday' },
-      { value: 'tomorrow', label: 'Tomorrow' },
-      { value: 'one week ago', label: 'One week ago' },
-      { value: 'one week from now', label: 'One week from now' },
-      { value: 'one month ago', label: 'One month ago' },
-      { value: 'one month from now', label: 'One month from now' },
+      { value: 'today', label: m.date_today() },
+      { value: 'yesterday', label: m.date_yesterday() },
+      { value: 'tomorrow', label: m.date_tomorrow() },
+      { value: 'one week ago', label: m.date_one_week_ago() },
+      { value: 'one week from now', label: m.date_one_week_from_now() },
+      { value: 'one month ago', label: m.date_one_month_ago() },
+      { value: 'one month from now', label: m.date_one_month_from_now() },
     ]
 
     const isRelative = relativeDates.some((rd) => rd.value === value)
@@ -474,7 +474,7 @@ function ConditionValueInput({
           }}
         >
           <SelectTrigger className="w-[140px]">
-            <SelectValue placeholder="Date type" />
+            <SelectValue placeholder={m.date_type()} />
           </SelectTrigger>
           <SelectContent>
             {relativeDates.map((rd) => (
@@ -482,7 +482,7 @@ function ConditionValueInput({
                 {rd.label}
               </SelectItem>
             ))}
-            <SelectItem value="exact">Exact date...</SelectItem>
+            <SelectItem value="exact">{m.exact_date()}</SelectItem>
           </SelectContent>
         </Select>
         {!isRelative && (
@@ -527,8 +527,8 @@ function ConditionValueInput({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="true">Checked</SelectItem>
-          <SelectItem value="false">Unchecked</SelectItem>
+          <SelectItem value="true">{m.toggle_checked()}</SelectItem>
+          <SelectItem value="false">{m.toggle_unchecked()}</SelectItem>
         </SelectContent>
       </Select>
     )
@@ -537,7 +537,7 @@ function ConditionValueInput({
   return (
     <DebouncedInput
       type="text"
-      placeholder="Enter a value"
+      placeholder={m.enter_a_value()}
       value={value as string}
       onChange={onChange}
     />
