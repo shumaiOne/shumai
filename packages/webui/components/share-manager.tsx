@@ -20,6 +20,7 @@ import { useUserMetadataStore } from '@/ui/stores/user-metadata'
 import { useTopNavStore } from '@/ui/stores/top-nav'
 import type { ShareLinkInfo } from '@shumai/dtos'
 import { toast } from 'sonner'
+import { m } from '@/ui/paraglide/messages.js'
 
 type ShareManagerProps = {
   teamId: string
@@ -51,7 +52,7 @@ export default function ShareManager({
       const res = await client.api.shares[':shareId'].$get({
         param: { shareId },
       })
-      if (!res.ok) throw new Error('Failed to fetch share link')
+      if (!res.ok) throw new Error(m.failed_fetch_share_link())
       return (await res.json()) as unknown as ShareLinkInfo
     },
   })
@@ -123,7 +124,7 @@ export default function ShareManager({
           order,
         },
       })
-      if (!res.ok) throw new Error('Failed to fetch folders')
+      if (!res.ok) throw new Error(m.failed_fetch_folders())
       return (await res.json()) as unknown as AssetInfoPaginatedList
     },
     enabled: !!currentFolderId,
@@ -148,7 +149,7 @@ export default function ShareManager({
           order,
         },
       })
-      if (!res.ok) throw new Error('Failed to fetch files')
+      if (!res.ok) throw new Error(m.failed_fetch_files())
       return (await res.json()) as unknown as AssetInfoPaginatedList
     },
     enabled: !!currentFolderId,
@@ -221,11 +222,11 @@ export default function ShareManager({
       const res = await $removeFromShare({
         param: { shareId, assetId },
       })
-      if (!res.ok) throw new Error('Failed to remove')
+      if (!res.ok) throw new Error(m.failed_remove())
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['folder-children', teamId, currentFolderId] })
-      toast.success('Removed from share')
+      toast.success(m.removed_from_share())
     },
   })
 
@@ -236,12 +237,12 @@ export default function ShareManager({
         param: { shareId },
         json,
       })
-      if (!res.ok) throw new Error('Failed to update')
+      if (!res.ok) throw new Error(m.failed_update())
       return await res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['share', shareId] })
-      toast.success('Settings updated')
+      toast.success(m.settings_updated())
     },
   })
 
@@ -250,7 +251,7 @@ export default function ShareManager({
       const currentFolderName =
         currentFolderId === shareRootId
           ? shareLink?.name || ''
-          : folders.find((f) => f.id === currentFolderId)?.name || 'Unknown'
+          : folders.find((f) => f.id === currentFolderId)?.name || m.unknown()
 
       setAncestorFolders((prev) => [{ id: currentFolderId!, name: currentFolderName }, ...prev])
       setCurrentFolderId(item.id)
@@ -258,7 +259,7 @@ export default function ShareManager({
     }
   }
 
-  if (!shareLink) return <div>Loading...</div>
+  if (!shareLink) return <div>{m.loading()}</div>
 
   return (
     <DragDropProvider
@@ -354,7 +355,7 @@ export default function ShareManager({
       <DragOverlay>
         {dragState?.isActive ? (
           <div className="flex items-center gap-2 rounded-md bg-popover px-3 py-2 text-sm font-medium shadow-md">
-            Moving {dragState.itemCount} item{dragState.itemCount !== 1 ? 's' : ''}
+            {m.moving_items({ count: dragState.itemCount })}
           </div>
         ) : null}
       </DragOverlay>

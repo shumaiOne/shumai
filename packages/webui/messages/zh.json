@@ -788,5 +788,11 @@
   "n_assets_plural": "{count} 个资源",
   "n_folders_singular": "{count} 个文件夹",
   "n_folders_plural": "{count} 个文件夹",
-  "failed_upload_file": "上传文件失败"
+  "failed_upload_file": "上传文件失败",
+
+  "failed_fetch_share_link": "获取分享链接失败",
+  "failed_fetch_folders": "获取文件夹失败",
+  "failed_fetch_files": "获取文件失败",
+  "failed_remove": "移除失败",
+  "failed_update": "更新失败"
 }
