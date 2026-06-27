@@ -776,5 +776,11 @@
   "failed_delete_collection": "删除收藏集失败",
   "failed_rename_share_link": "重命名分享链接失败",
   "failed_delete_share_link": "删除分享链接失败",
-  "failed_to_fetch_folder_children": "获取子文件夹失败"
+  "failed_to_fetch_folder_children": "获取子文件夹失败",
+
+  "failed_update_fields_order": "更新字段排序失败",
+  "failed_create_field": "创建字段失败",
+  "failed_update_field": "更新字段失败",
+  "failed_delete_field": "删除字段失败",
+  "new_label": "新建"
 }

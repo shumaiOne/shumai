@@ -26,6 +26,7 @@ import {
 import { useMemo, useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { Popover, PopoverTrigger, PopoverContent } from '@/ui/components/ui/popover'
+import { m } from '@/ui/paraglide/messages.js'
 import { FIELD_TYPE_ICONS, PREDEFINED_COLORS, COLOR_MAP } from './fields-manager'
 
 import { Button } from '@/ui/components/ui/button'
@@ -57,12 +58,6 @@ const SCOPE_GROUPS = {
   SYSTEM: 'system',
   TEAM: 'team',
   PROJECT: 'project',
-}
-
-const GROUP_LABELS: Record<string, string> = {
-  [SCOPE_GROUPS.SYSTEM]: 'Essentials',
-  [SCOPE_GROUPS.TEAM]: 'Team Attributes', // Assuming this, user screenshot said "File Attributes" but maybe that's system?
-  [SCOPE_GROUPS.PROJECT]: 'Custom Fields',
 }
 
 // Icons for groups
@@ -151,7 +146,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
   >({
     mutationFn: async (request) => {
       const res = await $patchOrder(request)
-      if (!res.ok) throw new Error('Failed to update fields order')
+      if (!res.ok) throw new Error(m.failed_update_fields_order())
       return null as unknown as InferResponseType<typeof $patchOrder>
     },
   })
@@ -163,7 +158,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
   >({
     mutationFn: async (request) => {
       const res = await $post(request)
-      if (!res.ok) throw new Error('Failed to create field')
+      if (!res.ok) throw new Error(m.failed_create_field())
       return (await res.json()) as MetadataFieldInfo
     },
     onSuccess: (data) => {
@@ -172,7 +167,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
       setIsCreating(false)
       setSelectedFieldId(data.id!)
       resetEditor(data)
-      toast.success('Field created successfully')
+      toast.success(m.field_created_successfully())
     },
   })
   const $put = client.api.fields[':fieldId'].$put
@@ -183,7 +178,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
   >({
     mutationFn: async (request) => {
       const res = await $put(request)
-      if (!res.ok) throw new Error('Failed to update field')
+      if (!res.ok) throw new Error(m.failed_update_field())
       return (await res.json()) as MetadataFieldInfo
     },
     onSuccess: (data) => {
@@ -191,7 +186,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
         f.id === data.id ? { ...f, ...(data as MetadataFieldInfo) } : f,
       )
       updateFields(newFields)
-      toast.success('Field updated successfully')
+      toast.success(m.field_updated_successfully())
     },
   })
   const $delete = client.api.fields[':fieldId'].$delete
@@ -202,14 +197,14 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
   >({
     mutationFn: async (request) => {
       const res = await $delete(request)
-      if (!res.ok) throw new Error('Failed to delete field')
+      if (!res.ok) throw new Error(m.failed_delete_field())
       return null as unknown as InferResponseType<typeof $delete>
     },
     onSuccess: (_, variables) => {
       const newFields = fields.filter((f) => f.id !== variables.param.fieldId)
       updateFields(newFields)
       setSelectedFieldId(null)
-      toast.success('Field deleted successfully')
+      toast.success(m.field_deleted_successfully())
     },
   })
 
@@ -225,7 +220,14 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
 
     return presentScopes.map((scope) => ({
       id: scope,
-      label: GROUP_LABELS[scope] || scope.charAt(0).toUpperCase() + scope.slice(1),
+      label:
+        scope === SCOPE_GROUPS.SYSTEM
+          ? m.essentials()
+          : scope === SCOPE_GROUPS.TEAM
+            ? m.team_attributes()
+            : scope === SCOPE_GROUPS.PROJECT
+              ? m.custom_fields()
+              : scope.charAt(0).toUpperCase() + scope.slice(1),
       icon: GROUP_ICONS[scope] || FileText,
     }))
   }, [fields])
@@ -325,7 +327,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
 
   const handleDelete = () => {
     if (!selectedField) return
-    if (confirm('Are you sure you want to delete this field?')) {
+    if (confirm(m.confirm_delete_field())) {
       deleteField({ param: { fieldId: selectedField.id! } })
     }
   }
@@ -337,22 +339,22 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
       return (
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>Field Name</Label>
+            <Label>{m.field_name()}</Label>
             <Input
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              placeholder="e.g. Status"
+              placeholder={m.field_name_placeholder()}
             />
           </div>
           <div className="space-y-2">
-            <Label>Field Type</Label>
+            <Label>{m.field_type()}</Label>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="w-full justify-between">
                   {newType ? (
                     <span className="capitalize">{newType.replace(/_/g, ' ')}</span>
                   ) : (
-                    <span className="text-muted-foreground">Select type</span>
+                    <span className="text-muted-foreground">{m.select_type()}</span>
                   )}
                   <ChevronDown className="h-4 w-4 opacity-50" />
                 </Button>
@@ -371,23 +373,23 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
             </DropdownMenu>
           </div>
           <div className="space-y-2">
-            <Label>Description</Label>
+            <Label>{m.description()}</Label>
             <Input
               value={newDescription}
               onChange={(e) => setNewDescription(e.target.value)}
-              placeholder="Description (Optional)"
+              placeholder={m.description_optional_placeholder()}
             />
           </div>
           <div className="flex items-center space-x-2">
             <Switch checked={newAiAutofill} onCheckedChange={setNewAiAutofill} />
-            <Label>AI Autofill</Label>
+            <Label>{m.ai_autofill()}</Label>
           </div>
         </div>
       )
     }
 
     if (!selectedField) {
-      return <div className="text-muted-foreground text-sm">Select a field to edit options</div>
+      return <div className="text-muted-foreground text-sm">{m.select_field_to_edit()}</div>
     }
 
     const isReadOnly = selectedField.readOnly
@@ -411,15 +413,16 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
 
         {/* Generic placeholder for options */}
         <div className="text-sm text-muted-foreground">
-          Type: <span className="capitalize">{selectedField.config?.type?.replace(/_/g, ' ')}</span>
+          {m.type_label()}{' '}
+          <span className="capitalize">{selectedField.config?.type?.replace(/_/g, ' ')}</span>
         </div>
 
         <div className="space-y-2">
-          <Label>Description</Label>
+          <Label>{m.description()}</Label>
           <Input
             value={editDescription}
             onChange={(e) => setEditDescription(e.target.value)}
-            placeholder="Description (Optional)"
+            placeholder={m.description_optional_placeholder()}
             disabled={isReadOnly}
           />
         </div>
@@ -430,7 +433,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
             onCheckedChange={setEditAiAutofill}
             disabled={isReadOnly}
           />
-          <Label>AI Autofill</Label>
+          <Label>{m.ai_autofill()}</Label>
         </div>
 
         {/* TODO: Add specific option editors here */}
@@ -439,7 +442,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
           selectedField.config?.type === 'selectMulti') && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">Options</label>
+              <label className="text-sm font-medium">{m.options()}</label>
               <Button
                 variant="ghost"
                 size="sm"
@@ -447,7 +450,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
                   // Logic to add option
                   const newOption = {
                     id: ulid(),
-                    displayName: 'New Option',
+                    displayName: m.new_option(),
                     color: '#808080',
                   }
                   const currentOptions =
@@ -464,7 +467,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
                   })
                 }}
               >
-                <Plus className="h-4 w-4 mr-2" /> Add option
+                <Plus className="h-4 w-4 mr-2" /> {m.add_option()}
               </Button>
             </div>
             <div className="space-y-2">
@@ -566,7 +569,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
               onClick={handleDelete}
               className="text-destructive hover:bg-destructive/10"
             >
-              Delete field
+              {m.delete_field()}
             </Button>
           </div>
         )}
@@ -580,12 +583,12 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="!max-w-[50rem] h-[70vh] flex flex-col p-0 gap-0">
         <div className="p-4 border-b flex items-center justify-between">
-          <DialogTitle>Manage Fields</DialogTitle>
+          <DialogTitle>{m.manage_fields()}</DialogTitle>
         </div>
         <div className="flex overflow-hidden h-full">
           {/* Left Column: Groups */}
           <div className="w-60 border-r bg-muted/30 p-4 space-y-1">
-            <div className="font-semibold mb-4 px-2">Groups</div>
+            <div className="font-semibold mb-4 px-2">{m.groups()}</div>
             {groups.map((group) => (
               <button
                 key={group.id}
@@ -613,7 +616,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
               </span>
               {selectedGroup === SCOPE_GROUPS.PROJECT && (
                 <Button size="sm" variant="outline" className="h-8" onClick={handleCreateClick}>
-                  New <Plus className="ml-1 h-3 w-3" />
+                  {m.new_label()} <Plus className="ml-1 h-3 w-3" />
                 </Button>
               )}
             </div>
@@ -642,7 +645,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
               </DragDropProvider>
               {filteredFields.length === 0 && (
                 <div className="text-center text-muted-foreground text-sm py-8">
-                  No fields found
+                  {m.no_fields_found()}
                 </div>
               )}
             </div>
@@ -660,9 +663,11 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
                     if (selectedFieldId && selectedField) resetEditor(selectedField)
                   }}
                 >
-                  Cancel
+                  {m.cancel()}
                 </Button>
-                <Button onClick={isCreating ? handleSaveCreation : handleSaveEdit}>Save</Button>
+                <Button onClick={isCreating ? handleSaveCreation : handleSaveEdit}>
+                  {m.save()}
+                </Button>
               </div>
             )}
           </div>

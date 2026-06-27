@@ -776,5 +776,11 @@
   "failed_delete_collection": "Failed to delete collection",
   "failed_rename_share_link": "Failed to rename share link",
   "failed_delete_share_link": "Failed to delete share link",
-  "failed_to_fetch_folder_children": "Failed to fetch folder children"
+  "failed_to_fetch_folder_children": "Failed to fetch folder children",
+
+  "failed_update_fields_order": "Failed to update fields order",
+  "failed_create_field": "Failed to create field",
+  "failed_update_field": "Failed to update field",
+  "failed_delete_field": "Failed to delete field",
+  "new_label": "New"
 }
