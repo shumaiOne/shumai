@@ -736,4 +736,5 @@ export * from "./n_assets_singular.js";
 export * from "./n_assets_plural.js";
 export * from "./n_folders_singular.js";
 export * from "./n_folders_plural.js";
+export * from "./failed_upload_file.js";
 export type LocalizedString = import("../runtime.js").LocalizedString;

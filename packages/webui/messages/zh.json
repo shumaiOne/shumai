@@ -787,5 +787,6 @@
   "n_assets_singular": "{count} 个资源",
   "n_assets_plural": "{count} 个资源",
   "n_folders_singular": "{count} 个文件夹",
-  "n_folders_plural": "{count} 个文件夹"
+  "n_folders_plural": "{count} 个文件夹",
+  "failed_upload_file": "上传文件失败"
 }

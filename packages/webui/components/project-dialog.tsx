@@ -17,6 +17,7 @@ import { useNavigate } from '@tanstack/react-router'
 import type { InferRequestType, InferResponseType } from 'hono/client'
 import { Bell, Check, Loader2, Sliders, Sparkles, Upload, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { m } from '@/ui/paraglide/messages.js'
 
 interface ProjectDialogProps {
   open: boolean
@@ -62,7 +63,7 @@ export function ProjectDialog({ open, onOpenChange, mode, teamId, project }: Pro
   >({
     mutationFn: async (payload) => {
       const res = await $post({ param: { teamId: teamId }, json: payload })
-      if (!res.ok) throw new Error('Failed to create project')
+      if (!res.ok) throw new Error(m.failed_create_project())
       return await res.json()
     },
     onSuccess: (data) => {
@@ -91,7 +92,7 @@ export function ProjectDialog({ open, onOpenChange, mode, teamId, project }: Pro
         param: { projectId: project!.id! },
         json: payload,
       })
-      if (!res.ok) throw new Error('Failed to update project')
+      if (!res.ok) throw new Error(m.failed_update_project())
       return await res.json()
     },
     onSuccess: () => {
@@ -115,7 +116,7 @@ export function ProjectDialog({ open, onOpenChange, mode, teamId, project }: Pro
           file: file,
         },
       })
-      if (!res.ok) throw new Error('Failed to upload file')
+      if (!res.ok) throw new Error(m.failed_upload_file())
       return await res.json()
     },
     onSuccess: (data) => {
@@ -184,12 +185,12 @@ export function ProjectDialog({ open, onOpenChange, mode, teamId, project }: Pro
           <div className="flex items-center gap-3">
             <div>
               <DialogTitle className="text-xl font-semibold tracking-tight text-foreground">
-                {mode === 'create' ? 'Create New Project' : 'Project Settings'}
+                {mode === 'create' ? m.create_new_project() : m.project_settings()}
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground/80 mt-1">
                 {mode === 'create'
-                  ? 'Configure your new project workspace and appearance.'
-                  : 'Manage and update your project workspace configurations.'}
+                  ? m.configure_new_project_description()
+                  : m.manage_project_description()}
               </DialogDescription>
             </div>
           </div>
@@ -200,14 +201,14 @@ export function ProjectDialog({ open, onOpenChange, mode, teamId, project }: Pro
           {/* Project Name Field */}
           <div className="space-y-2">
             <Label htmlFor="name" className="text-sm font-semibold tracking-tight text-foreground">
-              Project Name
+              {m.project_name()}
             </Label>
             <div className="relative">
               <Input
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Acme Marketing, Q3 Product Launch..."
+                placeholder={m.project_name_placeholder()}
                 className="h-11 px-4 rounded-xl border-border/80 focus-visible:ring-ring/25 focus-visible:border-primary transition-all shadow-xs pr-10"
               />
               {name.trim() && (
@@ -216,9 +217,7 @@ export function ProjectDialog({ open, onOpenChange, mode, teamId, project }: Pro
                 </div>
               )}
             </div>
-            <p className="text-[11px] text-muted-foreground">
-              A clear, concise name to identify your project space.
-            </p>
+            <p className="text-[11px] text-muted-foreground">{m.project_name_hint()}</p>
           </div>
 
           {/* Cover Image & Branding Section */}
@@ -226,7 +225,7 @@ export function ProjectDialog({ open, onOpenChange, mode, teamId, project }: Pro
             <div className="flex items-center justify-between">
               <Label className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 text-primary" />
-                Project Cover
+                {m.project_cover()}
               </Label>
               {coverImagePreview && (
                 <button
@@ -235,7 +234,7 @@ export function ProjectDialog({ open, onOpenChange, mode, teamId, project }: Pro
                   className="text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/5 px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 font-medium"
                 >
                   <X className="w-3.5 h-3.5" />
-                  Remove Cover
+                  {m.remove_cover()}
                 </button>
               )}
             </div>
@@ -258,7 +257,7 @@ export function ProjectDialog({ open, onOpenChange, mode, teamId, project }: Pro
                 <div className="absolute inset-0 bg-background/70 backdrop-blur-xs flex flex-col items-center justify-center gap-2 z-20">
                   <div className="flex items-center gap-2 px-3 py-1.5 bg-background border rounded-full shadow-lg">
                     <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                    <span className="text-xs font-semibold text-foreground">Uploading...</span>
+                    <span className="text-xs font-semibold text-foreground">{m.uploading()}</span>
                   </div>
                 </div>
               )}
@@ -267,13 +266,13 @@ export function ProjectDialog({ open, onOpenChange, mode, teamId, project }: Pro
                 <>
                   <img
                     src={coverImagePreview}
-                    alt="Cover Preview"
+                    alt={m.cover_preview()}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                   {/* Hover Overlay */}
                   <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-1.5 text-white z-10">
                     <Upload className="w-5 h-5 transform translate-y-1 group-hover:translate-y-0 transition-transform duration-300" />
-                    <span className="text-xs font-semibold">Upload Image</span>
+                    <span className="text-xs font-semibold">{m.upload_image()}</span>
                   </div>
                 </>
               ) : (
@@ -282,9 +281,9 @@ export function ProjectDialog({ open, onOpenChange, mode, teamId, project }: Pro
                     <Upload className="w-4 h-4 text-muted-foreground" />
                   </div>
                   <div>
-                    <p className="text-xs font-medium text-foreground">Upload cover</p>
+                    <p className="text-xs font-medium text-foreground">{m.upload_cover()}</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5 max-w-[140px] mx-auto leading-normal">
-                      Drag and drop, or browse. Recommended 1:1 (400×400px).
+                      {m.upload_cover_hint()}
                     </p>
                   </div>
                 </div>
@@ -296,18 +295,17 @@ export function ProjectDialog({ open, onOpenChange, mode, teamId, project }: Pro
           <div className="space-y-3 border-t border-border/40 pt-5">
             <Label className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-1.5">
               <Sliders className="w-4 h-4 text-primary" />
-              Project Preferences
+              {m.project_preferences()}
             </Label>
 
             <div className="flex items-start justify-between rounded-xl border border-border/50 bg-muted/10 p-4 transition-all duration-300 hover:bg-muted/20">
               <div className="space-y-1 pr-4">
                 <div className="text-sm font-semibold flex items-center gap-2 text-foreground">
                   <Bell className="w-4 h-4 text-primary" />
-                  Activity Notifications
+                  {m.activity_notifications()}
                 </div>
                 <p className="text-xs text-muted-foreground leading-normal">
-                  Receive in-app updates for comments, uploads, and automated background analysis
-                  tasks inside this project.
+                  {m.activity_notifications_description()}
                 </p>
               </div>
               <Switch
@@ -329,7 +327,7 @@ export function ProjectDialog({ open, onOpenChange, mode, teamId, project }: Pro
             disabled={isUploading}
             className="rounded-xl h-10 px-4 hover:bg-muted font-medium text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            Cancel
+            {m.cancel()}
           </Button>
           <Button
             type="submit"
@@ -340,12 +338,12 @@ export function ProjectDialog({ open, onOpenChange, mode, teamId, project }: Pro
             {isUploading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Processing...
+                {m.processing()}
               </>
             ) : mode === 'create' ? (
-              'Create Project'
+              m.create_project()
             ) : (
-              'Save Changes'
+              m.save_changes()
             )}
           </Button>
         </DialogFooter>

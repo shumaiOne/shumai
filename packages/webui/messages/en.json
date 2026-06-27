@@ -787,5 +787,6 @@
   "n_assets_singular": "{count} Asset",
   "n_assets_plural": "{count} Assets",
   "n_folders_singular": "{count} Folder",
-  "n_folders_plural": "{count} Folders"
+  "n_folders_plural": "{count} Folders",
+  "failed_upload_file": "Failed to upload file"
 }
