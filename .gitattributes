@@ -1,1 +1,2 @@
-src/generated/** linguist-generated
+packages/db/src/generated/** linguist-generated
+packages/webui/paraglide/** linguist-generated
