@@ -245,7 +245,7 @@ export function useFramePlayer(
     const handleExternalSeeked = () => {
       // Only sync if this seek was not triggered internally by seekToFrame
       if (!isSeekingRef.current) {
-        const actualFrame = Math.floor(video.currentTime * frameRate)
+        const actualFrame = Math.round(video.currentTime * frameRate)
         const finalFrame = Math.max(0, Math.min(actualFrame, totalFrames - 1))
         setCurrentFrame(finalFrame)
       }

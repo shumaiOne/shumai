@@ -903,7 +903,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         toggleLoop={toggleLoop}
         toggleMute={toggleMute}
         handleVolumeChange={handleVolumeChange}
-        setState={setState}
         changePlaybackRate={changePlaybackRate}
         changeResolution={changeResolution}
         handleDownload={handleDownload}
