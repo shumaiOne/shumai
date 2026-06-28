@@ -81,6 +81,7 @@ describe('Transcode Activities', () => {
       duration: 10,
       bitRate: 1000,
       frameRate: 30,
+      totalFrames: 300,
       hasAudio: true,
       videoCodec: 'Advanced Video Coding',
       audioCodec: 'MPEG-4 Audio',
@@ -121,6 +122,7 @@ describe('Transcode Activities', () => {
       duration: 0,
       bitRate: 0,
       frameRate: 0,
+      totalFrames: 0,
       hasAudio: false,
       mimeType: 'image/png',
     })

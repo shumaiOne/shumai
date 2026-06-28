@@ -25,7 +25,8 @@ import {
 } from '../ui/dropdown-menu'
 import { Slider } from '../ui/slider'
 import ProgressBar from './progress-bar'
-import { formatFrame, formatTime } from './utils'
+import { formatTime } from './utils'
+import { useFramePlayer } from './use-frame-player'
 
 import type { Annotation } from '@/ui/types'
 import DrawingCanvas from '../drawing-canvas'
@@ -68,7 +69,6 @@ interface ControlBarProps {
   resolutions: DisplayTranscode[]
   togglePlay: () => void
   toggleLoop: () => void
-  handleSeek: (time: number) => void
   toggleMute: () => void
   handleVolumeChange: (newVolume: number) => void
   setState: React.Dispatch<React.SetStateAction<PlayerState>>
@@ -77,6 +77,11 @@ interface ControlBarProps {
   handleDownload: (url: string, resolution: string) => void
   toggleFullScreen: () => void
   onZoomChange: (zoom: number) => void
+  // Frame-accurate props
+  frameRate: number
+  totalFrames: number
+  currentFrame: number
+  seekToFrame: (frame: number) => Promise<void>
 }
 
 const ControlBar: React.FC<ControlBarProps> = ({
@@ -88,7 +93,6 @@ const ControlBar: React.FC<ControlBarProps> = ({
   resolutions,
   togglePlay,
   toggleLoop,
-  handleSeek,
   toggleMute,
   handleVolumeChange,
   setState,
@@ -97,6 +101,10 @@ const ControlBar: React.FC<ControlBarProps> = ({
   handleDownload,
   toggleFullScreen,
   onZoomChange,
+  frameRate,
+  totalFrames,
+  currentFrame,
+  seekToFrame,
 }) => {
   if (!data.media?.metadata) {
     return null
@@ -119,14 +127,15 @@ const ControlBar: React.FC<ControlBarProps> = ({
       {/* Progress Bar */}
       <div className="mb-4 px-1">
         <ProgressBar
-          duration={state.duration}
-          currentTime={state.currentTime}
+          totalFrames={totalFrames}
+          currentFrame={currentFrame}
+          fps={frameRate}
           buffered={buffered}
           previewUrl={data.media.videoPreview?.url}
-          onSeek={handleSeek}
+          onSeek={seekToFrame}
           metadata={{
             ...data.media.metadata,
-            frameRate: data.media.metadata.frameRate || 30,
+            frameRate: frameRate,
           }}
         />
       </div>
@@ -186,8 +195,8 @@ const ControlBar: React.FC<ControlBarProps> = ({
             title="Click to toggle Time/Frames"
           >
             {state.showFrames
-              ? `${formatFrame(state.currentTime, data.media.metadata.frameRate ?? 30)} / ${formatFrame(state.duration, data.media.metadata.frameRate ?? 30)}`
-              : `${formatTime(state.currentTime)} / ${formatTime(state.duration)}`}
+              ? `${currentFrame} / ${totalFrames}`
+              : `${formatTime(currentFrame / frameRate)} / ${formatTime(totalFrames / frameRate)}`}
             <span className="ml-1 text-xs text-muted-foreground">
               {state.showFrames ? 'fr' : ''}
             </span>
@@ -323,6 +332,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [videoHtmlEl, setVideoHtmlEl] = useState<HTMLVideoElement | undefined>(undefined)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
   const [zoom, setZoom] = useState(1)
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
 
@@ -368,6 +378,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       }
     }
   }, [containerSize.width, containerSize.height, data.media?.metadata])
+
+  // Cleanup ref when player is disposed
+  useEffect(() => {
+    return () => {
+      videoRef.current = null
+    }
+  }, [])
 
   if (!data.media?.original?.downloadUrl || !data.media.metadata) {
     return (
@@ -447,6 +464,30 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [buffered, setBuffered] = useState(0)
   const [isControlsVisible, setIsControlsVisible] = useState(true)
 
+  // Frame-accurate hook and derived state
+  const metadata = data.media.metadata
+  const frameRate = metadata.frameRate || 30
+  const totalFrames = metadata.totalFrames || Math.round((metadata.duration || 0) * frameRate)
+  const { currentFrame, seekToFrame } = useFramePlayer(videoRef, frameRate, totalFrames)
+
+  const currentTime = currentFrame / frameRate
+  const duration = totalFrames / frameRate
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0
+
+  const controlBarState: PlayerState = {
+    ...state,
+    currentTime,
+    duration,
+    progress,
+  }
+
+  // Trigger time update event reactively
+  useEffect(() => {
+    if (onTimeUpdate) {
+      onTimeUpdate(currentFrame / frameRate)
+    }
+  }, [currentFrame, frameRate, onTimeUpdate])
+
   // Initialize Video.js
   useEffect(() => {
     if (!videoContainerRef.current) return
@@ -481,12 +522,16 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const htmlVid = videoElement.querySelector('video')
     if (htmlVid) {
       setVideoHtmlEl(htmlVid)
+      videoRef.current = htmlVid
     } else {
       // Fallback: try player.tech().el()
       // Wait for ready?
       player.ready(() => {
         const techEl = player.tech({ iWillNotUseThisInPlugins: true })?.el() as HTMLVideoElement
-        if (techEl) setVideoHtmlEl(techEl)
+        if (techEl) {
+          setVideoHtmlEl(techEl)
+          videoRef.current = techEl
+        }
       })
     }
 
@@ -501,30 +546,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     player.on('ended', () => setState((p) => ({ ...p, isPlaying: false })))
 
     player.on('timeupdate', () => {
-      const current = player.currentTime() || 0
-      const duration = player.duration() || data.media?.metadata?.duration || 0
+      const playerDuration = player.duration() || data.media?.metadata?.duration || 0
 
       const bufferedEnd = player.bufferedEnd()
-      if (duration > 0) {
-        setBuffered((bufferedEnd / duration) * 100)
-      }
-
-      // Only update state here if the player is paused.
-      // When playing, requestAnimationFrame handles smooth updates.
-      if (player.paused()) {
-        setState((prev) => {
-          if (prev.currentTime === current) return prev
-          return {
-            ...prev,
-            currentTime: current,
-            duration: duration || prev.duration,
-            progress: duration > 0 ? (current / duration) * 100 : 0,
-          }
-        })
-      }
-
-      if (onTimeUpdate) {
-        onTimeUpdate(current)
+      if (playerDuration > 0) {
+        setBuffered((bufferedEnd / playerDuration) * 100)
       }
     })
 
@@ -555,7 +581,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     // Seek to startTime if provided
     if (startTime && startTime > 0) {
       player.ready(() => {
-        player.currentTime(startTime)
+        seekToFrame(Math.round(startTime * frameRate))
       })
     }
 
@@ -564,56 +590,20 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       if (player && !player.isDisposed()) {
         player.dispose()
         playerRef.current = null
+        videoRef.current = null
       }
     }
   }, [data])
 
   // Handle changes to startTime (e.g., clicking different chunks in search results)
   useEffect(() => {
-    const player = playerRef.current
-    if (player && startTime !== undefined && startTime !== null && startTime > 0) {
-      // Only seek if the difference is significant (e.g., > 1s) to avoid jumping due to small precision differences
-      const current = player.currentTime() || 0
-      if (Math.abs(current - startTime) > 1) {
-        player.currentTime(startTime)
+    if (startTime !== undefined && startTime !== null && startTime > 0) {
+      const targetFrame = Math.round(startTime * frameRate)
+      if (Math.abs(currentFrame - targetFrame) > frameRate) {
+        seekToFrame(targetFrame)
       }
     }
-  }, [startTime, playerRef])
-
-  // Smooth progress updates using requestAnimationFrame when playing
-  useEffect(() => {
-    let animationFrameId: number
-
-    const updateProgress = () => {
-      const player = playerRef.current
-      if (player && !player.paused()) {
-        const current = player.currentTime() || 0
-        const duration = player.duration() || data.media?.metadata?.duration || 0
-
-        setState((prev) => {
-          if (prev.currentTime === current) return prev
-          return {
-            ...prev,
-            currentTime: current,
-            duration: duration || prev.duration,
-            progress: duration > 0 ? (current / duration) * 100 : 0,
-          }
-        })
-
-        animationFrameId = requestAnimationFrame(updateProgress)
-      }
-    }
-
-    if (state.isPlaying) {
-      animationFrameId = requestAnimationFrame(updateProgress)
-    }
-
-    return () => {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId)
-      }
-    }
-  }, [state.isPlaying, playerRef, data.media?.metadata?.duration])
+  }, [startTime, frameRate, currentFrame, seekToFrame])
 
   const handleMouseMove = useCallback(() => {
     // Always show controls on movement
@@ -689,13 +679,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     setState((prev) => ({ ...prev, isLooping: newLoop }))
   }
 
-  const handleSeek = (time: number) => {
-    const player = playerRef.current
-    if (!player) return
-    player.currentTime(time)
-    setState((prev) => ({ ...prev, currentTime: time }))
-  }
-
   const handleVolumeChange = (newVolume: number) => {
     // Optimistic update to prevent slider jumping and ensure immediate UI feedback
     setState((prev) => ({
@@ -745,7 +728,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (!player) return
 
     const wasPlaying = !player.paused()
-    const currentTime = player.currentTime()
+    const currentT = player.currentTime()
 
     setState((prev) => ({
       ...prev,
@@ -756,7 +739,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     player.src({ type: 'video/mp4', src: res.url })
 
     player.one('loadedmetadata', () => {
-      player.currentTime(currentTime)
+      player.currentTime(currentT)
       if (wasPlaying) {
         const playPromise = player.play()
         if (playPromise !== undefined) {
@@ -871,7 +854,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       </div>
 
       <ControlBar
-        state={state}
+        state={controlBarState}
         zoom={zoom}
         isControlsVisible={isControlsVisible}
         buffered={buffered}
@@ -879,7 +862,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         resolutions={resolutions}
         togglePlay={togglePlay}
         toggleLoop={toggleLoop}
-        handleSeek={handleSeek}
         toggleMute={toggleMute}
         handleVolumeChange={handleVolumeChange}
         setState={setState}
@@ -888,6 +870,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         handleDownload={handleDownload}
         toggleFullScreen={toggleFullScreen}
         onZoomChange={setZoom}
+        frameRate={frameRate}
+        totalFrames={totalFrames}
+        currentFrame={currentFrame}
+        seekToFrame={seekToFrame}
       />
     </div>
   )

@@ -234,6 +234,7 @@ describe('TranscodeService', () => {
       originalHeight: 1080,
       bitRate: 1000,
       frameRate: 30,
+      totalFrames: 300,
       hasAudio: true,
       mimeType: 'video/mp4',
     })

@@ -1,0 +1,266 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react'
+
+export interface UseFramePlayerResult {
+  currentFrame: number
+  setCurrentFrame: React.Dispatch<React.SetStateAction<number>>
+  seekToFrame: (targetFrame: number) => Promise<void>
+  isSeeking: React.RefObject<boolean>
+}
+
+interface HtmlVideoElementWithCallback {
+  requestVideoFrameCallback?: (
+    callback: (now: DOMHighResTimeStamp, metadata: { mediaTime: number }) => void,
+  ) => number
+  cancelVideoFrameCallback?: (id: number) => void
+}
+
+export function useFramePlayer(
+  videoRef: React.RefObject<HTMLVideoElement | null>,
+  frameRate: number,
+  totalFrames: number,
+): UseFramePlayerResult {
+  const [currentFrame, setCurrentFrame] = useState<number>(0)
+  const isSeekingRef = useRef<boolean>(false)
+  const isPlayingRef = useRef<boolean>(false)
+  const pendingSeekFrameRef = useRef<number | null>(null)
+
+  // Track playing state of the HTML video element
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    const handlePlay = () => {
+      isPlayingRef.current = true
+    }
+    const handlePause = () => {
+      isPlayingRef.current = false
+    }
+
+    video.addEventListener('play', handlePlay)
+    video.addEventListener('pause', handlePause)
+
+    // Initial check
+    isPlayingRef.current = !video.paused
+
+    return () => {
+      video.removeEventListener('play', handlePlay)
+      video.removeEventListener('pause', handlePause)
+    }
+  }, [videoRef.current])
+
+  // Continuous frame updating loop during active playback
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    let rVfcId: number | null = null
+    let rafId: number | null = null
+    let active = true
+
+    const updateFrameLoop = () => {
+      if (!active) return
+
+      if (video.paused || video.ended) {
+        return
+      }
+
+      const videoWithCallback = video as unknown as HtmlVideoElementWithCallback
+      if (videoWithCallback.requestVideoFrameCallback) {
+        rVfcId = videoWithCallback.requestVideoFrameCallback(
+          (_now: DOMHighResTimeStamp, metadata: { mediaTime: number }) => {
+            const frame = Math.round(metadata.mediaTime * frameRate)
+            const clamped = Math.max(0, Math.min(frame, totalFrames - 1))
+            setCurrentFrame(clamped)
+            // Continue the loop
+            updateFrameLoop()
+          },
+        )
+      } else {
+        // Fallback for browsers without requestVideoFrameCallback
+        const frame = Math.round(video.currentTime * frameRate)
+        const clamped = Math.max(0, Math.min(frame, totalFrames - 1))
+        setCurrentFrame(clamped)
+        rafId = requestAnimationFrame(updateFrameLoop)
+      }
+    }
+
+    const handlePlay = () => {
+      updateFrameLoop()
+    }
+
+    const handlePause = () => {
+      if (rVfcId !== null) {
+        const videoWithCallback = video as unknown as HtmlVideoElementWithCallback
+        if (videoWithCallback.cancelVideoFrameCallback) {
+          try {
+            videoWithCallback.cancelVideoFrameCallback(rVfcId)
+          } catch {
+            // Ignore error during cancellation
+          }
+        }
+        rVfcId = null
+      }
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId)
+        rafId = null
+      }
+
+      // Synchronize frame on pause
+      const frame = Math.round(video.currentTime * frameRate)
+      const clamped = Math.max(0, Math.min(frame, totalFrames - 1))
+      setCurrentFrame(clamped)
+    }
+
+    video.addEventListener('play', handlePlay)
+    video.addEventListener('pause', handlePause)
+
+    // If it's already playing when this effect runs
+    if (!video.paused) {
+      updateFrameLoop()
+    }
+
+    return () => {
+      active = false
+      video.removeEventListener('play', handlePlay)
+      video.removeEventListener('pause', handlePause)
+      if (rVfcId !== null) {
+        const videoWithCallback = video as unknown as HtmlVideoElementWithCallback
+        if (videoWithCallback.cancelVideoFrameCallback) {
+          try {
+            videoWithCallback.cancelVideoFrameCallback(rVfcId)
+          } catch {
+            // Ignore error during cancellation
+          }
+        }
+      }
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId)
+      }
+    }
+  }, [videoRef.current, frameRate, totalFrames])
+
+  const seekToFrame = useCallback(
+    async (targetFrame: number) => {
+      const video = videoRef.current
+      if (!video) return
+
+      const roundedFrame = Math.round(targetFrame)
+      const clampedFrame = Math.max(0, Math.min(roundedFrame, totalFrames - 1))
+
+      // If a seek is already active, queue this target and update UI state optimistically
+      if (isSeekingRef.current) {
+        pendingSeekFrameRef.current = clampedFrame
+        setCurrentFrame(clampedFrame)
+        return
+      }
+
+      isSeekingRef.current = true
+      setCurrentFrame(clampedFrame) // Optimistic update for active seek
+
+      const performSeek = async (frameToSeek: number) => {
+        const frameDuration = 1 / frameRate
+        const safeTargetTime = frameToSeek * frameDuration + frameDuration / 2
+        const wasPlaying = !video.paused
+
+        video.currentTime = safeTargetTime
+
+        // Wait for native seek to complete
+        await new Promise<void>((resolve) => {
+          const onSeeked = () => {
+            video.removeEventListener('seeked', onSeeked)
+            resolve()
+          }
+          video.addEventListener('seeked', onSeeked)
+        })
+
+        // Pause only if we started paused and the user hasn't pressed play in the meantime
+        if (!wasPlaying && !isPlayingRef.current) {
+          video.pause()
+        }
+
+        // Seek complete: update frame immediately using Math.floor (accounts for half-frame offset)
+        const actualFrame = Math.floor(video.currentTime * frameRate)
+        const finalFrame = Math.max(0, Math.min(actualFrame, totalFrames - 1))
+        setCurrentFrame(finalFrame)
+
+        // Verify with requestVideoFrameCallback in the background (non-blocking)
+        const videoWithCallback = video as unknown as HtmlVideoElementWithCallback
+        if (videoWithCallback.requestVideoFrameCallback) {
+          videoWithCallback.requestVideoFrameCallback((_now, metadata) => {
+            const compositorFrame = Math.round(metadata.mediaTime * frameRate)
+            const verifiedFrame = Math.max(0, Math.min(compositorFrame, totalFrames - 1))
+            setCurrentFrame(verifiedFrame)
+          })
+        }
+
+        // Process next seek in the queue if any came in during the seek
+        if (pendingSeekFrameRef.current !== null) {
+          const nextFrame = pendingSeekFrameRef.current
+          pendingSeekFrameRef.current = null
+          await performSeek(nextFrame)
+        } else {
+          isSeekingRef.current = false
+        }
+      }
+
+      await performSeek(clampedFrame)
+    },
+    [videoRef, frameRate, totalFrames],
+  )
+
+  // Keyboard Shortcuts Keydown Listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target.isContentEditable
+      ) {
+        return
+      }
+
+      if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        const delta = e.shiftKey ? 10 : 1
+        seekToFrame(currentFrame + delta)
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        const delta = e.shiftKey ? 10 : 1
+        seekToFrame(currentFrame - delta)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [currentFrame, seekToFrame])
+
+  // Listen to external seeks (like comment clicks or VideoJS timeline clicks)
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    const handleExternalSeeked = () => {
+      // Only sync if this seek was not triggered internally by seekToFrame
+      if (!isSeekingRef.current) {
+        const actualFrame = Math.floor(video.currentTime * frameRate)
+        const finalFrame = Math.max(0, Math.min(actualFrame, totalFrames - 1))
+        setCurrentFrame(finalFrame)
+      }
+    }
+
+    video.addEventListener('seeked', handleExternalSeeked)
+    return () => {
+      video.removeEventListener('seeked', handleExternalSeeked)
+    }
+  }, [videoRef.current, frameRate, totalFrames])
+
+  return {
+    currentFrame,
+    setCurrentFrame,
+    seekToFrame,
+    isSeeking: isSeekingRef,
+  }
+}
