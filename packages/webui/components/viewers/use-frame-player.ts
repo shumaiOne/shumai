@@ -248,6 +248,13 @@ export function useFramePlayer(
         const actualFrame = Math.round(video.currentTime * frameRate)
         const finalFrame = Math.max(0, Math.min(actualFrame, totalFrames - 1))
         setCurrentFrame(finalFrame)
+
+        // Nudge to safe frame center to guarantee correct browser decoding
+        const frameDuration = 1 / frameRate
+        const safeCenterTime = finalFrame * frameDuration + frameDuration / 2
+        if (Math.abs(video.currentTime - safeCenterTime) > frameDuration / 4) {
+          video.currentTime = safeCenterTime
+        }
       }
     }
 
