@@ -22,6 +22,9 @@ interface UiState {
 
   viewModes: { [projectId: string]: 'card' | 'list' }
   setViewMode: (projectId: string, mode: 'card' | 'list') => void
+
+  videoTimeDisplayMode: 'standard' | 'frames' | 'timecode'
+  setVideoTimeDisplayMode: (mode: 'standard' | 'frames' | 'timecode') => void
 }
 
 export const useUiStore = create<UiState>()(
@@ -56,6 +59,9 @@ export const useUiStore = create<UiState>()(
         set((state) => ({
           viewModes: { ...state.viewModes, [projectId]: mode },
         })),
+
+      videoTimeDisplayMode: 'standard',
+      setVideoTimeDisplayMode: (mode) => set({ videoTimeDisplayMode: mode }),
     }),
     {
       name: 'ui-storage',

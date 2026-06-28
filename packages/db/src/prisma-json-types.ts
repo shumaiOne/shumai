@@ -107,6 +107,7 @@ declare global {
       bitRate: number
       frameRate: number
       totalFrames?: number
+      startTimecode?: string
       videoCodec?: string
       audioCodec?: string
       audioChannels?: number

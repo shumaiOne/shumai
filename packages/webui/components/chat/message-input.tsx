@@ -27,7 +27,8 @@ import { Button } from '../ui/button'
 import { DrawAnnotation } from '../ui/icons'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { ProgressCircle } from '../ui/progress-circle'
-import { formatTimestamp } from '../viewers/utils'
+import { formatTimecode } from '../viewers/utils'
+import { useUiStore } from '@/ui/stores/ui'
 
 type UploadingFile = {
   id: string // A unique ID for the file, e.g., timestamp + name
@@ -54,6 +55,7 @@ interface ChatInputProps {
   disableMentions?: boolean
   currentTime?: number
   frameRate?: number
+  startTimecode?: string
   onTyping?: () => void
 }
 
@@ -84,6 +86,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
       disableMentions = false,
       currentTime,
       frameRate,
+      startTimecode,
       onTyping,
     },
     ref,
@@ -91,6 +94,13 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
     const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([])
     const [viewingFile, setViewingFile] = useState<File | null>(null)
     const [isTimestampEnabled, setIsTimestampEnabled] = useState(true)
+
+    const { videoTimeDisplayMode } = useUiStore()
+    const displayTime = React.useMemo(() => {
+      if (currentTime === undefined || !frameRate) return ''
+      const frameIndex = Math.round(currentTime * frameRate)
+      return formatTimecode(frameIndex, frameRate, videoTimeDisplayMode, startTimecode)
+    }, [currentTime, frameRate, videoTimeDisplayMode, startTimecode])
 
     const { teamId, ensureTeamIdForProject } = useTeamContextStore()
     const { members: storeMembers, loading: membersLoading, fetchMembers } = useMemberStore()
@@ -122,6 +132,16 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
     const [highlightedIndex, setHighlightedIndex] = useState(0)
     const [collapsedSections, setCollapsedSections] = useState({ bots: false, users: false })
     const [hasContent, setHasContent] = useState(false)
+
+    const paddingLeftClass = React.useMemo(() => {
+      if (!isTimestampEnabled || currentTime === undefined || !frameRate || hasContent) {
+        return ''
+      }
+      if (videoTimeDisplayMode === 'timecode') {
+        return 'pl-[120px]'
+      }
+      return 'pl-[85px]'
+    }, [isTimestampEnabled, currentTime, frameRate, hasContent, videoTimeDisplayMode])
 
     const editorRef = useRef<HTMLDivElement>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -645,7 +665,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
               }}
               className="float-left select-none bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-2.5 py-0.5 mt-3 mr-2 rounded-sm text-xs font-mono font-bold flex items-center gap-1 cursor-text"
             >
-              {formatTimestamp(currentTime, frameRate)}
+              {displayTime}
             </div>
           )}
           <div
@@ -655,7 +675,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
             onInput={handleInput}
             onKeyDown={handleKeyDown}
             data-placeholder={replyingTo ? 'Reply...' : 'Message...'}
-            className={`bg-transparent border-none focus:ring-0 resize-none min-h-[40px] leading-relaxed py-2 focus:outline-none block ${isTimestampEnabled && currentTime !== undefined && frameRate !== undefined && !hasContent ? 'pl-[120px]' : ''}`}
+            className={`bg-transparent border-none focus:ring-0 resize-none min-h-[40px] leading-relaxed py-2 focus:outline-none block ${paddingLeftClass}`}
           />
         </div>
 

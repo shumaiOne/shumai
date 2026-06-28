@@ -359,6 +359,11 @@ export function FileViewerRightSidebar({
                         ? file?.media?.metadata?.frameRate || 30
                         : undefined
                     }
+                    startTimecode={
+                      file?.mediaType?.startsWith('video/')
+                        ? file?.media?.metadata?.startTimecode
+                        : undefined
+                    }
                     isSelected={selectedCommentId === comment.id}
                     onSelect={() => {
                       onCommentSelect?.(comment)
@@ -378,6 +383,11 @@ export function FileViewerRightSidebar({
                         frameRate={
                           file?.mediaType?.startsWith('video/')
                             ? file?.media?.metadata?.frameRate || 30
+                            : undefined
+                        }
+                        startTimecode={
+                          file?.mediaType?.startsWith('video/')
+                            ? file?.media?.metadata?.startTimecode
                             : undefined
                         }
                         isSelected={selectedCommentId === reply.id}
@@ -411,6 +421,11 @@ export function FileViewerRightSidebar({
                   frameRate={
                     file?.mediaType?.startsWith('video/')
                       ? file?.media?.metadata?.frameRate || 30
+                      : undefined
+                  }
+                  startTimecode={
+                    file?.mediaType?.startsWith('video/')
+                      ? file?.media?.metadata?.startTimecode
                       : undefined
                   }
                   onTyping={onTyping}

@@ -48,6 +48,7 @@ export const mediaMetadataSchema = z.object({
   originalHeight: z.number().optional(),
   frameRate: z.number().optional(),
   totalFrames: z.number().optional(),
+  startTimecode: z.string().optional(),
 })
 export type MediaMetadata = z.infer<typeof mediaMetadataSchema>
 

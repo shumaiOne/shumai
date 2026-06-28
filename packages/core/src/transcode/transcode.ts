@@ -19,6 +19,7 @@ export interface MediaMetadata {
   bitRate: number
   frameRate: number
   totalFrames: number
+  startTimecode?: string
   hasAudio: boolean
   videoCodec?: string
   audioCodec?: string
@@ -123,6 +124,7 @@ export class TranscodeService {
     if (!totalFrames && fps > 0 && !isNaN(duration)) {
       totalFrames = Math.round(duration * fps)
     }
+    const startTimecode = videoStream.tags?.timecode || info.format?.tags?.timecode
 
     return {
       originalWidth: videoStream.width,
@@ -131,6 +133,7 @@ export class TranscodeService {
       bitRate: parseFloat(info.format.bit_rate),
       frameRate: fps || 30,
       totalFrames: totalFrames || 0,
+      startTimecode,
       hasAudio: !!audioStream,
       videoCodec: this.resolveCodecName(videoStream),
       audioCodec: audioStream ? this.resolveCodecName(audioStream) : undefined,
@@ -161,6 +164,7 @@ export class TranscodeService {
       bitRate: 0,
       frameRate: 0,
       totalFrames: 0,
+      startTimecode: undefined,
       hasAudio: false,
       mimeType: metadata.format || '',
     }

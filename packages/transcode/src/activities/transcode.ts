@@ -91,6 +91,7 @@ export async function getMediaInfoActivity(params: {
         bitRate: info.bitRate,
         frameRate: info.frameRate,
         totalFrames: info.totalFrames,
+        startTimecode: info.startTimecode,
         hasAudio: info.hasAudio,
         videoCodec: info.videoCodec,
         audioCodec: info.audioCodec,

@@ -1,6 +1,8 @@
 import type { AssetInfo, VideoTranscode } from '@shumai/dtos'
 import { cn } from '@/ui/lib/utils'
 import {
+  Check,
+  ChevronDown,
   Download,
   Maximize,
   Minimize,
@@ -25,8 +27,9 @@ import {
 } from '../ui/dropdown-menu'
 import { Slider } from '../ui/slider'
 import ProgressBar from './progress-bar'
-import { formatTime } from './utils'
+import { formatTimecode } from './utils'
 import { useFramePlayer } from './use-frame-player'
+import { useUiStore } from '@/ui/stores/ui'
 
 import type { Annotation } from '@/ui/types'
 import DrawingCanvas from '../drawing-canvas'
@@ -71,7 +74,6 @@ interface ControlBarProps {
   toggleLoop: () => void
   toggleMute: () => void
   handleVolumeChange: (newVolume: number) => void
-  setState: React.Dispatch<React.SetStateAction<PlayerState>>
   changePlaybackRate: (rate: number) => void
   changeResolution: (res: DisplayTranscode) => void
   handleDownload: (url: string, resolution: string) => void
@@ -95,7 +97,6 @@ const ControlBar: React.FC<ControlBarProps> = ({
   toggleLoop,
   toggleMute,
   handleVolumeChange,
-  setState,
   changePlaybackRate,
   changeResolution,
   handleDownload,
@@ -111,6 +112,14 @@ const ControlBar: React.FC<ControlBarProps> = ({
   }
 
   const previewResolutions = resolutions.filter((r) => !r.isRaw)
+
+  const { videoTimeDisplayMode, setVideoTimeDisplayMode } = useUiStore()
+
+  const startTimecode = data.media?.metadata?.startTimecode
+  const displayString =
+    videoTimeDisplayMode === 'frames'
+      ? `${currentFrame} / ${totalFrames} fr`
+      : `${formatTimecode(currentFrame, frameRate, videoTimeDisplayMode, startTimecode)} / ${formatTimecode(totalFrames, frameRate, videoTimeDisplayMode, startTimecode)}`
 
   return (
     <div
@@ -189,17 +198,47 @@ const ControlBar: React.FC<ControlBarProps> = ({
             </div>
           </div>
 
-          <div
-            className="min-w-[100px] cursor-pointer text-sm font-medium tabular-nums hover:text-primary"
-            onClick={() => setState((p) => ({ ...p, showFrames: !p.showFrames }))}
-            title="Click to toggle Time/Frames"
-          >
-            {state.showFrames
-              ? `${currentFrame} / ${totalFrames}`
-              : `${formatTime(currentFrame / frameRate)} / ${formatTime(totalFrames / frameRate)}`}
-            <span className="ml-1 text-xs text-muted-foreground">
-              {state.showFrames ? 'fr' : ''}
-            </span>
+          <div className="flex items-center gap-1 text-sm font-medium tabular-nums select-none min-w-[100px]">
+            <span className="text-muted-foreground font-mono">{displayString}</span>
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild>
+                <button className="h-6 w-6 inline-flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer focus:outline-none">
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-40 z-30">
+                <DropdownMenuLabel className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Format
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => setVideoTimeDisplayMode('standard')}
+                  className="flex items-center justify-between cursor-pointer text-xs"
+                >
+                  <span>Standard Time</span>
+                  {videoTimeDisplayMode === 'standard' && (
+                    <Check className="h-3.5 w-3.5 text-primary" />
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setVideoTimeDisplayMode('frames')}
+                  className="flex items-center justify-between cursor-pointer text-xs"
+                >
+                  <span>Frames</span>
+                  {videoTimeDisplayMode === 'frames' && (
+                    <Check className="h-3.5 w-3.5 text-primary" />
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setVideoTimeDisplayMode('timecode')}
+                  className="flex items-center justify-between cursor-pointer text-xs"
+                >
+                  <span>Timecode</span>
+                  {videoTimeDisplayMode === 'timecode' && (
+                    <Check className="h-3.5 w-3.5 text-primary" />
+                  )}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
