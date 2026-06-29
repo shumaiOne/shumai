@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { calculateFrameCenterTime } from './utils'
 
 export interface UseFramePlayerResult {
@@ -72,22 +72,24 @@ export function useFramePlayer(
       const isPastVideoTrack =
         videoTrackFrames !== undefined && video.currentTime >= (videoTrackFrames - 1) / frameRate
 
-      if (videoWithCallback.requestVideoFrameCallback && !isPastVideoTrack) {
+      // Drive playhead update using requestAnimationFrame
+      const frame = Math.round(video.currentTime * frameRate)
+      const clamped = Math.max(0, Math.min(frame, totalFrames - 1))
+      setCurrentFrame(clamped)
+
+      // Always schedule next update tick via requestAnimationFrame (avoids deadlocks when compositor freezes)
+      rafId = requestAnimationFrame(updateFrameLoop)
+
+      // Schedule video frame callback for frame presentation synchronization if active
+      if (videoWithCallback.requestVideoFrameCallback && !isPastVideoTrack && rVfcId === null) {
         rVfcId = videoWithCallback.requestVideoFrameCallback(
           (_now: DOMHighResTimeStamp, metadata: { mediaTime: number }) => {
-            const frame = Math.round(metadata.mediaTime * frameRate)
-            const clamped = Math.max(0, Math.min(frame, totalFrames - 1))
-            setCurrentFrame(clamped)
-            // Continue the loop
-            updateFrameLoop()
+            rVfcId = null
+            const compositorFrame = Math.round(metadata.mediaTime * frameRate)
+            const compositorClamped = Math.max(0, Math.min(compositorFrame, totalFrames - 1))
+            setCurrentFrame(compositorClamped)
           },
         )
-      } else {
-        // Fallback for browsers without requestVideoFrameCallback or when video track is frozen
-        const frame = Math.round(video.currentTime * frameRate)
-        const clamped = Math.max(0, Math.min(frame, totalFrames - 1))
-        setCurrentFrame(clamped)
-        rafId = requestAnimationFrame(updateFrameLoop)
       }
     }
 
