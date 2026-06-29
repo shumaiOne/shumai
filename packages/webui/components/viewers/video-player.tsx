@@ -503,6 +503,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const [buffered, setBuffered] = useState(0)
   const [isControlsVisible, setIsControlsVisible] = useState(true)
+  const [isPlayerReady, setIsPlayerReady] = useState(false)
+  const lastProcessedStartTimeRef = useRef<number | null>(null)
 
   // Frame-accurate hook and derived state
   const metadata = data.media.metadata
@@ -584,6 +586,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       onPause?.()
     })
     player.on('ended', () => setState((p) => ({ ...p, isPlaying: false })))
+    player.on('loadedmetadata', () => {
+      setIsPlayerReady(true)
+    })
+    player.on('loadstart', () => {
+      setIsPlayerReady(false)
+    })
 
     player.on('timeupdate', () => {
       const playerDuration = player.duration() || data.media?.metadata?.duration || 0
@@ -618,13 +626,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     // Set initial state
     player.volume(state.volume)
 
-    // Seek to startTime if provided
-    if (startTime && startTime > 0) {
-      player.ready(() => {
-        seekToFrame(Math.round(startTime * frameRate))
-      })
-    }
-
     // 4. Cleanup
     return () => {
       if (player && !player.isDisposed()) {
@@ -637,13 +638,16 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   // Handle changes to startTime (e.g., clicking different chunks in search results)
   useEffect(() => {
+    if (!isPlayerReady) return
+
     if (startTime !== undefined && startTime !== null && startTime > 0) {
-      const targetFrame = Math.round(startTime * frameRate)
-      if (Math.abs(currentFrame - targetFrame) > frameRate) {
+      if (startTime !== lastProcessedStartTimeRef.current) {
+        lastProcessedStartTimeRef.current = startTime
+        const targetFrame = Math.round(startTime * frameRate)
         seekToFrame(targetFrame)
       }
     }
-  }, [startTime, frameRate, currentFrame, seekToFrame])
+  }, [startTime, frameRate, seekToFrame, isPlayerReady])
 
   const handleMouseMove = useCallback(() => {
     // Always show controls on movement
