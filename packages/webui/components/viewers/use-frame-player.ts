@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { calculateFrameCenterTime } from './utils'
 
 export interface UseFramePlayerResult {
   currentFrame: number
@@ -158,8 +159,7 @@ export function useFramePlayer(
       setCurrentFrame(clampedFrame) // Optimistic update for active seek
 
       const performSeek = async (frameToSeek: number) => {
-        const frameDuration = 1 / frameRate
-        const safeTargetTime = frameToSeek * frameDuration + frameDuration / 2
+        const safeTargetTime = calculateFrameCenterTime(frameToSeek, frameRate)
         const wasPlaying = !video.paused
 
         video.currentTime = safeTargetTime
@@ -250,8 +250,8 @@ export function useFramePlayer(
         setCurrentFrame(finalFrame)
 
         // Nudge to safe frame center to guarantee correct browser decoding
+        const safeCenterTime = calculateFrameCenterTime(finalFrame, frameRate)
         const frameDuration = 1 / frameRate
-        const safeCenterTime = finalFrame * frameDuration + frameDuration / 2
         if (Math.abs(video.currentTime - safeCenterTime) > frameDuration / 4) {
           video.currentTime = safeCenterTime
         }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatTimecode } from './utils'
+import { formatTimecode, calculateFrameCenterTime } from './utils'
 
 describe('formatTimecode tests', () => {
   describe('non-drop-frame calculations', () => {
@@ -53,6 +53,17 @@ describe('formatTimecode tests', () => {
 
     it('formats as standard MM:SS time', () => {
       expect(formatTimecode(150, 30, 'standard')).toBe('00:05')
+    })
+  })
+
+  describe('calculateFrameCenterTime tests', () => {
+    it('calculates frame center time correctly', () => {
+      // frame 0 at 30 fps => 0 * 1/30 + 1/60 = 1/60 = 0.0166666...
+      expect(calculateFrameCenterTime(0, 30)).toBeCloseTo(0.0166666, 5)
+      // frame 251 at 30 fps => 251 * 1/30 + 1/60 = 251.5 / 30 = 8.3833333...
+      expect(calculateFrameCenterTime(251, 30)).toBeCloseTo(8.3833333, 5)
+      // frame rate 0 returns 0
+      expect(calculateFrameCenterTime(10, 0)).toBe(0)
     })
   })
 })

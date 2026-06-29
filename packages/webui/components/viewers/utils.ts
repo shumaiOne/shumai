@@ -88,3 +88,9 @@ export const formatFrame = (seconds: number, fps: number): number => {
   if (isNaN(seconds) || !fps) return 0
   return Math.floor(seconds * fps)
 }
+
+export const calculateFrameCenterTime = (frameIndex: number, frameRate: number): number => {
+  if (!frameRate) return 0
+  const frameDuration = 1 / frameRate
+  return frameIndex * frameDuration + frameDuration / 2
+}
