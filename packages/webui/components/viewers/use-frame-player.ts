@@ -19,6 +19,7 @@ export function useFramePlayer(
   videoRef: React.RefObject<HTMLVideoElement | null>,
   frameRate: number,
   totalFrames: number,
+  videoTrackFrames?: number,
 ): UseFramePlayerResult {
   const [currentFrame, setCurrentFrame] = useState<number>(0)
   const isSeekingRef = useRef<boolean>(false)
@@ -68,7 +69,10 @@ export function useFramePlayer(
       }
 
       const videoWithCallback = video as unknown as HtmlVideoElementWithCallback
-      if (videoWithCallback.requestVideoFrameCallback) {
+      const isPastVideoTrack =
+        videoTrackFrames !== undefined && video.currentTime >= (videoTrackFrames - 1) / frameRate
+
+      if (videoWithCallback.requestVideoFrameCallback && !isPastVideoTrack) {
         rVfcId = videoWithCallback.requestVideoFrameCallback(
           (_now: DOMHighResTimeStamp, metadata: { mediaTime: number }) => {
             const frame = Math.round(metadata.mediaTime * frameRate)
@@ -79,7 +83,7 @@ export function useFramePlayer(
           },
         )
       } else {
-        // Fallback for browsers without requestVideoFrameCallback
+        // Fallback for browsers without requestVideoFrameCallback or when video track is frozen
         const frame = Math.round(video.currentTime * frameRate)
         const clamped = Math.max(0, Math.min(frame, totalFrames - 1))
         setCurrentFrame(clamped)
@@ -140,7 +144,7 @@ export function useFramePlayer(
         cancelAnimationFrame(rafId)
       }
     }
-  }, [videoRef.current, frameRate, totalFrames])
+  }, [videoRef.current, frameRate, totalFrames, videoTrackFrames])
 
   const seekToFrame = useCallback(
     async (targetFrame: number) => {

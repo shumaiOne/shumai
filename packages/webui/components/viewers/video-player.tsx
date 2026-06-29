@@ -520,7 +520,12 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     containerDuration - videoDuration > 0.5 * frameDuration
       ? Math.round(containerDuration * frameRate)
       : dbTotalFrames
-  const { currentFrame, seekToFrame } = useFramePlayer(videoRef, frameRate, totalFrames)
+  const { currentFrame, seekToFrame } = useFramePlayer(
+    videoRef,
+    frameRate,
+    totalFrames,
+    dbTotalFrames,
+  )
 
   const currentTime = currentFrame / frameRate
   const duration = totalFrames / frameRate
