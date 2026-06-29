@@ -24,6 +24,8 @@ export function useFramePlayer(
   const isSeekingRef = useRef<boolean>(false)
   const isPlayingRef = useRef<boolean>(false)
   const pendingSeekFrameRef = useRef<number | null>(null)
+  const currentFrameRef = useRef<number>(currentFrame)
+  currentFrameRef.current = currentFrame
 
   // Track playing state of the HTML video element
   useEffect(() => {
@@ -229,11 +231,11 @@ export function useFramePlayer(
       if (e.key === 'ArrowRight') {
         e.preventDefault()
         const delta = e.shiftKey ? 10 : 1
-        seekToFrame(currentFrame + delta)
+        seekToFrame(currentFrameRef.current + delta)
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault()
         const delta = e.shiftKey ? 10 : 1
-        seekToFrame(currentFrame - delta)
+        seekToFrame(currentFrameRef.current - delta)
       }
     }
 
@@ -241,7 +243,7 @@ export function useFramePlayer(
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [currentFrame, seekToFrame])
+  }, [seekToFrame])
 
   // Listen to external seeks (like comment clicks or VideoJS timeline clicks)
   useEffect(() => {
