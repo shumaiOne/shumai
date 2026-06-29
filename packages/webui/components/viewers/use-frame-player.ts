@@ -164,13 +164,19 @@ export function useFramePlayer(
 
         video.currentTime = safeTargetTime
 
-        // Wait for native seek to complete
+        // Wait for native seek to complete (with a 500ms fallback timeout to prevent hanging)
         await new Promise<void>((resolve) => {
+          let timeoutId: ReturnType<typeof setTimeout> | null = null
           const onSeeked = () => {
+            if (timeoutId) clearTimeout(timeoutId)
             video.removeEventListener('seeked', onSeeked)
             resolve()
           }
           video.addEventListener('seeked', onSeeked)
+          timeoutId = setTimeout(() => {
+            video.removeEventListener('seeked', onSeeked)
+            resolve()
+          }, 500)
         })
 
         // Pause only if we started paused and the user hasn't pressed play in the meantime
