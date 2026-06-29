@@ -116,10 +116,11 @@ const ControlBar: React.FC<ControlBarProps> = ({
   const { videoTimeDisplayMode, setVideoTimeDisplayMode } = useUiStore()
 
   const startTimecode = data.media?.metadata?.startTimecode
+  const displayTotalFrames = Math.max(0, totalFrames - 1)
   const displayString =
     videoTimeDisplayMode === 'frames'
-      ? `${currentFrame} / ${totalFrames} fr`
-      : `${formatTimecode(currentFrame, frameRate, videoTimeDisplayMode, startTimecode)} / ${formatTimecode(totalFrames, frameRate, videoTimeDisplayMode, startTimecode)}`
+      ? `${currentFrame} / ${displayTotalFrames} fr`
+      : `${formatTimecode(currentFrame, frameRate, videoTimeDisplayMode, startTimecode)} / ${formatTimecode(displayTotalFrames, frameRate, videoTimeDisplayMode, startTimecode)}`
 
   return (
     <div
