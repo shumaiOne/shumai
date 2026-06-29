@@ -17,8 +17,9 @@ import Markdown from 'react-markdown'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { DrawAnnotation } from '../ui/icons'
 import { Skeleton } from '../ui/skeleton'
-import { formatTimestamp } from '../viewers/utils'
+import { formatTimecode } from '../viewers/utils'
 import { m } from '@/ui/paraglide/messages.js'
+import { useUiStore } from '@/ui/stores/ui'
 
 interface MessageCardProps {
   teamId?: string
@@ -32,6 +33,7 @@ interface MessageCardProps {
   isSelected?: boolean
   onSelect?: () => void
   frameRate?: number
+  startTimecode?: string
   rootParentId?: string
 }
 
@@ -55,6 +57,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   isSelected,
   onSelect,
   frameRate,
+  startTimecode,
 }) => {
   const message = initialMessage
   const hasDrawInfo =
@@ -65,6 +68,13 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   const loadingText = (message.message && AI_PLACEHOLDERS[message.message]) || 'Generating...'
 
   const [isLogsOpen, setIsLogsOpen] = React.useState(false)
+
+  const { videoTimeDisplayMode } = useUiStore()
+  const displayTime = React.useMemo(() => {
+    if (message.second === null || message.second === undefined || !frameRate) return ''
+    const frameIndex = Math.round(message.second * frameRate)
+    return formatTimecode(frameIndex, frameRate, videoTimeDisplayMode, startTimecode)
+  }, [message.second, frameRate, videoTimeDisplayMode, startTimecode])
 
   const { data: me } = useQuery({
     queryKey: ['teams', teamId, 'me'],
@@ -171,7 +181,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
         <div className="flow-root mt-1">
           {message.second !== null && message.second !== undefined && frameRate && (
             <div className="float-left select-none bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 px-2.5 py-1 mt-[2px] mr-2 rounded-sm text-xs leading-none font-mono font-bold flex items-center gap-1">
-              {formatTimestamp(message.second, frameRate)}
+              {displayTime}
             </div>
           )}
 

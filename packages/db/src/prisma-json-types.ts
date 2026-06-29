@@ -106,6 +106,8 @@ declare global {
       duration: number
       bitRate: number
       frameRate: number
+      totalFrames: number
+      startTimecode: string
       videoCodec?: string
       audioCodec?: string
       audioChannels?: number
@@ -124,7 +126,6 @@ declare global {
     export interface MediaInfo {
       duration: number
       filesize: number
-      fps: number
       frames: number
       imageTranscodes: ImageTranscode[]
       videoTranscodes: VideoTranscode[]

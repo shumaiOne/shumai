@@ -15,17 +15,19 @@ const formatTime = (seconds: number): string => {
 }
 
 interface ProgressBarProps {
-  duration: number
-  currentTime: number
+  totalFrames: number
+  currentFrame: number
+  fps: number
   previewUrl?: string
-  onSeek: (time: number) => void
+  onSeek: (frame: number) => void
   buffered?: number
   metadata?: MediaMetadata
 }
 
 const ProgressBar: React.FC<ProgressBarProps> = ({
-  duration,
-  currentTime,
+  totalFrames,
+  currentFrame,
+  fps,
   previewUrl,
   onSeek,
   buffered = 0,
@@ -68,16 +70,17 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
       setHoverPosition(percentage)
       setIsHovering(true)
 
-      if (previewVideoRef.current && duration) {
-        const seekTime = percentage * duration
-        // Use fastSeek if available for smoother scrubbing, otherwise currentTime
+      if (previewVideoRef.current && totalFrames) {
+        const targetFrame = percentage * totalFrames
+        const frameDuration = 1 / fps
+        const seekTime = targetFrame * frameDuration + frameDuration / 2
         const vid = previewVideoRef.current
         if (Number.isFinite(seekTime)) {
           vid.currentTime = seekTime
         }
       }
     },
-    [duration, isDragging],
+    [totalFrames, fps, isDragging],
   )
 
   const handleMouseLeave = () => {
@@ -94,7 +97,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
     const percentage = getPercentageFromEvent(e.clientX)
     setHoverPosition(percentage)
     setIsHovering(true)
-    onSeekRef.current(percentage * duration)
+    onSeekRef.current(percentage * totalFrames)
   }
 
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
@@ -102,7 +105,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
     const percentage = getPercentageFromEvent(e.touches[0].clientX)
     setHoverPosition(percentage)
     setIsHovering(true)
-    onSeekRef.current(percentage * duration)
+    onSeekRef.current(percentage * totalFrames)
   }
 
   useEffect(() => {
@@ -113,15 +116,17 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
       setHoverPosition(percentage)
       setIsHovering(true)
 
-      if (previewVideoRef.current && duration) {
-        const seekTime = percentage * duration
+      if (previewVideoRef.current && totalFrames) {
+        const targetFrame = percentage * totalFrames
+        const frameDuration = 1 / fps
+        const seekTime = targetFrame * frameDuration + frameDuration / 2
         const vid = previewVideoRef.current
         if (Number.isFinite(seekTime)) {
           vid.currentTime = seekTime
         }
       }
 
-      onSeekRef.current(percentage * duration)
+      onSeekRef.current(percentage * totalFrames)
     }
 
     const handleWindowMouseUp = (e: MouseEvent) => {
@@ -143,7 +148,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
       }
 
       const percentage = getPercentageFromEvent(e.clientX)
-      onSeekRef.current(percentage * duration)
+      onSeekRef.current(percentage * totalFrames)
     }
 
     const handleWindowTouchMove = (e: TouchEvent) => {
@@ -152,15 +157,17 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
       setHoverPosition(percentage)
       setIsHovering(true)
 
-      if (previewVideoRef.current && duration) {
-        const seekTime = percentage * duration
+      if (previewVideoRef.current && totalFrames) {
+        const targetFrame = percentage * totalFrames
+        const frameDuration = 1 / fps
+        const seekTime = targetFrame * frameDuration + frameDuration / 2
         const vid = previewVideoRef.current
         if (Number.isFinite(seekTime)) {
           vid.currentTime = seekTime
         }
       }
 
-      onSeekRef.current(percentage * duration)
+      onSeekRef.current(percentage * totalFrames)
     }
 
     const handleWindowTouchEnd = (e: TouchEvent) => {
@@ -186,7 +193,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
 
       if (clientX !== null) {
         const percentage = getPercentageFromEvent(clientX)
-        onSeekRef.current(percentage * duration)
+        onSeekRef.current(percentage * totalFrames)
       }
     }
 
@@ -201,21 +208,17 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
       window.removeEventListener('touchmove', handleWindowTouchMove)
       window.removeEventListener('touchend', handleWindowTouchEnd)
     }
-  }, [isDragging, duration, getPercentageFromEvent])
+  }, [isDragging, totalFrames, fps, getPercentageFromEvent])
 
   const progressPercent =
     isDragging && hoverPosition !== null
       ? hoverPosition * 100
-      : duration > 0
-        ? (currentTime / duration) * 100
+      : totalFrames > 0
+        ? (currentFrame / totalFrames) * 100
         : 0
   const hoverPercent = hoverPosition !== null ? hoverPosition * 100 : 0
 
   // Calculate preview tooltip position
-  // Logic: Interpolate translation based on position to keep preview fully visible
-  // 0% -> translateX(0%) (Left aligned)
-  // 50% -> translateX(-50%) (Center aligned)
-  // 100% -> translateX(-100%) (Right aligned)
   const getTooltipStyle = () => {
     if (hoverPosition === null) return {}
     return {
@@ -271,7 +274,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
       />
 
       {/* Hover Preview Tooltip */}
-      {isHovering && duration > 0 && (
+      {isHovering && totalFrames > 0 && (
         <div
           className="pointer-events-none absolute bottom-full z-50 mb-3 flex w-max flex-col"
           style={getTooltipStyle()}
@@ -289,7 +292,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
               }}
             />
             <div className="absolute bottom-0 w-full bg-popover/80 py-0.5 text-center text-xs font-medium text-popover-foreground">
-              {formatTime(hoverPosition! * duration)}
+              {formatTime((hoverPosition! * totalFrames) / fps)}
             </div>
           </div>
         </div>

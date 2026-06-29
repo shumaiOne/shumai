@@ -18,6 +18,8 @@ export interface MediaMetadata {
   duration: number
   bitRate: number
   frameRate: number
+  totalFrames: number
+  startTimecode?: string
   hasAudio: boolean
   videoCodec?: string
   audioCodec?: string
@@ -90,15 +92,48 @@ export class TranscodeService {
       throw new Error('No video stream found')
     }
 
-    const frameRateParts = videoStream.r_frame_rate.split('/')
-    const frameRate = parseFloat(frameRateParts[0]) / parseFloat(frameRateParts[1])
+    let fps = 0
+    if (videoStream.avg_frame_rate) {
+      const parts = videoStream.avg_frame_rate.split('/')
+      if (parts.length === 2) {
+        const num = parseFloat(parts[0])
+        const den = parseFloat(parts[1])
+        if (den > 0) {
+          fps = num / den
+        }
+      }
+    }
+
+    if (fps === 0 && videoStream.r_frame_rate) {
+      const parts = videoStream.r_frame_rate.split('/')
+      if (parts.length === 2) {
+        const num = parseFloat(parts[0])
+        const den = parseFloat(parts[1])
+        if (den > 0) {
+          fps = num / den
+        }
+      }
+    }
+
+    const duration = parseFloat(info.format.duration)
+    let totalFrames = 0
+    if (videoStream.nb_frames) {
+      totalFrames = parseInt(videoStream.nb_frames, 10)
+    }
+
+    if (!totalFrames && fps > 0 && !isNaN(duration)) {
+      totalFrames = Math.round(duration * fps)
+    }
+    const startTimecode = videoStream.tags?.timecode || info.format?.tags?.timecode
 
     return {
       originalWidth: videoStream.width,
       originalHeight: videoStream.height,
-      duration: parseFloat(info.format.duration),
+      duration,
       bitRate: parseFloat(info.format.bit_rate),
-      frameRate,
+      frameRate: fps || 30,
+      totalFrames: totalFrames || 0,
+      startTimecode,
       hasAudio: !!audioStream,
       videoCodec: this.resolveCodecName(videoStream),
       audioCodec: audioStream ? this.resolveCodecName(audioStream) : undefined,
@@ -128,6 +163,8 @@ export class TranscodeService {
       duration: 0,
       bitRate: 0,
       frameRate: 0,
+      totalFrames: 0,
+      startTimecode: undefined,
       hasAudio: false,
       mimeType: metadata.format || '',
     }
@@ -142,11 +179,36 @@ export class TranscodeService {
 
     const args = ['-i', params.inputFile, '-filter_complex', filterComplex, '-map', '[vout]']
 
+    if (params.frameRate) {
+      let calculatedFps: number
+      if (typeof params.frameRate === 'number') {
+        calculatedFps = params.frameRate
+      } else {
+        const parts = params.frameRate.split('/')
+        if (parts.length === 2) {
+          calculatedFps = parseFloat(parts[0]) / parseFloat(parts[1])
+        } else {
+          calculatedFps = parseFloat(params.frameRate)
+        }
+      }
+      if (Number.isFinite(calculatedFps) && calculatedFps > 0) {
+        const roundedFps = Math.max(1, Math.round(calculatedFps))
+        args.push(
+          '-r',
+          calculatedFps.toString(),
+          '-g',
+          roundedFps.toString(),
+          '-force_key_frames',
+          'expr:gte(t,n_forced*1)',
+        )
+      }
+    }
+
     if (!params.disableAudio) {
       args.push('-map', '0:a?')
     }
 
-    args.push('-c:v', 'libx264', '-preset', 'fast', '-crf', '23')
+    args.push('-c:v', 'libx264', '-preset', 'fast', '-crf', '26')
 
     if (!params.disableAudio) {
       args.push('-c:a', 'aac', '-b:a', '128k')

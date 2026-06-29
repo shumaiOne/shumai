@@ -395,6 +395,8 @@ describe('NotificationService', () => {
             duration: 10,
             bitRate: 1000,
             frameRate: 24,
+            totalFrames: 240,
+            startTimecode: '00:00:00:00',
             hasAudio: false,
             format: {},
           },

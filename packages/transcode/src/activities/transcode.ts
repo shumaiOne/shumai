@@ -61,7 +61,6 @@ export async function getMediaInfoActivity(params: {
     const mediaInfo: PrismaJson.MediaInfo = {
       duration: 0,
       filesize: 0,
-      fps: 0,
       frames: 0,
       imageTranscodes: [],
       videoTranscodes: [],
@@ -84,13 +83,15 @@ export async function getMediaInfoActivity(params: {
     if (isVideo) {
       const info = await transcodeService.getVideoInfo(params.filePath)
       mediaInfo.duration = info.duration
-      mediaInfo.fps = info.frameRate
+      mediaInfo.frames = info.totalFrames
       mediaInfo.metadata = {
         originalWidth: info.originalWidth,
         originalHeight: info.originalHeight,
         duration: info.duration,
         bitRate: info.bitRate,
         frameRate: info.frameRate,
+        totalFrames: info.totalFrames,
+        startTimecode: info.startTimecode || '00:00:00:00',
         hasAudio: info.hasAudio,
         videoCodec: info.videoCodec,
         audioCodec: info.audioCodec,
@@ -122,6 +123,8 @@ export async function getMediaInfoActivity(params: {
         duration: 0,
         bitRate: 0,
         frameRate: 0,
+        totalFrames: 0,
+        startTimecode: '00:00:00:00',
         hasAudio: false,
         format: {},
       }
@@ -172,7 +175,7 @@ export async function transcodeVideoActivity(
   const outputFile = path.join(tmpDir, `video-${params.videoSpec.height}p.mp4`)
 
   try {
-    let targetFps: number | string = 0
+    let targetFps: number | string = params.originalFps || 30
     let disableAudio = false
 
     if (params.videoSpec.resolution === '180p') {

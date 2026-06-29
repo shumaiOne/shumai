@@ -101,7 +101,17 @@ describe('Transcode Workflow', () => {
 
     mockActivities.getMediaInfoActivity.mockResolvedValue({
       mimeType: 'video/mp4',
-      metadata: { originalWidth: 1920, originalHeight: 1080, duration: 10, frameRate: 30 },
+      metadata: {
+        originalWidth: 1920,
+        originalHeight: 1080,
+        duration: 10,
+        frameRate: 30,
+        totalFrames: 300,
+        startTimecode: '00:00:00:00',
+        bitRate: 1000,
+        hasAudio: false,
+        format: {},
+      },
       videoTranscodes: [],
       imageTranscodes: [],
     })
@@ -181,7 +191,17 @@ describe('Transcode Workflow', () => {
 
     mockActivities.getMediaInfoActivity.mockResolvedValue({
       mimeType: 'image/jpeg',
-      metadata: { originalWidth: 1000, originalHeight: 1000 },
+      metadata: {
+        originalWidth: 1000,
+        originalHeight: 1000,
+        duration: 0,
+        frameRate: 0,
+        totalFrames: 0,
+        startTimecode: '00:00:00:00',
+        bitRate: 0,
+        hasAudio: false,
+        format: {},
+      },
       videoTranscodes: [],
       imageTranscodes: [],
     })
