@@ -27,7 +27,7 @@ import {
 } from '../ui/dropdown-menu'
 import { Slider } from '../ui/slider'
 import ProgressBar from './progress-bar'
-import { formatTimecode } from './utils'
+import { formatTimecode, formatTime } from './utils'
 import { useFramePlayer } from './use-frame-player'
 import { useUiStore } from '@/ui/stores/ui'
 
@@ -120,7 +120,9 @@ const ControlBar: React.FC<ControlBarProps> = ({
   const displayString =
     videoTimeDisplayMode === 'frames'
       ? `${currentFrame} / ${displayTotalFrames} fr`
-      : `${formatTimecode(currentFrame, frameRate, videoTimeDisplayMode, startTimecode)} / ${formatTimecode(displayTotalFrames, frameRate, videoTimeDisplayMode, startTimecode)}`
+      : videoTimeDisplayMode === 'standard'
+        ? `${formatTimecode(currentFrame, frameRate, 'standard')} / ${formatTime(totalFrames / frameRate)}`
+        : `${formatTimecode(currentFrame, frameRate, videoTimeDisplayMode, startTimecode)} / ${formatTimecode(displayTotalFrames, frameRate, videoTimeDisplayMode, startTimecode)}`
 
   return (
     <div
@@ -509,7 +511,15 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // Frame-accurate hook and derived state
   const metadata = data.media.metadata
   const frameRate = metadata.frameRate || 30
-  const totalFrames = metadata.totalFrames || 0
+  const dbTotalFrames = metadata.totalFrames || 0
+  const containerDuration = metadata.duration || 0
+  const videoDuration = dbTotalFrames / frameRate
+  const frameDuration = 1 / frameRate
+
+  const totalFrames =
+    containerDuration - videoDuration > 0.5 * frameDuration
+      ? Math.round(containerDuration * frameRate)
+      : dbTotalFrames
   const { currentFrame, seekToFrame } = useFramePlayer(videoRef, frameRate, totalFrames)
 
   const currentTime = currentFrame / frameRate
