@@ -91,7 +91,7 @@ export async function getMediaInfoActivity(params: {
         bitRate: info.bitRate,
         frameRate: info.frameRate,
         totalFrames: info.totalFrames,
-        startTimecode: info.startTimecode,
+        startTimecode: info.startTimecode || '00:00:00:00',
         hasAudio: info.hasAudio,
         videoCodec: info.videoCodec,
         audioCodec: info.audioCodec,
@@ -123,6 +123,8 @@ export async function getMediaInfoActivity(params: {
         duration: 0,
         bitRate: 0,
         frameRate: 0,
+        totalFrames: 0,
+        startTimecode: '00:00:00:00',
         hasAudio: false,
         format: {},
       }

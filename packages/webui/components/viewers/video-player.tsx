@@ -509,7 +509,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // Frame-accurate hook and derived state
   const metadata = data.media.metadata
   const frameRate = metadata.frameRate || 30
-  const totalFrames = metadata.totalFrames || Math.round((metadata.duration || 0) * frameRate)
+  const totalFrames = metadata.totalFrames || 0
   const { currentFrame, seekToFrame } = useFramePlayer(videoRef, frameRate, totalFrames)
 
   const currentTime = currentFrame / frameRate
