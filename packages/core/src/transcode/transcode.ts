@@ -191,7 +191,7 @@ export class TranscodeService {
           calculatedFps = parseFloat(params.frameRate)
         }
       }
-      if (!isNaN(calculatedFps) && calculatedFps > 0) {
+      if (Number.isFinite(calculatedFps) && calculatedFps > 0) {
         const roundedFps = Math.max(1, Math.round(calculatedFps))
         args.push(
           '-r',
