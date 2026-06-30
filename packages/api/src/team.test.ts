@@ -209,17 +209,17 @@ describe('team api', () => {
   })
 
   it('PATCH /teams/:teamId/settings updates settings', async () => {
-    mockUpdateSettings.mockResolvedValue({ someKey: 'new_value' })
+    mockUpdateSettings.mockResolvedValue({ transcode: { videoStrategy: 'all' } })
 
     const res = await app.request('/teams/t1/settings', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: 'someKey', value: 'new_value' }),
+      body: JSON.stringify({ key: 'transcode.videoStrategy', value: 'all' }),
     })
 
     expect(res.status).toBe(200)
     const data = await res.json()
-    expect(data.someKey).toBe('new_value')
+    expect(data.transcode.videoStrategy).toBe('all')
     expect(authzService.hasPermission).toHaveBeenCalledWith(
       expect.objectContaining({
         type: ResourceType.Team,
@@ -227,7 +227,7 @@ describe('team api', () => {
         permission: Permission.Admin,
       }),
     )
-    expect(mockUpdateSettings).toHaveBeenCalledWith('t1', 'someKey', 'new_value')
+    expect(mockUpdateSettings).toHaveBeenCalledWith('t1', 'transcode.videoStrategy', 'all')
   })
 
   it('GET /teams/:teamId/user-metadata returns all metadata for the user in the team', async () => {

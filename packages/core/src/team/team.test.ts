@@ -260,6 +260,15 @@ describe('TeamService', () => {
 
     const newSettings = await teamService.getSettings(team.id)
     expect(newSettings).toEqual({ theme: 'dark', semanticSearchEnabled: false })
+
+    await teamService.updateSettings(team.id, 'transcode.videoStrategy', 'all')
+
+    const finalSettings = await teamService.getSettings(team.id)
+    expect(finalSettings).toEqual({
+      theme: 'dark',
+      transcode: { videoStrategy: 'all' },
+      semanticSearchEnabled: false,
+    })
   })
 
   it('should create sandbox when team is created', async () => {

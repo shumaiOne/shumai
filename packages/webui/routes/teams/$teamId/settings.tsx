@@ -1,4 +1,4 @@
-import { VideoTranscodeStrategy } from '@shumai/dtos'
+import { VideoTranscodeStrategy, UpdateTeamSettingsRequest } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
 import { AgentsSettings } from '@/ui/components/settings/AgentsSettings'
 import { ProvidersSettings } from '@/ui/components/settings/ProvidersSettings'
@@ -188,11 +188,10 @@ function TeamSettingsPage() {
   }
 
   const { mutate: updateSettings } = useMutation({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mutationFn: async (data: { teamId: string; data: { key: string; value: any } }) => {
+    mutationFn: async (data: { teamId: string; data: UpdateTeamSettingsRequest }) => {
       const res = await client.api.teams[':teamId'].settings.$patch({
         param: { teamId: data.teamId },
-        json: { key: data.data.key, value: data.data.value },
+        json: data.data,
       })
       if (!res.ok) throw new Error('Failed to update settings')
       return await res.json()
