@@ -306,7 +306,16 @@ export class TeamService {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const settings = (team.settings || {}) as any
-    settings[key] = value
+
+    if (key === 'transcode.videoStrategy') {
+      if (!settings.transcode) {
+        settings.transcode = {}
+      }
+      settings.transcode.videoStrategy = value
+      delete settings['transcode.videoStrategy']
+    } else {
+      settings[key] = value
+    }
 
     const updated = await prisma.team.update({
       where: { id: teamId },

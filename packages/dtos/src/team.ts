@@ -63,12 +63,6 @@ export const listMembersQuerySchema = z.object({
     .transform((v) => v === 'true'),
 })
 
-export const updateTeamSettingsRequestSchema = z.object({
-  key: z.string(),
-  value: z.any(),
-})
-export type UpdateTeamSettingsRequest = z.infer<typeof updateTeamSettingsRequestSchema>
-
 export const VideoTranscodeStrategy = {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   best_match: 'best_match',
@@ -76,6 +70,14 @@ export const VideoTranscodeStrategy = {
 } as const
 export type VideoTranscodeStrategy =
   (typeof VideoTranscodeStrategy)[keyof typeof VideoTranscodeStrategy]
+
+export const updateTeamSettingsRequestSchema = z.discriminatedUnion('key', [
+  z.object({
+    key: z.literal('transcode.videoStrategy'),
+    value: z.nativeEnum(VideoTranscodeStrategy),
+  }),
+])
+export type UpdateTeamSettingsRequest = z.infer<typeof updateTeamSettingsRequestSchema>
 
 export const sandboxSettingsSchema = z.object({
   allowedDomains: z.array(z.string()),
