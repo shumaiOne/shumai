@@ -79,6 +79,7 @@ interface ControlBarProps {
   handleDownload: (url: string, resolution: string) => void
   toggleFullScreen: () => void
   onZoomChange: (zoom: number) => void
+  onZoomReset: () => void
   // Frame-accurate props
   frameRate: number
   totalFrames: number
@@ -102,6 +103,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
   handleDownload,
   toggleFullScreen,
   onZoomChange,
+  onZoomReset,
   frameRate,
   totalFrames,
   currentFrame,
@@ -248,19 +250,29 @@ const ControlBar: React.FC<ControlBarProps> = ({
         {/* Right Side: Zoom, Speed, Res, Download, Fullscreen */}
         <div className="relative flex items-center gap-3">
           {/* Zoom Controls */}
-          <div className="flex items-center gap-1 bg-muted rounded-md p-0.5">
+          <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 bg-muted rounded-md p-0.5">
+              <button
+                onClick={() => onZoomChange(zoom * 0.8)}
+                className="p-1 hover:text-primary rounded"
+              >
+                <Minus size={14} />
+              </button>
+              <span className="text-xs w-8 text-center tabular-nums">
+                {Math.round(zoom * 100)}%
+              </span>
+              <button
+                onClick={() => onZoomChange(zoom * 1.2)}
+                className="p-1 hover:text-primary rounded"
+              >
+                <Plus size={14} />
+              </button>
+            </div>
             <button
-              onClick={() => onZoomChange(zoom * 0.8)}
-              className="p-1 hover:text-primary rounded"
+              onClick={onZoomReset}
+              className="text-xs font-medium px-2 py-1 rounded bg-muted hover:text-primary transition-colors"
             >
-              <Minus size={14} />
-            </button>
-            <span className="text-xs w-8 text-center tabular-nums">{Math.round(zoom * 100)}%</span>
-            <button
-              onClick={() => onZoomChange(zoom * 1.2)}
-              className="p-1 hover:text-primary rounded"
-            >
-              <Plus size={14} />
+              Fit
             </button>
           </div>
 
@@ -382,6 +394,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const handleZoomChange = (newZoom: number) => {
     setZoom(newZoom)
     setHasManuallyZoomed(true)
+  }
+
+  const handleZoomReset = () => {
+    setHasManuallyZoomed(false)
   }
 
   // Store
@@ -926,6 +942,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         handleDownload={handleDownload}
         toggleFullScreen={toggleFullScreen}
         onZoomChange={handleZoomChange}
+        onZoomReset={handleZoomReset}
         frameRate={frameRate}
         totalFrames={totalFrames}
         currentFrame={currentFrame}
