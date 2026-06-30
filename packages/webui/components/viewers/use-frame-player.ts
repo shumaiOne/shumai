@@ -19,7 +19,6 @@ export function useFramePlayer(
   videoRef: React.RefObject<HTMLVideoElement | null>,
   frameRate: number,
   totalFrames: number,
-  videoTrackFrames?: number,
 ): UseFramePlayerResult {
   const [currentFrame, setCurrentFrame] = useState<number>(0)
   const isSeekingRef = useRef<boolean>(false)
@@ -60,6 +59,7 @@ export function useFramePlayer(
     let rVfcId: number | null = null
     let rafId: number | null = null
     let active = true
+    let lastVfcTime = Date.now()
 
     const updateFrameLoop = () => {
       if (!active) return
@@ -69,22 +69,35 @@ export function useFramePlayer(
       }
 
       const videoWithCallback = video as unknown as HtmlVideoElementWithCallback
-      const isPastVideoTrack =
-        videoTrackFrames !== undefined && video.currentTime >= (videoTrackFrames - 1) / frameRate
 
-      // Drive playhead update using requestAnimationFrame
-      const frame = Math.round(video.currentTime * frameRate)
-      const clamped = Math.max(0, Math.min(frame, totalFrames - 1))
-      setCurrentFrame(clamped)
+      // Calculate dynamic stall threshold (minimum 100ms, or 3 frames of duration)
+      const stallThreshold = Math.max(100, 3000 / frameRate)
+      const isVfcStalled = Date.now() - lastVfcTime > stallThreshold
 
-      // Always schedule next update tick via requestAnimationFrame (avoids deadlocks when compositor freezes)
+      // Print debug log roughly once per second during playback
+      if (Math.round(video.currentTime * frameRate) % 30 === 0) {
+        console.log(
+          `[useFramePlayer] currentTime: ${video.currentTime}, isVfcStalled: ${isVfcStalled}, stallThreshold: ${stallThreshold}, totalFrames: ${totalFrames}`,
+        )
+      }
+
+      // Only update playhead via currentTime (RAF) if rVFC has stalled or isn't supported
+      if (!videoWithCallback.requestVideoFrameCallback || isVfcStalled) {
+        const frame = Math.round(video.currentTime * frameRate)
+        const clamped = Math.max(0, Math.min(frame, totalFrames - 1))
+        setCurrentFrame(clamped)
+      }
+
+      // Always schedule the next update tick via requestAnimationFrame to keep the loop alive
       rafId = requestAnimationFrame(updateFrameLoop)
 
-      // Schedule video frame callback for frame presentation synchronization if active
-      if (videoWithCallback.requestVideoFrameCallback && !isPastVideoTrack && rVfcId === null) {
+      // Schedule video frame callback for compositor-accurate synchronization
+      if (videoWithCallback.requestVideoFrameCallback && rVfcId === null) {
         rVfcId = videoWithCallback.requestVideoFrameCallback(
           (_now: DOMHighResTimeStamp, metadata: { mediaTime: number }) => {
             rVfcId = null
+            lastVfcTime = Date.now() // Reset stall timer
+
             const compositorFrame = Math.round(metadata.mediaTime * frameRate)
             const compositorClamped = Math.max(0, Math.min(compositorFrame, totalFrames - 1))
             setCurrentFrame(compositorClamped)
@@ -146,7 +159,7 @@ export function useFramePlayer(
         cancelAnimationFrame(rafId)
       }
     }
-  }, [videoRef.current, frameRate, totalFrames, videoTrackFrames])
+  }, [videoRef.current, frameRate, totalFrames])
 
   const seekToFrame = useCallback(
     async (targetFrame: number) => {
