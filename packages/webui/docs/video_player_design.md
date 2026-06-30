@@ -51,14 +51,13 @@ $$\text{Time}_{\text{boundary}} = \frac{N}{\text{frameRate}}$$
 
 ---
 
-### B. Time-to-Frame Conversion (Floor with Epsilon)
-When converting a raw player timestamp ($t$) back to an integer frame index, we use a **Floor with Epsilon** formula to absorb sub-millisecond clock drift and presentation lag without triggering premature frame jumps:
+### B. Time-to-Frame Conversion (Floor with 0.45 Offset)
+When converting a raw player timestamp ($t$) back to an integer frame index, we use a **Floor with 0.45 Offset** formula to absorb sub-millisecond clock drift, compositor presentation offsets, and V-Sync boundaries:
 
-$$\text{Frame} = \lfloor(t \cdot \text{frameRate}) + \epsilon\rfloor$$
+$$\text{Frame} = \lfloor(t \cdot \text{frameRate}) + 0.45\rfloor$$
 
-*Where $\epsilon = 0.001$ frames.*
-* **Start Boundary Guard:** If the browser reports time slightly early due to float precision (e.g. $119.9999$ frames instead of $120.0$), the $+ 0.001$ bumps it to $120.0009$, flooring correctly to Frame `120`.
-* **Late Pause Guard:** If the playhead stops very late in the frame (e.g. $120.96$ frames), adding `0.001` yields $120.961$, which still floors correctly to **Frame `120`**, matching what is actually displayed on the screen.
+* **Compositor Lag Guard:** Since the browser compositor typically presents a frame slightly before the playhead crosses the exact mathematical start time (due to V-Sync ticks and decoding latency), the browser transitions visually around the half-frame mark. An offset of `0.45` shifts the transition boundary to `0.55` frames, matching user perception.
+* **Seek Buffer Guard:** When we seek to the safe center of a frame ($N + 0.5$ frames), using a `0.45` offset yields $N + 0.95$, which floors back to the correct frame index $N$ even if the browser has minor floating-point seek target deviations.
 
 ---
 
@@ -121,8 +120,10 @@ When playing, the playhead loop coordinates two mechanisms in parallel to preven
 2. The `pause` event listener triggers `handlePause()`:
    * Cancels active VFC (`cancelVideoFrameCallback`) and RAF (`cancelAnimationFrame`) loops.
    * Performs a final playhead synchronization:
-     $$\text{clampedFrame} = \max\left(0, \min\left(\lfloor(video.currentTime \cdot frameRate) + 0.001\rfloor, \text{totalFrames} - 1\right)\right)$$
+     $$\text{clampedFrame} = \max\left(0, \min\left(\lfloor(video.currentTime \cdot frameRate) + 0.45\rfloor, \text{totalFrames} - 1\right)\right)$$
    * Calls `setCurrentFrame(clampedFrame)` to lock the UI to the correct frame.
+   * **Snaps the browser playhead** to the calculated frame's center time to force the browser compositor to align:
+     $$\text{currentTime} = \text{calculateFrameCenterTime}(\text{clampedFrame}, \text{frameRate})$$
 
 ---
 
@@ -164,9 +165,9 @@ When playing, the playhead loop coordinates two mechanisms in parallel to preven
    ```
 3. The browser seeks the media element. Once finished, it fires the native `seeked` event.
 4. The `handleExternalSeeked` listener in `useFramePlayer` triggers because `isSeekingRef.current` is `false`:
-   * Maps `video.currentTime` back to the frame index:
-     $$\text{finalFrame} = \lfloor(video.currentTime \cdot frameRate) + 0.001\rfloor = \lfloor(5.005005 \cdot 23.976) + 0.001\rfloor = 120$$
-   * Computes the safe center time: `safeCenterTime = calculateFrameCenterTime(120, 23.976) = 5.025859s`.
+    * Maps `video.currentTime` back to the frame index:
+      $$\text{finalFrame} = \lfloor(video.currentTime \cdot frameRate) + 0.45\rfloor = \lfloor(5.005005 \cdot 23.976) + 0.45\rfloor = 120$$
+    * Computes the safe center time: `safeCenterTime = calculateFrameCenterTime(120, 23.976) = 5.025859s`.
    * Detects if the current time is offset from the center by more than a quarter-frame:
      $$\text{Math.abs}(5.005005 - 5.025859) = 0.020854\text{s} > \frac{0.041708}{4}\text{s}$$
    * Nudges the browser's playhead: `video.currentTime = safeCenterTime` (`5.025859`s). This forces the browser to render Frame 120 cleanly.

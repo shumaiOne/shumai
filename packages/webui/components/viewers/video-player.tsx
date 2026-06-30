@@ -672,7 +672,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (startTime !== undefined && startTime !== null && startTime > 0) {
       if (startTime !== lastProcessedStartTimeRef.current) {
         lastProcessedStartTimeRef.current = startTime
-        const targetFrame = Math.floor(startTime * frameRate + 0.001)
+        const targetFrame = Math.floor(startTime * frameRate + 0.45)
         seekToFrame(targetFrame)
       }
     }
