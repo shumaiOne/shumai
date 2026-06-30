@@ -185,6 +185,17 @@ When playing, the playhead loop coordinates two mechanisms in parallel to preven
 
 ---
 
+### H. Manual Zoom & Zoom Fit Reset
+1. User adjusts zoom manually using the `Zoom In` (+) or `Zoom Out` (-) buttons:
+   * Sets `hasManuallyZoomed` to `true`.
+   * Sets the new manual scale, overriding any auto-scale layout behavior.
+2. User clicks the **Fit** button:
+   * Resets `hasManuallyZoomed` to `false`.
+   * Triggers the responsive scale recalculation effect, mapping the video scale back to the layout container bounds:
+     $$\text{scale} = \min\left(\frac{\text{containerSize.width}}{\text{originalWidth}}, \frac{\text{containerSize.height}}{\text{originalHeight}}\right)$$
+
+---
+
 ## 5. Backend Specifications
 
 ### A. Transcode & Metadata Extraction
