@@ -27,7 +27,7 @@ import {
 } from '../ui/dropdown-menu'
 import { Slider } from '../ui/slider'
 import ProgressBar from './progress-bar'
-import { formatTimecode } from './utils'
+import { formatTimecode, formatTime } from './utils'
 import { useFramePlayer } from './use-frame-player'
 import { useUiStore } from '@/ui/stores/ui'
 
@@ -79,6 +79,7 @@ interface ControlBarProps {
   handleDownload: (url: string, resolution: string) => void
   toggleFullScreen: () => void
   onZoomChange: (zoom: number) => void
+  onZoomReset: () => void
   // Frame-accurate props
   frameRate: number
   totalFrames: number
@@ -102,6 +103,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
   handleDownload,
   toggleFullScreen,
   onZoomChange,
+  onZoomReset,
   frameRate,
   totalFrames,
   currentFrame,
@@ -120,7 +122,9 @@ const ControlBar: React.FC<ControlBarProps> = ({
   const displayString =
     videoTimeDisplayMode === 'frames'
       ? `${currentFrame} / ${displayTotalFrames} fr`
-      : `${formatTimecode(currentFrame, frameRate, videoTimeDisplayMode, startTimecode)} / ${formatTimecode(displayTotalFrames, frameRate, videoTimeDisplayMode, startTimecode)}`
+      : videoTimeDisplayMode === 'standard'
+        ? `${formatTimecode(currentFrame, frameRate, 'standard')} / ${formatTime(totalFrames / frameRate)}`
+        : `${formatTimecode(currentFrame, frameRate, videoTimeDisplayMode, startTimecode)} / ${formatTimecode(displayTotalFrames, frameRate, videoTimeDisplayMode, startTimecode)}`
 
   return (
     <div
@@ -246,19 +250,29 @@ const ControlBar: React.FC<ControlBarProps> = ({
         {/* Right Side: Zoom, Speed, Res, Download, Fullscreen */}
         <div className="relative flex items-center gap-3">
           {/* Zoom Controls */}
-          <div className="flex items-center gap-1 bg-muted rounded-md p-0.5">
+          <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 bg-muted rounded-md p-0.5">
+              <button
+                onClick={() => onZoomChange(zoom * 0.8)}
+                className="p-1 hover:text-primary rounded"
+              >
+                <Minus size={14} />
+              </button>
+              <span className="text-xs w-8 text-center tabular-nums">
+                {Math.round(zoom * 100)}%
+              </span>
+              <button
+                onClick={() => onZoomChange(zoom * 1.2)}
+                className="p-1 hover:text-primary rounded"
+              >
+                <Plus size={14} />
+              </button>
+            </div>
             <button
-              onClick={() => onZoomChange(zoom * 0.8)}
-              className="p-1 hover:text-primary rounded"
+              onClick={onZoomReset}
+              className="text-xs font-medium px-2 py-1 rounded bg-muted hover:text-primary transition-colors"
             >
-              <Minus size={14} />
-            </button>
-            <span className="text-xs w-8 text-center tabular-nums">{Math.round(zoom * 100)}%</span>
-            <button
-              onClick={() => onZoomChange(zoom * 1.2)}
-              className="p-1 hover:text-primary rounded"
-            >
-              <Plus size={14} />
+              Fit
             </button>
           </div>
 
@@ -374,7 +388,17 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [videoHtmlEl, setVideoHtmlEl] = useState<HTMLVideoElement | undefined>(undefined)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const [zoom, setZoom] = useState(1)
+  const [hasManuallyZoomed, setHasManuallyZoomed] = useState(false)
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
+
+  const handleZoomChange = (newZoom: number) => {
+    setZoom(newZoom)
+    setHasManuallyZoomed(true)
+  }
+
+  const handleZoomReset = () => {
+    setHasManuallyZoomed(false)
+  }
 
   // Store
   const {
@@ -404,20 +428,17 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     return () => observer.disconnect()
   }, [])
 
-  // Fit to screen initial
+  // Fit to screen initial / responsive resize
   useEffect(() => {
     if (containerSize.width > 0 && containerSize.height > 0) {
-      // Only if not already set or reset?
-      // Actually, we want to start fit.
       const vidW = data.media?.metadata?.originalWidth ?? 1920
       const vidH = data.media?.metadata?.originalHeight ?? 1080
       const scale = Math.min(containerSize.width / vidW, containerSize.height / vidH)
-      // Only set if zoom is 1 (initial).
-      if (zoom === 1) {
+      if (!hasManuallyZoomed) {
         setZoom(scale)
       }
     }
-  }, [containerSize.width, containerSize.height, data.media?.metadata])
+  }, [containerSize.width, containerSize.height, data.media?.metadata, hasManuallyZoomed])
 
   // Cleanup ref when player is disposed
   useEffect(() => {
@@ -509,7 +530,15 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // Frame-accurate hook and derived state
   const metadata = data.media.metadata
   const frameRate = metadata.frameRate || 30
-  const totalFrames = metadata.totalFrames || 0
+  const dbTotalFrames = metadata.totalFrames || 0
+  const containerDuration = metadata.duration || 0
+  const videoDuration = dbTotalFrames / frameRate
+  const frameDuration = 1 / frameRate
+
+  const totalFrames =
+    containerDuration - videoDuration > 0.5 * frameDuration
+      ? Math.round(containerDuration * frameRate)
+      : dbTotalFrames
   const { currentFrame, seekToFrame } = useFramePlayer(videoRef, frameRate, totalFrames)
 
   const currentTime = currentFrame / frameRate
@@ -643,7 +672,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (startTime !== undefined && startTime !== null && startTime > 0) {
       if (startTime !== lastProcessedStartTimeRef.current) {
         lastProcessedStartTimeRef.current = startTime
-        const targetFrame = Math.round(startTime * frameRate)
+        const targetFrame = Math.floor(startTime * frameRate + 0.45)
         seekToFrame(targetFrame)
       }
     }
@@ -912,7 +941,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         changeResolution={changeResolution}
         handleDownload={handleDownload}
         toggleFullScreen={toggleFullScreen}
-        onZoomChange={setZoom}
+        onZoomChange={handleZoomChange}
+        onZoomReset={handleZoomReset}
         frameRate={frameRate}
         totalFrames={totalFrames}
         currentFrame={currentFrame}

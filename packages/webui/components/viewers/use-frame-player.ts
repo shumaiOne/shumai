@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { calculateFrameCenterTime } from './utils'
 
 export interface UseFramePlayerResult {
@@ -59,6 +59,7 @@ export function useFramePlayer(
     let rVfcId: number | null = null
     let rafId: number | null = null
     let active = true
+    let lastVfcTime = Date.now()
 
     const updateFrameLoop = () => {
       if (!active) return
@@ -68,22 +69,40 @@ export function useFramePlayer(
       }
 
       const videoWithCallback = video as unknown as HtmlVideoElementWithCallback
-      if (videoWithCallback.requestVideoFrameCallback) {
-        rVfcId = videoWithCallback.requestVideoFrameCallback(
-          (_now: DOMHighResTimeStamp, metadata: { mediaTime: number }) => {
-            const frame = Math.round(metadata.mediaTime * frameRate)
-            const clamped = Math.max(0, Math.min(frame, totalFrames - 1))
-            setCurrentFrame(clamped)
-            // Continue the loop
-            updateFrameLoop()
-          },
+
+      // Calculate dynamic stall threshold (minimum 100ms, or 3 frames of duration)
+      const stallThreshold = Math.max(100, 3000 / frameRate)
+      const isVfcStalled = Date.now() - lastVfcTime > stallThreshold
+
+      // Print debug log roughly once per second during playback
+      if (Math.floor(video.currentTime * frameRate + 0.45) % 30 === 0) {
+        console.log(
+          `[useFramePlayer] currentTime: ${video.currentTime}, isVfcStalled: ${isVfcStalled}, stallThreshold: ${stallThreshold}, totalFrames: ${totalFrames}`,
         )
-      } else {
-        // Fallback for browsers without requestVideoFrameCallback
-        const frame = Math.round(video.currentTime * frameRate)
+      }
+
+      // Only update playhead via currentTime (RAF) if rVFC has stalled or isn't supported
+      if (!videoWithCallback.requestVideoFrameCallback || isVfcStalled) {
+        const frame = Math.floor(video.currentTime * frameRate + 0.45)
         const clamped = Math.max(0, Math.min(frame, totalFrames - 1))
         setCurrentFrame(clamped)
-        rafId = requestAnimationFrame(updateFrameLoop)
+      }
+
+      // Always schedule the next update tick via requestAnimationFrame to keep the loop alive
+      rafId = requestAnimationFrame(updateFrameLoop)
+
+      // Schedule video frame callback for compositor-accurate synchronization
+      if (videoWithCallback.requestVideoFrameCallback && rVfcId === null) {
+        rVfcId = videoWithCallback.requestVideoFrameCallback(
+          (_now: DOMHighResTimeStamp, metadata: { mediaTime: number }) => {
+            rVfcId = null
+            lastVfcTime = Date.now() // Reset stall timer
+
+            const compositorFrame = Math.floor(metadata.mediaTime * frameRate + 0.45)
+            const compositorClamped = Math.max(0, Math.min(compositorFrame, totalFrames - 1))
+            setCurrentFrame(compositorClamped)
+          },
+        )
       }
     }
 
@@ -109,9 +128,13 @@ export function useFramePlayer(
       }
 
       // Synchronize frame on pause
-      const frame = Math.round(video.currentTime * frameRate)
+      const frame = Math.floor(video.currentTime * frameRate + 0.45)
       const clamped = Math.max(0, Math.min(frame, totalFrames - 1))
       setCurrentFrame(clamped)
+
+      // Snap the playhead to the center of the paused frame to align browser compositor
+      const safeCenterTime = calculateFrameCenterTime(clamped, frameRate)
+      video.currentTime = safeCenterTime
     }
 
     video.addEventListener('play', handlePlay)
@@ -186,8 +209,8 @@ export function useFramePlayer(
           video.pause()
         }
 
-        // Seek complete: update frame immediately using Math.floor (accounts for half-frame offset)
-        const actualFrame = Math.floor(video.currentTime * frameRate)
+        // Seek complete: update frame immediately using Math.floor
+        const actualFrame = Math.floor(video.currentTime * frameRate + 0.45)
         const finalFrame = Math.max(0, Math.min(actualFrame, totalFrames - 1))
         setCurrentFrame(finalFrame)
 
@@ -195,7 +218,7 @@ export function useFramePlayer(
         const videoWithCallback = video as unknown as HtmlVideoElementWithCallback
         if (videoWithCallback.requestVideoFrameCallback) {
           videoWithCallback.requestVideoFrameCallback((_now, metadata) => {
-            const compositorFrame = Math.round(metadata.mediaTime * frameRate)
+            const compositorFrame = Math.floor(metadata.mediaTime * frameRate + 0.45)
             const verifiedFrame = Math.max(0, Math.min(compositorFrame, totalFrames - 1))
             setCurrentFrame(verifiedFrame)
           })
@@ -253,7 +276,7 @@ export function useFramePlayer(
     const handleExternalSeeked = () => {
       // Only sync if this seek was not triggered internally by seekToFrame
       if (!isSeekingRef.current) {
-        const actualFrame = Math.round(video.currentTime * frameRate)
+        const actualFrame = Math.floor(video.currentTime * frameRate + 0.45)
         const finalFrame = Math.max(0, Math.min(actualFrame, totalFrames - 1))
         setCurrentFrame(finalFrame)
 
