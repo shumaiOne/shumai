@@ -376,7 +376,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [videoHtmlEl, setVideoHtmlEl] = useState<HTMLVideoElement | undefined>(undefined)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const [zoom, setZoom] = useState(1)
+  const [hasManuallyZoomed, setHasManuallyZoomed] = useState(false)
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
+
+  const handleZoomChange = (newZoom: number) => {
+    setZoom(newZoom)
+    setHasManuallyZoomed(true)
+  }
 
   // Store
   const {
@@ -406,20 +412,17 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     return () => observer.disconnect()
   }, [])
 
-  // Fit to screen initial
+  // Fit to screen initial / responsive resize
   useEffect(() => {
     if (containerSize.width > 0 && containerSize.height > 0) {
-      // Only if not already set or reset?
-      // Actually, we want to start fit.
       const vidW = data.media?.metadata?.originalWidth ?? 1920
       const vidH = data.media?.metadata?.originalHeight ?? 1080
       const scale = Math.min(containerSize.width / vidW, containerSize.height / vidH)
-      // Only set if zoom is 1 (initial).
-      if (zoom === 1) {
+      if (!hasManuallyZoomed) {
         setZoom(scale)
       }
     }
-  }, [containerSize.width, containerSize.height, data.media?.metadata])
+  }, [containerSize.width, containerSize.height, data.media?.metadata, hasManuallyZoomed])
 
   // Cleanup ref when player is disposed
   useEffect(() => {
@@ -922,7 +925,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         changeResolution={changeResolution}
         handleDownload={handleDownload}
         toggleFullScreen={toggleFullScreen}
-        onZoomChange={setZoom}
+        onZoomChange={handleZoomChange}
         frameRate={frameRate}
         totalFrames={totalFrames}
         currentFrame={currentFrame}
