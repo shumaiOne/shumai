@@ -80,13 +80,13 @@ export const formatTimecode = (
 
 export const formatTimestamp = (seconds: number, fps: number): string => {
   if (isNaN(seconds)) return '00:00:00:00'
-  const frameIndex = Math.round(seconds * fps)
+  const frameIndex = Math.floor(seconds * fps + 0.001)
   return formatTimecode(frameIndex, fps, 'timecode')
 }
 
 export const formatFrame = (seconds: number, fps: number): number => {
   if (isNaN(seconds) || !fps) return 0
-  return Math.floor(seconds * fps)
+  return Math.floor(seconds * fps + 0.001)
 }
 
 export const calculateFrameCenterTime = (frameIndex: number, frameRate: number): number => {
