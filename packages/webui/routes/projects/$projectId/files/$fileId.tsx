@@ -172,10 +172,7 @@ function FileViewPage() {
     navigate,
   ])
 
-  const parentFolderId =
-    fileData?.ancestorFolders?.[fileData.ancestorFolders.length - 1]?.id ??
-    projectInfo?.rootFolder ??
-    ''
+  const parentFolderId = fileData?.ancestorFolders?.[0]?.id ?? projectInfo?.rootFolder ?? ''
 
   useEffect(() => {
     if (!parentFolderId || !activeFileId) return
