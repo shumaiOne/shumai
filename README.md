@@ -25,11 +25,11 @@
 
 #### Shumai Agent
 
-- **Collaborative AI Chat**: Converse with a context-aware AI agent directly within your project workspace.
+- **Collaborative AI Chat**: Converse with a context-aware AI agent by using `@mentions` directly within the file's comments area.
 - **Custom Skills & Tools**: Extend the agent's capabilities by registering custom scripts, tools, and automation skills.
 - **Isolated Sandbox Execution**: Run agent-submitted scripts securely within a sandboxed environment.
-- **AI-Powered Metadata Autofill**: Automatically generate tags, descriptions, and custom metadata for new assets using Google Gemini.
-- **Semantic Search**: Locate assets instantly based on visual or conceptual search queries using vector embeddings.
+- **AI Metadata Autofill**: Automatically autofill custom metadata for new assets.
+- **Semantic Search**: Find assets based on visual or conceptual search queries using vector embeddings(Gemini Embedding 2).
 
 > [!NOTE]
 > **Media Processing & Storage:** When uploading media, Shumai will always store your original raw file. For images, Shumai generates exactly 1 optimized webp proxy. For video files, it generates at least one proxy (depending on your transcoding settings), alongside a sprite image and a small preview video (capped at 1600 frames) to enable fast timeline scrubbing and lightning-quick previews.
