@@ -31,6 +31,9 @@
 - **AI-Powered Metadata Autofill**: Automatically generate tags, descriptions, and custom metadata for new assets using Google Gemini.
 - **Semantic Search**: Locate assets instantly based on visual or conceptual search queries using vector embeddings.
 
+> [!NOTE]
+> **Media Processing & Storage:** When uploading media, Shumai will always store your original raw file. For images, Shumai generates exactly 1 optimized webp proxy. For video files, it generates at least one proxy (depending on your transcoding settings), alongside a sprite image and a small preview video (capped at 1600 frames) to enable fast timeline scrubbing and lightning-quick previews.
+
 ---
 
 ## Installation
