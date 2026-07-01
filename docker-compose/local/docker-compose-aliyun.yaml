@@ -1,0 +1,45 @@
+services:
+  postgres:
+    image: docker.m.daocloud.io/pgvector/pgvector:pg18
+    container_name: shumai_postgres
+    environment:
+      POSTGRES_USER: shumai
+      POSTGRES_PASSWORD: shumai_password
+      POSTGRES_DB: shumai_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/18/docker
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U shumai -d shumai_db']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  shumai:
+    image: crpi-gd059yeolk1as59f.cn-shanghai.personal.cr.aliyuncs.com/shumaione/shumai:latest
+    container_name: shumai_app
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./data:/app/data
+    environment:
+      # Database Configuration
+      DATABASE_URL: postgres://shumai:shumai_password@shumai_postgres:5432/shumai_db?search_path=public&sslmode=disable
+
+      # Server Configuration
+      SHUMAI_SERVER_PORT: 3000
+
+      # S3 Configuration
+      STORAGE_BACKEND: local
+      AWS_ENDPOINT_URL_S3: http://localhost:3000
+
+      # Better Auth
+      BETTER_AUTH_SECRET: qSxs9DxzHDZBbeeTNPEwBuspYwipBqz5Gk5XdBjNhWw=
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

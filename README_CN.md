@@ -55,7 +55,7 @@
 
 2. 下载 `docker-compose.yaml` 配置文件：
 ```bash
-curl -o docker-compose.yaml [https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose.yaml](https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose.yaml)
+curl -o docker-compose.yaml [https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose-aliyun.yaml](https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose.yaml)
 
 ```
 
@@ -95,7 +95,7 @@ docker compose up -d
 
 ### 方案二：通过 NPM / 包管理器安装
 
-Shumai 已作为 `@shumai-one/shumai` 发布至 NPM 注册表。此方案支持您在全局或本地项目里运行 Shumai。
+通过 NPM 上的 `@shumai-one/shumai` 进行安装。
 
 #### 第一步：启动带 pgvector 支持的 PostgreSQL
 
@@ -107,7 +107,7 @@ docker run --name shumai_postgres \
   -e POSTGRES_PASSWORD=shumai_password \
   -e POSTGRES_DB=shumai_db \
   -p 5432:5432 \
-  -d pgvector/pgvector:pg18
+  -d docker.m.daocloud.io/pgvector/pgvector:pg18
 
 ```
 
