@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a target="_blank" href="https://shumai.one/">Website</a> | <a target="_blank" href="https://docs.shumai.one/introduction">Docs</a> | <a target="_blank" href="https://staging.shumai.one">Demo</a>
+  <a target="_blank" href="https://shumai.one/">Website</a> | <a target="_blank" href="https://docs.shumai.one/introduction">Docs</a> | <a target="_blank" href="https://staging.shumai.one">Demo</a> | <a target="_blank" href="README_CN.md">中文</a>
 </p>
 
 ![Shumai App Screenshot](docs/screenshot.webp)
