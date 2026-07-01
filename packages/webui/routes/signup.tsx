@@ -1,20 +1,21 @@
 import { client } from '@/ui/api/client'
-import { useQuery } from '@tanstack/react-query'
+import { AuthLayout } from '@/ui/components/auth-layout'
 import { Button } from '@/ui/components/ui/button'
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/ui/components/ui/card'
+import { ShumaiLogo } from '@/ui/components/ui/icons'
 import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
-import { Loader2, Mail, Lock, ArrowRight, UserPlus } from 'lucide-react'
+import { signUp } from '@/ui/lib/auth-client'
+import { m } from '@/ui/paraglide/messages.js'
+import { getLocale, setLocale } from '@/ui/paraglide/runtime.js'
 import { useAuthStore } from '@/ui/stores/auth'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import { ArrowRight, Loader2, Lock, Mail, UserPlus } from 'lucide-react'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { signUp } from '@/ui/lib/auth-client'
-import { useState } from 'react'
-import { ShumaiLogo } from '@/ui/components/ui/icons'
-import { AuthLayout } from '@/ui/components/auth-layout'
-import { m } from '@/ui/paraglide/messages.js'
 
 const signupSchema = z.object({
   email: z.string().email(m.invalid_email_address()),
@@ -30,6 +31,15 @@ function SignupPage() {
   const inviteCode = (search as { inviteCode?: string }).inviteCode
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [locale, setLocaleState] = useState<'en' | 'zh'>(() => {
+    const activeLocale = getLocale()
+    return activeLocale === 'zh' ? 'zh' : 'en'
+  })
+
+  const handleLocaleChange = (newLocale: 'en' | 'zh') => {
+    setLocaleState(newLocale)
+    setLocale(newLocale)
+  }
 
   const { data: inviteInfo } = useQuery({
     queryKey: ['invite', inviteCode],
@@ -71,6 +81,7 @@ function SignupPage() {
       password: data.password,
       name: data.email, // Use email as the username
       inviteCode: data.inviteCode,
+      locale,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any)
 
@@ -238,14 +249,38 @@ function SignupPage() {
         </Button>
       </form>
 
-      <div className="mt-8 pt-6 border-t border-zinc-200/30 dark:border-zinc-800/30 text-center text-sm">
-        <span className="text-zinc-500 dark:text-zinc-400">{m.already_have_account()}</span>
-        <a
-          href="/login"
-          className="font-semibold text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 transition-colors hover:underline inline-flex items-center gap-0.5"
-        >
-          {m.login()} <ArrowRight className="w-3.5 h-3.5" />
-        </a>
+      <div className="mt-12 pt-10 border-t border-zinc-200/30 dark:border-zinc-800/30 text-center text-sm flex flex justify-between gap-4">
+        <div>
+          <span className="text-zinc-500 dark:text-zinc-400">{m.already_have_account()} </span>
+          <a
+            href="/login"
+            className="font-semibold text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 transition-colors hover:underline inline-flex items-center gap-0.5"
+          >
+            {m.login()} <ArrowRight className="w-3.5 h-3.5" />
+          </a>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs text-zinc-400 dark:text-zinc-500">
+          <button
+            type="button"
+            onClick={() => handleLocaleChange('en')}
+            className={`cursor-pointer hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors ${
+              locale === 'en' ? 'font-bold text-rose-500 dark:text-rose-400' : ''
+            }`}
+          >
+            English
+          </button>
+          <span className="text-zinc-300 dark:text-zinc-850">/</span>
+          <button
+            type="button"
+            onClick={() => handleLocaleChange('zh')}
+            className={`cursor-pointer hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors ${
+              locale === 'zh' ? 'font-bold text-rose-500 dark:text-rose-400' : ''
+            }`}
+          >
+            中文
+          </button>
+        </div>
       </div>
     </AuthLayout>
   )

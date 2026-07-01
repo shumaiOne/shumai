@@ -10,7 +10,7 @@ const en_auth_tagline = /** @type {(inputs: Auth_TaglineInputs) => LocalizedStri
 };
 
 const zh_auth_tagline = /** @type {(inputs: Auth_TaglineInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`一个工作区，管理所有创意资产。`)
+	return /** @type {LocalizedString} */ (`一站式创意资产管理协作平台。`)
 };
 
 /**
