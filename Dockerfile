@@ -1,3 +1,4 @@
+#syntax=docker/dockerfile:1.7-labs
 # Stage 1: Builder
 FROM oven/bun:1 AS builder
 
