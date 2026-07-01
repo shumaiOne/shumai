@@ -256,7 +256,7 @@ export class TranscodeService {
     duration: number,
   ): Promise<void> {
     const spriteFps = 100 / duration
-    const filterComplex = `[0:v]fps=${spriteFps},scale=w=480:h=-2,tile=10x10[sprite_out];[0:v]scale=-2:720:force_original_aspect_ratio=decrease,select='eq(n\\,0)'[thumb_out]`
+    const filterComplex = `[0:v]fps=${spriteFps},scale=w=480:h=-2,tile=10x10[sprite_out];[0:v]scale=-2:480:force_original_aspect_ratio=decrease,select='eq(n\\,0)'[thumb_out]`
 
     const args = [
       '-i',
