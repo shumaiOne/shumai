@@ -74,13 +74,6 @@ export function useFramePlayer(
       const stallThreshold = Math.max(100, 3000 / frameRate)
       const isVfcStalled = Date.now() - lastVfcTime > stallThreshold
 
-      // Print debug log roughly once per second during playback
-      if (Math.floor(video.currentTime * frameRate + 0.45) % 30 === 0) {
-        console.log(
-          `[useFramePlayer] currentTime: ${video.currentTime}, isVfcStalled: ${isVfcStalled}, stallThreshold: ${stallThreshold}, totalFrames: ${totalFrames}`,
-        )
-      }
-
       // Only update playhead via currentTime (RAF) if rVFC has stalled or isn't supported
       if (!videoWithCallback.requestVideoFrameCallback || isVfcStalled) {
         const frame = Math.floor(video.currentTime * frameRate + 0.45)
