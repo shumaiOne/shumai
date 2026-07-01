@@ -9,7 +9,8 @@
 </p>
 
 <p align="center">
-  <a target="_blank" href="https://shumai.one/">官方网站</a> | <a target="_blank" href="https://docs.shumai.one/introduction">官方文档</a> | <a target="_blank" href="https://staging.shumai.one">在线演示</a>
+  <a target="_blank" href="https://shumai.one/">官方网站</a> | <a target="_blank" href="https://docs.shumai.one/introduction">文档</a> | <a target="_blank" href="https://staging.shumai.one">在线演示</a> | <a target="_blank" href="README.md">English</a>
+</p>
 </p>
 
 ![Shumai 应用截图](docs/screenshot.webp)
