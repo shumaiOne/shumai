@@ -32,7 +32,9 @@
 - **Semantic Search**: Find assets based on visual or conceptual search queries using vector embeddings(Gemini Embedding 2).
 
 > [!NOTE]
-> **Media Processing & Storage:** When uploading media, Shumai will always store your original raw file. For images, Shumai generates exactly 1 optimized webp proxy. For video files, it generates at least one proxy (depending on your transcoding settings), alongside a sprite image and a small preview video (capped at 1600 frames) to enable fast timeline scrubbing and lightning-quick previews.
+> **Media Processing & Storage:** When uploading media, Shumai always preserves and stores your original raw file. For all media types (both images and videos), Shumai creates a 480p WebP poster image to serve as the preview in the file list view. Additionally:
+> * **For Images:** Shumai generates a high-quality WebP proxy at the exact same resolution as your original file for optimized viewing.
+> * **For Videos:** It generates at least one proxy video (depending on your transcoding settings), alongside a sprite image and a small preview video (capped at 1600 frames) to enable fast timeline scrubbing and lightning-quick previews.
 
 ---
 
