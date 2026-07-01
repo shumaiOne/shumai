@@ -126,8 +126,11 @@ export function useFramePlayer(
       setCurrentFrame(clamped)
 
       // Snap the playhead to the center of the paused frame to align browser compositor
-      const safeCenterTime = calculateFrameCenterTime(clamped, frameRate)
-      video.currentTime = safeCenterTime
+      // Skip snapping if the video has ended to preserve the native ended state and allow native replay
+      if (!video.ended) {
+        const safeCenterTime = calculateFrameCenterTime(clamped, frameRate)
+        video.currentTime = safeCenterTime
+      }
     }
 
     video.addEventListener('play', handlePlay)
