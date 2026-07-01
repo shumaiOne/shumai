@@ -4,6 +4,7 @@ import { prisma } from '@shumai/db'
 import { teamService } from '@shumai/core/src/team/team'
 import { inviteService } from '@shumai/core/src/invite/invite'
 import { createAuthMiddleware } from 'better-auth/api'
+import { userMetadataService } from '@shumai/core/src/user-metadata/user-metadata'
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
@@ -101,6 +102,17 @@ export const auth = betterAuth({
 
             if (inviteCode) {
               await inviteService.consumeInvite(inviteCode, user.id)
+            }
+
+            const locale = body?.locale
+            if (locale === 'en' || locale === 'zh') {
+              const joinedTeams = await prisma.teamMember.findMany({
+                where: { userId: user.id },
+                select: { teamId: true },
+              })
+              for (const member of joinedTeams) {
+                await userMetadataService.upsertMetadata(user.id, member.teamId, 'locale', locale)
+              }
             }
           } catch (err) {
             console.error(`[Better Auth Hook] Error in after hook: ${err}`)
