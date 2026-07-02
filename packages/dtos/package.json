@@ -1,6 +1,6 @@
 {
   "name": "@shumai/dtos",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
