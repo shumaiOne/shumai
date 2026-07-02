@@ -51,44 +51,44 @@
    ```bash
    mkdir shumai && cd shumai
 
-```
+   ```
 
 2. 下载 `docker-compose.yaml` 配置文件：
-```bash
-curl -o docker-compose.yaml [https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose-aliyun.yaml](https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose.yaml)
+   ```bash
+   curl -o docker-compose.yaml https://raw.githubusercontent.com/shumaiOne/shumai/main/docker-compose/local/docker-compose-aliyun.yaml
 
-```
+   ```
 
 
 3. 配置环境变量（可选）：
 * `SHUMAI_SERVER_PORT` 用于控制 Shumai 服务监听的端口，默认值为 `3000`。
 * 默认情况下，该 Docker Compose 部署会自动启用集成的本地存储。若想切换至外部 S3 兼容存储，请将 `AWS_ENDPOINT_URL_S3` 设置为对应云厂商的 Endpoint URL，并根据需要配置相应的 AWS 凭证和存储桶（Bucket）参数：
-```
- AWS_ENDPOINT_URL_S3: S3_ENDPOINT_URL
- S3_REGION: S3_REGION
- S3_BUCKET: BUCKET_NAME
- S3_ACCESS_KEY_ID: ID
- S3_SECRET_ACCESS_KEY: KEY
+   ```
+   AWS_ENDPOINT_URL_S3: S3_ENDPOINT_URL
+   S3_REGION: S3_REGION
+   S3_BUCKET: BUCKET_NAME
+   S3_ACCESS_KEY_ID: ID
+   S3_SECRET_ACCESS_KEY: KEY
 
-```
+   ```
 
 
 * 默认情况下 `AWS_ENDPOINT_URL_S3` 指向 `http://localhost:{SHUMAI_SERVER_PORT}`。如果您使用本地存储，但希望在自定义的主机名或端口上公开访问 Shumai，请务必将 `AWS_ENDPOINT_URL_S3` 修改为浏览器访问该服务时所使用的外部 URL。
 例如，如果您将 `docker-compose.yaml` 中的端口映射从 `3000:3000` 修改为了 `12345:3000`，且服务部署在 IP 为 `12.34.56.78` 的服务器上，请进行如下设置：
-```
-AWS_ENDPOINT_URL_S3: [http://12.34.56.78:12345](http://12.34.56.78:12345)
+   ```
+   AWS_ENDPOINT_URL_S3: http://12.34.56.78:12345
 
-```
+   ```
 
 
 此地址必须能够从客户端浏览器正常访问，且必须包含对外暴露的实际端口号。
 
 
 4. 在后台启动所有服务：
-```bash
-docker compose up -d
+   ```bash
+   docker compose up -d
 
-```
+   ```
 
 
 5. 打开浏览器，访问 `http://localhost:3000` 即可开始使用（若是远程部署，请访问 `http://<您的服务器IP>:3000`）。
