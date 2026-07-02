@@ -17,7 +17,7 @@ services:
       retries: 5
 
   shumai:
-    image: crpi-gd059yeolk1as59f.cn-shanghai.personal.cr.aliyuncs.com/shumaione/shumai:latest
+    image: crpi-000nkafzu6xvpwsc.cn-hongkong.personal.cr.aliyuncs.com/shumai-one/shumai:latest
     container_name: shumai_app
     ports:
       - '3000:3000'
