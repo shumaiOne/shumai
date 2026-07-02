@@ -13,6 +13,15 @@ export interface TopNavProjectState {
   }
   isRootFolder: boolean
   fileId?: string
+  downloadInfo?: {
+    originalKey?: string
+    videoTranscodes?: Array<{
+      key: string
+      width: number
+      height: number
+      isRaw?: boolean
+    }>
+  }
   versions?: Array<{
     id: string
     version: number

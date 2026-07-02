@@ -1,4 +1,5 @@
 import { useScreenSize } from '@/ui/hooks/useScreenSize'
+import { client } from '@/ui/api/client'
 import { getBestTranscode } from '@/ui/lib/media'
 import type { AssetInfo } from '@shumai/dtos'
 import { Check, Copy, Download, Minus, Plus } from 'lucide-react'
@@ -19,6 +20,7 @@ type FileViewerProps = {
   onTimeUpdate?: (time: number) => void
   annotations?: Annotation[]
   startTime?: number
+  shareId?: string
   children?: ReactNode
 }
 
@@ -30,6 +32,7 @@ export function FileViewer({
   onTimeUpdate,
   annotations,
   startTime,
+  shareId,
   children,
 }: FileViewerProps) {
   const { width: screenWidth } = useScreenSize()
@@ -133,15 +136,29 @@ export function FileViewer({
     }
   }
 
-  const handleDownload = () => {
-    const url = file.media?.original?.downloadUrl
-    if (!url) return
-    const link = document.createElement('a')
-    link.href = url
-    link.download = file.name || 'image'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+  const handleDownload = async () => {
+    const key = file.media?.original?.key
+    if (!key || !file.id) return
+    try {
+      const res = shareId
+        ? await client.api.shares[':shareId'].files[':fileId']['download-url'].$post({
+            param: { shareId, fileId: file.id },
+            json: { key },
+          })
+        : await client.api.files['download-url'].$post({
+            json: { key, assetId: file.id },
+          })
+      if (!res.ok) return
+      const { url } = await res.json()
+      const link = document.createElement('a')
+      link.href = url
+      link.download = ''
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch {
+      // silently fail
+    }
   }
 
   const handleCopy = async () => {
@@ -210,7 +227,7 @@ export function FileViewer({
         <div className="relative px-4 py-3 bg-card border-t border-gray-200 dark:border-gray-700 z-10 flex items-center justify-end gap-2 transition-colors duration-200">
           <button
             onClick={handleDownload}
-            disabled={!file.media?.original?.downloadUrl}
+            disabled={!file.media?.original?.key}
             className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded bg-gray-200/50 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors border border-transparent disabled:opacity-50 animate-in fade-in zoom-in-95 duration-200"
             title="Download original file"
           >
@@ -291,7 +308,7 @@ export function FileViewer({
             </button>
             <button
               onClick={handleDownload}
-              disabled={!file.media?.original?.downloadUrl}
+              disabled={!file.media?.original?.key}
               className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded bg-gray-200/50 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors border border-transparent disabled:opacity-50 animate-in fade-in zoom-in-95 duration-200"
               title="Download original image"
             >
@@ -311,6 +328,7 @@ export function FileViewer({
           onTimeUpdate={onTimeUpdate}
           annotations={displayAnnotations}
           startTime={startTime}
+          shareId={shareId}
         >
           {children}
         </VideoPlayer>

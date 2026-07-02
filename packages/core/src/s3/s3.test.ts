@@ -117,16 +117,43 @@ describe('S3Service implementations', () => {
       delete process.env.PRESIGNED_URL_EXPIRES_IN
     })
 
-    it('should pass filename to presign', async () => {
+    it('should not set contentDisposition for normal GET presign', async () => {
       const s3 = new S3StorageService('localhost:9000', 'key', 'secret', 'test-bucket', false)
-      await s3.presign('bucket', 'key', 'GET', 'test.txt')
+      await s3.presign('bucket', 'key', 'GET')
+
+      expect(s3PresignSpy).toHaveBeenCalledWith(
+        'key',
+        expect.not.objectContaining({
+          contentDisposition: expect.anything(),
+        }),
+      )
+    })
+
+    it('should set contentDisposition attachment when download is true', async () => {
+      const s3 = new S3StorageService('localhost:9000', 'key', 'secret', 'test-bucket', false)
+      await s3.presign('bucket', 'key', 'GET', true)
 
       expect(s3PresignSpy).toHaveBeenCalledWith(
         'key',
         expect.objectContaining({
-          contentDisposition: 'attachment; filename="test.txt"',
+          contentDisposition: 'attachment',
         }),
       )
+    })
+
+    it('should not cache download presign URLs', async () => {
+      const s3 = new S3StorageService('localhost:9000', 'key', 'secret', 'test-bucket', false)
+
+      s3PresignSpy.mockClear()
+      s3PresignSpy.mockReturnValueOnce('http://download-url-1')
+      s3PresignSpy.mockReturnValueOnce('http://download-url-2')
+
+      const url1 = await s3.presign('bucket', 'key', 'GET', true)
+      const url2 = await s3.presign('bucket', 'key', 'GET', true)
+
+      expect(url1).toBe('http://download-url-1')
+      expect(url2).toBe('http://download-url-2')
+      expect(s3PresignSpy).toHaveBeenCalledTimes(2)
     })
   })
 
@@ -182,9 +209,9 @@ describe('S3Service implementations', () => {
       expect(url).toBe('http://localhost:3000/files/my-bucket/dir/file.txt')
     })
 
-    it('should generate a local presign URL with filename', async () => {
-      const url = await localS3.presign('my-bucket', 'dir/file.txt', 'GET', 'original.txt')
-      expect(url).toBe('http://localhost:3000/files/my-bucket/dir/file.txt?filename=original.txt')
+    it('should generate a local presign URL with download param', async () => {
+      const url = await localS3.presign('my-bucket', 'dir/file.txt', 'GET', true)
+      expect(url).toBe('http://localhost:3000/files/my-bucket/dir/file.txt?download=1')
     })
 
     it('should throw an error for unsupported presign methods', async () => {

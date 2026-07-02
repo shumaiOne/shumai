@@ -148,6 +148,15 @@ function FileViewPage() {
         },
         isRootFolder: false,
         fileId,
+        downloadInfo: {
+          originalKey: fileData.media?.original?.key,
+          videoTranscodes: fileData.media?.videoTranscodes?.map((t) => ({
+            key: t.key,
+            width: t.width,
+            height: t.height,
+            isRaw: t.isRaw,
+          })),
+        },
         versions: versionsDataList,
         onFolderClick: (id: string) => {
           navigate({

@@ -39,7 +39,7 @@ describe('S3 API', () => {
     }
   })
 
-  it('GET /files/* with filename query parameter sets Content-Disposition header', async () => {
+  it('GET /files/* sets Content-Disposition: attachment only when download=1 query param is present', async () => {
     // We need to capture the onFound callback from serveStatic options
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let onFoundCallback: ((path: string, c: any) => void) | undefined
@@ -54,25 +54,33 @@ describe('S3 API', () => {
     const { default: route } = await import('./s3')
     const app = new Hono().route('/files', route)
 
-    // First, verify onFound is called through the mock
-    await app.request('/files/b1/test.webp?filename=my-file.txt')
+    await app.request('/files/b1/test.webp?download=1')
 
     expect(onFoundCallback).toBeDefined()
 
-    // Test the callback directly
-    const mockContext = {
-      req: {
-        query: (key: string) => (key === 'filename' ? 'my-file.txt' : undefined),
-      },
+    // Test with download=1
+    const mockContextWithDownload = {
+      req: { query: (key: string) => (key === 'download' ? '1' : undefined) },
       header: vi.fn(),
     }
 
     if (onFoundCallback) {
-      onFoundCallback('/files/b1/test.webp', mockContext)
-      expect(mockContext.header).toHaveBeenCalledWith(
+      onFoundCallback('/files/b1/test.webp', mockContextWithDownload)
+      expect(mockContextWithDownload.header).toHaveBeenCalledWith(
         'Content-Disposition',
-        'attachment; filename="my-file.txt"',
+        'attachment',
       )
+    }
+
+    // Test without download param
+    const mockContextWithout = {
+      req: { query: () => undefined },
+      header: vi.fn(),
+    }
+
+    if (onFoundCallback) {
+      onFoundCallback('/files/b1/test.webp', mockContextWithout)
+      expect(mockContextWithout.header).not.toHaveBeenCalled()
     }
   })
 

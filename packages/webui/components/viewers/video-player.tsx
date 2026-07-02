@@ -1,4 +1,5 @@
 import type { AssetInfo, VideoTranscode } from '@shumai/dtos'
+import { client } from '@/ui/api/client'
 import { cn } from '@/ui/lib/utils'
 import {
   Check,
@@ -58,6 +59,7 @@ interface VideoPlayerProps {
   onTimeUpdate?: (time: number) => void
   annotations?: Annotation[]
   startTime?: number
+  shareId?: string
   children?: React.ReactNode
 }
 
@@ -76,7 +78,7 @@ interface ControlBarProps {
   handleVolumeChange: (newVolume: number) => void
   changePlaybackRate: (rate: number) => void
   changeResolution: (res: DisplayTranscode) => void
-  handleDownload: (url: string, resolution: string) => void
+  handleDownload: (key: string) => void
   toggleFullScreen: () => void
   onZoomChange: (zoom: number) => void
   onZoomReset: () => void
@@ -344,11 +346,13 @@ const ControlBar: React.FC<ControlBarProps> = ({
               {resolutions.map((res) => (
                 <DropdownMenuItem
                   key={res.resolution}
-                  onClick={() => handleDownload(res.url ?? '', res.resolution)}
+                  onClick={() => handleDownload(res.key ?? '')}
                   className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-foreground"
                 >
                   <span>{res.resolution}</span>
-                  <span className="text-xs text-muted-foreground">MP4</span>
+                  <span className="text-xs text-muted-foreground">
+                    {res.isRaw ? data.name?.split('.').pop()?.toUpperCase() || 'RAW' : 'MP4'}
+                  </span>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -376,6 +380,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   onTimeUpdate,
   annotations,
   startTime,
+  shareId,
   children,
 }) => {
   const localPlayerRef = useRef<Player | null>(null)
@@ -456,12 +461,16 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }
 
   // Initial resolution setup
-  const originalRes = {
+  const originalRes: DisplayTranscode = {
+    id: 'original',
     url: data.media.original.downloadUrl,
+    key: data.media.original.key ?? '',
     width: data.media.metadata.originalWidth ?? 0,
     height: data.media.metadata.originalHeight ?? 0,
+    size: 0,
+    isRaw: true,
     resolution: 'Original',
-  } as DisplayTranscode
+  }
 
   const resolutions: DisplayTranscode[] = (data.media.videoTranscodes ?? []).map((t) => {
     const longSide = Math.max(t.width, t.height)
@@ -837,13 +846,27 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   }
 
-  const handleDownload = (url: string, resolution: string) => {
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `${data.name}-${resolution}.mp4`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+  const handleDownload = async (key: string) => {
+    try {
+      const res = shareId
+        ? await client.api.shares[':shareId'].files[':fileId']['download-url'].$post({
+            param: { shareId, fileId: data.id! },
+            json: { key },
+          })
+        : await client.api.files['download-url'].$post({
+            json: { key, assetId: data.id! },
+          })
+      if (!res.ok) return
+      const { url } = await res.json()
+      const link = document.createElement('a')
+      link.href = url
+      link.download = ''
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch {
+      // silently fail
+    }
   }
 
   // Listen for fullscreen change events (ESC key)

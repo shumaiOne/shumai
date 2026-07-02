@@ -21,6 +21,7 @@ import {
 import { ImageTranscoder, VideoTranscoder } from '@shumai/transcode'
 import { generateKeyBetween } from 'jittered-fractional-indexing'
 import { ulid } from 'ulid'
+import { sanitizeFilename } from '@shumai/core/src/utils/filename'
 
 export class UploadService {
   constructor(private readonly prismaClient: typeof prisma = prisma) {}
@@ -130,7 +131,7 @@ export class UploadService {
       const assetType = file.type === 'folder' ? AssetType.folder : AssetType.file
       let key: string | null = null
       if (assetType === AssetType.file) {
-        key = `files/${ulid()}/raw`
+        key = `files/${ulid()}/${sanitizeFilename(file.name)}`
       }
 
       const newAsset = await tx.asset.create({

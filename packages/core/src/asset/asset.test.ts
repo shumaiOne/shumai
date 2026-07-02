@@ -2222,4 +2222,103 @@ describe('AssetService — natural sort by name', () => {
       expect(childActiveDb?.status).toBe('uploaded')
     })
   })
+
+  describe('getDownloadUrl', () => {
+    it('should return a presigned download URL for a key in the same directory', async () => {
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'test.mp4',
+          type: AssetType.file,
+          status: AssetStatus.uploaded,
+          storageKey: {
+            create: { key: 'files/01TESTULID000000000000000/test.mp4' },
+          },
+        },
+      })
+
+      const url = await assetService.getDownloadUrl(
+        asset.id,
+        'files/01TESTULID000000000000000/test-720p.mp4',
+      )
+
+      expect(url).toBe('http://mock-s3-url')
+    })
+
+    it('should return a presigned download URL for the original key', async () => {
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'test.mp4',
+          type: AssetType.file,
+          status: AssetStatus.uploaded,
+          storageKey: {
+            create: { key: 'files/01TESTULID000000000000000/test.mp4' },
+          },
+        },
+      })
+
+      const url = await assetService.getDownloadUrl(
+        asset.id,
+        'files/01TESTULID000000000000000/test.mp4',
+      )
+
+      expect(url).toBe('http://mock-s3-url')
+    })
+
+    it('should throw if the key does not share the same parent directory', async () => {
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'test.mp4',
+          type: AssetType.file,
+          status: AssetStatus.uploaded,
+          storageKey: {
+            create: { key: 'files/01TESTULID000000000000000/test.mp4' },
+          },
+        },
+      })
+
+      await expect(
+        assetService.getDownloadUrl(asset.id, 'files/01OTHERULIDXXXXXXXXXX/hack.mp4'),
+      ).rejects.toThrow('Key does not belong to this asset')
+    })
+
+    it('should throw if the key contains path traversal segments', async () => {
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'test.mp4',
+          type: AssetType.file,
+          status: AssetStatus.uploaded,
+          storageKey: {
+            create: { key: 'files/01TESTULID000000000000000/test.mp4' },
+          },
+        },
+      })
+
+      await expect(
+        assetService.getDownloadUrl(
+          asset.id,
+          'files/01TESTULID000000000000000/../01OTHERULIDXXXXXXXXXX/secret.mp4',
+        ),
+      ).rejects.toThrow('Key does not belong to this asset')
+    })
+
+    it('should throw if the asset does not exist', async () => {
+      await expect(
+        assetService.getDownloadUrl('nonexistent-id', 'files/01TESTULID000000000000000/test.mp4'),
+      ).rejects.toThrow('Asset not found or has no storage key')
+    })
+
+    it('should throw if the asset has no storage key', async () => {
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'folder',
+          type: AssetType.folder,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      await expect(
+        assetService.getDownloadUrl(asset.id, 'files/01TESTULID000000000000000/test.mp4'),
+      ).rejects.toThrow('Asset not found or has no storage key')
+    })
+  })
 })

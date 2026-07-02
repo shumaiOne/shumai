@@ -19,6 +19,7 @@ export function TopNav() {
     currentAsset,
     isRootFolder,
     fileId,
+    downloadInfo,
     versions,
     isPublic,
     shareId,
@@ -87,6 +88,7 @@ export function TopNav() {
       isPublic={isPublic}
       shareId={shareId}
       fileId={fileId}
+      downloadInfo={downloadInfo}
       versions={versions}
       onFolderClick={onFolderClick}
     />
