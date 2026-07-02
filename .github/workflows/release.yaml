@@ -27,12 +27,22 @@ jobs:
           username: shumaione
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # Log in to Aliyun ACR
+      - name: Log in to Aliyun ACR
+        uses: docker/login-action@v3
+        with:
+          registry: crpi-000nkafzu6xvpwsc.cn-hongkong.personal.cr.aliyuncs.com
+          username: njjyl723
+          password: ${{ secrets.ALI_ACR_TOKEN }}
+
       # Extract metadata (tags, labels) for Docker
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: shumaione/shumai
+          images: |
+            shumaione/shumai
+            crpi-000nkafzu6xvpwsc.cn-hongkong.personal.cr.aliyuncs.com/shumai-one/shumai
           tags: |
             type=semver,pattern={{version}}
             type=ref,event=branch
