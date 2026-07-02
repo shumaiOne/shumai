@@ -147,6 +147,28 @@ const route = app
       return handlePublicShareError(c, err)
     }
   })
+  .post(
+    '/shares/:shareId/files/:fileId/download-url',
+    zValidator('json', z.object({ key: z.string().min(1) })),
+    async (c) => {
+      const fileId = c.req.param('fileId')
+      const password = c.req.header('x-share-password')
+      const { key } = c.req.valid('json')
+
+      try {
+        await shareService.verifyPublicAccess(fileId, password)
+
+        if (!key.startsWith('files/')) {
+          return c.json({ error: 'Invalid key' }, 400)
+        }
+
+        const url = await assetService.getDownloadUrl(fileId, key)
+        return c.json({ url })
+      } catch (err) {
+        return handlePublicShareError(c, err)
+      }
+    },
+  )
   .get(
     '/shares/:shareId/files/:fileId/comments',
     zValidator('query', paginationParamsSchema),

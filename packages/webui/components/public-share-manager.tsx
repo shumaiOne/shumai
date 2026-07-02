@@ -350,6 +350,17 @@ export function PublicShareManager({
         isPublic: true,
         shareId,
         fileId: viewingFileId || undefined,
+        downloadInfo: viewingFileData
+          ? {
+              originalKey: viewingFileData.media?.original?.key,
+              videoTranscodes: viewingFileData.media?.videoTranscodes?.map((t) => ({
+                key: t.key,
+                width: t.width,
+                height: t.height,
+                isRaw: t.isRaw,
+              })),
+            }
+          : undefined,
         onFolderClick: handleBreadcrumbClick,
         isRightSidebarCollapsed,
         onRightSidebarToggle: () => setIsRightSidebarCollapsed((prev) => !prev),
@@ -458,6 +469,7 @@ export function PublicShareManager({
                 onTimeUpdate={setCurrentTime}
                 annotations={annotations}
                 startTime={startTime}
+                shareId={shareId}
               />
             )}
           </div>

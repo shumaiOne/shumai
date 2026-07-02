@@ -279,6 +279,7 @@ export interface ImageTranscode {
 export interface VideoTranscode {
   id: string
   url: string
+  key: string
   width: number
   height: number
   size: number

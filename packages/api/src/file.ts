@@ -299,5 +299,32 @@ const route = new Hono<{ Variables: { user: User } }>()
     const files = await assetService.getDownloadLinks(req.ids)
     return c.json({ files })
   })
+  .post(
+    '/files/download-url',
+    zValidator('json', z.object({ key: z.string().min(1), assetId: z.string().min(1) })),
+    async (c) => {
+      const user = c.get('user')
+      const req = c.req.valid('json')
+      const { key, assetId } = req
+
+      // Validate key format
+      if (!key.startsWith('files/')) {
+        return c.json({ error: 'Invalid key' }, 400)
+      }
+
+      // Verify user has read access to the asset
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Read,
+        type: ResourceType.Asset,
+        id: assetId,
+      })
+
+      // Verify key belongs to the asset and generate download URL
+      const url = await assetService.getDownloadUrl(assetId, key)
+
+      return c.json({ url })
+    },
+  )
 
 export default route

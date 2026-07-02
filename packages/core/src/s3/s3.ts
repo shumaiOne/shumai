@@ -54,7 +54,7 @@ export interface S3Service {
   listObjects(bucket: string, prefix: string): Promise<string[]>
   uploadFile(filePath: string, contentType: string): Promise<string>
   uploadFileToKey(filePath: string, key: string, contentType: string): Promise<void>
-  presign(bucket: string, key: string, method: string, filename?: string): Promise<string>
+  presign(bucket: string, key: string, method: string, download?: boolean): Promise<string>
 }
 
 export class S3StorageService implements S3Service {
@@ -203,16 +203,16 @@ export class S3StorageService implements S3Service {
     })
   }
 
-  async presign(bucket: string, key: string, method: string, filename?: string): Promise<string> {
+  async presign(bucket: string, key: string, method: string, download?: boolean): Promise<string> {
     const expireHours = parseInt(process.env.PRESIGNED_URL_EXPIRES_IN || '5', 10)
     const expiresInSeconds = expireHours * 3600
     // Cache time is 2/3 of expire time, rounded to minute
     const cacheMinutes = Math.round((expireHours * 60 * 2) / 3)
     const cacheTtlMs = cacheMinutes * 60 * 1000
 
-    const cacheKey = `${bucket}:${key}:${filename || ''}`
+    const cacheKey = `${bucket}:${key}`
 
-    if (method === 'GET') {
+    if (method === 'GET' && !download) {
       const cached = this.presignCache.get(cacheKey)
       if (cached) return cached
     }
@@ -225,13 +225,13 @@ export class S3StorageService implements S3Service {
       method: method as any,
     }
 
-    if (filename) {
-      options.contentDisposition = `attachment; filename="${filename}"`
+    if (download) {
+      options.contentDisposition = 'attachment'
     }
 
     const url = this.client.presign(key, options)
 
-    if (method === 'GET') {
+    if (method === 'GET' && !download) {
       this.presignCache.set(cacheKey, url, cacheTtlMs)
     }
 
@@ -435,7 +435,7 @@ export class LocalStorageService implements S3Service {
     await fs.promises.copyFile(filePath, destPath)
   }
 
-  async presign(bucket: string, key: string, method: string, filename?: string): Promise<string> {
+  async presign(bucket: string, key: string, method: string, download?: boolean): Promise<string> {
     if (method !== 'GET' && method !== 'PUT') {
       throw new Error(`Invalid method: ${method}`)
     }
@@ -443,8 +443,8 @@ export class LocalStorageService implements S3Service {
       return `${this.endpoint}${signLocalUrl(bucket, key)}`
     }
     let url = `${this.endpoint}/files/${bucket}/${key}`
-    if (filename) {
-      url += `?filename=${encodeURIComponent(filename)}`
+    if (download) {
+      url += '?download=1'
     }
     return url
   }

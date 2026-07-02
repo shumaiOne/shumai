@@ -6,6 +6,7 @@ import * as path from 'path'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { detectSupportedMimeType } from '@shumai/core/src/utils/mime'
 import { ulid } from 'ulid'
+import { sanitizeFilename } from '@shumai/core/src/utils/filename'
 
 function getMimeType(filePath: string): string {
   try {
@@ -64,7 +65,7 @@ export function createCreateFileTool(userId: string): AgentTool<typeof createFil
         const mimeType = getMimeType(absolutePath)
 
         // Generate compliant S3 key matching normal file upload format
-        const s3Key = `files/${ulid()}/raw`
+        const s3Key = `files/${ulid()}/${sanitizeFilename(path.basename(absolutePath))}`
         await s3Service.uploadFileToKey(absolutePath, s3Key, mimeType)
 
         const result = await executeAgentToolWorkflow({

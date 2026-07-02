@@ -1,8 +1,10 @@
 import { Badge } from '@/ui/components/ui/badge'
+import { client } from '@/ui/api/client'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuPortal,
   DropdownMenuSeparator,
   DropdownMenuSub,
@@ -44,6 +46,15 @@ interface BreadcrumbNavProps {
   shareId?: string
   onFolderClick?: (folderId: string) => void
   fileId?: string
+  downloadInfo?: {
+    originalKey?: string
+    videoTranscodes?: Array<{
+      key: string
+      width: number
+      height: number
+      isRaw?: boolean
+    }>
+  }
   versions?: Array<{
     id: string
     version: number
@@ -69,6 +80,8 @@ export function BreadcrumbNav({
   isPublic = false,
   onFolderClick,
   fileId,
+  shareId,
+  downloadInfo,
   versions,
 }: BreadcrumbNavProps) {
   const navigate = useNavigate()
@@ -82,6 +95,33 @@ export function BreadcrumbNav({
       search: (prev: Record<string, unknown>) => ({ ...prev, version: versionId }),
     })
   }
+
+  const handleDownload = async (key: string) => {
+    if (!fileId) return
+    try {
+      const res = shareId
+        ? await client.api.shares[':shareId'].files[':fileId']['download-url'].$post({
+            param: { shareId, fileId },
+            json: { key },
+          })
+        : await client.api.files['download-url'].$post({
+            json: { key, assetId: fileId },
+          })
+      if (!res.ok) return
+      const { url } = await res.json()
+      const link = document.createElement('a')
+      link.href = url
+      link.download = ''
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch {
+      // silently fail
+    }
+  }
+
+  const hasVideoTranscodes =
+    downloadInfo?.videoTranscodes && downloadInfo.videoTranscodes.filter((t) => !t.isRaw).length > 0
 
   const breadcrumbs: { name: string; path?: string; id?: string; isMuted?: boolean }[] = isPublic
     ? [
@@ -155,9 +195,63 @@ export function BreadcrumbNav({
                   <ChevronDown className="h-4 w-4" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56">
-                  <DropdownMenuItem onClick={() => console.log('Download')}>
-                    Download
-                  </DropdownMenuItem>
+                  {hasVideoTranscodes ? (
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger className="flex items-center gap-2">
+                        <span>{m.download()}</span>
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuPortal>
+                        <DropdownMenuSubContent className="w-48">
+                          <DropdownMenuLabel>{m.download()}</DropdownMenuLabel>
+                          {downloadInfo?.videoTranscodes
+                            ?.filter((t) => !t.isRaw)
+                            .map((t) => {
+                              const longSide = Math.max(t.width, t.height)
+                              let resolution = `${t.height}p`
+                              if (longSide >= 3840) resolution = '2160p'
+                              else if (longSide >= 1920) resolution = '1080p'
+                              else if (longSide >= 1280) resolution = '720p'
+                              else if (longSide >= 960) resolution = '540p'
+                              else if (longSide >= 640) resolution = '360p'
+                              else if (longSide >= 320) resolution = '180p'
+                              return (
+                                <DropdownMenuItem
+                                  key={resolution}
+                                  onClick={() => handleDownload(t.key)}
+                                  className="flex items-center justify-between"
+                                >
+                                  <span>{resolution}</span>
+                                  <span className="text-xs text-muted-foreground">MP4</span>
+                                </DropdownMenuItem>
+                              )
+                            })}
+                          {downloadInfo?.originalKey && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => handleDownload(downloadInfo.originalKey!)}
+                                className="flex items-center justify-between"
+                              >
+                                <span>Original</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {currentAsset.name?.split('.').pop()?.toUpperCase() || 'RAW'}
+                                </span>
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuSubContent>
+                      </DropdownMenuPortal>
+                    </DropdownMenuSub>
+                  ) : (
+                    <DropdownMenuItem
+                      onClick={() =>
+                        downloadInfo?.originalKey && handleDownload(downloadInfo.originalKey)
+                      }
+                      disabled={!downloadInfo?.originalKey}
+                    >
+                      {m.download()}
+                    </DropdownMenuItem>
+                  )}
                   {canEdit && (
                     <DropdownMenuItem onClick={() => console.log('Rename')}>
                       Rename

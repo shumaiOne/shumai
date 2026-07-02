@@ -2,6 +2,7 @@ import { prisma, WorkflowTaskType, WorkflowTaskStatus } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { transcodeService } from '@shumai/core'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
+import { stemFromKey } from '@shumai/core/src/utils/filename'
 import { ApplicationFailure } from '@temporalio/activity'
 import * as path from 'path'
 import * as fs from 'fs'
@@ -162,7 +163,9 @@ export async function transcodeVideoActivity(
   params: VideoActivityParams,
 ): Promise<PrismaJson.VideoTranscode> {
   const bucket = process.env.S3_BUCKET || 'shumai'
-  const key = path.join(path.dirname(params.assetKey), `video-${params.videoSpec.height}p.mp4`)
+  const stem = stemFromKey(params.assetKey)
+  const res = params.videoSpec.resolution || `${params.videoSpec.height}p`
+  const key = path.posix.join(path.posix.dirname(params.assetKey), `${stem}-${res}.mp4`)
 
   try {
     await s3Service.headObject(bucket, key)
@@ -172,7 +175,7 @@ export async function transcodeVideoActivity(
   }
 
   const tmpDir = path.dirname(params.filePath)
-  const outputFile = path.join(tmpDir, `video-${params.videoSpec.height}p.mp4`)
+  const outputFile = path.join(tmpDir, `${stem}-${res}.mp4`)
 
   try {
     let targetFps: number | string = params.originalFps || 30
@@ -237,7 +240,11 @@ export async function transcodeImageActivity(
   params: ImageActivityParams,
 ): Promise<PrismaJson.ImageTranscode> {
   const bucket = process.env.S3_BUCKET || 'shumai'
-  const key = path.join(path.dirname(params.assetKey), `image-${params.imageSpec.width}p.webp`)
+  const stem = stemFromKey(params.assetKey)
+  const key = path.posix.join(
+    path.posix.dirname(params.assetKey),
+    `${stem}-${params.imageSpec.width}p.webp`,
+  )
 
   try {
     await s3Service.headObject(bucket, key)
@@ -247,7 +254,7 @@ export async function transcodeImageActivity(
   }
 
   const tmpDir = path.dirname(params.filePath)
-  const outputFile = path.join(tmpDir, `image-${params.imageSpec.width}p.webp`)
+  const outputFile = path.join(tmpDir, `${stem}-${params.imageSpec.width}p.webp`)
 
   try {
     await transcodeService.transcodeImage(

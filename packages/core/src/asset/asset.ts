@@ -842,7 +842,6 @@ export class AssetService {
           process.env.S3_BUCKET || 'shumai',
           info.media.original.key,
           'GET',
-          a.name,
         )
       }
     }
@@ -1583,7 +1582,7 @@ export class AssetService {
         }
       }
 
-      const media = latestVersion.media as PrismaJson.MediaInfo | null
+      let media = latestVersion.media as PrismaJson.MediaInfo | null
       if (media && media.videoPreview?.key) {
         media.videoPreview.url = await s3Service.presign(
           process.env.S3_BUCKET || 'shumai',
@@ -1593,21 +1592,19 @@ export class AssetService {
       }
 
       const key = latestVersion.storageKey?.key
-      if (media && key) {
-        const fileName =
-          a.type === AssetType.version_stack && (a.name === '' || !a.name)
-            ? latestVersion.name
-            : a.name
+      if (key) {
+        if (!media) {
+          media = {
+            original: null,
+            videoTranscodes: [],
+            imageTranscodes: [],
+          } as unknown as PrismaJson.MediaInfo
+        }
         media.original = {
           key,
-          downloadUrl: await s3Service.presign(
-            process.env.S3_BUCKET || 'shumai',
-            key,
-            'GET',
-            fileName,
-          ),
+          downloadUrl: await s3Service.presign(process.env.S3_BUCKET || 'shumai', key, 'GET'),
           filesizeInBytes: latestVersion.sizeByte,
-          codec: '', // TODO: extract from metadata if needed
+          codec: '',
         }
       }
 
@@ -1845,12 +1842,7 @@ export class AssetService {
         const key = file.storageKeyId ? storageKeyMap.get(file.storageKeyId) : null
         if (!key) return null
 
-        const url = await s3Service.presign(
-          process.env.S3_BUCKET || 'shumai',
-          key,
-          'GET',
-          file.name,
-        )
+        const url = await s3Service.presign(process.env.S3_BUCKET || 'shumai', key, 'GET', true)
 
         return {
           id: file.id,
@@ -1861,6 +1853,31 @@ export class AssetService {
     )
 
     return downloadLinks.filter((link): link is { id: string; name: string; url: string } => !!link)
+  }
+
+  /**
+   * Generate a presigned download URL for a given key, verifying it belongs to the asset's
+   * storage directory. This ensures users can only download files (original, transcodes, etc.)
+   * that belong to an asset they have access to.
+   */
+  async getDownloadUrl(assetId: string, key: string): Promise<string> {
+    const asset = await this.prismaClient.asset.findUnique({
+      where: { id: assetId },
+      select: { storageKey: { select: { key: true } } },
+    })
+
+    if (!asset?.storageKey?.key) {
+      throw new Error('Asset not found or has no storage key')
+    }
+
+    // Verify the requested key shares the same parent directory as the asset's storage key
+    const storageKey = asset.storageKey.key
+    const assetDir = storageKey.substring(0, storageKey.lastIndexOf('/') + 1)
+    if (key.includes('..') || !key.startsWith(assetDir)) {
+      throw new Error('Key does not belong to this asset')
+    }
+
+    return s3Service.presign(process.env.S3_BUCKET || 'shumai', key, 'GET', true)
   }
 
   private async toPreviewInfo(asset: Asset | AssetWithIncludes): Promise<PreviewInfo | null> {
