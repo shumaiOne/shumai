@@ -97,9 +97,9 @@ When playing, the playhead loop coordinates two mechanisms in parallel to preven
 
 1. **`requestVideoFrameCallback` (rVFC):** The primary driver when the video is actively decoding. It fires only when a new video frame is sent to the compositor, updating the UI frame-accurately based on `metadata.mediaTime`.
 2. **`requestAnimationFrame` (RAF):** Runs continuously at 60Hz. It acts as the fallback driver.
-3. **Stall Detection:** The playhead tracks when the last rVFC callback was fired. If it has been stalled for longer than the **dynamic stall threshold**:
+3. **Compositor-First Gating & Stall Detection:** `video.currentTime` is the playback (audio) clock, and on some engines (notably Safari/WebKit) it runs *ahead* of the frame actually presented on screen right after playback starts. Trusting it before the compositor catches up would race the playhead forward and then snap it backward when the first rVFC (`mediaTime`) arrives. To prevent this, each `play` resets the per-session sync state, and the playhead is driven from `video.currentTime` **only** when `requestVideoFrameCallback` is unsupported, **or** rVFC has delivered a frame this session and has since stalled beyond the **dynamic stall threshold**:
    $$\text{Threshold} = \max\left(100, \frac{3000}{\text{frameRate}}\right)\text{ ms}$$
-   the RAF loop takes over playhead updates using `video.currentTime`. 
+   the `requestAnimationFrame` loop may drive playhead updates from `video.currentTime`. As a safety net, this fallback also engages if rVFC never fires within an initial grace window (~1000&nbsp;ms) after play, so the playhead can never freeze permanently. Until the first compositor frame is presented, the playhead follows `mediaTime` (rVFC) exclusively, so it never leads the on-screen image. 
    
    This prevents the timeline from freezing when the video track ends but audio keeps playing (e.g. video track ends at 10s, audio at 15.4s).
 
@@ -109,9 +109,10 @@ When playing, the playhead loop coordinates two mechanisms in parallel to preven
 
 ### A. Play Video
 1. User clicks Play.
-2. The `play` event listener triggers `updateFrameLoop()`.
+2. The `play` event listener resets the per-session sync state and triggers `updateFrameLoop()`.
 3. If supported, `requestVideoFrameCallback` is registered. In parallel, `requestAnimationFrame` is scheduled recursively.
-4. UI displays continuous updates aligned with compositor frames.
+4. Until the first rVFC frame is presented, the playhead is driven **only** by `mediaTime`; the `requestAnimationFrame` path does not advance it from `video.currentTime` (see §3), avoiding a forward race on engines whose playback clock leads presentation at startup.
+5. Thereafter the UI displays continuous updates aligned with compositor frames.
 
 ---
 
@@ -119,11 +120,15 @@ When playing, the playhead loop coordinates two mechanisms in parallel to preven
 1. User clicks Pause.
 2. The `pause` event listener triggers `handlePause()`:
    * Cancels active VFC (`cancelVideoFrameCallback`) and RAF (`cancelAnimationFrame`) loops.
+   * Chooses the synchronization time. When rVFC is **fresh** (it delivered a frame within the stall threshold), the last presented compositor time `lastMediaTime` is used — this is the frame actually on screen. Otherwise (rVFC stale or unsupported, e.g. an audio-only tail after the video track ends) it falls back to `video.currentTime`:
+     $$\text{syncTime} = \begin{cases} \text{lastMediaTime} & \text{if rVFC is fresh} \\ video.currentTime & \text{otherwise} \end{cases}$$
    * Performs a final playhead synchronization:
-     $$\text{clampedFrame} = \max\left(0, \min\left(\lfloor(video.currentTime \cdot frameRate) + 0.45\rfloor, \text{totalFrames} - 1\right)\right)$$
-   * Calls `setCurrentFrame(clampedFrame)` to lock the UI to the correct frame.
+     $$\text{clampedFrame} = \max\left(0, \min\left(\lfloor(\text{syncTime} \cdot frameRate) + 0.45\rfloor, \text{totalFrames} - 1\right)\right)$$
+   * Calls `setCurrentFrame(clampedFrame)` to lock the UI to the frame the user is actually looking at.
    * **Snaps the browser playhead** to the calculated frame's center time to force the browser compositor to align:
      $$\text{currentTime} = \text{calculateFrameCenterTime}(\text{clampedFrame}, \text{frameRate})$$
+
+> **Frame-accurate tradeoff:** because pause locks to the *presented* frame (which on Safari lags the audio clock), snapping `currentTime` back to that frame's center means the small audio segment between the presented frame and the audio position is replayed on resume. This is intentional and matches other frame-accurate tools (e.g. frame.io): landing on the exact displayed frame takes priority over seamless audio. The effect is proportional to the engine's audio/video presentation offset — negligible on Chrome, ~100–300 ms on Safari.
 
 ---
 
