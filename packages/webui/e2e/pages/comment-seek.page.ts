@@ -129,25 +129,25 @@ export class CommentSeekPage {
   /**
    * Wait until the player has settled to a stable, paused frame whose native
    * clock and readout both equal `frame`.
+   *
+   * Ordering matters:
+   *  1. First wait for the player to actually *reach* the target frame. This
+   *     uses a synchronous predicate polled at rAF rate — no async work inside
+   *     the browser evaluation, so executions never overlap.
+   *  2. Only then wait for `currentTime` to stop changing (any post-seek nudge
+   *     to the frame center has fully applied). This runs as a sequential loop
+   *     in the Node context, so there is likewise no overlapping polling.
+   *
+   * Doing arrival first avoids the race where `currentTime` looks momentarily
+   * stable before the seek has registered in the media engine.
    */
   async waitUntilSettledOn(frame: number): Promise<void> {
-    // currentTime stops changing between consecutive reads (seek + nudge done).
-    await this.page.waitForFunction(
-      async (selector) => {
-        const el = document.querySelector(selector) as HTMLVideoElement | null
-        if (!el) return false
-        const a = el.currentTime
-        await new Promise((r) => setTimeout(r, 80))
-        return Math.abs(el.currentTime - a) < 1e-3
-      },
-      VIDEO_SELECTOR,
-      { timeout: 5_000 },
-    )
-    // Native clock and readout converge on the requested integer frame.
-    await this.expectFrameSettled(frame)
+    await this.waitForFrame(frame)
+    await this.waitForStableCurrentTime()
   }
 
-  private async expectFrameSettled(frame: number): Promise<void> {
+  /** Wait until the native clock and readout both report `frame` while paused. */
+  private async waitForFrame(frame: number): Promise<void> {
     await this.page.waitForFunction(
       ({ selector, fps, target }) => {
         const el = document.querySelector(selector) as HTMLVideoElement | null
@@ -161,6 +161,22 @@ export class CommentSeekPage {
       { selector: VIDEO_SELECTOR, fps: SAMPLE_FRAME_RATE, target: frame },
       { timeout: 5_000 },
     )
+  }
+
+  /**
+   * Wait until `currentTime` stops changing between consecutive reads, driven
+   * from Node so browser evaluations are strictly sequential (never overlapping).
+   */
+  private async waitForStableCurrentTime(): Promise<void> {
+    const deadline = Date.now() + 5_000
+    let previous = await this.currentTime()
+    while (Date.now() < deadline) {
+      await this.page.waitForTimeout(80)
+      const current = await this.currentTime()
+      if (Math.abs(current - previous) < 1e-3) return
+      previous = current
+    }
+    throw new Error('Timed out waiting for currentTime to stabilize')
   }
 
   async clickCreateComment(): Promise<void> {
