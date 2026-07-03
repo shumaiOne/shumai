@@ -11,6 +11,7 @@
       "devDependencies": {
         "@eslint/js": "10.0.1",
         "@inlang/paraglide-js": "2.20.0",
+        "@playwright/test": "1.61.1",
         "@testcontainers/postgresql": "12.0.1",
         "@types/bun": "1.3.14",
         "@types/node": "25.9.1",
@@ -33,7 +34,7 @@
     },
     "apps/agent": {
       "name": "@shumai/agent-app",
-      "version": "0.1.2",
+      "version": "0.1.5",
       "bin": {
         "shumai-agent": "./src/index.ts",
       },
@@ -45,7 +46,7 @@
     },
     "apps/cli": {
       "name": "@shumai/cli",
-      "version": "0.1.2",
+      "version": "0.1.5",
       "bin": {
         "shumai-cli": "./src/index.ts",
       },
@@ -60,7 +61,7 @@
     },
     "apps/transcode": {
       "name": "@shumai/transcode-app",
-      "version": "0.1.2",
+      "version": "0.1.5",
       "bin": {
         "shumai-transcode": "./src/index.ts",
       },
@@ -72,7 +73,7 @@
     },
     "apps/web": {
       "name": "@shumai/web-app",
-      "version": "0.1.2",
+      "version": "0.1.5",
       "dependencies": {
         "@shumai/agent": "workspace:*",
         "@shumai/api": "workspace:*",
@@ -87,7 +88,7 @@
     },
     "packages/agent": {
       "name": "@shumai/agent",
-      "version": "0.1.2",
+      "version": "0.1.5",
       "dependencies": {
         "@anthropic-ai/sandbox-runtime": "0.0.52",
         "@earendil-works/pi-agent-core": "0.78.0",
@@ -111,7 +112,7 @@
     },
     "packages/api": {
       "name": "@shumai/api",
-      "version": "0.1.2",
+      "version": "0.1.5",
       "dependencies": {
         "@hono/zod-validator": "0.7.6",
         "@shumai/core": "workspace:*",
@@ -125,7 +126,7 @@
     },
     "packages/core": {
       "name": "@shumai/core",
-      "version": "0.1.2",
+      "version": "0.1.5",
       "dependencies": {
         "@shumai/db": "workspace:*",
         "@shumai/dtos": "workspace:*",
@@ -152,7 +153,7 @@
     },
     "packages/db": {
       "name": "@shumai/db",
-      "version": "0.1.2",
+      "version": "0.1.5",
       "dependencies": {
         "@earendil-works/pi-agent-core": "0.78.0",
         "@prisma/adapter-pg": "7.8.0",
@@ -168,18 +169,18 @@
     },
     "packages/dtos": {
       "name": "@shumai/dtos",
-      "version": "0.1.2",
+      "version": "0.1.5",
       "dependencies": {
         "zod": "4.4.3",
       },
     },
     "packages/tableprinter": {
       "name": "@shumai/tableprinter",
-      "version": "0.1.2",
+      "version": "0.1.5",
     },
     "packages/transcode": {
       "name": "@shumai/transcode",
-      "version": "0.1.2",
+      "version": "0.1.5",
       "dependencies": {
         "@shumai/core": "workspace:*",
         "@shumai/db": "workspace:*",
@@ -193,7 +194,7 @@
     },
     "packages/webui": {
       "name": "@shumai/webui",
-      "version": "0.1.2",
+      "version": "0.1.5",
       "dependencies": {
         "@base-ui/react": "1.5.0",
         "@dnd-kit/abstract": "0.4.0",
@@ -294,7 +295,7 @@
     },
     "packages/workflow-core": {
       "name": "@shumai/workflow-core",
-      "version": "0.1.2",
+      "version": "0.1.5",
       "dependencies": {
         "@shumai/core": "workspace:*",
         "@shumai/db": "workspace:*",
@@ -760,6 +761,8 @@
     "@pkgjs/parseargs": ["@pkgjs/parseargs@0.11.0", "", {}, "sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg=="],
 
     "@pkgr/core": ["@pkgr/core@0.3.6", "", {}, "sha512-SEeaJLb3qBNF/OaXnaR1NmmBbFYk1zC0ZH/52fATcRPLFg/p791YrcyFFy44Bo9sLaGuSuLp5Q6axbb/O+v/RA=="],
+
+    "@playwright/test": ["@playwright/test@1.61.1", "", { "dependencies": { "playwright": "1.61.1" }, "bin": { "playwright": "cli.js" } }, "sha512-8nKv6+0RJSL9FE4jYOEGXnPeM/Hg12qZpmqzZjRh3qM0Y7c3z1mrOTfFLids72RDQYVh9WpLEfR5WdpNX4fkig=="],
 
     "@pondwader/socks5-server": ["@pondwader/socks5-server@1.0.10", "", {}, "sha512-bQY06wzzR8D2+vVCUoBsr5QS2U6UgPUQRmErNwtsuI6vLcyRKkafjkr3KxbtGFf9aBBIV2mcvlsKD1UYaIV+sg=="],
 
@@ -2249,6 +2252,10 @@
 
     "pkg-types": ["pkg-types@2.3.1", "", { "dependencies": { "confbox": "^0.2.4", "exsolve": "^1.0.8", "pathe": "^2.0.3" } }, "sha512-y+ichcgc2LrADuhLNAx8DFjVfgz91pRxfZdI3UDhxHvcVEZsenLO+7XaU5vOp0u/7V/wZ+plyuQxtrDlZJ+yeg=="],
 
+    "playwright": ["playwright@1.61.1", "", { "dependencies": { "playwright-core": "1.61.1" }, "optionalDependencies": { "fsevents": "2.3.2" }, "bin": { "playwright": "cli.js" } }, "sha512-DWnY5o3YbLWK4GovuAVwpqL+1VwGNdUGrRr++8j8PtQQzvAVZUIMjKQ90fY689sEJZJBbZVw1rXaOKSTitkzPQ=="],
+
+    "playwright-core": ["playwright-core@1.61.1", "", { "bin": { "playwright-core": "cli.js" } }, "sha512-h7Qlt6m4REp25qvIdvbDtVmD4LqVXfpRxhORv9L0jzETM05p4fuPJ3dKyuSXQxDSbXnmS79HAgi9589lGSpLkg=="],
+
     "possible-typed-array-names": ["possible-typed-array-names@1.1.0", "", {}, "sha512-/+5VFTchJDoVj3bhoqi6UeymcD00DAwb1nJwamzPvHEszJ4FpF6SNNbUbOS8yI56qHzdV8eK0qEfOSiodkTdxg=="],
 
     "postcss": ["postcss@8.5.15", "", { "dependencies": { "nanoid": "^3.3.12", "picocolors": "^1.1.1", "source-map-js": "^1.2.1" } }, "sha512-FfR8sjd4em2T6fb3I2MwAJU7HWVMr9zba+enmQeeWFfCbm+UOC/0X4DS8XtpUTMwWMGbjKYP7xjfNekzyGmB3A=="],
@@ -3026,6 +3033,8 @@
     "path-scurry/lru-cache": ["lru-cache@10.4.3", "", {}, "sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ=="],
 
     "pg-types/postgres-array": ["postgres-array@2.0.0", "", {}, "sha512-VpZrUqU5A69eQyW2c5CA1jtLecCsN2U/bD6VilrFDWq5+5UIEVO7nazS3TEcHf1zuPYO/sqGvUvW62g86RXZuA=="],
+
+    "playwright/fsevents": ["fsevents@2.3.2", "", { "os": "darwin" }, "sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA=="],
 
     "prisma-json-types-generator/semver": ["semver@7.8.1", "", { "bin": { "semver": "bin/semver.js" } }, "sha512-rkVq3IXh+4FDGch+KwzX3aV9W3kO54GyEgpvBzSyctDA6Xtd7RJQV1xmXbeQp5v7+VzLOfVqiutSE6GICgPFvg=="],
 
