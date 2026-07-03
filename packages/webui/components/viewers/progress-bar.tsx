@@ -262,6 +262,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
       onMouseLeave={handleMouseLeave}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
+      data-testid="seekbar"
     >
       {/* Hidden Preview Video Element */}
       <video
@@ -316,6 +317,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
       <div
         className="relative absolute top-0 left-0 h-full rounded-full bg-primary"
         style={{ width: `${progressPercent}%` }}
+        data-testid="seekbar-fill"
       >
         {/* Thumb (Playhead) - visible on group hover or active */}
         <div

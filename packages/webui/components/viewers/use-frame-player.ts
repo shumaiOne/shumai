@@ -15,6 +15,11 @@ interface HtmlVideoElementWithCallback {
   cancelVideoFrameCallback?: (id: number) => void
 }
 
+// If requestVideoFrameCallback is supported but has not delivered a frame within
+// this window after playback starts, fall back to the currentTime/RAF driver so
+// the playhead can never freeze permanently on an engine that stops emitting rVFC.
+const INITIAL_VFC_GRACE_MS = 1000
+
 export function useFramePlayer(
   videoRef: React.RefObject<HTMLVideoElement | null>,
   frameRate: number,
@@ -59,7 +64,23 @@ export function useFramePlayer(
     let rVfcId: number | null = null
     let rafId: number | null = null
     let active = true
+
+    // Per-playback-session synchronization state.
+    // `lastVfcTime` / `hasDeliveredVfc` gate when it is safe to trust
+    // `video.currentTime` (see the fallback condition below). `lastMediaTime` is
+    // the most recent compositor-presented time, used to lock the playhead on
+    // pause to the frame the user is actually looking at.
     let lastVfcTime = Date.now()
+    let hasDeliveredVfc = false
+    let lastMediaTime = -1
+
+    // Reset session state whenever playback (re)starts, so each play waits for a
+    // fresh compositor frame before trusting the playback clock.
+    const beginSession = () => {
+      lastVfcTime = Date.now()
+      hasDeliveredVfc = false
+      lastMediaTime = -1
+    }
 
     const updateFrameLoop = () => {
       if (!active) return
@@ -69,13 +90,32 @@ export function useFramePlayer(
       }
 
       const videoWithCallback = video as unknown as HtmlVideoElementWithCallback
+      const rVfcSupported = !!videoWithCallback.requestVideoFrameCallback
 
       // Calculate dynamic stall threshold (minimum 100ms, or 3 frames of duration)
       const stallThreshold = Math.max(100, 3000 / frameRate)
-      const isVfcStalled = Date.now() - lastVfcTime > stallThreshold
+      const sinceLastVfc = Date.now() - lastVfcTime
 
-      // Only update playhead via currentTime (RAF) if rVFC has stalled or isn't supported
-      if (!videoWithCallback.requestVideoFrameCallback || isVfcStalled) {
+      // Decide whether the RAF path may drive the playhead from `video.currentTime`.
+      //
+      // `video.currentTime` is the playback (audio) clock. On some engines
+      // (notably Safari/WebKit) it runs AHEAD of the frame actually presented on
+      // screen right after playback starts, so trusting it before the compositor
+      // catches up makes the playhead race forward and then snap backward when the
+      // first requestVideoFrameCallback (mediaTime) arrives.
+      //
+      // We therefore only use the currentTime fallback when:
+      //   - rVFC is unsupported (it is the only driver available), or
+      //   - rVFC has delivered at least one frame this session AND has since
+      //     stalled (e.g. the video track ended while audio keeps playing), or
+      //   - rVFC never delivered within the initial grace window (safety net so
+      //     the playhead cannot freeze forever).
+      const rVfcStalledAfterDelivery = hasDeliveredVfc && sinceLastVfc > stallThreshold
+      const rVfcNeverDelivered = !hasDeliveredVfc && sinceLastVfc > INITIAL_VFC_GRACE_MS
+      const useCurrentTimeFallback =
+        !rVfcSupported || rVfcStalledAfterDelivery || rVfcNeverDelivered
+
+      if (useCurrentTimeFallback) {
         const frame = Math.floor(video.currentTime * frameRate + 0.45)
         const clamped = Math.max(0, Math.min(frame, totalFrames - 1))
         setCurrentFrame(clamped)
@@ -90,6 +130,8 @@ export function useFramePlayer(
           (_now: DOMHighResTimeStamp, metadata: { mediaTime: number }) => {
             rVfcId = null
             lastVfcTime = Date.now() // Reset stall timer
+            hasDeliveredVfc = true
+            lastMediaTime = metadata.mediaTime
 
             const compositorFrame = Math.floor(metadata.mediaTime * frameRate + 0.45)
             const compositorClamped = Math.max(0, Math.min(compositorFrame, totalFrames - 1))
@@ -100,6 +142,7 @@ export function useFramePlayer(
     }
 
     const handlePlay = () => {
+      beginSession()
       updateFrameLoop()
     }
 
@@ -120,8 +163,17 @@ export function useFramePlayer(
         rafId = null
       }
 
-      // Synchronize frame on pause
-      const frame = Math.floor(video.currentTime * frameRate + 0.45)
+      // Synchronize the frame on pause. Prefer the last compositor-presented time
+      // (mediaTime) when it is still fresh, because on Safari `video.currentTime`
+      // can lead the on-screen frame — using it would snap the playhead forward
+      // past the frame the user actually paused on. Fall back to currentTime when
+      // rVFC is stale/unsupported (e.g. the video track ended while audio plays).
+      const stallThreshold = Math.max(100, 3000 / frameRate)
+      const vfcFresh =
+        hasDeliveredVfc && lastMediaTime >= 0 && Date.now() - lastVfcTime <= stallThreshold
+      const syncTime = vfcFresh ? lastMediaTime : video.currentTime
+
+      const frame = Math.floor(syncTime * frameRate + 0.45)
       const clamped = Math.max(0, Math.min(frame, totalFrames - 1))
       setCurrentFrame(clamped)
 
@@ -138,6 +190,7 @@ export function useFramePlayer(
 
     // If it's already playing when this effect runs
     if (!video.paused) {
+      beginSession()
       updateFrameLoop()
     }
 

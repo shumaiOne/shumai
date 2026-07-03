@@ -55,3 +55,44 @@ jobs:
 
           echo "Smoke testing shumai-transcode..."
           bun run /tmp/shumai-local-release/node/node_modules/@shumai-one/shumai-transcode/bin/shumai-transcode-app.js --check
+
+  e2e_video_player:
+    name: E2E (${{ matrix.project }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            project: chromium
+          - os: ubuntu-latest
+            project: firefox
+          # WebKit is the Safari engine; run it on a macOS runner to validate
+          # Safari compatibility.
+          - os: macos-latest
+            project: webkit
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Install Playwright browser (${{ matrix.project }})
+        run: bunx playwright install --with-deps ${{ matrix.project }}
+
+      - name: Run video player e2e tests
+        run: bun run test:e2e --project=${{ matrix.project }}
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.project }}
+          path: playwright-report/
+          retention-days: 7

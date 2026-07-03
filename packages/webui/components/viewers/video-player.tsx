@@ -165,7 +165,13 @@ const ControlBar: React.FC<ControlBarProps> = ({
       >
         {/* Left Side: Play, Vol, Time */}
         <div className="flex items-center gap-4">
-          <button onClick={togglePlay} className="hover:text-primary transition-colors">
+          <button
+            onClick={togglePlay}
+            className="hover:text-primary transition-colors"
+            data-testid="play-toggle"
+            data-playing={state.isPlaying}
+            aria-label={state.isPlaying ? 'Pause' : 'Play'}
+          >
             {state.isPlaying ? (
               <Pause className="w-6 h-6 fill-current" />
             ) : (
@@ -206,7 +212,9 @@ const ControlBar: React.FC<ControlBarProps> = ({
           </div>
 
           <div className="flex items-center gap-1 text-sm font-medium tabular-nums select-none min-w-[100px]">
-            <span className="text-muted-foreground font-mono">{displayString}</span>
+            <span className="text-muted-foreground font-mono" data-testid="time-readout">
+              {displayString}
+            </span>
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <button className="h-6 w-6 inline-flex items-center justify-center rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer focus:outline-none">
@@ -911,6 +919,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           )}
           onClick={togglePlay}
           data-vjs-player
+          data-testid="video-area"
         >
           {/* Hidden VideoJS container */}
           <div ref={videoContainerRef} className="absolute inset-0 z-[-1]" />
