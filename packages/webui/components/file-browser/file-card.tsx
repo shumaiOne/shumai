@@ -276,7 +276,7 @@ export function FileCard({
             )}
           </div>
         ) : (
-          <FilePreview item={displayItem} />
+          <FilePreview item={displayItem} showDuration />
         )}
       </div>
 
