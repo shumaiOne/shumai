@@ -8,6 +8,7 @@ import {
 } from '@/ui/components/ui/dialog'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
+import { useEffect } from 'react'
 import { m } from '@/ui/paraglide/messages.js'
 
 export function TeamSelector() {
@@ -23,14 +24,20 @@ export function TeamSelector() {
     },
   })
 
+  const teams = teamsData?.data
+  const onlyTeamId = teams?.length === 1 ? teams[0].id : null
+
+  useEffect(() => {
+    if (onlyTeamId) {
+      navigate({ to: `/teams/${onlyTeamId}` })
+    }
+  }, [onlyTeamId, navigate])
+
   if (isLoading) {
     return <div>{m.loading()}</div>
   }
 
-  const teams = teamsData?.data
-
-  if (teams?.length === 1) {
-    navigate({ to: `/teams/${teams[0].id}` })
+  if (onlyTeamId) {
     return null
   }
 

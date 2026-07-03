@@ -40,14 +40,9 @@ function RootComponent() {
   const { uploading } = useUploadStore()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const navigate = useNavigate()
+  const { teamId: storedTeamId, setTeamId } = useTeamContextStore()
 
   const showSidebar = user && (pathname.startsWith('/teams/') || pathname.startsWith('/projects/'))
-
-  if (!showSidebar) {
-    return <Outlet />
-  }
-
-  const { teamId: storedTeamId, setTeamId } = useTeamContextStore()
 
   useEffect(() => {
     resolveTeamIdFromPath(pathname).then((resolvedTeamId) => {
@@ -69,6 +64,10 @@ function RootComponent() {
     },
     enabled: !!storedTeamId,
   })
+
+  if (!showSidebar) {
+    return <Outlet />
+  }
 
   const unreadCount = me?.unreadNotificationCount ?? 0
   const displayCount = unreadCount > 99 ? '99+' : unreadCount
