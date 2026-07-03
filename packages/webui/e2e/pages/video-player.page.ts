@@ -124,6 +124,36 @@ export class VideoPlayerPage {
     }
   }
 
+  /**
+   * Jump the native media clock to a given frame's center time via a real
+   * external seek (sets `video.currentTime`, which fires `seeked` and drives
+   * useFramePlayer). Used to land near the end of the clip so the "play to end"
+   * wait is short and deterministic instead of streaming the whole fixture.
+   */
+  async seekToFrame(frame: number): Promise<void> {
+    await this.video.evaluate(
+      (el: HTMLVideoElement, args: { frame: number; fps: number }) => {
+        const frameDuration = 1 / args.fps
+        el.currentTime = args.frame * frameDuration + frameDuration / 2
+      },
+      { frame, fps: SAMPLE_FRAME_RATE },
+    )
+  }
+
+  /** Wait until the native <video> element reports that playback has ended. */
+  async waitForEnded(timeout = 10_000): Promise<void> {
+    await this.video.evaluate(
+      (el: HTMLVideoElement) =>
+        el.ended
+          ? Promise.resolve()
+          : new Promise<void>((resolve) => {
+              el.addEventListener('ended', () => resolve(), { once: true })
+            }),
+      undefined,
+      { timeout },
+    )
+  }
+
   clickPlayToggle(): Promise<void> {
     return this.playToggle.click()
   }
