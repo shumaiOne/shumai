@@ -1280,6 +1280,61 @@ describe('AssetService', () => {
     expect(updatedA.sortIndex! < assetC.sortIndex!).toBe(true)
   })
 
+  describe('Preview', () => {
+    it('toPreviewInfo includes video duration from media metadata', async () => {
+      const { project, user } = await setupBasicAssets()
+
+      const video = await prisma.asset.create({
+        data: {
+          name: 'clip.mp4',
+          type: AssetType.file,
+          projectId: project.id,
+          creatorId: user.id,
+          sizeByte: 123456,
+          mediaType: 'video/mp4',
+          status: 'processed',
+          media: {
+            poster: { key: 'poster-key' },
+            metadata: { duration: 262 },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any,
+        },
+      })
+
+      const info = await assetService.getAsset({ assetId: video.id })
+
+      expect(info.preview).toBeDefined()
+      expect(info.preview?.mediaType).toBe('video/mp4')
+      expect(info.preview?.duration).toBe(262)
+    })
+
+    it('toPreviewInfo omits duration for images', async () => {
+      const { project, user } = await setupBasicAssets()
+
+      const image = await prisma.asset.create({
+        data: {
+          name: 'pic.png',
+          type: AssetType.file,
+          projectId: project.id,
+          creatorId: user.id,
+          sizeByte: 5000,
+          mediaType: 'image/png',
+          status: 'processed',
+          media: {
+            thumbnail: { key: 'thumb-key' },
+            metadata: { originalWidth: 100, originalHeight: 80 },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any,
+        },
+      })
+
+      const info = await assetService.getAsset({ assetId: image.id })
+
+      expect(info.preview).toBeDefined()
+      expect(info.preview?.duration).toBeUndefined()
+    })
+  })
+
   describe('Symlinks', () => {
     it('toAssetInfo resolves symlink target metadata', async () => {
       const { project, user } = await setupBasicAssets()

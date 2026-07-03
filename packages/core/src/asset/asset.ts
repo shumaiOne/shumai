@@ -1913,6 +1913,7 @@ export class AssetService {
       originalHeight: asset.media.metadata?.originalHeight,
       originalWidth: asset.media.metadata?.originalWidth,
       spriteUrl,
+      duration: asset.media.metadata?.duration,
     }
   }
 
