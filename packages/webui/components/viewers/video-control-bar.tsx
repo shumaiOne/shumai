@@ -73,6 +73,9 @@ export interface ControlBarProps {
    * stays in-flow. Colors are always theme-aware regardless of this flag.
    */
   floatOverlayInFullScreen?: boolean
+  /** Fired when the cursor enters/leaves the bar (used to pin it visible). */
+  onMouseEnter?: () => void
+  onMouseLeave?: () => void
 }
 
 export const VideoControlBar: React.FC<ControlBarProps> = ({
@@ -97,6 +100,8 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
   currentFrame,
   seekToFrame,
   floatOverlayInFullScreen = true,
+  onMouseEnter,
+  onMouseLeave,
 }) => {
   const { videoTimeDisplayMode, setVideoTimeDisplayMode } = useUiStore()
 
@@ -130,6 +135,8 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
           ? 'opacity-100 translate-y-0'
           : 'opacity-0 translate-y-4 pointer-events-none',
       )}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       {/* Progress Bar */}
       <div className="mb-4 px-1">

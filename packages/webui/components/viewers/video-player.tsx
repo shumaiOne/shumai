@@ -42,6 +42,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const containerRef = useRef<HTMLDivElement>(null)
   const rootRef = useRef<HTMLDivElement>(null)
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isOverControlsRef = useRef(false)
 
   const [videoHtmlEl, setVideoHtmlEl] = useState<HTMLVideoElement | undefined>(undefined)
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -340,22 +341,34 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   }, [startTime, frameRate, seekToFrame, isPlayerReady])
 
-  const handleMouseMove = useCallback(() => {
-    // Always show controls on movement
-    setIsControlsVisible(true)
-
+  const scheduleHide = useCallback(() => {
     if (controlsTimeoutRef.current) {
       clearTimeout(controlsTimeoutRef.current)
     }
-
-    // In fullscreen, hide the controls after the cursor stays idle, regardless
-    // of play/pause (YouTube-style). In windowed mode controls stay visible.
-    if (state.isFullScreen) {
+    // Never hide while the cursor rests over the control bar itself.
+    if (state.isFullScreen && !isOverControlsRef.current) {
       controlsTimeoutRef.current = setTimeout(() => {
         setIsControlsVisible(false)
-      }, 2000)
+      }, 1200)
     }
   }, [state.isFullScreen])
+
+  const handleMouseMove = useCallback(() => {
+    // Always show controls on movement, then (re)start the idle hide timer.
+    setIsControlsVisible(true)
+    scheduleHide()
+  }, [scheduleHide])
+
+  const handleControlsMouseEnter = useCallback(() => {
+    isOverControlsRef.current = true
+    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current)
+    setIsControlsVisible(true)
+  }, [])
+
+  const handleControlsMouseLeave = useCallback(() => {
+    isOverControlsRef.current = false
+    scheduleHide()
+  }, [scheduleHide])
 
   const handleMouseLeave = useCallback(() => {
     // If the cursor leaves the player while fullscreen, hide the controls.
@@ -625,6 +638,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         totalFrames={totalFrames}
         currentFrame={currentFrame}
         seekToFrame={seekToFrame}
+        onMouseEnter={handleControlsMouseEnter}
+        onMouseLeave={handleControlsMouseLeave}
       />
     </div>
   )
