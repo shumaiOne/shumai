@@ -2376,4 +2376,59 @@ describe('AssetService — natural sort by name', () => {
       ).rejects.toThrow('Asset not found or has no storage key')
     })
   })
+
+  describe('resolveLatestVersionId', () => {
+    it('resolves the latest version ID of a version stack correctly (the one with the smallest sort index)', async () => {
+      const team = await prisma.team.create({ data: { name: 'Test Team' } })
+      const project = await prisma.project.create({
+        data: { name: 'Test Project', teamId: team.id },
+      })
+      const user = await prisma.user.create({
+        data: { name: 'Test User', email: `test-${Date.now()}@example.com` },
+      })
+
+      const stack = await prisma.asset.create({
+        data: {
+          name: 'stack',
+          type: AssetType.version_stack,
+          project: { connect: { id: project.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      // Oldest version (A): larger sort index
+      const fileA = await prisma.asset.create({
+        data: {
+          name: 'fileA.mp4',
+          type: AssetType.file,
+          project: { connect: { id: project.id } },
+          parent: { connect: { id: stack.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.uploaded,
+          sortIndex: 'y',
+        },
+      })
+
+      // Latest version (B): smaller sort index
+      const fileB = await prisma.asset.create({
+        data: {
+          name: 'fileB.mp4',
+          type: AssetType.file,
+          project: { connect: { id: project.id } },
+          parent: { connect: { id: stack.id } },
+          creator: { connect: { id: user.id } },
+          status: AssetStatus.uploaded,
+          sortIndex: 'x',
+        },
+      })
+
+      // Act: resolve latest version of the stack
+      const resolvedId = await assetService.resolveLatestVersionId(stack.id)
+
+      // Assert: should resolve to the latest version (fileB)
+      expect(resolvedId).toBe(fileB.id)
+      expect(resolvedId).not.toBe(fileA.id)
+    })
+  })
 })

@@ -909,7 +909,7 @@ export class AssetService {
     if (currentType === AssetType.version_stack) {
       const latestChild = await this.prismaClient.asset.findFirst({
         where: { parentId: currentId, isDeleted: false },
-        orderBy: { sortIndex: 'desc' },
+        orderBy: { sortIndex: 'asc' },
         select: { id: true },
       })
       if (latestChild) {
