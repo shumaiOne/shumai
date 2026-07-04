@@ -153,6 +153,15 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
       }
     }, [containerSize.width, containerSize.height, vidW, vidH, hasManuallyZoomed])
 
+    // Keep the resolution selection and source url in sync when the displayed
+    // asset changes, so the player (re)initializes with the correct source even
+    // if the parent renders this pane without a per-asset `key`. Runs before the
+    // video.js init effect below (declaration order) so the ref is fresh.
+    useEffect(() => {
+      setCurrentResolution(initialRes?.resolution ?? 'Original')
+      currentSrcRef.current = initialRes?.url
+    }, [file.id])
+
     // Initialize video.js
     useEffect(() => {
       if (!videoContainerRef.current) return
