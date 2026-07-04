@@ -41,10 +41,8 @@ export function ComparePaneTopbar({
   onExit,
 }: ComparePaneTopbarProps) {
   const iconButtonClass = cn(
-    'flex-shrink-0 rounded p-1 transition-colors',
-    isActive
-      ? 'text-background/70 hover:bg-background/20 hover:text-background'
-      : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+    'flex-shrink-0 rounded p-1 transition-colors hover:bg-muted',
+    isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
   )
 
   const exitButton = (
@@ -57,10 +55,8 @@ export function ComparePaneTopbar({
     <button
       onClick={onActivate}
       className={cn(
-        'flex min-w-0 items-center gap-1 rounded px-2 py-1 text-sm font-medium transition-colors',
-        isActive
-          ? 'text-background hover:bg-background/20'
-          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+        'flex min-w-0 items-center gap-1 rounded px-2 py-1 text-sm font-medium transition-colors hover:bg-muted',
+        isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
       )}
     >
       <span className="truncate">{fileName}</span>
@@ -68,7 +64,7 @@ export function ComparePaneTopbar({
         <span
           className={cn(
             'flex-shrink-0 rounded border px-1 py-0 text-xs',
-            isActive ? 'border-background/40' : 'border-border',
+            isActive ? 'border-foreground/40' : 'border-border',
           )}
         >
           v{version}
@@ -129,10 +125,10 @@ export function ComparePaneTopbar({
     <div
       onMouseDown={onActivate}
       className={cn(
-        'flex h-10 flex-shrink-0 items-center gap-1 border-b px-2 transition-colors',
-        isActive
-          ? 'border-b-2 border-primary bg-foreground text-background'
-          : 'border-border bg-card text-muted-foreground',
+        // Force the dark palette so the bar is always dark with light text in
+        // both light and dark app themes, using system tokens (no hardcoded hex).
+        'dark flex h-10 flex-shrink-0 items-center gap-1 border-b bg-background px-2 transition-colors',
+        isActive ? 'border-b-2 border-primary' : 'border-border',
       )}
     >
       {side === 'left' ? (
