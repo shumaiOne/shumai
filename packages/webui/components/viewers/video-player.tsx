@@ -348,22 +348,22 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       clearTimeout(controlsTimeoutRef.current)
     }
 
-    // Only set auto-hide timer if we are in fullscreen and playing
-    // If paused, controls should remain visible so user can see what to do
-    if (state.isFullScreen && state.isPlaying) {
+    // In fullscreen, hide the controls after the cursor stays idle, regardless
+    // of play/pause (YouTube-style). In windowed mode controls stay visible.
+    if (state.isFullScreen) {
       controlsTimeoutRef.current = setTimeout(() => {
         setIsControlsVisible(false)
       }, 2000)
     }
-  }, [state.isFullScreen, state.isPlaying])
+  }, [state.isFullScreen])
 
   const handleMouseLeave = useCallback(() => {
-    // If we leave the player area in fullscreen, hide controls (optional preference, usually good)
-    if (state.isFullScreen && state.isPlaying) {
+    // If the cursor leaves the player while fullscreen, hide the controls.
+    if (state.isFullScreen) {
       if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current)
       setIsControlsVisible(false)
     }
-  }, [state.isFullScreen, state.isPlaying])
+  }, [state.isFullScreen])
 
   // Clean up timeout on unmount or state change
   useEffect(() => {
@@ -372,13 +372,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   }, [])
 
-  // Ensure controls are visible when pausing or entering fullscreen initially
+  // Windowed mode: controls are always visible. Fullscreen: show now and let
+  // the idle timer hide them (re-runs on play/pause so pausing re-reveals them).
   useEffect(() => {
-    if (!state.isPlaying) {
+    if (!state.isFullScreen) {
       setIsControlsVisible(true)
       if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current)
     } else {
-      // If we just started playing (or re-entered playing state), trigger the timer logic
       handleMouseMove()
     }
   }, [state.isPlaying, state.isFullScreen, handleMouseMove])
