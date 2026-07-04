@@ -70,6 +70,30 @@ $$\text{Time}_{\text{center}} = \left(N \cdot T_d\right) + \frac{T_d}{2} = \frac
 
 ---
 
+### D. Effective Frame Count Derivation (Container vs. Video Stream)
+
+The player's `totalFrames` governs the frame readout (`N / M fr`), the seekbar extent, frame-stepping bounds, and the playback clamp. It is **not** always the same as the container's frame count, because a container's duration can exceed its video stream — most commonly when the **audio track is slightly longer than the video track** (AAC padding and the fixed 1024-samples-per-frame granularity mean audio rarely ends on the exact video timestamp), or from container overhead.
+
+Deriving the count naively from the container duration ($\lfloor \text{containerDuration} \cdot \text{frameRate} \rceil$) invents **phantom trailing frames** the video stream does not contain. Whether those extra frames should be counted depends on whether the playhead can actually *reach* them during playback, which is governed by the same **stall threshold** used by the playback loop (§3):
+
+$$\text{Threshold}_{s} = \frac{\max\left(100, \frac{3000}{\text{frameRate}}\right)}{1000}\text{ seconds}$$
+
+Let $\text{tail} = \text{containerDuration} - \frac{\text{dbTotalFrames}}{\text{frameRate}}$ (where `dbTotalFrames` is the video stream's `nb_frames`). Then:
+
+$$\text{totalFrames} = \begin{cases}
+\lfloor \text{containerDuration} \cdot \text{frameRate} \rceil & \text{if tail} > \text{Threshold}_{s}\ \text{(reachable — keep the tail)} \\
+\text{dbTotalFrames} & \text{otherwise (unreachable — drop phantom frames)} \\
+\lfloor \text{containerDuration} \cdot \text{frameRate} \rceil & \text{if dbTotalFrames} \le 0\ \text{(nb\_frames missing)}
+\end{cases}$$
+
+* **Small tail (tail ≤ threshold):** The RAF fallback never activates (§3), so the playhead physically cannot enter the tail. Counting those frames would strand the readout short of its own maximum (e.g. a 268-frame video in a 270-frame container would show `267 / 269` and stop at 267). We therefore use the accurate video-stream count → `267 / 267`. The trailing audio still plays out to the container end on the native element; it is simply not represented as extra scrubbable frames.
+* **Large tail (tail > threshold):** The playhead *does* traverse the audio-only region (the RAF fallback drives it from `video.currentTime`, §3), so the container-derived count is correct and the readout reaches its maximum at the natural end (e.g. a 150-frame video with a 6.5s audio tail shows `194 / 194`).
+
+This rule is implemented by `resolveTotalFrames` in `viewers/utils.ts`, which shares `stallThresholdMs` with `useFramePlayer` so the frame-count boundary and the runtime playhead-reachability boundary can never drift apart.
+
+
+---
+
 ## 3. Active Playback Loops & Dual-Drive Coordination
 
 When playing, the playhead loop coordinates two mechanisms in parallel to prevent timeline freezes and avoid visual jitter:
@@ -213,6 +237,8 @@ The extracted metadata details are saved to the `AssetMetadata` table:
 * `frameRate` (e.g. `23.976` or `30`)
 * `duration` (the absolute container duration, e.g. `15.42`)
 * `totalFrames` (the physical number of frames in the video stream, e.g. `240`)
+
+> **Note:** `totalFrames` is always the physical **video-stream** frame count (`nb_frames`), while `duration` is the **container** duration (which can be longer, e.g. when the audio track outlasts the video). The frontend reconciles the two into an effective frame count via the rule in §2.D — it does not blindly trust either value alone.
 
 ---
 

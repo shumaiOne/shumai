@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { calculateFrameCenterTime } from './utils'
+import { calculateFrameCenterTime, stallThresholdMs } from './utils'
 
 export interface UseFramePlayerResult {
   currentFrame: number
@@ -93,7 +93,7 @@ export function useFramePlayer(
       const rVfcSupported = !!videoWithCallback.requestVideoFrameCallback
 
       // Calculate dynamic stall threshold (minimum 100ms, or 3 frames of duration)
-      const stallThreshold = Math.max(100, 3000 / frameRate)
+      const stallThreshold = stallThresholdMs(frameRate)
       const sinceLastVfc = Date.now() - lastVfcTime
 
       // Decide whether the RAF path may drive the playhead from `video.currentTime`.
@@ -168,7 +168,7 @@ export function useFramePlayer(
       // can lead the on-screen frame — using it would snap the playhead forward
       // past the frame the user actually paused on. Fall back to currentTime when
       // rVFC is stale/unsupported (e.g. the video track ended while audio plays).
-      const stallThreshold = Math.max(100, 3000 / frameRate)
+      const stallThreshold = stallThresholdMs(frameRate)
       const vfcFresh =
         hasDeliveredVfc && lastMediaTime >= 0 && Date.now() - lastVfcTime <= stallThreshold
       const syncTime = vfcFresh ? lastMediaTime : video.currentTime

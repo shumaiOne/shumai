@@ -9,6 +9,7 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useSta
 import videojs from 'video.js'
 import type Player from 'video.js/dist/types/player'
 import { useFramePlayer } from '@/ui/components/viewers/use-frame-player'
+import { resolveTotalFrames } from '@/ui/components/viewers/utils'
 import { clampFrame as clampFrameUtil } from './compare-utils'
 import type { ComparePaneHandle, DisplayTranscode, PaneReportedState } from './types'
 
@@ -109,12 +110,7 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
     const frameRate = metadata?.frameRate || 30
     const dbTotalFrames = metadata?.totalFrames || 0
     const containerDuration = metadata?.duration || 0
-    const videoDuration = dbTotalFrames / frameRate
-    const frameDuration = 1 / frameRate
-    const totalFrames =
-      containerDuration - videoDuration > 0.5 * frameDuration
-        ? Math.round(containerDuration * frameRate)
-        : dbTotalFrames
+    const totalFrames = resolveTotalFrames({ dbTotalFrames, containerDuration, frameRate })
 
     const resolutions = computeResolutions(file)
     const previewResolutions = resolutions.filter((r) => !r.isRaw)

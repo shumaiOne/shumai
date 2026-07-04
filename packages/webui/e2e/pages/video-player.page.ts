@@ -48,6 +48,16 @@ export class VideoPlayerPage {
     await this.waitUntilReady()
   }
 
+  /**
+   * Navigate to the harness with a specific fixture variant (see the harness
+   * `resolveAsset`), e.g. `'container-longer'` for the asset whose container
+   * duration exceeds its real video stream.
+   */
+  async gotoVariant(variant: string): Promise<void> {
+    await this.page.goto(`/?variant=${encodeURIComponent(variant)}`)
+    await this.waitUntilReady()
+  }
+
   /** Wait until the video.js engine has metadata and a usable frame readout. */
   async waitUntilReady(): Promise<void> {
     await this.video.waitFor({ state: 'attached' })
@@ -89,6 +99,13 @@ export class VideoPlayerPage {
   private async readoutFrame(): Promise<number> {
     const text = (await this.timeReadout.textContent()) ?? ''
     const match = text.match(/(\d+)\s*\/\s*\d+\s*fr/)
+    return match ? Number.parseInt(match[1], 10) : Number.NaN
+  }
+
+  /** The total frame index shown as "M" in the "N / M fr" readout. */
+  async readoutTotalFrame(): Promise<number> {
+    const text = (await this.timeReadout.textContent()) ?? ''
+    const match = text.match(/\d+\s*\/\s*(\d+)\s*fr/)
     return match ? Number.parseInt(match[1], 10) : Number.NaN
   }
 

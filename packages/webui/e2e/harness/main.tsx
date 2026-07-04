@@ -4,7 +4,12 @@ import type Player from 'video.js/dist/types/player'
 import VideoPlayer from '@/ui/components/viewers/video-player'
 import { calculateFrameCenterTime } from '@/ui/components/viewers/utils'
 import { useUiStore } from '@/ui/stores/ui'
-import { SAMPLE_FRAME_RATE, sampleVideoAsset } from './fixture'
+import {
+  SAMPLE_FRAME_RATE,
+  sampleVideoAsset,
+  containerLongerVideoAsset,
+  longAudioVideoAsset,
+} from './fixture'
 
 /**
  * Backend-free harness page that mounts the *real* VideoPlayer component with a
@@ -40,6 +45,23 @@ import { SAMPLE_FRAME_RATE, sampleVideoAsset } from './fixture'
  * its width back and growing unbounded).
  */
 useUiStore.setState({ videoTimeDisplayMode: 'frames' })
+
+/**
+ * Select which fixture asset to mount based on the `?variant=` query param, so
+ * specs can exercise different metadata shapes against the same real backing
+ * video. Defaults to the canonical sample asset used by the other specs.
+ */
+function resolveAsset() {
+  const variant =
+    typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('variant')
+      : null
+  if (variant === 'container-longer') return containerLongerVideoAsset
+  if (variant === 'long-audio') return longAudioVideoAsset
+  return sampleVideoAsset
+}
+
+const harnessAsset = resolveAsset()
 
 interface HarnessComment {
   id: string
@@ -110,7 +132,7 @@ function Harness(): ReactElement {
         <div className="flex flex-col flex-1 h-full overflow-hidden relative">
           <VideoPlayer
             key={playerKey}
-            data={sampleVideoAsset}
+            data={harnessAsset}
             playerRef={playerRef}
             onTimeUpdate={handleTimeUpdate}
           />
