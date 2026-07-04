@@ -76,6 +76,7 @@ export function CompareControlBar({
         state={state}
         zoom={activeState.zoom}
         isControlsVisible
+        themedChrome
         buffered={v.buffered}
         data={data}
         resolutions={v.resolutions as DisplayTranscode[]}

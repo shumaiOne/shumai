@@ -67,6 +67,12 @@ export interface ControlBarProps {
   totalFrames: number
   currentFrame: number
   seekToFrame: (frame: number) => Promise<void> | void
+  /**
+   * When true, keep the normal theme-aware chrome (bg-card / foreground text)
+   * even while fullscreen, instead of the dark video overlay style. Used by
+   * compare mode so its fullscreen bar follows the app light/dark theme.
+   */
+  themedChrome?: boolean
 }
 
 export const VideoControlBar: React.FC<ControlBarProps> = ({
@@ -90,12 +96,17 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
   totalFrames,
   currentFrame,
   seekToFrame,
+  themedChrome = false,
 }) => {
   const { videoTimeDisplayMode, setVideoTimeDisplayMode } = useUiStore()
 
   if (!data.media?.metadata) {
     return null
   }
+
+  // Whether to render the dark video overlay chrome. Compare mode opts out
+  // (themedChrome) so its fullscreen bar follows the app light/dark theme.
+  const overlay = state.isFullScreen && !themedChrome
 
   const previewResolutions = resolutions.filter((r) => !r.isRaw)
 
@@ -112,7 +123,7 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
     <div
       className={cn(
         'transition-all duration-300 ease-in-out z-20',
-        state.isFullScreen
+        overlay
           ? 'absolute bottom-0 left-0 right-0 px-4 py-4 bg-black/60 backdrop-blur-md text-white'
           : 'relative w-full bg-card border-t border-border px-4 py-3 z-10 transition-colors duration-200',
         isControlsVisible
@@ -140,7 +151,7 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
       <div
         className={cn(
           'flex items-center justify-between',
-          state.isFullScreen ? 'text-white/90' : 'text-foreground',
+          overlay ? 'text-white/90' : 'text-foreground',
         )}
       >
         {/* Left Side: Play, Vol, Time */}
@@ -244,7 +255,7 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
             <div
               className={cn(
                 'flex items-center gap-1 rounded-md p-0.5',
-                state.isFullScreen ? 'bg-white/15' : 'bg-muted',
+                overlay ? 'bg-white/15' : 'bg-muted',
               )}
             >
               <button
@@ -267,7 +278,7 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
               onClick={onZoomReset}
               className={cn(
                 'text-xs font-medium px-2 py-1 rounded hover:text-primary transition-colors',
-                state.isFullScreen ? 'bg-white/15' : 'bg-muted',
+                overlay ? 'bg-white/15' : 'bg-muted',
               )}
             >
               Fit
