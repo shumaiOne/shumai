@@ -90,6 +90,7 @@ Add any additional context, caveats, or follow-up work.
   - `bun run format`
   - `bun run typecheck`
   - `bun run test`
+  - `bun run test:e2e`
 
 - **Backend Testing Mandate**: Every backend feature, service method, workflow, and activity MUST be accompanied by comprehensive tests. Logic-heavy code without corresponding test coverage is considered incomplete.
 

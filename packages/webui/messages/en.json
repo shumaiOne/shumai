@@ -433,6 +433,9 @@
 
   "versions": "Versions",
   "manage_versions": "Manage versions...",
+  "compare_versions": "Compare Versions",
+  "exit_compare": "Exit compare",
+  "switch_version": "Switch version",
   "show_left_sidebar": "Show Left Sidebar",
   "hide_left_sidebar": "Hide Left Sidebar",
   "show_right_sidebar": "Show Right Sidebar",

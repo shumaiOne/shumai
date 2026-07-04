@@ -24,6 +24,9 @@ export function TopNav() {
     isPublic,
     shareId,
     onFolderClick,
+    compareMode,
+    canCompareVersions,
+    onCompareVersions,
   } = projectState
 
   const isFileView = !!fileId
@@ -91,6 +94,9 @@ export function TopNav() {
       downloadInfo={downloadInfo}
       versions={versions}
       onFolderClick={onFolderClick}
+      compareMode={compareMode}
+      canCompareVersions={canCompareVersions}
+      onCompareVersions={onCompareVersions}
     />
   )
 }
