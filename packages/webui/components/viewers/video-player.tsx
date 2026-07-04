@@ -40,6 +40,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // We use a container ref to manually append the video element
   const videoContainerRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
   const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [videoHtmlEl, setVideoHtmlEl] = useState<HTMLVideoElement | undefined>(undefined)
@@ -488,9 +489,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }
 
   const toggleFullScreen = () => {
-    if (!containerRef.current) return
+    if (!rootRef.current) return
     if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen()
+      rootRef.current.requestFullscreen()
       setState((prev) => ({ ...prev, isFullScreen: true }))
     } else {
       document.exitFullscreen()
@@ -543,6 +544,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   return (
     <div
+      ref={rootRef}
       className={cn(
         'group shadow-2xl font-sans select-none flex flex-col mx-auto transition-all duration-300 relative',
         state.isFullScreen ? 'h-full w-full rounded-none bg-black' : 'w-full h-full',
