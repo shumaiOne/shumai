@@ -2,12 +2,13 @@ import { useScreenSize } from '@/ui/hooks/useScreenSize'
 import { client } from '@/ui/api/client'
 import { getBestTranscode } from '@/ui/lib/media'
 import type { AssetInfo } from '@shumai/dtos'
-import { Check, Copy, Download, Minus, Plus } from 'lucide-react'
+import { Download } from 'lucide-react'
 import type { ReactNode, RefObject } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type Player from 'video.js/dist/types/player'
 import DrawingCanvas from './drawing-canvas'
 import VideoPlayer from './viewers/video-player'
+import { ImageControlBar } from './viewers/image-control-bar'
 
 import { useAnnotationStore } from '@/ui/stores/annotation-store'
 import type { Annotation } from '@/ui/types'
@@ -271,51 +272,17 @@ export function FileViewer({
             </div>
           </div>
           {/* Zoom Toolbar */}
-          <div className="relative px-4 py-3 bg-card border-t border-gray-200 dark:border-gray-700 z-10 flex items-center justify-end gap-2 transition-colors duration-200">
-            <div className="flex items-center gap-1 bg-gray-200/50 dark:bg-white/10 rounded-md p-0.5 mr-auto">
-              <button
-                onClick={() => handleZoom(0.8)}
-                className="p-1.5 rounded hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors"
-                title="Zoom Out"
-              >
-                <Minus size={16} />
-              </button>
-              <span className="w-12 text-center text-xs font-mono font-medium text-gray-900 dark:text-gray-100 select-none">
-                {Math.round(zoom * 100)}%
-              </span>
-              <button
-                onClick={() => handleZoom(1.2)}
-                className="p-1.5 rounded hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors"
-                title="Zoom In"
-              >
-                <Plus size={16} />
-              </button>
-            </div>
-            <button
-              onClick={handleFit}
-              className="text-xs font-medium px-3 py-1.5 rounded bg-gray-200/50 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors border border-transparent animate-in fade-in zoom-in-95 duration-200"
-            >
-              Fit
-            </button>
-            <button
-              onClick={handleCopy}
-              disabled={!bestUrl}
-              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded bg-gray-200/50 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors border border-transparent disabled:opacity-50 animate-in fade-in zoom-in-95 duration-200"
-              title="Copy optimized image to clipboard"
-            >
-              {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-              {copied ? 'Copied' : 'Copy'}
-            </button>
-            <button
-              onClick={handleDownload}
-              disabled={!file.media?.original?.key}
-              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded bg-gray-200/50 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors border border-transparent disabled:opacity-50 animate-in fade-in zoom-in-95 duration-200"
-              title="Download original image"
-            >
-              <Download size={14} />
-              Download
-            </button>
-          </div>
+          <ImageControlBar
+            zoom={zoom}
+            onZoomIn={() => handleZoom(1.2)}
+            onZoomOut={() => handleZoom(0.8)}
+            onFit={handleFit}
+            onDownload={handleDownload}
+            canDownload={!!file.media?.original?.key}
+            onCopy={handleCopy}
+            copied={copied}
+            canCopy={!!bestUrl}
+          />
         </>
       )}
       {isVideo && (

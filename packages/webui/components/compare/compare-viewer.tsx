@@ -334,9 +334,8 @@ export function CompareViewer({
 
       <CompareControlBar
         activeState={activeState}
+        activeAsset={activeAsset ?? null}
         previewUrl={activePreviewUrl}
-        metadata={activeAsset?.media?.metadata}
-        startTimecode={activeAsset?.media?.metadata?.startTimecode}
         isFullScreen={isFullScreen}
         onTogglePlay={handleTogglePlay}
         onToggleLoop={handleToggleLoop}
