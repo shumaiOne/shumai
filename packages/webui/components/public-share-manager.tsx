@@ -28,6 +28,7 @@ interface PublicShareManagerProps {
   initialFolderId?: string
   initialFileId?: string
   startTime?: number
+  versionId?: string
   compare?: boolean
   compareLeftId?: string
   compareRightId?: string
@@ -52,6 +53,7 @@ export function PublicShareManager({
   initialFolderId,
   initialFileId,
   startTime,
+  versionId,
   compare,
   compareLeftId,
   compareRightId,
@@ -98,6 +100,9 @@ export function PublicShareManager({
 
   const currentFolderId = initialFolderId || shareInfo?.rootFolderId
   const viewingFileId = initialFileId || null
+  // The stack asset is always fetched by the route file id; when a version is
+  // selected we additionally display that version child asset.
+  const activeFileId = versionId || viewingFileId
 
   const [ancestorFolders, setAncestorFolders] = useState<AncestorFolder[]>([])
 
@@ -229,7 +234,7 @@ export function PublicShareManager({
     enabled: !!shareInfo,
   })
 
-  const { data: viewingFileData, isLoading: isViewingFileLoading } = useQuery({
+  const { data: stackFileData, isLoading: isStackFileLoading } = useQuery({
     queryKey: ['public-share-file', shareId, viewingFileId, password],
     queryFn: async () => {
       const res = await client.api.shares[':shareId'].files[':fileId'].$get(
@@ -247,6 +252,30 @@ export function PublicShareManager({
     },
     enabled: !!viewingFileId && !!shareInfo,
   })
+
+  const { data: versionFileData, isLoading: isVersionFileLoading } = useQuery({
+    queryKey: ['public-share-file', shareId, versionId, password],
+    queryFn: async () => {
+      const res = await client.api.shares[':shareId'].files[':fileId'].$get(
+        {
+          param: { shareId, fileId: versionId! },
+        },
+        {
+          headers: {
+            'x-share-password': password,
+          },
+        },
+      )
+      if (res.status === 401) throw new Error('Unauthorized')
+      return (await res.json()) as unknown as AssetInfo
+    },
+    enabled: !!versionId && !!shareInfo,
+  })
+
+  // The stack asset provides the version list; the active asset (version child
+  // or the stack itself) is what we actually display.
+  const viewingFileData = versionId ? versionFileData : stackFileData
+  const isViewingFileLoading = isStackFileLoading || (!!versionId && isVersionFileLoading)
 
   useEffect(() => {
     if (foldersError?.message === 'Unauthorized') {
@@ -356,11 +385,13 @@ export function PublicShareManager({
   }
 
   const handleCompareExit = () => {
+    const activeId = compareActiveSide === 'left' ? compareLeftId : compareRightId
     updateCompareSearch({
       compare: undefined,
       cmpLeft: undefined,
       cmpRight: undefined,
       cmpActive: undefined,
+      version: activeId,
     })
   }
 
@@ -381,9 +412,9 @@ export function PublicShareManager({
         currentAsset: {
           name: viewingFileData?.name || currentFolderName,
           type: viewingFileId ? 'file' : 'folder',
-          version: viewingFileData?.versionStack
-            ? (viewingFileData.versionStack.versions.find((v) => v.id === viewingFileData.id)
-                ?.version ?? viewingFileData.versionStack.versions.length)
+          version: stackFileData?.versionStack
+            ? (stackFileData.versionStack.versions.find((v) => v.id === activeFileId)?.version ??
+              stackFileData.versionStack.versions.length)
             : undefined,
         },
         isRootFolder: currentFolderId === shareInfo.rootFolderId && !viewingFileId,
@@ -404,11 +435,11 @@ export function PublicShareManager({
         onFolderClick: handleBreadcrumbClick,
         isRightSidebarCollapsed,
         onRightSidebarToggle: () => setIsRightSidebarCollapsed((prev) => !prev),
-        versions: viewingFileData?.versionStack?.versions,
+        versions: stackFileData?.versionStack?.versions,
         compareMode: isCompareMode,
-        canCompareVersions: (viewingFileData?.versionStack?.versions?.length ?? 0) >= 2,
+        canCompareVersions: (stackFileData?.versionStack?.versions?.length ?? 0) >= 2,
         onCompareVersions: () => {
-          const pair = pickDefaultCompareVersions(viewingFileData?.versionStack?.versions)
+          const pair = pickDefaultCompareVersions(stackFileData?.versionStack?.versions)
           if (!pair || !viewingFileId) return
           navigate({
             to: '/share/$shareId/files/$fileId',
@@ -431,6 +462,8 @@ export function PublicShareManager({
     currentFolderId,
     folders,
     viewingFileData,
+    stackFileData,
+    activeFileId,
     viewingFileId,
     ancestorFolders,
     setProjectState,

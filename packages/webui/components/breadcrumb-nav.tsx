@@ -94,7 +94,16 @@ export function BreadcrumbNav({
   const { canEdit } = usePermissions(projectId)
 
   const handleVersionClick = (versionId: string) => {
-    if (!projectId || !fileId) return
+    if (!fileId) return
+    if (isPublic && shareId) {
+      navigate({
+        to: '/share/$shareId/files/$fileId',
+        params: { shareId, fileId },
+        search: (prev: Record<string, unknown>) => ({ ...prev, version: versionId }),
+      })
+      return
+    }
+    if (!projectId) return
     navigate({
       to: '/projects/$projectId/files/$fileId',
       params: { projectId, fileId },
