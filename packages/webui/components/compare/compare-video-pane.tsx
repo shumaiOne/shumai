@@ -407,9 +407,13 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
 
     const handleAreaClick = useCallback(() => {
       if (useAnnotationStore.getState().isDrawing) return
-      onActivate?.()
+      // Clicking an inactive pane only activates it; playback is untouched.
+      if (!isActive) {
+        onActivate?.()
+        return
+      }
       onRequestTogglePlay?.()
-    }, [onActivate, onRequestTogglePlay])
+    }, [isActive, onActivate, onRequestTogglePlay])
 
     if (!file.media?.original?.downloadUrl || !metadata) {
       return (
