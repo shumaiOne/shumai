@@ -241,7 +241,12 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
         <div className="relative flex items-center gap-3">
           {/* Zoom Controls */}
           <div className="flex items-center gap-1">
-            <div className="flex items-center gap-1 bg-muted rounded-md p-0.5">
+            <div
+              className={cn(
+                'flex items-center gap-1 rounded-md p-0.5',
+                state.isFullScreen ? 'bg-white/15' : 'bg-muted',
+              )}
+            >
               <button
                 onClick={() => onZoomChange(zoom * 0.8)}
                 className="p-1 hover:text-primary rounded"
@@ -260,7 +265,10 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
             </div>
             <button
               onClick={onZoomReset}
-              className="text-xs font-medium px-2 py-1 rounded bg-muted hover:text-primary transition-colors"
+              className={cn(
+                'text-xs font-medium px-2 py-1 rounded hover:text-primary transition-colors',
+                state.isFullScreen ? 'bg-white/15' : 'bg-muted',
+              )}
             >
               Fit
             </button>
