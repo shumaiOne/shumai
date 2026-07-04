@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { formatTimecode, calculateFrameCenterTime } from './utils'
+import {
+  formatTimecode,
+  calculateFrameCenterTime,
+  resolveTotalFrames,
+  stallThresholdMs,
+} from './utils'
 
 describe('formatTimecode tests', () => {
   describe('non-drop-frame calculations', () => {
@@ -64,6 +69,99 @@ describe('formatTimecode tests', () => {
       expect(calculateFrameCenterTime(251, 30)).toBeCloseTo(8.3833333, 5)
       // frame rate 0 returns 0
       expect(calculateFrameCenterTime(10, 0)).toBe(0)
+    })
+  })
+})
+
+describe('stallThresholdMs', () => {
+  it('is 100ms at 30fps and 60fps (floor of 100ms dominates)', () => {
+    expect(stallThresholdMs(30)).toBe(100)
+    expect(stallThresholdMs(60)).toBe(100)
+  })
+
+  it('is frame-rate dependent below 30fps', () => {
+    // 3000 / 24 = 125ms
+    expect(stallThresholdMs(24)).toBe(125)
+    // 3000 / 25 = 120ms
+    expect(stallThresholdMs(25)).toBe(120)
+  })
+
+  it('guards against a falsy frame rate by treating it as 30fps', () => {
+    expect(stallThresholdMs(0)).toBe(100)
+  })
+})
+
+describe('resolveTotalFrames', () => {
+  describe('at 30fps (100ms stall threshold)', () => {
+    it('uses the video-stream count when there is no container tail', () => {
+      expect(resolveTotalFrames({ dbTotalFrames: 150, containerDuration: 5, frameRate: 30 })).toBe(
+        150,
+      )
+    })
+
+    it('uses the video-stream count for a sub-threshold tail (videoA / ~2 frames)', () => {
+      // video 268 frames = 8.9333s, container 9.008s -> 0.0747s tail (< 100ms).
+      // Must NOT inflate to round(9.008 * 30) = 270.
+      expect(
+        resolveTotalFrames({ dbTotalFrames: 268, containerDuration: 9.008, frameRate: 30 }),
+      ).toBe(268)
+    })
+
+    it('uses the video-stream count for the container-longer e2e fixture tail', () => {
+      // 150 frames = 5.0s, container 5.075s -> 0.075s tail (< 100ms).
+      expect(
+        resolveTotalFrames({ dbTotalFrames: 150, containerDuration: 5.075, frameRate: 30 }),
+      ).toBe(150)
+    })
+
+    it('still uses the video-stream count just below the threshold', () => {
+      // 300 frames = 10s, container 10.09s -> 0.09s tail (< 100ms).
+      expect(
+        resolveTotalFrames({ dbTotalFrames: 300, containerDuration: 10.09, frameRate: 30 }),
+      ).toBe(300)
+    })
+
+    it('switches to the container count just above the threshold', () => {
+      // 300 frames = 10s, container 10.11s -> 0.11s tail (> 100ms).
+      // round(10.11 * 30) = 303.
+      expect(
+        resolveTotalFrames({ dbTotalFrames: 300, containerDuration: 10.11, frameRate: 30 }),
+      ).toBe(303)
+    })
+
+    it('uses the container count for a large tail (videoB / long audio)', () => {
+      // 150 frames = 5.0s, container 6.5s -> 1.5s tail. round(6.5 * 30) = 195.
+      expect(
+        resolveTotalFrames({ dbTotalFrames: 150, containerDuration: 6.5, frameRate: 30 }),
+      ).toBe(195)
+    })
+  })
+
+  describe('frame-rate dependence of the threshold', () => {
+    it('treats a 100ms tail as below threshold at 24fps (threshold 125ms)', () => {
+      // 240 frames = 10s, container 10.1s -> 0.1s tail (< 125ms at 24fps).
+      expect(
+        resolveTotalFrames({ dbTotalFrames: 240, containerDuration: 10.1, frameRate: 24 }),
+      ).toBe(240)
+    })
+
+    it('treats a 130ms tail as above threshold at 24fps', () => {
+      // 240 frames = 10s, container 10.13s -> 0.13s tail (> 125ms).
+      // round(10.13 * 24) = 243.
+      expect(
+        resolveTotalFrames({ dbTotalFrames: 240, containerDuration: 10.13, frameRate: 24 }),
+      ).toBe(243)
+    })
+  })
+
+  describe('missing video-stream frame count', () => {
+    it('falls back to the container-derived count when nb_frames is 0', () => {
+      expect(resolveTotalFrames({ dbTotalFrames: 0, containerDuration: 5, frameRate: 30 })).toBe(
+        150,
+      )
+      expect(resolveTotalFrames({ dbTotalFrames: 0, containerDuration: 6.5, frameRate: 30 })).toBe(
+        195,
+      )
     })
   })
 })

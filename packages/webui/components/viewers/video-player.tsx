@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import videojs from 'video.js'
 import type Player from 'video.js/dist/types/player'
 import { useFramePlayer } from './use-frame-player'
+import { resolveTotalFrames } from './utils'
 import { VideoControlBar, type PlayerState, type DisplayTranscode } from './video-control-bar'
 
 import type { Annotation } from '@/ui/types'
@@ -195,13 +196,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const frameRate = metadata.frameRate || 30
   const dbTotalFrames = metadata.totalFrames || 0
   const containerDuration = metadata.duration || 0
-  const videoDuration = dbTotalFrames / frameRate
-  const frameDuration = 1 / frameRate
 
-  const totalFrames =
-    containerDuration - videoDuration > 0.5 * frameDuration
-      ? Math.round(containerDuration * frameRate)
-      : dbTotalFrames
+  const totalFrames = resolveTotalFrames({ dbTotalFrames, containerDuration, frameRate })
   const { currentFrame, seekToFrame } = useFramePlayer(videoRef, frameRate, totalFrames)
 
   const currentTime = currentFrame / frameRate

@@ -94,3 +94,63 @@ export const calculateFrameCenterTime = (frameIndex: number, frameRate: number):
   const frameDuration = 1 / frameRate
   return frameIndex * frameDuration + frameDuration / 2
 }
+
+/**
+ * The dynamic playback stall threshold, in milliseconds: the window of
+ * `requestVideoFrameCallback` silence after which the playback loop's
+ * `requestAnimationFrame` fallback begins driving the playhead from
+ * `video.currentTime`.
+ *
+ * Shared by `useFramePlayer` (runtime stall detection) and `resolveTotalFrames`
+ * (frame-count derivation) so the two stay in lockstep: the boundary at which a
+ * container's audio-only tail becomes *reachable* by the playhead is exactly the
+ * boundary at which we start counting those tail frames.
+ */
+export const stallThresholdMs = (frameRate: number): number =>
+  Math.max(100, 3000 / (frameRate || 30))
+
+interface ResolveTotalFramesArgs {
+  /**
+   * Physical video-stream frame count (ffprobe `nb_frames`), as stored in
+   * `metadata.totalFrames`.
+   */
+  dbTotalFrames: number
+  /**
+   * Container/format duration in seconds (`metadata.duration`). May exceed the
+   * video-stream duration when e.g. the audio track is longer.
+   */
+  containerDuration: number
+  frameRate: number
+}
+
+/**
+ * Derive the player's effective total frame count.
+ *
+ * A container's duration can exceed its video stream (commonly because the audio
+ * track is slightly longer, or from container overhead). Deriving the frame count
+ * from the container duration in that case invents phantom trailing frames the
+ * video stream does not contain.
+ *
+ * We only trust the container-derived count when the extra tail is long enough
+ * for the playhead to actually reach it during playback — i.e. longer than the
+ * playback stall threshold (see `stallThresholdMs`). Below that threshold the
+ * RAF fallback never activates, so those tail frames are unreachable and would
+ * strand the readout short of its own maximum; we use the accurate video-stream
+ * frame count instead.
+ *
+ * When `nb_frames` is unavailable (`dbTotalFrames <= 0`), fall back to the
+ * container-derived count.
+ */
+export const resolveTotalFrames = ({
+  dbTotalFrames,
+  containerDuration,
+  frameRate,
+}: ResolveTotalFramesArgs): number => {
+  const fps = frameRate || 30
+  const containerFrames = Math.round(containerDuration * fps)
+  if (dbTotalFrames <= 0) return containerFrames
+  const videoDuration = dbTotalFrames / fps
+  const tailSeconds = containerDuration - videoDuration
+  const thresholdSeconds = stallThresholdMs(fps) / 1000
+  return tailSeconds > thresholdSeconds ? containerFrames : dbTotalFrames
+}
