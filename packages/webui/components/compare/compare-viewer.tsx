@@ -7,8 +7,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CompareControlBar } from './compare-control-bar'
 import { CompareImagePane } from './compare-image-pane'
 import { ComparePaneTopbar } from './compare-pane-topbar'
+import { isSameType, kindOf } from './compare-utils'
 import { CompareVideoPane } from './compare-video-pane'
-import { kindOf, isSameType } from './compare-utils'
 import type { ComparePaneHandle, CompareSide, PaneKind, PaneReportedState } from './types'
 
 interface VersionItem {
@@ -274,7 +274,7 @@ export function CompareViewer({
     <div ref={rootRef} className="flex h-full flex-1 flex-col bg-background">
       <div className="flex min-h-0 flex-1">
         {/* Left pane */}
-        <div className="flex min-w-0 flex-1 flex-col border-r border-border">
+        <div className="flex min-w-0 flex-1 flex-col border-r border-zinc-800">
           {leftAsset && (
             <ComparePaneTopbar
               side="left"

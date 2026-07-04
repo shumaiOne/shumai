@@ -40,12 +40,15 @@ export function ComparePaneTopbar({
   onSwitchVersion,
   onExit,
 }: ComparePaneTopbarProps) {
+  const iconButtonClass = cn(
+    'flex-shrink-0 rounded p-1 transition-colors',
+    isActive
+      ? 'text-background/70 hover:bg-background/20 hover:text-background'
+      : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+  )
+
   const exitButton = (
-    <button
-      onClick={onExit}
-      title={m.exit_compare()}
-      className="flex-shrink-0 rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-    >
+    <button onClick={onExit} title={m.exit_compare()} className={iconButtonClass}>
       <X className="h-4 w-4" />
     </button>
   )
@@ -53,11 +56,21 @@ export function ComparePaneTopbar({
   const label = (
     <button
       onClick={onActivate}
-      className="flex min-w-0 items-center gap-1 rounded px-2 py-1 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+      className={cn(
+        'flex min-w-0 items-center gap-1 rounded px-2 py-1 text-sm font-medium transition-colors',
+        isActive
+          ? 'text-background hover:bg-background/20'
+          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+      )}
     >
       <span className="truncate">{fileName}</span>
       {version !== undefined && (
-        <span className="flex-shrink-0 rounded border border-border px-1 py-0 text-xs">
+        <span
+          className={cn(
+            'flex-shrink-0 rounded border px-1 py-0 text-xs',
+            isActive ? 'border-background/40' : 'border-border',
+          )}
+        >
           v{version}
         </span>
       )}
@@ -69,7 +82,7 @@ export function ComparePaneTopbar({
       <DropdownMenuTrigger
         onClick={onActivate}
         title={m.switch_version()}
-        className="flex-shrink-0 rounded p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        className={iconButtonClass}
       >
         <ChevronDown className="h-4 w-4" />
       </DropdownMenuTrigger>
@@ -116,8 +129,10 @@ export function ComparePaneTopbar({
     <div
       onMouseDown={onActivate}
       className={cn(
-        'flex h-10 flex-shrink-0 items-center gap-1 border-b bg-card px-2',
-        isActive ? 'border-b-2 border-primary' : 'border-border',
+        'flex h-10 flex-shrink-0 items-center gap-1 border-b px-2 transition-colors',
+        isActive
+          ? 'border-b-2 border-primary bg-foreground text-background'
+          : 'border-border bg-card text-muted-foreground',
       )}
     >
       {side === 'left' ? (
