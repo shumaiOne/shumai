@@ -23,7 +23,7 @@ import { cn } from '@/ui/lib/utils'
 import { m } from '@/ui/paraglide/messages.js'
 import type { AncestorFolder } from '@shumai/dtos'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Check, ChevronDown, FileIcon, History, LayoutGrid, List } from 'lucide-react'
+import { Check, ChevronDown, Columns2, FileIcon, History, LayoutGrid, List } from 'lucide-react'
 
 interface BreadcrumbNavProps {
   teamId: string
@@ -62,6 +62,9 @@ interface BreadcrumbNavProps {
     previewUrl?: string | null
     creator?: { id: string; name: string | null } | null
   }>
+  compareMode?: boolean
+  canCompareVersions?: boolean
+  onCompareVersions?: () => void
 }
 
 export function BreadcrumbNav({
@@ -83,12 +86,24 @@ export function BreadcrumbNav({
   shareId,
   downloadInfo,
   versions,
+  compareMode = false,
+  canCompareVersions = false,
+  onCompareVersions,
 }: BreadcrumbNavProps) {
   const navigate = useNavigate()
   const { canEdit } = usePermissions(projectId)
 
   const handleVersionClick = (versionId: string) => {
-    if (!projectId || !fileId) return
+    if (!fileId) return
+    if (isPublic && shareId) {
+      navigate({
+        to: '/share/$shareId/files/$fileId',
+        params: { shareId, fileId },
+        search: (prev: Record<string, unknown>) => ({ ...prev, version: versionId }),
+      })
+      return
+    }
+    if (!projectId) return
     navigate({
       to: '/projects/$projectId/files/$fileId',
       params: { projectId, fileId },
@@ -176,7 +191,7 @@ export function BreadcrumbNav({
             )}
           </div>
         ))}
-        {!isRootFolder && (
+        {!isRootFolder && !compareMode && (
           <div className="flex items-center gap-1">
             <span className="text-muted-foreground">/</span>
             {currentAsset.type === 'folder' ? (
@@ -261,6 +276,16 @@ export function BreadcrumbNav({
                     <DropdownMenuItem onClick={() => console.log('Delete')}>
                       Delete
                     </DropdownMenuItem>
+                  )}
+
+                  {canCompareVersions && onCompareVersions && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => onCompareVersions()}>
+                        <Columns2 className="h-4 w-4" />
+                        <span>{m.compare_versions()}</span>
+                      </DropdownMenuItem>
+                    </>
                   )}
 
                   {versions && versions.length > 0 && (

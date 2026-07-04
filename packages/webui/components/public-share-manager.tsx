@@ -16,6 +16,8 @@ import { Lock, AlertCircle, Loader2 } from 'lucide-react'
 import type { AncestorFolder, AssetInfoPaginatedList, AssetInfo, CommentInfo } from '@shumai/dtos'
 import { FieldInfo } from '@shumai/dtos'
 import { FileViewer } from './file-viewer'
+import { CompareViewer } from './compare/compare-viewer'
+import { pickDefaultCompareVersions } from './compare/compare-utils'
 import type Player from 'video.js/dist/types/player'
 import type { Annotation } from '@/ui/types'
 
@@ -26,6 +28,11 @@ interface PublicShareManagerProps {
   initialFolderId?: string
   initialFileId?: string
   startTime?: number
+  versionId?: string
+  compare?: boolean
+  compareLeftId?: string
+  compareRightId?: string
+  compareActiveSide?: 'left' | 'right'
 }
 
 interface PublicShareInfo {
@@ -46,8 +53,14 @@ export function PublicShareManager({
   initialFolderId,
   initialFileId,
   startTime,
+  versionId,
+  compare,
+  compareLeftId,
+  compareRightId,
+  compareActiveSide = 'left',
 }: PublicShareManagerProps) {
   const navigate = useNavigate()
+  const isCompareMode = !!compare && !!compareLeftId && !!compareRightId
   const [password, setPassword] = useState(() => {
     return localStorage.getItem(`share_pwd_${shareId}`) || ''
   })
@@ -87,6 +100,9 @@ export function PublicShareManager({
 
   const currentFolderId = initialFolderId || shareInfo?.rootFolderId
   const viewingFileId = initialFileId || null
+  // The stack asset is always fetched by the route file id; when a version is
+  // selected we additionally display that version child asset.
+  const activeFileId = versionId || viewingFileId
 
   const [ancestorFolders, setAncestorFolders] = useState<AncestorFolder[]>([])
 
@@ -129,6 +145,10 @@ export function PublicShareManager({
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [currentTime, setCurrentTime] = useState(0)
   const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null)
+  const [compareActiveAsset, setCompareActiveAsset] = useState<AssetInfo | null>(null)
+  const [seekRequest, setSeekRequest] = useState<{ second: number; nonce: number } | undefined>(
+    undefined,
+  )
 
   const {
     data: foldersData,
@@ -214,7 +234,7 @@ export function PublicShareManager({
     enabled: !!shareInfo,
   })
 
-  const { data: viewingFileData, isLoading: isViewingFileLoading } = useQuery({
+  const { data: stackFileData, isLoading: isStackFileLoading } = useQuery({
     queryKey: ['public-share-file', shareId, viewingFileId, password],
     queryFn: async () => {
       const res = await client.api.shares[':shareId'].files[':fileId'].$get(
@@ -232,6 +252,30 @@ export function PublicShareManager({
     },
     enabled: !!viewingFileId && !!shareInfo,
   })
+
+  const { data: versionFileData, isLoading: isVersionFileLoading } = useQuery({
+    queryKey: ['public-share-file', shareId, versionId, password],
+    queryFn: async () => {
+      const res = await client.api.shares[':shareId'].files[':fileId'].$get(
+        {
+          param: { shareId, fileId: versionId! },
+        },
+        {
+          headers: {
+            'x-share-password': password,
+          },
+        },
+      )
+      if (res.status === 401) throw new Error('Unauthorized')
+      return (await res.json()) as unknown as AssetInfo
+    },
+    enabled: !!versionId && !!shareInfo,
+  })
+
+  // The stack asset provides the version list; the active asset (version child
+  // or the stack itself) is what we actually display.
+  const viewingFileData = versionId ? versionFileData : stackFileData
+  const isViewingFileLoading = isStackFileLoading || (!!versionId && isVersionFileLoading)
 
   useEffect(() => {
     if (foldersError?.message === 'Unauthorized') {
@@ -307,6 +351,13 @@ export function PublicShareManager({
       setAnnotations([])
     }
 
+    if (isCompareMode) {
+      if (comment.second !== null && comment.second !== undefined) {
+        setSeekRequest({ second: comment.second, nonce: Date.now() })
+      }
+      return
+    }
+
     if (comment.second !== null && comment.second !== undefined) {
       if (videoRef.current) {
         videoRef.current.currentTime(comment.second)
@@ -322,6 +373,26 @@ export function PublicShareManager({
   const handlePlay = () => {
     setAnnotations([])
     setSelectedCommentId(null)
+  }
+
+  const updateCompareSearch = (patch: Record<string, unknown>) => {
+    if (!viewingFileId) return
+    navigate({
+      to: '/share/$shareId/files/$fileId',
+      params: { shareId, fileId: viewingFileId },
+      search: (p: Record<string, unknown>) => ({ ...p, ...patch }),
+    })
+  }
+
+  const handleCompareExit = () => {
+    const activeId = compareActiveSide === 'left' ? compareLeftId : compareRightId
+    updateCompareSearch({
+      compare: undefined,
+      cmpLeft: undefined,
+      cmpRight: undefined,
+      cmpActive: undefined,
+      version: activeId,
+    })
   }
 
   const { setProjectState, clearProjectState } = useTopNavStore()
@@ -341,9 +412,9 @@ export function PublicShareManager({
         currentAsset: {
           name: viewingFileData?.name || currentFolderName,
           type: viewingFileId ? 'file' : 'folder',
-          version: viewingFileData?.versionStack
-            ? (viewingFileData.versionStack.versions.find((v) => v.id === viewingFileData.id)
-                ?.version ?? viewingFileData.versionStack.versions.length)
+          version: stackFileData?.versionStack
+            ? (stackFileData.versionStack.versions.find((v) => v.id === activeFileId)?.version ??
+              stackFileData.versionStack.versions.length)
             : undefined,
         },
         isRootFolder: currentFolderId === shareInfo.rootFolderId && !viewingFileId,
@@ -364,6 +435,24 @@ export function PublicShareManager({
         onFolderClick: handleBreadcrumbClick,
         isRightSidebarCollapsed,
         onRightSidebarToggle: () => setIsRightSidebarCollapsed((prev) => !prev),
+        versions: stackFileData?.versionStack?.versions,
+        compareMode: isCompareMode,
+        canCompareVersions: (stackFileData?.versionStack?.versions?.length ?? 0) >= 2,
+        onCompareVersions: () => {
+          const pair = pickDefaultCompareVersions(stackFileData?.versionStack?.versions)
+          if (!pair || !viewingFileId) return
+          navigate({
+            to: '/share/$shareId/files/$fileId',
+            params: { shareId, fileId: viewingFileId },
+            search: (p: Record<string, unknown>) => ({
+              ...p,
+              compare: true,
+              cmpLeft: pair.left.id,
+              cmpRight: pair.right.id,
+              cmpActive: 'left' as const,
+            }),
+          })
+        },
       })
     }
 
@@ -373,11 +462,16 @@ export function PublicShareManager({
     currentFolderId,
     folders,
     viewingFileData,
+    stackFileData,
+    activeFileId,
     viewingFileId,
     ancestorFolders,
     setProjectState,
     clearProjectState,
     isRightSidebarCollapsed,
+    isCompareMode,
+    navigate,
+    shareId,
   ])
 
   let content
@@ -456,21 +550,44 @@ export function PublicShareManager({
       <div className="flex flex-1 overflow-hidden relative">
         {viewingFileId ? (
           <div className="flex-1 relative bg-muted/30">
-            {isViewingFileLoading && (
+            {isViewingFileLoading && !isCompareMode && (
               <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50">
                 <Loader2 className="h-8 w-8 animate-spin text-foreground" />
               </div>
             )}
-            {viewingFileData && (
-              <FileViewer
-                file={viewingFileData}
-                videoRef={videoRef}
+            {isCompareMode && compareLeftId && compareRightId ? (
+              <CompareViewer
+                isPublic
+                shareId={shareId}
+                versions={viewingFileData?.versionStack?.versions ?? []}
+                leftId={compareLeftId}
+                rightId={compareRightId}
+                activeSide={compareActiveSide}
+                annotations={annotations}
+                seekRequest={seekRequest}
+                onActiveSideChange={(side) => updateCompareSearch({ cmpActive: side })}
+                onSwitchVersion={(side, versionId) =>
+                  updateCompareSearch(
+                    side === 'left' ? { cmpLeft: versionId } : { cmpRight: versionId },
+                  )
+                }
+                onExit={handleCompareExit}
+                onActiveAssetChange={setCompareActiveAsset}
                 onPlay={handlePlay}
                 onTimeUpdate={setCurrentTime}
-                annotations={annotations}
-                startTime={startTime}
-                shareId={shareId}
               />
+            ) : (
+              viewingFileData && (
+                <FileViewer
+                  file={viewingFileData}
+                  videoRef={videoRef}
+                  onPlay={handlePlay}
+                  onTimeUpdate={setCurrentTime}
+                  annotations={annotations}
+                  startTime={startTime}
+                  shareId={shareId}
+                />
+              )
             )}
           </div>
         ) : (
@@ -520,7 +637,7 @@ export function PublicShareManager({
               <FileViewerRightSidebar
                 teamId=""
                 projectId={shareInfo.projectId}
-                file={currentSelectedItem}
+                file={isCompareMode ? compareActiveAsset : currentSelectedItem}
                 onSaveField={() => {}}
                 members={[]}
                 readOnly={true}

@@ -433,6 +433,9 @@
 
   "versions": "版本",
   "manage_versions": "管理版本...",
+  "compare_versions": "对比版本",
+  "exit_compare": "退出对比",
+  "switch_version": "切换版本",
   "show_left_sidebar": "显示左侧边栏",
   "hide_left_sidebar": "隐藏左侧边栏",
   "show_right_sidebar": "显示右侧边栏",

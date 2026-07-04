@@ -34,6 +34,10 @@ export interface TopNavProjectState {
   onFolderClick?: (folderId: string) => void
   isRightSidebarCollapsed?: boolean
   onRightSidebarToggle?: () => void
+  // Compare Versions
+  compareMode?: boolean
+  canCompareVersions?: boolean
+  onCompareVersions?: () => void
 }
 
 interface TopNavStore {
