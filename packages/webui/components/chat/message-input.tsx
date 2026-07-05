@@ -27,7 +27,7 @@ import { Button } from '../ui/button'
 import { DrawAnnotation } from '../ui/icons'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { ProgressCircle } from '../ui/progress-circle'
-import { formatTimecode } from '../viewers/utils'
+import { formatTimecode } from '../viewers/video/utils'
 import { useUiStore } from '@/ui/stores/ui'
 
 type UploadingFile = {

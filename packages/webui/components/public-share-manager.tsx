@@ -18,7 +18,7 @@ import { FieldInfo } from '@shumai/dtos'
 import { FileViewer } from './file-viewer'
 import { CompareViewer } from './compare/compare-viewer'
 import { pickDefaultCompareVersions } from './compare/compare-utils'
-import type Player from 'video.js/dist/types/player'
+import type { MediaController } from './viewers/types'
 import type { Annotation } from '@/ui/types'
 
 import { useNavigate } from '@tanstack/react-router'
@@ -141,7 +141,7 @@ export function PublicShareManager({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [rightSidebarWidth, setRightSidebarWidth] = useState(360)
   const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(() => !initialFileId)
-  const videoRef = useRef<Player | null>(null)
+  const mediaControllerRef = useRef<MediaController | null>(null)
   const [annotations, setAnnotations] = useState<Annotation[]>([])
   const [currentTime, setCurrentTime] = useState(0)
   const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null)
@@ -359,14 +359,10 @@ export function PublicShareManager({
     }
 
     if (comment.second !== null && comment.second !== undefined) {
-      if (videoRef.current) {
-        videoRef.current.currentTime(comment.second)
-        videoRef.current.pause()
-      }
+      mediaControllerRef.current?.seekTo(comment.second)
+      mediaControllerRef.current?.pause()
     } else if (newAnnotations && newAnnotations.length > 0) {
-      if (videoRef.current) {
-        videoRef.current.pause()
-      }
+      mediaControllerRef.current?.pause()
     }
   }
 
@@ -580,7 +576,7 @@ export function PublicShareManager({
               viewingFileData && (
                 <FileViewer
                   file={viewingFileData}
-                  videoRef={videoRef}
+                  mediaControllerRef={mediaControllerRef}
                   onPlay={handlePlay}
                   onTimeUpdate={setCurrentTime}
                   annotations={annotations}
@@ -647,9 +643,7 @@ export function PublicShareManager({
                 shareId={shareId}
                 currentTime={currentTime}
                 onTyping={() => {
-                  if (videoRef.current) {
-                    videoRef.current.pause()
-                  }
+                  mediaControllerRef.current?.pause()
                 }}
                 selectedCommentId={selectedCommentId}
               />
