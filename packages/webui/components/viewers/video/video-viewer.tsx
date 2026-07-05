@@ -18,6 +18,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
   ) => {
     const localPlayerRef = useRef<Player | null>(null)
     const playerRef = localPlayerRef
+    const hasMedia = !!data.media?.original?.downloadUrl && !!data.media?.metadata
     // We use a container ref to manually append the video element
     const videoContainerRef = useRef<HTMLDivElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
@@ -111,27 +112,19 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
       }
     }, [])
 
-    if (!data.media?.original?.downloadUrl || !data.media.metadata) {
-      return (
-        <div className="flex h-full w-full items-center justify-center">
-          <p className="text-muted-foreground">Media is not available.</p>
-        </div>
-      )
-    }
-
     // Initial resolution setup
     const originalRes: DisplayTranscode = {
       id: 'original',
-      url: data.media.original.downloadUrl,
-      key: data.media.original.key ?? '',
-      width: data.media.metadata.originalWidth ?? 0,
-      height: data.media.metadata.originalHeight ?? 0,
+      url: data.media?.original?.downloadUrl || '',
+      key: data.media?.original?.key ?? '',
+      width: data.media?.metadata?.originalWidth ?? 0,
+      height: data.media?.metadata?.originalHeight ?? 0,
       size: 0,
       isRaw: true,
       resolution: 'Original',
     }
 
-    const resolutions: DisplayTranscode[] = (data.media.videoTranscodes ?? []).map((t) => {
+    const resolutions: DisplayTranscode[] = (data.media?.videoTranscodes ?? []).map((t) => {
       const longSide = Math.max(t.width, t.height)
       let resolution = `${t.height}p`
       if (longSide >= 3840) resolution = '2160p'
@@ -179,15 +172,15 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
       isPlaying: false,
       progress: 0,
       currentTime: 0,
-      duration: data.media.metadata.duration || 0,
+      duration: data.media?.metadata?.duration || 0,
       volume: 1,
       isMuted: false,
       isLooping: false,
       playbackRate: 1,
       isFullScreen: false,
       showFrames: false,
-      currentResolution: initialRes.resolution,
-      currentSrc: initialRes.url,
+      currentResolution: initialRes?.resolution || 'Original',
+      currentSrc: initialRes?.url || '',
     })
 
     const [buffered, setBuffered] = useState(0)
@@ -196,10 +189,10 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
     const lastProcessedStartTimeRef = useRef<number | null>(null)
 
     // Frame-accurate hook and derived state
-    const metadata = data.media.metadata
-    const frameRate = metadata.frameRate || 30
-    const dbTotalFrames = metadata.totalFrames || 0
-    const containerDuration = metadata.duration || 0
+    const metadata = data.media?.metadata
+    const frameRate = metadata?.frameRate || 30
+    const dbTotalFrames = metadata?.totalFrames || 0
+    const containerDuration = metadata?.duration || 0
 
     const totalFrames = resolveTotalFrames({ dbTotalFrames, containerDuration, frameRate })
     const { currentFrame, seekToFrame } = useFramePlayer(videoRef, frameRate, totalFrames)
@@ -554,6 +547,14 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
     const scale = zoom
     const panX = (containerSize.width - vidW * scale) / 2
     const panY = (containerSize.height - vidH * scale) / 2
+
+    if (!hasMedia) {
+      return (
+        <div className="flex h-full w-full items-center justify-center">
+          <p className="text-muted-foreground">Media is not available.</p>
+        </div>
+      )
+    }
 
     return (
       <div
