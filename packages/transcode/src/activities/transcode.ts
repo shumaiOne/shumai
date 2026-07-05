@@ -582,22 +582,24 @@ export interface CreateEmbeddingTaskIfEnabledParams {
 export async function createEmbeddingTaskIfEnabledActivity(
   params: CreateEmbeddingTaskIfEnabledParams,
 ): Promise<void> {
-  let teamId = params.teamId
-  let projectId = params.projectId
-
-  // Resolve teamId and projectId from asset if missing
-  if (!teamId || !projectId) {
-    const asset = await prisma.asset.findUnique({
-      where: { id: params.assetId },
-      include: {
-        project: true,
-      },
-    })
-    if (asset) {
-      projectId = projectId || asset.projectId
-      teamId = teamId || asset.project?.teamId || null
-    }
+  const asset = await prisma.asset.findUnique({
+    where: { id: params.assetId },
+    include: {
+      project: true,
+    },
+  })
+  if (!asset) {
+    return
   }
+
+  const isVideo = asset.mediaType?.startsWith('video/')
+  const isImage = asset.mediaType?.startsWith('image/')
+  if (!isVideo && !isImage) {
+    return
+  }
+
+  const teamId = params.teamId || asset.project?.teamId || null
+  const projectId = params.projectId || asset.projectId
 
   if (!teamId) {
     return

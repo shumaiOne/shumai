@@ -300,7 +300,9 @@ describe('Agent Autofill Workflow', () => {
       },
     })
 
-    await expect(agentAutofillMedia(task)).rejects.toThrow('unsupported media type for autofill: audio/mp3')
+    await expect(agentAutofillMedia(task)).rejects.toThrow(
+      'unsupported media type for autofill: audio/mp3',
+    )
 
     // Verify task failed status
     expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({

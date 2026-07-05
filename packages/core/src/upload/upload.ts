@@ -294,7 +294,11 @@ export class UploadService {
       },
     })
 
-    if (autofillAgent) {
+    const isVideo = asset.mediaType?.startsWith('video/')
+    const isImage = asset.mediaType?.startsWith('image/')
+    const isAudio = asset.mediaType?.startsWith('audio/')
+
+    if (autofillAgent && (isVideo || isImage)) {
       await tx.workflowTask.create({
         data: {
           assetId: asset.id,
@@ -310,9 +314,6 @@ export class UploadService {
       })
     }
 
-    const isVideo = asset.mediaType?.startsWith('video/')
-    const isImage = asset.mediaType?.startsWith('image/')
-    const isAudio = asset.mediaType?.startsWith('audio/')
     if (!isVideo && !isImage && !isAudio) {
       await tx.asset.update({
         where: { id: asset.id },
