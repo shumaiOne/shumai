@@ -22,6 +22,7 @@ export function FileViewer({
 
   return (
     <ViewerComponent
+      key={file.id}
       ref={mediaControllerRef}
       file={file}
       onPlay={onPlay}
