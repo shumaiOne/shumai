@@ -262,6 +262,72 @@ describe('UploadService', () => {
     expect(workflowTask).toBeNull()
   })
 
+  it('should confirm file upload and resolve empty mediaType using Bun resolver for audio', async () => {
+    const task = await prisma.task.create({
+      data: { creatorId: userId, total: 1, uploaded: 0, type: 'upload' },
+    })
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'audio.mp3',
+        type: AssetType.file,
+        project: { connect: { id: projectId } },
+        parent: { connect: { id: parentId } },
+        status: AssetStatus.uploading,
+        storageKey: {
+          connectOrCreate: {
+            where: { key: 'test-key-audio-empty' },
+            create: { key: 'test-key-audio-empty' },
+          },
+        },
+        mediaType: '',
+      },
+    })
+
+    await uploadService.confirmFileUpload(userId, task.id, { fileId: asset.id })
+
+    const updatedAsset = await prisma.asset.findUnique({ where: { id: asset.id } })
+    expect(updatedAsset?.mediaType).toBe('audio/mpeg')
+    expect(updatedAsset?.status).toBe(AssetStatus.uploaded)
+
+    const workflowTask = await prisma.workflowTask.findFirst({
+      where: { assetId: asset.id, type: WorkflowTaskType.transcode },
+    })
+    expect(workflowTask).toBeDefined()
+  })
+
+  it('should confirm file upload and resolve application/octet-stream mediaType using Bun resolver for audio', async () => {
+    const task = await prisma.task.create({
+      data: { creatorId: userId, total: 1, uploaded: 0, type: 'upload' },
+    })
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'song.wav',
+        type: AssetType.file,
+        project: { connect: { id: projectId } },
+        parent: { connect: { id: parentId } },
+        status: AssetStatus.uploading,
+        storageKey: {
+          connectOrCreate: {
+            where: { key: 'test-key-audio-octet' },
+            create: { key: 'test-key-audio-octet' },
+          },
+        },
+        mediaType: 'application/octet-stream',
+      },
+    })
+
+    await uploadService.confirmFileUpload(userId, task.id, { fileId: asset.id })
+
+    const updatedAsset = await prisma.asset.findUnique({ where: { id: asset.id } })
+    expect(updatedAsset?.mediaType).toBe('audio/x-wav')
+    expect(updatedAsset?.status).toBe(AssetStatus.uploaded)
+
+    const workflowTask = await prisma.workflowTask.findFirst({
+      where: { assetId: asset.id, type: WorkflowTaskType.transcode },
+    })
+    expect(workflowTask).toBeDefined()
+  })
+
   it('should create a version stack when parentId is a file', async () => {
     // Create an existing file
     const fileA = await prisma.asset.create({
