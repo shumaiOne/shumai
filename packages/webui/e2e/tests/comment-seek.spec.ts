@@ -107,4 +107,73 @@ test.describe('video player comment seek roundtrip', () => {
       expect(seen.nativeFrame).toBe(frame)
     }
   })
+
+  test('user A comments on 5 random frames in an audio file, user B seeks back to each', async ({
+    page,
+  }, testInfo) => {
+    const audioTotalFrames = 90
+    const frames = pickRandomFramesForTotal(COMMENT_COUNT, audioTotalFrames)
+    // Record the sampled frames so a failing run is reproducible.
+    testInfo.annotations.push({ type: 'random-frames-audio', description: frames.join(', ') })
+
+    const cs = new CommentSeekPage(page)
+    await cs.gotoVariant('audio')
+    await cs.muteNativeVideo()
+
+    // Starts paused at frame 0.
+    const initial = await cs.snapshot()
+    expect(initial.paused).toBe(true)
+    expect(initial.readoutFrame).toBe(0)
+
+    // -- Phase A: user A authors a comment on each random frame. --
+    for (const frame of frames) {
+      await cs.seekToFrame(frame)
+
+      // The frame user A is actually looking at (readout and native clock agree).
+      const authored = await cs.snapshot()
+      expect(authored.paused).toBe(true)
+      expect(authored.readoutFrame).toBe(frame)
+      expect(authored.nativeFrame).toBe(frame)
+
+      await cs.clickCreateComment()
+
+      // Goal 1: the comment is stored at exactly the frame user A saw.
+      const commentFrames = await cs.commentFrames()
+      expect(commentFrames[commentFrames.length - 1]).toBe(frame)
+    }
+
+    // All five comments exist and correspond, in order, to the authored frames.
+    expect(await cs.commentCount()).toBe(COMMENT_COUNT)
+    expect(await cs.commentFrames()).toEqual(frames)
+
+    // -- Phase B: a second user opens the page fresh (player remounts at 0). --
+    await cs.reloadAsUserB()
+    await cs.muteNativeVideo()
+    const afterReload = await cs.snapshot()
+    expect(afterReload.readoutFrame).toBe(0)
+
+    // Clicking each comment lands the player back on exactly user A's frame.
+    const commentFrames = await cs.commentFrames()
+    for (let index = 0; index < commentFrames.length; index++) {
+      const frame = commentFrames[index]
+      await cs.clickCommentByIndex(index)
+      await cs.waitUntilSettledOn(frame)
+
+      // Goal 2: user B sees exactly the frame user A commented on.
+      const seen = await cs.snapshot()
+      expect(seen.paused).toBe(true)
+      expect(seen.readoutFrame).toBe(frame)
+      expect(seen.nativeFrame).toBe(frame)
+    }
+  })
 })
+
+function pickRandomFramesForTotal(count: number, total: number): number[] {
+  const min = 1
+  const max = total - 2
+  const chosen = new Set<number>()
+  while (chosen.size < count) {
+    chosen.add(min + Math.floor(Math.random() * (max - min + 1)))
+  }
+  return [...chosen].sort((a, b) => a - b)
+}

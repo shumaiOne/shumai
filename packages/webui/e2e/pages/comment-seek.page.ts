@@ -51,6 +51,11 @@ export class CommentSeekPage {
     await this.waitUntilReady()
   }
 
+  async gotoVariant(variant: string): Promise<void> {
+    await this.page.goto(`/?variant=${encodeURIComponent(variant)}`)
+    await this.waitUntilReady()
+  }
+
   /** Wait until the video.js engine has metadata and a usable frame readout. */
   async waitUntilReady(): Promise<void> {
     await this.video.waitFor({ state: 'attached' })
