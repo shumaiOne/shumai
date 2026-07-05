@@ -68,8 +68,8 @@ export const FilePreview = ({ item, showDuration = false }: FilePreviewProps) =>
   if (isAudio) {
     return (
       <>
-        <div className="w-full h-full flex items-center justify-center bg-muted">
-          <AudioLines className="w-8 h-8 text-muted-foreground" />
+        <div className="w-full h-full flex items-center justify-center bg-zinc-950">
+          <AudioLines className="w-8 h-8 text-zinc-500" />
         </div>
         {durationOverlay}
       </>
