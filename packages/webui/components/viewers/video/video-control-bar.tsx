@@ -254,31 +254,33 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
         {/* Right Side: Zoom, Speed, Res, Download, Fullscreen */}
         <div className="relative flex items-center gap-3">
           {/* Zoom Controls */}
-          <div className="flex items-center gap-1">
-            <div className="flex items-center gap-1 rounded-md bg-muted p-0.5">
+          {!isAudio && (
+            <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 rounded-md bg-muted p-0.5">
+                <button
+                  onClick={() => onZoomChange(zoom * 0.8)}
+                  className="p-1 hover:text-primary rounded"
+                >
+                  <Minus size={14} />
+                </button>
+                <span className="text-xs w-8 text-center tabular-nums">
+                  {Math.round(zoom * 100)}%
+                </span>
+                <button
+                  onClick={() => onZoomChange(zoom * 1.2)}
+                  className="p-1 hover:text-primary rounded"
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
               <button
-                onClick={() => onZoomChange(zoom * 0.8)}
-                className="p-1 hover:text-primary rounded"
+                onClick={onZoomReset}
+                className="text-xs font-medium px-2 py-1 rounded bg-muted hover:text-primary transition-colors"
               >
-                <Minus size={14} />
-              </button>
-              <span className="text-xs w-8 text-center tabular-nums">
-                {Math.round(zoom * 100)}%
-              </span>
-              <button
-                onClick={() => onZoomChange(zoom * 1.2)}
-                className="p-1 hover:text-primary rounded"
-              >
-                <Plus size={14} />
+                Fit
               </button>
             </div>
-            <button
-              onClick={onZoomReset}
-              className="text-xs font-medium px-2 py-1 rounded bg-muted hover:text-primary transition-colors"
-            >
-              Fit
-            </button>
-          </div>
+          )}
 
           {/* Playback Rate */}
           <DropdownMenu>

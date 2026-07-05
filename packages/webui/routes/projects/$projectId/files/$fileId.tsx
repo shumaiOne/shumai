@@ -450,6 +450,7 @@ function FileViewPage() {
               mediaControllerRef.current?.pause()
             }}
             selectedCommentId={selectedCommentId}
+            hideAnnotationControl={sidebarFile?.mediaType?.startsWith('audio/')}
           />
         </div>
       </div>
