@@ -3,7 +3,7 @@ import { client } from '@/ui/api/client'
 import { useQuery } from '@tanstack/react-query'
 
 import { useDraggable } from '@dnd-kit/react'
-import { File, Folder, MoreVertical } from 'lucide-react'
+import { File, Folder, MoreVertical, AudioLines } from 'lucide-react'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '@/ui/lib/utils'
 import type { DragState } from '../dnd-types'
@@ -214,6 +214,9 @@ export function FileListItem({
                 alt=""
                 className="w-full h-full object-cover"
               />
+            ) : displayItem.preview?.mediaType?.startsWith('audio/') ||
+              displayItem.mediaType?.startsWith('audio/') ? (
+              <AudioLines className="h-4 w-4 text-muted-foreground" />
             ) : displayItem.type === 'folder' ? (
               <Folder className="h-4 w-4 text-primary" />
             ) : (

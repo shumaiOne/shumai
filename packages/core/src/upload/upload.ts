@@ -307,7 +307,8 @@ export class UploadService {
 
     const isVideo = asset.mediaType?.startsWith('video/')
     const isImage = asset.mediaType?.startsWith('image/')
-    if (!isVideo && !isImage) {
+    const isAudio = asset.mediaType?.startsWith('audio/')
+    if (!isVideo && !isImage && !isAudio) {
       await tx.asset.update({
         where: { id: asset.id },
         data: { status: AssetStatus.processed },
@@ -322,6 +323,9 @@ export class UploadService {
           .withSprite()
           .withPoster()
           .submit()
+      } else if (isAudio) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await new VideoTranscoder(tx as any, asset.id, team.id, projectId).submit()
       } else if (isImage) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await new ImageTranscoder(tx as any, asset.id, team.id, projectId).withThumbnail().submit()

@@ -4,7 +4,7 @@ import { cn } from '@/ui/lib/utils'
 import { useAnnotationStore } from '@/ui/stores/annotation-store'
 import type { Annotation } from '@/ui/types'
 import type { AssetInfo } from '@shumai/dtos'
-import { Play } from 'lucide-react'
+import { Play, AudioLines } from 'lucide-react'
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import videojs from 'video.js'
 import type Player from 'video.js/dist/types/player'
@@ -138,8 +138,8 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
       return () => observer.disconnect()
     }, [])
 
-    const vidW = metadata?.originalWidth ?? 1920
-    const vidH = metadata?.originalHeight ?? 1080
+    const vidW = metadata?.originalWidth || 1920
+    const vidH = metadata?.originalHeight || 1080
 
     // Auto-fit zoom
     useEffect(() => {
@@ -439,22 +439,34 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
       >
         <div ref={videoContainerRef} className="absolute inset-0 z-[-1]" />
 
-        {videoHtmlEl && containerSize.width > 0 && (
-          <DrawingCanvas
-            width={containerSize.width}
-            height={containerSize.height}
-            mediaDimensions={{ width: vidW, height: vidH }}
-            videoElement={videoHtmlEl}
-            annotations={displayAnnotations}
-            scale={scale}
-            offset={{ x: panX, y: panY }}
-            className="absolute inset-0"
-            onClick={handleAreaClick}
-            isDrawing={isActive && isDrawing}
-            currentTool={currentTool}
-            currentColor={currentColor}
-            onAddAnnotation={isActive ? addAnnotation : undefined}
-          />
+        {file.mediaType?.startsWith('audio/') ? (
+          <div className="flex flex-col items-center justify-center text-muted-foreground w-full h-full pointer-events-none select-none">
+            <AudioLines
+              className={cn(
+                'w-16 h-16 text-foreground/75 transition-transform duration-500',
+                isPlaying ? 'animate-pulse scale-110 text-primary' : '',
+              )}
+            />
+          </div>
+        ) : (
+          videoHtmlEl &&
+          containerSize.width > 0 && (
+            <DrawingCanvas
+              width={containerSize.width}
+              height={containerSize.height}
+              mediaDimensions={{ width: vidW, height: vidH }}
+              videoElement={videoHtmlEl}
+              annotations={displayAnnotations}
+              scale={scale}
+              offset={{ x: panX, y: panY }}
+              className="absolute inset-0"
+              onClick={handleAreaClick}
+              isDrawing={isActive && isDrawing}
+              currentTool={currentTool}
+              currentColor={currentColor}
+              onAddAnnotation={isActive ? addAnnotation : undefined}
+            />
+          )
         )}
 
         {!isPlaying && !isDrawing && (

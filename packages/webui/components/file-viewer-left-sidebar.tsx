@@ -2,7 +2,7 @@ import { client } from '@/ui/api/client'
 import { cn } from '@/ui/lib/utils'
 import type { AssetInfo, AssetInfoPaginatedList } from '@shumai/dtos'
 import { Link } from '@tanstack/react-router'
-import { File, Loader2 } from 'lucide-react'
+import { File, Loader2, AudioLines } from 'lucide-react'
 import type { FC } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { useInView } from 'react-intersection-observer'
@@ -19,6 +19,16 @@ export const CarouselFilePreview = ({ item }: { item: AssetInfo }) => {
   if (item.preview?.thumbnailUrl) {
     return (
       <img src={item.preview.thumbnailUrl} alt="Preview" className="w-full h-full object-cover" />
+    )
+  }
+
+  const isAudio =
+    item.preview?.mediaType?.startsWith('audio/') || item.mediaType?.startsWith('audio/')
+  if (isAudio) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-muted">
+        <AudioLines className="w-5 h-5 text-muted-foreground" />
+      </div>
     )
   }
 

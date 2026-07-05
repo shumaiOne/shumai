@@ -34,6 +34,7 @@ interface BreadcrumbNavProps {
     name?: string
     type: 'file' | 'folder'
     version?: number
+    mediaType?: string | null
   }
   isRootFolder: boolean
   displayStyle?: 'card' | 'list'
@@ -135,8 +136,11 @@ export function BreadcrumbNav({
     }
   }
 
+  const isAudio = currentAsset.mediaType?.startsWith('audio/')
   const hasVideoTranscodes =
-    downloadInfo?.videoTranscodes && downloadInfo.videoTranscodes.filter((t) => !t.isRaw).length > 0
+    !isAudio &&
+    downloadInfo?.videoTranscodes &&
+    downloadInfo.videoTranscodes.filter((t) => !t.isRaw).length > 0
 
   const breadcrumbs: { name: string; path?: string; id?: string; isMuted?: boolean }[] = isPublic
     ? [

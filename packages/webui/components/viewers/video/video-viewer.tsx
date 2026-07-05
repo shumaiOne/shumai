@@ -1,6 +1,6 @@
 import { client } from '@/ui/api/client'
 import { cn } from '@/ui/lib/utils'
-import { Play } from 'lucide-react'
+import { Play, AudioLines } from 'lucide-react'
 import React, { useCallback, useEffect, useRef, useState, useImperativeHandle } from 'react'
 import videojs from 'video.js'
 import type Player from 'video.js/dist/types/player'
@@ -96,8 +96,8 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
     // Fit to screen initial / responsive resize
     useEffect(() => {
       if (containerSize.width > 0 && containerSize.height > 0) {
-        const vidW = data.media?.metadata?.originalWidth ?? 1920
-        const vidH = data.media?.metadata?.originalHeight ?? 1080
+        const vidW = data.media?.metadata?.originalWidth || 1920
+        const vidH = data.media?.metadata?.originalHeight || 1080
         const scale = Math.min(containerSize.width / vidW, containerSize.height / vidH)
         if (!hasManuallyZoomed) {
           setZoom(scale)
@@ -541,8 +541,8 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
     }, [])
 
     // Calculate center pan
-    const vidW = data.media?.metadata?.originalWidth ?? 1920
-    const vidH = data.media?.metadata?.originalHeight ?? 1080
+    const vidW = data.media?.metadata?.originalWidth || 1920
+    const vidH = data.media?.metadata?.originalHeight || 1080
 
     const scale = zoom
     const panX = (containerSize.width - vidW * scale) / 2
@@ -584,27 +584,39 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
             {/* Hidden VideoJS container */}
             <div ref={videoContainerRef} className="absolute inset-0 z-[-1]" />
 
-            {/* Drawing Canvas (Visible) */}
-            {videoHtmlEl && containerSize.width > 0 && (
-              <DrawingCanvas
-                width={containerSize.width}
-                height={containerSize.height}
-                mediaDimensions={{
-                  width: vidW,
-                  height: vidH,
-                }}
-                videoElement={videoHtmlEl}
-                annotations={displayAnnotations}
-                scale={scale}
-                offset={{ x: panX, y: panY }}
-                className="absolute inset-0"
-                onClick={togglePlay}
-                // Drawing Props
-                isDrawing={isDrawing}
-                currentTool={currentTool}
-                currentColor={currentColor}
-                onAddAnnotation={addAnnotation}
-              />
+            {data.mediaType?.startsWith('audio/') ? (
+              <div className="flex flex-col items-center justify-center text-muted-foreground w-full h-full pointer-events-none select-none">
+                <AudioLines
+                  className={cn(
+                    'w-16 h-16 text-foreground/75 transition-transform duration-500',
+                    state.isPlaying ? 'animate-pulse scale-110 text-primary' : '',
+                  )}
+                />
+              </div>
+            ) : (
+              /* Drawing Canvas (Visible) */
+              videoHtmlEl &&
+              containerSize.width > 0 && (
+                <DrawingCanvas
+                  width={containerSize.width}
+                  height={containerSize.height}
+                  mediaDimensions={{
+                    width: vidW,
+                    height: vidH,
+                  }}
+                  videoElement={videoHtmlEl}
+                  annotations={displayAnnotations}
+                  scale={scale}
+                  offset={{ x: panX, y: panY }}
+                  className="absolute inset-0"
+                  onClick={togglePlay}
+                  // Drawing Props
+                  isDrawing={isDrawing}
+                  currentTool={currentTool}
+                  currentColor={currentColor}
+                  onAddAnnotation={addAnnotation}
+                />
+              )
             )}
 
             {/* Big Play Button Overlay (when paused) */}

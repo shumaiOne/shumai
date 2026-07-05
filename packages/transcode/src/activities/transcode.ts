@@ -116,6 +116,36 @@ export async function getMediaInfoActivity(params: {
         metadataUpdates.push({ key: 'audio_sample_rate', value: info.audioSampleRate })
       if (info.audioBitDepth !== undefined)
         metadataUpdates.push({ key: 'audio_bit_depth', value: info.audioBitDepth })
+    } else if (isAudio) {
+      const info = await transcodeService.getAudioInfo(params.filePath)
+      mediaInfo.duration = info.duration
+      mediaInfo.metadata = {
+        originalWidth: 0,
+        originalHeight: 0,
+        duration: info.duration,
+        bitRate: info.bitRate,
+        frameRate: 0,
+        totalFrames: 0,
+        startTimecode: '00:00:00:00',
+        hasAudio: true,
+        videoCodec: undefined,
+        audioCodec: info.audioCodec,
+        audioChannels: info.audioChannels,
+        audioSampleRate: info.audioSampleRate,
+        audioBitDepth: info.audioBitDepth,
+        format: {},
+      }
+      metadataUpdates.push(
+        { key: 'duration', value: info.duration },
+        { key: 'bitRate', value: info.bitRate / 1000 },
+      )
+      if (info.audioCodec) metadataUpdates.push({ key: 'audio_codec', value: info.audioCodec })
+      if (info.audioChannels !== undefined)
+        metadataUpdates.push({ key: 'audio_channels', value: info.audioChannels })
+      if (info.audioSampleRate !== undefined)
+        metadataUpdates.push({ key: 'audio_sample_rate', value: info.audioSampleRate })
+      if (info.audioBitDepth !== undefined)
+        metadataUpdates.push({ key: 'audio_bit_depth', value: info.audioBitDepth })
     } else if (isImage) {
       const info = await transcodeService.getImageInfo(params.filePath)
       mediaInfo.metadata = {
@@ -220,6 +250,64 @@ export async function transcodeVideoActivity(
     ) {
       throw ApplicationFailure.create({
         message: `Video transcoding failed: ${message}`,
+        nonRetryable: true,
+        cause: err instanceof Error ? err : undefined,
+      })
+    }
+    throw err
+  } finally {
+    if (fs.existsSync(outputFile)) fs.unlinkSync(outputFile)
+  }
+}
+
+export interface AudioActivityParams {
+  assetKey: string
+  filePath: string
+}
+
+export async function transcodeAudioActivity(
+  params: AudioActivityParams,
+): Promise<PrismaJson.VideoTranscode> {
+  const bucket = process.env.S3_BUCKET || 'shumai'
+  const stem = stemFromKey(params.assetKey)
+  const key = path.posix.join(path.posix.dirname(params.assetKey), `${stem}-audio-proxy.mp4`)
+
+  try {
+    await s3Service.headObject(bucket, key)
+    return { width: 0, height: 0, key }
+  } catch {
+    // Not found
+  }
+
+  const tmpDir = path.dirname(params.filePath)
+  const outputFile = path.join(tmpDir, `${stem}-audio-proxy.mp4`)
+
+  try {
+    await transcodeService.transcodeAudio({
+      inputFile: params.filePath,
+      outputFile,
+      bitrate: '128k',
+    })
+
+    const buffer = fs.readFileSync(outputFile)
+    await s3Service.putObject(bucket, key, buffer, buffer.length, 'video/mp4')
+
+    return { width: 0, height: 0, key }
+  } catch (err) {
+    const { code, message } = getErrorDetails(err)
+    const lowerMsg = message.toLowerCase()
+
+    if (
+      code === 'ENOENT' ||
+      lowerMsg.includes('enoent') ||
+      lowerMsg.includes('ffmpeg') ||
+      lowerMsg.includes('ffprobe') ||
+      lowerMsg.includes('spawn') ||
+      lowerMsg.includes('format') ||
+      lowerMsg.includes('no video stream found')
+    ) {
+      throw ApplicationFailure.create({
+        message: `Audio transcoding failed: ${message}`,
         nonRetryable: true,
         cause: err instanceof Error ? err : undefined,
       })

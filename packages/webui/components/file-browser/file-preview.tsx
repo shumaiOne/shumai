@@ -1,4 +1,4 @@
-import { File, Folder } from 'lucide-react'
+import { File, Folder, AudioLines } from 'lucide-react'
 import { SpriteScrubber } from '../sprite-scrubber'
 import { formatTime } from '../viewers/video/utils'
 
@@ -60,6 +60,15 @@ export const FilePreview = ({ item, showDuration = false }: FilePreviewProps) =>
         />
         {durationOverlay}
       </>
+    )
+  }
+
+  const isAudio = item.preview?.mediaType?.startsWith('audio/')
+  if (isAudio) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-muted">
+        <AudioLines className="w-8 h-8 text-muted-foreground" />
+      </div>
     )
   }
 

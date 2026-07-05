@@ -292,6 +292,67 @@ export class TranscodeService {
     await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
   }
 
+  async getAudioInfo(inputFile: string): Promise<MediaMetadata> {
+    const { stdout } = await execFileAsync('ffprobe', [
+      '-v',
+      'quiet',
+      '-print_format',
+      'json',
+      '-show_format',
+      '-show_streams',
+      inputFile,
+    ])
+    const info = JSON.parse(stdout)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const audioStream = info.streams.find((s: any) => s.codec_type === 'audio')
+
+    if (!audioStream) {
+      throw new Error('No audio stream found')
+    }
+
+    const duration = parseFloat(info.format.duration)
+
+    return {
+      originalWidth: 0,
+      originalHeight: 0,
+      duration: isNaN(duration) ? 0 : duration,
+      bitRate: parseFloat(info.format.bit_rate) || 0,
+      frameRate: 0,
+      totalFrames: 0,
+      startTimecode: undefined,
+      hasAudio: true,
+      videoCodec: undefined,
+      audioCodec: this.resolveCodecName(audioStream),
+      audioChannels: audioStream?.channels,
+      audioSampleRate: this.safeParseInt(audioStream?.sample_rate),
+      audioBitDepth:
+        this.safeParseInt(audioStream?.bits_per_raw_sample) ??
+        this.safeParseInt(audioStream?.bits_per_sample),
+      mimeType: '',
+    }
+  }
+
+  async transcodeAudio(params: {
+    inputFile: string
+    outputFile: string
+    bitrate?: string
+  }): Promise<void> {
+    const bitrate = params.bitrate || '128k'
+    const args = [
+      '-i',
+      params.inputFile,
+      '-vn',
+      '-c:a',
+      'aac',
+      '-b:a',
+      bitrate,
+      '-ac',
+      '2',
+      params.outputFile,
+    ]
+    await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
+  }
+
   async extractVideoFrames(params: ExtractVideoFramesParams): Promise<string[]> {
     if (params.isImage) {
       const outputFile = path.join(params.outputDir, '1.webp')

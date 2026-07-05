@@ -14,6 +14,7 @@ import {
   overlayAnnotationsActivity,
   takeScreenshotsActivity,
   transcodeVideoActivity,
+  transcodeAudioActivity,
   updateAssetMediaActivity,
   downloadMediaToTmpActivity,
   transcodeImageActivity,
@@ -36,8 +37,10 @@ vi.mock('@shumai/core/src/s3/s3', () => ({
 vi.mock('@shumai/core/src/transcode/transcode', () => ({
   transcodeService: {
     getVideoInfo: vi.fn(),
+    getAudioInfo: vi.fn(),
     getImageInfo: vi.fn(),
     transcodeVideo: vi.fn(),
+    transcodeAudio: vi.fn(),
     transcodeImage: vi.fn(),
     generateSprite: vi.fn(),
     createTempDir: vi.fn().mockReturnValue('/tmp'),
@@ -143,20 +146,49 @@ describe('Transcode Activities', () => {
     )
   })
 
-  it('should set file_type to audio for audio files', async () => {
+  it('should set file_type to audio for audio files and extract audio metadata', async () => {
     const asset = await prisma.asset.create({
       data: { name: 'a.mp3', type: 'file', status: 'uploaded' },
     })
+    vi.mocked(transcodeService.getAudioInfo).mockResolvedValue({
+      originalWidth: 0,
+      originalHeight: 0,
+      duration: 45.5,
+      bitRate: 128000,
+      frameRate: 0,
+      totalFrames: 0,
+      hasAudio: true,
+      audioCodec: 'mp3',
+      audioChannels: 2,
+      audioSampleRate: 44100,
+      audioBitDepth: 16,
+      mimeType: 'audio/mpeg',
+    })
 
-    await getMediaInfoActivity({
+    const result = await getMediaInfoActivity({
       assetId: asset.id,
       filePath: '/tmp/a.mp3',
       mediaType: 'audio/mpeg',
     })
 
+    expect(transcodeService.getAudioInfo).toHaveBeenCalledWith('/tmp/a.mp3')
+    expect(result.duration).toBe(45.5)
+    expect(result.metadata?.duration).toBe(45.5)
+    expect(result.metadata?.audioCodec).toBe('mp3')
+    expect(result.metadata?.audioChannels).toBe(2)
+    expect(result.metadata?.audioSampleRate).toBe(44100)
+    expect(result.metadata?.audioBitDepth).toBe(16)
+
     expect(metadataService.updateAssetMetadata).toHaveBeenCalledWith(
       asset.id,
-      expect.arrayContaining([{ key: 'file_type', value: 'audio' }]),
+      expect.arrayContaining([
+        { key: 'file_type', value: 'audio' },
+        { key: 'duration', value: 45.5 },
+        { key: 'audio_codec', value: 'mp3' },
+        { key: 'audio_channels', value: 2 },
+        { key: 'audio_sample_rate', value: 44100 },
+        { key: 'audio_bit_depth', value: 16 },
+      ]),
       true,
     )
   })
@@ -436,6 +468,54 @@ describe('Transcode Activities', () => {
     it('should delete S3 object successfully', async () => {
       await deleteS3ObjectActivity({ key: 'files/test-key.mp4' })
       expect(s3Service.deleteObject).toHaveBeenCalledWith('shumai', 'files/test-key.mp4')
+    })
+
+    it('should transcode audio file and upload proxy to S3', async () => {
+      vi.mocked(s3Service.headObject).mockRejectedValue(new Error('Not found'))
+      vi.mocked(transcodeService.transcodeAudio).mockResolvedValue()
+
+      const res = await transcodeAudioActivity({
+        assetKey: 'files/proj-123/a.wav',
+        filePath: '/tmp/a.wav',
+      })
+
+      expect(transcodeService.transcodeAudio).toHaveBeenCalledWith({
+        inputFile: '/tmp/a.wav',
+        outputFile: expect.stringContaining('a-audio-proxy.mp4'),
+        bitrate: '128k',
+      })
+
+      expect(s3Service.putObject).toHaveBeenCalledWith(
+        'shumai',
+        'files/proj-123/a-audio-proxy.mp4',
+        expect.any(Buffer),
+        expect.any(Number),
+        'video/mp4',
+      )
+
+      expect(res).toEqual({
+        width: 0,
+        height: 0,
+        key: 'files/proj-123/a-audio-proxy.mp4',
+      })
+    })
+
+    it('should return existing audio transcode if already exists in S3', async () => {
+      vi.mocked(s3Service.headObject).mockResolvedValue(
+        {} as Awaited<ReturnType<typeof s3Service.headObject>>,
+      )
+
+      const res = await transcodeAudioActivity({
+        assetKey: 'files/proj-123/a.wav',
+        filePath: '/tmp/a.wav',
+      })
+
+      expect(transcodeService.transcodeAudio).not.toHaveBeenCalled()
+      expect(res).toEqual({
+        width: 0,
+        height: 0,
+        key: 'files/proj-123/a-audio-proxy.mp4',
+      })
     })
   })
 })
