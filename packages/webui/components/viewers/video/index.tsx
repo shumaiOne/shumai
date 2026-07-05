@@ -5,7 +5,7 @@ import { CompareVideoPane } from './compare-video-pane'
 export const videoTypeDefinition: FileTypeDefinition = {
   id: 'video',
   name: 'Video',
-  match: (file) => !!file.mediaType?.startsWith('video/'),
+  match: (file) => !!file.mediaType?.startsWith('video/') || !!file.mediaType?.startsWith('audio/'),
   viewer: VideoViewer,
   comparePane: CompareVideoPane,
   commentsConfig: {

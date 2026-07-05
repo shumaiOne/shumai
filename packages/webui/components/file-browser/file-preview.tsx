@@ -1,4 +1,4 @@
-import { File, Folder } from 'lucide-react'
+import { File, Folder, AudioLines } from 'lucide-react'
 import { SpriteScrubber } from '../sprite-scrubber'
 import { formatTime } from '../viewers/video/utils'
 
@@ -21,9 +21,11 @@ interface FilePreviewProps {
 
 export const FilePreview = ({ item, showDuration = false }: FilePreviewProps) => {
   const isVideo = item.preview?.mediaType?.startsWith('video/')
+  const isAudio = item.preview?.mediaType?.startsWith('audio/')
+  const hasDuration = isVideo || isAudio
   const duration = item.preview?.duration
   const durationOverlay =
-    showDuration && isVideo && typeof duration === 'number' && duration > 0 ? (
+    showDuration && hasDuration && typeof duration === 'number' && duration > 0 ? (
       <span className="pointer-events-none absolute bottom-1 right-1 text-xs font-medium tabular-nums text-white">
         {formatTime(duration)}
       </span>
@@ -58,6 +60,17 @@ export const FilePreview = ({ item, showDuration = false }: FilePreviewProps) =>
           alt="Preview"
           className="w-full h-full object-contain bg-black"
         />
+        {durationOverlay}
+      </>
+    )
+  }
+
+  if (isAudio) {
+    return (
+      <>
+        <div className="w-full h-full flex items-center justify-center bg-zinc-950">
+          <AudioLines className="w-8 h-8 text-zinc-500" />
+        </div>
         {durationOverlay}
       </>
     )

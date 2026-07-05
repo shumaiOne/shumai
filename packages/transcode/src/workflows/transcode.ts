@@ -10,6 +10,7 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
     getAssetActivity,
     getMediaInfoActivity,
     transcodeVideoActivity,
+    transcodeAudioActivity,
     transcodeImageActivity,
     generateSpriteActivity,
     updateAssetMediaActivity,
@@ -179,6 +180,16 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
         height: metadata.originalHeight,
         isRaw: true,
       })
+    }
+
+    // 6.5 Audio Transcoding
+    const isAudio = mimeType.startsWith('audio/')
+    if (isAudio && metadata) {
+      const audioTranscode = await executeActivity(workerQueue, transcodeAudioActivity, {
+        assetKey: key,
+        filePath,
+      })
+      mediaInfo.videoTranscodes.push(audioTranscode)
     }
 
     // 7. Image Transcoding

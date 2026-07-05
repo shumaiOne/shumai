@@ -10,6 +10,7 @@ export interface TopNavProjectState {
     name?: string
     type: 'file' | 'folder'
     version?: number
+    mediaType?: string | null
   }
   isRootFolder: boolean
   fileId?: string

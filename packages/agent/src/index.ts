@@ -15,6 +15,7 @@ import { agentService } from '@shumai/core/src/agent/agent'
 import { DatabaseSessionStorage } from './database-session-storage'
 import { createAnalyzeImageTool } from './tools/analyze-image'
 import { createScreenshotTool } from './tools/screenshot'
+import { getSimpleMediaType } from './workflows/agent-chat-prompt-builder'
 import { createCreateFileTool } from './tools/create-file'
 import { createCreateFolderTool } from './tools/create-folder'
 import { createCreateVersionTool } from './tools/create-version'
@@ -212,10 +213,17 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
 
   const mediaTools: AgentTool[] = []
   if (assetId) {
-    mediaTools.push(
-      createAnalyzeImageTool(assetId, userCommentId),
-      createScreenshotTool(assetId, userCommentId),
-    )
+    const asset = await prisma.asset.findUnique({
+      where: { id: assetId },
+    })
+    if (asset?.mediaType) {
+      const type = getSimpleMediaType(asset.mediaType)
+      if (type === 'image') {
+        mediaTools.push(createAnalyzeImageTool(assetId, userCommentId))
+      } else if (type === 'video') {
+        mediaTools.push(createScreenshotTool(assetId, userCommentId))
+      }
+    }
   }
 
   const sandboxedBash = createSandboxedBashTool(process.cwd(), skillEnvs, {

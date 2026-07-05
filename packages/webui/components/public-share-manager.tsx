@@ -412,6 +412,7 @@ export function PublicShareManager({
             ? (stackFileData.versionStack.versions.find((v) => v.id === activeFileId)?.version ??
               stackFileData.versionStack.versions.length)
             : undefined,
+          mediaType: viewingFileData?.mediaType || null,
         },
         isRootFolder: currentFolderId === shareInfo.rootFolderId && !viewingFileId,
         isPublic: true,
@@ -646,6 +647,10 @@ export function PublicShareManager({
                   mediaControllerRef.current?.pause()
                 }}
                 selectedCommentId={selectedCommentId}
+                hideAnnotationControl={(isCompareMode
+                  ? compareActiveAsset
+                  : currentSelectedItem
+                )?.mediaType?.startsWith('audio/')}
               />
             </div>
           </>

@@ -513,7 +513,10 @@ export function FileBrowser({
               fileCount: 0,
               type: 'file',
               status: hasUrl ? 'uploading' : 'error',
-              mediaType: f.file.type || null,
+              mediaType:
+                f.file.name.toLowerCase().endsWith('.wma') && f.file.type?.startsWith('video/')
+                  ? f.file.type.replace(/^video\//, 'audio/')
+                  : f.file.type || null,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             }
@@ -846,13 +849,17 @@ export function FileBrowser({
         }
         const fileWithId = { file, id: ulid() }
         fileWithIds.push(fileWithId)
+        let mediaType = file.type
+        if (fileName.toLowerCase().endsWith('.wma') && mediaType?.startsWith('video/')) {
+          mediaType = mediaType.replace(/^video\//, 'audio/')
+        }
         currentLevel.push({
           name: fileName,
           size: file.size,
           type: 'file',
           id: fileWithId.id,
           children: [],
-          mediaType: file.type,
+          mediaType,
         })
       }
       filesToUpload = fileWithIds

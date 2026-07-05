@@ -25,6 +25,7 @@ describe('Transcode Workflow', () => {
     getAssetActivity: Object.assign(vi.fn(), { _activityName: 'getAssetActivity' }),
     getMediaInfoActivity: Object.assign(vi.fn(), { _activityName: 'getMediaInfoActivity' }),
     transcodeVideoActivity: Object.assign(vi.fn(), { _activityName: 'transcodeVideoActivity' }),
+    transcodeAudioActivity: Object.assign(vi.fn(), { _activityName: 'transcodeAudioActivity' }),
     transcodeImageActivity: Object.assign(vi.fn(), { _activityName: 'transcodeImageActivity' }),
     generateSpriteActivity: Object.assign(vi.fn(), { _activityName: 'generateSpriteActivity' }),
     updateAssetMediaActivity: Object.assign(vi.fn(), {
@@ -386,6 +387,89 @@ describe('Transcode Workflow', () => {
       taskId: 'task-image-ann',
       status: WorkflowTaskStatus.completed,
       output: { key: 'files/asset-image/annotations/ann1.webp' },
+    })
+  })
+
+  it('should run audio transcoding workflow successfully', async () => {
+    const task: WorkflowTask = {
+      id: 'task-audio',
+      assetId: 'asset-audio',
+      type: WorkflowTaskType.transcode,
+      status: WorkflowTaskStatus.pending,
+      output: null,
+      payload: {
+        projectId: 'proj-1',
+        transcode: {},
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      heartbeat: null,
+      teamId: 'team-1',
+      projectId: 'proj-1',
+      uid: 'task-uid-2',
+      model: null,
+      inputTokens: 0,
+      outputTokens: 0,
+    }
+
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'asset-audio',
+      storageKey: { key: 'audio.wav' },
+      mediaType: 'audio/wav',
+    })
+
+    mockActivities.getMediaInfoActivity.mockResolvedValue({
+      mimeType: 'audio/wav',
+      metadata: {
+        originalWidth: 0,
+        originalHeight: 0,
+        duration: 30,
+        bitRate: 1411200,
+        frameRate: 0,
+        totalFrames: 0,
+        hasAudio: true,
+        audioCodec: 'pcm_s16le',
+        audioChannels: 2,
+      },
+      original: {
+        key: 'audio.wav',
+        downloadUrl: '',
+        filesizeInBytes: 0,
+        codec: '',
+      },
+      videoTranscodes: [],
+    })
+
+    mockActivities.transcodeAudioActivity.mockResolvedValue({
+      width: 0,
+      height: 0,
+      key: 'files/asset-audio/audio-audio-proxy.mp4',
+    })
+
+    await transcodeMedia(task)
+
+    expect(mockActivities.transcodeAudioActivity).toHaveBeenCalledWith({
+      assetKey: 'audio.wav',
+      filePath: '/tmp/video.mp4',
+    })
+
+    expect(mockActivities.updateAssetMediaActivity).toHaveBeenCalledWith({
+      assetId: 'asset-audio',
+      mediaInfo: expect.objectContaining({
+        mimeType: 'audio/wav',
+        videoTranscodes: [
+          {
+            width: 0,
+            height: 0,
+            key: 'files/asset-audio/audio-audio-proxy.mp4',
+          },
+        ],
+      }),
+    })
+
+    expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
+      taskId: 'task-audio',
+      status: WorkflowTaskStatus.completed,
     })
   })
 })

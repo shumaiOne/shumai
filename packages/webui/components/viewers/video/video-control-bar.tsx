@@ -113,6 +113,7 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
   // fullscreen). Compare keeps it in-flow. Colors stay theme-aware either way.
   const overlay = state.isFullScreen && floatOverlayInFullScreen
 
+  const isAudio = data.mediaType?.startsWith('audio/')
   const previewResolutions = resolutions.filter((r) => !r.isRaw)
 
   const startTimecode = data.media?.metadata?.startTimecode
@@ -253,31 +254,33 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
         {/* Right Side: Zoom, Speed, Res, Download, Fullscreen */}
         <div className="relative flex items-center gap-3">
           {/* Zoom Controls */}
-          <div className="flex items-center gap-1">
-            <div className="flex items-center gap-1 rounded-md bg-muted p-0.5">
+          {!isAudio && (
+            <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 rounded-md bg-muted p-0.5">
+                <button
+                  onClick={() => onZoomChange(zoom * 0.8)}
+                  className="p-1 hover:text-primary rounded"
+                >
+                  <Minus size={14} />
+                </button>
+                <span className="text-xs w-8 text-center tabular-nums">
+                  {Math.round(zoom * 100)}%
+                </span>
+                <button
+                  onClick={() => onZoomChange(zoom * 1.2)}
+                  className="p-1 hover:text-primary rounded"
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
               <button
-                onClick={() => onZoomChange(zoom * 0.8)}
-                className="p-1 hover:text-primary rounded"
+                onClick={onZoomReset}
+                className="text-xs font-medium px-2 py-1 rounded bg-muted hover:text-primary transition-colors"
               >
-                <Minus size={14} />
-              </button>
-              <span className="text-xs w-8 text-center tabular-nums">
-                {Math.round(zoom * 100)}%
-              </span>
-              <button
-                onClick={() => onZoomChange(zoom * 1.2)}
-                className="p-1 hover:text-primary rounded"
-              >
-                <Plus size={14} />
+                Fit
               </button>
             </div>
-            <button
-              onClick={onZoomReset}
-              className="text-xs font-medium px-2 py-1 rounded bg-muted hover:text-primary transition-colors"
-            >
-              Fit
-            </button>
-          </div>
+          )}
 
           {/* Playback Rate */}
           <DropdownMenu>
@@ -304,60 +307,73 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Resolution Selector */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-1 rounded border border-border px-2 py-0.5 text-sm font-semibold hover:bg-muted transition-colors">
-                <Settings className="h-3.5 w-3.5" />
-                <span>{state.currentResolution}</span>
-              </button>
-            </DropdownMenuTrigger>
+          {/* Settings / Resolution */}
+          {!isAudio && previewResolutions.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-1 rounded border border-border px-2 py-0.5 text-sm font-semibold hover:bg-muted transition-colors">
+                  <Settings className="h-3.5 w-3.5" />
+                  <span>{state.currentResolution}</span>
+                </button>
+              </DropdownMenuTrigger>
 
-            <DropdownMenuContent>
-              <DropdownMenuLabel>Quality</DropdownMenuLabel>
-              {previewResolutions.map((res) => (
-                <DropdownMenuItem
-                  key={res.resolution}
-                  onClick={() => changeResolution(res)}
-                  className={cn(
-                    'flex w-full items-center justify-between',
-                    state.currentResolution === res.resolution
-                      ? 'text-primary font-medium'
-                      : 'text-foreground',
-                  )}
-                >
-                  <span>{res.resolution}</span>
-                  <span className="pl-5 text-xs text-muted-foreground">
-                    {res.width}x{res.height}
-                  </span>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+              <DropdownMenuContent>
+                <DropdownMenuLabel>Quality</DropdownMenuLabel>
+                {previewResolutions.map((res) => (
+                  <DropdownMenuItem
+                    key={res.resolution}
+                    onClick={() => changeResolution(res)}
+                    className={cn(
+                      'flex w-full items-center justify-between',
+                      state.currentResolution === res.resolution
+                        ? 'text-primary font-medium'
+                        : 'text-foreground',
+                    )}
+                  >
+                    <span>{res.resolution}</span>
+                    <span className="pl-5 text-xs text-muted-foreground">
+                      {res.width}x{res.height}
+                    </span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
 
           {/* Download */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="transition-colors hover:text-primary" title="Download">
-                <Download className="h-5 w-5" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuLabel>Download</DropdownMenuLabel>
-              {resolutions.map((res) => (
-                <DropdownMenuItem
-                  key={res.resolution}
-                  onClick={() => handleDownload(res.key ?? '')}
-                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-foreground"
-                >
-                  <span>{res.resolution}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {res.isRaw ? data.name?.split('.').pop()?.toUpperCase() || 'RAW' : 'MP4'}
-                  </span>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {isAudio ? (
+            <button
+              onClick={() => handleDownload(data.media?.original?.key || '')}
+              className="transition-colors hover:text-primary"
+              title="Download"
+              disabled={!data.media?.original?.key}
+            >
+              <Download className="h-5 w-5" />
+            </button>
+          ) : (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="transition-colors hover:text-primary" title="Download">
+                  <Download className="h-5 w-5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuLabel>Download</DropdownMenuLabel>
+                {resolutions.map((res) => (
+                  <DropdownMenuItem
+                    key={res.resolution}
+                    onClick={() => handleDownload(res.key ?? '')}
+                    className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-foreground"
+                  >
+                    <span>{res.resolution}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {res.isRaw ? data.name?.split('.').pop()?.toUpperCase() || 'RAW' : 'MP4'}
+                    </span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
 
           {/* Fullscreen */}
           <button onClick={toggleFullScreen} className="transition-colors hover:text-primary">

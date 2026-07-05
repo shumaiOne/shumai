@@ -270,4 +270,81 @@ describe('TranscodeService', () => {
     expect(task.payload?.projectId).toBe('proj-123')
     expect(task.payload?.transcode?.videoStrategy).toBe('best_match')
   })
+
+  it('should parse audio info correctly from ffprobe output', async () => {
+    /* eslint-disable @typescript-eslint/naming-convention */
+    const mockOutput = JSON.stringify({
+      format: { duration: '120.4', bit_rate: '256000' },
+      streams: [
+        {
+          codec_type: 'audio',
+          codec_name: 'flac',
+          channels: 6,
+          sample_rate: '44100',
+          bits_per_sample: '24',
+          tags: {
+            mime_codec_string: 'fLaC',
+          },
+        },
+      ],
+    })
+    /* eslint-enable @typescript-eslint/naming-convention */
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(child_process.execFile as any).mockImplementation((file: string, args: string[], cb: any) => {
+      cb(null, { stdout: mockOutput, stderr: '' })
+    })
+
+    const info = await transcodeService.getAudioInfo('test.flac')
+
+    expect(info.originalWidth).toBe(0)
+    expect(info.originalHeight).toBe(0)
+    expect(info.duration).toBe(120.4)
+    expect(info.frameRate).toBe(0)
+    expect(info.hasAudio).toBe(true)
+    expect(info.videoCodec).toBeUndefined()
+    expect(info.audioCodec).toBe('Fres Lossless Audio Codec')
+    expect(info.audioChannels).toBe(6)
+    expect(info.audioSampleRate).toBe(44100)
+    expect(info.audioBitDepth).toBe(24)
+
+    expect(child_process.execFile).toHaveBeenCalledWith(
+      'ffprobe',
+      expect.any(Array),
+      expect.any(Function),
+    )
+  })
+
+  it('should construct correct ffmpeg arguments for audio transcoding', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(child_process.execFile as any).mockImplementation((file: string, args: string[], cb: any) => {
+      cb(null, { stdout: '', stderr: '' })
+    })
+
+    await transcodeService.transcodeAudio({
+      inputFile: 'input.wav',
+      outputFile: 'output.mp4',
+      bitrate: '128k',
+    })
+
+    expect(child_process.execFile).toHaveBeenCalledWith(
+      'ffmpeg',
+      [
+        '-y',
+        '-loglevel',
+        'warning',
+        '-i',
+        'input.wav',
+        '-vn',
+        '-c:a',
+        'aac',
+        '-b:a',
+        '128k',
+        '-ac',
+        '2',
+        'output.mp4',
+      ],
+      expect.any(Function),
+    )
+  })
 })

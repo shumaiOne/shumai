@@ -134,13 +134,18 @@ export class UploadService {
         key = `files/${ulid()}/${sanitizeFilename(file.name)}`
       }
 
+      let mediaType = file.mediaType
+      if (mediaType && file.name.toLowerCase().endsWith('.wma') && mediaType.startsWith('video/')) {
+        mediaType = mediaType.replace(/^video\//, 'audio/')
+      }
+
       const newAsset = await tx.asset.create({
         data: {
           name: file.name,
           type: assetType,
           storageKey: key ? { create: { key } } : undefined,
           sortIndex: newSortIndex,
-          mediaType: file.mediaType,
+          mediaType: mediaType,
           status: assetType === AssetType.folder ? AssetStatus.uploaded : AssetStatus.uploading,
           sizeByte: file.size,
           creator: userId ? { connect: { id: userId } } : undefined,
@@ -289,7 +294,11 @@ export class UploadService {
       },
     })
 
-    if (autofillAgent) {
+    const isVideo = asset.mediaType?.startsWith('video/')
+    const isImage = asset.mediaType?.startsWith('image/')
+    const isAudio = asset.mediaType?.startsWith('audio/')
+
+    if (autofillAgent && (isVideo || isImage)) {
       await tx.workflowTask.create({
         data: {
           assetId: asset.id,
@@ -305,9 +314,7 @@ export class UploadService {
       })
     }
 
-    const isVideo = asset.mediaType?.startsWith('video/')
-    const isImage = asset.mediaType?.startsWith('image/')
-    if (!isVideo && !isImage) {
+    if (!isVideo && !isImage && !isAudio) {
       await tx.asset.update({
         where: { id: asset.id },
         data: { status: AssetStatus.processed },
@@ -322,6 +329,9 @@ export class UploadService {
           .withSprite()
           .withPoster()
           .submit()
+      } else if (isAudio) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await new VideoTranscoder(tx as any, asset.id, team.id, projectId).submit()
       } else if (isImage) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await new ImageTranscoder(tx as any, asset.id, team.id, projectId).withThumbnail().submit()

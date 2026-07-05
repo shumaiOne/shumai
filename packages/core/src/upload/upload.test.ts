@@ -388,4 +388,37 @@ describe('UploadService', () => {
     expect(result.data[0].id).toBe(task.id)
     expect(result.data[0].name).toBe('test-upload-task')
   })
+
+  it('should correct the mediaType for .wma files that browser incorrectly reports as video', async () => {
+    const req = {
+      parentId: parentId,
+      files: [
+        {
+          name: 'song.wma',
+          id: '1',
+          size: 100,
+          type: 'file' as const,
+          mediaType: 'video/x-ms-wma',
+          children: [],
+        },
+        {
+          name: 'other_song.WMA',
+          id: '2',
+          size: 200,
+          type: 'file' as const,
+          mediaType: 'video/x-ms-asf',
+          children: [],
+        },
+      ],
+    }
+
+    const resp = await uploadService.createUploadTask(userId, req)
+    expect(resp.taskId).toBeDefined()
+
+    const song1 = await prisma.asset.findFirst({ where: { name: 'song.wma' } })
+    expect(song1?.mediaType).toBe('audio/x-ms-wma')
+
+    const song2 = await prisma.asset.findFirst({ where: { name: 'other_song.WMA' } })
+    expect(song2?.mediaType).toBe('audio/x-ms-asf')
+  })
 })

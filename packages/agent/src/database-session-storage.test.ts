@@ -2,7 +2,7 @@ import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { type SessionTreeEntry } from '@earendil-works/pi-agent-core'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi, afterEach } from 'vitest'
 import { DatabaseSessionStorage } from './database-session-storage'
 import { agentService } from '@shumai/core/src/agent/agent'
 import { createAgentSession } from './index'
@@ -12,6 +12,10 @@ import * as screenshotModule from './tools/screenshot'
 
 describe('DatabaseSessionStorage', () => {
   setupTestDbHooks()
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
 
   const mockModelConfig: PrismaJson.ModelConfig = {
     reasoning: false,
@@ -392,7 +396,7 @@ describe('DatabaseSessionStorage', () => {
     expect(entries[2].id).toBe('01C')
   })
 
-  it('should use the current comment ID for media tools in subsequent turns', async () => {
+  it('should use the current comment ID for media tools in subsequent turns (image)', async () => {
     const { agent, user, team } = await setupTestData()
 
     // Create a project and asset to satisfy FK constraints
@@ -441,6 +445,58 @@ describe('DatabaseSessionStorage', () => {
 
     // 4. Assert that the tools were instantiated using the new comment ID, not the original one
     expect(createAnalyzeImageToolSpy).toHaveBeenCalledWith(asset.id, 'new-comment-456')
+    expect(createScreenshotToolSpy).not.toHaveBeenCalled()
+  })
+
+  it('should use the current comment ID for media tools in subsequent turns (video)', async () => {
+    const { agent, user, team } = await setupTestData()
+
+    // Create a project and asset to satisfy FK constraints
+    const project = await prisma.project.create({
+      data: { name: 'Test Project', teamId: team.id },
+    })
+    const asset = await prisma.asset.create({
+      data: {
+        id: 'asset-456',
+        name: 'test.mp4',
+        type: 'file',
+        mediaType: 'video/mp4',
+        projectId: project.id,
+        status: 'uploaded',
+      },
+    })
+
+    // 1. Create a session with an original comment ID and an asset ID using the storage class
+    const initialStorage = await DatabaseSessionStorage.create({
+      agentId: agent.id,
+      userId: user.id,
+      cwd: '/test/cwd',
+      assetId: asset.id,
+      userCommentId: 'original-comment-123',
+    })
+    const sessionId = initialStorage.sessionId
+
+    // 2. Spy on media tools constructors
+    const createAnalyzeImageToolSpy = vi.spyOn(analyzeImageModule, 'createAnalyzeImageTool')
+    const createScreenshotToolSpy = vi.spyOn(screenshotModule, 'createScreenshotTool')
+
+    // 3. Resume the session via createAgentSession with a NEW comment ID
+    await createAgentSession({
+      teamId: 't1',
+      agentId: agent.id,
+      providerName: 'test-provider',
+      modelId: 'test-model',
+      systemPrompt: 'Test prompt',
+      teamSkills: [],
+      allowedDomains: [],
+      sessionId: sessionId,
+      userId: user.id,
+      userCommentId: 'new-comment-456',
+      providers: [],
+    })
+
+    // 4. Assert that the tools were instantiated using the new comment ID, not the original one
     expect(createScreenshotToolSpy).toHaveBeenCalledWith(asset.id, 'new-comment-456')
+    expect(createAnalyzeImageToolSpy).not.toHaveBeenCalled()
   })
 })
