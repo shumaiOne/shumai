@@ -65,6 +65,14 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
 
     // 2. Prepare Data (Images)
     const isImage = asset.mediaType?.startsWith('image/') || false
+    const isVideo = asset.mediaType?.startsWith('video/') || false
+
+    if (!isImage && !isVideo) {
+      throw ApplicationFailure.create({
+        message: `unsupported media type for autofill: ${asset.mediaType}`,
+        nonRetryable: true,
+      })
+    }
 
     const download = await executeActivity(transcodeWorkerQueue, downloadMediaToTmpActivity, {
       assetKey: key,

@@ -283,4 +283,30 @@ describe('Agent Autofill Workflow', () => {
       tmpDir: '/tmp/test-dir',
     })
   })
+
+  it('should fail with non-retryable ApplicationFailure for unsupported audio files', async () => {
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'a1',
+      storageKey: { key: 'asset-key' },
+      project: { id: 'p1', teamId: 't1' },
+      mediaType: 'audio/mp3',
+    })
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'ai_metadata_autofill',
+        status: 'pending',
+        assetId: 'a1',
+      },
+    })
+
+    await expect(agentAutofillMedia(task)).rejects.toThrow('unsupported media type for autofill: audio/mp3')
+
+    // Verify task failed status
+    expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
+      taskId: task.id,
+      status: 'failed',
+      output: { error: 'unsupported media type for autofill: audio/mp3' },
+    })
+  })
 })
