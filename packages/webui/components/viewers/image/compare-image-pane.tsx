@@ -6,7 +6,7 @@ import { useAnnotationStore } from '@/ui/stores/annotation-store'
 import type { Annotation } from '@/ui/types'
 import type { AssetInfo } from '@shumai/dtos'
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
-import type { ComparePaneHandle, PaneReportedState } from './types'
+import type { ComparePaneHandle, PaneReportedState } from '../../compare/types'
 
 interface CompareImagePaneProps {
   file: AssetInfo

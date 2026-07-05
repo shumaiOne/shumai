@@ -19,7 +19,7 @@ import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-quer
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import type Player from 'video.js/dist/types/player'
+import type { MediaController } from '@/ui/components/viewers/types'
 
 function FileViewPage() {
   const { projectId, fileId } = Route.useParams()
@@ -32,7 +32,7 @@ function FileViewPage() {
   const compareActiveSide = search.cmpActive ?? 'left'
   const isCompareMode = !!search.compare && !!compareLeftId && !!compareRightId
 
-  const videoRef = useRef<Player | null>(null)
+  const mediaControllerRef = useRef<MediaController | null>(null)
   const { teamId, ensureTeamIdForProject } = useTeamContextStore()
   const [rightSidebarWidth, setRightSidebarWidth] = useState(360)
   const [annotations, setAnnotations] = useState<Annotation[]>([])
@@ -368,14 +368,10 @@ function FileViewPage() {
     }
 
     if (comment.second !== null && comment.second !== undefined) {
-      if (videoRef.current) {
-        videoRef.current.currentTime(comment.second)
-        videoRef.current.pause()
-      }
+      mediaControllerRef.current?.seekTo(comment.second)
+      mediaControllerRef.current?.pause()
     } else if (newAnnotations && newAnnotations.length > 0) {
-      if (videoRef.current) {
-        videoRef.current.pause()
-      }
+      mediaControllerRef.current?.pause()
     }
   }
 
@@ -415,7 +411,7 @@ function FileViewPage() {
           ) : (
             <FileViewer
               file={fileData as unknown as AssetInfo}
-              videoRef={videoRef}
+              mediaControllerRef={mediaControllerRef}
               onPlay={handlePlay}
               onTimeUpdate={setCurrentTime}
               annotations={annotations}
@@ -450,9 +446,7 @@ function FileViewPage() {
             currentTime={currentTime}
             onTyping={() => {
               if (isCompareMode) return
-              if (videoRef.current) {
-                videoRef.current.pause()
-              }
+              mediaControllerRef.current?.pause()
             }}
             selectedCommentId={selectedCommentId}
           />

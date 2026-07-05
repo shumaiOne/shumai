@@ -15,6 +15,7 @@ import { ChatInput } from './chat/message-input'
 import FieldRenderer from './field-renderer'
 import { GuestIdentityPopup } from './guest-identity-popup'
 import { ScrollArea } from './ui/scroll-area'
+import { getViewerForFile } from '@/ui/components/viewers/registry'
 
 interface FileViewerRightSidebarProps {
   teamId: string
@@ -88,7 +89,8 @@ export function FileViewerRightSidebar({
     enabled: !!projectId && !readOnly,
   })
 
-  const isAiEnabled = file?.mediaType?.startsWith('image/') || file?.mediaType?.startsWith('video/')
+  const viewerDef = getViewerForFile(file)
+  const isAiEnabled = !!viewerDef?.commentsConfig?.hasAiBots
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const enabledBots = isAiEnabled ? (bots as any[]) || [] : []
@@ -355,12 +357,12 @@ export function FileViewerRightSidebar({
                     onViewAttachment={setViewingAttachment}
                     hasReplies={!!comment.replies?.length}
                     frameRate={
-                      file?.mediaType?.startsWith('video/')
+                      viewerDef?.commentsConfig?.hasTimestamp
                         ? file?.media?.metadata?.frameRate || 30
                         : undefined
                     }
                     startTimecode={
-                      file?.mediaType?.startsWith('video/')
+                      viewerDef?.commentsConfig?.hasTimestamp
                         ? file?.media?.metadata?.startTimecode
                         : undefined
                     }
@@ -381,12 +383,12 @@ export function FileViewerRightSidebar({
                         hasReplies={false}
                         isLastReply={index === (comment.replies?.length ?? 0) - 1}
                         frameRate={
-                          file?.mediaType?.startsWith('video/')
+                          viewerDef?.commentsConfig?.hasTimestamp
                             ? file?.media?.metadata?.frameRate || 30
                             : undefined
                         }
                         startTimecode={
-                          file?.mediaType?.startsWith('video/')
+                          viewerDef?.commentsConfig?.hasTimestamp
                             ? file?.media?.metadata?.startTimecode
                             : undefined
                         }
@@ -417,14 +419,14 @@ export function FileViewerRightSidebar({
                   bots={enabledBots}
                   hideAnnotationControl={hideAnnotationControl}
                   disableMentions={isPublic}
-                  currentTime={file?.mediaType?.startsWith('video/') ? currentTime : undefined}
+                  currentTime={viewerDef?.commentsConfig?.hasTimestamp ? currentTime : undefined}
                   frameRate={
-                    file?.mediaType?.startsWith('video/')
+                    viewerDef?.commentsConfig?.hasTimestamp
                       ? file?.media?.metadata?.frameRate || 30
                       : undefined
                   }
                   startTimecode={
-                    file?.mediaType?.startsWith('video/')
+                    viewerDef?.commentsConfig?.hasTimestamp
                       ? file?.media?.metadata?.startTimecode
                       : undefined
                   }

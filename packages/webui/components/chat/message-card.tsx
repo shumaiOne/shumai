@@ -17,7 +17,7 @@ import Markdown from 'react-markdown'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { DrawAnnotation } from '../ui/icons'
 import { Skeleton } from '../ui/skeleton'
-import { formatTimecode } from '../viewers/utils'
+import { formatTimecode } from '../viewers/video/utils'
 import { m } from '@/ui/paraglide/messages.js'
 import { useUiStore } from '@/ui/stores/ui'
 

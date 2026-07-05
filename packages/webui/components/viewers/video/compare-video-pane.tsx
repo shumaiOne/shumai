@@ -8,21 +8,21 @@ import { Play } from 'lucide-react'
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import videojs from 'video.js'
 import type Player from 'video.js/dist/types/player'
-import { useFramePlayer } from '@/ui/components/viewers/use-frame-player'
-import { resolveTotalFrames } from '@/ui/components/viewers/utils'
-import { clampFrame as clampFrameUtil } from './compare-utils'
-import type { ComparePaneHandle, DisplayTranscode, PaneReportedState } from './types'
+import { useFramePlayer } from './use-frame-player'
+import { resolveTotalFrames } from './utils'
+import { clampFrame as clampFrameUtil } from '../../compare/compare-utils'
+import type { ComparePaneHandle, DisplayTranscode, PaneReportedState } from '../../compare/types'
 
 interface CompareVideoPaneProps {
   file: AssetInfo
   shareId?: string
   isActive: boolean
   /** Whether this pane's audio should be muted (only the active side plays audio). */
-  muted: boolean
-  volume: number
+  muted?: boolean
+  volume?: number
   annotations: Annotation[]
   onStateChange: (state: PaneReportedState) => void
-  onActivate?: () => void
+  onActivate: () => void
   onRequestTogglePlay?: () => void
   /** Called with the current playhead time in seconds (used only for the active pane). */
   onTimeUpdate?: (second: number) => void
@@ -68,8 +68,8 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
       file,
       shareId,
       isActive,
-      muted,
-      volume,
+      muted = true,
+      volume = 1,
       annotations,
       onStateChange,
       onActivate,

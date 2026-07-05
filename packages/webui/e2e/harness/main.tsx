@@ -1,8 +1,8 @@
 import { type ReactElement, useCallback, useRef, useState } from 'react'
 import ReactDOM from 'react-dom/client'
-import type Player from 'video.js/dist/types/player'
-import VideoPlayer from '@/ui/components/viewers/video-player'
-import { calculateFrameCenterTime } from '@/ui/components/viewers/utils'
+import type { MediaController } from '@/ui/components/viewers/types'
+import VideoPlayer from '@/ui/components/viewers/video/video-viewer'
+import { calculateFrameCenterTime } from '@/ui/components/viewers/video/utils'
 import { useUiStore } from '@/ui/stores/ui'
 import {
   SAMPLE_FRAME_RATE,
@@ -70,7 +70,7 @@ interface HarnessComment {
 }
 
 function Harness(): ReactElement {
-  const playerRef = useRef<Player | null>(null)
+  const playerRef = useRef<MediaController | null>(null)
   // Latest player time (seconds) as reported by the real onTimeUpdate prop.
   const currentTimeRef = useRef<number>(0)
   const seekInputRef = useRef<HTMLInputElement>(null)
@@ -92,7 +92,7 @@ function Harness(): ReactElement {
     if (!player) return
     const frame = Number.parseInt(seekInputRef.current?.value ?? '', 10)
     if (Number.isNaN(frame)) return
-    player.currentTime(calculateFrameCenterTime(frame, SAMPLE_FRAME_RATE))
+    player.seekTo(calculateFrameCenterTime(frame, SAMPLE_FRAME_RATE))
     player.pause()
   }, [])
 
@@ -114,7 +114,7 @@ function Harness(): ReactElement {
   const handleCommentClick = useCallback((second: number) => {
     const player = playerRef.current
     if (!player) return
-    player.currentTime(second)
+    player.seekTo(second)
     player.pause()
   }, [])
 
@@ -132,8 +132,8 @@ function Harness(): ReactElement {
         <div className="flex flex-col flex-1 h-full overflow-hidden relative">
           <VideoPlayer
             key={playerKey}
-            data={harnessAsset}
-            playerRef={playerRef}
+            file={harnessAsset}
+            ref={playerRef}
             onTimeUpdate={handleTimeUpdate}
           />
         </div>

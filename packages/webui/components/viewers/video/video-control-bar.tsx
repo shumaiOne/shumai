@@ -23,8 +23,8 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from '../ui/dropdown-menu'
-import { Slider } from '../ui/slider'
+} from '../../ui/dropdown-menu'
+import { Slider } from '../../ui/slider'
 import ProgressBar from './progress-bar'
 import { formatTime, formatTimecode } from './utils'
 
@@ -196,7 +196,7 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
               <div className="w-24 px-1">
                 <Slider
                   value={state.isMuted ? [0] : [state.volume]}
-                  onValueChange={(v) => handleVolumeChange(v[0])}
+                  onValueChange={(v: number[]) => handleVolumeChange(v[0])}
                   max={1}
                   step={0.05}
                 />

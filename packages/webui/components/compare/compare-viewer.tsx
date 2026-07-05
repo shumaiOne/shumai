@@ -4,12 +4,10 @@ import type { AssetInfo } from '@shumai/dtos'
 import { useQuery } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { getViewerForFile } from '@/ui/components/viewers/registry'
 import { CompareControlBar } from './compare-control-bar'
-import { CompareImagePane } from './compare-image-pane'
 import { ComparePaneTopbar } from './compare-pane-topbar'
-import { isSameType, kindOf } from './compare-utils'
-import { CompareVideoPane } from './compare-video-pane'
-import type { ComparePaneHandle, CompareSide, PaneKind, PaneReportedState } from './types'
+import type { ComparePaneHandle, CompareSide, PaneReportedState } from './types'
 
 interface VersionItem {
   id: string
@@ -89,9 +87,9 @@ export function CompareViewer({
   const { data: leftAsset, isLoading: leftLoading } = useCompareAsset(leftId, isPublic, shareId)
   const { data: rightAsset, isLoading: rightLoading } = useCompareAsset(rightId, isPublic, shareId)
 
-  const leftKind = kindOf(leftAsset?.mediaType)
-  const rightKind = kindOf(rightAsset?.mediaType)
-  const sameType = isSameType(leftKind, rightKind)
+  const leftDef = getViewerForFile(leftAsset)
+  const rightDef = getViewerForFile(rightAsset)
+  const sameType = !!leftAsset && !!rightAsset && leftDef.id === rightDef.id
 
   const activeAsset = activeSide === 'left' ? leftAsset : rightAsset
   const activeState = activeSide === 'left' ? leftState : rightState
@@ -219,51 +217,41 @@ export function CompareViewer({
     [activeAsset?.media?.videoPreview?.url],
   )
 
-  const renderPane = (side: CompareSide, asset: AssetInfo, kind: PaneKind) => {
+  const renderPane = (side: CompareSide, asset: AssetInfo) => {
+    const def = getViewerForFile(asset)
+    const ComparePane = def?.comparePane
+
+    if (!ComparePane) {
+      return (
+        <div className="flex flex-1 items-center justify-center bg-gray-100 dark:bg-gray-950">
+          <p className="text-muted-foreground">Preview unavailable</p>
+        </div>
+      )
+    }
+
     const isActive = activeSide === side
     const paneRef = side === 'left' ? leftRef : rightRef
     const onStateChange = side === 'left' ? handleStateChangeLeft : handleStateChangeRight
     const onUserPan = side === 'left' ? handleUserPanLeft : handleUserPanRight
     const paneAnnotations = isActive ? annotations : []
 
-    if (kind === 'video') {
-      return (
-        <CompareVideoPane
-          key={asset.id}
-          ref={paneRef}
-          file={asset}
-          shareId={shareId}
-          isActive={isActive}
-          muted={isActive ? userMuted : true}
-          volume={userVolume}
-          annotations={paneAnnotations}
-          onStateChange={onStateChange}
-          onActivate={() => onActiveSideChange(side)}
-          onRequestTogglePlay={handleRequestTogglePlay}
-          onTimeUpdate={onTimeUpdate}
-          onPlay={onPlay}
-        />
-      )
-    }
-    if (kind === 'image') {
-      return (
-        <CompareImagePane
-          key={asset.id}
-          ref={paneRef}
-          file={asset}
-          shareId={shareId}
-          isActive={isActive}
-          annotations={paneAnnotations}
-          onStateChange={onStateChange}
-          onUserPan={onUserPan}
-          onActivate={() => onActiveSideChange(side)}
-        />
-      )
-    }
     return (
-      <div className="flex flex-1 items-center justify-center bg-gray-100 dark:bg-gray-950">
-        <p className="text-muted-foreground">Preview unavailable</p>
-      </div>
+      <ComparePane
+        key={asset.id}
+        ref={paneRef}
+        file={asset}
+        shareId={shareId}
+        isActive={isActive}
+        annotations={paneAnnotations}
+        onStateChange={onStateChange}
+        onUserPan={onUserPan}
+        onActivate={() => onActiveSideChange(side)}
+        muted={isActive ? userMuted : true}
+        volume={userVolume}
+        onPlay={onPlay}
+        onTimeUpdate={onTimeUpdate}
+        onRequestTogglePlay={handleRequestTogglePlay}
+      />
     )
   }
 
@@ -290,7 +278,7 @@ export function CompareViewer({
           )}
           <div className="relative flex min-h-0 flex-1">
             {leftAsset ? (
-              renderPane('left', leftAsset, leftKind)
+              renderPane('left', leftAsset)
             ) : (
               <div className="flex flex-1 items-center justify-center">
                 <Loader2 className="h-6 w-6 animate-spin text-foreground" />
@@ -316,7 +304,7 @@ export function CompareViewer({
           )}
           <div className="relative flex min-h-0 flex-1">
             {rightAsset ? (
-              renderPane('right', rightAsset, rightKind)
+              renderPane('right', rightAsset)
             ) : (
               <div className="flex flex-1 items-center justify-center">
                 <Loader2 className="h-6 w-6 animate-spin text-foreground" />

@@ -1,6 +1,6 @@
 import { File, Folder } from 'lucide-react'
 import { SpriteScrubber } from '../sprite-scrubber'
-import { formatTime } from '../viewers/utils'
+import { formatTime } from '../viewers/video/utils'
 
 type FilePreviewItem = {
   type?: string | null

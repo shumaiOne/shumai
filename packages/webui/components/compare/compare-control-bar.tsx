@@ -1,9 +1,9 @@
-import { ImageControlBar } from '@/ui/components/viewers/image-control-bar'
+import { ImageControlBar } from '@/ui/components/viewers/image/image-control-bar'
 import {
   VideoControlBar,
   type DisplayTranscode,
   type PlayerState,
-} from '@/ui/components/viewers/video-control-bar'
+} from '@/ui/components/viewers/video/video-control-bar'
 import type { AssetInfo } from '@shumai/dtos'
 import { Maximize, Minimize } from 'lucide-react'
 import type { PaneReportedState } from './types'
@@ -85,10 +85,10 @@ export function CompareControlBar({
         toggleMute={onToggleMute}
         handleVolumeChange={onVolumeChange}
         changePlaybackRate={onChangePlaybackRate}
-        changeResolution={(res) => onChangeResolution(res.resolution)}
-        handleDownload={(key) => onDownload(key)}
+        changeResolution={(res: DisplayTranscode) => onChangeResolution(res.resolution)}
+        handleDownload={(key?: string) => onDownload(key)}
         toggleFullScreen={onToggleFullScreen}
-        onZoomChange={(nz) => (nz >= activeState.zoom ? onZoomIn() : onZoomOut())}
+        onZoomChange={(nz: number) => (nz >= activeState.zoom ? onZoomIn() : onZoomOut())}
         onZoomReset={onFit}
         frameRate={v.frameRate}
         totalFrames={v.totalFrames}
