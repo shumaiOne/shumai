@@ -9,6 +9,7 @@ import {
   sampleVideoAsset,
   containerLongerVideoAsset,
   longAudioVideoAsset,
+  sampleAudioAsset,
 } from './fixture'
 
 /**
@@ -58,6 +59,7 @@ function resolveAsset() {
       : null
   if (variant === 'container-longer') return containerLongerVideoAsset
   if (variant === 'long-audio') return longAudioVideoAsset
+  if (variant === 'audio') return sampleAudioAsset
   return sampleVideoAsset
 }
 

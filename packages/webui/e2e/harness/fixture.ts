@@ -136,3 +136,27 @@ export const longAudioVideoAsset: AssetInfo = {
     },
   },
 }
+
+export const SAMPLE_AUDIO_URL = '/sample-audio.mp4'
+export const SAMPLE_AUDIO_DURATION = 3.0
+export const SAMPLE_AUDIO_COMPUTED_TOTAL_FRAMES = Math.round(SAMPLE_AUDIO_DURATION * SAMPLE_FRAME_RATE)
+
+export const sampleAudioAsset: AssetInfo = {
+  ...sampleVideoAsset,
+  id: 'e2e-sample-audio-asset',
+  name: 'sample-audio.mp4',
+  mediaType: 'audio/mp4',
+  media: {
+    original: {
+      downloadUrl: SAMPLE_AUDIO_URL,
+      key: 'sample-audio.mp4',
+    },
+    metadata: {
+      duration: SAMPLE_AUDIO_DURATION,
+      originalWidth: 0,
+      originalHeight: 0,
+      frameRate: SAMPLE_FRAME_RATE,
+      totalFrames: SAMPLE_AUDIO_COMPUTED_TOTAL_FRAMES,
+    },
+  },
+}
