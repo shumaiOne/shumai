@@ -139,7 +139,9 @@ export const longAudioVideoAsset: AssetInfo = {
 
 export const SAMPLE_AUDIO_URL = '/sample-audio.mp4'
 export const SAMPLE_AUDIO_DURATION = 3.0
-export const SAMPLE_AUDIO_COMPUTED_TOTAL_FRAMES = Math.round(SAMPLE_AUDIO_DURATION * SAMPLE_FRAME_RATE)
+export const SAMPLE_AUDIO_COMPUTED_TOTAL_FRAMES = Math.round(
+  SAMPLE_AUDIO_DURATION * SAMPLE_FRAME_RATE,
+)
 
 export const sampleAudioAsset: AssetInfo = {
   ...sampleVideoAsset,

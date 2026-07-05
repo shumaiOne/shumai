@@ -134,13 +134,18 @@ export class UploadService {
         key = `files/${ulid()}/${sanitizeFilename(file.name)}`
       }
 
+      let mediaType = file.mediaType
+      if (mediaType && file.name.toLowerCase().endsWith('.wma') && mediaType.startsWith('video/')) {
+        mediaType = mediaType.replace(/^video\//, 'audio/')
+      }
+
       const newAsset = await tx.asset.create({
         data: {
           name: file.name,
           type: assetType,
           storageKey: key ? { create: { key } } : undefined,
           sortIndex: newSortIndex,
-          mediaType: file.mediaType,
+          mediaType: mediaType,
           status: assetType === AssetType.folder ? AssetStatus.uploaded : AssetStatus.uploading,
           sizeByte: file.size,
           creator: userId ? { connect: { id: userId } } : undefined,
