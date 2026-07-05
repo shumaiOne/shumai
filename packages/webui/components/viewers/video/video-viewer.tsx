@@ -194,8 +194,9 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
     const dbTotalFrames = metadata?.totalFrames || 0
     const containerDuration = metadata?.duration || 0
 
+    const isAudio = data.mediaType?.startsWith('audio/')
     const totalFrames = resolveTotalFrames({ dbTotalFrames, containerDuration, frameRate })
-    const { currentFrame, seekToFrame } = useFramePlayer(videoRef, frameRate, totalFrames)
+    const { currentFrame, seekToFrame } = useFramePlayer(videoRef, frameRate, totalFrames, isAudio)
 
     const currentTime = currentFrame / frameRate
     const duration = totalFrames / frameRate

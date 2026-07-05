@@ -118,7 +118,8 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
     const [currentResolution, setCurrentResolution] = useState(initialRes?.resolution ?? 'Original')
     const currentSrcRef = useRef(initialRes?.url)
 
-    const { currentFrame, seekToFrame } = useFramePlayer(videoRef, frameRate, totalFrames)
+    const isAudio = file.mediaType?.startsWith('audio/')
+    const { currentFrame, seekToFrame } = useFramePlayer(videoRef, frameRate, totalFrames, isAudio)
 
     const zoomRef = useRef(zoom)
     zoomRef.current = zoom

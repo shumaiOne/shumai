@@ -24,6 +24,7 @@ export function useFramePlayer(
   videoRef: React.RefObject<HTMLVideoElement | null>,
   frameRate: number,
   totalFrames: number,
+  isAudio?: boolean,
 ): UseFramePlayerResult {
   const [currentFrame, setCurrentFrame] = useState<number>(0)
   const isSeekingRef = useRef<boolean>(false)
@@ -113,7 +114,7 @@ export function useFramePlayer(
       const rVfcStalledAfterDelivery = hasDeliveredVfc && sinceLastVfc > stallThreshold
       const rVfcNeverDelivered = !hasDeliveredVfc && sinceLastVfc > INITIAL_VFC_GRACE_MS
       const useCurrentTimeFallback =
-        !rVfcSupported || rVfcStalledAfterDelivery || rVfcNeverDelivered
+        isAudio || !rVfcSupported || rVfcStalledAfterDelivery || rVfcNeverDelivered
 
       if (useCurrentTimeFallback) {
         const frame = Math.floor(video.currentTime * frameRate + 0.45)
