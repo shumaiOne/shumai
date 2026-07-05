@@ -230,12 +230,18 @@ export class UploadService {
     const project = asset.project
 
     await this.prismaClient.$transaction(async (tx) => {
+      let resolvedMediaType = asset.mediaType
+      if (!resolvedMediaType || resolvedMediaType === 'application/octet-stream') {
+        resolvedMediaType = Bun.file(asset.name).type || 'application/octet-stream'
+      }
+
       // Update asset
       const updatedAsset = await tx.asset.update({
         where: { id: asset.id },
         data: {
           status: AssetStatus.uploaded,
           sizeByte: size,
+          mediaType: resolvedMediaType,
         },
       })
 
