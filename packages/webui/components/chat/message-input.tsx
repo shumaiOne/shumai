@@ -604,7 +604,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
             {replyingTo && (
               <div className="flex items-center justify-between bg-muted p-2 px-3 rounded-lg border border-border">
                 <div className="text-xs text-muted-foreground truncate mr-2">
-                  {m.reply_to()} {replyingTo.message}
+                  {m.reply_to_message({ message: replyingTo.message || '' })}
                 </div>
                 <button
                   onClick={onCancelReply}

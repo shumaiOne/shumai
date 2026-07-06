@@ -813,5 +813,9 @@
   "yesterday_with_time": "昨天 {time}",
   "n_items_singular": "{count} 个项目",
   "n_items_plural": "{count} 个项目",
-  "fullscreen": "全屏"
+  "fullscreen": "全屏",
+  "created_by_at": "{time} 由 {author} 创建",
+  "date_format_long": "yyyy年M月d日",
+  "tool_result_with_name": "工具结果：{name}",
+  "reply_to_message": "回复：{message}"
 }

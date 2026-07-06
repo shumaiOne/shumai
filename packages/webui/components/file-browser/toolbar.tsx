@@ -383,6 +383,7 @@ export function FileBrowserToolbar({
         open={isMembersDialogOpen}
         onOpenChange={handleOpenMembersDialog}
         title={m.project_members()}
+        type="project"
         members={members || []}
         isOwner={me?.role === 'owner'}
         onInvite={handleInvite}

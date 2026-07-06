@@ -293,8 +293,11 @@ export function FileCard({
             className="h-auto p-0 text-sm text-foreground !bg-transparent"
           />
           <p className="text-sm text-muted-foreground">
-            {displayItem.createdAt && formatTimeAgo(displayItem.createdAt)} {m.by()}{' '}
-            {displayItem.creator?.name}
+            {displayItem.createdAt &&
+              m.created_by_at({
+                time: formatTimeAgo(displayItem.createdAt),
+                author: displayItem.creator?.name || m.unknown_user(),
+              })}
           </p>
         </div>
         <DropdownMenu modal={false}>

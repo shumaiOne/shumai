@@ -10,7 +10,6 @@ import { format, parseISO, isToday, isYesterday } from 'date-fns'
 import { Progress } from '@/ui/components/ui/progress'
 import { formatTimeAgo } from '@/ui/lib/time'
 import { m } from '@/ui/paraglide/messages.js'
-import { getLocale } from '@/ui/paraglide/runtime.js'
 
 function formatDayHeader(dateString: string): string {
   const date = parseISO(dateString)
@@ -23,7 +22,7 @@ function formatDayHeader(dateString: string): string {
   if (isYesterday(date)) {
     return m.yesterday()
   }
-  return format(date, getLocale() === 'zh' ? 'yyyy年M月d日' : 'MMMM d, yyyy')
+  return format(date, m.date_format_long())
 }
 
 function formatBytes(bytes: number): string {

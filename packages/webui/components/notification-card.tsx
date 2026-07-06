@@ -3,10 +3,33 @@ import { formatTimeAgo } from '@/ui/lib/time'
 import { cn } from '@/ui/lib/utils'
 import { SpriteScrubber } from './sprite-scrubber'
 import { m } from '@/ui/paraglide/messages.js'
-import { getLocale } from '@/ui/paraglide/runtime.js'
+import React from 'react'
 
 interface NotificationCardProps {
   notification: NotificationInfo
+}
+
+const renderNotification = (
+  messageTemplate: string,
+  placeholders: Record<string, React.ReactNode>,
+) => {
+  const regex = new RegExp(
+    `(${Object.keys(placeholders)
+      .map((k) => `\\{${k}\\}`)
+      .join('|')})`,
+    'g',
+  )
+  return (
+    <span>
+      {messageTemplate.split(regex).map((part, index) => {
+        const match = part.match(/^\{(.+)\}$/)
+        if (match && placeholders[match[1]]) {
+          return <React.Fragment key={index}>{placeholders[match[1]]}</React.Fragment>
+        }
+        return part
+      })}
+    </span>
+  )
 }
 
 export const NotificationCard = ({ notification }: NotificationCardProps) => {
@@ -19,90 +42,52 @@ export const NotificationCard = ({ notification }: NotificationCardProps) => {
     const teamName = team?.name || m.unknown_team()
     const targetUserName = user?.name || m.unknown_user()
 
-    const isZh = getLocale() === 'zh'
-    const creatorEl = <span className="font-semibold">{creatorName}</span>
-    const assetEl = <span className="font-semibold">{assetName}</span>
-    const projectEl = <span className="font-semibold">{projectName}</span>
-    const teamEl = <span className="font-semibold">{teamName}</span>
-    const userEl = <span className="font-semibold">{targetUserName}</span>
+    const placeholders = {
+      creator: <span className="font-semibold">{creatorName}</span>,
+      asset: <span className="font-semibold">{assetName}</span>,
+      project: <span className="font-semibold">{projectName}</span>,
+      team: <span className="font-semibold">{teamName}</span>,
+      user: <span className="font-semibold">{targetUserName}</span>,
+    }
 
     switch (type) {
       case 'comment_created':
-        return isZh ? (
-          <span>
-            {creatorEl} 评论了 {assetEl}
-          </span>
-        ) : (
-          <span>
-            {creatorEl} commented on {assetEl}
-          </span>
+        return renderNotification(
+          m.notification_commented_on({ creator: '{creator}', asset: '{asset}' }),
+          placeholders,
         )
       case 'reply_created':
-        return isZh ? (
-          <span>
-            {creatorEl} 回复了 {assetEl} 上的评论
-          </span>
-        ) : (
-          <span>
-            {creatorEl} replied to a comment on {assetEl}
-          </span>
+        return renderNotification(
+          m.notification_replied_to({ creator: '{creator}', asset: '{asset}' }),
+          placeholders,
         )
       case 'mention':
-        return isZh ? (
-          <span>
-            {creatorEl} 在 {assetEl} 中提及了你
-          </span>
-        ) : (
-          <span>
-            {creatorEl} mentioned you in {assetEl}
-          </span>
+        return renderNotification(
+          m.notification_mentioned_you({ creator: '{creator}', asset: '{asset}' }),
+          placeholders,
         )
       case 'successful_file_uploaded':
-        return isZh ? (
-          <span>
-            {creatorEl} 将 {assetEl} 上传到 {projectEl}
-          </span>
-        ) : (
-          <span>
-            {creatorEl} uploaded {assetEl} to {projectEl}
-          </span>
+        return renderNotification(
+          m.notification_uploaded({ creator: '{creator}', asset: '{asset}', project: '{project}' }),
+          placeholders,
         )
       case 'metadata_field_updated_status':
-        return isZh ? (
-          <span>
-            {creatorEl} 更新了 {assetEl} 的状态
-          </span>
-        ) : (
-          <span>
-            {creatorEl} updated status of {assetEl}
-          </span>
+        return renderNotification(
+          m.notification_status_updated({ creator: '{creator}', asset: '{asset}' }),
+          placeholders,
         )
       case 'new_user_join_team':
-        return isZh ? (
-          <span>
-            {userEl} 加入了 {teamEl}
-          </span>
-        ) : (
-          <span>
-            {userEl} joined {teamEl}
-          </span>
+        return renderNotification(
+          m.notification_joined_team({ user: '{user}', team: '{team}' }),
+          placeholders,
         )
       case 'new_user_join_project':
-        return isZh ? (
-          <span>
-            {userEl} 加入了 {projectEl}
-          </span>
-        ) : (
-          <span>
-            {userEl} joined {projectEl}
-          </span>
+        return renderNotification(
+          m.notification_joined_project({ user: '{user}', project: '{project}' }),
+          placeholders,
         )
       default:
-        return isZh ? (
-          <span>来自 {creatorEl} 的新通知</span>
-        ) : (
-          <span>New notification from {creatorEl}</span>
-        )
+        return renderNotification(m.notification_generic({ creator: '{creator}' }), placeholders)
     }
   })()
 

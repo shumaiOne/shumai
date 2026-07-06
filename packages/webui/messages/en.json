@@ -813,5 +813,9 @@
   "yesterday_with_time": "Yesterday {time}",
   "n_items_singular": "{count} Item",
   "n_items_plural": "{count} Items",
-  "fullscreen": "Fullscreen"
+  "fullscreen": "Fullscreen",
+  "created_by_at": "{time} by {author}",
+  "date_format_long": "MMMM d, yyyy",
+  "tool_result_with_name": "Tool Result: {name}",
+  "reply_to_message": "reply to: {message}"
 }

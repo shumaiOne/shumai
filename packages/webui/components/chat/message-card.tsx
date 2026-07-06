@@ -345,7 +345,9 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                         badgeColor = msg.isError
                           ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
                           : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
-                        roleName = `${m.tool_result()} ${String(msg.toolName || m.unknown())}`
+                        roleName = m.tool_result_with_name({
+                          name: String(msg.toolName || m.unknown()),
+                        })
                       } else if (msg.role === 'thought') {
                         badgeColor =
                           'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'

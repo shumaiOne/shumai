@@ -44,6 +44,7 @@ interface MembersDialogProps {
   currentUserId?: string
   availableMembersToAdd?: Member[]
   onAddMember?: (userId: string, role: 'editor' | 'reviewer') => Promise<void>
+  type?: 'project' | 'team'
 }
 
 export function MembersDialog({
@@ -58,6 +59,7 @@ export function MembersDialog({
   currentUserId,
   availableMembersToAdd,
   onAddMember,
+  type = 'team',
 }: MembersDialogProps) {
   const [inviteRole, setInviteRole] = useState<'editor' | 'reviewer'>('editor')
   const [inviteLink, setInviteLink] = useState<string | null>(null)
@@ -256,10 +258,7 @@ export function MembersDialog({
                 <AlertDialogDescription>
                   {m.remove_member_confirmation({
                     name: memberToRemove?.name || '',
-                    type:
-                      title.toLowerCase().includes('project') || title.includes('项目')
-                        ? m.project()
-                        : m.team(),
+                    type: type === 'project' ? m.project() : m.team(),
                   })}
                 </AlertDialogDescription>
               </AlertDialogHeader>
