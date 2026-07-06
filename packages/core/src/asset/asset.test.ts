@@ -855,6 +855,31 @@ describe('AssetService', () => {
     expect(listWithReplies.data[0].replies[1].id).toBe(r2.id)
   })
 
+  it('can mark comments as complete and incomplete', async () => {
+    const { user, assets } = await setupBasicAssets()
+
+    const comment = await assetService.createComment({
+      assetId: assets.fileA1.id,
+      userId: user.id,
+      message: 'To be completed',
+      attachmentIds: [],
+    })
+
+    expect(comment.isCompleted).toBe(false)
+    expect(comment.completionLastChangedBy).toBeNull()
+
+    // Mark as complete
+    const completed = await assetService.completeComment(comment.id, true, user.id)
+    expect(completed.isCompleted).toBe(true)
+    expect(completed.completionLastChangedBy).toBeDefined()
+    expect(completed.completionLastChangedBy?.id).toBe(user.id)
+
+    // Mark as incomplete
+    const incompleted = await assetService.completeComment(comment.id, false, user.id)
+    expect(incompleted.isCompleted).toBe(false)
+    expect(incompleted.completionLastChangedBy?.id).toBe(user.id)
+  })
+
   it('triggers AI workflow on bot mention', async () => {
     const { user, project } = await setupBasicAssets()
 

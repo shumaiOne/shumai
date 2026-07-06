@@ -48,10 +48,12 @@ type AssetWithIncludes = Prisma.AssetGetPayload<{
 type CommentWithIncludes = Prisma.AssetCommentGetPayload<{
   include: {
     creator: true
+    completionLastChangedBy: true
     attachments: { include: { asset: { include: { storageKey: true } } } }
     replies: {
       include: {
         creator: true
+        completionLastChangedBy: true
         attachments: { include: { asset: { include: { storageKey: true } } } }
       }
     }
@@ -1379,11 +1381,13 @@ export class AssetService {
       where: { id: commentId },
       include: {
         creator: true,
+        completionLastChangedBy: true,
         asset: { include: { storageKey: true } },
         attachments: { include: { asset: { include: { storageKey: true } } } },
         replies: {
           include: {
             creator: true,
+            completionLastChangedBy: true,
             attachments: { include: { asset: { include: { storageKey: true } } } },
           },
           orderBy: { id: 'asc' },
@@ -1392,6 +1396,21 @@ export class AssetService {
     })
     if (!c) throw new Error('Comment not found')
     return this.toCommentInfo(c)
+  }
+
+  async completeComment(
+    commentId: string,
+    isCompleted: boolean,
+    userId: string,
+  ): Promise<CommentInfo> {
+    await this.prismaClient.assetComment.update({
+      where: { id: commentId },
+      data: {
+        isCompleted,
+        completionLastChangedById: userId,
+      },
+    })
+    return this.getComment(commentId)
   }
 
   async listComments(
@@ -1406,11 +1425,13 @@ export class AssetService {
           where: { assetId: resolvedAssetId, replyToId: null },
           include: {
             creator: true,
+            completionLastChangedBy: true,
             asset: { include: { storageKey: true } },
             attachments: { include: { asset: { include: { storageKey: true } } } },
             replies: {
               include: {
                 creator: true,
+                completionLastChangedBy: true,
                 attachments: { include: { asset: { include: { storageKey: true } } } },
               },
               orderBy: { id: 'asc' },
@@ -1973,6 +1994,14 @@ export class AssetService {
       creator.image = await getAvatarUrl(c.creator.image)
     }
 
+    const completionLastChangedBy: AssetUserInfo | null = c.completionLastChangedBy
+      ? {
+          id: c.completionLastChangedBy.id,
+          name: c.completionLastChangedBy.name,
+          image: await getAvatarUrl(c.completionLastChangedBy.image),
+        }
+      : null
+
     return {
       id: c.id,
       assetId: c.assetId,
@@ -1986,6 +2015,8 @@ export class AssetService {
       createdAt: c.createdAt.toISOString(),
       updatedAt: c.updatedAt.toISOString(),
       sessionId: c.sessionId,
+      isCompleted: c.isCompleted,
+      completionLastChangedBy,
     }
   }
 }

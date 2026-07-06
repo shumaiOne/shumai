@@ -233,6 +233,7 @@ export type UserWhereInput = {
   tasks?: Prisma.TaskListRelationFilter
   teamMembers?: Prisma.TeamMemberListRelationFilter
   comments?: Prisma.AssetCommentListRelationFilter
+  completionChangedComments?: Prisma.AssetCommentListRelationFilter
   createdInvites?: Prisma.InviteListRelationFilter
   createdNotifications?: Prisma.NotificationListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
@@ -263,6 +264,7 @@ export type UserOrderByWithRelationInput = {
   tasks?: Prisma.TaskOrderByRelationAggregateInput
   teamMembers?: Prisma.TeamMemberOrderByRelationAggregateInput
   comments?: Prisma.AssetCommentOrderByRelationAggregateInput
+  completionChangedComments?: Prisma.AssetCommentOrderByRelationAggregateInput
   createdInvites?: Prisma.InviteOrderByRelationAggregateInput
   createdNotifications?: Prisma.NotificationOrderByRelationAggregateInput
   notifications?: Prisma.NotificationOrderByRelationAggregateInput
@@ -296,6 +298,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   tasks?: Prisma.TaskListRelationFilter
   teamMembers?: Prisma.TeamMemberListRelationFilter
   comments?: Prisma.AssetCommentListRelationFilter
+  completionChangedComments?: Prisma.AssetCommentListRelationFilter
   createdInvites?: Prisma.InviteListRelationFilter
   createdNotifications?: Prisma.NotificationListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
@@ -360,6 +363,7 @@ export type UserCreateInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
@@ -390,6 +394,7 @@ export type UserUncheckedCreateInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteUncheckedCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
@@ -420,6 +425,7 @@ export type UserUpdateInput = {
   tasks?: Prisma.TaskUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
@@ -450,6 +456,7 @@ export type UserUncheckedUpdateInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUncheckedUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
@@ -669,6 +676,12 @@ export type UserCreateNestedOneWithoutCommentsInput = {
   connect?: Prisma.UserWhereUniqueInput
 }
 
+export type UserCreateNestedOneWithoutCompletionChangedCommentsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutCompletionChangedCommentsInput, Prisma.UserUncheckedCreateWithoutCompletionChangedCommentsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutCompletionChangedCommentsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
 export type UserUpdateOneWithoutCommentsNestedInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutCommentsInput, Prisma.UserUncheckedCreateWithoutCommentsInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutCommentsInput
@@ -677,6 +690,16 @@ export type UserUpdateOneWithoutCommentsNestedInput = {
   delete?: Prisma.UserWhereInput | boolean
   connect?: Prisma.UserWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutCommentsInput, Prisma.UserUpdateWithoutCommentsInput>, Prisma.UserUncheckedUpdateWithoutCommentsInput>
+}
+
+export type UserUpdateOneWithoutCompletionChangedCommentsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutCompletionChangedCommentsInput, Prisma.UserUncheckedCreateWithoutCompletionChangedCommentsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutCompletionChangedCommentsInput
+  upsert?: Prisma.UserUpsertWithoutCompletionChangedCommentsInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutCompletionChangedCommentsInput, Prisma.UserUpdateWithoutCompletionChangedCommentsInput>, Prisma.UserUncheckedUpdateWithoutCompletionChangedCommentsInput>
 }
 
 export type UserCreateNestedOneWithoutCreatedInvitesInput = {
@@ -832,6 +855,7 @@ export type UserCreateWithoutSessionsInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
@@ -861,6 +885,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteUncheckedCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
@@ -906,6 +931,7 @@ export type UserUpdateWithoutSessionsInput = {
   tasks?: Prisma.TaskUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
@@ -935,6 +961,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUncheckedUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
@@ -964,6 +991,7 @@ export type UserCreateWithoutAccountsInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
@@ -993,6 +1021,7 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteUncheckedCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
@@ -1038,6 +1067,7 @@ export type UserUpdateWithoutAccountsInput = {
   tasks?: Prisma.TaskUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
@@ -1067,6 +1097,7 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUncheckedUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
@@ -1095,6 +1126,7 @@ export type UserCreateWithoutAuthTokensInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
@@ -1124,6 +1156,7 @@ export type UserUncheckedCreateWithoutAuthTokensInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteUncheckedCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
@@ -1169,6 +1202,7 @@ export type UserUpdateWithoutAuthTokensInput = {
   tasks?: Prisma.TaskUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
@@ -1198,6 +1232,7 @@ export type UserUncheckedUpdateWithoutAuthTokensInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUncheckedUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
@@ -1227,6 +1262,7 @@ export type UserCreateWithoutTeamMembersInput = {
   authTokens?: Prisma.AuthTokenCreateNestedManyWithoutUserInput
   tasks?: Prisma.TaskCreateNestedManyWithoutCreatorInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
@@ -1256,6 +1292,7 @@ export type UserUncheckedCreateWithoutTeamMembersInput = {
   authTokens?: Prisma.AuthTokenUncheckedCreateNestedManyWithoutUserInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutCreatorInput
   comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteUncheckedCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
@@ -1301,6 +1338,7 @@ export type UserUpdateWithoutTeamMembersInput = {
   authTokens?: Prisma.AuthTokenUpdateManyWithoutUserNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutCreatorNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
@@ -1330,6 +1368,7 @@ export type UserUncheckedUpdateWithoutTeamMembersInput = {
   authTokens?: Prisma.AuthTokenUncheckedUpdateManyWithoutUserNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutCreatorNestedInput
   comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUncheckedUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
@@ -1360,6 +1399,7 @@ export type UserCreateWithoutShareLinksInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
@@ -1389,6 +1429,7 @@ export type UserUncheckedCreateWithoutShareLinksInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteUncheckedCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
@@ -1434,6 +1475,7 @@ export type UserUpdateWithoutShareLinksInput = {
   tasks?: Prisma.TaskUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
@@ -1463,6 +1505,7 @@ export type UserUncheckedUpdateWithoutShareLinksInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUncheckedUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
@@ -1491,6 +1534,7 @@ export type UserCreateWithoutAssetsInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
@@ -1520,6 +1564,7 @@ export type UserUncheckedCreateWithoutAssetsInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteUncheckedCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
@@ -1565,6 +1610,7 @@ export type UserUpdateWithoutAssetsInput = {
   tasks?: Prisma.TaskUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
@@ -1594,6 +1640,7 @@ export type UserUncheckedUpdateWithoutAssetsInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUncheckedUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
@@ -1623,6 +1670,7 @@ export type UserCreateWithoutCommentsInput = {
   authTokens?: Prisma.AuthTokenCreateNestedManyWithoutUserInput
   tasks?: Prisma.TaskCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
+  completionChangedComments?: Prisma.AssetCommentCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
@@ -1652,6 +1700,7 @@ export type UserUncheckedCreateWithoutCommentsInput = {
   authTokens?: Prisma.AuthTokenUncheckedCreateNestedManyWithoutUserInput
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteUncheckedCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
@@ -1668,6 +1717,71 @@ export type UserUncheckedCreateWithoutCommentsInput = {
 export type UserCreateOrConnectWithoutCommentsInput = {
   where: Prisma.UserWhereUniqueInput
   create: Prisma.XOR<Prisma.UserCreateWithoutCommentsInput, Prisma.UserUncheckedCreateWithoutCommentsInput>
+}
+
+export type UserCreateWithoutCompletionChangedCommentsInput = {
+  id?: string
+  type?: $Enums.UserType
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  password?: string | null
+  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  assets?: Prisma.AssetCreateNestedManyWithoutCreatorInput
+  authTokens?: Prisma.AuthTokenCreateNestedManyWithoutUserInput
+  tasks?: Prisma.TaskCreateNestedManyWithoutCreatorInput
+  teamMembers?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
+  comments?: Prisma.AssetCommentCreateNestedManyWithoutCreatorInput
+  createdInvites?: Prisma.InviteCreateNestedManyWithoutInviterInput
+  createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  agent?: Prisma.AgentCreateNestedOneWithoutUserInput
+  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
+  userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutCreatorInput
+  apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutCompletionChangedCommentsInput = {
+  id?: string
+  type?: $Enums.UserType
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  password?: string | null
+  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutCreatorInput
+  authTokens?: Prisma.AuthTokenUncheckedCreateNestedManyWithoutUserInput
+  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutCreatorInput
+  teamMembers?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
+  comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCreatorInput
+  createdInvites?: Prisma.InviteUncheckedCreateNestedManyWithoutInviterInput
+  createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  agent?: Prisma.AgentUncheckedCreateNestedOneWithoutUserInput
+  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
+  userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutUserInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutCreatorInput
+  shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutCreatorInput
+  apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutCompletionChangedCommentsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutCompletionChangedCommentsInput, Prisma.UserUncheckedCreateWithoutCompletionChangedCommentsInput>
 }
 
 export type UserUpsertWithoutCommentsInput = {
@@ -1697,6 +1811,7 @@ export type UserUpdateWithoutCommentsInput = {
   authTokens?: Prisma.AuthTokenUpdateManyWithoutUserNestedInput
   tasks?: Prisma.TaskUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
+  completionChangedComments?: Prisma.AssetCommentUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
@@ -1726,6 +1841,78 @@ export type UserUncheckedUpdateWithoutCommentsInput = {
   authTokens?: Prisma.AuthTokenUncheckedUpdateManyWithoutUserNestedInput
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByNestedInput
+  createdInvites?: Prisma.InviteUncheckedUpdateManyWithoutInviterNestedInput
+  createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  agent?: Prisma.AgentUncheckedUpdateOneWithoutUserNestedInput
+  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
+  userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput
+  apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserUpsertWithoutCompletionChangedCommentsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutCompletionChangedCommentsInput, Prisma.UserUncheckedUpdateWithoutCompletionChangedCommentsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutCompletionChangedCommentsInput, Prisma.UserUncheckedCreateWithoutCompletionChangedCommentsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutCompletionChangedCommentsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutCompletionChangedCommentsInput, Prisma.UserUncheckedUpdateWithoutCompletionChangedCommentsInput>
+}
+
+export type UserUpdateWithoutCompletionChangedCommentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumUserTypeFieldUpdateOperationsInput | $Enums.UserType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  assets?: Prisma.AssetUpdateManyWithoutCreatorNestedInput
+  authTokens?: Prisma.AuthTokenUpdateManyWithoutUserNestedInput
+  tasks?: Prisma.TaskUpdateManyWithoutCreatorNestedInput
+  teamMembers?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
+  comments?: Prisma.AssetCommentUpdateManyWithoutCreatorNestedInput
+  createdInvites?: Prisma.InviteUpdateManyWithoutInviterNestedInput
+  createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  agent?: Prisma.AgentUpdateOneWithoutUserNestedInput
+  agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
+  userMetadata?: Prisma.UserMetadataUpdateManyWithoutUserNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutCreatorNestedInput
+  shareLinks?: Prisma.ShareLinkUpdateManyWithoutCreatorNestedInput
+  apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutCompletionChangedCommentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumUserTypeFieldUpdateOperationsInput | $Enums.UserType
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
+  guestEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutCreatorNestedInput
+  authTokens?: Prisma.AuthTokenUncheckedUpdateManyWithoutUserNestedInput
+  tasks?: Prisma.TaskUncheckedUpdateManyWithoutCreatorNestedInput
+  teamMembers?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
+  comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput
   createdInvites?: Prisma.InviteUncheckedUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
@@ -1756,6 +1943,7 @@ export type UserCreateWithoutCreatedInvitesInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentCreateNestedManyWithoutCompletionLastChangedByInput
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -1785,6 +1973,7 @@ export type UserUncheckedCreateWithoutCreatedInvitesInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCompletionLastChangedByInput
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -1830,6 +2019,7 @@ export type UserUpdateWithoutCreatedInvitesInput = {
   tasks?: Prisma.TaskUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUpdateManyWithoutCompletionLastChangedByNestedInput
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -1859,6 +2049,7 @@ export type UserUncheckedUpdateWithoutCreatedInvitesInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByNestedInput
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -1888,6 +2079,7 @@ export type UserCreateWithoutCreatedNotificationsInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteCreateNestedManyWithoutInviterInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -1917,6 +2109,7 @@ export type UserUncheckedCreateWithoutCreatedNotificationsInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteUncheckedCreateNestedManyWithoutInviterInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -1951,6 +2144,7 @@ export type UserCreateWithoutNotificationsInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
@@ -1980,6 +2174,7 @@ export type UserUncheckedCreateWithoutNotificationsInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteUncheckedCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
@@ -2025,6 +2220,7 @@ export type UserUpdateWithoutCreatedNotificationsInput = {
   tasks?: Prisma.TaskUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUpdateManyWithoutInviterNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -2054,6 +2250,7 @@ export type UserUncheckedUpdateWithoutCreatedNotificationsInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUncheckedUpdateManyWithoutInviterNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -2094,6 +2291,7 @@ export type UserUpdateWithoutNotificationsInput = {
   tasks?: Prisma.TaskUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
@@ -2123,6 +2321,7 @@ export type UserUncheckedUpdateWithoutNotificationsInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUncheckedUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -2151,6 +2350,7 @@ export type UserCreateWithoutTasksInput = {
   authTokens?: Prisma.AuthTokenCreateNestedManyWithoutUserInput
   teamMembers?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
@@ -2180,6 +2380,7 @@ export type UserUncheckedCreateWithoutTasksInput = {
   authTokens?: Prisma.AuthTokenUncheckedCreateNestedManyWithoutUserInput
   teamMembers?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteUncheckedCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
@@ -2225,6 +2426,7 @@ export type UserUpdateWithoutTasksInput = {
   authTokens?: Prisma.AuthTokenUpdateManyWithoutUserNestedInput
   teamMembers?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
@@ -2254,6 +2456,7 @@ export type UserUncheckedUpdateWithoutTasksInput = {
   authTokens?: Prisma.AuthTokenUncheckedUpdateManyWithoutUserNestedInput
   teamMembers?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUncheckedUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
@@ -2284,6 +2487,7 @@ export type UserCreateWithoutAgentInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
@@ -2313,6 +2517,7 @@ export type UserUncheckedCreateWithoutAgentInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteUncheckedCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
@@ -2358,6 +2563,7 @@ export type UserUpdateWithoutAgentInput = {
   tasks?: Prisma.TaskUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
@@ -2387,6 +2593,7 @@ export type UserUncheckedUpdateWithoutAgentInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUncheckedUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
@@ -2416,6 +2623,7 @@ export type UserCreateWithoutAgentSessionsInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
@@ -2445,6 +2653,7 @@ export type UserUncheckedCreateWithoutAgentSessionsInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteUncheckedCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
@@ -2490,6 +2699,7 @@ export type UserUpdateWithoutAgentSessionsInput = {
   tasks?: Prisma.TaskUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
@@ -2519,6 +2729,7 @@ export type UserUncheckedUpdateWithoutAgentSessionsInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUncheckedUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
@@ -2548,6 +2759,7 @@ export type UserCreateWithoutUserMetadataInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
@@ -2577,6 +2789,7 @@ export type UserUncheckedCreateWithoutUserMetadataInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteUncheckedCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
@@ -2622,6 +2835,7 @@ export type UserUpdateWithoutUserMetadataInput = {
   tasks?: Prisma.TaskUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
@@ -2651,6 +2865,7 @@ export type UserUncheckedUpdateWithoutUserMetadataInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUncheckedUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
@@ -2680,6 +2895,7 @@ export type UserCreateWithoutCollectionsInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
@@ -2709,6 +2925,7 @@ export type UserUncheckedCreateWithoutCollectionsInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteUncheckedCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
@@ -2754,6 +2971,7 @@ export type UserUpdateWithoutCollectionsInput = {
   tasks?: Prisma.TaskUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
@@ -2783,6 +3001,7 @@ export type UserUncheckedUpdateWithoutCollectionsInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUncheckedUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
@@ -2812,6 +3031,7 @@ export type UserCreateWithoutApiTokensInput = {
   tasks?: Prisma.TaskCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
@@ -2841,6 +3061,7 @@ export type UserUncheckedCreateWithoutApiTokensInput = {
   tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutCreatorInput
   teamMembers?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
   comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCreatorInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCompletionLastChangedByInput
   createdInvites?: Prisma.InviteUncheckedCreateNestedManyWithoutInviterInput
   createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
@@ -2886,6 +3107,7 @@ export type UserUpdateWithoutApiTokensInput = {
   tasks?: Prisma.TaskUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
@@ -2915,6 +3137,7 @@ export type UserUncheckedUpdateWithoutApiTokensInput = {
   tasks?: Prisma.TaskUncheckedUpdateManyWithoutCreatorNestedInput
   teamMembers?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
   comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput
+  completionChangedComments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByNestedInput
   createdInvites?: Prisma.InviteUncheckedUpdateManyWithoutInviterNestedInput
   createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
@@ -2938,6 +3161,7 @@ export type UserCountOutputType = {
   tasks: number
   teamMembers: number
   comments: number
+  completionChangedComments: number
   createdInvites: number
   createdNotifications: number
   notifications: number
@@ -2956,6 +3180,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   tasks?: boolean | UserCountOutputTypeCountTasksArgs
   teamMembers?: boolean | UserCountOutputTypeCountTeamMembersArgs
   comments?: boolean | UserCountOutputTypeCountCommentsArgs
+  completionChangedComments?: boolean | UserCountOutputTypeCountCompletionChangedCommentsArgs
   createdInvites?: boolean | UserCountOutputTypeCountCreatedInvitesArgs
   createdNotifications?: boolean | UserCountOutputTypeCountCreatedNotificationsArgs
   notifications?: boolean | UserCountOutputTypeCountNotificationsArgs
@@ -3010,6 +3235,13 @@ export type UserCountOutputTypeCountTeamMembersArgs<ExtArgs extends runtime.Type
  * UserCountOutputType without action
  */
 export type UserCountOutputTypeCountCommentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AssetCommentWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountCompletionChangedCommentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.AssetCommentWhereInput
 }
 
@@ -3101,6 +3333,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   tasks?: boolean | Prisma.User$tasksArgs<ExtArgs>
   teamMembers?: boolean | Prisma.User$teamMembersArgs<ExtArgs>
   comments?: boolean | Prisma.User$commentsArgs<ExtArgs>
+  completionChangedComments?: boolean | Prisma.User$completionChangedCommentsArgs<ExtArgs>
   createdInvites?: boolean | Prisma.User$createdInvitesArgs<ExtArgs>
   createdNotifications?: boolean | Prisma.User$createdNotificationsArgs<ExtArgs>
   notifications?: boolean | Prisma.User$notificationsArgs<ExtArgs>
@@ -3164,6 +3397,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   tasks?: boolean | Prisma.User$tasksArgs<ExtArgs>
   teamMembers?: boolean | Prisma.User$teamMembersArgs<ExtArgs>
   comments?: boolean | Prisma.User$commentsArgs<ExtArgs>
+  completionChangedComments?: boolean | Prisma.User$completionChangedCommentsArgs<ExtArgs>
   createdInvites?: boolean | Prisma.User$createdInvitesArgs<ExtArgs>
   createdNotifications?: boolean | Prisma.User$createdNotificationsArgs<ExtArgs>
   notifications?: boolean | Prisma.User$notificationsArgs<ExtArgs>
@@ -3188,6 +3422,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     tasks: Prisma.$TaskPayload<ExtArgs>[]
     teamMembers: Prisma.$TeamMemberPayload<ExtArgs>[]
     comments: Prisma.$AssetCommentPayload<ExtArgs>[]
+    completionChangedComments: Prisma.$AssetCommentPayload<ExtArgs>[]
     createdInvites: Prisma.$InvitePayload<ExtArgs>[]
     createdNotifications: Prisma.$NotificationPayload<ExtArgs>[]
     notifications: Prisma.$NotificationPayload<ExtArgs>[]
@@ -3614,6 +3849,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   tasks<T extends Prisma.User$tasksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$tasksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TaskPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   teamMembers<T extends Prisma.User$teamMembersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$teamMembersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TeamMemberPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   comments<T extends Prisma.User$commentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$commentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssetCommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  completionChangedComments<T extends Prisma.User$completionChangedCommentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$completionChangedCommentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssetCommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   createdInvites<T extends Prisma.User$createdInvitesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$createdInvitesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$InvitePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   createdNotifications<T extends Prisma.User$createdNotificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$createdNotificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   notifications<T extends Prisma.User$notificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -4157,6 +4393,30 @@ export type User$teamMembersArgs<ExtArgs extends runtime.Types.Extensions.Intern
  * User.comments
  */
 export type User$commentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AssetComment
+   */
+  select?: Prisma.AssetCommentSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AssetComment
+   */
+  omit?: Prisma.AssetCommentOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AssetCommentInclude<ExtArgs> | null
+  where?: Prisma.AssetCommentWhereInput
+  orderBy?: Prisma.AssetCommentOrderByWithRelationInput | Prisma.AssetCommentOrderByWithRelationInput[]
+  cursor?: Prisma.AssetCommentWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AssetCommentScalarFieldEnum | Prisma.AssetCommentScalarFieldEnum[]
+}
+
+/**
+ * User.completionChangedComments
+ */
+export type User$completionChangedCommentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
    * Select specific fields to fetch from the AssetComment
    */

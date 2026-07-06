@@ -10,8 +10,8 @@ import {
 import { Separator } from '@/ui/components/ui/separator'
 import { formatTimeAgo } from '@/ui/lib/time'
 import type { AttachmentInfo, CommentInfo, UserInfo } from '@shumai/dtos'
-import { useQuery } from '@tanstack/react-query'
-import { Download, File, Terminal } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Download, File, Terminal, CircleCheck } from 'lucide-react'
 import React from 'react'
 import Markdown from 'react-markdown'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
@@ -20,6 +20,7 @@ import { Skeleton } from '../ui/skeleton'
 import { formatTimecode } from '../viewers/video/utils'
 import { m } from '@/ui/paraglide/messages.js'
 import { useUiStore } from '@/ui/stores/ui'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip'
 
 interface MessageCardProps {
   teamId?: string
@@ -90,6 +91,22 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   })
 
   const isAdmin = me?.role === 'owner'
+
+  const queryClient = useQueryClient()
+  const { mutate: toggleComplete } = useMutation({
+    mutationFn: async () => {
+      const res = await client.api.comments[':commentId'].complete.$post({
+        param: { commentId: message.id },
+        json: { isCompleted: !message.isCompleted },
+      })
+      if (!res.ok) throw new Error('Failed to update comment completion status')
+      return await res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['files'] })
+      queryClient.invalidateQueries({ queryKey: ['shares'] })
+    },
+  })
 
   const { data: logs, isLoading: isLogsLoading } = useQuery({
     queryKey: ['agent-sessions', message.sessionId, 'entries'],
@@ -273,13 +290,40 @@ export const MessageCard: React.FC<MessageCardProps> = ({
         )}
 
         {/* Actions */}
-        <div className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center gap-4">
+        <div
+          className={`mt-2 transition-opacity duration-200 flex items-center justify-between w-full ${
+            message.isCompleted ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+          }`}
+        >
           <button
             onClick={handleReply}
             className="text-xs font-medium text-gray-500 hover:text-blue-600 flex items-center gap-1 cursor-pointer"
           >
             {m.reply()}
           </button>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    toggleComplete()
+                  }}
+                  className={`flex items-center justify-center p-1 rounded-full transition-colors cursor-pointer ${
+                    message.isCompleted
+                      ? 'text-green-500 hover:text-green-600 hover:bg-green-500/10'
+                      : 'text-gray-400 hover:text-green-500 hover:bg-green-500/10'
+                  }`}
+                >
+                  <CircleCheck className="w-4 h-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {message.isCompleted ? m.mark_as_incomplete() : m.mark_as_complete()}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 

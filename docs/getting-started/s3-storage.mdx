@@ -13,15 +13,15 @@ Using external S3 storage is highly recommended for production teams. It allows 
 
 To enable S3-compatible storage, update the following environment variables in your `.env` file or Docker Compose configuration:
 
-| Variable                   | Description                                                               | Required | Default / Example                         |
-| :------------------------- | :------------------------------------------------------------------------ | :------- | :---------------------------------------- |
-| `STORAGE_BACKEND`          | Set to `s3` to enable S3 compatible storage.                              | Yes      | `s3`                                      |
-| `S3_BUCKET`                | The name of the S3 bucket where files will be stored.                     | Yes      | `shumai-bucket`                           |
-| `S3_REGION`                | The region of your S3 bucket.                                             | No       | `auto`                 |
-| `S3_ACCESS_KEY_ID`         | The access key ID for your storage service.                               | Yes      | `your-access-key-id`                      |
-| `S3_SECRET_ACCESS_KEY`     | The secret access key for your storage service.                           | Yes      | `your-secret-access-key`                  |
-| `AWS_ENDPOINT_URL_S3`      | The endpoint URL of your S3 compatible storage provider.                  | Yes      | `https://s3.us-east-1.amazonaws.com`      |
-| `PRESIGNED_URL_EXPIRES_IN` | Duration in hours before generated presigned download/upload URLs expire. | No       | `5`                                       |
+| Variable                   | Description                                                               | Required | Default / Example                    |
+| :------------------------- | :------------------------------------------------------------------------ | :------- | :----------------------------------- |
+| `STORAGE_BACKEND`          | Set to `s3` to enable S3 compatible storage.                              | Yes      | `s3`                                 |
+| `S3_BUCKET`                | The name of the S3 bucket where files will be stored.                     | Yes      | `shumai-bucket`                      |
+| `S3_REGION`                | The region of your S3 bucket.                                             | No       | `auto`                               |
+| `S3_ACCESS_KEY_ID`         | The access key ID for your storage service.                               | Yes      | `your-access-key-id`                 |
+| `S3_SECRET_ACCESS_KEY`     | The secret access key for your storage service.                           | Yes      | `your-secret-access-key`             |
+| `AWS_ENDPOINT_URL_S3`      | The endpoint URL of your S3 compatible storage provider.                  | Yes      | `https://s3.us-east-1.amazonaws.com` |
+| `PRESIGNED_URL_EXPIRES_IN` | Duration in hours before generated presigned download/upload URLs expire. | No       | `5`                                  |
 
 ---
 
