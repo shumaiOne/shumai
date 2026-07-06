@@ -1,4 +1,5 @@
 import { cn } from '@/ui/lib/utils'
+import { m } from '@/ui/paraglide/messages.js'
 import { useUiStore } from '@/ui/stores/ui'
 import type { AssetInfo, VideoTranscode } from '@shumai/dtos'
 import {
@@ -260,6 +261,7 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
                 <button
                   onClick={() => onZoomChange(zoom * 0.8)}
                   className="p-1 hover:text-primary rounded"
+                  title={m.zoom_out()}
                 >
                   <Minus size={14} />
                 </button>
@@ -269,6 +271,7 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
                 <button
                   onClick={() => onZoomChange(zoom * 1.2)}
                   className="p-1 hover:text-primary rounded"
+                  title={m.zoom_in()}
                 >
                   <Plus size={14} />
                 </button>
@@ -277,7 +280,7 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
                 onClick={onZoomReset}
                 className="text-xs font-medium px-2 py-1 rounded bg-muted hover:text-primary transition-colors"
               >
-                Fit
+                {m.fit()}
               </button>
             </div>
           )}
@@ -313,12 +316,16 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-1 rounded border border-border px-2 py-0.5 text-sm font-semibold hover:bg-muted transition-colors">
                   <Settings className="h-3.5 w-3.5" />
-                  <span>{state.currentResolution}</span>
+                  <span>
+                    {state.currentResolution === 'Original'
+                      ? m.original()
+                      : state.currentResolution}
+                  </span>
                 </button>
               </DropdownMenuTrigger>
 
               <DropdownMenuContent>
-                <DropdownMenuLabel>Quality</DropdownMenuLabel>
+                <DropdownMenuLabel>{m.quality()}</DropdownMenuLabel>
                 {previewResolutions.map((res) => (
                   <DropdownMenuItem
                     key={res.resolution}
@@ -330,7 +337,7 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
                         : 'text-foreground',
                     )}
                   >
-                    <span>{res.resolution}</span>
+                    <span>{res.resolution === 'Original' ? m.original() : res.resolution}</span>
                     <span className="pl-5 text-xs text-muted-foreground">
                       {res.width}x{res.height}
                     </span>
@@ -345,7 +352,7 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
             <button
               onClick={() => handleDownload(data.media?.original?.key || '')}
               className="transition-colors hover:text-primary"
-              title="Download"
+              title={m.download()}
               disabled={!data.media?.original?.key}
             >
               <Download className="h-5 w-5" />
@@ -353,19 +360,19 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
           ) : (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="transition-colors hover:text-primary" title="Download">
+                <button className="transition-colors hover:text-primary" title={m.download()}>
                   <Download className="h-5 w-5" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuLabel>Download</DropdownMenuLabel>
+                <DropdownMenuLabel>{m.download()}</DropdownMenuLabel>
                 {resolutions.map((res) => (
                   <DropdownMenuItem
                     key={res.resolution}
                     onClick={() => handleDownload(res.key ?? '')}
                     className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-foreground"
                   >
-                    <span>{res.resolution}</span>
+                    <span>{res.resolution === 'Original' ? m.original() : res.resolution}</span>
                     <span className="text-xs text-muted-foreground">
                       {res.isRaw ? data.name?.split('.').pop()?.toUpperCase() || 'RAW' : 'MP4'}
                     </span>
@@ -376,7 +383,11 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
           )}
 
           {/* Fullscreen */}
-          <button onClick={toggleFullScreen} className="transition-colors hover:text-primary">
+          <button
+            onClick={toggleFullScreen}
+            className="transition-colors hover:text-primary"
+            title={m.fullscreen()}
+          >
             {state.isFullScreen ? (
               <Minimize className="h-6 w-6" />
             ) : (

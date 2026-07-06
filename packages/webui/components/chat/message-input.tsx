@@ -1,4 +1,5 @@
 import type { CommentInfo, PostAttachmentRequest, PostAttachmentResponse } from '@shumai/dtos'
+import { m } from '@/ui/paraglide/messages.js'
 import type { BotInfo } from '@shumai/dtos'
 import type { UserInfo } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
@@ -603,7 +604,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
             {replyingTo && (
               <div className="flex items-center justify-between bg-muted p-2 px-3 rounded-lg border border-border">
                 <div className="text-xs text-muted-foreground truncate mr-2">
-                  reply to: {replyingTo.message}
+                  {m.reply_to()} {replyingTo.message}
                 </div>
                 <button
                   onClick={onCancelReply}
@@ -674,7 +675,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
             suppressContentEditableWarning
             onInput={handleInput}
             onKeyDown={handleKeyDown}
-            data-placeholder={replyingTo ? 'Reply...' : 'Message...'}
+            data-placeholder={replyingTo ? m.reply_placeholder() : m.message_placeholder()}
             className={`bg-transparent border-none focus:ring-0 resize-none min-h-[40px] leading-relaxed py-2 focus:outline-none block ${paddingLeftClass}`}
           />
         </div>
@@ -784,7 +785,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
                   variant={isTimestampEnabled ? 'secondary' : 'ghost'}
                   size="icon"
                   className={`p-2 rounded-full cursor-pointer ${isTimestampEnabled ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : ''}`}
-                  title={isTimestampEnabled ? 'Disable Timestamp' : 'Enable Timestamp'}
+                  title={isTimestampEnabled ? m.disable_timestamp() : m.enable_timestamp()}
                 >
                   <Clock className="w-4 h-4" />
                 </Button>
@@ -794,7 +795,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
                 className="p-2 rounded-full cursor-pointer"
                 variant="ghost"
                 size="icon"
-                title="Attach files"
+                title={m.attach_files()}
               >
                 <Paperclip className="w-4 h-4" />
               </Button>
@@ -804,7 +805,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
                   variant="ghost"
                   size="icon"
                   className="p-2 rounded-full cursor-pointer"
-                  title="Toggle Annotation"
+                  title={m.toggle_annotation()}
                 >
                   <DrawAnnotation className="w-4 h-4" />
                 </Button>

@@ -1,5 +1,6 @@
 import { client } from '@/ui/api/client'
 import type { AssetInfo, FieldValueInfo } from '@shumai/dtos'
+import { m } from '@/ui/paraglide/messages.js'
 import { useQuery } from '@tanstack/react-query'
 
 import { Badge } from '@/ui/components/ui/badge'
@@ -292,7 +293,7 @@ export function FileCard({
             className="h-auto p-0 text-sm text-foreground !bg-transparent"
           />
           <p className="text-sm text-muted-foreground">
-            {displayItem.createdAt && formatTimeAgo(displayItem.createdAt)} by{' '}
+            {displayItem.createdAt && formatTimeAgo(displayItem.createdAt)} {m.by()}{' '}
             {displayItem.creator?.name}
           </p>
         </div>
@@ -317,7 +318,7 @@ export function FileCard({
                   }}
                 >
                   <Download className="mr-2 h-4 w-4" />
-                  <span>Download</span>
+                  <span>{m.download()}</span>
                 </DropdownMenuItem>
                 {canEdit && (
                   <DropdownMenuItem
@@ -328,7 +329,7 @@ export function FileCard({
                     className="text-destructive"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
-                    <span>Remove from Share</span>
+                    <span>{m.remove_from_share()}</span>
                   </DropdownMenuItem>
                 )}
               </>
@@ -340,7 +341,7 @@ export function FileCard({
                 }}
               >
                 <History className="mr-2 h-4 w-4" />
-                <span>Restore</span>
+                <span>{m.restore()}</span>
               </DropdownMenuItem>
             ) : (
               <>
@@ -352,7 +353,7 @@ export function FileCard({
                     }}
                   >
                     <Edit className="mr-2 h-4 w-4" />
-                    <span>Rename</span>
+                    <span>{m.rename()}</span>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem
@@ -362,7 +363,7 @@ export function FileCard({
                   }}
                 >
                   <Download className="mr-2 h-4 w-4" />
-                  <span>Download</span>
+                  <span>{m.download()}</span>
                 </DropdownMenuItem>
                 {canEdit && (
                   <>
@@ -375,7 +376,7 @@ export function FileCard({
                       className="text-destructive"
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
-                      <span>Delete</span>
+                      <span>{m.delete()}</span>
                     </DropdownMenuItem>
                   </>
                 )}

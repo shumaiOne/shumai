@@ -7,6 +7,7 @@ import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
 import { client } from '@/ui/api/client'
 import { Loader2 } from 'lucide-react'
+import { m } from '@/ui/paraglide/messages.js'
 
 interface GuestIdentityPopupProps {
   isOpen: boolean
@@ -58,31 +59,29 @@ export function GuestIdentityPopup({
       <PopoverContent className="w-80" align="end" side="top">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <h4 className="font-medium leading-none">Enter your details</h4>
-            <p className="text-sm text-muted-foreground">
-              Please provide your name and email to add a comment.
-            </p>
+            <h4 className="font-medium leading-none">{m.enter_your_details()}</h4>
+            <p className="text-sm text-muted-foreground">{m.provide_name_email_for_comment()}</p>
           </div>
           <div className="grid gap-2">
             <div className="grid gap-1">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">{m.name()}</Label>
               <Input
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="John Doe"
+                placeholder={m.name_placeholder()}
                 size={32}
                 required
               />
             </div>
             <div className="grid gap-1">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{m.email()}</Label>
               <Input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="john@example.com"
+                placeholder={m.email_field_placeholder()}
                 required
               />
             </div>
@@ -90,11 +89,11 @@ export function GuestIdentityPopup({
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" size="sm" onClick={onClose}>
-              Cancel
+              {m.cancel()}
             </Button>
             <Button type="submit" size="sm" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
-              Confirm
+              {m.confirm()}
             </Button>
           </div>
         </form>

@@ -1,4 +1,5 @@
 import { Check, Copy, Download, Maximize, Minimize, Minus, Plus } from 'lucide-react'
+import { m } from '@/ui/paraglide/messages.js'
 
 export interface ImageControlBarProps {
   zoom: number
@@ -32,7 +33,7 @@ export function ImageControlBar({
         <button
           onClick={onZoomOut}
           className="p-1.5 rounded hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors"
-          title="Zoom Out"
+          title={m.zoom_out()}
         >
           <Minus size={16} />
         </button>
@@ -42,7 +43,7 @@ export function ImageControlBar({
         <button
           onClick={onZoomIn}
           className="p-1.5 rounded hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors"
-          title="Zoom In"
+          title={m.zoom_in()}
         >
           <Plus size={16} />
         </button>
@@ -51,33 +52,33 @@ export function ImageControlBar({
         onClick={onFit}
         className="text-xs font-medium px-3 py-1.5 rounded bg-gray-200/50 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors border border-transparent animate-in fade-in zoom-in-95 duration-200"
       >
-        Fit
+        {m.fit()}
       </button>
       {onCopy && (
         <button
           onClick={onCopy}
           disabled={!canCopy}
           className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded bg-gray-200/50 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors border border-transparent disabled:opacity-50 animate-in fade-in zoom-in-95 duration-200"
-          title="Copy optimized image to clipboard"
+          title={m.copy_image_to_clipboard()}
         >
           {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-          {copied ? 'Copied' : 'Copy'}
+          {copied ? m.copied() : m.copy()}
         </button>
       )}
       <button
         onClick={onDownload}
         disabled={!canDownload}
         className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded bg-gray-200/50 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors border border-transparent disabled:opacity-50 animate-in fade-in zoom-in-95 duration-200"
-        title="Download original image"
+        title={m.download_original_image()}
       >
         <Download size={14} />
-        Download
+        {m.download()}
       </button>
       {fullscreen && (
         <button
           onClick={fullscreen.onToggle}
           className="p-1.5 rounded hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors"
-          title="Fullscreen"
+          title={m.fullscreen()}
         >
           {fullscreen.isFullScreen ? <Minimize size={16} /> : <Maximize size={16} />}
         </button>

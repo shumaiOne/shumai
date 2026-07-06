@@ -798,5 +798,20 @@
   "failed_fetch_files": "Failed to fetch files",
   "failed_remove": "Failed to remove",
   "failed_update": "Failed to update",
-  "failed_fetch_fields": "Failed to fetch fields"
+  "failed_fetch_fields": "Failed to fetch fields",
+  "project": "project",
+  "team": "team",
+  "owner": "Owner",
+  "n_files_singular": "{count} file",
+  "n_files_plural": "{count} files",
+  "files_progress": "{uploaded} / {total} files",
+  "n_tasks_singular": "{count} task",
+  "n_tasks_plural": "{count} tasks",
+  "n_days_ago_singular": "{count} day ago",
+  "n_days_ago_plural": "{count} days ago",
+  "today_with_time": "Today {time}",
+  "yesterday_with_time": "Yesterday {time}",
+  "n_items_singular": "{count} Item",
+  "n_items_plural": "{count} Items",
+  "fullscreen": "Fullscreen"
 }
