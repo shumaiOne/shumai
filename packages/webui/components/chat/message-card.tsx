@@ -11,7 +11,7 @@ import { Separator } from '@/ui/components/ui/separator'
 import { formatTimeAgo } from '@/ui/lib/time'
 import type { AttachmentInfo, CommentInfo, UserInfo } from '@shumai/dtos'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Download, File, Terminal, CircleCheck } from 'lucide-react'
+import { Download, File, Terminal } from 'lucide-react'
 import React from 'react'
 import Markdown from 'react-markdown'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
@@ -37,6 +37,42 @@ interface MessageCardProps {
   startTimecode?: string
   rootParentId?: string
 }
+
+const UnfilledCircleCheck: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <circle cx="12" cy="12" r="10" />
+    <path d="m9 12 2 2 4-4" />
+  </svg>
+)
+
+const FilledCircleCheck: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    stroke="none"
+    {...props}
+  >
+    <circle cx="12" cy="12" r="10" />
+    <path
+      d="m9 12 2 2 4-4"
+      fill="none"
+      stroke="white"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
 
 /* eslint-disable @typescript-eslint/naming-convention */
 const AI_PLACEHOLDERS: Record<string, string> = {
@@ -290,11 +326,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
         )}
 
         {/* Actions */}
-        <div
-          className={`mt-2 transition-opacity duration-200 flex items-center justify-between w-full ${
-            message.isCompleted ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-          }`}
-        >
+        <div className="mt-2 flex items-center justify-between w-full">
           <button
             onClick={handleReply}
             className="text-xs font-medium text-gray-500 hover:text-blue-600 flex items-center gap-1 cursor-pointer"
@@ -316,7 +348,11 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                       : 'text-gray-400 hover:text-green-500 hover:bg-green-500/10'
                   }`}
                 >
-                  <CircleCheck className="w-4 h-4" />
+                  {message.isCompleted ? (
+                    <FilledCircleCheck className="w-5 h-5" />
+                  ) : (
+                    <UnfilledCircleCheck className="w-5 h-5" />
+                  )}
                 </button>
               </TooltipTrigger>
               <TooltipContent>
