@@ -139,8 +139,9 @@ export const MessageCard: React.FC<MessageCardProps> = ({
       return await res.json()
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['files'] })
-      queryClient.invalidateQueries({ queryKey: ['shares'] })
+      queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey.includes('comments'),
+      })
     },
   })
 
