@@ -9,19 +9,20 @@ import { useInView } from 'react-intersection-observer'
 import { format, parseISO, isToday, isYesterday } from 'date-fns'
 import { Progress } from '@/ui/components/ui/progress'
 import { formatTimeAgo } from '@/ui/lib/time'
+import { m } from '@/ui/paraglide/messages.js'
 
 function formatDayHeader(dateString: string): string {
   const date = parseISO(dateString)
   if (isNaN(date.getTime())) {
-    return 'Unknown Date'
+    return m.unknown_date()
   }
   if (isToday(date)) {
-    return 'Today'
+    return m.today()
   }
   if (isYesterday(date)) {
-    return 'Yesterday'
+    return m.yesterday()
   }
-  return format(date, 'MMMM d, yyyy')
+  return format(date, m.date_format_long())
 }
 
 function formatBytes(bytes: number): string {
@@ -51,7 +52,7 @@ function UploadTaskItem({ task }: { task: TaskInfo }) {
   try {
     formattedTime = formatTimeAgo(task.createdAt)
   } catch {
-    formattedTime = 'unknown'
+    formattedTime = m.unknown()
   }
 
   return (
@@ -63,19 +64,19 @@ function UploadTaskItem({ task }: { task: TaskInfo }) {
             className="text-sm font-semibold tracking-tight text-sidebar-foreground truncate block"
             title={task.name}
           >
-            {task.name || 'Untitled Upload'}
+            {task.name || m.untitled_upload()}
           </span>
         </div>
         <div className="flex-shrink-0">
           {isCompleted ? (
             <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded-full transition-colors">
               <CheckCircle2 className="w-3.5 h-3.5" />
-              Done
+              {m.done()}
             </span>
           ) : (
             <span className="inline-flex items-center gap-1 text-xs font-semibold text-sidebar-primary bg-sidebar-primary/10 px-2 py-0.5 rounded-full animate-pulse">
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              Uploading
+              {m.uploading_status()}
             </span>
           )}
         </div>
@@ -92,8 +93,8 @@ function UploadTaskItem({ task }: { task: TaskInfo }) {
         <div className="flex items-center justify-between text-xs font-semibold">
           <span className="text-muted-foreground/80">
             {clientProgress
-              ? `${formatBytes(clientProgress.loaded)} / ${formatBytes(clientProgress.total)} (${task.uploaded} / ${task.total} ${task.total === 1 ? 'file' : 'files'})`
-              : `${task.uploaded} / ${task.total} ${task.total === 1 ? 'file' : 'files'}`}
+              ? `${formatBytes(clientProgress.loaded)} / ${formatBytes(clientProgress.total)} (${m.files_progress({ uploaded: task.uploaded, total: task.total })})`
+              : m.files_progress({ uploaded: task.uploaded, total: task.total })}
           </span>
           {!isCompleted && (
             <span className="text-sidebar-primary font-mono font-bold">{Math.round(percent)}%</span>
@@ -181,10 +182,8 @@ export function UploadTasks() {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center border border-dashed border-border rounded-xl bg-muted/10 my-4">
         <UploadCloud className="h-8 w-8 text-muted-foreground/50 mb-3" />
-        <p className="text-sm font-semibold text-muted-foreground">No uploads yet</p>
-        <p className="text-xs text-muted-foreground/60 mt-1 max-w-[180px]">
-          Upload files in the project view to track progress here.
-        </p>
+        <p className="text-sm font-semibold text-muted-foreground">{m.no_uploads_yet()}</p>
+        <p className="text-xs text-muted-foreground/60 mt-1 max-w-[180px]">{m.no_uploads_hint()}</p>
       </div>
     )
   }
@@ -211,7 +210,9 @@ export function UploadTasks() {
               {group.day}
             </span>
             <span className="text-[10px] font-semibold text-muted-foreground/60 bg-muted px-2 py-0.5 rounded-full">
-              {group.tasks.length} {group.tasks.length === 1 ? 'task' : 'tasks'}
+              {group.tasks.length === 1
+                ? m.n_tasks_singular({ count: group.tasks.length })
+                : m.n_tasks_plural({ count: group.tasks.length })}
             </span>
           </div>
           {/* Tasks in Day */}

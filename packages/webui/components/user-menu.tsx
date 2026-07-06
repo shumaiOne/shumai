@@ -44,6 +44,20 @@ export function UserMenu() {
   const { clearAuth } = useAuthStore()
   const teamId = useTeamId()
 
+  const localizeRole = (role?: string) => {
+    if (!role) return ''
+    switch (role.toLowerCase()) {
+      case 'owner':
+        return m.owner()
+      case 'editor':
+        return m.editor()
+      case 'reviewer':
+        return m.reviewer()
+      default:
+        return role
+    }
+  }
+
   const { data: me } = useQuery({
     queryKey: ['teams', teamId, 'me'],
     queryFn: async () => {
@@ -95,7 +109,9 @@ export function UserMenu() {
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none">{me.name}</p>
-                <p className="text-xs leading-none text-muted-foreground">{me.role}</p>
+                <p className="text-xs leading-none text-muted-foreground">
+                  {localizeRole(me.role)}
+                </p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />

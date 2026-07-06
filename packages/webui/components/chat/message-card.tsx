@@ -278,7 +278,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
             onClick={handleReply}
             className="text-xs font-medium text-gray-500 hover:text-blue-600 flex items-center gap-1 cursor-pointer"
           >
-            Reply
+            {m.reply()}
           </button>
         </div>
       </div>
@@ -289,11 +289,9 @@ export const MessageCard: React.FC<MessageCardProps> = ({
           <DialogHeader className="pb-4 border-b border-foreground/15">
             <DialogTitle className="flex items-center gap-2 text-xl font-bold">
               <Terminal className="w-5 h-5 text-violet-500" />
-              Agent Session Logs
+              {m.agent_session_logs()}
             </DialogTitle>
-            <DialogDescription>
-              Step-by-step execution trace of the agent's background tasks and tool calls.
-            </DialogDescription>
+            <DialogDescription>{m.agent_logs_description()}</DialogDescription>
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto pr-1 py-4 space-y-4 min-h-0 select-text">
@@ -338,20 +336,22 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                       if (msg.role === 'user') {
                         badgeColor =
                           'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-300'
-                        roleName = 'User'
+                        roleName = m.role_user()
                       } else if (msg.role === 'assistant') {
                         badgeColor =
                           'bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300'
-                        roleName = 'Agent'
+                        roleName = m.role_agent()
                       } else if (msg.role === 'toolResult') {
                         badgeColor = msg.isError
                           ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
                           : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
-                        roleName = `Tool Result: ${String(msg.toolName || 'Unknown')}`
+                        roleName = m.tool_result_with_name({
+                          name: String(msg.toolName || m.unknown()),
+                        })
                       } else if (msg.role === 'thought') {
                         badgeColor =
                           'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
-                        roleName = 'Thinking'
+                        roleName = m.role_thinking()
                       }
 
                       const renderToolCallArguments = (args: unknown) => {
@@ -450,7 +450,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
 
                               if (type === 'toolCall') {
                                 const toolName = String(
-                                  itemObj.name || itemObj.toolName || 'Unknown',
+                                  itemObj.name || itemObj.toolName || m.unknown(),
                                 )
                                 const toolArgs = itemObj.arguments || itemObj.args
                                 renderedBlocks.push(
@@ -480,7 +480,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
                                     key={`img-${idx}`}
                                     className="text-xs text-muted-foreground italic flex items-center gap-1.5 py-1"
                                   >
-                                    [Image Object]
+                                    {m.image_object()}
                                   </div>,
                                 )
                                 return
@@ -574,9 +574,9 @@ export const MessageCard: React.FC<MessageCardProps> = ({
             ) : (
               <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
                 <Terminal className="w-8 h-8 text-muted-foreground/40 mb-2 animate-pulse" />
-                <p className="text-sm font-medium">No logs found for this session.</p>
+                <p className="text-sm font-medium">{m.no_logs_found()}</p>
                 <p className="text-xs text-muted-foreground/60 mt-1">
-                  The session might have been initialized but has not produced any entries yet.
+                  {m.session_no_entries_yet()}
                 </p>
               </div>
             )}

@@ -382,7 +382,8 @@ export function FileBrowserToolbar({
       <MembersDialog
         open={isMembersDialogOpen}
         onOpenChange={handleOpenMembersDialog}
-        title="Project Members"
+        title={m.project_members()}
+        type="project"
         members={members || []}
         isOwner={me?.role === 'owner'}
         onInvite={handleInvite}

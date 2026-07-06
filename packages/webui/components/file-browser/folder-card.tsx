@@ -10,6 +10,7 @@ import { EditableText } from '@/ui/components/ui/editable-text'
 import { cn } from '@/ui/lib/utils'
 import { useDraggable, useDroppable } from '@dnd-kit/react'
 import type { AssetInfo, ChildPreview } from '@shumai/dtos'
+import { m } from '@/ui/paraglide/messages.js'
 import { Download, Edit, History, MoreHorizontal, Trash2 } from 'lucide-react'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { DragState } from '../dnd-types'
@@ -344,7 +345,9 @@ export function FolderCard({
 
           <div className="flex items-center justify-between text-muted-foreground">
             <span className="text-xs tracking-wide opacity-80">
-              {item.fileCount || 0} {(item.fileCount || 0) === 1 ? 'Item' : 'Items'}
+              {(item.fileCount || 0) === 1
+                ? m.n_items_singular({ count: item.fileCount || 0 })
+                : m.n_items_plural({ count: item.fileCount || 0 })}
             </span>
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
@@ -365,7 +368,7 @@ export function FolderCard({
                       }}
                     >
                       <Download className="mr-2 h-4 w-4" />
-                      <span>Download</span>
+                      <span>{m.download()}</span>
                     </DropdownMenuItem>
                     {canEdit && (
                       <DropdownMenuItem
@@ -376,7 +379,7 @@ export function FolderCard({
                         className="text-destructive"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
-                        <span>Remove from Share</span>
+                        <span>{m.remove_from_share()}</span>
                       </DropdownMenuItem>
                     )}
                   </>
@@ -388,7 +391,7 @@ export function FolderCard({
                     }}
                   >
                     <History className="mr-2 h-4 w-4" />
-                    <span>Restore</span>
+                    <span>{m.restore()}</span>
                   </DropdownMenuItem>
                 ) : (
                   <>
@@ -400,7 +403,7 @@ export function FolderCard({
                         }}
                       >
                         <Edit className="mr-2 h-4 w-4" />
-                        <span>Rename</span>
+                        <span>{m.rename()}</span>
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem
@@ -410,7 +413,7 @@ export function FolderCard({
                       }}
                     >
                       <Download className="mr-2 h-4 w-4" />
-                      <span>Download</span>
+                      <span>{m.download()}</span>
                     </DropdownMenuItem>
                     {canEdit && (
                       <>
@@ -423,7 +426,7 @@ export function FolderCard({
                           className="text-destructive"
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
-                          <span>Delete</span>
+                          <span>{m.delete()}</span>
                         </DropdownMenuItem>
                       </>
                     )}

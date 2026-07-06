@@ -476,6 +476,7 @@ function TeamPage() {
         open={isMembersDialogOpen}
         onOpenChange={setIsMembersDialogOpen}
         title={m.team_members()}
+        type="team"
         members={safeMembers}
         isOwner={me?.role === 'owner'}
         onInvite={handleInvite}

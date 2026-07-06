@@ -2,78 +2,92 @@ import type { NotificationInfo } from '@shumai/dtos'
 import { formatTimeAgo } from '@/ui/lib/time'
 import { cn } from '@/ui/lib/utils'
 import { SpriteScrubber } from './sprite-scrubber'
+import { m } from '@/ui/paraglide/messages.js'
+import React from 'react'
 
 interface NotificationCardProps {
   notification: NotificationInfo
+}
+
+const renderNotification = (
+  messageTemplate: string,
+  placeholders: Record<string, React.ReactNode>,
+) => {
+  const regex = new RegExp(
+    `(${Object.keys(placeholders)
+      .map((k) => `\\{${k}\\}`)
+      .join('|')})`,
+    'g',
+  )
+  return (
+    <span>
+      {messageTemplate.split(regex).map((part, index) => {
+        const match = part.match(/^\{(.+)\}$/)
+        if (match && placeholders[match[1]]) {
+          return <React.Fragment key={index}>{placeholders[match[1]]}</React.Fragment>
+        }
+        return part
+      })}
+    </span>
+  )
 }
 
 export const NotificationCard = ({ notification }: NotificationCardProps) => {
   const { creator, createdAt, isRead, type, asset, project, team, user } = notification
 
   const message = (() => {
-    const creatorName = creator?.name || 'Unknown User'
-    const assetName = asset?.name || 'unknown asset'
-    const projectName = project?.name || 'unknown project'
-    const teamName = team?.name || 'unknown team'
-    const targetUserName = user?.name || 'unknown user'
+    const creatorName = creator?.name || m.unknown_user()
+    const assetName = asset?.name || m.unknown_asset()
+    const projectName = project?.name || m.unknown_project()
+    const teamName = team?.name || m.unknown_team()
+    const targetUserName = user?.name || m.unknown_user()
+
+    const placeholders = {
+      creator: <span className="font-semibold">{creatorName}</span>,
+      asset: <span className="font-semibold">{assetName}</span>,
+      project: <span className="font-semibold">{projectName}</span>,
+      team: <span className="font-semibold">{teamName}</span>,
+      user: <span className="font-semibold">{targetUserName}</span>,
+    }
 
     switch (type) {
       case 'comment_created':
-        return (
-          <span>
-            <span className="font-semibold">{creatorName}</span> commented on{' '}
-            <span className="font-semibold">{assetName}</span>
-          </span>
+        return renderNotification(
+          m.notification_commented_on({ creator: '{creator}', asset: '{asset}' }),
+          placeholders,
         )
       case 'reply_created':
-        return (
-          <span>
-            <span className="font-semibold">{creatorName}</span> replied to a comment on{' '}
-            <span className="font-semibold">{assetName}</span>
-          </span>
+        return renderNotification(
+          m.notification_replied_to({ creator: '{creator}', asset: '{asset}' }),
+          placeholders,
         )
       case 'mention':
-        return (
-          <span>
-            <span className="font-semibold">{creatorName}</span> mentioned you in{' '}
-            <span className="font-semibold">{assetName}</span>
-          </span>
+        return renderNotification(
+          m.notification_mentioned_you({ creator: '{creator}', asset: '{asset}' }),
+          placeholders,
         )
       case 'successful_file_uploaded':
-        return (
-          <span>
-            <span className="font-semibold">{creatorName}</span> uploaded{' '}
-            <span className="font-semibold">{assetName}</span> to{' '}
-            <span className="font-semibold">{projectName}</span>
-          </span>
+        return renderNotification(
+          m.notification_uploaded({ creator: '{creator}', asset: '{asset}', project: '{project}' }),
+          placeholders,
         )
       case 'metadata_field_updated_status':
-        return (
-          <span>
-            <span className="font-semibold">{creatorName}</span> updated status of{' '}
-            <span className="font-semibold">{assetName}</span>
-          </span>
+        return renderNotification(
+          m.notification_status_updated({ creator: '{creator}', asset: '{asset}' }),
+          placeholders,
         )
       case 'new_user_join_team':
-        return (
-          <span>
-            <span className="font-semibold">{targetUserName}</span> joined{' '}
-            <span className="font-semibold">{teamName}</span>
-          </span>
+        return renderNotification(
+          m.notification_joined_team({ user: '{user}', team: '{team}' }),
+          placeholders,
         )
       case 'new_user_join_project':
-        return (
-          <span>
-            <span className="font-semibold">{targetUserName}</span> joined{' '}
-            <span className="font-semibold">{projectName}</span>
-          </span>
+        return renderNotification(
+          m.notification_joined_project({ user: '{user}', project: '{project}' }),
+          placeholders,
         )
       default:
-        return (
-          <span>
-            New notification from <span className="font-semibold">{creatorName}</span>
-          </span>
-        )
+        return renderNotification(m.notification_generic({ creator: '{creator}' }), placeholders)
     }
   })()
 

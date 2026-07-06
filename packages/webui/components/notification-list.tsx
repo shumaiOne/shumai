@@ -3,6 +3,7 @@ import { NotificationCard } from '@/ui/components/notification-card'
 import { Button } from '@/ui/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/ui/components/ui/tabs'
 import { useTeamContextStore } from '@/ui/stores/team-context'
+import { m } from '@/ui/paraglide/messages.js'
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { CheckCheckIcon, Loader2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
@@ -126,10 +127,10 @@ export const NotificationList = () => {
           <div className="flex items-center justify-between mb-2">
             <TabsList className="h-8">
               <TabsTrigger value="all" className="text-xs px-3 h-6">
-                All
+                {m.all()}
               </TabsTrigger>
               <TabsTrigger value="unread" className="text-xs px-3 h-6">
-                Unread
+                {m.unread()}
               </TabsTrigger>
             </TabsList>
 
@@ -139,7 +140,7 @@ export const NotificationList = () => {
               className="h-8 px-2 text-muted-foreground hover:text-foreground"
               onClick={handleMarkAllRead}
               disabled={notifications.length === 0 || markReadMutation.isPending}
-              title="Mark all as read"
+              title={m.mark_all_as_read()}
             >
               <CheckCheckIcon className="w-4 h-4" />
             </Button>
@@ -156,7 +157,7 @@ export const NotificationList = () => {
 
         {!isLoading && notifications.length === 0 && (
           <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
-            <p className="text-sm">No notifications</p>
+            <p className="text-sm">{m.no_notifications()}</p>
           </div>
         )}
 

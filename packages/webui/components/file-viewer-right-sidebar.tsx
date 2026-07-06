@@ -15,6 +15,7 @@ import { ChatInput } from './chat/message-input'
 import FieldRenderer from './field-renderer'
 import { GuestIdentityPopup } from './guest-identity-popup'
 import { ScrollArea } from './ui/scroll-area'
+import { m } from '@/ui/paraglide/messages.js'
 import { getViewerForFile } from '@/ui/components/viewers/registry'
 
 interface FileViewerRightSidebarProps {
@@ -304,10 +305,8 @@ export function FileViewerRightSidebar({
     return (
       <div className="flex h-full items-center justify-center p-8 text-center bg-background">
         <div className="space-y-2">
-          <p className="text-sm font-medium text-foreground">No item selected</p>
-          <p className="text-xs text-muted-foreground">
-            Select a file to view its details and comments.
-          </p>
+          <p className="text-sm font-medium text-foreground">{m.no_item_selected()}</p>
+          <p className="text-xs text-muted-foreground">{m.select_file_to_view_details()}</p>
         </div>
       </div>
     )
@@ -338,10 +337,10 @@ export function FileViewerRightSidebar({
       <Tabs defaultValue="comments" className="p-1 flex-1 flex flex-col px-2 min-h-0">
         <TabsList className="w-full shrink-0">
           <TabsTrigger value="comments" className="flex-1">
-            Comments
+            {m.comments()}
           </TabsTrigger>
           <TabsTrigger value="fields" className="flex-1">
-            Fields
+            {m.fields()}
           </TabsTrigger>
         </TabsList>
         <TabsContent value="comments" className="flex-1 flex flex-col overflow-hidden min-h-0 mt-0">

@@ -22,6 +22,7 @@ import { Input } from '@/ui/components/ui/input'
 import { ChevronDown, Copy, Loader2, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { m } from '@/ui/paraglide/messages.js'
 
 export interface Member {
   id?: string
@@ -43,6 +44,7 @@ interface MembersDialogProps {
   currentUserId?: string
   availableMembersToAdd?: Member[]
   onAddMember?: (userId: string, role: 'editor' | 'reviewer') => Promise<void>
+  type?: 'project' | 'team'
 }
 
 export function MembersDialog({
@@ -57,6 +59,7 @@ export function MembersDialog({
   currentUserId,
   availableMembersToAdd,
   onAddMember,
+  type = 'team',
 }: MembersDialogProps) {
   const [inviteRole, setInviteRole] = useState<'editor' | 'reviewer'>('editor')
   const [inviteLink, setInviteLink] = useState<string | null>(null)
@@ -65,6 +68,20 @@ export function MembersDialog({
   const [memberToRemove, setMemberToRemove] = useState<Member | null>(null)
   const [rolesToAdd, setRolesToAdd] = useState<Record<string, 'editor' | 'reviewer'>>({})
   const [addingMemberId, setAddingMemberId] = useState<string | null>(null)
+
+  const localizeRole = (role?: string) => {
+    if (!role) return ''
+    switch (role.toLowerCase()) {
+      case 'owner':
+        return m.owner()
+      case 'editor':
+        return m.editor()
+      case 'reviewer':
+        return m.reviewer()
+      default:
+        return role
+    }
+  }
 
   const setRoleToAdd = (memberId: string, role: 'editor' | 'reviewer') => {
     setRolesToAdd((prev) => ({ ...prev, [memberId]: role }))
@@ -75,10 +92,10 @@ export function MembersDialog({
     setUpdatingMemberId(memberId)
     try {
       await onUpdateRole(memberId, role)
-      toast.success('Member role updated')
+      toast.success(m.member_role_updated())
     } catch (error) {
       console.error(error)
-      toast.error('Failed to update member role')
+      toast.error(m.failed_to_update_member_role())
     } finally {
       setUpdatingMemberId(null)
     }
@@ -89,11 +106,11 @@ export function MembersDialog({
     setUpdatingMemberId(memberToRemove.id)
     try {
       await onRemoveMember(memberToRemove.id)
-      toast.success('Member removed')
+      toast.success(m.member_removed())
       setMemberToRemove(null)
     } catch (error) {
       console.error(error)
-      toast.error('Failed to remove member')
+      toast.error(m.failed_to_remove_member())
     } finally {
       setUpdatingMemberId(null)
     }
@@ -108,7 +125,7 @@ export function MembersDialog({
       setInviteLink(url)
     } catch (error) {
       console.error(error)
-      toast.error('Failed to generate invite link')
+      toast.error(m.failed_to_generate_invite_link())
     } finally {
       setIsGenerating(false)
     }
@@ -117,7 +134,7 @@ export function MembersDialog({
   const copyToClipboard = () => {
     if (inviteLink) {
       navigator.clipboard.writeText(inviteLink)
-      toast.success('Invite link copied to clipboard')
+      toast.success(m.invite_link_copied())
     }
   }
 
@@ -169,13 +186,13 @@ export function MembersDialog({
                     <span className="text-sm font-medium">{member.name}</span>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground capitalize">
-                        {member.role}
+                        {localizeRole(member.role)}
                       </span>
                       {member.scope && (
                         <>
                           <span className="text-[10px] text-muted-foreground/70">•</span>
                           <span className="text-xs text-muted-foreground capitalize">
-                            {member.scope === 'team' ? 'Team Member' : 'Project Member'}
+                            {member.scope === 'team' ? m.team_member() : m.project_member()}
                           </span>
                         </>
                       )}
@@ -193,7 +210,7 @@ export function MembersDialog({
                           className="h-8 px-2 text-xs capitalize w-26"
                           disabled={updatingMemberId === member.id}
                         >
-                          {member.role}
+                          {localizeRole(member.role)}
                           <ChevronDown className="ml-1 h-3 w-3 opacity-50" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -205,10 +222,10 @@ export function MembersDialog({
                           }
                         >
                           <DropdownMenuRadioItem value="editor" className="text-xs">
-                            Editor
+                            {m.editor()}
                           </DropdownMenuRadioItem>
                           <DropdownMenuRadioItem value="reviewer" className="text-xs">
-                            Reviewer
+                            {m.reviewer()}
                           </DropdownMenuRadioItem>
                         </DropdownMenuRadioGroup>
                       </DropdownMenuContent>
@@ -237,26 +254,28 @@ export function MembersDialog({
           >
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Remove Member</AlertDialogTitle>
+                <AlertDialogTitle>{m.remove_member()}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Are you sure you want to remove <strong>{memberToRemove?.name}</strong> from this{' '}
-                  {title.toLowerCase()}? This action cannot be undone.
+                  {m.remove_member_confirmation({
+                    name: memberToRemove?.name || '',
+                    type: type === 'project' ? m.project() : m.team(),
+                  })}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>{m.cancel()}</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleRemoveMember}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
-                  Remove
+                  {m.remove()}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>{' '}
           {isOwner && onAddMember && availableMembersToAdd && availableMembersToAdd.length > 0 && (
             <div className="border-t pt-4">
-              <h4 className="text-sm font-medium mb-3">Add Team Member to Project</h4>
+              <h4 className="text-sm font-medium mb-3">{m.add_team_member_to_project()}</h4>
               <div className="max-h-[200px] overflow-y-auto space-y-2 pr-1">
                 {availableMembersToAdd.map((member) => {
                   const currentRole = rolesToAdd[member.id!] || 'editor'
@@ -279,7 +298,7 @@ export function MembersDialog({
                         <div className="flex flex-col">
                           <span className="text-sm font-medium">{member.name}</span>
                           <span className="text-xs text-muted-foreground capitalize">
-                            {member.scope === 'team' ? 'Team Member' : 'Project Member'}
+                            {member.scope === 'team' ? m.team_member() : m.project_member()}
                           </span>
                         </div>
                       </div>
@@ -293,7 +312,7 @@ export function MembersDialog({
                               className="h-8 px-2 text-xs capitalize w-26"
                               disabled={addingMemberId === member.id}
                             >
-                              {currentRole}
+                              {localizeRole(currentRole)}
                               <ChevronDown className="ml-1 h-3 w-3 opacity-50" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -305,10 +324,10 @@ export function MembersDialog({
                               }
                             >
                               <DropdownMenuRadioItem value="editor" className="text-xs">
-                                Editor
+                                {m.editor()}
                               </DropdownMenuRadioItem>
                               <DropdownMenuRadioItem value="reviewer" className="text-xs">
-                                Reviewer
+                                {m.reviewer()}
                               </DropdownMenuRadioItem>
                             </DropdownMenuRadioGroup>
                           </DropdownMenuContent>
@@ -319,10 +338,12 @@ export function MembersDialog({
                             setAddingMemberId(member.id!)
                             try {
                               await onAddMember(member.id!, currentRole)
-                              toast.success(`Added ${member.name} successfully`)
+                              toast.success(
+                                m.added_member_successfully({ name: member.name || '' }),
+                              )
                             } catch (error) {
                               console.error(error)
-                              toast.error(`Failed to add ${member.name}`)
+                              toast.error(m.failed_to_add_member({ name: member.name || '' }))
                             } finally {
                               setAddingMemberId(null)
                             }
@@ -334,7 +355,7 @@ export function MembersDialog({
                           {addingMemberId === member.id ? (
                             <Loader2 className="h-3 w-3 animate-spin" />
                           ) : (
-                            'Add'
+                            m.add()
                           )}
                         </Button>
                       </div>
@@ -346,13 +367,13 @@ export function MembersDialog({
           )}
           {isOwner && onInvite && (
             <div className="border-t pt-4">
-              <h4 className="text-sm font-medium mb-3">Invite New Member</h4>
+              <h4 className="text-sm font-medium mb-3">{m.invite_new_member()}</h4>
               <div className="space-y-3">
                 <div className="flex gap-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" className="w-[120px] justify-between">
-                        {inviteRole === 'editor' ? 'Editor' : 'Reviewer'}
+                        {inviteRole === 'editor' ? m.editor() : m.reviewer()}
                         <ChevronDown className="h-4 w-4 opacity-50" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -361,14 +382,16 @@ export function MembersDialog({
                         value={inviteRole}
                         onValueChange={(v) => setInviteRole(v as 'editor' | 'reviewer')}
                       >
-                        <DropdownMenuRadioItem value="editor">Editor</DropdownMenuRadioItem>
-                        <DropdownMenuRadioItem value="reviewer">Reviewer</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="editor">{m.editor()}</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="reviewer">
+                          {m.reviewer()}
+                        </DropdownMenuRadioItem>
                       </DropdownMenuRadioGroup>
                     </DropdownMenuContent>
                   </DropdownMenu>
                   <Button onClick={handleGenerate} disabled={isGenerating} className="flex-1">
                     {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Generate Link
+                    {m.generate_link()}
                   </Button>
                 </div>
 
