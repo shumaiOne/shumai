@@ -42,7 +42,7 @@ describe('S3Service implementations', () => {
 
   describe('S3StorageService', () => {
     it('should correctly build standard endpoints', () => {
-      const s3 = new S3StorageService('s3.example.com', 'key', 'secret', 'test-bucket', true)
+      const s3 = new S3StorageService('https://s3.example.com', 'key', 'secret', 'test-bucket')
       expect(s3).toBeDefined()
       expect(s3ClientConstructorSpy).toHaveBeenCalledWith(
         expect.objectContaining({ region: 'auto' }),
@@ -52,11 +52,10 @@ describe('S3Service implementations', () => {
     it('should use provided region', () => {
       s3ClientConstructorSpy.mockClear()
       const s3 = new S3StorageService(
-        's3.example.com',
+        'https://s3.example.com',
         'key',
         'secret',
         'test-bucket',
-        true,
         'ap-singapore',
       )
       expect(s3).toBeDefined()
@@ -66,14 +65,14 @@ describe('S3Service implementations', () => {
     })
 
     it('should implement presign correctly', async () => {
-      const s3 = new S3StorageService('localhost:9000', 'key', 'secret', 'test-bucket', false)
+      const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
       const url = await s3.presign('bucket', 'key', 'GET')
       expect(url).toBe('http://presigned-url')
       expect(s3PresignSpy).toHaveBeenCalledWith('key', expect.objectContaining({ method: 'GET' }))
     })
 
     it('should cache GET presign URLs', async () => {
-      const s3 = new S3StorageService('localhost:9000', 'key', 'secret', 'test-bucket', false)
+      const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
 
       s3PresignSpy.mockClear()
       s3PresignSpy.mockReturnValueOnce('http://presigned-url-1')
@@ -88,7 +87,7 @@ describe('S3Service implementations', () => {
     })
 
     it('should NOT cache PUT presign URLs', async () => {
-      const s3 = new S3StorageService('localhost:9000', 'key', 'secret', 'test-bucket', false)
+      const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
 
       s3PresignSpy.mockReset()
       s3PresignSpy.mockReturnValueOnce('http://unique-put-url-1')
@@ -104,7 +103,7 @@ describe('S3Service implementations', () => {
 
     it('should respect PRESIGNED_URL_EXPIRES_IN env', async () => {
       process.env.PRESIGNED_URL_EXPIRES_IN = '10'
-      const s3 = new S3StorageService('localhost:9000', 'key', 'secret', 'test-bucket', false)
+      const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
 
       s3PresignSpy.mockClear()
       await s3.presign('bucket', 'key', 'GET')
@@ -118,7 +117,7 @@ describe('S3Service implementations', () => {
     })
 
     it('should not set contentDisposition for normal GET presign', async () => {
-      const s3 = new S3StorageService('localhost:9000', 'key', 'secret', 'test-bucket', false)
+      const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
       await s3.presign('bucket', 'key', 'GET')
 
       expect(s3PresignSpy).toHaveBeenCalledWith(
@@ -130,7 +129,7 @@ describe('S3Service implementations', () => {
     })
 
     it('should set contentDisposition attachment when download is true', async () => {
-      const s3 = new S3StorageService('localhost:9000', 'key', 'secret', 'test-bucket', false)
+      const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
       await s3.presign('bucket', 'key', 'GET', true)
 
       expect(s3PresignSpy).toHaveBeenCalledWith(
@@ -142,7 +141,7 @@ describe('S3Service implementations', () => {
     })
 
     it('should not cache download presign URLs', async () => {
-      const s3 = new S3StorageService('localhost:9000', 'key', 'secret', 'test-bucket', false)
+      const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
 
       s3PresignSpy.mockClear()
       s3PresignSpy.mockReturnValueOnce('http://download-url-1')
