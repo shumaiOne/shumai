@@ -16,6 +16,7 @@ import {
   updateFileRequestSchema,
   uploadFileRequestSchema,
   getDownloadLinksRequestSchema,
+  completeCommentRequestSchema,
 } from '@shumai/dtos'
 import { transcodeService } from '@shumai/core'
 import fs from 'fs'
@@ -200,6 +201,25 @@ const route = new Hono<{ Variables: { user: User } }>()
     const comments = await assetService.listComments(fileId, req)
     return c.json(comments)
   })
+  .post(
+    '/comments/:commentId/complete',
+    zValidator('json', completeCommentRequestSchema),
+    async (c) => {
+      const commentId = c.req.param('commentId')
+      const user = c.get('user')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Read,
+        type: ResourceType.Comment,
+        id: commentId,
+      })
+
+      const updated = await assetService.completeComment(commentId, req.isCompleted, user.id)
+      return c.json(updated)
+    },
+  )
   .post('/files/restore', zValidator('json', restoreFilesRequestSchema), async (c) => {
     const user = c.get('user')
     const req = c.req.valid('json')

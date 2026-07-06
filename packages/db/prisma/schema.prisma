@@ -136,7 +136,8 @@ model User {
   authTokens           AuthToken[]      @relation("UserToAuthToken")
   tasks                Task[]           @relation("UserToTask")
   teamMembers          TeamMember[]     @relation("UserToTeamMember")
-  comments             AssetComment[]   @relation("UserToAssetComment")
+  comments                  AssetComment[]   @relation("UserToAssetComment")
+  completionChangedComments AssetComment[]   @relation("UserToAssetCommentCompletionChanged")
   createdInvites       Invite[]         @relation("UserToInvite")
   createdNotifications Notification[]   @relation("UserToCreatedNotification")
   notifications        Notification[]   @relation("UserToNotification")
@@ -470,6 +471,10 @@ model AssetComment {
 
   creatorId   String?  @map("creator_id")
   creator     User?    @relation("UserToAssetComment", fields: [creatorId], references: [id])
+
+  isCompleted                 Boolean       @default(false) @map("is_completed")
+  completionLastChangedById   String?       @map("completion_last_changed_by_id")
+  completionLastChangedBy     User?         @relation("UserToAssetCommentCompletionChanged", fields: [completionLastChangedById], references: [id])
 
   replyToId   String?  @map("reply_to_id")
   replyTo     AssetComment? @relation("CommentReplies", fields: [replyToId], references: [id], onDelete: Cascade)

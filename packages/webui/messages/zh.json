@@ -646,6 +646,8 @@
   "all": "全部",
   "unread": "未读",
   "mark_all_as_read": "全部标记为已读",
+  "mark_as_complete": "标记为已完成",
+  "mark_as_incomplete": "标记为未完成",
   "no_notifications": "暂无通知",
 
   "unknown_date": "未知日期",

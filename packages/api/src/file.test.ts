@@ -56,6 +56,7 @@ describe('file api', () => {
     vi.spyOn(assetService, 'updateAssetName').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'deleteAssets').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'createComment').mockImplementation(vi.fn())
+    vi.spyOn(assetService, 'completeComment').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'listComments').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'restoreAssets').mockImplementation(vi.fn())
     vi.spyOn(metadataService, 'updateAssetMetadata').mockImplementation(vi.fn())
@@ -185,6 +186,8 @@ describe('file api', () => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       sessionId: null,
+      isCompleted: false,
+      completionLastChangedBy: null,
     })
 
     // Mock assetService.getAsset to return teamId for notification
@@ -234,6 +237,8 @@ describe('file api', () => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       sessionId: null,
+      isCompleted: false,
+      completionLastChangedBy: null,
     })
 
     // Mock assetService.getAsset to return teamId for notification
@@ -290,6 +295,8 @@ describe('file api', () => {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           sessionId: null,
+          isCompleted: false,
+          completionLastChangedBy: null,
         },
       ],
       pageInfo: { cursor: 'cursor', total: 1 },
@@ -308,6 +315,46 @@ describe('file api', () => {
       permission: Permission.Read,
       type: ResourceType.Asset,
       id: 'test-id',
+    })
+  })
+
+  it('POST /comments/:commentId/complete', async () => {
+    vi.mocked(assetService.completeComment).mockResolvedValue({
+      id: 'comment-id',
+      assetId: 'file-id',
+      message: 'hello',
+      annotations: null,
+      second: null,
+      creator: { id: 'user-id', name: 'Test User' },
+      replies: [],
+      attachments: [],
+      mentions: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      sessionId: null,
+      isCompleted: true,
+      completionLastChangedBy: { id: 'user1', name: 'Test User' },
+    })
+
+    const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+    const res = await app.request('/comments/comment-id/complete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ isCompleted: true }),
+    })
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.isCompleted).toBe(true)
+    expect(json.completionLastChangedBy.id).toBe('user1')
+
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: { id: 'user1', name: 'Test User' },
+      permission: Permission.Read,
+      type: ResourceType.Comment,
+      id: 'comment-id',
     })
   })
 

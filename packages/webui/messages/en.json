@@ -646,6 +646,8 @@
   "all": "All",
   "unread": "Unread",
   "mark_all_as_read": "Mark all as read",
+  "mark_as_complete": "Mark as complete",
+  "mark_as_incomplete": "Mark as incomplete",
   "no_notifications": "No notifications",
 
   "unknown_date": "Unknown Date",

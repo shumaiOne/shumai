@@ -204,6 +204,8 @@ export type CommentInfo = {
   createdAt: string
   updatedAt: string
   sessionId: string | null
+  isCompleted: boolean
+  completionLastChangedBy: AssetUserInfo | null
 }
 
 export const commentInfoSchema: z.ZodType<CommentInfo> = z.object({
@@ -220,7 +222,14 @@ export const commentInfoSchema: z.ZodType<CommentInfo> = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   sessionId: z.string().nullable(),
+  isCompleted: z.boolean(),
+  completionLastChangedBy: assetUserInfoSchema.nullable(),
 })
+
+export const completeCommentRequestSchema = z.object({
+  isCompleted: z.boolean(),
+})
+export type CompleteCommentRequest = z.infer<typeof completeCommentRequestSchema>
 
 export const reparentAssetsRequestSchema = z.object({
   newParentId: z.string(),

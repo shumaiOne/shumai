@@ -45,6 +45,8 @@ export type AssetCommentMinAggregateOutputType = {
   updatedAt: Date | null
   assetId: string | null
   creatorId: string | null
+  isCompleted: boolean | null
+  completionLastChangedById: string | null
   replyToId: string | null
 }
 
@@ -57,6 +59,8 @@ export type AssetCommentMaxAggregateOutputType = {
   updatedAt: Date | null
   assetId: string | null
   creatorId: string | null
+  isCompleted: boolean | null
+  completionLastChangedById: string | null
   replyToId: string | null
 }
 
@@ -70,6 +74,8 @@ export type AssetCommentCountAggregateOutputType = {
   updatedAt: number
   assetId: number
   creatorId: number
+  isCompleted: number
+  completionLastChangedById: number
   replyToId: number
   _all: number
 }
@@ -92,6 +98,8 @@ export type AssetCommentMinAggregateInputType = {
   updatedAt?: true
   assetId?: true
   creatorId?: true
+  isCompleted?: true
+  completionLastChangedById?: true
   replyToId?: true
 }
 
@@ -104,6 +112,8 @@ export type AssetCommentMaxAggregateInputType = {
   updatedAt?: true
   assetId?: true
   creatorId?: true
+  isCompleted?: true
+  completionLastChangedById?: true
   replyToId?: true
 }
 
@@ -117,6 +127,8 @@ export type AssetCommentCountAggregateInputType = {
   updatedAt?: true
   assetId?: true
   creatorId?: true
+  isCompleted?: true
+  completionLastChangedById?: true
   replyToId?: true
   _all?: true
 }
@@ -217,6 +229,8 @@ export type AssetCommentGroupByOutputType = {
   updatedAt: Date
   assetId: string
   creatorId: string | null
+  isCompleted: boolean
+  completionLastChangedById: string | null
   replyToId: string | null
   _count: AssetCommentCountAggregateOutputType | null
   _avg: AssetCommentAvgAggregateOutputType | null
@@ -253,10 +267,13 @@ export type AssetCommentWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"AssetComment"> | Date | string
   assetId?: Prisma.StringFilter<"AssetComment"> | string
   creatorId?: Prisma.StringNullableFilter<"AssetComment"> | string | null
+  isCompleted?: Prisma.BoolFilter<"AssetComment"> | boolean
+  completionLastChangedById?: Prisma.StringNullableFilter<"AssetComment"> | string | null
   replyToId?: Prisma.StringNullableFilter<"AssetComment"> | string | null
   session?: Prisma.XOR<Prisma.AgentSessionNullableScalarRelationFilter, Prisma.AgentSessionWhereInput> | null
   asset?: Prisma.XOR<Prisma.AssetScalarRelationFilter, Prisma.AssetWhereInput>
   creator?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
+  completionLastChangedBy?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   replyTo?: Prisma.XOR<Prisma.AssetCommentNullableScalarRelationFilter, Prisma.AssetCommentWhereInput> | null
   replies?: Prisma.AssetCommentListRelationFilter
   attachments?: Prisma.AssetCommentAttachmentListRelationFilter
@@ -272,10 +289,13 @@ export type AssetCommentOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   assetId?: Prisma.SortOrder
   creatorId?: Prisma.SortOrderInput | Prisma.SortOrder
+  isCompleted?: Prisma.SortOrder
+  completionLastChangedById?: Prisma.SortOrderInput | Prisma.SortOrder
   replyToId?: Prisma.SortOrderInput | Prisma.SortOrder
   session?: Prisma.AgentSessionOrderByWithRelationInput
   asset?: Prisma.AssetOrderByWithRelationInput
   creator?: Prisma.UserOrderByWithRelationInput
+  completionLastChangedBy?: Prisma.UserOrderByWithRelationInput
   replyTo?: Prisma.AssetCommentOrderByWithRelationInput
   replies?: Prisma.AssetCommentOrderByRelationAggregateInput
   attachments?: Prisma.AssetCommentAttachmentOrderByRelationAggregateInput
@@ -294,10 +314,13 @@ export type AssetCommentWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"AssetComment"> | Date | string
   assetId?: Prisma.StringFilter<"AssetComment"> | string
   creatorId?: Prisma.StringNullableFilter<"AssetComment"> | string | null
+  isCompleted?: Prisma.BoolFilter<"AssetComment"> | boolean
+  completionLastChangedById?: Prisma.StringNullableFilter<"AssetComment"> | string | null
   replyToId?: Prisma.StringNullableFilter<"AssetComment"> | string | null
   session?: Prisma.XOR<Prisma.AgentSessionNullableScalarRelationFilter, Prisma.AgentSessionWhereInput> | null
   asset?: Prisma.XOR<Prisma.AssetScalarRelationFilter, Prisma.AssetWhereInput>
   creator?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
+  completionLastChangedBy?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   replyTo?: Prisma.XOR<Prisma.AssetCommentNullableScalarRelationFilter, Prisma.AssetCommentWhereInput> | null
   replies?: Prisma.AssetCommentListRelationFilter
   attachments?: Prisma.AssetCommentAttachmentListRelationFilter
@@ -313,6 +336,8 @@ export type AssetCommentOrderByWithAggregationInput = {
   updatedAt?: Prisma.SortOrder
   assetId?: Prisma.SortOrder
   creatorId?: Prisma.SortOrderInput | Prisma.SortOrder
+  isCompleted?: Prisma.SortOrder
+  completionLastChangedById?: Prisma.SortOrderInput | Prisma.SortOrder
   replyToId?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.AssetCommentCountOrderByAggregateInput
   _avg?: Prisma.AssetCommentAvgOrderByAggregateInput
@@ -334,6 +359,8 @@ export type AssetCommentScalarWhereWithAggregatesInput = {
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"AssetComment"> | Date | string
   assetId?: Prisma.StringWithAggregatesFilter<"AssetComment"> | string
   creatorId?: Prisma.StringNullableWithAggregatesFilter<"AssetComment"> | string | null
+  isCompleted?: Prisma.BoolWithAggregatesFilter<"AssetComment"> | boolean
+  completionLastChangedById?: Prisma.StringNullableWithAggregatesFilter<"AssetComment"> | string | null
   replyToId?: Prisma.StringNullableWithAggregatesFilter<"AssetComment"> | string | null
 }
 
@@ -344,9 +371,11 @@ export type AssetCommentCreateInput = {
   second?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  isCompleted?: boolean
   session?: Prisma.AgentSessionCreateNestedOneWithoutCommentsInput
   asset: Prisma.AssetCreateNestedOneWithoutCommentsInput
   creator?: Prisma.UserCreateNestedOneWithoutCommentsInput
+  completionLastChangedBy?: Prisma.UserCreateNestedOneWithoutCompletionChangedCommentsInput
   replyTo?: Prisma.AssetCommentCreateNestedOneWithoutRepliesInput
   replies?: Prisma.AssetCommentCreateNestedManyWithoutReplyToInput
   attachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutCommentInput
@@ -362,6 +391,8 @@ export type AssetCommentUncheckedCreateInput = {
   updatedAt?: Date | string
   assetId: string
   creatorId?: string | null
+  isCompleted?: boolean
+  completionLastChangedById?: string | null
   replyToId?: string | null
   replies?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutReplyToInput
   attachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutCommentInput
@@ -374,9 +405,11 @@ export type AssetCommentUpdateInput = {
   second?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  isCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   session?: Prisma.AgentSessionUpdateOneWithoutCommentsNestedInput
   asset?: Prisma.AssetUpdateOneRequiredWithoutCommentsNestedInput
   creator?: Prisma.UserUpdateOneWithoutCommentsNestedInput
+  completionLastChangedBy?: Prisma.UserUpdateOneWithoutCompletionChangedCommentsNestedInput
   replyTo?: Prisma.AssetCommentUpdateOneWithoutRepliesNestedInput
   replies?: Prisma.AssetCommentUpdateManyWithoutReplyToNestedInput
   attachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutCommentNestedInput
@@ -392,6 +425,8 @@ export type AssetCommentUncheckedUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  completionLastChangedById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   replyToId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   replies?: Prisma.AssetCommentUncheckedUpdateManyWithoutReplyToNestedInput
   attachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutCommentNestedInput
@@ -407,6 +442,8 @@ export type AssetCommentCreateManyInput = {
   updatedAt?: Date | string
   assetId: string
   creatorId?: string | null
+  isCompleted?: boolean
+  completionLastChangedById?: string | null
   replyToId?: string | null
 }
 
@@ -417,6 +454,7 @@ export type AssetCommentUpdateManyMutationInput = {
   second?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  isCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type AssetCommentUncheckedUpdateManyInput = {
@@ -429,6 +467,8 @@ export type AssetCommentUncheckedUpdateManyInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  completionLastChangedById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   replyToId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
@@ -457,6 +497,8 @@ export type AssetCommentCountOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
   assetId?: Prisma.SortOrder
   creatorId?: Prisma.SortOrder
+  isCompleted?: Prisma.SortOrder
+  completionLastChangedById?: Prisma.SortOrder
   replyToId?: Prisma.SortOrder
 }
 
@@ -473,6 +515,8 @@ export type AssetCommentMaxOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
   assetId?: Prisma.SortOrder
   creatorId?: Prisma.SortOrder
+  isCompleted?: Prisma.SortOrder
+  completionLastChangedById?: Prisma.SortOrder
   replyToId?: Prisma.SortOrder
 }
 
@@ -485,6 +529,8 @@ export type AssetCommentMinOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
   assetId?: Prisma.SortOrder
   creatorId?: Prisma.SortOrder
+  isCompleted?: Prisma.SortOrder
+  completionLastChangedById?: Prisma.SortOrder
   replyToId?: Prisma.SortOrder
 }
 
@@ -504,10 +550,24 @@ export type AssetCommentCreateNestedManyWithoutCreatorInput = {
   connect?: Prisma.AssetCommentWhereUniqueInput | Prisma.AssetCommentWhereUniqueInput[]
 }
 
+export type AssetCommentCreateNestedManyWithoutCompletionLastChangedByInput = {
+  create?: Prisma.XOR<Prisma.AssetCommentCreateWithoutCompletionLastChangedByInput, Prisma.AssetCommentUncheckedCreateWithoutCompletionLastChangedByInput> | Prisma.AssetCommentCreateWithoutCompletionLastChangedByInput[] | Prisma.AssetCommentUncheckedCreateWithoutCompletionLastChangedByInput[]
+  connectOrCreate?: Prisma.AssetCommentCreateOrConnectWithoutCompletionLastChangedByInput | Prisma.AssetCommentCreateOrConnectWithoutCompletionLastChangedByInput[]
+  createMany?: Prisma.AssetCommentCreateManyCompletionLastChangedByInputEnvelope
+  connect?: Prisma.AssetCommentWhereUniqueInput | Prisma.AssetCommentWhereUniqueInput[]
+}
+
 export type AssetCommentUncheckedCreateNestedManyWithoutCreatorInput = {
   create?: Prisma.XOR<Prisma.AssetCommentCreateWithoutCreatorInput, Prisma.AssetCommentUncheckedCreateWithoutCreatorInput> | Prisma.AssetCommentCreateWithoutCreatorInput[] | Prisma.AssetCommentUncheckedCreateWithoutCreatorInput[]
   connectOrCreate?: Prisma.AssetCommentCreateOrConnectWithoutCreatorInput | Prisma.AssetCommentCreateOrConnectWithoutCreatorInput[]
   createMany?: Prisma.AssetCommentCreateManyCreatorInputEnvelope
+  connect?: Prisma.AssetCommentWhereUniqueInput | Prisma.AssetCommentWhereUniqueInput[]
+}
+
+export type AssetCommentUncheckedCreateNestedManyWithoutCompletionLastChangedByInput = {
+  create?: Prisma.XOR<Prisma.AssetCommentCreateWithoutCompletionLastChangedByInput, Prisma.AssetCommentUncheckedCreateWithoutCompletionLastChangedByInput> | Prisma.AssetCommentCreateWithoutCompletionLastChangedByInput[] | Prisma.AssetCommentUncheckedCreateWithoutCompletionLastChangedByInput[]
+  connectOrCreate?: Prisma.AssetCommentCreateOrConnectWithoutCompletionLastChangedByInput | Prisma.AssetCommentCreateOrConnectWithoutCompletionLastChangedByInput[]
+  createMany?: Prisma.AssetCommentCreateManyCompletionLastChangedByInputEnvelope
   connect?: Prisma.AssetCommentWhereUniqueInput | Prisma.AssetCommentWhereUniqueInput[]
 }
 
@@ -525,6 +585,20 @@ export type AssetCommentUpdateManyWithoutCreatorNestedInput = {
   deleteMany?: Prisma.AssetCommentScalarWhereInput | Prisma.AssetCommentScalarWhereInput[]
 }
 
+export type AssetCommentUpdateManyWithoutCompletionLastChangedByNestedInput = {
+  create?: Prisma.XOR<Prisma.AssetCommentCreateWithoutCompletionLastChangedByInput, Prisma.AssetCommentUncheckedCreateWithoutCompletionLastChangedByInput> | Prisma.AssetCommentCreateWithoutCompletionLastChangedByInput[] | Prisma.AssetCommentUncheckedCreateWithoutCompletionLastChangedByInput[]
+  connectOrCreate?: Prisma.AssetCommentCreateOrConnectWithoutCompletionLastChangedByInput | Prisma.AssetCommentCreateOrConnectWithoutCompletionLastChangedByInput[]
+  upsert?: Prisma.AssetCommentUpsertWithWhereUniqueWithoutCompletionLastChangedByInput | Prisma.AssetCommentUpsertWithWhereUniqueWithoutCompletionLastChangedByInput[]
+  createMany?: Prisma.AssetCommentCreateManyCompletionLastChangedByInputEnvelope
+  set?: Prisma.AssetCommentWhereUniqueInput | Prisma.AssetCommentWhereUniqueInput[]
+  disconnect?: Prisma.AssetCommentWhereUniqueInput | Prisma.AssetCommentWhereUniqueInput[]
+  delete?: Prisma.AssetCommentWhereUniqueInput | Prisma.AssetCommentWhereUniqueInput[]
+  connect?: Prisma.AssetCommentWhereUniqueInput | Prisma.AssetCommentWhereUniqueInput[]
+  update?: Prisma.AssetCommentUpdateWithWhereUniqueWithoutCompletionLastChangedByInput | Prisma.AssetCommentUpdateWithWhereUniqueWithoutCompletionLastChangedByInput[]
+  updateMany?: Prisma.AssetCommentUpdateManyWithWhereWithoutCompletionLastChangedByInput | Prisma.AssetCommentUpdateManyWithWhereWithoutCompletionLastChangedByInput[]
+  deleteMany?: Prisma.AssetCommentScalarWhereInput | Prisma.AssetCommentScalarWhereInput[]
+}
+
 export type AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput = {
   create?: Prisma.XOR<Prisma.AssetCommentCreateWithoutCreatorInput, Prisma.AssetCommentUncheckedCreateWithoutCreatorInput> | Prisma.AssetCommentCreateWithoutCreatorInput[] | Prisma.AssetCommentUncheckedCreateWithoutCreatorInput[]
   connectOrCreate?: Prisma.AssetCommentCreateOrConnectWithoutCreatorInput | Prisma.AssetCommentCreateOrConnectWithoutCreatorInput[]
@@ -536,6 +610,20 @@ export type AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput = {
   connect?: Prisma.AssetCommentWhereUniqueInput | Prisma.AssetCommentWhereUniqueInput[]
   update?: Prisma.AssetCommentUpdateWithWhereUniqueWithoutCreatorInput | Prisma.AssetCommentUpdateWithWhereUniqueWithoutCreatorInput[]
   updateMany?: Prisma.AssetCommentUpdateManyWithWhereWithoutCreatorInput | Prisma.AssetCommentUpdateManyWithWhereWithoutCreatorInput[]
+  deleteMany?: Prisma.AssetCommentScalarWhereInput | Prisma.AssetCommentScalarWhereInput[]
+}
+
+export type AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByNestedInput = {
+  create?: Prisma.XOR<Prisma.AssetCommentCreateWithoutCompletionLastChangedByInput, Prisma.AssetCommentUncheckedCreateWithoutCompletionLastChangedByInput> | Prisma.AssetCommentCreateWithoutCompletionLastChangedByInput[] | Prisma.AssetCommentUncheckedCreateWithoutCompletionLastChangedByInput[]
+  connectOrCreate?: Prisma.AssetCommentCreateOrConnectWithoutCompletionLastChangedByInput | Prisma.AssetCommentCreateOrConnectWithoutCompletionLastChangedByInput[]
+  upsert?: Prisma.AssetCommentUpsertWithWhereUniqueWithoutCompletionLastChangedByInput | Prisma.AssetCommentUpsertWithWhereUniqueWithoutCompletionLastChangedByInput[]
+  createMany?: Prisma.AssetCommentCreateManyCompletionLastChangedByInputEnvelope
+  set?: Prisma.AssetCommentWhereUniqueInput | Prisma.AssetCommentWhereUniqueInput[]
+  disconnect?: Prisma.AssetCommentWhereUniqueInput | Prisma.AssetCommentWhereUniqueInput[]
+  delete?: Prisma.AssetCommentWhereUniqueInput | Prisma.AssetCommentWhereUniqueInput[]
+  connect?: Prisma.AssetCommentWhereUniqueInput | Prisma.AssetCommentWhereUniqueInput[]
+  update?: Prisma.AssetCommentUpdateWithWhereUniqueWithoutCompletionLastChangedByInput | Prisma.AssetCommentUpdateWithWhereUniqueWithoutCompletionLastChangedByInput[]
+  updateMany?: Prisma.AssetCommentUpdateManyWithWhereWithoutCompletionLastChangedByInput | Prisma.AssetCommentUpdateManyWithWhereWithoutCompletionLastChangedByInput[]
   deleteMany?: Prisma.AssetCommentScalarWhereInput | Prisma.AssetCommentScalarWhereInput[]
 }
 
@@ -702,8 +790,10 @@ export type AssetCommentCreateWithoutCreatorInput = {
   second?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  isCompleted?: boolean
   session?: Prisma.AgentSessionCreateNestedOneWithoutCommentsInput
   asset: Prisma.AssetCreateNestedOneWithoutCommentsInput
+  completionLastChangedBy?: Prisma.UserCreateNestedOneWithoutCompletionChangedCommentsInput
   replyTo?: Prisma.AssetCommentCreateNestedOneWithoutRepliesInput
   replies?: Prisma.AssetCommentCreateNestedManyWithoutReplyToInput
   attachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutCommentInput
@@ -718,6 +808,8 @@ export type AssetCommentUncheckedCreateWithoutCreatorInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   assetId: string
+  isCompleted?: boolean
+  completionLastChangedById?: string | null
   replyToId?: string | null
   replies?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutReplyToInput
   attachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutCommentInput
@@ -730,6 +822,48 @@ export type AssetCommentCreateOrConnectWithoutCreatorInput = {
 
 export type AssetCommentCreateManyCreatorInputEnvelope = {
   data: Prisma.AssetCommentCreateManyCreatorInput | Prisma.AssetCommentCreateManyCreatorInput[]
+  skipDuplicates?: boolean
+}
+
+export type AssetCommentCreateWithoutCompletionLastChangedByInput = {
+  id?: string
+  message?: string | null
+  annotation?:PrismaJson.AnnotationList | Prisma.NullableJsonNullValueInput
+  second?: number | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  isCompleted?: boolean
+  session?: Prisma.AgentSessionCreateNestedOneWithoutCommentsInput
+  asset: Prisma.AssetCreateNestedOneWithoutCommentsInput
+  creator?: Prisma.UserCreateNestedOneWithoutCommentsInput
+  replyTo?: Prisma.AssetCommentCreateNestedOneWithoutRepliesInput
+  replies?: Prisma.AssetCommentCreateNestedManyWithoutReplyToInput
+  attachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutCommentInput
+}
+
+export type AssetCommentUncheckedCreateWithoutCompletionLastChangedByInput = {
+  id?: string
+  message?: string | null
+  annotation?:PrismaJson.AnnotationList | Prisma.NullableJsonNullValueInput
+  second?: number | null
+  sessionId?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  assetId: string
+  creatorId?: string | null
+  isCompleted?: boolean
+  replyToId?: string | null
+  replies?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutReplyToInput
+  attachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutCommentInput
+}
+
+export type AssetCommentCreateOrConnectWithoutCompletionLastChangedByInput = {
+  where: Prisma.AssetCommentWhereUniqueInput
+  create: Prisma.XOR<Prisma.AssetCommentCreateWithoutCompletionLastChangedByInput, Prisma.AssetCommentUncheckedCreateWithoutCompletionLastChangedByInput>
+}
+
+export type AssetCommentCreateManyCompletionLastChangedByInputEnvelope = {
+  data: Prisma.AssetCommentCreateManyCompletionLastChangedByInput | Prisma.AssetCommentCreateManyCompletionLastChangedByInput[]
   skipDuplicates?: boolean
 }
 
@@ -762,7 +896,25 @@ export type AssetCommentScalarWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"AssetComment"> | Date | string
   assetId?: Prisma.StringFilter<"AssetComment"> | string
   creatorId?: Prisma.StringNullableFilter<"AssetComment"> | string | null
+  isCompleted?: Prisma.BoolFilter<"AssetComment"> | boolean
+  completionLastChangedById?: Prisma.StringNullableFilter<"AssetComment"> | string | null
   replyToId?: Prisma.StringNullableFilter<"AssetComment"> | string | null
+}
+
+export type AssetCommentUpsertWithWhereUniqueWithoutCompletionLastChangedByInput = {
+  where: Prisma.AssetCommentWhereUniqueInput
+  update: Prisma.XOR<Prisma.AssetCommentUpdateWithoutCompletionLastChangedByInput, Prisma.AssetCommentUncheckedUpdateWithoutCompletionLastChangedByInput>
+  create: Prisma.XOR<Prisma.AssetCommentCreateWithoutCompletionLastChangedByInput, Prisma.AssetCommentUncheckedCreateWithoutCompletionLastChangedByInput>
+}
+
+export type AssetCommentUpdateWithWhereUniqueWithoutCompletionLastChangedByInput = {
+  where: Prisma.AssetCommentWhereUniqueInput
+  data: Prisma.XOR<Prisma.AssetCommentUpdateWithoutCompletionLastChangedByInput, Prisma.AssetCommentUncheckedUpdateWithoutCompletionLastChangedByInput>
+}
+
+export type AssetCommentUpdateManyWithWhereWithoutCompletionLastChangedByInput = {
+  where: Prisma.AssetCommentScalarWhereInput
+  data: Prisma.XOR<Prisma.AssetCommentUpdateManyMutationInput, Prisma.AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByInput>
 }
 
 export type AssetCommentCreateWithoutAssetInput = {
@@ -772,8 +924,10 @@ export type AssetCommentCreateWithoutAssetInput = {
   second?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  isCompleted?: boolean
   session?: Prisma.AgentSessionCreateNestedOneWithoutCommentsInput
   creator?: Prisma.UserCreateNestedOneWithoutCommentsInput
+  completionLastChangedBy?: Prisma.UserCreateNestedOneWithoutCompletionChangedCommentsInput
   replyTo?: Prisma.AssetCommentCreateNestedOneWithoutRepliesInput
   replies?: Prisma.AssetCommentCreateNestedManyWithoutReplyToInput
   attachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutCommentInput
@@ -788,6 +942,8 @@ export type AssetCommentUncheckedCreateWithoutAssetInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   creatorId?: string | null
+  isCompleted?: boolean
+  completionLastChangedById?: string | null
   replyToId?: string | null
   replies?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutReplyToInput
   attachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutCommentInput
@@ -826,9 +982,11 @@ export type AssetCommentCreateWithoutRepliesInput = {
   second?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  isCompleted?: boolean
   session?: Prisma.AgentSessionCreateNestedOneWithoutCommentsInput
   asset: Prisma.AssetCreateNestedOneWithoutCommentsInput
   creator?: Prisma.UserCreateNestedOneWithoutCommentsInput
+  completionLastChangedBy?: Prisma.UserCreateNestedOneWithoutCompletionChangedCommentsInput
   replyTo?: Prisma.AssetCommentCreateNestedOneWithoutRepliesInput
   attachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutCommentInput
 }
@@ -843,6 +1001,8 @@ export type AssetCommentUncheckedCreateWithoutRepliesInput = {
   updatedAt?: Date | string
   assetId: string
   creatorId?: string | null
+  isCompleted?: boolean
+  completionLastChangedById?: string | null
   replyToId?: string | null
   attachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutCommentInput
 }
@@ -859,9 +1019,11 @@ export type AssetCommentCreateWithoutReplyToInput = {
   second?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  isCompleted?: boolean
   session?: Prisma.AgentSessionCreateNestedOneWithoutCommentsInput
   asset: Prisma.AssetCreateNestedOneWithoutCommentsInput
   creator?: Prisma.UserCreateNestedOneWithoutCommentsInput
+  completionLastChangedBy?: Prisma.UserCreateNestedOneWithoutCompletionChangedCommentsInput
   replies?: Prisma.AssetCommentCreateNestedManyWithoutReplyToInput
   attachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutCommentInput
 }
@@ -876,6 +1038,8 @@ export type AssetCommentUncheckedCreateWithoutReplyToInput = {
   updatedAt?: Date | string
   assetId: string
   creatorId?: string | null
+  isCompleted?: boolean
+  completionLastChangedById?: string | null
   replies?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutReplyToInput
   attachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutCommentInput
 }
@@ -908,9 +1072,11 @@ export type AssetCommentUpdateWithoutRepliesInput = {
   second?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  isCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   session?: Prisma.AgentSessionUpdateOneWithoutCommentsNestedInput
   asset?: Prisma.AssetUpdateOneRequiredWithoutCommentsNestedInput
   creator?: Prisma.UserUpdateOneWithoutCommentsNestedInput
+  completionLastChangedBy?: Prisma.UserUpdateOneWithoutCompletionChangedCommentsNestedInput
   replyTo?: Prisma.AssetCommentUpdateOneWithoutRepliesNestedInput
   attachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutCommentNestedInput
 }
@@ -925,6 +1091,8 @@ export type AssetCommentUncheckedUpdateWithoutRepliesInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  completionLastChangedById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   replyToId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutCommentNestedInput
 }
@@ -952,9 +1120,11 @@ export type AssetCommentCreateWithoutAttachmentsInput = {
   second?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  isCompleted?: boolean
   session?: Prisma.AgentSessionCreateNestedOneWithoutCommentsInput
   asset: Prisma.AssetCreateNestedOneWithoutCommentsInput
   creator?: Prisma.UserCreateNestedOneWithoutCommentsInput
+  completionLastChangedBy?: Prisma.UserCreateNestedOneWithoutCompletionChangedCommentsInput
   replyTo?: Prisma.AssetCommentCreateNestedOneWithoutRepliesInput
   replies?: Prisma.AssetCommentCreateNestedManyWithoutReplyToInput
 }
@@ -969,6 +1139,8 @@ export type AssetCommentUncheckedCreateWithoutAttachmentsInput = {
   updatedAt?: Date | string
   assetId: string
   creatorId?: string | null
+  isCompleted?: boolean
+  completionLastChangedById?: string | null
   replyToId?: string | null
   replies?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutReplyToInput
 }
@@ -996,9 +1168,11 @@ export type AssetCommentUpdateWithoutAttachmentsInput = {
   second?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  isCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   session?: Prisma.AgentSessionUpdateOneWithoutCommentsNestedInput
   asset?: Prisma.AssetUpdateOneRequiredWithoutCommentsNestedInput
   creator?: Prisma.UserUpdateOneWithoutCommentsNestedInput
+  completionLastChangedBy?: Prisma.UserUpdateOneWithoutCompletionChangedCommentsNestedInput
   replyTo?: Prisma.AssetCommentUpdateOneWithoutRepliesNestedInput
   replies?: Prisma.AssetCommentUpdateManyWithoutReplyToNestedInput
 }
@@ -1013,6 +1187,8 @@ export type AssetCommentUncheckedUpdateWithoutAttachmentsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  completionLastChangedById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   replyToId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   replies?: Prisma.AssetCommentUncheckedUpdateManyWithoutReplyToNestedInput
 }
@@ -1024,8 +1200,10 @@ export type AssetCommentCreateWithoutSessionInput = {
   second?: number | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  isCompleted?: boolean
   asset: Prisma.AssetCreateNestedOneWithoutCommentsInput
   creator?: Prisma.UserCreateNestedOneWithoutCommentsInput
+  completionLastChangedBy?: Prisma.UserCreateNestedOneWithoutCompletionChangedCommentsInput
   replyTo?: Prisma.AssetCommentCreateNestedOneWithoutRepliesInput
   replies?: Prisma.AssetCommentCreateNestedManyWithoutReplyToInput
   attachments?: Prisma.AssetCommentAttachmentCreateNestedManyWithoutCommentInput
@@ -1040,6 +1218,8 @@ export type AssetCommentUncheckedCreateWithoutSessionInput = {
   updatedAt?: Date | string
   assetId: string
   creatorId?: string | null
+  isCompleted?: boolean
+  completionLastChangedById?: string | null
   replyToId?: string | null
   replies?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutReplyToInput
   attachments?: Prisma.AssetCommentAttachmentUncheckedCreateNestedManyWithoutCommentInput
@@ -1080,6 +1260,22 @@ export type AssetCommentCreateManyCreatorInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   assetId: string
+  isCompleted?: boolean
+  completionLastChangedById?: string | null
+  replyToId?: string | null
+}
+
+export type AssetCommentCreateManyCompletionLastChangedByInput = {
+  id?: string
+  message?: string | null
+  annotation?:PrismaJson.AnnotationList | Prisma.NullableJsonNullValueInput
+  second?: number | null
+  sessionId?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  assetId: string
+  creatorId?: string | null
+  isCompleted?: boolean
   replyToId?: string | null
 }
 
@@ -1090,8 +1286,10 @@ export type AssetCommentUpdateWithoutCreatorInput = {
   second?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  isCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   session?: Prisma.AgentSessionUpdateOneWithoutCommentsNestedInput
   asset?: Prisma.AssetUpdateOneRequiredWithoutCommentsNestedInput
+  completionLastChangedBy?: Prisma.UserUpdateOneWithoutCompletionChangedCommentsNestedInput
   replyTo?: Prisma.AssetCommentUpdateOneWithoutRepliesNestedInput
   replies?: Prisma.AssetCommentUpdateManyWithoutReplyToNestedInput
   attachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutCommentNestedInput
@@ -1106,6 +1304,8 @@ export type AssetCommentUncheckedUpdateWithoutCreatorInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
+  isCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  completionLastChangedById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   replyToId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   replies?: Prisma.AssetCommentUncheckedUpdateManyWithoutReplyToNestedInput
   attachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutCommentNestedInput
@@ -1120,6 +1320,54 @@ export type AssetCommentUncheckedUpdateManyWithoutCreatorInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
+  isCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  completionLastChangedById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  replyToId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+}
+
+export type AssetCommentUpdateWithoutCompletionLastChangedByInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  message?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  annotation?:PrismaJson.AnnotationList | Prisma.NullableJsonNullValueInput
+  second?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  isCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  session?: Prisma.AgentSessionUpdateOneWithoutCommentsNestedInput
+  asset?: Prisma.AssetUpdateOneRequiredWithoutCommentsNestedInput
+  creator?: Prisma.UserUpdateOneWithoutCommentsNestedInput
+  replyTo?: Prisma.AssetCommentUpdateOneWithoutRepliesNestedInput
+  replies?: Prisma.AssetCommentUpdateManyWithoutReplyToNestedInput
+  attachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutCommentNestedInput
+}
+
+export type AssetCommentUncheckedUpdateWithoutCompletionLastChangedByInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  message?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  annotation?:PrismaJson.AnnotationList | Prisma.NullableJsonNullValueInput
+  second?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  assetId?: Prisma.StringFieldUpdateOperationsInput | string
+  creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  replyToId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  replies?: Prisma.AssetCommentUncheckedUpdateManyWithoutReplyToNestedInput
+  attachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutCommentNestedInput
+}
+
+export type AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  message?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  annotation?:PrismaJson.AnnotationList | Prisma.NullableJsonNullValueInput
+  second?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  assetId?: Prisma.StringFieldUpdateOperationsInput | string
+  creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   replyToId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
@@ -1132,6 +1380,8 @@ export type AssetCommentCreateManyAssetInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   creatorId?: string | null
+  isCompleted?: boolean
+  completionLastChangedById?: string | null
   replyToId?: string | null
 }
 
@@ -1142,8 +1392,10 @@ export type AssetCommentUpdateWithoutAssetInput = {
   second?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  isCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   session?: Prisma.AgentSessionUpdateOneWithoutCommentsNestedInput
   creator?: Prisma.UserUpdateOneWithoutCommentsNestedInput
+  completionLastChangedBy?: Prisma.UserUpdateOneWithoutCompletionChangedCommentsNestedInput
   replyTo?: Prisma.AssetCommentUpdateOneWithoutRepliesNestedInput
   replies?: Prisma.AssetCommentUpdateManyWithoutReplyToNestedInput
   attachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutCommentNestedInput
@@ -1158,6 +1410,8 @@ export type AssetCommentUncheckedUpdateWithoutAssetInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  completionLastChangedById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   replyToId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   replies?: Prisma.AssetCommentUncheckedUpdateManyWithoutReplyToNestedInput
   attachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutCommentNestedInput
@@ -1172,6 +1426,8 @@ export type AssetCommentUncheckedUpdateManyWithoutAssetInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  completionLastChangedById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   replyToId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
@@ -1185,6 +1441,8 @@ export type AssetCommentCreateManyReplyToInput = {
   updatedAt?: Date | string
   assetId: string
   creatorId?: string | null
+  isCompleted?: boolean
+  completionLastChangedById?: string | null
 }
 
 export type AssetCommentUpdateWithoutReplyToInput = {
@@ -1194,9 +1452,11 @@ export type AssetCommentUpdateWithoutReplyToInput = {
   second?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  isCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   session?: Prisma.AgentSessionUpdateOneWithoutCommentsNestedInput
   asset?: Prisma.AssetUpdateOneRequiredWithoutCommentsNestedInput
   creator?: Prisma.UserUpdateOneWithoutCommentsNestedInput
+  completionLastChangedBy?: Prisma.UserUpdateOneWithoutCompletionChangedCommentsNestedInput
   replies?: Prisma.AssetCommentUpdateManyWithoutReplyToNestedInput
   attachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutCommentNestedInput
 }
@@ -1211,6 +1471,8 @@ export type AssetCommentUncheckedUpdateWithoutReplyToInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  completionLastChangedById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   replies?: Prisma.AssetCommentUncheckedUpdateManyWithoutReplyToNestedInput
   attachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutCommentNestedInput
 }
@@ -1225,6 +1487,8 @@ export type AssetCommentUncheckedUpdateManyWithoutReplyToInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  completionLastChangedById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type AssetCommentCreateManySessionInput = {
@@ -1236,6 +1500,8 @@ export type AssetCommentCreateManySessionInput = {
   updatedAt?: Date | string
   assetId: string
   creatorId?: string | null
+  isCompleted?: boolean
+  completionLastChangedById?: string | null
   replyToId?: string | null
 }
 
@@ -1246,8 +1512,10 @@ export type AssetCommentUpdateWithoutSessionInput = {
   second?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  isCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   asset?: Prisma.AssetUpdateOneRequiredWithoutCommentsNestedInput
   creator?: Prisma.UserUpdateOneWithoutCommentsNestedInput
+  completionLastChangedBy?: Prisma.UserUpdateOneWithoutCompletionChangedCommentsNestedInput
   replyTo?: Prisma.AssetCommentUpdateOneWithoutRepliesNestedInput
   replies?: Prisma.AssetCommentUpdateManyWithoutReplyToNestedInput
   attachments?: Prisma.AssetCommentAttachmentUpdateManyWithoutCommentNestedInput
@@ -1262,6 +1530,8 @@ export type AssetCommentUncheckedUpdateWithoutSessionInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  completionLastChangedById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   replyToId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   replies?: Prisma.AssetCommentUncheckedUpdateManyWithoutReplyToNestedInput
   attachments?: Prisma.AssetCommentAttachmentUncheckedUpdateManyWithoutCommentNestedInput
@@ -1276,6 +1546,8 @@ export type AssetCommentUncheckedUpdateManyWithoutSessionInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isCompleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  completionLastChangedById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   replyToId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
@@ -1329,10 +1601,13 @@ export type AssetCommentSelect<ExtArgs extends runtime.Types.Extensions.Internal
   updatedAt?: boolean
   assetId?: boolean
   creatorId?: boolean
+  isCompleted?: boolean
+  completionLastChangedById?: boolean
   replyToId?: boolean
   session?: boolean | Prisma.AssetComment$sessionArgs<ExtArgs>
   asset?: boolean | Prisma.AssetDefaultArgs<ExtArgs>
   creator?: boolean | Prisma.AssetComment$creatorArgs<ExtArgs>
+  completionLastChangedBy?: boolean | Prisma.AssetComment$completionLastChangedByArgs<ExtArgs>
   replyTo?: boolean | Prisma.AssetComment$replyToArgs<ExtArgs>
   replies?: boolean | Prisma.AssetComment$repliesArgs<ExtArgs>
   attachments?: boolean | Prisma.AssetComment$attachmentsArgs<ExtArgs>
@@ -1349,10 +1624,13 @@ export type AssetCommentSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   updatedAt?: boolean
   assetId?: boolean
   creatorId?: boolean
+  isCompleted?: boolean
+  completionLastChangedById?: boolean
   replyToId?: boolean
   session?: boolean | Prisma.AssetComment$sessionArgs<ExtArgs>
   asset?: boolean | Prisma.AssetDefaultArgs<ExtArgs>
   creator?: boolean | Prisma.AssetComment$creatorArgs<ExtArgs>
+  completionLastChangedBy?: boolean | Prisma.AssetComment$completionLastChangedByArgs<ExtArgs>
   replyTo?: boolean | Prisma.AssetComment$replyToArgs<ExtArgs>
 }, ExtArgs["result"]["assetComment"]>
 
@@ -1366,10 +1644,13 @@ export type AssetCommentSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   updatedAt?: boolean
   assetId?: boolean
   creatorId?: boolean
+  isCompleted?: boolean
+  completionLastChangedById?: boolean
   replyToId?: boolean
   session?: boolean | Prisma.AssetComment$sessionArgs<ExtArgs>
   asset?: boolean | Prisma.AssetDefaultArgs<ExtArgs>
   creator?: boolean | Prisma.AssetComment$creatorArgs<ExtArgs>
+  completionLastChangedBy?: boolean | Prisma.AssetComment$completionLastChangedByArgs<ExtArgs>
   replyTo?: boolean | Prisma.AssetComment$replyToArgs<ExtArgs>
 }, ExtArgs["result"]["assetComment"]>
 
@@ -1383,14 +1664,17 @@ export type AssetCommentSelectScalar = {
   updatedAt?: boolean
   assetId?: boolean
   creatorId?: boolean
+  isCompleted?: boolean
+  completionLastChangedById?: boolean
   replyToId?: boolean
 }
 
-export type AssetCommentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "message" | "annotation" | "second" | "sessionId" | "createdAt" | "updatedAt" | "assetId" | "creatorId" | "replyToId", ExtArgs["result"]["assetComment"]>
+export type AssetCommentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "message" | "annotation" | "second" | "sessionId" | "createdAt" | "updatedAt" | "assetId" | "creatorId" | "isCompleted" | "completionLastChangedById" | "replyToId", ExtArgs["result"]["assetComment"]>
 export type AssetCommentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   session?: boolean | Prisma.AssetComment$sessionArgs<ExtArgs>
   asset?: boolean | Prisma.AssetDefaultArgs<ExtArgs>
   creator?: boolean | Prisma.AssetComment$creatorArgs<ExtArgs>
+  completionLastChangedBy?: boolean | Prisma.AssetComment$completionLastChangedByArgs<ExtArgs>
   replyTo?: boolean | Prisma.AssetComment$replyToArgs<ExtArgs>
   replies?: boolean | Prisma.AssetComment$repliesArgs<ExtArgs>
   attachments?: boolean | Prisma.AssetComment$attachmentsArgs<ExtArgs>
@@ -1400,12 +1684,14 @@ export type AssetCommentIncludeCreateManyAndReturn<ExtArgs extends runtime.Types
   session?: boolean | Prisma.AssetComment$sessionArgs<ExtArgs>
   asset?: boolean | Prisma.AssetDefaultArgs<ExtArgs>
   creator?: boolean | Prisma.AssetComment$creatorArgs<ExtArgs>
+  completionLastChangedBy?: boolean | Prisma.AssetComment$completionLastChangedByArgs<ExtArgs>
   replyTo?: boolean | Prisma.AssetComment$replyToArgs<ExtArgs>
 }
 export type AssetCommentIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   session?: boolean | Prisma.AssetComment$sessionArgs<ExtArgs>
   asset?: boolean | Prisma.AssetDefaultArgs<ExtArgs>
   creator?: boolean | Prisma.AssetComment$creatorArgs<ExtArgs>
+  completionLastChangedBy?: boolean | Prisma.AssetComment$completionLastChangedByArgs<ExtArgs>
   replyTo?: boolean | Prisma.AssetComment$replyToArgs<ExtArgs>
 }
 
@@ -1415,6 +1701,7 @@ export type $AssetCommentPayload<ExtArgs extends runtime.Types.Extensions.Intern
     session: Prisma.$AgentSessionPayload<ExtArgs> | null
     asset: Prisma.$AssetPayload<ExtArgs>
     creator: Prisma.$UserPayload<ExtArgs> | null
+    completionLastChangedBy: Prisma.$UserPayload<ExtArgs> | null
     replyTo: Prisma.$AssetCommentPayload<ExtArgs> | null
     replies: Prisma.$AssetCommentPayload<ExtArgs>[]
     attachments: Prisma.$AssetCommentAttachmentPayload<ExtArgs>[]
@@ -1432,6 +1719,8 @@ export type $AssetCommentPayload<ExtArgs extends runtime.Types.Extensions.Intern
     updatedAt: Date
     assetId: string
     creatorId: string | null
+    isCompleted: boolean
+    completionLastChangedById: string | null
     replyToId: string | null
   }, ExtArgs["result"]["assetComment"]>
   composites: {}
@@ -1830,6 +2119,7 @@ export interface Prisma__AssetCommentClient<T, Null = never, ExtArgs extends run
   session<T extends Prisma.AssetComment$sessionArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AssetComment$sessionArgs<ExtArgs>>): Prisma.Prisma__AgentSessionClient<runtime.Types.Result.GetResult<Prisma.$AgentSessionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   asset<T extends Prisma.AssetDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AssetDefaultArgs<ExtArgs>>): Prisma.Prisma__AssetClient<runtime.Types.Result.GetResult<Prisma.$AssetPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   creator<T extends Prisma.AssetComment$creatorArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AssetComment$creatorArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  completionLastChangedBy<T extends Prisma.AssetComment$completionLastChangedByArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AssetComment$completionLastChangedByArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   replyTo<T extends Prisma.AssetComment$replyToArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AssetComment$replyToArgs<ExtArgs>>): Prisma.Prisma__AssetCommentClient<runtime.Types.Result.GetResult<Prisma.$AssetCommentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   replies<T extends Prisma.AssetComment$repliesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AssetComment$repliesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssetCommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   attachments<T extends Prisma.AssetComment$attachmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AssetComment$attachmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssetCommentAttachmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -1871,6 +2161,8 @@ export interface AssetCommentFieldRefs {
   readonly updatedAt: Prisma.FieldRef<"AssetComment", 'DateTime'>
   readonly assetId: Prisma.FieldRef<"AssetComment", 'String'>
   readonly creatorId: Prisma.FieldRef<"AssetComment", 'String'>
+  readonly isCompleted: Prisma.FieldRef<"AssetComment", 'Boolean'>
+  readonly completionLastChangedById: Prisma.FieldRef<"AssetComment", 'String'>
   readonly replyToId: Prisma.FieldRef<"AssetComment", 'String'>
 }
     
@@ -2295,6 +2587,25 @@ export type AssetComment$sessionArgs<ExtArgs extends runtime.Types.Extensions.In
  * AssetComment.creator
  */
 export type AssetComment$creatorArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the User
+   */
+  select?: Prisma.UserSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the User
+   */
+  omit?: Prisma.UserOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserInclude<ExtArgs> | null
+  where?: Prisma.UserWhereInput
+}
+
+/**
+ * AssetComment.completionLastChangedBy
+ */
+export type AssetComment$completionLastChangedByArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
    * Select specific fields to fetch from the User
    */
