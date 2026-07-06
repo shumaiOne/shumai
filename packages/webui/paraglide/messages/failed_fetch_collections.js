@@ -10,7 +10,7 @@ const en_failed_fetch_collections = /** @type {(inputs: Failed_Fetch_Collections
 };
 
 const zh_failed_fetch_collections = /** @type {(inputs: Failed_Fetch_CollectionsInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`获取收藏集失败`)
+	return /** @type {LocalizedString} */ (`获取媒体合集失败`)
 };
 
 /**

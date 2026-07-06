@@ -10,7 +10,7 @@ const en_failed_rename_collection = /** @type {(inputs: Failed_Rename_Collection
 };
 
 const zh_failed_rename_collection = /** @type {(inputs: Failed_Rename_CollectionInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`重命名收藏集失败`)
+	return /** @type {LocalizedString} */ (`重命名媒体合集失败`)
 };
 
 /**

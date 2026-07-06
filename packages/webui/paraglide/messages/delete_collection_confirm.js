@@ -10,7 +10,7 @@ const en_delete_collection_confirm = /** @type {(inputs: Delete_Collection_Confi
 };
 
 const zh_delete_collection_confirm = /** @type {(inputs: Delete_Collection_ConfirmInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`删除收藏集？`)
+	return /** @type {LocalizedString} */ (`删除媒体合集？`)
 };
 
 /**

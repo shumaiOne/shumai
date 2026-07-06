@@ -10,7 +10,7 @@ const en_collection_saved = /** @type {(inputs: Collection_SavedInputs) => Local
 };
 
 const zh_collection_saved = /** @type {(inputs: Collection_SavedInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`收藏集已保存`)
+	return /** @type {LocalizedString} */ (`媒体合集已保存`)
 };
 
 /**

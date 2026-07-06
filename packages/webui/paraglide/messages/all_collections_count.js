@@ -10,7 +10,7 @@ const en_all_collections_count = /** @type {(inputs: All_Collections_CountInputs
 };
 
 const zh_all_collections_count = /** @type {(inputs: All_Collections_CountInputs) => LocalizedString} */ (i) => {
-	return /** @type {LocalizedString} */ (`所有收藏集 (${i?.count})`)
+	return /** @type {LocalizedString} */ (`所有媒体合集 (${i?.count})`)
 };
 
 /**

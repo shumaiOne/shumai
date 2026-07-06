@@ -10,7 +10,7 @@ const en_editor = /** @type {(inputs: EditorInputs) => LocalizedString} */ () =>
 };
 
 const zh_editor = /** @type {(inputs: EditorInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`编辑者`)
+	return /** @type {LocalizedString} */ (`创作者`)
 };
 
 /**

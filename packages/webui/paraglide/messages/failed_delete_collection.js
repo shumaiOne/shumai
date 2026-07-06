@@ -10,7 +10,7 @@ const en_failed_delete_collection = /** @type {(inputs: Failed_Delete_Collection
 };
 
 const zh_failed_delete_collection = /** @type {(inputs: Failed_Delete_CollectionInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`删除收藏集失败`)
+	return /** @type {LocalizedString} */ (`删除媒体合集失败`)
 };
 
 /**

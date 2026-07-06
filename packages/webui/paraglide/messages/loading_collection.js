@@ -10,7 +10,7 @@ const en_loading_collection = /** @type {(inputs: Loading_CollectionInputs) => L
 };
 
 const zh_loading_collection = /** @type {(inputs: Loading_CollectionInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`正在加载收藏集...`)
+	return /** @type {LocalizedString} */ (`正在加载媒体合集...`)
 };
 
 /**

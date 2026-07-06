@@ -10,7 +10,7 @@ const en_failed_create_collection = /** @type {(inputs: Failed_Create_Collection
 };
 
 const zh_failed_create_collection = /** @type {(inputs: Failed_Create_CollectionInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`创建收藏集失败`)
+	return /** @type {LocalizedString} */ (`创建媒体合集失败`)
 };
 
 /**

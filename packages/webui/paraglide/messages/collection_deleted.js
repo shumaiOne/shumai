@@ -10,7 +10,7 @@ const en_collection_deleted = /** @type {(inputs: Collection_DeletedInputs) => L
 };
 
 const zh_collection_deleted = /** @type {(inputs: Collection_DeletedInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`收藏集已删除`)
+	return /** @type {LocalizedString} */ (`媒体合集已删除`)
 };
 
 /**

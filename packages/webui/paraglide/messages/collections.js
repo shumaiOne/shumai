@@ -10,7 +10,7 @@ const en_collections = /** @type {(inputs: CollectionsInputs) => LocalizedString
 };
 
 const zh_collections = /** @type {(inputs: CollectionsInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`收藏集`)
+	return /** @type {LocalizedString} */ (`媒体合集`)
 };
 
 /**

@@ -10,7 +10,7 @@ const en_untitled_collection = /** @type {(inputs: Untitled_CollectionInputs) =>
 };
 
 const zh_untitled_collection = /** @type {(inputs: Untitled_CollectionInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`未命名收藏集`)
+	return /** @type {LocalizedString} */ (`未命名媒体合集`)
 };
 
 /**

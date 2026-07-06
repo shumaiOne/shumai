@@ -10,7 +10,7 @@ const en_collection_renamed = /** @type {(inputs: Collection_RenamedInputs) => L
 };
 
 const zh_collection_renamed = /** @type {(inputs: Collection_RenamedInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`收藏集已重命名`)
+	return /** @type {LocalizedString} */ (`媒体合集已重命名`)
 };
 
 /**

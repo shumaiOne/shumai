@@ -10,7 +10,7 @@ const en_owner = /** @type {(inputs: OwnerInputs) => LocalizedString} */ () => {
 };
 
 const zh_owner = /** @type {(inputs: OwnerInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`所有者`)
+	return /** @type {LocalizedString} */ (`管理员`)
 };
 
 /**

@@ -10,7 +10,7 @@ const en_save_as_collection = /** @type {(inputs: Save_As_CollectionInputs) => L
 };
 
 const zh_save_as_collection = /** @type {(inputs: Save_As_CollectionInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`保存为收藏集`)
+	return /** @type {LocalizedString} */ (`保存为媒体合集`)
 };
 
 /**

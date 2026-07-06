@@ -10,7 +10,7 @@ const en_no_collections_yet = /** @type {(inputs: No_Collections_YetInputs) => L
 };
 
 const zh_no_collections_yet = /** @type {(inputs: No_Collections_YetInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`暂无收藏集。`)
+	return /** @type {LocalizedString} */ (`暂无媒体合集。`)
 };
 
 /**

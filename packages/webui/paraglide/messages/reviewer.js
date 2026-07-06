@@ -10,7 +10,7 @@ const en_reviewer = /** @type {(inputs: ReviewerInputs) => LocalizedString} */ (
 };
 
 const zh_reviewer = /** @type {(inputs: ReviewerInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`审阅者`)
+	return /** @type {LocalizedString} */ (`评审员`)
 };
 
 /**
