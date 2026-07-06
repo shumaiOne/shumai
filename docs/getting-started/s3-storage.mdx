@@ -17,7 +17,7 @@ To enable S3-compatible storage, update the following environment variables in y
 | :------------------------- | :------------------------------------------------------------------------ | :------- | :---------------------------------------- |
 | `STORAGE_BACKEND`          | Set to `s3` to enable S3 compatible storage.                              | Yes      | `s3`                                      |
 | `S3_BUCKET`                | The name of the S3 bucket where files will be stored.                     | Yes      | `shumai-bucket`                           |
-| `S3_REGION`                | The region of your S3 bucket.                                             | Yes      | `us-east-1` (or `auto` for Cloudflare R2) |
+| `S3_REGION`                | The region of your S3 bucket.                                             | No       | `auto`                 |
 | `S3_ACCESS_KEY_ID`         | The access key ID for your storage service.                               | Yes      | `your-access-key-id`                      |
 | `S3_SECRET_ACCESS_KEY`     | The secret access key for your storage service.                           | Yes      | `your-secret-access-key`                  |
 | `AWS_ENDPOINT_URL_S3`      | The endpoint URL of your S3 compatible storage provider.                  | Yes      | `https://s3.us-east-1.amazonaws.com`      |
@@ -48,7 +48,6 @@ Cloudflare R2 requires your Cloudflare account ID to construct the endpoint URL.
 ```env
 STORAGE_BACKEND=s3
 S3_BUCKET=your-shumai-bucket
-S3_REGION=auto
 S3_ACCESS_KEY_ID=your-r2-access-key-id
 S3_SECRET_ACCESS_KEY=your-r2-secret-access-key
 AWS_ENDPOINT_URL_S3=https://<account-id>.r2.cloudflarestorage.com
@@ -61,11 +60,9 @@ For local development or self-hosted environments using MinIO, set the endpoint 
 ```env
 STORAGE_BACKEND=s3
 S3_BUCKET=shumai
-S3_REGION=us-east-1
 S3_ACCESS_KEY_ID=minioadmin
 S3_SECRET_ACCESS_KEY=minioadmin
 AWS_ENDPOINT_URL_S3=http://localhost:9000
-S3_USE_SSL=false
 ```
 
 ### Google Cloud Storage (GCS)
@@ -75,7 +72,6 @@ Google Cloud Storage provides an S3-compatible XML API. Configure your HMAC cred
 ```env
 STORAGE_BACKEND=s3
 S3_BUCKET=your-gcs-bucket
-S3_REGION=us-east-1
 S3_ACCESS_KEY_ID=GOOG1EXAMPLETOCKENKEY
 S3_SECRET_ACCESS_KEY=your-gcs-hmac-secret-access-key
 AWS_ENDPOINT_URL_S3=https://storage.googleapis.com
@@ -88,7 +84,6 @@ For DigitalOcean Spaces, set the endpoint URL to match your space's region:
 ```env
 STORAGE_BACKEND=s3
 S3_BUCKET=your-spaces-bucket
-S3_REGION=nyc3
 S3_ACCESS_KEY_ID=your-spaces-access-key-id
 S3_SECRET_ACCESS_KEY=your-spaces-secret-access-key
 AWS_ENDPOINT_URL_S3=https://nyc3.digitaloceanspaces.com
