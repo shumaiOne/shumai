@@ -5,9 +5,12 @@ import { TopNav } from '@/ui/components/top-nav'
 import { HomeIcon, NotificationFillIcon, UploadCloudIcon } from '@/ui/components/ui/icons'
 import { Toaster } from '@/ui/components/ui/sonner'
 import { UploadTasks } from '@/ui/components/upload-tasks'
+import { m } from '@/ui/paraglide/messages.js'
+import { getLocale, setLocale } from '@/ui/paraglide/runtime.js'
 import { useAuthStore } from '@/ui/stores/auth'
 import { useTeamContextStore } from '@/ui/stores/team-context'
 import { useUploadStore } from '@/ui/stores/upload'
+import { useUserMetadataStore } from '@/ui/stores/user-metadata'
 import { useQuery } from '@tanstack/react-query'
 import {
   createRootRouteWithContext,
@@ -16,9 +19,6 @@ import {
   useRouterState,
 } from '@tanstack/react-router'
 import { useEffect } from 'react'
-import { getLocale, setLocale } from '@/ui/paraglide/runtime.js'
-import { m } from '@/ui/paraglide/messages.js'
-import { useUserMetadataStore } from '@/ui/stores/user-metadata'
 
 async function resolveTeamIdFromPath(pathname: string): Promise<string | null> {
   const teamIdMatch = pathname.match(/^\/teams\/([^/]+)/)
@@ -73,7 +73,7 @@ function RootComponent() {
   const displayCount = unreadCount > 99 ? '99+' : unreadCount
   const badge =
     unreadCount > 0 ? (
-      <span className="absolute top-0 -right-1 mt-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs leading-4 bg-red-400 dark:bg-red-500 text-white pointer-events-none h-5 min-w-5">
+      <span className="absolute justify-center top-0 -right-1 mt-1 inline-flex items-center px-1.5 py-0.5 rounded-full text-xs leading-4 bg-red-400 dark:bg-red-500 text-white pointer-events-none h-5 min-w-5">
         {displayCount}
       </span>
     ) : null
