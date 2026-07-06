@@ -67,18 +67,11 @@ export class S3StorageService implements S3Service {
     accessKeyId: string,
     secretAccessKey: string,
     bucket: string,
-    useSsl: boolean,
     region: string = 'auto',
   ) {
-    let fullEndpoint = endpoint
-    if (!fullEndpoint.startsWith('http://') && !fullEndpoint.startsWith('https://')) {
-      const scheme = useSsl ? 'https' : 'http'
-      fullEndpoint = `${scheme}://${endpoint}`
-    }
-
     this.client = new S3Client({
       region,
-      endpoint: fullEndpoint,
+      endpoint,
       accessKeyId,
       secretAccessKey,
       bucket,
@@ -461,7 +454,6 @@ export const s3Service: S3Service =
         process.env.S3_ACCESS_KEY_ID || 'minioadmin',
         process.env.S3_SECRET_ACCESS_KEY || 'minioadmin',
         process.env.S3_BUCKET || 'shumai',
-        process.env.S3_USE_SSL === 'true',
         process.env.S3_REGION || 'auto',
       )
     : new LocalStorageService(s3Endpoint)

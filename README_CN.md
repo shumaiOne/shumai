@@ -62,15 +62,26 @@
 
 3. 配置环境变量（可选）：
 * `SHUMAI_SERVER_PORT` 用于控制 Shumai 服务监听的端口，默认值为 `3000`。
-* 默认情况下，该 Docker Compose 部署会自动启用集成的本地存储。若想切换至外部 S3 兼容存储，请将 `AWS_ENDPOINT_URL_S3` 设置为对应云厂商的 Endpoint URL，并根据需要配置相应的 AWS 凭证和存储桶（Bucket）参数：
-   ```
-   AWS_ENDPOINT_URL_S3: S3_ENDPOINT_URL
-   S3_REGION: S3_REGION
-   S3_BUCKET: BUCKET_NAME
-   S3_ACCESS_KEY_ID: ID
-   S3_SECRET_ACCESS_KEY: KEY
+* 默认情况下，该 Docker Compose 部署会自动启用集成的本地存储。若想切换至外部 S3 兼容存储，请在 `environment` 中配置 S3 提供商的环境变量。以下是 AWS S3 和 Cloudflare R2 的配置示例：
 
-   ```
+  **AWS S3 示例：**
+  ```yaml
+  STORAGE_BACKEND: s3
+  S3_BUCKET: your-bucket-name
+  S3_ACCESS_KEY_ID: your-access-key-id
+  S3_SECRET_ACCESS_KEY: your-secret-access-key
+  AWS_ENDPOINT_URL_S3: https://s3.us-east-1.amazonaws.com
+  ```
+
+  **Cloudflare R2 示例：**
+  ```yaml
+  STORAGE_BACKEND: s3
+  S3_BUCKET: your-bucket-name
+  S3_REGION: auto
+  S3_ACCESS_KEY_ID: your-access-key-id
+  S3_SECRET_ACCESS_KEY: your-secret-access-key
+  AWS_ENDPOINT_URL_S3: https://<account-id>.r2.cloudflarestorage.com
+  ```
 
 
 * 默认情况下 `AWS_ENDPOINT_URL_S3` 指向 `http://localhost:{SHUMAI_SERVER_PORT}`。如果您使用本地存储，但希望在自定义的主机名或端口上公开访问 Shumai，请务必将 `AWS_ENDPOINT_URL_S3` 修改为浏览器访问该服务时所使用的外部 URL。

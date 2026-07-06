@@ -16,7 +16,11 @@
     "groups": [
       {
         "group": "Getting Started",
-        "pages": ["getting-started/overview", "getting-started/quickstart"]
+        "pages": [
+          "getting-started/overview",
+          "getting-started/quickstart",
+          "getting-started/s3-storage"
+        ]
       },
       {
         "group": "Using Shumai",
