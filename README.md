@@ -120,23 +120,85 @@ mkdir shumai && cd shumai
 
 #### Step 3: Install Platform-Specific Dependencies
 
-Make sure the following system dependencies are installed on your host machine before installing Shumai:
+#### Linux
 
-| Package        | Description                                             | Ubuntu/Debian                    | Fedora                           | Arch                                    | macOS                  |
-| :------------- | :------------------------------------------------------ | :------------------------------- | :------------------------------- | :-------------------------------------- | :--------------------- |
-| **ffmpeg**     | Media transcoding and metadata extraction               | `sudo apt install -y ffmpeg`     | `sudo dnf install -y ffmpeg`     | `sudo pacman -S --noconfirm ffmpeg`     | `brew install ffmpeg`  |
-| **bubblewrap** | Sandboxing environment for secure AI agent execution    | `sudo apt install -y bubblewrap` | `sudo dnf install -y bubblewrap` | `sudo pacman -S --noconfirm bubblewrap` | _NOT REQUIRED_         |
-| **socat**      | Bidirectional socket relay for sandbox network bridging | `sudo apt install -y socat`      | `sudo dnf install -y socat`      | `sudo pacman -S --noconfirm socat`      | `brew install socat`   |
-| **ripgrep**    | Fast search tool for workspace security policies        | `sudo apt install -y ripgrep`    | `sudo dnf install -y ripgrep`    | `sudo pacman -S --noconfirm ripgrep`    | `brew install ripgrep` |
+Shumai requires the following system packages on Linux:
+
+- **`ffmpeg`** – Used for media transcoding and metadata extraction.
+- **`bubblewrap`**, **`socat`**, and **`ripgrep`** – Required by the AI agent sandbox (`anthropic-experimental/sandbox-runtime`) for process isolation, networking, and workspace search.
+
+Install all required packages with one command:
+
+> Ubuntu/Debian
+```bash
+sudo apt install -y ffmpeg bubblewrap socat ripgrep
+```
+
+> Fedora
+```bash
+sudo dnf install -y ffmpeg bubblewrap socat ripgrep
+```
+
+> Arch Linux
+```bash
+sudo pacman -S --noconfirm ffmpeg bubblewrap socat ripgrep
+```
 
 > [!NOTE]
-> **Ubuntu 24.04+ Note:** These releases restrict unprivileged user namespaces by default. To allow `bubblewrap` and the sandbox isolation layer to function, disable this restriction:
+> **Ubuntu 24.04+** restricts unprivileged user namespaces by default. This prevents `anthropic-experimental/sandbox-runtime` from using `bubblewrap` for sandbox isolation.
+>
+> To temporarily allow user namespaces:
 >
 > ```bash
 > sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 > ```
 >
-> Alternatively, configure an AppArmor profile that grants user namespace creation (`userns`) privileges to the relevant binaries.
+> Alternatively, configure an AppArmor profile that grants the required `userns` permission to the relevant binaries.
+
+---
+
+#### macOS
+
+Shumai requires:
+
+- **`ffmpeg`** – Used for media transcoding and metadata extraction.
+- **`ripgrep`** – Required by the AI agent sandbox (`anthropic-experimental/sandbox-runtime`).
+
+Install the required packages with Homebrew:
+
+```bash
+brew install ffmpeg ripgrep
+```
+
+---
+
+#### Windows (alpha)
+
+> [!WARNING from anthropic-experimental/sandbox-runtime]
+> Windows support is **alpha and the design is in flux**.
+>
+> The current implementation provides:
+> - Network egress filtering via the **Windows Filtering Platform (WFP)**.
+> - File read/write denial via **ACL stamping**.
+>
+> However, it is **not a security boundary against a deliberately adversarial sandboxed process**.
+>
+> The sandbox implementation will be substantially revised in a future release, where sandboxed processes will run under a dedicated sandbox user account.
+
+Shumai requires:
+
+- **`ffmpeg`** – Used for media transcoding and metadata extraction.
+
+Install `ffmpeg` using your preferred package manager:
+
+**winget**
+```powershell
+winget install Gyan.FFmpeg
+```
+
+**Chocolatey**
+```powershell
+choco install ffmpeg
 
 #### Step 4: Install Shumai globally
 

@@ -132,26 +132,88 @@ mkdir shumai && cd shumai
 
 ```
 
-#### 第三步：安装平台特定系统依赖
+#### 步骤 3：安装平台依赖
 
-在安装 Shumai 之前，请确保您的宿主机上已经安装了以下系统依赖项：
+#### Linux
 
-| 依赖包 | 功能描述 | Ubuntu/Debian | Fedora | Arch | macOS |
-| --- | --- | --- | --- | --- | --- |
-| **ffmpeg** | 媒体转码及元数据提取 | `sudo apt install -y ffmpeg` | `sudo dnf install -y ffmpeg` | `sudo pacman -S --noconfirm ffmpeg` | `brew install ffmpeg` |
-| **bubblewrap** | 用于安全执行 AI 助手脚本的隔离沙箱环境 | `sudo apt install -y bubblewrap` | `sudo dnf install -y bubblewrap` | `sudo pacman -S --noconfirm bubblewrap` | *无需安装* |
-| **socat** | 用于沙箱网络桥接的双向套接字中继 | `sudo apt install -y socat` | `sudo dnf install -y socat` | `sudo pacman -S --noconfirm socat` | `brew install socat` |
-| **ripgrep** | 用于工作区安全策略的高效文本搜索工具 | `sudo apt install -y ripgrep` | `sudo dnf install -y ripgrep` | `sudo pacman -S --noconfirm ripgrep` | `brew install ripgrep` |
+在 Linux 上运行 Shumai 需要安装以下系统依赖：
+
+- **`ffmpeg`** —— 用于媒体转码和元数据提取。
+- **`bubblewrap`**、**`socat`** 和 **`ripgrep`** —— AI Agent 沙箱（`anthropic-experimental/sandbox-runtime`）所需，用于进程隔离、网络通信和工作区搜索。
+
+可以使用以下命令一次性安装所有依赖：
+
+> Ubuntu/Debian
+```bash
+sudo apt install -y ffmpeg bubblewrap socat ripgrep
+```
+
+> Fedora
+```bash
+sudo dnf install -y ffmpeg bubblewrap socat ripgrep
+```
+
+> Arch Linux
+```bash
+sudo pacman -S --noconfirm ffmpeg bubblewrap socat ripgrep
+```
 
 > [!NOTE]
-> **Ubuntu 24.04+ 用户请注意：** 这些系统版本默认限制了非特权用户命名空间（unprivileged user namespaces）。为了让 `bubblewrap` 和沙箱隔离层正常工作，需要关闭此限制：
+> **Ubuntu 24.04+** 默认限制非特权用户创建 User Namespace，这会导致 `anthropic-experimental/sandbox-runtime` 无法使用 `bubblewrap` 提供沙箱隔离。
+>
+> 如需临时启用 User Namespace，请执行：
+>
 > ```bash
 > sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-> 
 > ```
-> 
-> 
-> 或者，您也可以专门配置一个 AppArmor 配置文件，为相关二进制文件授予用户命名空间创建（`userns`）权限。
+>
+> 或者，配置 AppArmor Profile，为相关可执行文件授予所需的 `userns` 权限。
+
+---
+
+#### macOS
+
+在 macOS 上运行 Shumai 需要：
+
+- **`ffmpeg`** —— 用于媒体转码和元数据提取。
+- **`ripgrep`** —— AI Agent 沙箱（`anthropic-experimental/sandbox-runtime`）所需。
+
+使用 Homebrew 安装所需依赖：
+
+```bash
+brew install ffmpeg ripgrep
+```
+
+---
+
+#### Windows（Alpha）
+
+> [!WARNING from anthropic-experimental/sandbox-runtime]
+> Windows 支持目前仍处于 **Alpha** 阶段，整体设计仍在持续调整中。
+>
+> 当前实现提供了以下能力：
+> - 通过 **Windows Filtering Platform (WFP)** 实现网络出口（egress）过滤。
+> - 通过 **ACL Stamping** 实现文件读写权限限制。
+>
+> **但这并不能作为针对恶意沙箱进程的安全边界（security boundary）**。
+>
+> 未来版本将对沙箱机制进行重大调整，届时沙箱进程将运行在独立的沙箱用户账户下。
+
+在 Windows 上运行 Shumai 需要：
+
+- **`ffmpeg`** —— 用于媒体转码和元数据提取。
+
+使用你偏好的包管理器安装 `ffmpeg`：
+
+**winget**
+```powershell
+winget install Gyan.FFmpeg
+```
+
+**Chocolatey**
+```powershell
+choco install ffmpeg
+```
 
 #### 第四步：全局安装 Shumai
 
