@@ -5,6 +5,8 @@ import { paginateQuery, type PaginatedData } from '@shumai/core/src/pagination'
 import type { ChatRequest, ChatSessionInfo, ChatMessage } from '@shumai/dtos'
 import { ulid } from 'ulid'
 
+type User = Prisma.UserGetPayload<Record<string, never>>
+
 export function mapEntryToMessage(
   entryRecord: Prisma.AgentSessionEntryGetPayload<Record<string, never>>,
 ): ChatMessage {
@@ -77,9 +79,8 @@ export class ChatService {
     return parts.join('/')
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async startOrContinueChat(
-    user: any,
+    user: User,
     req: ChatRequest,
   ): Promise<{ sessionId: string; taskId: string }> {
     const {
