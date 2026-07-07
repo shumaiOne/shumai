@@ -255,8 +255,11 @@ describe('ChatService', () => {
 
     const messages = await chatService.listMessages(user.id, sessionId)
     expect(messages).toHaveLength(1)
-    expect(messages[0].role).toBe('user')
-    expect(messages[0].content).toEqual([{ type: 'text', text: 'hello' }])
+    // Casting to any to access properties of union in test assertions
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const msg = messages[0] as any
+    expect(msg.role).toBe('user')
+    expect(msg.content).toEqual([{ type: 'text', text: 'hello' }])
   })
 
   it('should delete session and cascade', async () => {
@@ -329,24 +332,36 @@ describe('ChatService', () => {
     expect(messages).toHaveLength(4)
 
     // 1. Compaction summary message
-    expect(messages[0].role).toBe('custom')
-    expect(messages[0].customType).toBe('compaction-summary')
-    expect(messages[0].content).toBe('Compacted conversation history')
-    expect((messages[0].details as Record<string, unknown>).tokensBefore).toBe(200)
+    // Casting to any to access properties of union in test assertions
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const msg0 = messages[0] as any
+    expect(msg0.role).toBe('custom')
+    expect(msg0.customType).toBe('compaction-summary')
+    expect(msg0.content).toBe('Compacted conversation history')
+    expect((msg0.details as Record<string, unknown>).tokensBefore).toBe(200)
 
     // 2. Kept entry (entry-2)
-    expect(messages[1].id).toBe('entry-2')
-    expect(messages[1].role).toBe('assistant')
-    expect(messages[1].content).toBe('kept message')
+    // Casting to any to access properties of union in test assertions
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const msg1 = messages[1] as any
+    expect(msg1.id).toBe('entry-2')
+    expect(msg1.role).toBe('assistant')
+    expect(msg1.content).toBe('kept message')
 
     // 3. Thinking level change (entry-3)
-    expect(messages[2].role).toBe('thinking_level_change')
-    expect(messages[2].content).toContain('Thinking level changed to high')
+    // Casting to any to access properties of union in test assertions
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const msg2 = messages[2] as any
+    expect(msg2.role).toBe('thinking_level_change')
+    expect(msg2.content).toContain('Thinking level changed to high')
 
     // 4. Branch summary (entry-4)
-    expect(messages[3].role).toBe('custom')
-    expect(messages[3].customType).toBe('branch-summary')
-    expect(messages[3].content).toBe('Branch summary details')
-    expect((messages[3].details as Record<string, unknown>).fromId).toBe('entry-old')
+    // Casting to any to access properties of union in test assertions
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const msg3 = messages[3] as any
+    expect(msg3.role).toBe('custom')
+    expect(msg3.customType).toBe('branch-summary')
+    expect(msg3.content).toBe('Branch summary details')
+    expect((msg3.details as Record<string, unknown>).fromId).toBe('entry-old')
   })
 })

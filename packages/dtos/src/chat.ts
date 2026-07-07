@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { AgentMessage } from '@earendil-works/pi-agent-core'
 
 export const chatRequestSchema = z
   .object({
@@ -41,13 +42,7 @@ export const chatMessageSchema = z.intersection(
   z.object({
     id: z.string(),
   }),
-  z.record(z.string(), z.unknown()),
-)
+  z.unknown(),
+) as unknown as z.ZodType<AgentMessage & { id: string }>
 
-export type ChatMessage = {
-  id: string
-  role: string
-  content: string | unknown[]
-  timestamp?: number
-  [key: string]: unknown
-}
+export type ChatMessage = AgentMessage & { id: string }

@@ -46,7 +46,7 @@ export function buildSessionMessages(pathEntries: SimpleMessageEntry[]): ChatMes
         role: entry.message.role,
         content: entry.message.content as string | unknown[],
         timestamp: entry.message.timestamp || timestampMs,
-      })
+      } as unknown as ChatMessage)
     } else if (entry.type === 'custom_message') {
       messages.push({
         id: entry.id || 'unknown-id',
@@ -56,7 +56,7 @@ export function buildSessionMessages(pathEntries: SimpleMessageEntry[]): ChatMes
         display: entry.display,
         details: entry.details,
         timestamp: timestampMs,
-      })
+      } as unknown as ChatMessage)
     } else if (entry.type === 'branch_summary' && entry.summary) {
       messages.push({
         id: entry.id || 'unknown-id',
@@ -65,14 +65,14 @@ export function buildSessionMessages(pathEntries: SimpleMessageEntry[]): ChatMes
         content: entry.summary,
         details: { fromId: entry.fromId },
         timestamp: timestampMs,
-      })
+      } as unknown as ChatMessage)
     } else if (entry.type === 'thinking_level_change' && entry.thinkingLevel) {
       messages.push({
         id: entry.id || 'unknown-id',
         role: 'thinking_level_change',
         content: `Thinking level changed to ${entry.thinkingLevel}`,
         timestamp: timestampMs,
-      })
+      } as unknown as ChatMessage)
     }
   }
 
@@ -85,7 +85,7 @@ export function buildSessionMessages(pathEntries: SimpleMessageEntry[]): ChatMes
       content: compaction.summary || '',
       details: { tokensBefore: compaction.tokensBefore },
       timestamp: compactionTimestamp,
-    })
+    } as unknown as ChatMessage)
     const compactionIdx = pathEntries.findIndex(
       (e) => e.type === 'compaction' && e.id === compaction?.id,
     )
@@ -118,9 +118,9 @@ export function mapEntryToMessage(
   }
   return {
     id: entryRecord.id,
-    role: 'unknown',
+    role: 'user',
     content: '',
-  }
+  } as unknown as ChatMessage
 }
 
 export class ChatService {
