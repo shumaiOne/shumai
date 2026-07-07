@@ -288,6 +288,8 @@ declare global {
       sessionId?: string
       userCommentId?: string
       explicitMention?: boolean
+      prompt?: string
+      imageUrls?: string[]
     }
 
     // ----------------------------------------------------------------------

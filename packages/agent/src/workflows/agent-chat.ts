@@ -46,26 +46,42 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
 
     // 1. Get User Comment
     const userCommentId = payload.agent?.userCommentId
-    if (!userCommentId) {
-      throw ApplicationFailure.create({
-        message: 'userCommentId missing in payload',
-        nonRetryable: true,
-      })
-    }
-    const userComment = await executeActivity(agentWorkerQueue, getCommentActivity, userCommentId)
-    if (!userComment) {
-      throw ApplicationFailure.create({ message: 'User comment not found', nonRetryable: true })
-    }
+    let prompt = ''
+    let attachmentImageUrls: string[] = []
+    let commentTimestamp: number | undefined
 
-    // 2. Create Placeholder Comment
-    const placeholder = await executeActivity(agentWorkerQueue, createCommentActivity, {
-      assetId: task.assetId,
-      message: '__CHAT__',
-      sessionId: sessionId || 'pending',
-      agentId: agentId,
-      replyToId: userComment.replyToId ?? userComment.id,
-    })
-    placeholderCommentId = placeholder.id
+    if (userCommentId) {
+      const userComment = await executeActivity(agentWorkerQueue, getCommentActivity, userCommentId)
+      if (!userComment) {
+        throw ApplicationFailure.create({ message: 'User comment not found', nonRetryable: true })
+      }
+      prompt = userComment.message || ''
+      if (userComment.second !== null && userComment.second !== undefined) {
+        commentTimestamp = userComment.second
+      }
+
+      // 2. Create Placeholder Comment
+      const placeholder = await executeActivity(agentWorkerQueue, createCommentActivity, {
+        assetId: task.assetId,
+        message: '__CHAT__',
+        sessionId: sessionId || 'pending',
+        agentId: agentId,
+        replyToId: userComment.replyToId ?? userComment.id,
+      })
+      placeholderCommentId = placeholder.id
+
+      // 5. Prepare Images (Attachments only)
+      if (userComment.attachments) {
+        for (const att of userComment.attachments) {
+          if (att.asset?.mediaType?.startsWith('image/') && att.asset?.storageKey?.key) {
+            attachmentImageUrls.push(att.asset.storageKey.key)
+          }
+        }
+      }
+    } else {
+      prompt = payload.agent?.prompt || ''
+      attachmentImageUrls = payload.agent?.imageUrls || []
+    }
 
     // 3. Get Asset
     const asset = await executeActivity(agentWorkerQueue, getAssetActivity, task.assetId)
@@ -76,6 +92,12 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
 
     // 4. Initialize Session if missing
     if (!sessionId) {
+      if (!userCommentId) {
+        throw ApplicationFailure.create({
+          message: 'sessionId is required when userCommentId is missing',
+          nonRetryable: true,
+        })
+      }
       sessionId = await executeActivity(agentWorkerQueue, initializeAgentSessionActivity, {
         teamId,
         agentId: agentId,
@@ -90,16 +112,6 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       agentId: agentId,
     })
 
-    // 5. Prepare Images (Attachments only)
-    const attachmentImageUrls: string[] = []
-    if (userComment?.attachments) {
-      for (const att of userComment.attachments) {
-        if (att.asset?.mediaType?.startsWith('image/') && att.asset?.storageKey?.key) {
-          attachmentImageUrls.push(att.asset.storageKey.key)
-        }
-      }
-    }
-
     const pathContext = await executeActivity(
       agentWorkerQueue,
       getAssetPathContextActivity,
@@ -113,7 +125,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     const instruction = new AgentChatPromptBuilder(asset.id)
       .withPathContext(pathContext)
       .withAssetDetails(asset.name, asset.mediaType, duration)
-      .withCommentTimestamp(userComment.second)
+      .withCommentTimestamp(commentTimestamp)
       .withExplicitMention(payload.agent?.explicitMention)
       .build()
 
@@ -128,14 +140,14 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     const aiResult = await executeActivity(agentWorkerQueue, agentChatActivity, {
       teamId,
       agentId: agentId,
-      message: userComment.message || '',
+      message: prompt,
       imageUrls: attachmentImageUrls,
       projectId: payload.projectId,
       folderId,
       agentsInstruction: instruction,
       sessionId,
       userId: payload.agent?.userId,
-      userCommentId,
+      userCommentId: userCommentId || undefined,
       explicitMention: payload.agent?.explicitMention,
       context,
     })

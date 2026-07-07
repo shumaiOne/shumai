@@ -70,13 +70,11 @@ describe('ChatService', () => {
     expect(session?.userId).toBe(user.id)
     expect(session?.assetId).toBe(rootFolder.id)
 
-    // Verify comment is created
+    // Verify no comment is created
     const comment = await prisma.assetComment.findFirst({
       where: { sessionId },
     })
-    expect(comment).toBeDefined()
-    expect(comment?.message).toBe('hello world')
-    expect(comment?.creatorId).toBe(user.id)
+    expect(comment).toBeNull()
 
     // Verify session entry is created
     const entry = await prisma.agentSessionEntry.findFirst({
@@ -87,13 +85,16 @@ describe('ChatService', () => {
     const payload = entry?.entry as any
     expect(payload.message.content[0].text).toBe('hello world')
 
-    // Verify WorkflowTask is created
+    // Verify WorkflowTask is created with correct payload
     const task = await prisma.workflowTask.findUnique({
       where: { id: taskId },
     })
     expect(task).toBeDefined()
     expect(task?.type).toBe('chat')
     expect(task?.status).toBe('pending')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const taskPayload = task?.payload as any
+    expect(taskPayload?.agent?.prompt).toBe('hello world')
   })
 
   it('should continue an existing chat session', async () => {
@@ -128,14 +129,14 @@ describe('ChatService', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((entries[1].entry as any).message.content[0].text).toBe('second message')
 
-    // Verify reply comment
-    const comments = await prisma.assetComment.findMany({
-      where: { sessionId },
-      orderBy: { id: 'asc' },
+    // Verify WorkflowTask is created with correct payload
+    const task = await prisma.workflowTask.findUnique({
+      where: { id: nextTaskId },
     })
-    expect(comments).toHaveLength(2)
-    expect(comments[0].replyToId).toBeNull()
-    expect(comments[1].replyToId).toBe(comments[0].id)
+    expect(task).toBeDefined()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const taskPayload = task?.payload as any
+    expect(taskPayload?.agent?.prompt).toBe('second message')
   })
 
   it('should inject context of referenced assets and attached files', async () => {
@@ -151,34 +152,44 @@ describe('ChatService', () => {
       },
     })
 
-    const textFile = await prisma.asset.create({
+    const storageKey = await prisma.storageKey.create({
       data: {
-        name: 'doc.txt',
-        type: 'file',
-        mediaType: 'text/plain',
-        status: 'processed',
-        projectId: project.id,
-        parentId: childFolder.id,
+        key: 'doc_s3_key',
       },
     })
 
-    const { sessionId } = await chatService.startOrContinueChat(user, {
+    const textFile = await prisma.asset.create({
+      data: {
+        name: 'doc.jpg',
+        type: 'file',
+        mediaType: 'image/jpeg',
+        status: 'processed',
+        projectId: project.id,
+        parentId: childFolder.id,
+        storageKeyId: storageKey.id,
+      },
+    })
+
+    const { taskId } = await chatService.startOrContinueChat(user, {
       textPrompt: 'process file',
       projectId: project.id,
       assetIds: [childFolder.id],
       attachedFiles: [textFile.id],
     })
 
-    const comment = await prisma.assetComment.findFirst({
-      where: { sessionId },
+    const task = await prisma.workflowTask.findUnique({
+      where: { id: taskId },
     })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const taskPayload = task?.payload as any
 
-    expect(comment?.message).toContain('[Context: Attached Files & Referenced Assets]')
-    expect(comment?.message).toContain('doc.txt')
-    expect(comment?.message).toContain('child_folder')
-    expect(comment?.message).toContain('text/plain')
-    expect(comment?.message).toContain('child_folder/doc.txt')
-    expect(comment?.message).toContain('process file')
+    expect(taskPayload?.agent?.prompt).toContain('[Context: Attached Files & Referenced Assets]')
+    expect(taskPayload?.agent?.prompt).toContain('doc.jpg')
+    expect(taskPayload?.agent?.prompt).toContain('child_folder')
+    expect(taskPayload?.agent?.prompt).toContain('image/jpeg')
+    expect(taskPayload?.agent?.prompt).toContain('child_folder/doc.jpg')
+    expect(taskPayload?.agent?.prompt).toContain('process file')
+    expect(taskPayload?.agent?.imageUrls).toContain('doc_s3_key')
   })
 
   it('should list sessions of a user', async () => {

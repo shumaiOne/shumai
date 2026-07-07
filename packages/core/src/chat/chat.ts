@@ -194,6 +194,17 @@ export class ChatService {
 
     const finalPrompt = `${contextPrompt}${textPrompt || ''}`
 
+    const resolvedImageUrls: string[] = []
+    for (const fileId of attachedFiles) {
+      const file = await this.prismaClient.asset.findUnique({
+        where: { id: fileId },
+        include: { storageKey: true },
+      })
+      if (file && file.mediaType?.startsWith('image/') && file.storageKey?.key) {
+        resolvedImageUrls.push(file.storageKey.key)
+      }
+    }
+
     // 4. Create database records in a transaction
     return await this.prismaClient.$transaction(async (tx) => {
       const asset = await tx.asset.findUnique({
@@ -254,35 +265,6 @@ export class ChatService {
         activeSessionId = newSession.id
       }
 
-      // Create comment representing the user's message
-      const replyToId = passedSessionId ? existingSession?.userCommentId : undefined
-      const comment = await tx.assetComment.create({
-        data: {
-          assetId: asset.id,
-          creatorId: user.id,
-          message: finalPrompt,
-          sessionId: activeSessionId,
-          replyToId: replyToId || null,
-        },
-      })
-
-      // Link attachment assets if provided
-      if (attachedFiles.length > 0) {
-        for (const fileId of attachedFiles) {
-          const fileAsset = await tx.asset.findUnique({
-            where: { id: fileId },
-          })
-          if (fileAsset) {
-            await tx.assetCommentAttachment.create({
-              data: {
-                assetId: fileAsset.id,
-                commentId: comment.id,
-              },
-            })
-          }
-        }
-      }
-
       // Append entry for user's message
       const parentId = passedSessionId ? existingSession?.leafId : null
       const entryId = ulid()
@@ -311,7 +293,6 @@ export class ChatService {
         where: { id: activeSessionId },
         data: {
           leafId: entryId,
-          ...(!passedSessionId ? { userCommentId: comment.id } : {}),
         },
       })
 
@@ -326,7 +307,9 @@ export class ChatService {
           payload: {
             projectId,
             agent: {
-              userCommentId: comment.id,
+              prompt: finalPrompt,
+              imageUrls: resolvedImageUrls,
+              explicitMention: true,
               agentId,
               sessionId: activeSessionId,
               userId: user.id,
