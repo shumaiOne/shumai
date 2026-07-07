@@ -6,61 +6,120 @@ import type { ChatRequest, ChatSessionInfo, ChatMessage } from '@shumai/dtos'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
+interface SimpleMessageEntry {
+  type: string
+  id?: string
+  timestamp?: string
+  thinkingLevel?: string
+  customType?: string
+  content?: unknown
+  display?: string
+  details?: unknown
+  summary?: string
+  fromId?: string
+  tokensBefore?: number
+  firstKeptEntryId?: string
+  message?: {
+    role: string
+    content: unknown
+    timestamp?: number
+    [key: string]: unknown
+  }
+}
+
+export function buildSessionMessages(pathEntries: SimpleMessageEntry[]): ChatMessage[] {
+  let compaction: SimpleMessageEntry | null = null
+
+  for (const entry of pathEntries) {
+    if (entry.type === 'compaction') {
+      compaction = entry
+    }
+  }
+
+  const messages: ChatMessage[] = []
+  const appendMessage = (entry: SimpleMessageEntry) => {
+    const timestampMs = entry.timestamp ? new Date(entry.timestamp).getTime() : Date.now()
+    if (entry.type === 'message' && entry.message) {
+      messages.push({
+        ...(entry.message as Record<string, unknown>),
+        id: entry.id || 'unknown-id',
+        role: entry.message.role,
+        content: entry.message.content as string | unknown[],
+        timestamp: entry.message.timestamp || timestampMs,
+      })
+    } else if (entry.type === 'custom_message') {
+      messages.push({
+        id: entry.id || 'unknown-id',
+        role: 'custom',
+        customType: entry.customType || '',
+        content: (entry.content as string | unknown[]) || '',
+        display: entry.display,
+        details: entry.details,
+        timestamp: timestampMs,
+      })
+    } else if (entry.type === 'branch_summary' && entry.summary) {
+      messages.push({
+        id: entry.id || 'unknown-id',
+        role: 'custom',
+        customType: 'branch-summary',
+        content: entry.summary,
+        details: { fromId: entry.fromId },
+        timestamp: timestampMs,
+      })
+    } else if (entry.type === 'thinking_level_change' && entry.thinkingLevel) {
+      messages.push({
+        id: entry.id || 'unknown-id',
+        role: 'thinking_level_change',
+        content: `Thinking level changed to ${entry.thinkingLevel}`,
+        timestamp: timestampMs,
+      })
+    }
+  }
+
+  if (compaction) {
+    const compactionTimestamp = compaction.timestamp ? new Date(compaction.timestamp).getTime() : Date.now()
+    messages.push({
+      id: compaction.id || 'unknown-id',
+      role: 'custom',
+      customType: 'compaction-summary',
+      content: compaction.summary || '',
+      details: { tokensBefore: compaction.tokensBefore },
+      timestamp: compactionTimestamp,
+    })
+    const compactionIdx = pathEntries.findIndex(
+      (e) => e.type === 'compaction' && e.id === compaction?.id,
+    )
+    let foundFirstKept = false
+    for (let i = 0; i < compactionIdx; i++) {
+      const entry = pathEntries[i]
+      if (entry.id === compaction.firstKeptEntryId) foundFirstKept = true
+      if (foundFirstKept) appendMessage(entry)
+    }
+    for (let i = compactionIdx + 1; i < pathEntries.length; i++) {
+      appendMessage(pathEntries[i])
+    }
+  } else {
+    for (const entry of pathEntries) {
+      appendMessage(entry)
+    }
+  }
+
+  return messages
+}
+
 export function mapEntryToMessage(
   entryRecord: Prisma.AgentSessionEntryGetPayload<Record<string, never>>,
 ): ChatMessage {
-  interface SimpleMessageEntry {
-    type: 'message' | 'thinking_level_change'
-    timestamp?: string
-    thinkingLevel?: string
-    message?: {
-      role?: string
-      content?: string | Array<{ type: string; text?: string; data?: string }>
-    }
+  const entryObj = entryRecord.entry as unknown as SimpleMessageEntry
+  const pathEntries = [{ ...entryObj, id: entryRecord.id }]
+  const messages = buildSessionMessages(pathEntries)
+  if (messages.length > 0) {
+    return messages[0]
   }
-
-  const entry = entryRecord.entry as unknown as SimpleMessageEntry
-  const id = entryRecord.id
-  const timestamp = entry.timestamp || new Date().toISOString()
-
-  let role: ChatMessage['role']
-  let content = ''
-
-  if (entry.type === 'message') {
-    const rawRole = entry.message?.role
-    if (
-      rawRole === 'user' ||
-      rawRole === 'assistant' ||
-      rawRole === 'toolCall' ||
-      rawRole === 'toolResult'
-    ) {
-      role = rawRole
-    } else {
-      role = 'user'
-    }
-
-    if (Array.isArray(entry.message?.content)) {
-      content = entry.message.content
-        .filter((c) => c.type === 'text')
-        .map((c) => c.text || '')
-        .join('\n')
-    } else if (typeof entry.message?.content === 'string') {
-      content = entry.message.content
-    }
-  } else if (entry.type === 'thinking_level_change') {
-    role = 'thinking_level_change'
-    content = `Thinking level changed to ${entry.thinkingLevel}`
-  } else {
-    role = 'toolCall'
-    content = JSON.stringify(entry)
-  }
-
   return {
-    id,
-    role,
-    content,
-    timestamp,
-    entry: entry as unknown as PrismaJson.PiSessionEntry,
+    id: entryRecord.id,
+    role: 'unknown',
+    content: '',
   }
 }
 
@@ -296,7 +355,15 @@ export class ChatService {
       orderBy: { id: 'asc' },
     })
 
-    return entries.map(mapEntryToMessage)
+    const pathEntries = entries.map((e) => {
+      const entryObj = e.entry as unknown as SimpleMessageEntry
+      return {
+        ...entryObj,
+        id: e.id,
+      }
+    })
+
+    return buildSessionMessages(pathEntries)
   }
 
   async deleteSession(userId: string, sessionId: string): Promise<void> {

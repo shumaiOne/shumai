@@ -1,6 +1,6 @@
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
-import { chatService } from '@shumai/core/src/chat/chat'
+import { chatService, buildSessionMessages } from './chat'
 import { describe, expect, it } from 'vitest'
 
 describe('ChatService', () => {
@@ -256,7 +256,7 @@ describe('ChatService', () => {
     const messages = await chatService.listMessages(user.id, sessionId)
     expect(messages).toHaveLength(1)
     expect(messages[0].role).toBe('user')
-    expect(messages[0].content).toBe('hello')
+    expect(messages[0].content).toEqual([{ type: 'text', text: 'hello' }])
   })
 
   it('should delete session and cascade', async () => {
@@ -279,5 +279,74 @@ describe('ChatService', () => {
       where: { sessionId },
     })
     expect(entries).toHaveLength(0)
+  })
+
+  it('should build session messages correctly handling compaction and custom messages', () => {
+    const pathEntries = [
+      {
+        id: 'entry-1',
+        type: 'message',
+        timestamp: '2026-07-07T00:00:00.000Z',
+        message: {
+          role: 'user',
+          content: 'first message',
+        },
+      },
+      {
+        id: 'entry-compaction',
+        type: 'compaction',
+        timestamp: '2026-07-07T00:01:00.000Z',
+        summary: 'Compacted conversation history',
+        tokensBefore: 200,
+        firstKeptEntryId: 'entry-2',
+      },
+      {
+        id: 'entry-2',
+        type: 'message',
+        timestamp: '2026-07-07T00:02:00.000Z',
+        message: {
+          role: 'assistant',
+          content: 'kept message',
+        },
+      },
+      {
+        id: 'entry-3',
+        type: 'thinking_level_change',
+        timestamp: '2026-07-07T00:03:00.000Z',
+        thinkingLevel: 'high',
+      },
+      {
+        id: 'entry-4',
+        type: 'branch_summary',
+        timestamp: '2026-07-07T00:04:00.000Z',
+        summary: 'Branch summary details',
+        fromId: 'entry-old',
+      },
+    ]
+
+    const messages = buildSessionMessages(pathEntries)
+
+    expect(messages).toHaveLength(4)
+
+    // 1. Compaction summary message
+    expect(messages[0].role).toBe('custom')
+    expect(messages[0].customType).toBe('compaction-summary')
+    expect(messages[0].content).toBe('Compacted conversation history')
+    expect((messages[0].details as Record<string, unknown>).tokensBefore).toBe(200)
+
+    // 2. Kept entry (entry-2)
+    expect(messages[1].id).toBe('entry-2')
+    expect(messages[1].role).toBe('assistant')
+    expect(messages[1].content).toBe('kept message')
+
+    // 3. Thinking level change (entry-3)
+    expect(messages[2].role).toBe('thinking_level_change')
+    expect(messages[2].content).toContain('Thinking level changed to high')
+
+    // 4. Branch summary (entry-4)
+    expect(messages[3].role).toBe('custom')
+    expect(messages[3].customType).toBe('branch-summary')
+    expect(messages[3].content).toBe('Branch summary details')
+    expect((messages[3].details as Record<string, unknown>).fromId).toBe('entry-old')
   })
 })

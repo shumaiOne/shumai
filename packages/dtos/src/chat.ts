@@ -37,12 +37,17 @@ export const chatSessionInfoSchema = z.object({
 
 export type ChatSessionInfo = z.infer<typeof chatSessionInfoSchema>
 
-export const chatMessageSchema = z.object({
-  id: z.string(),
-  role: z.enum(['user', 'assistant', 'toolCall', 'toolResult', 'thinking_level_change']),
-  content: z.string(),
-  timestamp: z.string(),
-  entry: z.unknown(), // Raw session entry data
-})
+export const chatMessageSchema = z.intersection(
+  z.object({
+    id: z.string(),
+  }),
+  z.record(z.string(), z.unknown()),
+)
 
-export type ChatMessage = z.infer<typeof chatMessageSchema>
+export type ChatMessage = {
+  id: string
+  role: string
+  content: string | unknown[]
+  timestamp?: number
+  [key: string]: unknown
+}
