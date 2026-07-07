@@ -84,6 +84,7 @@ export class ChatService {
     req: ChatRequest,
   ): Promise<{ sessionId: string; taskId: string }> {
     const {
+      agentId,
       textPrompt,
       attachedFiles = [],
       assetIds = [],
@@ -218,31 +219,9 @@ export class ChatService {
       const projectId = asset.project.id
 
       // Ensure AI agent configuration exists
-      const agentId = 'default'
-      const userExists = await tx.user.findUnique({ where: { id: agentId } })
-      if (!userExists) {
-        await tx.user.create({
-          data: {
-            id: agentId,
-            name: 'Ai Agent',
-            email: `${agentId}@shumai.ai`,
-            type: 'agent',
-          },
-        })
-      }
-      const agentExists = await tx.agent.findUnique({ where: { id: agentId } })
-      if (!agentExists) {
-        await tx.agent.create({
-          data: {
-            id: agentId,
-            teamId,
-            type: 'chat',
-            config: {
-              provider: 'openai',
-              model: 'gpt-4',
-            },
-          },
-        })
+      const agent = await tx.agent.findUnique({ where: { id: agentId } })
+      if (!agent) {
+        throw new Error(`Agent with ID "${agentId}" not found`)
       }
 
       let activeSessionId = passedSessionId

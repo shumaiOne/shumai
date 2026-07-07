@@ -48,13 +48,35 @@ describe('ChatService', () => {
       data: { rootFolderId: rootFolder.id },
     })
 
-    return { user, team, teamMember, project, rootFolder }
+    const agentUser = await prisma.user.create({
+      data: {
+        id: 'test-agent-id',
+        name: 'Test Agent',
+        email: 'test-agent@shumai.ai',
+        type: 'agent',
+      },
+    })
+
+    const agent = await prisma.agent.create({
+      data: {
+        id: 'test-agent-id',
+        teamId: team.id,
+        type: 'chat',
+        config: {
+          provider: 'openai',
+          model: 'gpt-4',
+        },
+      },
+    })
+
+    return { user, team, teamMember, project, rootFolder, agent, agentUser }
   }
 
   it('should start a new chat session and trigger workflow', async () => {
-    const { user, project, rootFolder } = await setupBasicData()
+    const { user, project, rootFolder, agent } = await setupBasicData()
 
     const { sessionId, taskId } = await chatService.startOrContinueChat(user, {
+      agentId: agent.id,
       textPrompt: 'hello world',
       projectId: project.id,
     })
@@ -98,10 +120,11 @@ describe('ChatService', () => {
   })
 
   it('should continue an existing chat session', async () => {
-    const { user, project } = await setupBasicData()
+    const { user, project, agent } = await setupBasicData()
 
     // Start
     const { sessionId } = await chatService.startOrContinueChat(user, {
+      agentId: agent.id,
       textPrompt: 'first message',
       projectId: project.id,
     })
@@ -110,6 +133,7 @@ describe('ChatService', () => {
     const { sessionId: nextSessionId, taskId: nextTaskId } = await chatService.startOrContinueChat(
       user,
       {
+        agentId: agent.id,
         textPrompt: 'second message',
         sessionId,
       },
@@ -140,7 +164,7 @@ describe('ChatService', () => {
   })
 
   it('should inject context of referenced assets and attached files', async () => {
-    const { user, project, rootFolder } = await setupBasicData()
+    const { user, project, rootFolder, agent } = await setupBasicData()
 
     const childFolder = await prisma.asset.create({
       data: {
@@ -171,6 +195,7 @@ describe('ChatService', () => {
     })
 
     const { taskId } = await chatService.startOrContinueChat(user, {
+      agentId: agent.id,
       textPrompt: 'process file',
       projectId: project.id,
       assetIds: [childFolder.id],
@@ -193,14 +218,16 @@ describe('ChatService', () => {
   })
 
   it('should list sessions of a user', async () => {
-    const { user, project } = await setupBasicData()
+    const { user, project, agent } = await setupBasicData()
 
     await chatService.startOrContinueChat(user, {
+      agentId: agent.id,
       textPrompt: 'chat 1',
       projectId: project.id,
     })
 
     await chatService.startOrContinueChat(user, {
+      agentId: agent.id,
       textPrompt: 'chat 2',
       projectId: project.id,
     })
@@ -210,9 +237,10 @@ describe('ChatService', () => {
   })
 
   it('should list messages mapped correctly', async () => {
-    const { user, project } = await setupBasicData()
+    const { user, project, agent } = await setupBasicData()
 
     const { sessionId } = await chatService.startOrContinueChat(user, {
+      agentId: agent.id,
       textPrompt: 'hello',
       projectId: project.id,
     })
@@ -224,9 +252,10 @@ describe('ChatService', () => {
   })
 
   it('should delete session and cascade', async () => {
-    const { user, project } = await setupBasicData()
+    const { user, project, agent } = await setupBasicData()
 
     const { sessionId } = await chatService.startOrContinueChat(user, {
+      agentId: agent.id,
       textPrompt: 'to delete',
       projectId: project.id,
     })

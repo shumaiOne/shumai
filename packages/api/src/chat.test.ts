@@ -139,6 +139,7 @@ describe('Chat API', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          agentId: 'agent1',
           textPrompt: 'hi',
         }),
       })
