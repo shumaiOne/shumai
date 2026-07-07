@@ -9,8 +9,17 @@ type User = Prisma.UserGetPayload<Record<string, never>>
 export function mapEntryToMessage(
   entryRecord: Prisma.AgentSessionEntryGetPayload<Record<string, never>>,
 ): ChatMessage {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const entry = entryRecord.entry as any
+  interface SimpleMessageEntry {
+    type: 'message' | 'thinking_level_change'
+    timestamp?: string
+    thinkingLevel?: string
+    message?: {
+      role?: string
+      content?: string | Array<{ type: string; text?: string; data?: string }>
+    }
+  }
+
+  const entry = entryRecord.entry as unknown as SimpleMessageEntry
   const id = entryRecord.id
   const timestamp = entry.timestamp || new Date().toISOString()
 
@@ -32,10 +41,8 @@ export function mapEntryToMessage(
 
     if (Array.isArray(entry.message?.content)) {
       content = entry.message.content
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .filter((c: any) => c.type === 'text')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .map((c: any) => c.text)
+        .filter((c) => c.type === 'text')
+        .map((c) => c.text || '')
         .join('\n')
     } else if (typeof entry.message?.content === 'string') {
       content = entry.message.content
@@ -53,7 +60,7 @@ export function mapEntryToMessage(
     role,
     content,
     timestamp,
-    entry,
+    entry: entry as unknown as PrismaJson.PiSessionEntry,
   }
 }
 
