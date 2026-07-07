@@ -1,6 +1,6 @@
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
-import { chatService, buildSessionMessages } from './chat'
+import { chatService, buildSessionMessages, type PathEntry } from './chat'
 import { describe, expect, it } from 'vitest'
 
 describe('ChatService', () => {
@@ -327,7 +327,7 @@ describe('ChatService', () => {
       },
     ]
 
-    const messages = buildSessionMessages(pathEntries)
+    const messages = buildSessionMessages(pathEntries as unknown as PathEntry[])
 
     expect(messages).toHaveLength(4)
 

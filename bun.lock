@@ -131,6 +131,7 @@
       "name": "@shumai/core",
       "version": "0.1.7",
       "dependencies": {
+        "@earendil-works/pi-agent-core": "0.78.0",
         "@shumai/db": "workspace:*",
         "@shumai/dtos": "workspace:*",
         "@sinclair/typebox": "0.34.49",
