@@ -25,8 +25,15 @@ export class AgentChatPromptBuilder {
   private attachedFiles: string[] = []
   private referencedAssets: string[] = []
 
+  private isContinuation = false
+
   constructor(assetId: string) {
     this.assetId = assetId
+  }
+
+  withContinuation(isContinuation: boolean): this {
+    this.isContinuation = isContinuation
+    return this
   }
 
   withAttachedFiles(files?: string[]): this {
@@ -68,6 +75,23 @@ export class AgentChatPromptBuilder {
   }
 
   build(): string {
+    if (this.isContinuation) {
+      let instruction = ''
+      if (this.commentTimestamp !== undefined) {
+        instruction += `Comment Timestamp: ${this.commentTimestamp.toFixed(2)} seconds`
+      }
+      if (this.attachedFiles.length > 0 || this.referencedAssets.length > 0) {
+        instruction += `\n\n[Context: New Attached Files & Referenced Assets]`
+        if (this.attachedFiles.length > 0) {
+          instruction += `\nAttached Files:\n${this.attachedFiles.join('\n')}`
+        }
+        if (this.referencedAssets.length > 0) {
+          instruction += `\nReferenced Workspace Assets:\n${this.referencedAssets.join('\n')}`
+        }
+      }
+      return instruction.trim()
+    }
+
     let instruction = `The user is discussing an asset with ID: ${this.assetId}.`
     if (this.assetName) {
       instruction += `\nFile Name: ${this.assetName}`

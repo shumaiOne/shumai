@@ -88,9 +88,8 @@ If you need to create files in the local filesystem (for example, a temporary fi
     systemPrompt = `${systemPrompt}\n\nAgent Personality and Core Instructions:\n${agent.soul}`
   }
 
-  if (params.agentsInstruction) {
-    systemPrompt = `${systemPrompt}\n\nContext and Instructions:\n${params.agentsInstruction}`
-  }
+  // Note: params.agentsInstruction is no longer appended to systemPrompt here.
+  // Instead, it is persisted as a custom message session entry in the conversation history below.
 
   const modelConfig = agent.modelRef?.config
   if (modelConfig?.input) {
@@ -145,6 +144,19 @@ If you need to create files in the local filesystem (for example, a temporary fi
   }
 
   try {
+    if (params.agentsInstruction && params.agentsInstruction.trim()) {
+      const storage = session.getStorage()
+      const parentId = await storage.getLeafId()
+      await storage.appendEntry({
+        id: ulid(),
+        type: 'custom_message',
+        parentId,
+        timestamp: new Date().toISOString(),
+        customType: 'context',
+        content: params.agentsInstruction.trim(),
+      } as unknown as SessionTreeEntry)
+    }
+
     const assistantMessage = await harness.prompt(params.prompt, { images: imagesToPass })
 
     const sessionEntries = await session.getEntries()

@@ -91,6 +91,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     const teamId = asset.project.teamId
 
     // 4. Initialize Session if missing
+    let isNewChat = !payload.agent?.sessionId
     if (!sessionId) {
       if (!userCommentId) {
         throw ApplicationFailure.create({
@@ -104,6 +105,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
         userCommentId,
         userId: payload.agent?.userId,
       })
+      isNewChat = true
     }
 
     // 4b. Fetch Agent Context
@@ -151,6 +153,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     }
 
     const instruction = new AgentChatPromptBuilder(asset.id)
+      .withContinuation(!isNewChat)
       .withPathContext(pathContext)
       .withAssetDetails(asset.name, asset.mediaType, duration)
       .withCommentTimestamp(commentTimestamp)

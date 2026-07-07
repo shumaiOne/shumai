@@ -185,6 +185,7 @@ describe('Agent Chat Workflow', () => {
 
     expect(mockActivities.initializeAgentSessionActivity).not.toHaveBeenCalled()
     const expectedInstruction2 = new AgentChatPromptBuilder('a1')
+      .withContinuation(true)
       .withPathContext('Path: folder/subfolder/file.png')
       .withAssetDetails('test-file.png', 'image/png', undefined)
       .withCommentTimestamp(null)
@@ -442,6 +443,7 @@ describe('Agent Chat Workflow', () => {
 
     // Verify prompt builder is populated and workflow runs agentChatActivity with context instruction
     const expectedInstruction = new AgentChatPromptBuilder('a1')
+      .withContinuation(true)
       .withPathContext('folder/subfolder/file.png')
       .withAssetDetails('test-file.png', 'image/png', undefined)
       .withCommentTimestamp(undefined)

@@ -84,4 +84,23 @@ describe('AgentChatPromptBuilder', () => {
     expect(result).toContain('Attached Files:\n- file1.txt\n- file2.png')
     expect(result).toContain('Referenced Workspace Assets:\n- folder1\n- file3.mp4')
   })
+
+  it('should build prompt for continuation mode returning only turn-specific modifications', () => {
+    const builder = new AgentChatPromptBuilder('a1')
+      .withContinuation(true)
+      .withAssetDetails('movie.mp4', 'video/mp4', 12.34)
+      .withPathContext('src/main.ts')
+      .withCommentTimestamp(8.2)
+      .withAttachedFiles(['- file1.txt'])
+      .withReferencedAssets(['- folder1'])
+    const result = builder.build()
+
+    expect(result).not.toContain('The user is discussing an asset with ID:')
+    expect(result).not.toContain('File Name: movie.mp4')
+    expect(result).not.toContain('Asset Path Context:')
+    expect(result).toContain('Comment Timestamp: 8.20 seconds')
+    expect(result).toContain('[Context: New Attached Files & Referenced Assets]')
+    expect(result).toContain('Attached Files:\n- file1.txt')
+    expect(result).toContain('Referenced Workspace Assets:\n- folder1')
+  })
 })
