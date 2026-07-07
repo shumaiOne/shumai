@@ -122,11 +122,41 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     const mediaInfo = asset.media as any
     const duration = mediaInfo?.duration
 
+    // Resolve Attached Files Details
+    const attachedFileDetailsList: string[] = []
+    if (payload.agent?.attachedFiles) {
+      for (const fileId of payload.agent.attachedFiles) {
+        const file = await executeActivity(agentWorkerQueue, getAssetActivity, fileId)
+        if (file) {
+          const path = await executeActivity(agentWorkerQueue, getAssetPathContextActivity, fileId)
+          attachedFileDetailsList.push(
+            `- Name: ${file.name} (ID: ${file.id}, Type: ${file.type}, Media Type: ${file.mediaType || 'unknown'}, Project ID: ${file.projectId || 'unknown'}, Path: ${path})`
+          )
+        }
+      }
+    }
+
+    // Resolve Referenced Workspace Assets Details
+    const referencedAssetDetailsList: string[] = []
+    if (payload.agent?.assetIds) {
+      for (const assetId of payload.agent.assetIds) {
+        const referencedAsset = await executeActivity(agentWorkerQueue, getAssetActivity, assetId)
+        if (referencedAsset) {
+          const path = await executeActivity(agentWorkerQueue, getAssetPathContextActivity, assetId)
+          referencedAssetDetailsList.push(
+            `- Name: ${referencedAsset.name} (ID: ${referencedAsset.id}, Type: ${referencedAsset.type}, Media Type: ${referencedAsset.mediaType || 'unknown'}, Project ID: ${referencedAsset.projectId || 'unknown'}, Path: ${path})`
+          )
+        }
+      }
+    }
+
     const instruction = new AgentChatPromptBuilder(asset.id)
       .withPathContext(pathContext)
       .withAssetDetails(asset.name, asset.mediaType, duration)
       .withCommentTimestamp(commentTimestamp)
       .withExplicitMention(payload.agent?.explicitMention)
+      .withAttachedFiles(attachedFileDetailsList)
+      .withReferencedAssets(referencedAssetDetailsList)
       .build()
 
     // 6. Call AI Chat

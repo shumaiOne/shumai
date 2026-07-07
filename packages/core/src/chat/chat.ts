@@ -162,38 +162,7 @@ export class ChatService {
       }
     }
 
-    // 3. Context Prompt construction
-    let contextPrompt = ''
-    if (attachedFiles.length > 0 || assetIds.length > 0) {
-      contextPrompt += '[Context: Attached Files & Referenced Assets]\n'
-      if (attachedFiles.length > 0) {
-        contextPrompt += 'Attached Files:\n'
-        for (const fileId of attachedFiles) {
-          const file = await this.prismaClient.asset.findUnique({
-            where: { id: fileId },
-          })
-          if (file) {
-            const filePath = await this.getAssetPath(file.id)
-            contextPrompt += `- Name: ${file.name} (ID: ${file.id}, Type: ${file.type}, Media Type: ${file.mediaType || 'unknown'}, Project ID: ${file.projectId || 'unknown'}, Path: ${filePath})\n`
-          }
-        }
-      }
-      if (assetIds.length > 0) {
-        contextPrompt += 'Referenced Workspace Assets:\n'
-        for (const assetId of assetIds) {
-          const asset = await this.prismaClient.asset.findUnique({
-            where: { id: assetId },
-          })
-          if (asset) {
-            const assetPath = await this.getAssetPath(asset.id)
-            contextPrompt += `- Name: ${asset.name} (ID: ${asset.id}, Type: ${asset.type}, Media Type: ${asset.mediaType || 'unknown'}, Project ID: ${asset.projectId || 'unknown'}, Path: ${assetPath})\n`
-          }
-        }
-      }
-      contextPrompt += '\n---\n'
-    }
-
-    const finalPrompt = `${contextPrompt}${textPrompt || ''}`
+    const finalPrompt = textPrompt || ''
 
     const resolvedImageUrls: string[] = []
     for (const fileId of attachedFiles) {
@@ -288,6 +257,8 @@ export class ChatService {
             agent: {
               prompt: finalPrompt,
               imageUrls: resolvedImageUrls,
+              attachedFiles,
+              assetIds,
               explicitMention: true,
               agentId,
               sessionId: activeSessionId,

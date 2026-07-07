@@ -290,6 +290,8 @@ declare global {
       explicitMention?: boolean
       prompt?: string
       imageUrls?: string[]
+      attachedFiles?: string[]
+      assetIds?: string[]
     }
 
     // ----------------------------------------------------------------------

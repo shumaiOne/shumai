@@ -208,12 +208,9 @@ describe('ChatService', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const taskPayload = task?.payload as any
 
-    expect(taskPayload?.agent?.prompt).toContain('[Context: Attached Files & Referenced Assets]')
-    expect(taskPayload?.agent?.prompt).toContain('doc.jpg')
-    expect(taskPayload?.agent?.prompt).toContain('child_folder')
-    expect(taskPayload?.agent?.prompt).toContain('image/jpeg')
-    expect(taskPayload?.agent?.prompt).toContain('child_folder/doc.jpg')
-    expect(taskPayload?.agent?.prompt).toContain('process file')
+    expect(taskPayload?.agent?.prompt).toBe('process file')
+    expect(taskPayload?.agent?.attachedFiles).toContain(textFile.id)
+    expect(taskPayload?.agent?.assetIds).toContain(childFolder.id)
     expect(taskPayload?.agent?.imageUrls).toContain('doc_s3_key')
   })
 

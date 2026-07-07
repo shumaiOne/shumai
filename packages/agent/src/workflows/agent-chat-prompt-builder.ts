@@ -22,9 +22,25 @@ export class AgentChatPromptBuilder {
   private commentTimestamp?: number
   private pathContext?: string
   private explicitMention = false
+  private attachedFiles: string[] = []
+  private referencedAssets: string[] = []
 
   constructor(assetId: string) {
     this.assetId = assetId
+  }
+
+  withAttachedFiles(files?: string[]): this {
+    if (files) {
+      this.attachedFiles = files
+    }
+    return this
+  }
+
+  withReferencedAssets(assets?: string[]): this {
+    if (assets) {
+      this.referencedAssets = assets
+    }
+    return this
   }
 
   withPathContext(pathContext?: string): this {
@@ -68,6 +84,16 @@ export class AgentChatPromptBuilder {
     }
     if (this.pathContext) {
       instruction += `\n\nAsset Path Context:\n${this.pathContext}`
+    }
+
+    if (this.attachedFiles.length > 0 || this.referencedAssets.length > 0) {
+      instruction += `\n\n[Context: Attached Files & Referenced Assets]`
+      if (this.attachedFiles.length > 0) {
+        instruction += `\nAttached Files:\n${this.attachedFiles.join('\n')}`
+      }
+      if (this.referencedAssets.length > 0) {
+        instruction += `\nReferenced Workspace Assets:\n${this.referencedAssets.join('\n')}`
+      }
     }
 
     if (this.mediaType) {

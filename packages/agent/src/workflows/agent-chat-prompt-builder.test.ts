@@ -73,4 +73,15 @@ describe('AgentChatPromptBuilder', () => {
     expect(result).toContain("call the 'screenshot' tool")
     expect(result).toContain('The user explicitly mentioned you')
   })
+
+  it('should build prompt with attached files and referenced assets', () => {
+    const builder = new AgentChatPromptBuilder('a1')
+      .withAttachedFiles(['- file1.txt', '- file2.png'])
+      .withReferencedAssets(['- folder1', '- file3.mp4'])
+    const result = builder.build()
+
+    expect(result).toContain('[Context: Attached Files & Referenced Assets]')
+    expect(result).toContain('Attached Files:\n- file1.txt\n- file2.png')
+    expect(result).toContain('Referenced Workspace Assets:\n- folder1\n- file3.mp4')
+  })
 })
