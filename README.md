@@ -174,8 +174,8 @@ brew install ffmpeg ripgrep
 
 #### Windows (alpha)
 
-> [!WARNING from anthropic-experimental/sandbox-runtime]
-> Windows support is **alpha and the design is in flux**.
+> [!WARNING]
+> Windows support in anthropic-experimental/sandbox-runtime is **alpha and the design is in flux**.
 >
 > The current implementation provides:
 > - Network egress filtering via the **Windows Filtering Platform (WFP)**.

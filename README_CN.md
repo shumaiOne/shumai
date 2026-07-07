@@ -188,8 +188,8 @@ brew install ffmpeg ripgrep
 
 #### Windows（Alpha）
 
-> [!WARNING from anthropic-experimental/sandbox-runtime]
-> Windows 支持目前仍处于 **Alpha** 阶段，整体设计仍在持续调整中。
+> [!WARNING]
+> anthropic-experimental/sandbox-runtime 的 Windows 支持目前仍处于 **Alpha** 阶段，整体设计仍在持续调整中。
 >
 > 当前实现提供了以下能力：
 > - 通过 **Windows Filtering Platform (WFP)** 实现网络出口（egress）过滤。
