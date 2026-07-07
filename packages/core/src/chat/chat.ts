@@ -3,7 +3,6 @@ import type { Prisma } from '@shumai/db'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { paginateQuery, type PaginatedData } from '@shumai/core/src/pagination'
 import type { ChatRequest, ChatSessionInfo, ChatMessage } from '@shumai/dtos'
-import { ulid } from 'ulid'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -194,13 +193,13 @@ export class ChatService {
       }
 
       let activeSessionId = passedSessionId
-      let existingSession = null
 
       if (activeSessionId) {
-        existingSession = await tx.agentSession.findUnique({
+        const sessionExists = await tx.agentSession.findUnique({
           where: { id: activeSessionId },
+          select: { id: true },
         })
-        if (!existingSession) throw new Error('Session not found')
+        if (!sessionExists) throw new Error('Session not found')
       } else {
         const newSession = await tx.agentSession.create({
           data: {
@@ -212,38 +211,6 @@ export class ChatService {
         })
         activeSessionId = newSession.id
       }
-
-      // Append entry for user's message
-      const parentId = passedSessionId ? existingSession?.leafId : null
-      const entryId = ulid()
-      const entryJson = {
-        type: 'message' as const,
-        id: entryId,
-        parentId: parentId || null,
-        timestamp: new Date().toISOString(),
-        message: {
-          role: 'user' as const,
-          content: [{ type: 'text' as const, text: finalPrompt }],
-          timestamp: Date.now(),
-        },
-      }
-
-      await tx.agentSessionEntry.create({
-        data: {
-          id: entryId,
-          sessionId: activeSessionId!,
-          entry: entryJson,
-        },
-      })
-
-      // Update session's state
-      await tx.agentSession.update({
-        where: { id: activeSessionId },
-        data: {
-          leafId: entryId,
-        },
-      })
-
       // Trigger chat workflow
       const task = await tx.workflowTask.create({
         data: {

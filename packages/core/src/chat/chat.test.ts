@@ -98,14 +98,11 @@ describe('ChatService', () => {
     })
     expect(comment).toBeNull()
 
-    // Verify session entry is created
+    // Verify no session entry is created yet (it is created automatically when the workflow runs)
     const entry = await prisma.agentSessionEntry.findFirst({
       where: { sessionId },
     })
-    expect(entry).toBeDefined()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const payload = entry?.entry as any
-    expect(payload.message.content[0].text).toBe('hello world')
+    expect(entry).toBeNull()
 
     // Verify WorkflowTask is created with correct payload
     const task = await prisma.workflowTask.findUnique({
@@ -142,16 +139,11 @@ describe('ChatService', () => {
     expect(nextSessionId).toBe(sessionId)
     expect(nextTaskId).toBeDefined()
 
-    // Verify entries order
+    // Verify no entries are created yet (they are created automatically when the workflow runs)
     const entries = await prisma.agentSessionEntry.findMany({
       where: { sessionId },
-      orderBy: { id: 'asc' },
     })
-    expect(entries).toHaveLength(2)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect((entries[0].entry as any).message.content[0].text).toBe('first message')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect((entries[1].entry as any).message.content[0].text).toBe('second message')
+    expect(entries).toHaveLength(0)
 
     // Verify WorkflowTask is created with correct payload
     const task = await prisma.workflowTask.findUnique({
@@ -240,6 +232,25 @@ describe('ChatService', () => {
       agentId: agent.id,
       textPrompt: 'hello',
       projectId: project.id,
+    })
+
+    // Manually insert a test entry representing user message
+    await prisma.agentSessionEntry.create({
+      data: {
+        id: 'test-entry-id',
+        sessionId,
+        entry: {
+          type: 'message',
+          id: 'test-entry-id',
+          parentId: null,
+          timestamp: new Date().toISOString(),
+          message: {
+            role: 'user',
+            content: [{ type: 'text', text: 'hello' }],
+            timestamp: Date.now(),
+          },
+        },
+      },
     })
 
     const messages = await chatService.listMessages(user.id, sessionId)
