@@ -42,6 +42,9 @@ const route = new Hono<{ Variables: { user: User } }>()
       const startTime = Date.now()
 
       while (Date.now() - startTime < timeoutMs) {
+        if (stream.aborted) {
+          break
+        }
         // Query new entries from the DB
         const newEntries = await prisma.agentSessionEntry.findMany({
           where: {
