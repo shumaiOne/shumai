@@ -55,6 +55,8 @@ function getMessageTextContent(msg: ChatMessage): string {
   return ''
 }
 
+const EMPTY_MESSAGES: ChatMessage[] = []
+
 export const AgentChatPanel = () => {
   const { teamId } = useTeamContextStore()
   const { getMetadata } = useUserMetadataStore()
@@ -81,10 +83,10 @@ export const AgentChatPanel = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Fetch active session messages
-  const { data: serverMessages = [], isLoading: isMessagesLoading } = useQuery({
+  const { data: serverMessages = EMPTY_MESSAGES, isLoading: isMessagesLoading } = useQuery({
     queryKey: ['chatMessages', activeSessionId],
     queryFn: async () => {
-      if (!activeSessionId) return []
+      if (!activeSessionId) return EMPTY_MESSAGES
       const res = await client.api.chat.sessions[':sessionId'].messages.$get({
         param: { sessionId: activeSessionId },
       })
@@ -100,7 +102,7 @@ export const AgentChatPanel = () => {
       setLocalMessages(serverMessages)
       setStreamingMessage('')
     } else {
-      setLocalMessages([])
+      setLocalMessages(EMPTY_MESSAGES)
       setStreamingMessage('')
     }
   }, [serverMessages, activeSessionId])
