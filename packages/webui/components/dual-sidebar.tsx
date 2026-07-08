@@ -10,6 +10,9 @@ interface DualSidebarItemProps {
   badge?: React.ReactNode
   children?: React.ReactNode
   onItemClick?: () => void
+  disabled?: boolean
+  tooltipMessage?: string
+  scrollable?: boolean
 }
 
 // A declarative component that holds props for a sidebar item. It doesn't render anything itself.
@@ -38,6 +41,10 @@ export const DualSidebar: React.FC<DualSidebarProps> = ({ children }) => {
 
   const handleItemClick = (index: number) => {
     const item = sidebarItems[index]
+
+    if (item.props.disabled) {
+      return
+    }
 
     if (!item.props.children) {
       setActiveItem(null)
@@ -108,24 +115,32 @@ export const DualSidebar: React.FC<DualSidebarProps> = ({ children }) => {
               {sidebarItems.map((item, index) => (
                 <Tooltip key={item.props.label}>
                   <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon-lg"
-                      onClick={() => handleItemClick(index)}
-                      aria-label={item.props.label}
-                      aria-expanded={activeItem === index}
-                      className={`relative w-12 h-12 [&_svg:not([class*='size-'])]:size-6 transition-all duration-200 ${
-                        activeItem === index
-                          ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-lg hover:bg-sidebar-primary hover:text-sidebar-primary-foreground'
-                          : 'text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent'
-                      }`}
-                    >
-                      {item.props.icon}
-                      {item.props.badge}
-                    </Button>
+                    <div className="inline-block">
+                      <Button
+                        variant="ghost"
+                        size="icon-lg"
+                        onClick={() => handleItemClick(index)}
+                        aria-label={item.props.label}
+                        aria-expanded={activeItem === index}
+                        className={`relative w-12 h-12 [&_svg:not([class*='size-'])]:size-6 transition-all duration-200 ${
+                          activeItem === index
+                            ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-lg hover:bg-sidebar-primary hover:text-sidebar-primary-foreground'
+                            : item.props.disabled
+                              ? 'opacity-40 cursor-not-allowed text-sidebar-foreground/40 hover:bg-transparent hover:text-sidebar-foreground/40'
+                              : 'text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent'
+                        }`}
+                      >
+                        {item.props.icon}
+                        {item.props.badge}
+                      </Button>
+                    </div>
                   </TooltipTrigger>
                   <TooltipContent side="right">
-                    <p>{item.props.label}</p>
+                    <p>
+                      {item.props.disabled && item.props.tooltipMessage
+                        ? item.props.tooltipMessage
+                        : item.props.label}
+                    </p>
                   </TooltipContent>
                 </Tooltip>
               ))}
@@ -150,7 +165,15 @@ export const DualSidebar: React.FC<DualSidebarProps> = ({ children }) => {
                 <header className="h-16 flex items-center px-4 font-bold text-lg border-b border-sidebar-border flex-shrink-0">
                   <h2>{activeItemContent.label}</h2>
                 </header>
-                <div className="flex-1 overflow-y-auto p-2">{activeItemContent.children}</div>
+                <div
+                  className={
+                    (activeItemContent.scrollable ?? true)
+                      ? 'flex-1 overflow-y-auto p-2'
+                      : 'flex-1 flex flex-col min-h-0 overflow-hidden'
+                  }
+                >
+                  {activeItemContent.children}
+                </div>
               </>
             )}
           </div>

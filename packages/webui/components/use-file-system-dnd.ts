@@ -9,6 +9,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/react'
 import type { DragState } from './dnd-types'
+import { useDndStore } from '@/ui/stores/dnd'
 
 interface UseFileSystemDndProps {
   teamId: string
@@ -173,6 +174,8 @@ export function useFileSystemDnd({
 
     const hasFolders = draggedItems.some((item) => item.type === 'folder')
 
+    useDndStore.getState().setActiveDragItems(draggedItems)
+
     setDragState({
       isActive: true,
       draggedIds,
@@ -312,6 +315,7 @@ export function useFileSystemDnd({
       }
     }
 
+    useDndStore.getState().setActiveDragItems([])
     setDragState(undefined)
   }
 

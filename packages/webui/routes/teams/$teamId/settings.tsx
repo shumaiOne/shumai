@@ -51,6 +51,31 @@ function TeamSettingsPage() {
   const { setMetadata, getMetadata } = useUserMetadataStore()
   const currentLocale = getMetadata<string>('locale') || getLocale()
 
+  const { data: agents = [] } = useQuery({
+    queryKey: ['agents', teamId],
+    queryFn: async () => {
+      const res = await client.api.teams[':teamId'].agents.$get({
+        param: { teamId },
+      })
+      if (!res.ok) throw new Error('failed to fetch agents')
+      return await res.json()
+    },
+    enabled: !!teamId,
+  })
+
+  const chatAgents = agents.filter((a) => a.type === 'chat' && a.enabled)
+  const chatAgentId = getMetadata<string>('chat_agent_id') || ''
+
+  const handleChatAgentChange = async (newAgentId: string) => {
+    try {
+      await setMetadata(teamId, 'chat_agent_id', newAgentId)
+      toast.success(m.chatbot_agent_updated())
+    } catch (e) {
+      console.error(e)
+      toast.error(m.failed_update_chatbot_agent())
+    }
+  }
+
   const handleLanguageChange = async (newLocale: string) => {
     if (newLocale === 'en' || newLocale === 'zh') {
       try {
@@ -530,6 +555,38 @@ function TeamSettingsPage() {
                             <SelectItem value="zh">{m.chinese()}</SelectItem>
                           </SelectContent>
                         </Select>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border border-slate-200 dark:border-slate-800 mt-6">
+                    <CardHeader>
+                      <CardTitle>{m.chatbot_settings()}</CardTitle>
+                      <CardDescription>{m.chatbot_settings_description()}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="max-w-xs space-y-2">
+                        <label className="text-sm font-medium text-muted-foreground">
+                          {m.chatbot_agent()}
+                        </label>
+                        {chatAgents.length === 0 ? (
+                          <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                            {m.no_chat_agents_found()}
+                          </p>
+                        ) : (
+                          <Select value={chatAgentId} onValueChange={handleChatAgentChange}>
+                            <SelectTrigger>
+                              <SelectValue placeholder={m.select_agent()} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {chatAgents.map((agent) => (
+                                <SelectItem key={agent.id} value={agent.id}>
+                                  {agent.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
                       </div>
                     </CardContent>
                   </Card>

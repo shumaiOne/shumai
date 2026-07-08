@@ -13,18 +13,17 @@ import { useMemberStore } from '@/ui/stores/members'
 import { useTopNavStore } from '@/ui/stores/top-nav'
 import { useUiStore } from '@/ui/stores/ui'
 import { useUserMetadataStore } from '@/ui/stores/user-metadata'
-import { Feedback, PointerActivationConstraints } from '@dnd-kit/dom'
-import { DragDropProvider, DragOverlay, KeyboardSensor, PointerSensor } from '@dnd-kit/react'
+import { DragOverlay } from '@dnd-kit/react'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '../lib/utils'
-import { SnapToPointer } from './dnd-modifiers'
 import { FileBrowser } from './file-browser/file-browser'
 import { FileViewerRightSidebar } from './file-viewer-right-sidebar'
 import { FolderTree } from './folder-tree'
 import { ResizeHandle } from './resize-handle'
 import { useFileSystemDnd } from './use-file-system-dnd'
+import { useDndStore } from '@/ui/stores/dnd'
 
 type FileSystemManagerProps = {
   teamId: string
@@ -48,7 +47,7 @@ export default function FileSystemManager({
 }: FileSystemManagerProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { canEdit } = usePermissions(projectId)
+  usePermissions(projectId)
   const { setFields } = useFieldStore()
   const $patchMetadata = client.api.files[':fileId'].metadata.$patch
   const { mutate: patchMetadata } = useMutation<
@@ -398,135 +397,115 @@ export default function FileSystemManager({
     )
   }
 
-  return (
-    <DragDropProvider
-      modifiers={[SnapToPointer.configure({ anchor: { x: 0, y: 0 } })]}
-      plugins={(defaults) =>
-        defaults.map((p) => {
-          if (p === Feedback) {
-            return Feedback.configure({ dropAnimation: null })
-          }
-          if (typeof p === 'object' && p !== null && 'plugin' in p && p.plugin === Feedback) {
-            return Feedback.configure({ dropAnimation: null })
-          }
-          return p
-        })
-      }
-      sensors={
-        isRecentlyDeleted || !canEdit
-          ? []
-          : [
-              PointerSensor.configure({
-                activationConstraints: [new PointerActivationConstraints.Distance({ value: 10 })],
-              }),
-              KeyboardSensor,
-            ]
-      }
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="flex flex-1 flex-col bg-background min-h-0">
-        <div ref={containerRef} className="flex flex-1 overflow-hidden relative">
-          {!isLeftSidebarCollapsed && (
-            <div
-              className="md:hidden fixed inset-0 bg-black/50 z-40"
-              onClick={() => setIsLeftSidebarCollapsed(true)}
-            />
-          )}
-          {!isRightSidebarCollapsed && (
-            <div
-              className="md:hidden fixed inset-0 bg-black/50 z-40"
-              onClick={() => setIsRightSidebarCollapsed(true)}
-            />
-          )}
+  useEffect(() => {
+    return useDndStore.getState().registerListener({
+      onDragStart: handleDragStart,
+      onDragEnd: handleDragEnd,
+    })
+  }, [handleDragStart, handleDragEnd])
 
-          {!isLeftSidebarCollapsed && (
-            <>
-              <div className="bg-background" style={{ width: leftSidebarWidth }}>
-                <FolderTree
+  return (
+    <div className="flex flex-1 flex-col bg-background min-h-0">
+      <div ref={containerRef} className="flex flex-1 overflow-hidden relative">
+        {!isLeftSidebarCollapsed && (
+          <div
+            className="md:hidden fixed inset-0 bg-black/50 z-40"
+            onClick={() => setIsLeftSidebarCollapsed(true)}
+          />
+        )}
+        {!isRightSidebarCollapsed && (
+          <div
+            className="md:hidden fixed inset-0 bg-black/50 z-40"
+            onClick={() => setIsRightSidebarCollapsed(true)}
+          />
+        )}
+
+        {!isLeftSidebarCollapsed && (
+          <>
+            <div className="bg-background" style={{ width: leftSidebarWidth }}>
+              <FolderTree
+                teamId={teamId}
+                projectId={projectId}
+                projectName={projectName}
+                rootFolderId={rootFolderId}
+                dragState={dragState}
+                ancestorFolders={folderInfo?.ancestorFolders ?? []}
+              />
+            </div>
+            <ResizeHandle
+              onResize={(delta) => {
+                setLeftSidebarWidth((prev) => Math.max(180, Math.min(400, prev + delta)))
+              }}
+              className="hidden md:block"
+            />
+          </>
+        )}
+
+        <FileBrowser
+          teamId={teamId}
+          projectId={projectId}
+          assetId={assetId}
+          folders={folders}
+          files={files}
+          totalFolders={totalFolders}
+          totalFiles={totalFiles}
+          totalFoldersSize={totalFoldersSize}
+          totalFilesSize={totalFilesSize}
+          selectedItem={selectedItem}
+          selectedIds={selectedIds}
+          onItemSelect={handleItemSelect}
+          onItemDoubleClick={handleItemDoubleClick}
+          onSaveField={handleSaveField}
+          displayStyle={displayStyle}
+          onClearSelection={handleClearSelection}
+          fetchNextFoldersPage={fetchNextFoldersPage}
+          hasNextFoldersPage={hasNextPageFolders || false}
+          isFetchingNextFoldersPage={isFetchingNextFoldersPage}
+          fetchNextFilesPage={fetchNextFilesPage}
+          hasNextFilesPage={hasNextPageFiles || false}
+          isFetchingNextFilesPage={isFetchingNextFilesPage}
+          isRecentlyDeleted={isRecentlyDeleted}
+          filterConditions={filterConditions}
+          onFilterChange={setFilterConditions}
+          sort={sort}
+          onSortChange={setSort}
+          dragState={dragState}
+          collection={collection}
+          onUpdateCollection={onUpdateCollection}
+          rootFolderId={rootFolderId}
+        />
+
+        {!isRightSidebarCollapsed && (
+          <>
+            <ResizeHandle
+              onResize={(delta) => {
+                setRightSidebarWidth((prev) => Math.max(240, Math.min(600, prev - delta)))
+              }}
+              className="hidden md:block"
+            />
+            <div
+              style={{ width: rightSidebarWidth }}
+              className="bg-background border-l border-border flex flex-col flex-shrink-0"
+            >
+              {singleSelectedFile ? (
+                <FileViewerRightSidebar
                   teamId={teamId}
                   projectId={projectId}
-                  projectName={projectName}
-                  rootFolderId={rootFolderId}
-                  dragState={dragState}
-                  ancestorFolders={folderInfo?.ancestorFolders ?? []}
+                  file={singleSelectedFile}
+                  onSaveField={(fieldId, value) =>
+                    handleSaveField(singleSelectedFile.id, fieldId, value)
+                  }
+                  members={members}
+                  hideAnnotationControl={true}
                 />
-              </div>
-              <ResizeHandle
-                onResize={(delta) => {
-                  setLeftSidebarWidth((prev) => Math.max(180, Math.min(400, prev + delta)))
-                }}
-                className="hidden md:block"
-              />
-            </>
-          )}
-
-          <FileBrowser
-            teamId={teamId}
-            projectId={projectId}
-            assetId={assetId}
-            folders={folders}
-            files={files}
-            totalFolders={totalFolders}
-            totalFiles={totalFiles}
-            totalFoldersSize={totalFoldersSize}
-            totalFilesSize={totalFilesSize}
-            selectedItem={selectedItem}
-            selectedIds={selectedIds}
-            onItemSelect={handleItemSelect}
-            onItemDoubleClick={handleItemDoubleClick}
-            onSaveField={handleSaveField}
-            displayStyle={displayStyle}
-            onClearSelection={handleClearSelection}
-            fetchNextFoldersPage={fetchNextFoldersPage}
-            hasNextFoldersPage={hasNextPageFolders || false}
-            isFetchingNextFoldersPage={isFetchingNextFoldersPage}
-            fetchNextFilesPage={fetchNextFilesPage}
-            hasNextFilesPage={hasNextPageFiles || false}
-            isFetchingNextFilesPage={isFetchingNextFilesPage}
-            isRecentlyDeleted={isRecentlyDeleted}
-            filterConditions={filterConditions}
-            onFilterChange={setFilterConditions}
-            sort={sort}
-            onSortChange={setSort}
-            dragState={dragState}
-            collection={collection}
-            onUpdateCollection={onUpdateCollection}
-            rootFolderId={rootFolderId}
-          />
-
-          {!isRightSidebarCollapsed && (
-            <>
-              <ResizeHandle
-                onResize={(delta) => {
-                  setRightSidebarWidth((prev) => Math.max(240, Math.min(600, prev - delta)))
-                }}
-                className="hidden md:block"
-              />
-              <div
-                style={{ width: rightSidebarWidth }}
-                className="bg-background border-l border-border flex flex-col flex-shrink-0"
-              >
-                {singleSelectedFile ? (
-                  <FileViewerRightSidebar
-                    teamId={teamId}
-                    projectId={projectId}
-                    file={singleSelectedFile}
-                    onSaveField={(fieldId, value) =>
-                      handleSaveField(singleSelectedFile.id, fieldId, value)
-                    }
-                    members={members}
-                    hideAnnotationControl={true}
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center p-4 text-center text-sm text-muted-foreground">
-                    {m.select_asset_to_view_details()}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
+              ) : (
+                <div className="flex h-full items-center justify-center p-4 text-center text-sm text-muted-foreground">
+                  {m.select_asset_to_view_details()}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
       <DragOverlay>
         {dragState?.isActive ? (
@@ -544,6 +523,6 @@ export default function FileSystemManager({
           </div>
         ) : null}
       </DragOverlay>
-    </DragDropProvider>
+    </div>
   )
 }

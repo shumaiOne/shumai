@@ -12,9 +12,8 @@ import { ShareSettingsSidebar } from './share-settings-sidebar'
 import { FolderTree } from './folder-tree'
 import { ResizeHandle } from './resize-handle'
 import { useFileSystemDnd } from './use-file-system-dnd'
-import { DragDropProvider, DragOverlay, KeyboardSensor, PointerSensor } from '@dnd-kit/react'
-import { PointerActivationConstraints } from '@dnd-kit/dom'
-import { SnapToPointer } from './dnd-modifiers'
+import { DragOverlay } from '@dnd-kit/react'
+import { useDndStore } from '@/ui/stores/dnd'
 import { useUiStore } from '@/ui/stores/ui'
 import { useUserMetadataStore } from '@/ui/stores/user-metadata'
 import { useTopNavStore } from '@/ui/stores/top-nav'
@@ -259,20 +258,17 @@ export default function ShareManager({
     }
   }
 
+  useEffect(() => {
+    return useDndStore.getState().registerListener({
+      onDragStart: handleDragStart,
+      onDragEnd: handleDragEnd,
+    })
+  }, [handleDragStart, handleDragEnd])
+
   if (!shareLink) return <div>{m.loading()}</div>
 
   return (
-    <DragDropProvider
-      modifiers={[SnapToPointer.configure({ anchor: { x: 0, y: 0 } })]}
-      sensors={[
-        PointerSensor.configure({
-          activationConstraints: [new PointerActivationConstraints.Distance({ value: 10 })],
-        }),
-        KeyboardSensor,
-      ]}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
+    <div className="w-full h-full flex flex-col">
       <div className="flex flex-1 flex-col bg-background min-h-0">
         <div className="flex flex-1 overflow-hidden relative">
           {!isLeftSidebarCollapsed && (
@@ -359,6 +355,6 @@ export default function ShareManager({
           </div>
         ) : null}
       </DragOverlay>
-    </DragDropProvider>
+    </div>
   )
 }

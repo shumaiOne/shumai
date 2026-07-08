@@ -19,6 +19,12 @@ import {
   useRouterState,
 } from '@tanstack/react-router'
 import { useEffect } from 'react'
+import { DragDropProvider, KeyboardSensor, PointerSensor } from '@dnd-kit/react'
+import { PointerActivationConstraints, Feedback } from '@dnd-kit/dom'
+import { SnapToPointer } from '@/ui/components/dnd-modifiers'
+import { useDndStore } from '@/ui/stores/dnd'
+import { AgentChatPanel } from '@/ui/components/chat/AgentChatPanel'
+import { Bot } from 'lucide-react'
 
 async function resolveTeamIdFromPath(pathname: string): Promise<string | null> {
   const teamIdMatch = pathname.match(/^\/teams\/([^/]+)/)
@@ -41,6 +47,10 @@ function RootComponent() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const navigate = useNavigate()
   const { teamId: storedTeamId, setTeamId } = useTeamContextStore()
+
+  const { triggerDragStart, triggerDragEnd } = useDndStore()
+  const { getMetadata } = useUserMetadataStore()
+  const chatAgentId = getMetadata<string>('chat_agent_id') || ''
 
   const showSidebar = user && (pathname.startsWith('/teams/') || pathname.startsWith('/projects/'))
 
@@ -79,43 +89,75 @@ function RootComponent() {
     ) : null
 
   return (
-    <div className="flex h-screen w-full bg-background overflow-hidden">
-      <Toaster />
-      <DualSidebar>
-        <DualSidebarItem
-          icon={<HomeIcon />}
-          label={m.dashboard()}
-          onItemClick={() => {
-            if (storedTeamId) {
-              navigate({
-                to: '/teams/$teamId',
-                params: { teamId: storedTeamId },
-              })
-            }
-          }}
-        />
-        <DualSidebarItem icon={<NotificationFillIcon />} label={m.notifications()} badge={badge}>
-          <NotificationList />
-        </DualSidebarItem>
-        <DualSidebarItem
-          icon={
-            <UploadCloudIcon
-              uploading={uploading > 0}
-              className={uploading > 0 ? 'text-blue-500' : ''}
-            />
+    <DragDropProvider
+      modifiers={[SnapToPointer.configure({ anchor: { x: 0, y: 0 } })]}
+      plugins={(defaults) =>
+        defaults.map((p) => {
+          if (p === Feedback) {
+            return Feedback.configure({ dropAnimation: null })
           }
-          label={m.uploads()}
-        >
-          <UploadTasks />
-        </DualSidebarItem>
-      </DualSidebar>
-      <div className="flex flex-col flex-1 md:pl-16 overflow-hidden relative">
-        <TopNav />
-        <main className="flex-1 overflow-hidden relative flex flex-col">
-          <Outlet />
-        </main>
+          if (typeof p === 'object' && p !== null && 'plugin' in p && p.plugin === Feedback) {
+            return Feedback.configure({ dropAnimation: null })
+          }
+          return p
+        })
+      }
+      sensors={[
+        PointerSensor.configure({
+          activationConstraints: [new PointerActivationConstraints.Distance({ value: 10 })],
+        }),
+        KeyboardSensor,
+      ]}
+      onDragStart={triggerDragStart}
+      onDragEnd={triggerDragEnd}
+    >
+      <div className="flex h-screen w-full bg-background overflow-hidden">
+        <Toaster />
+        <DualSidebar>
+          <DualSidebarItem
+            icon={<HomeIcon />}
+            label={m.dashboard()}
+            onItemClick={() => {
+              if (storedTeamId) {
+                navigate({
+                  to: '/teams/$teamId',
+                  params: { teamId: storedTeamId },
+                })
+              }
+            }}
+          />
+          <DualSidebarItem
+            icon={<Bot className="w-5 h-5" />}
+            label={m.agent()}
+            disabled={!chatAgentId}
+            tooltipMessage={!chatAgentId ? m.configure_chat_agent_tooltip() : undefined}
+            scrollable={false}
+          >
+            <AgentChatPanel />
+          </DualSidebarItem>
+          <DualSidebarItem icon={<NotificationFillIcon />} label={m.notifications()} badge={badge}>
+            <NotificationList />
+          </DualSidebarItem>
+          <DualSidebarItem
+            icon={
+              <UploadCloudIcon
+                uploading={uploading > 0}
+                className={uploading > 0 ? 'text-blue-500' : ''}
+              />
+            }
+            label={m.uploads()}
+          >
+            <UploadTasks />
+          </DualSidebarItem>
+        </DualSidebar>
+        <div className="flex flex-col flex-1 md:pl-16 overflow-hidden relative">
+          <TopNav />
+          <main className="flex-1 overflow-hidden relative flex flex-col">
+            <Outlet />
+          </main>
+        </div>
       </div>
-    </div>
+    </DragDropProvider>
   )
 }
 
