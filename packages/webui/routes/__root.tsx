@@ -18,7 +18,8 @@ import {
   useNavigate,
   useRouterState,
 } from '@tanstack/react-router'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { cn } from '@/ui/lib/utils'
 import { DragDropProvider, KeyboardSensor, PointerSensor } from '@dnd-kit/react'
 import { PointerActivationConstraints, Feedback } from '@dnd-kit/dom'
 import { SnapToPointer } from '@/ui/components/dnd-modifiers'
@@ -60,6 +61,7 @@ function RootComponent() {
   const { getMetadata } = useUserMetadataStore()
   const chatAgentId = getMetadata<string>('chat_agent_id') || ''
 
+  const [activeSidebarItem, setActiveSidebarItem] = useState<number | null>(null)
   const showSidebar = user && (pathname.startsWith('/teams/') || pathname.startsWith('/projects/'))
 
   useEffect(() => {
@@ -137,7 +139,7 @@ function RootComponent() {
     >
       <div className="flex h-screen w-full bg-background overflow-hidden">
         <Toaster />
-        <DualSidebar>
+        <DualSidebar activeItem={activeSidebarItem} onActiveItemChange={setActiveSidebarItem}>
           <DualSidebarItem
             icon={<HomeIcon />}
             label={m.dashboard()}
@@ -156,6 +158,7 @@ function RootComponent() {
             disabled={!chatAgentId}
             tooltipMessage={!chatAgentId ? m.configure_chat_agent_tooltip() : undefined}
             scrollable={false}
+            isFloating={false}
           >
             <AgentChatPanel />
           </DualSidebarItem>
@@ -174,7 +177,12 @@ function RootComponent() {
             <UploadTasks />
           </DualSidebarItem>
         </DualSidebar>
-        <div className="flex flex-col flex-1 md:pl-16 overflow-hidden relative">
+        <div
+          className={cn(
+            'flex flex-col flex-1 overflow-hidden relative transition-all duration-300 ease-in-out',
+            activeSidebarItem === 1 ? 'md:pl-[29rem]' : 'md:pl-16',
+          )}
+        >
           <TopNav />
           <main className="flex-1 overflow-hidden relative flex flex-col">
             <Outlet />

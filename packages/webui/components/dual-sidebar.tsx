@@ -13,6 +13,7 @@ interface DualSidebarItemProps {
   disabled?: boolean
   tooltipMessage?: string
   scrollable?: boolean
+  isFloating?: boolean
 }
 
 // A declarative component that holds props for a sidebar item. It doesn't render anything itself.
@@ -22,11 +23,35 @@ export const DualSidebarItem: React.FC<DualSidebarItemProps> = () => {
 
 interface DualSidebarProps {
   children: React.ReactNode
+  activeItem?: number | null
+  onActiveItemChange?: (index: number | null) => void
 }
 
-export const DualSidebar: React.FC<DualSidebarProps> = ({ children }) => {
-  const [activeItem, setActiveItem] = useState<number | null>(null)
+export const DualSidebar: React.FC<DualSidebarProps> = ({
+  children,
+  activeItem: controlledActiveItem,
+  onActiveItemChange,
+}) => {
+  const [localActiveItem, setLocalActiveItem] = useState<number | null>(null)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  const activeItem = controlledActiveItem !== undefined ? controlledActiveItem : localActiveItem
+
+  const setActiveItem = (value: number | null | ((prev: number | null) => number | null)) => {
+    if (onActiveItemChange) {
+      if (typeof value === 'function') {
+        onActiveItemChange(value(activeItem))
+      } else {
+        onActiveItemChange(value)
+      }
+    } else {
+      if (typeof value === 'function') {
+        setLocalActiveItem(value)
+      } else {
+        setLocalActiveItem(value)
+      }
+    }
+  }
 
   const sidebarItems = useMemo(
     () =>
@@ -38,6 +63,7 @@ export const DualSidebar: React.FC<DualSidebarProps> = ({ children }) => {
   )
 
   const activeItemContent = activeItem !== null ? sidebarItems[activeItem]?.props : null
+  const isFloating = activeItemContent?.isFloating ?? true
 
   const handleItemClick = (index: number) => {
     const item = sidebarItems[index]
@@ -96,7 +122,7 @@ export const DualSidebar: React.FC<DualSidebarProps> = ({ children }) => {
       )}
 
       {/* Desktop Overlay for Child Sidebar */}
-      {activeItem !== null && (
+      {activeItem !== null && isFloating && (
         <div
           onClick={() => setActiveItem(null)}
           className="hidden md:block fixed inset-0 bg-black/20 z-30"
