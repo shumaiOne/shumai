@@ -397,12 +397,15 @@ export default function FileSystemManager({
     )
   }
 
+  const handlersRef = useRef({ onDragStart: handleDragStart, onDragEnd: handleDragEnd })
+  handlersRef.current = { onDragStart: handleDragStart, onDragEnd: handleDragEnd }
+
   useEffect(() => {
     return useDndStore.getState().registerListener({
-      onDragStart: handleDragStart,
-      onDragEnd: handleDragEnd,
+      onDragStart: (e) => handlersRef.current.onDragStart(e),
+      onDragEnd: (e) => handlersRef.current.onDragEnd(e),
     })
-  }, [handleDragStart, handleDragEnd])
+  }, [])
 
   return (
     <div className="flex flex-1 flex-col bg-background min-h-0">

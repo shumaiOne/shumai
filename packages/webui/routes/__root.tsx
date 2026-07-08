@@ -57,7 +57,6 @@ function RootComponent() {
   const navigate = useNavigate()
   const { teamId: storedTeamId, setTeamId } = useTeamContextStore()
 
-  const { triggerDragStart, triggerDragEnd } = useDndStore()
   const { getMetadata } = useUserMetadataStore()
   const chatAgentId = getMetadata<string>('chat_agent_id') || ''
 
@@ -117,9 +116,9 @@ function RootComponent() {
         }),
         KeyboardSensor,
       ]}
-      onDragStart={triggerDragStart}
+      onDragStart={(e) => useDndStore.getState().triggerDragStart(e)}
       onDragEnd={(event) => {
-        triggerDragEnd(event)
+        useDndStore.getState().triggerDragEnd(event)
         const { target } = event.operation
         if (target && target.id === 'chat-panel-droppable') {
           const activeDragItems = useDndStore.getState().activeDragItems

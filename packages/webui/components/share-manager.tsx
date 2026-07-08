@@ -6,7 +6,7 @@ import type {
 } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
 import { useMutation, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { FileBrowser } from './file-browser/file-browser'
 import { ShareSettingsSidebar } from './share-settings-sidebar'
 import { FolderTree } from './folder-tree'
@@ -258,12 +258,15 @@ export default function ShareManager({
     }
   }
 
+  const handlersRef = useRef({ onDragStart: handleDragStart, onDragEnd: handleDragEnd })
+  handlersRef.current = { onDragStart: handleDragStart, onDragEnd: handleDragEnd }
+
   useEffect(() => {
     return useDndStore.getState().registerListener({
-      onDragStart: handleDragStart,
-      onDragEnd: handleDragEnd,
+      onDragStart: (e) => handlersRef.current.onDragStart(e),
+      onDragEnd: (e) => handlersRef.current.onDragEnd(e),
     })
-  }, [handleDragStart, handleDragEnd])
+  }, [])
 
   if (!shareLink) return <div>{m.loading()}</div>
 
