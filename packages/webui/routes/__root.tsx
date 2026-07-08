@@ -23,8 +23,10 @@ import { DragDropProvider, KeyboardSensor, PointerSensor } from '@dnd-kit/react'
 import { PointerActivationConstraints, Feedback } from '@dnd-kit/dom'
 import { SnapToPointer } from '@/ui/components/dnd-modifiers'
 import { useDndStore } from '@/ui/stores/dnd'
+import { useChatStore } from '@/ui/stores/chat'
 import { AgentChatPanel } from '@/ui/components/chat/AgentChatPanel'
 import { Bot } from 'lucide-react'
+import type { AssetInfo } from '@shumai/dtos'
 
 async function resolveTeamIdFromPath(pathname: string): Promise<string | null> {
   const teamIdMatch = pathname.match(/^\/teams\/([^/]+)/)
@@ -39,6 +41,13 @@ async function resolveTeamIdFromPath(pathname: string): Promise<string | null> {
   }
 
   return null
+}
+
+function getAssetPath(item: AssetInfo): string {
+  if (item.ancestorFolders && item.ancestorFolders.length > 0) {
+    return [...item.ancestorFolders.map((a) => a.name), item.name].join('/')
+  }
+  return item.name || ''
 }
 
 function RootComponent() {
@@ -109,7 +118,23 @@ function RootComponent() {
         KeyboardSensor,
       ]}
       onDragStart={triggerDragStart}
-      onDragEnd={triggerDragEnd}
+      onDragEnd={(event) => {
+        triggerDragEnd(event)
+        const { target } = event.operation
+        if (target && target.id === 'chat-panel-droppable') {
+          const activeDragItems = useDndStore.getState().activeDragItems
+          if (activeDragItems.length > 0) {
+            const newItems = activeDragItems.map((item) => ({
+              id: item.id!,
+              name: item.name!,
+              type: (item.type === 'folder' ? 'folder' : 'file') as 'folder' | 'file',
+              path: getAssetPath(item),
+            }))
+            useChatStore.getState().addContextItems(newItems)
+          }
+        }
+        useDndStore.getState().setActiveDragItems([])
+      }}
     >
       <div className="flex h-screen w-full bg-background overflow-hidden">
         <Toaster />

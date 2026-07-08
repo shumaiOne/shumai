@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { client } from '@/ui/api/client'
-import { useChatStore, type ChatContextItem } from '@/ui/stores/chat'
+import { useChatStore } from '@/ui/stores/chat'
 import { useDndStore } from '@/ui/stores/dnd'
 import { useTeamContextStore } from '@/ui/stores/team-context'
 import { useUserMetadataStore } from '@/ui/stores/user-metadata'
@@ -23,14 +23,7 @@ import { formatTimeAgo } from '@/ui/lib/time'
 import { useDroppable } from '@dnd-kit/react'
 import ReactMarkdown from 'react-markdown'
 import { toast } from 'sonner'
-import type { ChatMessage, ChatSessionInfo, AssetInfo } from '@shumai/dtos'
-
-function getAssetPath(item: AssetInfo): string {
-  if (item.ancestorFolders && item.ancestorFolders.length > 0) {
-    return [...item.ancestorFolders.map((a) => a.name), item.name].join('/')
-  }
-  return item.name || ''
-}
+import type { ChatMessage, ChatSessionInfo } from '@shumai/dtos'
 
 function getMessageTextContent(msg: ChatMessage): string {
   const content = (msg as unknown as Record<string, unknown>).content
@@ -67,16 +60,10 @@ export const AgentChatPanel = () => {
   const { getMetadata } = useUserMetadataStore()
   const chatAgentId = getMetadata<string>('chat_agent_id') || ''
 
-  const {
-    contextItems,
-    activeSessionId,
-    addContextItems,
-    removeContextItem,
-    clearContext,
-    setActiveSessionId,
-  } = useChatStore()
+  const { contextItems, activeSessionId, removeContextItem, clearContext, setActiveSessionId } =
+    useChatStore()
 
-  const { registerListener, activeDragItems, setActiveDragItems } = useDndStore()
+  const { activeDragItems } = useDndStore()
   const queryClient = useQueryClient()
 
   // Navigation states
@@ -127,27 +114,6 @@ export const AgentChatPanel = () => {
   const { ref: setDroppableRef, isDropTarget } = useDroppable({
     id: 'chat-panel-droppable',
   })
-
-  // Register DnD listener for dropping items on the chat panel
-  useEffect(() => {
-    return registerListener({
-      onDragEnd: (event) => {
-        const { target } = event.operation
-        if (target && target.id === 'chat-panel-droppable') {
-          if (activeDragItems.length > 0) {
-            const newItems: ChatContextItem[] = activeDragItems.map((item) => ({
-              id: item.id!,
-              name: item.name!,
-              type: item.type === 'folder' ? 'folder' : 'file',
-              path: getAssetPath(item),
-            }))
-            addContextItems(newItems)
-          }
-        }
-        setActiveDragItems([])
-      },
-    })
-  }, [registerListener, activeDragItems, addContextItems, setActiveDragItems])
 
   // Infinite query for history sessions
   const {
