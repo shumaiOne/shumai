@@ -8,6 +8,7 @@
   "dependencies": {
     "@shumai/db": "workspace:*",
     "@shumai/dtos": "workspace:*",
+    "@earendil-works/pi-agent-core": "0.78.0",
     "@sinclair/typebox": "0.34.49",
     "adm-zip": "0.5.17",
     "better-auth": "1.6.11",

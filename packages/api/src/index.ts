@@ -1,6 +1,7 @@
 import type { Prisma } from '@shumai/db'
 import { Hono } from 'hono'
 import agentRoute from './agent'
+import chatRoute from './chat'
 import attachmentRoute from './attachment'
 import authnRoute from './authn'
 import collectionRoute from './collection'
@@ -54,6 +55,7 @@ const apiRoute = new Hono<{ Variables: { user: User } }>()
   .route('/', fileRoute)
   .route('/', folderRoute)
   .route('/', agentRoute)
+  .route('/', chatRoute)
   .route('/', attachmentRoute)
   .route('/', uploadRoute)
   .route('/', shareRoute)

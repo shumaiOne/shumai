@@ -185,6 +185,7 @@ describe('Agent Chat Workflow', () => {
 
     expect(mockActivities.initializeAgentSessionActivity).not.toHaveBeenCalled()
     const expectedInstruction2 = new AgentChatPromptBuilder('a1')
+      .withContinuation(true)
       .withPathContext('Path: folder/subfolder/file.png')
       .withAssetDetails('test-file.png', 'image/png', undefined)
       .withCommentTimestamp(null)
@@ -395,6 +396,75 @@ describe('Agent Chat Workflow', () => {
     expect(mockActivities.updateCommentActivity).toHaveBeenCalledWith({
       commentId: 'comment-placeholder-id',
       message: 'Sorry, I encountered an error while processing your request.',
+    })
+  })
+
+  it('should execute direct-context chatbot flow resolving file metadata and skipping comment placeholder', async () => {
+    mockActivities.getAssetActivity.mockImplementation(async (id: string) => {
+      if (id === 'file-attachment-1') {
+        return { id: 'file-attachment-1', name: 'attachment.png', type: 'file', mediaType: 'image/png', projectId: 'p1' }
+      }
+      if (id === 'referenced-asset-1') {
+        return { id: 'referenced-asset-1', name: 'ref-folder', type: 'folder', mediaType: null, projectId: 'p1' }
+      }
+      return { id, name: 'test-file.png', type: 'file', mediaType: 'image/png', projectId: 'p1', project: { teamId: 't1' } }
+    })
+
+    mockActivities.getAssetPathContextActivity.mockImplementation(async (id: string) => {
+      if (id === 'file-attachment-1') return 'attachment.png'
+      if (id === 'referenced-asset-1') return 'ref-folder'
+      return 'folder/subfolder/file.png'
+    })
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'chat',
+        status: 'pending',
+        assetId: 'a1',
+        payload: {
+          projectId: 'p1',
+          agent: {
+            agentId: 'b1',
+            sessionId: 'session-direct-123',
+            prompt: 'chatbot prompt',
+            attachedFiles: ['file-attachment-1'],
+            assetIds: ['referenced-asset-1'],
+            explicitMention: true,
+          },
+        },
+      },
+    })
+
+    await agentChat(task)
+
+    // Verify placeholder comment is NOT created
+    expect(mockActivities.createCommentActivity).not.toHaveBeenCalled()
+    expect(mockActivities.updateCommentActivity).not.toHaveBeenCalled()
+
+    // Verify prompt builder is populated and workflow runs agentChatActivity with context instruction
+    const expectedInstruction = new AgentChatPromptBuilder('a1')
+      .withContinuation(true)
+      .withPathContext('folder/subfolder/file.png')
+      .withAssetDetails('test-file.png', 'image/png', undefined)
+      .withCommentTimestamp(undefined)
+      .withExplicitMention(true)
+      .withAttachedFiles(['- Name: attachment.png (ID: file-attachment-1, Type: file, Media Type: image/png, Project ID: p1, Path: attachment.png)'])
+      .withReferencedAssets(['- Name: ref-folder (ID: referenced-asset-1, Type: folder, Media Type: unknown, Project ID: p1, Path: ref-folder)'])
+      .build()
+
+    expect(mockActivities.agentChatActivity).toHaveBeenCalledWith({
+      teamId: 't1',
+      agentId: 'b1',
+      message: 'chatbot prompt',
+      imageUrls: [],
+      projectId: 'p1',
+      folderId: '',
+      agentsInstruction: expectedInstruction,
+      sessionId: 'session-direct-123',
+      userId: undefined,
+      userCommentId: undefined,
+      explicitMention: true,
+      context: { agent: { id: 'b1' } },
     })
   })
 })
