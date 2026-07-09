@@ -402,12 +402,31 @@ describe('Agent Chat Workflow', () => {
   it('should execute direct-context chatbot flow resolving file metadata and skipping comment placeholder', async () => {
     mockActivities.getAssetActivity.mockImplementation(async (id: string) => {
       if (id === 'file-attachment-1') {
-        return { id: 'file-attachment-1', name: 'attachment.png', type: 'file', mediaType: 'image/png', projectId: 'p1' }
+        return {
+          id: 'file-attachment-1',
+          name: 'attachment.png',
+          type: 'file',
+          mediaType: 'image/png',
+          projectId: 'p1',
+        }
       }
       if (id === 'referenced-asset-1') {
-        return { id: 'referenced-asset-1', name: 'ref-folder', type: 'folder', mediaType: null, projectId: 'p1' }
+        return {
+          id: 'referenced-asset-1',
+          name: 'ref-folder',
+          type: 'folder',
+          mediaType: null,
+          projectId: 'p1',
+        }
       }
-      return { id, name: 'test-file.png', type: 'file', mediaType: 'image/png', projectId: 'p1', project: { teamId: 't1' } }
+      return {
+        id,
+        name: 'test-file.png',
+        type: 'file',
+        mediaType: 'image/png',
+        projectId: 'p1',
+        project: { teamId: 't1' },
+      }
     })
 
     mockActivities.getAssetPathContextActivity.mockImplementation(async (id: string) => {
@@ -448,8 +467,12 @@ describe('Agent Chat Workflow', () => {
       .withAssetDetails('test-file.png', 'image/png', undefined)
       .withCommentTimestamp(undefined)
       .withExplicitMention(true)
-      .withAttachedFiles(['- Name: attachment.png (ID: file-attachment-1, Type: file, Media Type: image/png, Project ID: p1, Path: attachment.png)'])
-      .withReferencedAssets(['- Name: ref-folder (ID: referenced-asset-1, Type: folder, Media Type: unknown, Project ID: p1, Path: ref-folder)'])
+      .withAttachedFiles([
+        '- Name: attachment.png (ID: file-attachment-1, Type: file, Media Type: image/png, Project ID: p1, Path: attachment.png)',
+      ])
+      .withReferencedAssets([
+        '- Name: ref-folder (ID: referenced-asset-1, Type: folder, Media Type: unknown, Project ID: p1, Path: ref-folder)',
+      ])
       .build()
 
     expect(mockActivities.agentChatActivity).toHaveBeenCalledWith({
