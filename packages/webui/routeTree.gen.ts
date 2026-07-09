@@ -56,12 +56,12 @@ const ShareShareIdIndexRoute = ShareShareIdIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => ShareShareIdRoute,
-} as any)
+} as any).lazy(() => import('./routes/share/$shareId/index.lazy').then((d) => d.Route))
 const ProjectsProjectIdIndexRoute = ProjectsProjectIdIndexRouteImport.update({
   id: '/projects/$projectId/',
   path: '/projects/$projectId/',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any).lazy(() => import('./routes/projects/$projectId/index.lazy').then((d) => d.Route))
 const TeamsTeamIdSettingsRoute = TeamsTeamIdSettingsRouteImport.update({
   id: '/teams/$teamId/settings',
   path: '/teams/$teamId/settings',
@@ -71,7 +71,9 @@ const ProjectsProjectIdRecentlyDeletedRoute = ProjectsProjectIdRecentlyDeletedRo
   id: '/projects/$projectId/recently-deleted',
   path: '/projects/$projectId/recently-deleted',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any).lazy(() =>
+  import('./routes/projects/$projectId/recently-deleted.lazy').then((d) => d.Route),
+)
 const ProjectsProjectIdSharesIndexRoute = ProjectsProjectIdSharesIndexRouteImport.update({
   id: '/projects/$projectId/shares/',
   path: '/projects/$projectId/shares/',
@@ -86,12 +88,12 @@ const ShareShareIdFoldersFolderIdRoute = ShareShareIdFoldersFolderIdRouteImport.
   id: '/folders/$folderId',
   path: '/folders/$folderId',
   getParentRoute: () => ShareShareIdRoute,
-} as any)
+} as any).lazy(() => import('./routes/share/$shareId/folders/$folderId.lazy').then((d) => d.Route))
 const ShareShareIdFilesFileIdRoute = ShareShareIdFilesFileIdRouteImport.update({
   id: '/files/$fileId',
   path: '/files/$fileId',
   getParentRoute: () => ShareShareIdRoute,
-} as any)
+} as any).lazy(() => import('./routes/share/$shareId/files/$fileId.lazy').then((d) => d.Route))
 const ProjectsProjectIdSharesShareIdRoute = ProjectsProjectIdSharesShareIdRouteImport.update({
   id: '/projects/$projectId/shares/$shareId',
   path: '/projects/$projectId/shares/$shareId',
@@ -101,18 +103,22 @@ const ProjectsProjectIdFoldersFolderIdRoute = ProjectsProjectIdFoldersFolderIdRo
   id: '/projects/$projectId/folders/$folderId',
   path: '/projects/$projectId/folders/$folderId',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any).lazy(() =>
+  import('./routes/projects/$projectId/folders/$folderId.lazy').then((d) => d.Route),
+)
 const ProjectsProjectIdFilesFileIdRoute = ProjectsProjectIdFilesFileIdRouteImport.update({
   id: '/projects/$projectId/files/$fileId',
   path: '/projects/$projectId/files/$fileId',
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any).lazy(() => import('./routes/projects/$projectId/files/$fileId.lazy').then((d) => d.Route))
 const ProjectsProjectIdCollectionsCollectionIdRoute =
   ProjectsProjectIdCollectionsCollectionIdRouteImport.update({
     id: '/projects/$projectId/collections/$collectionId',
     path: '/projects/$projectId/collections/$collectionId',
     getParentRoute: () => rootRouteImport,
-  } as any)
+  } as any).lazy(() =>
+    import('./routes/projects/$projectId/collections/$collectionId.lazy').then((d) => d.Route),
+  )
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
