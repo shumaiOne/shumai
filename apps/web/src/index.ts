@@ -89,7 +89,17 @@ async function run() {
       const mainHtmlHeaders = bundle.files.find((f) => f.path === bundle.index)?.headers || {
         'content-type': 'text/html;charset=utf-8',
       }
-      const serveMainHtml = () => new Response(mainHtmlFile, { headers: mainHtmlHeaders })
+      let mainHtmlText = ''
+      const serveMainHtml = async () => {
+        if (!mainHtmlText) {
+          const raw = await mainHtmlFile.text()
+          mainHtmlText = raw
+            .replaceAll('href="./', 'href="/')
+            .replaceAll('src="./', 'src="/')
+            .replaceAll('content="./', 'content="/')
+        }
+        return new Response(mainHtmlText, { headers: mainHtmlHeaders })
+      }
 
       routes['/'] = serveMainHtml
       routes['/*'] = serveMainHtml
