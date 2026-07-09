@@ -19,7 +19,8 @@ await Bun.build({
   root: '.',
   target: 'bun',
   outdir: outdir,
-  minify: false,
+  minify: true,
+  splitting: true,
   naming: '[name].[ext]',
   plugins: [
     temporalWorkflow({
@@ -44,5 +45,4 @@ await Bun.build({
   define: {
     'process.env.NODE_ENV': JSON.stringify('production'),
   },
-  publicPath: '/',
 })

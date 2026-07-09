@@ -197,9 +197,14 @@ The frontend is built with:
 
 - **Prefer System Colors**: Always prefer using semantic system color design tokens (e.g., `bg-background`, `text-foreground`, `text-sidebar-primary`, `text-muted-foreground`, etc.) over hardcoded color utilities (e.g., `bg-blue-50`, `text-emerald-600`, `bg-emerald-500`). This ensures seamless compatibility with light and dark themes.
 
+### Route Code-Splitting
+
+To optimize initial bundle size, all routes must be code-split into `[route].tsx` (lightweight route definition and loaders) and `[route].lazy.tsx` (UI component and heavy imports).
+
 ### Development
 
 - **Run Dev**: `bun run dev` (Runs on port 3000)
+
 
 ## Testing
 

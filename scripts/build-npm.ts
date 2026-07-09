@@ -237,13 +237,13 @@ async function buildMainPackage({
     target: 'bun',
     outdir: binOutDir,
     minify: true,
+    splitting: true,
     naming: `${appName}-app.[ext]`,
     plugins,
     external,
     define: {
       'process.env.NODE_ENV': JSON.stringify('production'),
     },
-    publicPath: '/',
   })
 
   if (!buildResult.success) {
