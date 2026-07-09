@@ -132,7 +132,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
         if (file) {
           const path = await executeActivity(agentWorkerQueue, getAssetPathContextActivity, fileId)
           attachedFileDetailsList.push(
-            `- Name: ${file.name} (ID: ${file.id}, Type: ${file.type}, Media Type: ${file.mediaType || 'unknown'}, Project ID: ${file.projectId || 'unknown'}, Path: ${path})`
+            `- Name: ${file.name} (ID: ${file.id}, Type: ${file.type}, Media Type: ${file.mediaType || 'unknown'}, Project ID: ${file.projectId || 'unknown'}, Path: ${path})`,
           )
         }
       }
@@ -146,7 +146,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
         if (referencedAsset) {
           const path = await executeActivity(agentWorkerQueue, getAssetPathContextActivity, assetId)
           referencedAssetDetailsList.push(
-            `- Name: ${referencedAsset.name} (ID: ${referencedAsset.id}, Type: ${referencedAsset.type}, Media Type: ${referencedAsset.mediaType || 'unknown'}, Project ID: ${referencedAsset.projectId || 'unknown'}, Path: ${path})`
+            `- Name: ${referencedAsset.name} (ID: ${referencedAsset.id}, Type: ${referencedAsset.type}, Media Type: ${referencedAsset.mediaType || 'unknown'}, Project ID: ${referencedAsset.projectId || 'unknown'}, Path: ${path})`,
           )
         }
       }
