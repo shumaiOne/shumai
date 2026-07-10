@@ -135,7 +135,7 @@ async function run() {
   process.on('SIGTERM', shutdown)
 }
 
-if (process.env.S3_BUCKET && process.env.S3_BUCKET.startsWith('shumai-e2e')) {
+if (process.env.SHUMAI_E2E === 'true') {
   run().catch((err) => {
     console.error(err)
     process.exit(1)
