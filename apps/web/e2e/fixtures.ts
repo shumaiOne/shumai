@@ -24,7 +24,8 @@ if (fs.existsSync(envPath)) {
 
 export const test = base.extend<{ prisma: PrismaClient }>({
   prisma: [
-    async (_, use) => {
+    // eslint-disable-next-line no-empty-pattern
+    async ({}, use) => {
       const connectionString = process.env.DATABASE_URL
       const pool = new Pool({ connectionString })
       const adapter = new PrismaPg(pool)
