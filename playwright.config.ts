@@ -12,7 +12,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: 1,
+  workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   timeout: 60_000,
   expect: { timeout: 10_000 },
@@ -68,6 +68,7 @@ export default defineConfig({
     {
       name: 'app-firefox',
       testDir: './apps/web/e2e',
+      dependencies: ['app-chromium'],
       fullyParallel: false,
       use: {
         ...devices['Desktop Firefox'],
@@ -78,6 +79,7 @@ export default defineConfig({
     {
       name: 'app-webkit',
       testDir: './apps/web/e2e',
+      dependencies: ['app-firefox'],
       fullyParallel: false,
       use: {
         ...devices['Desktop Safari'],
