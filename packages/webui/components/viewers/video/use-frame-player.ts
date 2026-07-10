@@ -186,8 +186,13 @@ export function useFramePlayer(
       }
     }
 
+    const handleEnded = () => {
+      setCurrentFrame(totalFrames - 1)
+    }
+
     video.addEventListener('play', handlePlay)
     video.addEventListener('pause', handlePause)
+    video.addEventListener('ended', handleEnded)
 
     // If it's already playing when this effect runs
     if (!video.paused) {
@@ -199,6 +204,7 @@ export function useFramePlayer(
       active = false
       video.removeEventListener('play', handlePlay)
       video.removeEventListener('pause', handlePause)
+      video.removeEventListener('ended', handleEnded)
       if (rVfcId !== null) {
         const videoWithCallback = video as unknown as HtmlVideoElementWithCallback
         if (videoWithCallback.cancelVideoFrameCallback) {

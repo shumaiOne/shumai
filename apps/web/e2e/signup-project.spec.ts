@@ -8,7 +8,8 @@ const tempImgPath = path.resolve(currentDir, 'temp-cover.png')
 
 test.beforeAll(async () => {
   // Create a 1x1 transparent PNG file
-  const pngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
+  const pngBase64 =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
   fs.writeFileSync(tempImgPath, Buffer.from(pngBase64, 'base64'))
 })
 
