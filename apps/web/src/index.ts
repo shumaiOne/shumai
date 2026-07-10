@@ -96,7 +96,6 @@ async function run() {
         .replaceAll('content="./', 'content="/')
       const serveMainHtml = () => new Response(mainHtmlText, { headers: mainHtmlHeaders })
 
-
       routes['/'] = serveMainHtml
       routes['/*'] = serveMainHtml
     } else {
@@ -136,7 +135,14 @@ async function run() {
   process.on('SIGTERM', shutdown)
 }
 
-handleDaemonCommands('shumai', run).catch((err) => {
-  console.error(err)
-  process.exit(1)
-})
+if (process.env.S3_BUCKET && process.env.S3_BUCKET.startsWith('shumai-e2e')) {
+  run().catch((err) => {
+    console.error(err)
+    process.exit(1)
+  })
+} else {
+  handleDaemonCommands('shumai', run).catch((err) => {
+    console.error(err)
+    process.exit(1)
+  })
+}

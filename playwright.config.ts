@@ -1,19 +1,13 @@
 import { defineConfig, devices } from '@playwright/test'
 
 /**
- * Playwright configuration for the webui UI integration tests.
+ * Playwright configuration for the monorepo integration and E2E tests.
  *
- * The suite runs against a backend-free harness (packages/webui/e2e) served by
- * Bun's native HTML bundler, so no database, auth or transcode pipeline is
- * required.
- *
- * Browser selection: pass `--project=<name>` to pick an engine, e.g.
- *   bun run test:e2e --project=webkit    # WebKit (Safari engine), used on macOS CI
- *   bun run test:e2e --project=chromium
- *   bun run test:e2e --project=firefox
+ * We support two test projects:
+ * 1. harness: pure frontend UI integration tests served on port 5199.
+ * 2. app: fullstack end-to-end tests with real backend, pgvector container, and S3 local storage on port 5200.
  */
 export default defineConfig({
-  testDir: './packages/webui/e2e/tests',
   testMatch: '**/*.spec.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
@@ -23,35 +17,48 @@ export default defineConfig({
   timeout: 60_000,
   expect: { timeout: 10_000 },
 
+  globalTeardown: './apps/web/e2e/global-teardown.ts',
+
   use: {
-    // `baseURL` is Playwright's required option key and cannot be renamed.
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    baseURL: 'http://localhost:5199',
     trace: 'on-first-retry',
     video: 'retain-on-failure',
   },
 
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: 'harness',
+      testDir: './packages/webui/e2e/tests',
+      use: {
+        ...devices['Desktop Chrome'],
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        baseURL: 'http://localhost:5199',
+      },
     },
     {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
+      name: 'app',
+      testDir: './apps/web/e2e',
+      fullyParallel: false, // run sequentially to avoid DB and storage conflicts
+      use: {
+        ...devices['Desktop Chrome'],
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        baseURL: 'http://localhost:5200',
+      },
     },
   ],
 
-  // Launch the isolated harness dev server (Bun's native HTML bundler) before
-  // the tests.
-  webServer: {
-    command: 'bun run packages/webui/e2e/harness/serve.ts',
-    url: 'http://localhost:5199',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  // Launch both the isolated harness server and the fullstack web app server
+  webServer: [
+    {
+      command: 'bun run packages/webui/e2e/harness/serve.ts',
+      url: 'http://localhost:5199',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      command: 'bun run apps/web/e2e/serve.ts',
+      url: 'http://localhost:5200',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+  ],
 })
