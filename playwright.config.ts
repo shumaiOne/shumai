@@ -97,11 +97,11 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },
-    {
+    ...(process.env.E2E_SKIP_APP_SERVER === 'true' ? [] : [{
       command: 'bun run apps/web/e2e/serve.ts',
       url: 'http://localhost:5200',
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
-    },
+    }]),
   ],
 })
