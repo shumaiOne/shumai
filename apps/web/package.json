@@ -13,5 +13,10 @@
     "@shumai/transcode": "workspace:*",
     "@shumai/webui": "workspace:*",
     "hono": "4.12.23"
+  },
+  "devDependencies": {
+    "@prisma/adapter-pg": "7.8.0",
+    "pg": "8.21.0",
+    "@types/pg": "8.20.0"
   }
 }
