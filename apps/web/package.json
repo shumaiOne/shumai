@@ -13,5 +13,8 @@
     "@shumai/transcode": "workspace:*",
     "@shumai/webui": "workspace:*",
     "hono": "4.12.23"
+  },
+  "devDependencies": {
+    "@types/pg": "8.20.0"
   }
 }
