@@ -199,6 +199,7 @@ winget install Gyan.FFmpeg
 **Chocolatey**
 ```powershell
 choco install ffmpeg
+```
 
 #### Step 4: Install Shumai globally
 
