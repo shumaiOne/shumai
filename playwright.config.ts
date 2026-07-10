@@ -25,8 +25,9 @@ export default defineConfig({
   },
 
   projects: [
+    /* Harness Integration Projects */
     {
-      name: 'harness',
+      name: 'harness-chromium',
       testDir: './packages/webui/e2e/tests',
       use: {
         ...devices['Desktop Chrome'],
@@ -35,11 +36,51 @@ export default defineConfig({
       },
     },
     {
-      name: 'app',
+      name: 'harness-firefox',
+      testDir: './packages/webui/e2e/tests',
+      use: {
+        ...devices['Desktop Firefox'],
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        baseURL: 'http://localhost:5199',
+      },
+    },
+    {
+      name: 'harness-webkit',
+      testDir: './packages/webui/e2e/tests',
+      use: {
+        ...devices['Desktop Safari'],
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        baseURL: 'http://localhost:5199',
+      },
+    },
+
+    /* Fullstack App E2E Projects */
+    {
+      name: 'app-chromium',
       testDir: './apps/web/e2e',
       fullyParallel: false, // run sequentially to avoid DB and storage conflicts
       use: {
         ...devices['Desktop Chrome'],
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        baseURL: 'http://localhost:5200',
+      },
+    },
+    {
+      name: 'app-firefox',
+      testDir: './apps/web/e2e',
+      fullyParallel: false,
+      use: {
+        ...devices['Desktop Firefox'],
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        baseURL: 'http://localhost:5200',
+      },
+    },
+    {
+      name: 'app-webkit',
+      testDir: './apps/web/e2e',
+      fullyParallel: false,
+      use: {
+        ...devices['Desktop Safari'],
         // eslint-disable-next-line @typescript-eslint/naming-convention
         baseURL: 'http://localhost:5200',
       },
