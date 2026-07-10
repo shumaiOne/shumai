@@ -87,7 +87,7 @@ jobs:
         run: bunx playwright install --with-deps ${{ matrix.project }}
 
       - name: Run video player e2e tests
-        run: bun run test:e2e --project=${{ matrix.project }}
+        run: bun run test:e2e --project=harness-${{ matrix.project }} --project=app-${{ matrix.project }} --no-deps
 
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
