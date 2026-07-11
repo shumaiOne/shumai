@@ -28,6 +28,7 @@ export function buildSessionMessages(pathEntries: PathEntry[]): ChatMessage[] {
         timestamp: entry.message.timestamp || timestampMs,
       } as unknown as ChatMessage)
     } else if (entry.type === 'custom_message') {
+      if (entry.customType === 'context') return
       messages.push({
         id: entry.id,
         role: 'custom',
@@ -89,8 +90,11 @@ export function buildSessionMessages(pathEntries: PathEntry[]): ChatMessage[] {
 
 export function mapEntryToMessage(
   entryRecord: Prisma.AgentSessionEntryGetPayload<Record<string, never>>,
-): ChatMessage {
+): ChatMessage | null {
   const entryObj = entryRecord.entry as unknown as SessionTreeEntry
+  if (entryObj.type === 'custom_message' && (entryObj as { customType?: string }).customType === 'context') {
+    return null
+  }
   const pathEntries = [{ ...entryObj, id: entryRecord.id }]
   const messages = buildSessionMessages(pathEntries)
   if (messages.length > 0) {

@@ -67,6 +67,7 @@ const route = new Hono<{ Variables: { user: User } }>()
         if (newEntries.length > 0) {
           for (const record of newEntries) {
             const message = mapEntryToMessage(record)
+            if (!message) continue
             await stream.writeSSE({
               data: JSON.stringify({
                 type: 'entry',
@@ -94,6 +95,7 @@ const route = new Hono<{ Variables: { user: User } }>()
           })
           for (const record of finalEntries) {
             const message = mapEntryToMessage(record)
+            if (!message) continue
             await stream.writeSSE({
               data: JSON.stringify({
                 type: 'entry',

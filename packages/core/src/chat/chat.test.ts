@@ -1,6 +1,6 @@
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
-import { chatService, buildSessionMessages, type PathEntry } from './chat'
+import { chatService, buildSessionMessages, mapEntryToMessage, type PathEntry } from './chat'
 import { describe, expect, it } from 'vitest'
 
 describe('ChatService', () => {
@@ -253,6 +253,80 @@ describe('ChatService', () => {
     const msg = messages[0] as any
     expect(msg.role).toBe('user')
     expect(msg.content).toEqual([{ type: 'text', text: 'hello' }])
+  })
+
+  it('should hide customType context messages', async () => {
+    const { user, project } = await setupBasicData()
+
+    const { sessionId } = await chatService.startOrContinueChat(user, {
+      textPrompt: 'hello',
+      projectId: project.id,
+    })
+
+    // 1. Manually insert a test entry representing user message
+    await prisma.agentSessionEntry.create({
+      data: {
+        id: 'test-entry-1-user',
+        sessionId,
+        entry: {
+          type: 'message',
+          id: 'test-entry-1-user',
+          parentId: null,
+          timestamp: new Date().toISOString(),
+          message: {
+            role: 'user',
+            content: [{ type: 'text', text: 'hello' }],
+            timestamp: Date.now(),
+          },
+        } as unknown as PrismaJson.PiSessionEntry,
+      },
+    })
+
+    // 2. Manually insert a test entry representing a custom context message
+    await prisma.agentSessionEntry.create({
+      data: {
+        id: 'test-entry-2-context',
+        sessionId,
+        entry: {
+          type: 'custom_message',
+          id: 'test-entry-2-context',
+          parentId: 'test-entry-1-user',
+          timestamp: new Date().toISOString(),
+          customType: 'context',
+          content: 'some context',
+          display: 'chat',
+        } as unknown as PrismaJson.PiSessionEntry,
+      },
+    })
+
+    // 3. Manually insert a test entry representing a custom thinking level change
+    await prisma.agentSessionEntry.create({
+      data: {
+        id: 'test-entry-3-thinking',
+        sessionId,
+        entry: {
+          type: 'thinking_level_change',
+          id: 'test-entry-3-thinking',
+          parentId: 'test-entry-2-context',
+          timestamp: new Date().toISOString(),
+          thinkingLevel: 'deep',
+        } as unknown as PrismaJson.PiSessionEntry,
+      },
+    })
+
+    // Verify listMessages returns only the user and thinking level change message, hiding the context message
+    const messages = await chatService.listMessages(user.id, sessionId)
+    expect(messages).toHaveLength(2)
+    expect(messages[0].id).toBe('test-entry-1-user')
+    expect(messages[1].id).toBe('test-entry-3-thinking')
+
+    // Verify mapEntryToMessage returns null for context message
+    const contextRecord = await prisma.agentSessionEntry.findUnique({
+      where: { id: 'test-entry-2-context' },
+    })
+    expect(contextRecord).not.toBeNull()
+    const mapped = mapEntryToMessage(contextRecord!)
+    expect(mapped).toBeNull()
   })
 
   it('should delete session and cascade', async () => {
