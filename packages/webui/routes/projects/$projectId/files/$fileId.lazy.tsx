@@ -449,7 +449,7 @@ function FileViewPage() {
               className="flex-shrink-0 bg-background border-l border-border flex flex-col"
             >
               {isChatbotOpen ? (
-                <ChatbotSidebar />
+                <ChatbotSidebar projectId={projectId} contextAssetId={activeFileId} />
               ) : (
                 <FileViewerRightSidebar
                   teamId={teamId}

@@ -36,7 +36,17 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     const { sessionId, taskId } = await chatService.startOrContinueChat(user, req)
 
+    c.header('x-session-id', sessionId)
+
     return streamSSE(c, async (stream) => {
+      // Send session ID as the first event
+      await stream.writeSSE({
+        data: JSON.stringify({
+          type: 'session',
+          sessionId,
+        }),
+      })
+
       let lastEntryId = ''
       const timeoutMs = 5 * 60 * 1000 // 5 minutes timeout
       const startTime = Date.now()

@@ -514,7 +514,7 @@ export default function FileSystemManager({
                 className="bg-background border-l border-border flex flex-col flex-shrink-0"
               >
                 {isChatbotOpen ? (
-                  <ChatbotSidebar />
+                  <ChatbotSidebar projectId={projectId} contextAssetId={assetId} />
                 ) : singleSelectedFile ? (
                   <FileViewerRightSidebar
                     teamId={teamId}
