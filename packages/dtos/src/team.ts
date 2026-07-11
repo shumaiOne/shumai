@@ -76,6 +76,10 @@ export const updateTeamSettingsRequestSchema = z.discriminatedUnion('key', [
     key: z.literal('transcode.videoStrategy'),
     value: z.nativeEnum(VideoTranscodeStrategy),
   }),
+  z.object({
+    key: z.literal('chatbotAgentId'),
+    value: z.string().nullable(),
+  }),
 ])
 export type UpdateTeamSettingsRequest = z.infer<typeof updateTeamSettingsRequestSchema>
 

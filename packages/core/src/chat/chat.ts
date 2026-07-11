@@ -129,7 +129,6 @@ export class ChatService {
     req: ChatRequest,
   ): Promise<{ sessionId: string; taskId: string }> {
     const {
-      agentId,
       textPrompt,
       attachedFiles = [],
       assetIds = [],
@@ -232,21 +231,32 @@ export class ChatService {
       const teamId = asset.project.teamId
       const projectId = asset.project.id
 
+      let agentId: string
+      let activeSessionId = passedSessionId
+
+      if (activeSessionId) {
+        const sessionExists = await tx.agentSession.findUnique({
+          where: { id: activeSessionId },
+          select: { id: true, agentId: true },
+        })
+        if (!sessionExists) throw new Error('Session not found')
+        agentId = sessionExists.agentId
+      } else {
+        const teamSettings = (asset.project.team.settings || {}) as Record<string, unknown>
+        const settingsAgentId = teamSettings.chatbotAgentId as string | undefined
+        if (!settingsAgentId) {
+          throw new Error('No chatbot agent configured for the team')
+        }
+        agentId = settingsAgentId
+      }
+
       // Ensure AI agent configuration exists
       const agent = await tx.agent.findUnique({ where: { id: agentId } })
       if (!agent) {
         throw new Error(`Agent with ID "${agentId}" not found`)
       }
 
-      let activeSessionId = passedSessionId
-
-      if (activeSessionId) {
-        const sessionExists = await tx.agentSession.findUnique({
-          where: { id: activeSessionId },
-          select: { id: true },
-        })
-        if (!sessionExists) throw new Error('Session not found')
-      } else {
+      if (!activeSessionId) {
         const newSession = await tx.agentSession.create({
           data: {
             agentId,

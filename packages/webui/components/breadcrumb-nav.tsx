@@ -18,10 +18,13 @@ import {
   DockToRight,
   DockToRightFilled,
 } from '@/ui/components/ui/icons'
-import { usePermissions } from '@/ui/hooks/use-permissions'
-import { cn } from '@/ui/lib/utils'
-import { m } from '@/ui/paraglide/messages.js'
-import type { AncestorFolder } from '@shumai/dtos'
+import { useQuery } from '@tanstack/react-query'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/ui/components/ui/tooltip'
 import { Link, useNavigate } from '@tanstack/react-router'
 import {
   Check,
@@ -33,6 +36,10 @@ import {
   List,
   Bot,
 } from 'lucide-react'
+import { usePermissions } from '@/ui/hooks/use-permissions'
+import { cn } from '@/ui/lib/utils'
+import { m } from '@/ui/paraglide/messages.js'
+import type { AncestorFolder } from '@shumai/dtos'
 
 interface BreadcrumbNavProps {
   teamId: string
@@ -106,6 +113,21 @@ export function BreadcrumbNav({
 }: BreadcrumbNavProps) {
   const navigate = useNavigate()
   const { canEdit } = usePermissions(projectId)
+
+  const { data: teamSettings } = useQuery({
+    queryKey: ['teams', teamId, 'settings'],
+    queryFn: async () => {
+      const res = await client.api.teams[':teamId'].settings.$get({
+        param: { teamId },
+      })
+      if (!res.ok) throw new Error('failed to fetch settings')
+      return res.json()
+    },
+    enabled: !!teamId && !isPublic,
+  })
+
+  const isChatbotDisabled =
+    !isPublic && !(teamSettings as { chatbotAgentId?: string | null })?.chatbotAgentId
 
   const handleVersionClick = (versionId: string) => {
     if (!fileId) return
@@ -444,22 +466,41 @@ export function BreadcrumbNav({
 
         {/* Chatbot Toggle Button */}
         {!isPublic && onChatbotToggle && (
-          <button
-            onClick={onChatbotToggle}
-            className={`h-9 w-9 flex items-center justify-center rounded-md border border-border bg-background transition-colors ${
-              isChatbotOpen
-                ? 'bg-accent text-accent-foreground'
-                : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-            }`}
-            title={isChatbotOpen ? m.hide_chatbot() : m.show_chatbot()}
-          >
-            <Bot
-              className={cn(
-                'h-4 w-4 transition-colors',
-                isChatbotOpen ? 'text-primary fill-primary/10' : 'text-muted-foreground',
-              )}
-            />
-          </button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <button
+                    disabled={isChatbotDisabled}
+                    onClick={onChatbotToggle}
+                    className={cn(
+                      'h-9 w-9 flex items-center justify-center rounded-md border border-border bg-background transition-colors',
+                      isChatbotOpen
+                        ? 'bg-accent text-accent-foreground'
+                        : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                      isChatbotDisabled && 'opacity-50 cursor-not-allowed',
+                    )}
+                  >
+                    <Bot
+                      className={cn(
+                        'h-4 w-4 transition-colors',
+                        isChatbotOpen ? 'text-primary fill-primary/10' : 'text-muted-foreground',
+                      )}
+                    />
+                  </button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>
+                  {isChatbotDisabled
+                    ? m.configure_chatbot_agent_first()
+                    : isChatbotOpen
+                      ? m.hide_chatbot()
+                      : m.show_chatbot()}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </div>
     </div>

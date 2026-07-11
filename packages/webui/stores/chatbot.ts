@@ -146,7 +146,6 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
     try {
       const res = await client.api.chat.$post({
         json: {
-          agentId: 'default',
           textPrompt: text,
           assetIds,
           sessionId: state.currentSessionId || undefined,

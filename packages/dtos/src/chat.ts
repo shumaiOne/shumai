@@ -3,7 +3,6 @@ import type { AgentMessage } from '@earendil-works/pi-agent-core'
 
 export const chatRequestSchema = z
   .object({
-    agentId: z.string(),
     textPrompt: z.string().optional(),
     attachedFiles: z.array(z.string()).optional(), // Uploaded file asset IDs
     assetIds: z.array(z.string()).optional(), // Workspace file/folder IDs referenced

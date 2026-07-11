@@ -833,5 +833,11 @@
   "history": "History",
   "send": "Send",
   "no_history_sessions": "No chat history found.",
-  "delete_session_confirm": "Are you sure you want to delete this chat session?"
+  "delete_session_confirm": "Are you sure you want to delete this chat session?",
+  "configure_chatbot_agent_first": "Please configure a chatbot agent in team settings first.",
+  "global_chatbot": "Global Chatbot",
+  "global_chatbot_description": "Select the agent that handles conversation inside the global chatbot sidebar.",
+  "select_chatbot_agent": "Select chatbot agent",
+  "no_chat_agents_warning": "No chat agents found. Please create a Chat Agent below first.",
+  "settings_saved": "Settings saved successfully"
 }

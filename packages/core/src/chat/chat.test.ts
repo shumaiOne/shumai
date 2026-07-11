@@ -14,7 +14,7 @@ describe('ChatService', () => {
     const team = await prisma.team.create({
       data: {
         name: 'Test Team',
-        settings: { transcode: { videoStrategy: 'best_match' } },
+        settings: { transcode: { videoStrategy: 'best_match' }, chatbotAgentId: 'test-agent-id' },
         sandbox: { create: {} },
       },
     })
@@ -73,10 +73,9 @@ describe('ChatService', () => {
   }
 
   it('should start a new chat session and trigger workflow', async () => {
-    const { user, project, rootFolder, agent } = await setupBasicData()
+    const { user, project, rootFolder } = await setupBasicData()
 
     const { sessionId, taskId } = await chatService.startOrContinueChat(user, {
-      agentId: agent.id,
       textPrompt: 'hello world',
       projectId: project.id,
     })
@@ -117,11 +116,10 @@ describe('ChatService', () => {
   })
 
   it('should continue an existing chat session', async () => {
-    const { user, project, agent } = await setupBasicData()
+    const { user, project } = await setupBasicData()
 
     // Start
     const { sessionId } = await chatService.startOrContinueChat(user, {
-      agentId: agent.id,
       textPrompt: 'first message',
       projectId: project.id,
     })
@@ -130,7 +128,6 @@ describe('ChatService', () => {
     const { sessionId: nextSessionId, taskId: nextTaskId } = await chatService.startOrContinueChat(
       user,
       {
-        agentId: agent.id,
         textPrompt: 'second message',
         sessionId,
       },
@@ -156,7 +153,7 @@ describe('ChatService', () => {
   })
 
   it('should inject context of referenced assets and attached files', async () => {
-    const { user, project, rootFolder, agent } = await setupBasicData()
+    const { user, project, rootFolder } = await setupBasicData()
 
     const childFolder = await prisma.asset.create({
       data: {
@@ -187,7 +184,6 @@ describe('ChatService', () => {
     })
 
     const { taskId } = await chatService.startOrContinueChat(user, {
-      agentId: agent.id,
       textPrompt: 'process file',
       projectId: project.id,
       assetIds: [childFolder.id],
@@ -207,16 +203,14 @@ describe('ChatService', () => {
   })
 
   it('should list sessions of a user', async () => {
-    const { user, project, agent } = await setupBasicData()
+    const { user, project } = await setupBasicData()
 
     await chatService.startOrContinueChat(user, {
-      agentId: agent.id,
       textPrompt: 'chat 1',
       projectId: project.id,
     })
 
     await chatService.startOrContinueChat(user, {
-      agentId: agent.id,
       textPrompt: 'chat 2',
       projectId: project.id,
     })
@@ -226,10 +220,9 @@ describe('ChatService', () => {
   })
 
   it('should list messages mapped correctly', async () => {
-    const { user, project, agent } = await setupBasicData()
+    const { user, project } = await setupBasicData()
 
     const { sessionId } = await chatService.startOrContinueChat(user, {
-      agentId: agent.id,
       textPrompt: 'hello',
       projectId: project.id,
     })
@@ -263,10 +256,9 @@ describe('ChatService', () => {
   })
 
   it('should delete session and cascade', async () => {
-    const { user, project, agent } = await setupBasicData()
+    const { user, project } = await setupBasicData()
 
     const { sessionId } = await chatService.startOrContinueChat(user, {
-      agentId: agent.id,
       textPrompt: 'to delete',
       projectId: project.id,
     })
