@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
-import { useDroppable } from '@dnd-kit/react'
-import { useChatbotStore } from '@/ui/stores/chatbot'
-import { Bot, ArrowUp, History, Plus, Trash2, Loader2, ArrowLeft } from 'lucide-react'
+import { ScrollArea } from '@/ui/components/ui/scroll-area'
 import { cn } from '@/ui/lib/utils'
 import { m } from '@/ui/paraglide/messages.js'
-import { ScrollArea } from '@/ui/components/ui/scroll-area'
-import Markdown from 'react-markdown'
+import { useChatbotStore } from '@/ui/stores/chatbot'
+import { useDroppable } from '@dnd-kit/react'
 import type { ChatMessage } from '@shumai/dtos'
+import { ArrowLeft, ArrowUp, Bot, History, Loader2, Plus, Trash2 } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import Markdown from 'react-markdown'
 
 interface ChatbotSidebarProps {
   projectId: string
@@ -150,12 +150,22 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
     <div
       ref={setDroppableRef}
       className={cn(
-        'flex flex-col h-full bg-background transition-colors duration-200 min-h-0 border-l border-border',
-        isOver && 'bg-accent/50 ring-2 ring-primary ring-inset',
+        'relative flex flex-col h-full bg-background transition-colors duration-200 min-h-0 border-l border-border',
       )}
     >
+      {isOver && (
+        <div className="absolute inset-0 bg-accent/30 border-2 border-primary z-50 pointer-events-none flex items-center justify-center p-6 text-center animate-in fade-in duration-150">
+          <div className="bg-background/95 text-foreground px-4 py-3 rounded-xl border border-border/80 flex flex-col items-center gap-2 shadow-lg max-w-[80%] animate-in zoom-in-95 duration-150">
+            <Bot className="h-6 w-6 text-primary animate-bounce" />
+            <span className="text-sm font-semibold text-foreground">
+              {m.chatbot_drag_drop_hint() || 'Drop assets here'}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Header section */}
-      <div className="flex items-center justify-between p-4 border-b border-border flex-shrink-0">
+      <div className="flex items-center justify-between p-4 flex-shrink-0">
         {isHistoryMode ? (
           <>
             <div className="flex items-center gap-2 font-semibold">
@@ -270,7 +280,7 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
           </ScrollArea>
 
           {/* Input Area (nested inside the border exactly like comment input) */}
-          <div className="p-4 border-t border-border flex-shrink-0 bg-background">
+          <div className="p-2 flex-shrink-0 bg-background">
             <div className="relative flex flex-col w-full border border-foreground/20 rounded-2xl shadow-xs transition-all duration-200 focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent bg-background overflow-hidden">
               {/* Context assets list at the top inside the border */}
               {chatAssets.length > 0 && (
