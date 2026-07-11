@@ -201,7 +201,6 @@ export function useFileSystemDnd({
         }))
 
         useChatbotStore.getState().addAssets(chatAssets)
-        toast.success(`Added ${chatAssets.length} item(s) to chatbot context`)
         onClearSelection()
         setDragState(undefined)
         return

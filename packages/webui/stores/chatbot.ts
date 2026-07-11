@@ -139,6 +139,7 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
     set({
       messages: [...state.messages, optimisticMsg],
       isStreaming: true,
+      chatAssets: [],
     })
 
     const assetIds = state.chatAssets.map((a) => a.id)
