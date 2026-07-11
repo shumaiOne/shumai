@@ -31,6 +31,7 @@ export const chatSessionInfoSchema = z.object({
   userId: z.string().nullable(),
   assetId: z.string().nullable(),
   userCommentId: z.string().nullable(),
+  name: z.string().nullable().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 })

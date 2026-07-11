@@ -17,6 +17,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     deleteCommentActivity,
     initializeAgentSessionActivity,
     getAssetPathContextActivity,
+    generateSessionNameActivity,
   } = getActivities()
 
   let placeholderCommentId: string | undefined
@@ -192,6 +193,18 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       context,
       attachedAssets,
     })
+
+    if (isNewChat) {
+      await executeActivity(agentWorkerQueue, generateSessionNameActivity, {
+        teamId,
+        agentId,
+        prompt,
+        sessionId,
+        context,
+      }).catch((err) => {
+        console.error('Failed to run generateSessionNameActivity:', err)
+      })
+    }
 
     // 7. Update Placeholder Comment
     if (placeholderCommentId) {

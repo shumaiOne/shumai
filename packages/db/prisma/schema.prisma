@@ -648,6 +648,7 @@ enum AgentType {
 enum AgentSessionType {
   comment
   chat
+  naming
 }
 
 model Agent {
@@ -699,6 +700,7 @@ model AgentSession {
   asset         Asset?   @relation("AssetToAgentSession", fields: [assetId], references: [id], onDelete: Cascade)
   userCommentId String?  @map("user_comment_id")
   type          AgentSessionType @default(comment)
+  name          String?
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
   entries       AgentSessionEntry[]

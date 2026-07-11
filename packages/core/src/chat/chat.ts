@@ -337,6 +337,7 @@ export class ChatService {
           userId: s.userId,
           assetId: s.assetId,
           userCommentId: s.userCommentId,
+          name: s.name,
           createdAt: s.createdAt.toISOString(),
           updatedAt: s.updatedAt.toISOString(),
         }))

@@ -256,7 +256,7 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
                   >
                     <div onClick={() => loadSession(sess.id)} className="flex-1 min-w-0 pr-6">
                       <div className="text-sm font-semibold text-foreground truncate">
-                        {m.shumai_agent()}
+                        {sess.name || m.new_chat()}
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5">
                         {new Date(sess.createdAt).toLocaleString()}

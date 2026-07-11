@@ -35,6 +35,7 @@ export type AgentSessionMinAggregateOutputType = {
   assetId: string | null
   userCommentId: string | null
   type: $Enums.AgentSessionType | null
+  name: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -48,6 +49,7 @@ export type AgentSessionMaxAggregateOutputType = {
   assetId: string | null
   userCommentId: string | null
   type: $Enums.AgentSessionType | null
+  name: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -61,6 +63,7 @@ export type AgentSessionCountAggregateOutputType = {
   assetId: number
   userCommentId: number
   type: number
+  name: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -76,6 +79,7 @@ export type AgentSessionMinAggregateInputType = {
   assetId?: true
   userCommentId?: true
   type?: true
+  name?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -89,6 +93,7 @@ export type AgentSessionMaxAggregateInputType = {
   assetId?: true
   userCommentId?: true
   type?: true
+  name?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -102,6 +107,7 @@ export type AgentSessionCountAggregateInputType = {
   assetId?: true
   userCommentId?: true
   type?: true
+  name?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -188,6 +194,7 @@ export type AgentSessionGroupByOutputType = {
   assetId: string | null
   userCommentId: string | null
   type: $Enums.AgentSessionType
+  name: string | null
   createdAt: Date
   updatedAt: Date
   _count: AgentSessionCountAggregateOutputType | null
@@ -222,6 +229,7 @@ export type AgentSessionWhereInput = {
   assetId?: Prisma.StringNullableFilter<"AgentSession"> | string | null
   userCommentId?: Prisma.StringNullableFilter<"AgentSession"> | string | null
   type?: Prisma.EnumAgentSessionTypeFilter<"AgentSession"> | $Enums.AgentSessionType
+  name?: Prisma.StringNullableFilter<"AgentSession"> | string | null
   createdAt?: Prisma.DateTimeFilter<"AgentSession"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AgentSession"> | Date | string
   agent?: Prisma.XOR<Prisma.AgentScalarRelationFilter, Prisma.AgentWhereInput>
@@ -240,6 +248,7 @@ export type AgentSessionOrderByWithRelationInput = {
   assetId?: Prisma.SortOrderInput | Prisma.SortOrder
   userCommentId?: Prisma.SortOrderInput | Prisma.SortOrder
   type?: Prisma.SortOrder
+  name?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   agent?: Prisma.AgentOrderByWithRelationInput
@@ -261,6 +270,7 @@ export type AgentSessionWhereUniqueInput = Prisma.AtLeast<{
   assetId?: Prisma.StringNullableFilter<"AgentSession"> | string | null
   userCommentId?: Prisma.StringNullableFilter<"AgentSession"> | string | null
   type?: Prisma.EnumAgentSessionTypeFilter<"AgentSession"> | $Enums.AgentSessionType
+  name?: Prisma.StringNullableFilter<"AgentSession"> | string | null
   createdAt?: Prisma.DateTimeFilter<"AgentSession"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AgentSession"> | Date | string
   agent?: Prisma.XOR<Prisma.AgentScalarRelationFilter, Prisma.AgentWhereInput>
@@ -279,6 +289,7 @@ export type AgentSessionOrderByWithAggregationInput = {
   assetId?: Prisma.SortOrderInput | Prisma.SortOrder
   userCommentId?: Prisma.SortOrderInput | Prisma.SortOrder
   type?: Prisma.SortOrder
+  name?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.AgentSessionCountOrderByAggregateInput
@@ -298,6 +309,7 @@ export type AgentSessionScalarWhereWithAggregatesInput = {
   assetId?: Prisma.StringNullableWithAggregatesFilter<"AgentSession"> | string | null
   userCommentId?: Prisma.StringNullableWithAggregatesFilter<"AgentSession"> | string | null
   type?: Prisma.EnumAgentSessionTypeWithAggregatesFilter<"AgentSession"> | $Enums.AgentSessionType
+  name?: Prisma.StringNullableWithAggregatesFilter<"AgentSession"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"AgentSession"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"AgentSession"> | Date | string
 }
@@ -308,6 +320,7 @@ export type AgentSessionCreateInput = {
   leafId?: string | null
   userCommentId?: string | null
   type?: $Enums.AgentSessionType
+  name?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   agent: Prisma.AgentCreateNestedOneWithoutAgentSessionsInput
@@ -326,6 +339,7 @@ export type AgentSessionUncheckedCreateInput = {
   assetId?: string | null
   userCommentId?: string | null
   type?: $Enums.AgentSessionType
+  name?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   entries?: Prisma.AgentSessionEntryUncheckedCreateNestedManyWithoutSessionInput
@@ -338,6 +352,7 @@ export type AgentSessionUpdateInput = {
   leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAgentSessionTypeFieldUpdateOperationsInput | $Enums.AgentSessionType
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   agent?: Prisma.AgentUpdateOneRequiredWithoutAgentSessionsNestedInput
@@ -356,6 +371,7 @@ export type AgentSessionUncheckedUpdateInput = {
   assetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAgentSessionTypeFieldUpdateOperationsInput | $Enums.AgentSessionType
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   entries?: Prisma.AgentSessionEntryUncheckedUpdateManyWithoutSessionNestedInput
@@ -371,6 +387,7 @@ export type AgentSessionCreateManyInput = {
   assetId?: string | null
   userCommentId?: string | null
   type?: $Enums.AgentSessionType
+  name?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -381,6 +398,7 @@ export type AgentSessionUpdateManyMutationInput = {
   leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAgentSessionTypeFieldUpdateOperationsInput | $Enums.AgentSessionType
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -394,6 +412,7 @@ export type AgentSessionUncheckedUpdateManyInput = {
   assetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAgentSessionTypeFieldUpdateOperationsInput | $Enums.AgentSessionType
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -422,6 +441,7 @@ export type AgentSessionCountOrderByAggregateInput = {
   assetId?: Prisma.SortOrder
   userCommentId?: Prisma.SortOrder
   type?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -435,6 +455,7 @@ export type AgentSessionMaxOrderByAggregateInput = {
   assetId?: Prisma.SortOrder
   userCommentId?: Prisma.SortOrder
   type?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -448,6 +469,7 @@ export type AgentSessionMinOrderByAggregateInput = {
   assetId?: Prisma.SortOrder
   userCommentId?: Prisma.SortOrder
   type?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -623,6 +645,7 @@ export type AgentSessionCreateWithoutUserInput = {
   leafId?: string | null
   userCommentId?: string | null
   type?: $Enums.AgentSessionType
+  name?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   agent: Prisma.AgentCreateNestedOneWithoutAgentSessionsInput
@@ -639,6 +662,7 @@ export type AgentSessionUncheckedCreateWithoutUserInput = {
   assetId?: string | null
   userCommentId?: string | null
   type?: $Enums.AgentSessionType
+  name?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   entries?: Prisma.AgentSessionEntryUncheckedCreateNestedManyWithoutSessionInput
@@ -683,6 +707,7 @@ export type AgentSessionScalarWhereInput = {
   assetId?: Prisma.StringNullableFilter<"AgentSession"> | string | null
   userCommentId?: Prisma.StringNullableFilter<"AgentSession"> | string | null
   type?: Prisma.EnumAgentSessionTypeFilter<"AgentSession"> | $Enums.AgentSessionType
+  name?: Prisma.StringNullableFilter<"AgentSession"> | string | null
   createdAt?: Prisma.DateTimeFilter<"AgentSession"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AgentSession"> | Date | string
 }
@@ -693,6 +718,7 @@ export type AgentSessionCreateWithoutAssetInput = {
   leafId?: string | null
   userCommentId?: string | null
   type?: $Enums.AgentSessionType
+  name?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   agent: Prisma.AgentCreateNestedOneWithoutAgentSessionsInput
@@ -709,6 +735,7 @@ export type AgentSessionUncheckedCreateWithoutAssetInput = {
   leafId?: string | null
   userCommentId?: string | null
   type?: $Enums.AgentSessionType
+  name?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   entries?: Prisma.AgentSessionEntryUncheckedCreateNestedManyWithoutSessionInput
@@ -747,6 +774,7 @@ export type AgentSessionCreateWithoutCommentsInput = {
   leafId?: string | null
   userCommentId?: string | null
   type?: $Enums.AgentSessionType
+  name?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   agent: Prisma.AgentCreateNestedOneWithoutAgentSessionsInput
@@ -764,6 +792,7 @@ export type AgentSessionUncheckedCreateWithoutCommentsInput = {
   assetId?: string | null
   userCommentId?: string | null
   type?: $Enums.AgentSessionType
+  name?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   entries?: Prisma.AgentSessionEntryUncheckedCreateNestedManyWithoutSessionInput
@@ -791,6 +820,7 @@ export type AgentSessionUpdateWithoutCommentsInput = {
   leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAgentSessionTypeFieldUpdateOperationsInput | $Enums.AgentSessionType
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   agent?: Prisma.AgentUpdateOneRequiredWithoutAgentSessionsNestedInput
@@ -808,6 +838,7 @@ export type AgentSessionUncheckedUpdateWithoutCommentsInput = {
   assetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAgentSessionTypeFieldUpdateOperationsInput | $Enums.AgentSessionType
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   entries?: Prisma.AgentSessionEntryUncheckedUpdateManyWithoutSessionNestedInput
@@ -819,6 +850,7 @@ export type AgentSessionCreateWithoutAgentInput = {
   leafId?: string | null
   userCommentId?: string | null
   type?: $Enums.AgentSessionType
+  name?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   user?: Prisma.UserCreateNestedOneWithoutAgentSessionsInput
@@ -835,6 +867,7 @@ export type AgentSessionUncheckedCreateWithoutAgentInput = {
   assetId?: string | null
   userCommentId?: string | null
   type?: $Enums.AgentSessionType
+  name?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   entries?: Prisma.AgentSessionEntryUncheckedCreateNestedManyWithoutSessionInput
@@ -873,6 +906,7 @@ export type AgentSessionCreateWithoutEntriesInput = {
   leafId?: string | null
   userCommentId?: string | null
   type?: $Enums.AgentSessionType
+  name?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   agent: Prisma.AgentCreateNestedOneWithoutAgentSessionsInput
@@ -890,6 +924,7 @@ export type AgentSessionUncheckedCreateWithoutEntriesInput = {
   assetId?: string | null
   userCommentId?: string | null
   type?: $Enums.AgentSessionType
+  name?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutSessionInput
@@ -917,6 +952,7 @@ export type AgentSessionUpdateWithoutEntriesInput = {
   leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAgentSessionTypeFieldUpdateOperationsInput | $Enums.AgentSessionType
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   agent?: Prisma.AgentUpdateOneRequiredWithoutAgentSessionsNestedInput
@@ -934,6 +970,7 @@ export type AgentSessionUncheckedUpdateWithoutEntriesInput = {
   assetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAgentSessionTypeFieldUpdateOperationsInput | $Enums.AgentSessionType
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutSessionNestedInput
@@ -947,6 +984,7 @@ export type AgentSessionCreateManyUserInput = {
   assetId?: string | null
   userCommentId?: string | null
   type?: $Enums.AgentSessionType
+  name?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -957,6 +995,7 @@ export type AgentSessionUpdateWithoutUserInput = {
   leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAgentSessionTypeFieldUpdateOperationsInput | $Enums.AgentSessionType
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   agent?: Prisma.AgentUpdateOneRequiredWithoutAgentSessionsNestedInput
@@ -973,6 +1012,7 @@ export type AgentSessionUncheckedUpdateWithoutUserInput = {
   assetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAgentSessionTypeFieldUpdateOperationsInput | $Enums.AgentSessionType
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   entries?: Prisma.AgentSessionEntryUncheckedUpdateManyWithoutSessionNestedInput
@@ -987,6 +1027,7 @@ export type AgentSessionUncheckedUpdateManyWithoutUserInput = {
   assetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAgentSessionTypeFieldUpdateOperationsInput | $Enums.AgentSessionType
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -999,6 +1040,7 @@ export type AgentSessionCreateManyAssetInput = {
   leafId?: string | null
   userCommentId?: string | null
   type?: $Enums.AgentSessionType
+  name?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1009,6 +1051,7 @@ export type AgentSessionUpdateWithoutAssetInput = {
   leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAgentSessionTypeFieldUpdateOperationsInput | $Enums.AgentSessionType
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   agent?: Prisma.AgentUpdateOneRequiredWithoutAgentSessionsNestedInput
@@ -1025,6 +1068,7 @@ export type AgentSessionUncheckedUpdateWithoutAssetInput = {
   leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAgentSessionTypeFieldUpdateOperationsInput | $Enums.AgentSessionType
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   entries?: Prisma.AgentSessionEntryUncheckedUpdateManyWithoutSessionNestedInput
@@ -1039,6 +1083,7 @@ export type AgentSessionUncheckedUpdateManyWithoutAssetInput = {
   leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAgentSessionTypeFieldUpdateOperationsInput | $Enums.AgentSessionType
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1051,6 +1096,7 @@ export type AgentSessionCreateManyAgentInput = {
   assetId?: string | null
   userCommentId?: string | null
   type?: $Enums.AgentSessionType
+  name?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1061,6 +1107,7 @@ export type AgentSessionUpdateWithoutAgentInput = {
   leafId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAgentSessionTypeFieldUpdateOperationsInput | $Enums.AgentSessionType
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneWithoutAgentSessionsNestedInput
@@ -1077,6 +1124,7 @@ export type AgentSessionUncheckedUpdateWithoutAgentInput = {
   assetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAgentSessionTypeFieldUpdateOperationsInput | $Enums.AgentSessionType
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   entries?: Prisma.AgentSessionEntryUncheckedUpdateManyWithoutSessionNestedInput
@@ -1091,6 +1139,7 @@ export type AgentSessionUncheckedUpdateManyWithoutAgentInput = {
   assetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   userCommentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumAgentSessionTypeFieldUpdateOperationsInput | $Enums.AgentSessionType
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1144,6 +1193,7 @@ export type AgentSessionSelect<ExtArgs extends runtime.Types.Extensions.Internal
   assetId?: boolean
   userCommentId?: boolean
   type?: boolean
+  name?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   agent?: boolean | Prisma.AgentDefaultArgs<ExtArgs>
@@ -1163,6 +1213,7 @@ export type AgentSessionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   assetId?: boolean
   userCommentId?: boolean
   type?: boolean
+  name?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   agent?: boolean | Prisma.AgentDefaultArgs<ExtArgs>
@@ -1179,6 +1230,7 @@ export type AgentSessionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   assetId?: boolean
   userCommentId?: boolean
   type?: boolean
+  name?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   agent?: boolean | Prisma.AgentDefaultArgs<ExtArgs>
@@ -1195,11 +1247,12 @@ export type AgentSessionSelectScalar = {
   assetId?: boolean
   userCommentId?: boolean
   type?: boolean
+  name?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type AgentSessionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "agentId" | "userId" | "cwd" | "leafId" | "assetId" | "userCommentId" | "type" | "createdAt" | "updatedAt", ExtArgs["result"]["agentSession"]>
+export type AgentSessionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "agentId" | "userId" | "cwd" | "leafId" | "assetId" | "userCommentId" | "type" | "name" | "createdAt" | "updatedAt", ExtArgs["result"]["agentSession"]>
 export type AgentSessionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   agent?: boolean | Prisma.AgentDefaultArgs<ExtArgs>
   user?: boolean | Prisma.AgentSession$userArgs<ExtArgs>
@@ -1237,6 +1290,7 @@ export type $AgentSessionPayload<ExtArgs extends runtime.Types.Extensions.Intern
     assetId: string | null
     userCommentId: string | null
     type: $Enums.AgentSessionType
+    name: string | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["agentSession"]>
@@ -1675,6 +1729,7 @@ export interface AgentSessionFieldRefs {
   readonly assetId: Prisma.FieldRef<"AgentSession", 'String'>
   readonly userCommentId: Prisma.FieldRef<"AgentSession", 'String'>
   readonly type: Prisma.FieldRef<"AgentSession", 'AgentSessionType'>
+  readonly name: Prisma.FieldRef<"AgentSession", 'String'>
   readonly createdAt: Prisma.FieldRef<"AgentSession", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"AgentSession", 'DateTime'>
 }

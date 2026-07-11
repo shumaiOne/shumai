@@ -15,6 +15,8 @@ import {
   updateAssetMetadataActivity,
   getAssetPathContextActivity,
   executeAgentToolActivity,
+  generateSessionNameActivity,
+  type GenerateSessionNameParams,
 } from './agent'
 import * as piAgent from '../index'
 import { type AgentHarness, type Session } from '@earendil-works/pi-agent-core'
@@ -739,6 +741,178 @@ describe('Agent Database Activities Integration', () => {
         expect(updatedStack?.fileCount).toBe(2)
         expect(updatedStack?.sizeByte).toBe(350)
       })
+    })
+  })
+
+  describe('generateSessionNameActivity', () => {
+    it('should generate and save session name for chat sessions', async () => {
+      await prisma.team.create({
+        data: { id: 't1', name: 'Test Team' },
+      })
+      const user = await prisma.user.create({
+        data: { id: 'u1', name: 'Test User', email: 'u1@test.com' },
+      })
+      const agentUser = await prisma.user.create({
+        data: {
+          id: 'agent-123',
+          name: 'Chat Agent User',
+          email: 'agent@shumai.ai',
+          type: 'agent',
+        },
+      })
+      const agent = await prisma.agent.create({
+        data: {
+          id: agentUser.id,
+          teamId: 't1',
+          type: 'chat',
+          config: { provider: 'openai', model: 'gpt-4' },
+        },
+      })
+      await prisma.agentSession.create({
+        data: {
+          id: 'session-123',
+          agentId: 'agent-123',
+          userId: user.id,
+          cwd: process.cwd(),
+          type: 'chat',
+          name: null,
+        },
+      })
+
+      const mockHarness = {
+        prompt: vi.fn().mockResolvedValue({
+          content: [{ type: 'text', text: '  "Summarized Chat Title"  ' }],
+        }),
+      }
+      vi.mocked(piAgent.createAgentSession).mockResolvedValue({
+        session: {} as unknown as Session<DatabaseSessionMetadata>,
+        harness: mockHarness as unknown as AgentHarness,
+      })
+
+      await generateSessionNameActivity({
+        teamId: 't1',
+        agentId: 'agent-123',
+        prompt: 'hello world prompt',
+        sessionId: 'session-123',
+        context: {
+          agent: {
+            ...agent,
+            provider: { name: 'openai' },
+            modelRef: {
+              id: 'm1',
+              providerName: 'openai',
+              modelId: 'gpt-4',
+              name: 'GPT-4',
+              config: {},
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          } as unknown as GenerateSessionNameParams['context']['agent'],
+          dbProviders: [
+            {
+              name: 'openai',
+              config: { api: 'openai-responses', apiKey: 'fake-key' },
+              models: [
+                {
+                  modelId: 'gpt-4',
+                  name: 'GPT-4',
+                  config: {
+                    reasoning: false,
+                    input: ['text'],
+                    contextWindow: 4096,
+                    maxTokens: 4096,
+                    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      })
+
+      const updatedSession = await prisma.agentSession.findUnique({
+        where: { id: 'session-123' },
+      })
+
+      expect(updatedSession?.name).toBe('Summarized Chat Title')
+      expect(mockHarness.prompt).toHaveBeenCalledWith('hello world prompt')
+
+      // Verify that transient naming session was cleaned up (deleted)
+      const namingSessions = await prisma.agentSession.findMany({
+        where: { type: 'naming' },
+      })
+      expect(namingSessions).toHaveLength(0)
+    })
+
+    it('should skip name generation for comment sessions or if name is already set', async () => {
+      await prisma.team.create({
+        data: { id: 't1', name: 'Test Team' },
+      })
+      const user = await prisma.user.create({
+        data: { id: 'u1', name: 'Test User', email: 'u1@test.com' },
+      })
+      const agentUser = await prisma.user.create({
+        data: {
+          id: 'agent-123',
+          name: 'Chat Agent User',
+          email: 'agent2@shumai.ai',
+          type: 'agent',
+        },
+      })
+      await prisma.agent.create({
+        data: {
+          id: agentUser.id,
+          teamId: 't1',
+          type: 'chat',
+          config: { provider: 'openai', model: 'gpt-4' },
+        },
+      })
+      await prisma.agentSession.create({
+        data: {
+          id: 'session-comment',
+          agentId: 'agent-123',
+          userId: user.id,
+          cwd: process.cwd(),
+          type: 'comment',
+          name: null,
+        },
+      })
+      await prisma.agentSession.create({
+        data: {
+          id: 'session-named',
+          agentId: 'agent-123',
+          userId: user.id,
+          cwd: process.cwd(),
+          type: 'chat',
+          name: 'Existing Name',
+        },
+      })
+
+      vi.mocked(piAgent.createAgentSession).mockClear()
+
+      await generateSessionNameActivity({
+        teamId: 't1',
+        agentId: 'agent-123',
+        prompt: 'hello comment',
+        sessionId: 'session-comment',
+        context: {
+          agent: {} as unknown as GenerateSessionNameParams['context']['agent'],
+          dbProviders: [],
+        },
+      })
+
+      await generateSessionNameActivity({
+        teamId: 't1',
+        agentId: 'agent-123',
+        prompt: 'hello named',
+        sessionId: 'session-named',
+        context: {
+          agent: {} as unknown as GenerateSessionNameParams['context']['agent'],
+          dbProviders: [],
+        },
+      })
+
+      expect(piAgent.createAgentSession).not.toHaveBeenCalled()
     })
   })
 })
