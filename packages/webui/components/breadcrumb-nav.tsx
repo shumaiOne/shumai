@@ -31,7 +31,7 @@ import {
   History,
   LayoutGrid,
   List,
-  MessageSquare,
+  Bot,
 } from 'lucide-react'
 
 interface BreadcrumbNavProps {
@@ -377,84 +377,86 @@ export function BreadcrumbNav({
         )}
       </div>
 
-      <div className="flex flex-shrink-0 items-center gap-1 rounded-md border border-border bg-background p-1">
-        {/* Left Sidebar Toggle */}
-        {!fileId && !isPublic && onLeftSidebarToggle && (
+      <div className="flex items-center gap-2">
+        <div className="flex flex-shrink-0 items-center gap-1 rounded-md border border-border bg-background p-1">
+          {/* Left Sidebar Toggle */}
+          {!fileId && !isPublic && onLeftSidebarToggle && (
+            <button
+              onClick={onLeftSidebarToggle}
+              className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+              title={isLeftSidebarCollapsed ? 'Show Left Sidebar' : 'Hide Left Sidebar'}
+            >
+              {isLeftSidebarCollapsed ? (
+                <DockToLeft className="h-4 w-4" />
+              ) : (
+                <DockToLeftFilled className="h-4 w-4 fill-primary stroke-0" />
+              )}
+            </button>
+          )}
+
+          {/* Card View */}
+          {!fileId && !isPublic && displayStyle && onDisplayStyleChange && (
+            <>
+              <button
+                onClick={() => onDisplayStyleChange('card')}
+                className={`rounded p-1.5 transition-colors ${
+                  displayStyle === 'card'
+                    ? 'bg-accent text-accent-foreground'
+                    : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                }`}
+                title="Card View"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </button>
+
+              {/* List View */}
+              <button
+                onClick={() => onDisplayStyleChange('list')}
+                className={`rounded p-1.5 transition-colors ${
+                  displayStyle === 'list'
+                    ? 'bg-accent text-accent-foreground'
+                    : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                }`}
+                title="List View"
+              >
+                <List className="h-4 w-4" />
+              </button>
+            </>
+          )}
+
+          {/* Right Sidebar Toggle */}
           <button
-            onClick={onLeftSidebarToggle}
-            className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-            title={isLeftSidebarCollapsed ? 'Show Left Sidebar' : 'Hide Left Sidebar'}
+            onClick={onRightSidebarToggle}
+            className={`rounded p-1.5 transition-colors ${
+              !isRightSidebarCollapsed && !isChatbotOpen
+                ? 'bg-accent text-accent-foreground'
+                : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+            }`}
+            title={isRightSidebarCollapsed ? 'Show Right Sidebar' : 'Hide Right Sidebar'}
           >
-            {isLeftSidebarCollapsed ? (
-              <DockToLeft className="h-4 w-4" />
+            {!isRightSidebarCollapsed && !isChatbotOpen ? (
+              <DockToRightFilled className="h-4 w-4 fill-primary stroke-0" />
             ) : (
-              <DockToLeftFilled className="h-4 w-4 fill-primary stroke-0" />
+              <DockToRight className="h-4 w-4" />
             )}
           </button>
-        )}
-
-        {/* Card View */}
-        {!fileId && !isPublic && displayStyle && onDisplayStyleChange && (
-          <>
-            <button
-              onClick={() => onDisplayStyleChange('card')}
-              className={`rounded p-1.5 transition-colors ${
-                displayStyle === 'card'
-                  ? 'bg-accent text-accent-foreground'
-                  : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-              }`}
-              title="Card View"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </button>
-
-            {/* List View */}
-            <button
-              onClick={() => onDisplayStyleChange('list')}
-              className={`rounded p-1.5 transition-colors ${
-                displayStyle === 'list'
-                  ? 'bg-accent text-accent-foreground'
-                  : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-              }`}
-              title="List View"
-            >
-              <List className="h-4 w-4" />
-            </button>
-          </>
-        )}
-
-        {/* Right Sidebar Toggle */}
-        <button
-          onClick={onRightSidebarToggle}
-          className={`rounded p-1.5 transition-colors ${
-            !isRightSidebarCollapsed && !isChatbotOpen
-              ? 'bg-accent text-accent-foreground'
-              : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-          }`}
-          title={isRightSidebarCollapsed ? 'Show Right Sidebar' : 'Hide Right Sidebar'}
-        >
-          {!isRightSidebarCollapsed && !isChatbotOpen ? (
-            <DockToRightFilled className="h-4 w-4 fill-primary stroke-0" />
-          ) : (
-            <DockToRight className="h-4 w-4" />
-          )}
-        </button>
+        </div>
 
         {/* Chatbot Toggle Button */}
         {!isPublic && onChatbotToggle && (
           <button
             onClick={onChatbotToggle}
-            className={`rounded p-1.5 transition-colors ${
+            className={`h-9 w-9 flex items-center justify-center rounded-md border border-border bg-background transition-colors ${
               isChatbotOpen
                 ? 'bg-accent text-accent-foreground'
-                : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground'
             }`}
             title={isChatbotOpen ? m.hide_chatbot() : m.show_chatbot()}
           >
-            <MessageSquare
+            <Bot
               className={cn(
                 'h-4 w-4 transition-colors',
-                isChatbotOpen ? 'text-primary fill-primary stroke-1' : 'text-muted-foreground',
+                isChatbotOpen ? 'text-primary fill-primary/10' : 'text-muted-foreground',
               )}
             />
           </button>
