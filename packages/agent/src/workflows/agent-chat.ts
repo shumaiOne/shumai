@@ -92,7 +92,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     const teamId = asset.project.teamId
 
     // 4. Initialize Session if missing
-    let isNewChat = !payload.agent?.sessionId
+    let isNewChat = !payload.agent?.sessionId || payload.agent?.isNewChat === true
     if (!sessionId) {
       if (!userCommentId) {
         throw ApplicationFailure.create({

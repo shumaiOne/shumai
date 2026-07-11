@@ -135,10 +135,9 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
   const agentDir = path.join(process.cwd(), '.pi', 'agents', agentId)
   if (!fs.existsSync(agentDir)) fs.mkdirSync(agentDir, { recursive: true })
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const model =
     getModelFromDb(params.providers, providerName, modelId) ||
-    (getModel as any)(providerName, modelId)
+    (getModel as unknown as (p: string, m: string) => unknown)(providerName, modelId)
 
   const piDir = path.join(process.cwd(), '.pi')
   if (!fs.existsSync(piDir)) fs.mkdirSync(piDir, { recursive: true })

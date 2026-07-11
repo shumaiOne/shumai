@@ -1,7 +1,7 @@
 import {
-    type AgentMessage,
-    type AgentTool,
-    type SessionTreeEntry,
+  type AgentMessage,
+  type AgentTool,
+  type SessionTreeEntry,
 } from '@earendil-works/pi-agent-core'
 import { type ImageContent } from '@earendil-works/pi-ai'
 import { assetService } from '@shumai/core/src/asset/asset'
@@ -18,10 +18,10 @@ import { generateKeyBetween } from 'jittered-fractional-indexing'
 import { ulid } from 'ulid'
 import { DatabaseSessionStorage } from '../database-session-storage'
 import {
-    createAgentSession,
-    fieldsToTypeBoxSchema,
-    type AutofillField,
-    type DbProviderInfo,
+  createAgentSession,
+  fieldsToTypeBoxSchema,
+  type AutofillField,
+  type DbProviderInfo,
 } from '../index'
 
 import { UpdateAssetMetadataRequest } from '@shumai/dtos'

@@ -302,6 +302,7 @@ export class ChatService {
               agentId,
               sessionId: activeSessionId,
               userId: user.id,
+              isNewChat: !passedSessionId,
             },
           },
         },

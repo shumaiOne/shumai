@@ -293,6 +293,7 @@ declare global {
       imageUrls?: string[]
       attachedFiles?: string[]
       assetIds?: string[]
+      isNewChat?: boolean
     }
 
     // ----------------------------------------------------------------------
