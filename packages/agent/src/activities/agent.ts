@@ -58,6 +58,7 @@ async function executeAgentPrompt(params: {
   userCommentId?: string | null
   tools?: AgentTool[]
   context: AgentExecutionContext
+  attachedAssets?: Array<{ id: string; name: string; type: string }>
 }): Promise<{ text: string; usage: Usage; sessionId: string }> {
   const { agent, dbProviders, teamSkills, allowedDomains } = params.context
 
@@ -157,6 +158,21 @@ If you need to create files in the local filesystem (for example, a temporary fi
       } as unknown as SessionTreeEntry)
     }
 
+    if (params.attachedAssets && params.attachedAssets.length > 0) {
+      const storage = session.getStorage()
+      const parentId = await storage.getLeafId()
+      await storage.appendEntry({
+        id: ulid(),
+        type: 'custom',
+        parentId,
+        timestamp: new Date().toISOString(),
+        customType: 'context_display_info',
+        data: {
+          assets: params.attachedAssets,
+        },
+      } as unknown as SessionTreeEntry)
+    }
+
     const assistantMessage = await harness.prompt(params.prompt, { images: imagesToPass })
 
     const sessionEntries = await session.getEntries()
@@ -219,6 +235,7 @@ export interface AgentChatParams {
   userCommentId?: string | null
   explicitMention?: boolean
   context: AgentExecutionContext
+  attachedAssets?: Array<{ id: string; name: string; type: string }>
 }
 
 export async function agentChatActivity(params: AgentChatParams) {
@@ -235,6 +252,7 @@ export async function agentChatActivity(params: AgentChatParams) {
     userId: params.userId,
     userCommentId: params.userCommentId,
     context: params.context,
+    attachedAssets: params.attachedAssets,
   })
 }
 

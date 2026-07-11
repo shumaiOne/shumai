@@ -38,6 +38,14 @@ export function buildSessionMessages(pathEntries: PathEntry[]): ChatMessage[] {
         details: entry.details as Record<string, unknown> | undefined,
         timestamp: timestampMs,
       } as unknown as ChatMessage)
+    } else if (entry.type === 'custom') {
+      messages.push({
+        id: entry.id,
+        role: 'custom',
+        customType: entry.customType,
+        details: (entry as { data?: unknown }).data as Record<string, unknown> | undefined,
+        timestamp: timestampMs,
+      } as unknown as ChatMessage)
     } else if (entry.type === 'branch_summary') {
       messages.push({
         id: entry.id,

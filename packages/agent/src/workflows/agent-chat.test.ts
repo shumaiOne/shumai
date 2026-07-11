@@ -488,6 +488,10 @@ describe('Agent Chat Workflow', () => {
       userCommentId: undefined,
       explicitMention: true,
       context: { agent: { id: 'b1' } },
+      attachedAssets: [
+        { id: 'file-attachment-1', name: 'attachment.png', type: 'file' },
+        { id: 'referenced-asset-1', name: 'ref-folder', type: 'folder' },
+      ],
     })
   })
 })

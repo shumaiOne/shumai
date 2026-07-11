@@ -314,11 +314,36 @@ describe('ChatService', () => {
       },
     })
 
-    // Verify listMessages returns only the user and thinking level change message, hiding the context message
+    // 4. Manually insert a test entry representing custom context_display_info entry
+    await prisma.agentSessionEntry.create({
+      data: {
+        id: 'test-entry-4-display',
+        sessionId,
+        entry: {
+          type: 'custom',
+          id: 'test-entry-4-display',
+          parentId: 'test-entry-3-thinking',
+          timestamp: new Date().toISOString(),
+          customType: 'context_display_info',
+          data: {
+            assets: [{ id: 'a1', name: 'File A', type: 'file' }],
+          },
+        } as unknown as PrismaJson.PiSessionEntry,
+      },
+    })
+
+    // Verify listMessages returns only the user, thinking level change and custom display entry message
     const messages = await chatService.listMessages(user.id, sessionId)
-    expect(messages).toHaveLength(2)
+    expect(messages).toHaveLength(3)
     expect(messages[0].id).toBe('test-entry-1-user')
     expect(messages[1].id).toBe('test-entry-3-thinking')
+    expect(messages[2].id).toBe('test-entry-4-display')
+    expect(messages[2].role).toBe('custom')
+    expect((messages[2] as { customType?: string }).customType).toBe('context_display_info')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((messages[2] as any).details).toEqual({
+      assets: [{ id: 'a1', name: 'File A', type: 'file' }],
+    })
 
     // Verify mapEntryToMessage returns null for context message
     const contextRecord = await prisma.agentSessionEntry.findUnique({
