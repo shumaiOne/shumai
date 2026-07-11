@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useDroppable } from '@dnd-kit/react'
 import { useChatbotStore } from '@/ui/stores/chatbot'
-import { Bot, Send, History, Plus, Trash2, Loader2, ArrowLeft } from 'lucide-react'
+import { Bot, ArrowUp, History, Plus, Trash2, Loader2, ArrowLeft } from 'lucide-react'
 import { cn } from '@/ui/lib/utils'
 import { m } from '@/ui/paraglide/messages.js'
 import { ScrollArea } from '@/ui/components/ui/scroll-area'
@@ -269,51 +269,61 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
             )}
           </ScrollArea>
 
-          {/* Context assets above input area */}
-          <div className="p-4 border-t border-border flex-shrink-0 bg-background flex flex-col gap-2 min-h-0">
-            {chatAssets.length > 0 && (
-              <div className="flex flex-col gap-1.5 min-h-0 max-h-[160px] overflow-y-auto border border-border rounded-md bg-muted/10 p-2 divide-y divide-border/50">
-                {chatAssets.map((asset) => (
-                  <div
-                    key={asset.id}
-                    className="flex items-center justify-between py-1.5 text-xs group"
-                  >
-                    <div className="flex items-baseline gap-1.5 min-w-0 pr-2">
-                      <span className="truncate font-medium text-foreground">{asset.name}</span>
-                      <span className="text-[9px] text-muted-foreground uppercase flex-shrink-0">
-                        {asset.type}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => removeAsset(asset.id)}
-                      className="text-muted-foreground hover:text-destructive transition-colors p-0.5"
-                      title={m.remove_from_context()}
+          {/* Input Area (nested inside the border exactly like comment input) */}
+          <div className="p-4 border-t border-border flex-shrink-0 bg-background">
+            <div className="relative flex flex-col w-full border border-foreground/20 rounded-2xl shadow-xs transition-all duration-200 focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent bg-background overflow-hidden">
+              {/* Context assets list at the top inside the border */}
+              {chatAssets.length > 0 && (
+                <div className="flex flex-col gap-1.5 min-h-0 max-h-[160px] overflow-y-auto border-b border-border bg-muted/5 p-3 divide-y divide-border/50">
+                  {chatAssets.map((asset) => (
+                    <div
+                      key={asset.id}
+                      className="flex items-center justify-between py-1.5 text-xs group"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+                      <div className="flex items-baseline gap-1.5 min-w-0 pr-2">
+                        <span className="truncate font-medium text-foreground">{asset.name}</span>
+                        <span className="text-[9px] text-muted-foreground uppercase flex-shrink-0">
+                          {asset.type}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => removeAsset(asset.id)}
+                        className="text-muted-foreground hover:text-destructive transition-colors p-0.5"
+                        title={m.remove_from_context()}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-            {/* Input area */}
-            <div className="flex items-end gap-2">
+              {/* Textarea inside the border */}
               <textarea
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Type a message..."
                 rows={2}
-                className="flex-1 min-h-[44px] max-h-[120px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+                className="w-full bg-transparent border-none focus:ring-0 focus:outline-hidden resize-none min-h-[44px] max-h-[120px] px-3 py-2 text-sm focus-visible:outline-hidden focus:ring-transparent focus:border-transparent focus-visible:ring-0"
                 disabled={isStreaming}
               />
-              <button
-                onClick={handleSend}
-                disabled={isStreaming || !inputText.trim()}
-                className="h-9 w-9 flex items-center justify-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 shadow-sm"
-              >
-                <Send className="h-4 w-4" />
-              </button>
+
+              {/* Bottom row inside the border containing the send button */}
+              <div className="flex justify-end items-center px-3 pb-2 pt-1">
+                <button
+                  onClick={handleSend}
+                  disabled={isStreaming || !inputText.trim()}
+                  className={cn(
+                    'p-2 rounded-full transition-all duration-200 flex items-center justify-center shrink-0 shadow-sm',
+                    inputText.trim() && !isStreaming
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/95 transform hover:-translate-y-0.5'
+                      : 'bg-muted text-muted-foreground cursor-not-allowed opacity-50',
+                  )}
+                >
+                  <ArrowUp className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </div>
         </>
