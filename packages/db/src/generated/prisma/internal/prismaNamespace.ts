@@ -3308,6 +3308,7 @@ export const AgentSessionScalarFieldEnum = {
   leafId: 'leafId',
   assetId: 'assetId',
   userCommentId: 'userCommentId',
+  type: 'type',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -3726,6 +3727,20 @@ export type EnumAgentTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$Prisma
  * Reference to a field of type 'AgentType[]'
  */
 export type ListEnumAgentTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AgentType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'AgentSessionType'
+ */
+export type EnumAgentSessionTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AgentSessionType'>
+    
+
+
+/**
+ * Reference to a field of type 'AgentSessionType[]'
+ */
+export type ListEnumAgentSessionTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AgentSessionType[]'>
     
 
 /**

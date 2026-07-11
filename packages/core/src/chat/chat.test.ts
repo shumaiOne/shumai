@@ -202,7 +202,7 @@ describe('ChatService', () => {
     expect(taskPayload?.agent?.imageUrls).toContain('doc_s3_key')
   })
 
-  it('should list sessions of a user', async () => {
+  it('should list sessions of a user and only return chat type sessions', async () => {
     const { user, project } = await setupBasicData()
 
     await chatService.startOrContinueChat(user, {
@@ -213,6 +213,17 @@ describe('ChatService', () => {
     await chatService.startOrContinueChat(user, {
       textPrompt: 'chat 2',
       projectId: project.id,
+    })
+
+    // Create a comment type session (which should be ignored by listSessions)
+    const defaultAgent = await prisma.agent.findFirst()
+    await prisma.agentSession.create({
+      data: {
+        agentId: defaultAgent ? defaultAgent.id : 'default',
+        userId: user.id,
+        cwd: process.cwd(),
+        type: 'comment',
+      },
     })
 
     const list = await chatService.listSessions(user.id, { first: 10 })

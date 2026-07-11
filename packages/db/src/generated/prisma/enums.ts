@@ -153,3 +153,11 @@ export const AgentType = {
 } as const
 
 export type AgentType = (typeof AgentType)[keyof typeof AgentType]
+
+
+export const AgentSessionType = {
+  comment: 'comment',
+  chat: 'chat'
+} as const
+
+export type AgentSessionType = (typeof AgentSessionType)[keyof typeof AgentSessionType]

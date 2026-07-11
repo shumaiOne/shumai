@@ -278,6 +278,7 @@ export class ChatService {
             userId: user.id,
             cwd: process.cwd(),
             assetId: asset.id,
+            type: 'chat',
           },
         })
         activeSessionId = newSession.id
@@ -319,6 +320,7 @@ export class ChatService {
   ): Promise<PaginatedData<ChatSessionInfo[]>> {
     const where: Prisma.AgentSessionWhereInput = {
       userId,
+      type: 'chat',
     }
 
     return await paginateQuery(

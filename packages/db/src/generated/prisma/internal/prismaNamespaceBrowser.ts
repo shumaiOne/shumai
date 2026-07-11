@@ -493,6 +493,7 @@ export const AgentSessionScalarFieldEnum = {
   leafId: 'leafId',
   assetId: 'assetId',
   userCommentId: 'userCommentId',
+  type: 'type',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
