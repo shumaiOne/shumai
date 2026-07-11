@@ -819,5 +819,12 @@
   "created_by_at": "{time} 由 {author} 创建",
   "date_format_long": "yyyy年M月d日",
   "tool_result_with_name": "工具结果：{name}",
-  "reply_to_message": "回复：{message}"
+  "reply_to_message": "回复：{message}",
+  "chatbot_context": "聊天机器人上下文",
+  "clear": "清空",
+  "chatbot_drag_drop_hint": "拖拽文件或文件夹到此处以添加到聊天机器人上下文",
+  "context_assets_count": "上下文资源 ({count})",
+  "remove_from_context": "从上下文中移除",
+  "hide_chatbot": "隐藏聊天机器人",
+  "show_chatbot": "显示聊天机器人"
 }

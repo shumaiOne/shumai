@@ -11,6 +11,9 @@ import { FileDetailSkeleton } from '@/ui/components/loading-skeletons'
 import { useMemberStore } from '@/ui/stores/members'
 import { useTeamContextStore } from '@/ui/stores/team-context'
 import { useTopNavStore } from '@/ui/stores/top-nav'
+import { useUiStore } from '@/ui/stores/ui'
+import { useChatbotStore } from '@/ui/stores/chatbot'
+import { ChatbotSidebar } from '@/ui/components/chatbot-sidebar'
 import { type Annotation } from '@/ui/types'
 import { useMutation } from '@tanstack/react-query'
 import { InferRequestType, InferResponseType } from 'hono/client'
@@ -37,6 +40,8 @@ function FileViewPage() {
   const { teamId, ensureTeamIdForProject } = useTeamContextStore()
   const [rightSidebarWidth, setRightSidebarWidth] = useState(360)
   const [annotations, setAnnotations] = useState<Annotation[]>([])
+  const { fileViewRightSidebarCollapsed } = useUiStore()
+  const { isChatbotOpen } = useChatbotStore()
   const [currentTime, setCurrentTime] = useState(0)
   const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null)
   const [compareActiveAsset, setCompareActiveAsset] = useState<AssetInfo | null>(null)
@@ -431,29 +436,40 @@ function FileViewPage() {
             </FileViewer>
           )}
         </div>
-        <ResizeHandle
-          onResize={(delta) => {
-            setRightSidebarWidth((prev) => Math.max(300, Math.min(600, prev - delta)))
-          }}
-          className="hidden md:block"
-        />
-        <div style={{ width: rightSidebarWidth }} className="flex-shrink-0">
-          <FileViewerRightSidebar
-            teamId={teamId}
-            projectId={projectId}
-            file={sidebarFile}
-            onSaveField={handleSaveField}
-            members={members}
-            onCommentSelect={handleCommentSelect}
-            currentTime={currentTime}
-            onTyping={() => {
-              if (isCompareMode) return
-              mediaControllerRef.current?.pause()
-            }}
-            selectedCommentId={selectedCommentId}
-            hideAnnotationControl={sidebarFile?.mediaType?.startsWith('audio/')}
-          />
-        </div>
+        {(!fileViewRightSidebarCollapsed || isChatbotOpen) && (
+          <>
+            <ResizeHandle
+              onResize={(delta) => {
+                setRightSidebarWidth((prev) => Math.max(300, Math.min(600, prev - delta)))
+              }}
+              className="hidden md:block"
+            />
+            <div
+              style={{ width: rightSidebarWidth }}
+              className="flex-shrink-0 bg-background border-l border-border flex flex-col"
+            >
+              {isChatbotOpen ? (
+                <ChatbotSidebar />
+              ) : (
+                <FileViewerRightSidebar
+                  teamId={teamId}
+                  projectId={projectId}
+                  file={sidebarFile}
+                  onSaveField={handleSaveField}
+                  members={members}
+                  onCommentSelect={handleCommentSelect}
+                  currentTime={currentTime}
+                  onTyping={() => {
+                    if (isCompareMode) return
+                    mediaControllerRef.current?.pause()
+                  }}
+                  selectedCommentId={selectedCommentId}
+                  hideAnnotationControl={sidebarFile?.mediaType?.startsWith('audio/')}
+                />
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

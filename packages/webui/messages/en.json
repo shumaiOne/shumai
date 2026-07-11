@@ -819,5 +819,12 @@
   "created_by_at": "{time} by {author}",
   "date_format_long": "MMMM d, yyyy",
   "tool_result_with_name": "Tool Result: {name}",
-  "reply_to_message": "reply to: {message}"
+  "reply_to_message": "reply to: {message}",
+  "chatbot_context": "Chatbot Context",
+  "clear": "Clear",
+  "chatbot_drag_drop_hint": "Drag and drop files or folders here to add them to chatbot context",
+  "context_assets_count": "Context Assets ({count})",
+  "remove_from_context": "Remove from context",
+  "hide_chatbot": "Hide Chatbot",
+  "show_chatbot": "Show Chatbot"
 }

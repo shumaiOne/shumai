@@ -25,6 +25,8 @@ import { FileViewerRightSidebar } from './file-viewer-right-sidebar'
 import { FolderTree } from './folder-tree'
 import { ResizeHandle } from './resize-handle'
 import { useFileSystemDnd } from './use-file-system-dnd'
+import { useChatbotStore } from '@/ui/stores/chatbot'
+import { ChatbotSidebar } from './chatbot-sidebar'
 
 type FileSystemManagerProps = {
   teamId: string
@@ -87,6 +89,7 @@ export default function FileSystemManager({
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null)
   const [leftSidebarWidth, setLeftSidebarWidth] = useState(240)
   const [rightSidebarWidth, setRightSidebarWidth] = useState(360)
+  const { isChatbotOpen } = useChatbotStore()
 
   const { members, fetchMembers } = useMemberStore()
   const { metadata, fetchMetadata, setMetadata: setUserMetadata } = useUserMetadataStore()
@@ -433,10 +436,13 @@ export default function FileSystemManager({
               onClick={() => setIsLeftSidebarCollapsed(true)}
             />
           )}
-          {!isRightSidebarCollapsed && (
+          {(!isRightSidebarCollapsed || isChatbotOpen) && (
             <div
               className="md:hidden fixed inset-0 bg-black/50 z-40"
-              onClick={() => setIsRightSidebarCollapsed(true)}
+              onClick={() => {
+                setIsRightSidebarCollapsed(true)
+                useChatbotStore.getState().setIsChatbotOpen(false)
+              }}
             />
           )}
 
@@ -495,7 +501,7 @@ export default function FileSystemManager({
             rootFolderId={rootFolderId}
           />
 
-          {!isRightSidebarCollapsed && (
+          {(!isRightSidebarCollapsed || isChatbotOpen) && (
             <>
               <ResizeHandle
                 onResize={(delta) => {
@@ -507,7 +513,9 @@ export default function FileSystemManager({
                 style={{ width: rightSidebarWidth }}
                 className="bg-background border-l border-border flex flex-col flex-shrink-0"
               >
-                {singleSelectedFile ? (
+                {isChatbotOpen ? (
+                  <ChatbotSidebar />
+                ) : singleSelectedFile ? (
                   <FileViewerRightSidebar
                     teamId={teamId}
                     projectId={projectId}

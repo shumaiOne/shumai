@@ -9,6 +9,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/react'
 import type { DragState } from './dnd-types'
+import { useChatbotStore } from '@/ui/stores/chatbot'
 
 interface UseFileSystemDndProps {
   teamId: string
@@ -187,6 +188,24 @@ export function useFileSystemDnd({
     if (target && dragState) {
       const targetId = (target.id as string).split(':').pop()!
       const targetData = target.data as { type: string; item: AssetInfo } | undefined
+
+      if (targetData?.type === 'chatbot-sidebar') {
+        const draggedItems = [...folders, ...files].filter((item) =>
+          dragState.draggedIds.has(item.id!),
+        )
+
+        const chatAssets = draggedItems.map((item) => ({
+          id: item.id!,
+          name: item.name || 'Unnamed',
+          type: item.type as 'file' | 'folder',
+        }))
+
+        useChatbotStore.getState().addAssets(chatAssets)
+        toast.success(`Added ${chatAssets.length} item(s) to chatbot context`)
+        onClearSelection()
+        setDragState(undefined)
+        return
+      }
 
       if (targetData?.type === 'share-link') {
         const shareId = targetId
