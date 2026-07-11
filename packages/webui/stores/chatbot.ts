@@ -199,8 +199,7 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
                   const isExisting = s.messages.some((m) => m.id === entry.id)
                   // Replace temp/optimistic message when the real user message streams back
                   const filtered = s.messages.filter(
-                    (m) =>
-                      !(entry.role === 'user' && !isExisting && m.id.startsWith('temp-')),
+                    (m) => !(entry.role === 'user' && !isExisting && m.id.startsWith('temp-')),
                   )
 
                   // Prevent duplicates by ID

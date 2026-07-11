@@ -90,12 +90,20 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
   }
 
   const renderMessage = (msg: ChatMessage) => {
-    if (msg.role === 'custom' && (msg as { customType?: string }).customType === 'context_display_info') {
-      const details = msg.details as { assets?: Array<{ id: string; name: string; type: string }> } | undefined
+    if (
+      msg.role === 'custom' &&
+      (msg as { customType?: string }).customType === 'context_display_info'
+    ) {
+      const details = msg.details as
+        | { assets?: Array<{ id: string; name: string; type: string }> }
+        | undefined
       const assets = details?.assets || []
       if (assets.length === 0) return null
       return (
-        <div key={msg.id} className="text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-lg border border-border/50 space-y-1 my-1">
+        <div
+          key={msg.id}
+          className="text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-lg border border-border/50 space-y-1 my-1"
+        >
           <div className="font-semibold">{m.assets_added_to_context()}</div>
           <ul className="list-disc list-inside space-y-0.5">
             {assets.map((asset) => (

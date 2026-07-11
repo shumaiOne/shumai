@@ -106,7 +106,9 @@ describe('useChatbotStore', () => {
     const stateWithOptimistic = useChatbotStore.getState()
     expect(stateWithOptimistic.messages).toHaveLength(1)
     expect(stateWithOptimistic.messages[0].id).toContain('temp-')
-    expect((stateWithOptimistic.messages[0] as { content: unknown }).content).toEqual([{ type: 'text', text: 'hello' }])
+    expect((stateWithOptimistic.messages[0] as { content: unknown }).content).toEqual([
+      { type: 'text', text: 'hello' },
+    ])
     expect(stateWithOptimistic.isStreaming).toBe(true)
 
     await sendPromise

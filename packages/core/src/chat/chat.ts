@@ -100,7 +100,10 @@ export function mapEntryToMessage(
   entryRecord: Prisma.AgentSessionEntryGetPayload<Record<string, never>>,
 ): ChatMessage | null {
   const entryObj = entryRecord.entry as unknown as SessionTreeEntry
-  if (entryObj.type === 'custom_message' && (entryObj as { customType?: string }).customType === 'context') {
+  if (
+    entryObj.type === 'custom_message' &&
+    (entryObj as { customType?: string }).customType === 'context'
+  ) {
     return null
   }
   const pathEntries = [{ ...entryObj, id: entryRecord.id }]

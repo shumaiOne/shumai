@@ -150,7 +150,11 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
           referencedAssetDetailsList.push(
             `- Name: ${referencedAsset.name} (ID: ${referencedAsset.id}, Type: ${referencedAsset.type}, Media Type: ${referencedAsset.mediaType || 'unknown'}, Project ID: ${referencedAsset.projectId || 'unknown'}, Path: ${path})`,
           )
-          attachedAssets.push({ id: referencedAsset.id, name: referencedAsset.name, type: referencedAsset.type })
+          attachedAssets.push({
+            id: referencedAsset.id,
+            name: referencedAsset.name,
+            type: referencedAsset.type,
+          })
         }
       }
     }
