@@ -114,6 +114,7 @@ async function run() {
 
   const server = Bun.serve({
     port,
+    idleTimeout: 120,
     maxRequestBodySize: process.env.MAX_REQUEST_BODY_SIZE
       ? parseInt(process.env.MAX_REQUEST_BODY_SIZE)
       : 1024 * 1024 * 1024 * 10, // Default 10GB
