@@ -183,4 +183,72 @@ describe('useChatbotStore', () => {
     expect(finalState.messages[0].id).toBe('user-msg-ulid-old')
     expect(finalState.messages[1].id).toBe('user-msg-ulid-new')
   })
+
+  it('should create optimistic context display message when sending with assets', async () => {
+    // 1. Setup chatAssets in store
+    useChatbotStore.setState({
+      chatAssets: [{ id: 'asset-1', name: 'File 1.txt', type: 'file' }],
+    })
+
+    // 2. Mock POST response with context_display_info entry streaming back
+    const mockEvents = [
+      'data: {"type":"session","sessionId":"sess-123"}\n\n',
+      'data: {"type":"entry","entry":{"id":"context-display-ulid","role":"custom","customType":"context_display_info","details":{"assets":[{"id":"asset-1","name":"File 1.txt","type":"file"}]},"timestamp":120}}\n\n',
+      'data: {"type":"entry","entry":{"id":"user-msg-ulid","role":"user","content":[{"type":"text","text":"hello"}],"timestamp":123}}\n\n',
+      'data: {"type":"done","status":"completed"}\n\n',
+    ]
+
+    let eventIdx = 0
+    const mockReader = {
+      read: vi.fn(async () => {
+        if (eventIdx < mockEvents.length) {
+          const value = new TextEncoder().encode(mockEvents[eventIdx++])
+          return { done: false, value }
+        }
+        return { done: true, value: undefined }
+      }),
+    }
+
+    const mockResponse = {
+      ok: true,
+      headers: {
+        get: vi.fn(() => 'sess-123'),
+      },
+      body: {
+        getReader: () => mockReader,
+      },
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(client.api.chat.$post).mockResolvedValue(mockResponse as any)
+
+    const sendPromise = useChatbotStore.getState().sendMessage('hello', 'proj-123')
+
+    // 3. Verify that both the optimistic context message and user message are present immediately
+    const stateWithOptimistic = useChatbotStore.getState()
+    expect(stateWithOptimistic.messages).toHaveLength(2)
+
+    // First message should be the optimistic context_display_info
+    expect(stateWithOptimistic.messages[0].id).toContain('temp-context-')
+    expect(stateWithOptimistic.messages[0].role).toBe('custom')
+    expect((stateWithOptimistic.messages[0] as { customType?: string }).customType).toBe(
+      'context_display_info',
+    )
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((stateWithOptimistic.messages[0] as any).details).toEqual({
+      assets: [{ id: 'asset-1', name: 'File 1.txt', type: 'file' }],
+    })
+
+    // Second message should be the optimistic user message
+    expect(stateWithOptimistic.messages[1].id).toContain('temp-')
+    expect(stateWithOptimistic.messages[1].role).toBe('user')
+
+    await sendPromise
+
+    // 4. Verify they are replaced correctly by the real backend entries
+    const finalState = useChatbotStore.getState()
+    expect(finalState.messages).toHaveLength(2)
+    expect(finalState.messages[0].id).toBe('context-display-ulid')
+    expect(finalState.messages[1].id).toBe('user-msg-ulid')
+  })
 })

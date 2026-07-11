@@ -136,8 +136,28 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
       timestamp: Date.now(),
     } as unknown as ChatMessage
 
+    const newMessages = [...state.messages]
+    if (state.chatAssets.length > 0) {
+      const tempContextId = `temp-context-${Date.now()}`
+      const optimisticContextMsg = {
+        id: tempContextId,
+        role: 'custom' as const,
+        customType: 'context_display_info',
+        details: {
+          assets: state.chatAssets.map((a) => ({
+            id: a.id,
+            name: a.name,
+            type: a.type,
+          })),
+        },
+        timestamp: Date.now() - 1,
+      } as unknown as ChatMessage
+      newMessages.push(optimisticContextMsg)
+    }
+    newMessages.push(optimisticMsg)
+
     set({
-      messages: [...state.messages, optimisticMsg],
+      messages: newMessages,
       isStreaming: true,
       chatAssets: [],
     })
@@ -197,10 +217,20 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
                 const entry = data.entry as ChatMessage
                 set((s) => {
                   const isExisting = s.messages.some((m) => m.id === entry.id)
-                  // Replace temp/optimistic message when the real user message streams back
-                  const filtered = s.messages.filter(
-                    (m) => !(entry.role === 'user' && !isExisting && m.id.startsWith('temp-')),
-                  )
+                  // Replace temp/optimistic message when the real counterpart streams back
+                  const filtered = s.messages.filter((m) => {
+                    if (entry.role === 'user' && !isExisting) {
+                      return !(m.id.startsWith('temp-') && !m.id.startsWith('temp-context-'))
+                    }
+                    if (
+                      entry.role === 'custom' &&
+                      entry.customType === 'context_display_info' &&
+                      !isExisting
+                    ) {
+                      return !m.id.startsWith('temp-context-')
+                    }
+                    return true
+                  })
 
                   // Prevent duplicates by ID
                   const existingIdx = filtered.findIndex((m) => m.id === entry.id)
