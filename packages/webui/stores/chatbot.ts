@@ -200,7 +200,6 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
                   // Replace temp/optimistic message when the real user message streams back
                   const filtered = s.messages.filter(
                     (m) =>
-                      m.id !== entry.id &&
                       !(entry.role === 'user' && !isExisting && m.id.startsWith('temp-')),
                   )
 
