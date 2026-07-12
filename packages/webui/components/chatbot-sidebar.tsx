@@ -176,23 +176,29 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
               const toolName = String(b.name || b.toolName || m.unknown())
               const toolArgs = b.arguments || b.args
               renderedBlocks.push(
-                <div
+                <details
                   key={`tool-${idx}`}
-                  className="flex flex-col gap-1.5 border border-border/50 rounded-lg bg-violet-500/5 p-2.5 my-2"
+                  className="group border border-border/50 rounded-lg bg-violet-500/5 my-2 overflow-hidden"
                 >
-                  <div className="flex items-center gap-2 text-xs font-semibold text-violet-600 dark:text-violet-400">
+                  <summary className="flex items-center gap-2 p-2.5 text-xs font-semibold text-violet-600 dark:text-violet-400 select-none cursor-pointer hover:bg-violet-500/10 transition-colors list-none [&::-webkit-details-marker]:hidden">
                     <Wrench className="h-3.5 w-3.5" />
                     <span>{m.calling_tool()}</span>
                     <span className="font-mono bg-violet-500/10 px-1.5 py-0.5 rounded text-[11px] text-violet-700 dark:text-violet-300">
                       {toolName}
                     </span>
-                  </div>
+                    <ChevronDown className="h-3 w-3 ml-auto transition-transform group-open:rotate-180" />
+                  </summary>
                   {!!toolArgs && (
-                    <pre className="text-[10px] font-mono bg-muted/30 p-2 rounded border border-border/30 overflow-x-auto text-muted-foreground max-h-32">
-                      {JSON.stringify(toolArgs, null, 2)}
-                    </pre>
+                    <div className="p-3 pt-0 text-[10px] text-muted-foreground/90 border-t border-border/40 bg-violet-500/5 font-sans">
+                      <div className="text-[9px] text-muted-foreground/60 uppercase font-bold tracking-wider mb-1.5">
+                        {m.tool_arguments() || 'Arguments'}
+                      </div>
+                      <pre className="font-mono bg-muted/30 p-2 rounded border border-border/30 overflow-x-auto max-h-32">
+                        {JSON.stringify(toolArgs, null, 2)}
+                      </pre>
+                    </div>
                   )}
-                </div>,
+                </details>,
               )
               break
             }
@@ -233,12 +239,27 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
 
         if (renderedBlocks.length === 0) return null
 
+        let shouldShowFooter = false
+        if (content.length > 0) {
+          const lastBlock = content[content.length - 1]
+          if (typeof lastBlock === 'string' && lastBlock.trim().length > 0) {
+            shouldShowFooter = true
+          } else if (lastBlock && typeof lastBlock === 'object') {
+            const lb = lastBlock as Record<string, unknown>
+            if (lb.type === 'text' && typeof lb.text === 'string' && lb.text.trim().length > 0) {
+              shouldShowFooter = true
+            }
+          }
+        }
+
         return (
           <div key={msg.id} className="flex flex-col w-full space-y-1">
             <div className="space-y-2 w-full">{renderedBlocks}</div>
-            <div className="text-[10px] text-muted-foreground self-start italic pt-1">
-              {m.created_by_agent()}
-            </div>
+            {shouldShowFooter && (
+              <div className="text-[10px] text-muted-foreground self-start italic pt-1">
+                {m.created_by_agent()}
+              </div>
+            )}
           </div>
         )
       }
