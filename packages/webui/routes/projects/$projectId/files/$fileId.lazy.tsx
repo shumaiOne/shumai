@@ -1,29 +1,29 @@
-import { createLazyFileRoute } from '@tanstack/react-router'
 import { client } from '@/ui/api/client'
-import { FileViewer } from '@/ui/components/file-viewer'
-import { CompareViewer } from '@/ui/components/compare/compare-viewer'
+import { ChatbotSidebar } from '@/ui/components/chatbot-sidebar'
 import { pickDefaultCompareVersions } from '@/ui/components/compare/compare-utils'
+import { CompareViewer } from '@/ui/components/compare/compare-viewer'
+import { FileViewer } from '@/ui/components/file-viewer'
 import { FileViewerLeftSidebar } from '@/ui/components/file-viewer-left-sidebar'
-import { m } from '@/ui/paraglide/messages.js'
 import { FileViewerRightSidebar } from '@/ui/components/file-viewer-right-sidebar'
-import { ResizeHandle } from '@/ui/components/resize-handle'
 import { FileDetailSkeleton } from '@/ui/components/loading-skeletons'
+import { ResizeHandle } from '@/ui/components/resize-handle'
+import { m } from '@/ui/paraglide/messages.js'
+import { useChatbotStore } from '@/ui/stores/chatbot'
 import { useMemberStore } from '@/ui/stores/members'
 import { useTeamContextStore } from '@/ui/stores/team-context'
 import { useTopNavStore } from '@/ui/stores/top-nav'
 import { useUiStore } from '@/ui/stores/ui'
-import { useChatbotStore } from '@/ui/stores/chatbot'
-import { ChatbotSidebar } from '@/ui/components/chatbot-sidebar'
 import { type Annotation } from '@/ui/types'
 import { useMutation } from '@tanstack/react-query'
+import { createLazyFileRoute } from '@tanstack/react-router'
 import { InferRequestType, InferResponseType } from 'hono/client'
 
+import type { MediaController } from '@/ui/components/viewers/types'
 import type { AssetInfo, AssetInfoPaginatedList, CommentInfo } from '@shumai/dtos'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import type { MediaController } from '@/ui/components/viewers/types'
 
 function FileViewPage() {
   const { projectId, fileId } = Route.useParams()
@@ -446,7 +446,7 @@ function FileViewPage() {
             />
             <div
               style={{ width: rightSidebarWidth }}
-              className="flex-shrink-0 bg-background border-l border-border flex flex-col"
+              className="flex-shrink-0 bg-background flex flex-col"
             >
               {isChatbotOpen ? (
                 <ChatbotSidebar projectId={projectId} contextAssetId={activeFileId} />

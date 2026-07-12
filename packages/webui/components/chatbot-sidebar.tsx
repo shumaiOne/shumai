@@ -7,6 +7,7 @@ import type { ChatMessage } from '@shumai/dtos'
 import { ArrowLeft, ArrowUp, Bot, History, Loader2, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
+import { formatTimeAgo } from '../lib/time'
 
 interface ChatbotSidebarProps {
   projectId: string
@@ -135,7 +136,19 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
       return (
         <div key={msg.id} className="flex flex-col w-full space-y-1">
           <div className="text-sm leading-[1.8] prose prose-sm dark:prose-invert max-w-none break-words">
-            <Markdown>{preprocessMarkdown(getMessageText(msg.content))}</Markdown>
+            <Markdown
+              components={{
+                // Intercept the <pre> tag
+                pre: ({ node, ...props }) => (
+                  <pre
+                    className="whitespace-pre-wrap break-all break-words bg-gray-100 p-4 rounded-md"
+                    {...props}
+                  />
+                ),
+              }}
+            >
+              {preprocessMarkdown(getMessageText(msg.content))}
+            </Markdown>
           </div>
           <div className="text-[10px] text-muted-foreground self-start italic">
             {m.created_by_agent()}
@@ -176,7 +189,7 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
     <div
       ref={setDroppableRef}
       className={cn(
-        'relative flex flex-col h-full bg-background transition-colors duration-200 min-h-0 border-l border-border',
+        'relative flex flex-col h-full bg-background transition-colors duration-200 min-h-0',
       )}
     >
       {isOver && (
@@ -191,11 +204,10 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
       )}
 
       {/* Header section */}
-      <div className="flex items-center justify-between p-4 flex-shrink-0">
+      <div className="flex items-center justify-between p-4 pt-[0.7rem] flex-shrink-0">
         {isHistoryMode ? (
           <>
             <div className="flex items-center gap-2 font-semibold">
-              <History className="h-5 w-5 text-primary" />
               <span>{m.history()}</span>
             </div>
             <button
@@ -209,7 +221,6 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
         ) : (
           <>
             <div className="flex items-center gap-2 font-semibold">
-              <Bot className="h-5 w-5 text-primary" />
               <span>{m.shumai_agent()}</span>
             </div>
             <div className="flex items-center gap-1">
@@ -249,9 +260,7 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
                     key={sess.id}
                     className={cn(
                       'group relative flex items-center justify-between p-3 border rounded-lg transition-all cursor-pointer bg-card',
-                      isActive
-                        ? 'border-primary ring-1 ring-primary'
-                        : 'border-border hover:bg-accent/30',
+                      isActive ? 'border-primary' : 'border-border hover:bg-accent/30',
                     )}
                   >
                     <div onClick={() => loadSession(sess.id)} className="flex-1 min-w-0 pr-6">
@@ -259,7 +268,7 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
                         {sess.name || m.new_chat()}
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5">
-                        {new Date(sess.createdAt).toLocaleString()}
+                        {formatTimeAgo(sess.createdAt)}
                       </div>
                     </div>
                     <button
@@ -283,7 +292,7 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
       ) : (
         <>
           {/* Active Chat view */}
-          <ScrollArea className="flex-1 p-4 min-h-0">
+          <ScrollArea className="flex-1 p-4 min-h-0 [&>div>div]:!block">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-48 border-2 border-dashed border-border rounded-lg text-muted-foreground p-4 text-center">
                 <Bot className="h-8 w-8 mb-2 opacity-50 text-muted-foreground" />
