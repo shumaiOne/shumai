@@ -1,7 +1,13 @@
 import { client } from '@/ui/api/client'
 import { usePermissions } from '@/ui/hooks/use-permissions'
 import { m } from '@/ui/paraglide/messages.js'
-import type { AssetInfo, AssetInfoPaginatedList, CollectionInfo, SearchCondition, SearchSort } from '@shumai/dtos'
+import type {
+  AssetInfo,
+  AssetInfoPaginatedList,
+  CollectionInfo,
+  SearchCondition,
+  SearchSort,
+} from '@shumai/dtos'
 import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
 import { useMutation } from '@tanstack/react-query'
 import { InferRequestType, InferResponseType } from 'hono/client'

@@ -4,7 +4,18 @@ import { m } from '@/ui/paraglide/messages.js'
 import { useChatbotStore } from '@/ui/stores/chatbot'
 import { useDroppable } from '@dnd-kit/react'
 import type { ChatMessage } from '@shumai/dtos'
-import { ArrowLeft, ArrowUp, Bot, History, Loader2, Plus, Trash2 } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowUp,
+  Bot,
+  Brain,
+  ChevronDown,
+  History,
+  Loader2,
+  Plus,
+  Trash2,
+  Wrench,
+} from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import { formatTimeAgo } from '../lib/time'
@@ -91,98 +102,200 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
   }
 
   const renderMessage = (msg: ChatMessage) => {
-    if (
-      msg.role === 'custom' &&
-      (msg as { customType?: string }).customType === 'context_display_info'
-    ) {
-      const details = msg.details as
-        | { assets?: Array<{ id: string; name: string; type: string }> }
-        | undefined
-      const assets = details?.assets || []
-      if (assets.length === 0) return null
-      return (
-        <div
-          key={msg.id}
-          className="text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-lg border border-border/50 space-y-1 my-1"
-        >
-          <div className="font-semibold">{m.assets_added_to_context()}</div>
-          <ul className="list-disc list-inside space-y-0.5">
-            {assets.map((asset) => (
-              <li key={asset.id} className="truncate">
-                {asset.name} <span className="text-muted-foreground/70">({asset.type})</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )
-    }
-
-    const isUser = msg.role === 'user'
-    const isAssistant = msg.role === 'assistant'
-    const isTool = msg.role === 'toolResult'
-    const isSystem = (msg.role as string) === 'thinking_level_change' || msg.role === 'custom'
-
-    if (isUser) {
-      return (
-        <div key={msg.id} className="flex justify-end w-full">
-          <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-[85%] text-sm whitespace-pre-wrap shadow-xs break-words">
-            {getMessageText(msg.content)}
+    switch (msg.role as string) {
+      case 'user': {
+        const msgObj = msg as unknown as Record<string, unknown>
+        return (
+          <div key={msg.id} className="flex justify-end w-full">
+            <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-[85%] text-sm whitespace-pre-wrap shadow-xs break-words">
+              {getMessageText(msgObj.content)}
+            </div>
           </div>
-        </div>
-      )
-    }
+        )
+      }
 
-    if (isAssistant) {
-      return (
-        <div key={msg.id} className="flex flex-col w-full space-y-1">
-          <div className="text-sm leading-[1.8] prose prose-sm dark:prose-invert max-w-none break-words">
-            <Markdown
-              components={{
-                // Intercept the <pre> tag
-                pre: ({ node, ...props }) => (
-                  <pre
-                    className="whitespace-pre-wrap break-all break-words bg-gray-100 p-4 rounded-md"
-                    {...props}
-                  />
-                ),
-              }}
+      case 'assistant': {
+        const msgObj = msg as unknown as Record<string, unknown>
+        const content = msgObj.content as unknown[]
+        if (!content) return null
+
+        const renderedBlocks: React.ReactNode[] = []
+
+        content.forEach((block: unknown, idx: number) => {
+          if (!block || typeof block !== 'object') return
+
+          const b = block as unknown as Record<string, unknown>
+
+          switch (b.type) {
+            case 'text': {
+              const text = b.text
+              if (typeof text !== 'string' || !text.trim()) return
+              renderedBlocks.push(
+                <div
+                  key={`txt-${idx}`}
+                  className="text-sm leading-[1.8] prose prose-sm dark:prose-invert max-w-none break-words"
+                >
+                  <Markdown
+                    components={{
+                      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                      pre: ({ node, ...props }) => (
+                        <pre
+                          className="whitespace-pre-wrap break-all break-words bg-gray-100 p-4 rounded-md"
+                          {...props}
+                        />
+                      ),
+                    }}
+                  >
+                    {preprocessMarkdown(text)}
+                  </Markdown>
+                </div>,
+              )
+              break
+            }
+            case 'thinking': {
+              const thinking = b.thinking
+              if (typeof thinking !== 'string' || !thinking.trim()) return
+              renderedBlocks.push(
+                <details
+                  key={`think-${idx}`}
+                  className="group border border-border/50 rounded-lg bg-muted/20 my-2 overflow-hidden"
+                >
+                  <summary className="flex items-center gap-2 p-2.5 text-xs font-medium text-muted-foreground select-none cursor-pointer hover:bg-muted/40 transition-colors list-none [&::-webkit-details-marker]:hidden">
+                    <Brain className="h-3.5 w-3.5 text-primary/70 animate-pulse" />
+                    <span>{m.role_thinking() || 'Thinking'}</span>
+                    <ChevronDown className="h-3 w-3 ml-auto transition-transform group-open:rotate-180" />
+                  </summary>
+                  <div className="p-3 pt-0 text-xs text-muted-foreground/90 border-t border-border/40 bg-muted/10 leading-relaxed prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap font-sans">
+                    <Markdown>{preprocessMarkdown(thinking)}</Markdown>
+                  </div>
+                </details>,
+              )
+              break
+            }
+            case 'toolCall': {
+              const toolName = String(b.name || b.toolName || m.unknown())
+              const toolArgs = b.arguments || b.args
+              renderedBlocks.push(
+                <div
+                  key={`tool-${idx}`}
+                  className="flex flex-col gap-1.5 border border-border/50 rounded-lg bg-violet-500/5 p-2.5 my-2"
+                >
+                  <div className="flex items-center gap-2 text-xs font-semibold text-violet-600 dark:text-violet-400">
+                    <Wrench className="h-3.5 w-3.5" />
+                    <span>{m.calling_tool()}</span>
+                    <span className="font-mono bg-violet-500/10 px-1.5 py-0.5 rounded text-[11px] text-violet-700 dark:text-violet-300">
+                      {toolName}
+                    </span>
+                  </div>
+                  {!!toolArgs && (
+                    <pre className="text-[10px] font-mono bg-muted/30 p-2 rounded border border-border/30 overflow-x-auto text-muted-foreground max-h-32">
+                      {JSON.stringify(toolArgs, null, 2)}
+                    </pre>
+                  )}
+                </div>,
+              )
+              break
+            }
+            case 'image': {
+              const mimeType = String(b.mimeType || 'image/png')
+              const data = String(b.data || '')
+              renderedBlocks.push(
+                <div key={`img-${idx}`} className="my-2 max-w-full">
+                  {data ? (
+                    <img
+                      src={data.startsWith('data:') ? data : `data:${mimeType};base64,${data}`}
+                      alt="Attached asset"
+                      className="max-h-60 rounded border border-border/50 object-contain shadow-xs"
+                    />
+                  ) : (
+                    <div className="text-xs text-muted-foreground italic flex items-center gap-1.5 py-1">
+                      {m.image_object()}
+                    </div>
+                  )}
+                </div>,
+              )
+              break
+            }
+            default: {
+              const stringified = JSON.stringify(block, null, 2)
+              if (stringified === '{}') return
+              renderedBlocks.push(
+                <pre
+                  key={`other-${idx}`}
+                  className="text-xs text-foreground/80 font-mono whitespace-pre-wrap break-words bg-muted/20 p-2 rounded"
+                >
+                  {stringified}
+                </pre>,
+              )
+            }
+          }
+        })
+
+        if (renderedBlocks.length === 0) return null
+
+        return (
+          <div key={msg.id} className="flex flex-col w-full space-y-1">
+            <div className="space-y-2 w-full">{renderedBlocks}</div>
+            <div className="text-[10px] text-muted-foreground self-start italic pt-1">
+              {m.created_by_agent()}
+            </div>
+          </div>
+        )
+      }
+
+      case 'toolResult': {
+        return (
+          <div
+            key={msg.id}
+            className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 p-2 rounded-md border border-border/50"
+          >
+            <span className="font-semibold">
+              {m.tool_result_with_name({ name: (msg as { toolName?: string }).toolName || 'tool' })}
+            </span>
+          </div>
+        )
+      }
+
+      case 'thinking_level_change':
+      case 'custom': {
+        const msgObj = msg as unknown as Record<string, unknown>
+        if (msgObj.customType === 'context_display_info') {
+          const details = msgObj.details as
+            | { assets?: Array<{ id: string; name: string; type: string }> }
+            | undefined
+          const assets = details?.assets || []
+          if (assets.length === 0) return null
+          return (
+            <div
+              key={msg.id}
+              className="text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-lg border border-border/50 space-y-1 my-1"
             >
-              {preprocessMarkdown(getMessageText(msg.content))}
-            </Markdown>
+              <div className="font-semibold">{m.assets_added_to_context()}</div>
+              <ul className="list-disc list-inside space-y-0.5">
+                {assets.map((asset) => (
+                  <li key={asset.id} className="truncate">
+                    {asset.name} <span className="text-muted-foreground/70">({asset.type})</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        }
+
+        const systemContent = msgObj.content || ''
+        return (
+          <div
+            key={msg.id}
+            className="text-center text-xs text-muted-foreground italic bg-muted/20 py-1.5 rounded"
+          >
+            {getMessageText(systemContent)}
           </div>
-          <div className="text-[10px] text-muted-foreground self-start italic">
-            {m.created_by_agent()}
-          </div>
-        </div>
-      )
-    }
+        )
+      }
 
-    if (isTool) {
-      return (
-        <div
-          key={msg.id}
-          className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 p-2 rounded-md border border-border/50"
-        >
-          <span className="font-semibold">
-            {m.tool_result_with_name({ name: (msg as { toolName?: string }).toolName || 'tool' })}
-          </span>
-        </div>
-      )
+      default:
+        return null
     }
-
-    if (isSystem) {
-      const systemContent = 'content' in msg ? msg.content : ''
-      return (
-        <div
-          key={msg.id}
-          className="text-center text-xs text-muted-foreground italic bg-muted/20 py-1.5 rounded"
-        >
-          {getMessageText(systemContent)}
-        </div>
-      )
-    }
-
-    return null
   }
 
   return (
