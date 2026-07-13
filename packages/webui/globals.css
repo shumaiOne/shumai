@@ -167,3 +167,28 @@
 .no-scrollbar::-webkit-scrollbar {
   display: none; /* Chrome, Safari and Opera */
 }
+
+/* Style code blocks and inline code inside .prose (rendered markdown) */
+.prose pre {
+  background-color: var(--muted);
+  color: var(--foreground);
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  overflow-x: auto;
+}
+
+.prose code {
+  font-family: var(--font-mono);
+}
+
+/* Style inline code (code not inside pre) */
+.prose :not(pre) > code {
+  background-color: var(--muted);
+  color: var(--foreground);
+  padding: 0.15rem 0.3rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.875em;
+}

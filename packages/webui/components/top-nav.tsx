@@ -2,10 +2,12 @@ import { useTopNavStore } from '@/ui/stores/top-nav'
 import { BreadcrumbNav } from './breadcrumb-nav'
 import { ShumaiLogo } from '@/ui/components/ui/icons'
 import { useUiStore } from '@/ui/stores/ui'
+import { useChatbotStore } from '@/ui/stores/chatbot'
 
 export function TopNav() {
   const { projectState } = useTopNavStore()
   const uiStore = useUiStore()
+  const { isChatbotOpen, setIsChatbotOpen } = useChatbotStore()
 
   if (!projectState) {
     return <TeamHeader />
@@ -58,14 +60,32 @@ export function TopNav() {
   const onRightSidebarToggle =
     isPublic && projectState.onRightSidebarToggle
       ? projectState.onRightSidebarToggle
-      : () =>
-          isFileView
-            ? uiStore.setFileViewRightSidebarCollapsed(!uiStore.fileViewRightSidebarCollapsed)
-            : isShareConfig
-              ? uiStore.setShareConfigRightSidebarCollapsed(
-                  !uiStore.shareConfigRightSidebarCollapsed,
-                )
-              : uiStore.setFileListRightSidebarCollapsed(!uiStore.fileListRightSidebarCollapsed)
+      : () => {
+          if (!isPublic && isChatbotOpen) {
+            setIsChatbotOpen(false)
+            if (isFileView) {
+              uiStore.setFileViewRightSidebarCollapsed(false)
+            } else if (isShareConfig) {
+              uiStore.setShareConfigRightSidebarCollapsed(false)
+            } else {
+              uiStore.setFileListRightSidebarCollapsed(false)
+            }
+          } else {
+            if (isFileView) {
+              uiStore.setFileViewRightSidebarCollapsed(!uiStore.fileViewRightSidebarCollapsed)
+            } else if (isShareConfig) {
+              uiStore.setShareConfigRightSidebarCollapsed(!uiStore.shareConfigRightSidebarCollapsed)
+            } else {
+              uiStore.setFileListRightSidebarCollapsed(!uiStore.fileListRightSidebarCollapsed)
+            }
+          }
+        }
+
+  const onChatbotToggle = isPublic
+    ? undefined
+    : () => {
+        setIsChatbotOpen(!isChatbotOpen)
+      }
 
   const displayStyle = projectId ? (uiStore.viewModes[projectId] ?? 'card') : 'card'
   const onDisplayStyleChange = isPublic
@@ -88,6 +108,8 @@ export function TopNav() {
       onLeftSidebarToggle={onLeftSidebarToggle}
       isRightSidebarCollapsed={isRightSidebarCollapsed}
       onRightSidebarToggle={onRightSidebarToggle}
+      isChatbotOpen={!isPublic && isChatbotOpen}
+      onChatbotToggle={onChatbotToggle}
       isPublic={isPublic}
       shareId={shareId}
       fileId={fileId}

@@ -46,11 +46,15 @@ describe('Agent Chat Workflow', () => {
       getAssetPathContextActivity: Object.assign(vi.fn(), {
         _activityName: 'getAssetPathContextActivity',
       }),
+      generateSessionNameActivity: Object.assign(vi.fn(), {
+        _activityName: 'generateSessionNameActivity',
+      }),
     }
 
     mockActivities.getAgentWorkerQueueActivity.mockResolvedValue('agent_queue')
     mockActivities.updateTaskStatusActivity.mockResolvedValue({})
     mockActivities.createCommentActivity.mockResolvedValue({ id: 'comment-placeholder-id' })
+    mockActivities.generateSessionNameActivity.mockResolvedValue(undefined)
     mockActivities.getAssetActivity.mockResolvedValue({
       id: 'a1',
       project: { teamId: 't1' },
@@ -166,6 +170,15 @@ describe('Agent Chat Workflow', () => {
       status: 'completed',
       output: { sessionId: 'session-123' },
     })
+
+    // Verify session name generation triggered
+    expect(mockActivities.generateSessionNameActivity).toHaveBeenCalledWith({
+      teamId: 't1',
+      agentId: 'b1',
+      prompt: 'hello agent',
+      sessionId: 'session-123',
+      context: expect.any(Object),
+    })
   })
 
   it('should skip session initialization if sessionId is already provided', async () => {
@@ -198,6 +211,9 @@ describe('Agent Chat Workflow', () => {
         agentsInstruction: expectedInstruction2,
       }),
     )
+
+    // Verify session name generation is skipped
+    expect(mockActivities.generateSessionNameActivity).not.toHaveBeenCalled()
   })
 
   it('should delete placeholder comment and finish when AI responds with __NO_REPLY__', async () => {
@@ -488,6 +504,10 @@ describe('Agent Chat Workflow', () => {
       userCommentId: undefined,
       explicitMention: true,
       context: { agent: { id: 'b1' } },
+      attachedAssets: [
+        { id: 'file-attachment-1', name: 'attachment.png', type: 'file' },
+        { id: 'referenced-asset-1', name: 'ref-folder', type: 'folder' },
+      ],
     })
   })
 })

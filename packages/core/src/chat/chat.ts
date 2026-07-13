@@ -28,6 +28,7 @@ export function buildSessionMessages(pathEntries: PathEntry[]): ChatMessage[] {
         timestamp: entry.message.timestamp || timestampMs,
       } as unknown as ChatMessage)
     } else if (entry.type === 'custom_message') {
+      if (entry.customType === 'context') return
       messages.push({
         id: entry.id,
         role: 'custom',
@@ -35,6 +36,14 @@ export function buildSessionMessages(pathEntries: PathEntry[]): ChatMessage[] {
         content: entry.content,
         display: entry.display,
         details: entry.details as Record<string, unknown> | undefined,
+        timestamp: timestampMs,
+      } as unknown as ChatMessage)
+    } else if (entry.type === 'custom') {
+      messages.push({
+        id: entry.id,
+        role: 'custom',
+        customType: entry.customType,
+        details: (entry as { data?: unknown }).data as Record<string, unknown> | undefined,
         timestamp: timestampMs,
       } as unknown as ChatMessage)
     } else if (entry.type === 'branch_summary') {
@@ -89,8 +98,14 @@ export function buildSessionMessages(pathEntries: PathEntry[]): ChatMessage[] {
 
 export function mapEntryToMessage(
   entryRecord: Prisma.AgentSessionEntryGetPayload<Record<string, never>>,
-): ChatMessage {
+): ChatMessage | null {
   const entryObj = entryRecord.entry as unknown as SessionTreeEntry
+  if (
+    entryObj.type === 'custom_message' &&
+    (entryObj as { customType?: string }).customType === 'context'
+  ) {
+    return null
+  }
   const pathEntries = [{ ...entryObj, id: entryRecord.id }]
   const messages = buildSessionMessages(pathEntries)
   if (messages.length > 0) {
@@ -126,6 +141,7 @@ export class ChatService {
 
   async startOrContinueChat(
     user: User,
+    teamId: string,
     req: ChatRequest,
   ): Promise<{ sessionId: string; taskId: string }> {
     const {
@@ -232,20 +248,30 @@ export class ChatService {
       const teamId = asset.project.teamId
       const projectId = asset.project.id
 
+      let activeSessionId = passedSessionId
+
       // Ensure AI agent configuration exists
       const agent = await tx.agent.findUnique({ where: { id: agentId } })
       if (!agent) {
         throw new Error(`Agent with ID "${agentId}" not found`)
       }
-
-      let activeSessionId = passedSessionId
+      if (agent.teamId !== teamId) {
+        throw new Error(`Agent does not belong to the specified team`)
+      }
 
       if (activeSessionId) {
         const sessionExists = await tx.agentSession.findUnique({
           where: { id: activeSessionId },
-          select: { id: true },
+          select: { id: true, userId: true },
         })
         if (!sessionExists) throw new Error('Session not found')
+        if (sessionExists.userId !== user.id) throw new Error('Unauthorized session access')
+
+        // Update the session's agentId to match the selected agent
+        await tx.agentSession.update({
+          where: { id: activeSessionId },
+          data: { agentId },
+        })
       } else {
         const newSession = await tx.agentSession.create({
           data: {
@@ -253,6 +279,7 @@ export class ChatService {
             userId: user.id,
             cwd: process.cwd(),
             assetId: asset.id,
+            type: 'chat',
           },
         })
         activeSessionId = newSession.id
@@ -276,6 +303,7 @@ export class ChatService {
               agentId,
               sessionId: activeSessionId,
               userId: user.id,
+              isNewChat: !passedSessionId,
             },
           },
         },
@@ -290,10 +318,15 @@ export class ChatService {
 
   async listSessions(
     userId: string,
+    teamId: string,
     params: { first?: number; after?: string },
   ): Promise<PaginatedData<ChatSessionInfo[]>> {
     const where: Prisma.AgentSessionWhereInput = {
       userId,
+      type: 'chat',
+      agent: {
+        teamId,
+      },
     }
 
     return await paginateQuery(
@@ -310,6 +343,7 @@ export class ChatService {
           userId: s.userId,
           assetId: s.assetId,
           userCommentId: s.userCommentId,
+          name: s.name,
           createdAt: s.createdAt.toISOString(),
           updatedAt: s.updatedAt.toISOString(),
         }))
@@ -319,7 +353,7 @@ export class ChatService {
     )
   }
 
-  async listMessages(userId: string, sessionId: string): Promise<ChatMessage[]> {
+  async listMessages(userId: string, teamId: string, sessionId: string): Promise<ChatMessage[]> {
     const session = await this.prismaClient.agentSession.findUnique({
       where: { id: sessionId },
     })
@@ -346,7 +380,7 @@ export class ChatService {
     return buildSessionMessages(pathEntries)
   }
 
-  async deleteSession(userId: string, sessionId: string): Promise<void> {
+  async deleteSession(userId: string, teamId: string, sessionId: string): Promise<void> {
     const session = await this.prismaClient.agentSession.findUnique({
       where: { id: sessionId },
     })

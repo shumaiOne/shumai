@@ -1,6 +1,6 @@
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
-import { chatService, buildSessionMessages, type PathEntry } from './chat'
+import { chatService, buildSessionMessages, mapEntryToMessage, type PathEntry } from './chat'
 import { describe, expect, it } from 'vitest'
 
 describe('ChatService', () => {
@@ -14,7 +14,7 @@ describe('ChatService', () => {
     const team = await prisma.team.create({
       data: {
         name: 'Test Team',
-        settings: { transcode: { videoStrategy: 'best_match' } },
+        settings: { transcode: { videoStrategy: 'best_match' }, chatbotAgentId: 'test-agent-id' },
         sandbox: { create: {} },
       },
     })
@@ -73,10 +73,10 @@ describe('ChatService', () => {
   }
 
   it('should start a new chat session and trigger workflow', async () => {
-    const { user, project, rootFolder, agent } = await setupBasicData()
+    const { user, team, project, rootFolder } = await setupBasicData()
 
-    const { sessionId, taskId } = await chatService.startOrContinueChat(user, {
-      agentId: agent.id,
+    const { sessionId, taskId } = await chatService.startOrContinueChat(user, team.id, {
+      agentId: 'test-agent-id',
       textPrompt: 'hello world',
       projectId: project.id,
     })
@@ -117,11 +117,11 @@ describe('ChatService', () => {
   })
 
   it('should continue an existing chat session', async () => {
-    const { user, project, agent } = await setupBasicData()
+    const { user, team, project } = await setupBasicData()
 
     // Start
-    const { sessionId } = await chatService.startOrContinueChat(user, {
-      agentId: agent.id,
+    const { sessionId } = await chatService.startOrContinueChat(user, team.id, {
+      agentId: 'test-agent-id',
       textPrompt: 'first message',
       projectId: project.id,
     })
@@ -129,8 +129,9 @@ describe('ChatService', () => {
     // Continue
     const { sessionId: nextSessionId, taskId: nextTaskId } = await chatService.startOrContinueChat(
       user,
+      team.id,
       {
-        agentId: agent.id,
+        agentId: 'test-agent-id',
         textPrompt: 'second message',
         sessionId,
       },
@@ -156,7 +157,7 @@ describe('ChatService', () => {
   })
 
   it('should inject context of referenced assets and attached files', async () => {
-    const { user, project, rootFolder, agent } = await setupBasicData()
+    const { user, team, project, rootFolder } = await setupBasicData()
 
     const childFolder = await prisma.asset.create({
       data: {
@@ -186,8 +187,8 @@ describe('ChatService', () => {
       },
     })
 
-    const { taskId } = await chatService.startOrContinueChat(user, {
-      agentId: agent.id,
+    const { taskId } = await chatService.startOrContinueChat(user, team.id, {
+      agentId: 'test-agent-id',
       textPrompt: 'process file',
       projectId: project.id,
       assetIds: [childFolder.id],
@@ -206,30 +207,41 @@ describe('ChatService', () => {
     expect(taskPayload?.agent?.imageUrls).toContain('doc_s3_key')
   })
 
-  it('should list sessions of a user', async () => {
-    const { user, project, agent } = await setupBasicData()
+  it('should list sessions of a user and only return chat type sessions', async () => {
+    const { user, team, project } = await setupBasicData()
 
-    await chatService.startOrContinueChat(user, {
-      agentId: agent.id,
+    await chatService.startOrContinueChat(user, team.id, {
+      agentId: 'test-agent-id',
       textPrompt: 'chat 1',
       projectId: project.id,
     })
 
-    await chatService.startOrContinueChat(user, {
-      agentId: agent.id,
+    await chatService.startOrContinueChat(user, team.id, {
+      agentId: 'test-agent-id',
       textPrompt: 'chat 2',
       projectId: project.id,
     })
 
-    const list = await chatService.listSessions(user.id, { first: 10 })
+    // Create a comment type session (which should be ignored by listSessions)
+    const defaultAgent = await prisma.agent.findFirst()
+    await prisma.agentSession.create({
+      data: {
+        agentId: defaultAgent ? defaultAgent.id : 'default',
+        userId: user.id,
+        cwd: process.cwd(),
+        type: 'comment',
+      },
+    })
+
+    const list = await chatService.listSessions(user.id, team.id, { first: 10 })
     expect(list.data).toHaveLength(2)
   })
 
   it('should list messages mapped correctly', async () => {
-    const { user, project, agent } = await setupBasicData()
+    const { user, team, project } = await setupBasicData()
 
-    const { sessionId } = await chatService.startOrContinueChat(user, {
-      agentId: agent.id,
+    const { sessionId } = await chatService.startOrContinueChat(user, team.id, {
+      agentId: 'test-agent-id',
       textPrompt: 'hello',
       projectId: project.id,
     })
@@ -253,7 +265,7 @@ describe('ChatService', () => {
       },
     })
 
-    const messages = await chatService.listMessages(user.id, sessionId)
+    const messages = await chatService.listMessages(user.id, team.id, sessionId)
     expect(messages).toHaveLength(1)
     // Casting to any to access properties of union in test assertions
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -262,16 +274,116 @@ describe('ChatService', () => {
     expect(msg.content).toEqual([{ type: 'text', text: 'hello' }])
   })
 
-  it('should delete session and cascade', async () => {
-    const { user, project, agent } = await setupBasicData()
+  it('should hide customType context messages', async () => {
+    const { user, team, project } = await setupBasicData()
 
-    const { sessionId } = await chatService.startOrContinueChat(user, {
-      agentId: agent.id,
+    const { sessionId } = await chatService.startOrContinueChat(user, team.id, {
+      agentId: 'test-agent-id',
+      textPrompt: 'hello',
+      projectId: project.id,
+    })
+
+    // 1. Manually insert a test entry representing user message
+    await prisma.agentSessionEntry.create({
+      data: {
+        id: 'test-entry-1-user',
+        sessionId,
+        entry: {
+          type: 'message',
+          id: 'test-entry-1-user',
+          parentId: null,
+          timestamp: new Date().toISOString(),
+          message: {
+            role: 'user',
+            content: [{ type: 'text', text: 'hello' }],
+            timestamp: Date.now(),
+          },
+        } as unknown as PrismaJson.PiSessionEntry,
+      },
+    })
+
+    // 2. Manually insert a test entry representing a custom context message
+    await prisma.agentSessionEntry.create({
+      data: {
+        id: 'test-entry-2-context',
+        sessionId,
+        entry: {
+          type: 'custom_message',
+          id: 'test-entry-2-context',
+          parentId: 'test-entry-1-user',
+          timestamp: new Date().toISOString(),
+          customType: 'context',
+          content: 'some context',
+          display: 'chat',
+        } as unknown as PrismaJson.PiSessionEntry,
+      },
+    })
+
+    // 3. Manually insert a test entry representing a custom thinking level change
+    await prisma.agentSessionEntry.create({
+      data: {
+        id: 'test-entry-3-thinking',
+        sessionId,
+        entry: {
+          type: 'thinking_level_change',
+          id: 'test-entry-3-thinking',
+          parentId: 'test-entry-2-context',
+          timestamp: new Date().toISOString(),
+          thinkingLevel: 'deep',
+        } as unknown as PrismaJson.PiSessionEntry,
+      },
+    })
+
+    // 4. Manually insert a test entry representing custom context_display_info entry
+    await prisma.agentSessionEntry.create({
+      data: {
+        id: 'test-entry-4-display',
+        sessionId,
+        entry: {
+          type: 'custom',
+          id: 'test-entry-4-display',
+          parentId: 'test-entry-3-thinking',
+          timestamp: new Date().toISOString(),
+          customType: 'context_display_info',
+          data: {
+            assets: [{ id: 'a1', name: 'File A', type: 'file' }],
+          },
+        } as unknown as PrismaJson.PiSessionEntry,
+      },
+    })
+
+    // Verify listMessages returns only the user, thinking level change and custom display entry message
+    const messages = await chatService.listMessages(user.id, team.id, sessionId)
+    expect(messages).toHaveLength(3)
+    expect(messages[0].id).toBe('test-entry-1-user')
+    expect(messages[1].id).toBe('test-entry-3-thinking')
+    expect(messages[2].id).toBe('test-entry-4-display')
+    expect(messages[2].role).toBe('custom')
+    expect((messages[2] as { customType?: string }).customType).toBe('context_display_info')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((messages[2] as any).details).toEqual({
+      assets: [{ id: 'a1', name: 'File A', type: 'file' }],
+    })
+
+    // Verify mapEntryToMessage returns null for context message
+    const contextRecord = await prisma.agentSessionEntry.findUnique({
+      where: { id: 'test-entry-2-context' },
+    })
+    expect(contextRecord).not.toBeNull()
+    const mapped = mapEntryToMessage(contextRecord!)
+    expect(mapped).toBeNull()
+  })
+
+  it('should delete session and cascade', async () => {
+    const { user, team, project } = await setupBasicData()
+
+    const { sessionId } = await chatService.startOrContinueChat(user, team.id, {
+      agentId: 'test-agent-id',
       textPrompt: 'to delete',
       projectId: project.id,
     })
 
-    await chatService.deleteSession(user.id, sessionId)
+    await chatService.deleteSession(user.id, team.id, sessionId)
 
     const session = await prisma.agentSession.findUnique({
       where: { id: sessionId },

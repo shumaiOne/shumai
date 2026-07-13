@@ -1,5 +1,5 @@
-import { Badge } from '@/ui/components/ui/badge'
 import { client } from '@/ui/api/client'
+import { Badge } from '@/ui/components/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,17 +13,33 @@ import {
   DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu'
 import {
+  BotFilled,
   DockToLeft,
   DockToLeftFilled,
   DockToRight,
   DockToRightFilled,
 } from '@/ui/components/ui/icons'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/ui/components/ui/tooltip'
 import { usePermissions } from '@/ui/hooks/use-permissions'
 import { cn } from '@/ui/lib/utils'
 import { m } from '@/ui/paraglide/messages.js'
 import type { AncestorFolder } from '@shumai/dtos'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Check, ChevronDown, Columns2, FileIcon, History, LayoutGrid, List } from 'lucide-react'
+import {
+  Bot,
+  Check,
+  ChevronDown,
+  Columns2,
+  FileIcon,
+  History,
+  LayoutGrid,
+  List,
+} from 'lucide-react'
 
 interface BreadcrumbNavProps {
   teamId: string
@@ -43,6 +59,8 @@ interface BreadcrumbNavProps {
   onLeftSidebarToggle?: () => void
   isRightSidebarCollapsed: boolean
   onRightSidebarToggle: () => void
+  isChatbotOpen?: boolean
+  onChatbotToggle?: () => void
   isPublic?: boolean
   shareId?: string
   onFolderClick?: (folderId: string) => void
@@ -81,6 +99,8 @@ export function BreadcrumbNav({
   onLeftSidebarToggle,
   isRightSidebarCollapsed,
   onRightSidebarToggle,
+  isChatbotOpen = false,
+  onChatbotToggle,
   isPublic = false,
   onFolderClick,
   fileId,
@@ -93,6 +113,8 @@ export function BreadcrumbNav({
 }: BreadcrumbNavProps) {
   const navigate = useNavigate()
   const { canEdit } = usePermissions(projectId)
+
+  const isChatbotDisabled = false
 
   const handleVersionClick = (versionId: string) => {
     if (!fileId) return
@@ -364,10 +386,10 @@ export function BreadcrumbNav({
         )}
       </div>
 
-      {!fileId && (
+      <div className="flex items-center gap-2">
         <div className="flex flex-shrink-0 items-center gap-1 rounded-md border border-border bg-background p-1">
           {/* Left Sidebar Toggle */}
-          {!isPublic && onLeftSidebarToggle && (
+          {!fileId && !isPublic && onLeftSidebarToggle && (
             <button
               onClick={onLeftSidebarToggle}
               className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
@@ -382,7 +404,7 @@ export function BreadcrumbNav({
           )}
 
           {/* Card View */}
-          {!isPublic && displayStyle && onDisplayStyleChange && (
+          {!fileId && !isPublic && displayStyle && onDisplayStyleChange && (
             <>
               <button
                 onClick={() => onDisplayStyleChange('card')}
@@ -414,17 +436,59 @@ export function BreadcrumbNav({
           {/* Right Sidebar Toggle */}
           <button
             onClick={onRightSidebarToggle}
-            className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+            className={`rounded p-1.5 transition-colors ${
+              !isRightSidebarCollapsed && !isChatbotOpen
+                ? 'bg-accent text-accent-foreground'
+                : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+            }`}
             title={isRightSidebarCollapsed ? 'Show Right Sidebar' : 'Hide Right Sidebar'}
           >
-            {isRightSidebarCollapsed ? (
-              <DockToRight className="h-4 w-4" />
-            ) : (
+            {!isRightSidebarCollapsed && !isChatbotOpen ? (
               <DockToRightFilled className="h-4 w-4 fill-primary stroke-0" />
+            ) : (
+              <DockToRight className="h-4 w-4" />
             )}
           </button>
         </div>
-      )}
+
+        {/* Chatbot Toggle Button */}
+        {!isPublic && onChatbotToggle && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <button
+                    disabled={isChatbotDisabled}
+                    onClick={onChatbotToggle}
+                    className={cn(
+                      'h-9 w-9 flex items-center justify-center rounded-full border border-border bg-background transition-colors',
+                      isChatbotOpen
+                        ? 'bg-accent text-accent-foreground'
+                        : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                      isChatbotDisabled && 'opacity-50 cursor-not-allowed',
+                    )}
+                  >
+                    {isChatbotOpen ? (
+                      <BotFilled className="h-6 w-6 text-primary transition-colors" />
+                    ) : (
+                      <Bot className="h-6 w-6 text-muted-foreground transition-colors" />
+                    )}
+                  </button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>
+                  {isChatbotDisabled
+                    ? m.configure_chatbot_agent_first()
+                    : isChatbotOpen
+                      ? m.hide_chatbot()
+                      : m.show_chatbot()}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </div>
     </div>
   )
 }

@@ -1,13 +1,18 @@
-import type { AssetInfo, AssetInfoPaginatedList } from '@shumai/dtos'
-import type { CollectionInfo } from '@shumai/dtos'
-import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
-import type { SearchCondition, SearchSort } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
 import { usePermissions } from '@/ui/hooks/use-permissions'
+import { m } from '@/ui/paraglide/messages.js'
+import type {
+  AssetInfo,
+  AssetInfoPaginatedList,
+  CollectionInfo,
+  SearchCondition,
+  SearchSort,
+} from '@shumai/dtos'
+import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
 import { useMutation } from '@tanstack/react-query'
 import { InferRequestType, InferResponseType } from 'hono/client'
-import { m } from '@/ui/paraglide/messages.js'
 
+import { useChatbotStore } from '@/ui/stores/chatbot'
 import { useFieldStore } from '@/ui/stores/fields'
 import { useMemberStore } from '@/ui/stores/members'
 import { useTopNavStore } from '@/ui/stores/top-nav'
@@ -19,6 +24,7 @@ import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-quer
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '../lib/utils'
+import { ChatbotSidebar } from './chatbot-sidebar'
 import { SnapToPointer } from './dnd-modifiers'
 import { FileBrowser } from './file-browser/file-browser'
 import { FileViewerRightSidebar } from './file-viewer-right-sidebar'
@@ -87,6 +93,7 @@ export default function FileSystemManager({
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null)
   const [leftSidebarWidth, setLeftSidebarWidth] = useState(240)
   const [rightSidebarWidth, setRightSidebarWidth] = useState(360)
+  const { isChatbotOpen } = useChatbotStore()
 
   const { members, fetchMembers } = useMemberStore()
   const { metadata, fetchMetadata, setMetadata: setUserMetadata } = useUserMetadataStore()
@@ -433,10 +440,13 @@ export default function FileSystemManager({
               onClick={() => setIsLeftSidebarCollapsed(true)}
             />
           )}
-          {!isRightSidebarCollapsed && (
+          {(!isRightSidebarCollapsed || isChatbotOpen) && (
             <div
               className="md:hidden fixed inset-0 bg-black/50 z-40"
-              onClick={() => setIsRightSidebarCollapsed(true)}
+              onClick={() => {
+                setIsRightSidebarCollapsed(true)
+                useChatbotStore.getState().setIsChatbotOpen(false)
+              }}
             />
           )}
 
@@ -495,7 +505,7 @@ export default function FileSystemManager({
             rootFolderId={rootFolderId}
           />
 
-          {!isRightSidebarCollapsed && (
+          {(!isRightSidebarCollapsed || isChatbotOpen) && (
             <>
               <ResizeHandle
                 onResize={(delta) => {
@@ -505,9 +515,11 @@ export default function FileSystemManager({
               />
               <div
                 style={{ width: rightSidebarWidth }}
-                className="bg-background border-l border-border flex flex-col flex-shrink-0"
+                className="bg-background flex flex-col flex-shrink-0"
               >
-                {singleSelectedFile ? (
+                {isChatbotOpen ? (
+                  <ChatbotSidebar projectId={projectId} contextAssetId={assetId} />
+                ) : singleSelectedFile ? (
                   <FileViewerRightSidebar
                     teamId={teamId}
                     projectId={projectId}

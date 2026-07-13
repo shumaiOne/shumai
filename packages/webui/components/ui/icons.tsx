@@ -55,6 +55,34 @@ export const DockToRightFilled: React.FC<IconProps> = (props) => (
   </svg>
 )
 
+/**
+ * Icon: Bot (Filled)
+ * A filled version of the Bot icon, useful when the chatbot sidebar is active.
+ */
+export const BotFilled: React.FC<IconProps> = (props) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <path d="M12 8V4H8" />
+    <path
+      d="M6 7H18A3 3 0 0 1 21 10V18A3 3 0 0 1 18 21H6A3 3 0 0 1 3 18V10A3 3 0 0 1 6 7ZM8 13V15A1 1 0 0 0 10 15V13A1 1 0 0 0 8 13ZM14 13V15A1 1 0 0 0 16 15V13A1 1 0 0 0 14 13Z"
+      fill="currentColor"
+      stroke="none"
+    />
+    <path d="M2 14h2" />
+    <path d="M20 14h2" />
+  </svg>
+)
+
 export const NotificationFillIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"

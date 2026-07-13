@@ -645,6 +645,12 @@ enum AgentType {
   embedding
 }
 
+enum AgentSessionType {
+  comment
+  chat
+  naming
+}
+
 model Agent {
   id         String    @id
   user       User      @relation(fields: [id], references: [id], onDelete: Cascade)
@@ -693,11 +699,14 @@ model AgentSession {
   assetId       String?  @map("asset_id")
   asset         Asset?   @relation("AssetToAgentSession", fields: [assetId], references: [id], onDelete: Cascade)
   userCommentId String?  @map("user_comment_id")
+  type          AgentSessionType @default(comment)
+  name          String?
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
   entries       AgentSessionEntry[]
   comments      AssetComment[]
 
+  @@index([type])
   @@map("agent_sessions")
 }
 

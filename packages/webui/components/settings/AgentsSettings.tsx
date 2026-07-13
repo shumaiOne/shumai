@@ -213,6 +213,7 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
               <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
             </div>
           )}
+
           {AGENT_TYPES.map((section) => {
             const typeAgents = agents.filter((a) => a.type === section.type)
             const Icon = section.icon

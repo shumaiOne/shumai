@@ -626,6 +626,23 @@ export type JsonWithAggregatesFilterBase<$PrismaModel = never> = {
   _max?: Prisma.NestedJsonFilter<$PrismaModel>
 }
 
+export type EnumAgentSessionTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.AgentSessionType | Prisma.EnumAgentSessionTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.AgentSessionType[] | Prisma.ListEnumAgentSessionTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AgentSessionType[] | Prisma.ListEnumAgentSessionTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAgentSessionTypeFilter<$PrismaModel> | $Enums.AgentSessionType
+}
+
+export type EnumAgentSessionTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.AgentSessionType | Prisma.EnumAgentSessionTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.AgentSessionType[] | Prisma.ListEnumAgentSessionTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AgentSessionType[] | Prisma.ListEnumAgentSessionTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAgentSessionTypeWithAggregatesFilter<$PrismaModel> | $Enums.AgentSessionType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumAgentSessionTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumAgentSessionTypeFilter<$PrismaModel>
+}
+
 export type NestedStringFilter<$PrismaModel = never> = {
   equals?: string | Prisma.StringFieldRefInput<$PrismaModel>
   in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>
@@ -1182,6 +1199,23 @@ export type NestedJsonFilterBase<$PrismaModel = never> = {
   gt?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
   gte?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel>
   not?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | Prisma.JsonNullValueFilter
+}
+
+export type NestedEnumAgentSessionTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.AgentSessionType | Prisma.EnumAgentSessionTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.AgentSessionType[] | Prisma.ListEnumAgentSessionTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AgentSessionType[] | Prisma.ListEnumAgentSessionTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAgentSessionTypeFilter<$PrismaModel> | $Enums.AgentSessionType
+}
+
+export type NestedEnumAgentSessionTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.AgentSessionType | Prisma.EnumAgentSessionTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.AgentSessionType[] | Prisma.ListEnumAgentSessionTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AgentSessionType[] | Prisma.ListEnumAgentSessionTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAgentSessionTypeWithAggregatesFilter<$PrismaModel> | $Enums.AgentSessionType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumAgentSessionTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumAgentSessionTypeFilter<$PrismaModel>
 }
 
 

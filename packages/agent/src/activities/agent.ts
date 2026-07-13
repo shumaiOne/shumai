@@ -1,23 +1,28 @@
-import { createAgentSession, fieldsToTypeBoxSchema, type AutofillField } from '../index'
-import { DatabaseSessionStorage } from '../database-session-storage'
-import { prisma, AssetType, Prisma, type Skill } from '@shumai/db'
-import { logger } from '@shumai/core/src/logger'
-import { s3Service } from '@shumai/core/src/s3/s3'
 import {
-  type AgentTool,
   type AgentMessage,
+  type AgentTool,
   type SessionTreeEntry,
 } from '@earendil-works/pi-agent-core'
 import { type ImageContent } from '@earendil-works/pi-ai'
-import { ApplicationFailure } from '@temporalio/activity'
 import { assetService } from '@shumai/core/src/asset/asset'
-import { VersionStackService } from '@shumai/core/src/versionStack/versionStack'
-import { uploadService } from '@shumai/core/src/upload/upload'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
-import { generateKeyBetween } from 'jittered-fractional-indexing'
-import { paginateQuery, encodeCursor } from '@shumai/core/src/pagination'
-import { ulid } from 'ulid'
+import { logger } from '@shumai/core/src/logger'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
+import { encodeCursor, paginateQuery } from '@shumai/core/src/pagination'
+import { s3Service } from '@shumai/core/src/s3/s3'
+import { uploadService } from '@shumai/core/src/upload/upload'
+import { VersionStackService } from '@shumai/core/src/versionStack/versionStack'
+import { AssetType, prisma, Prisma, type Skill } from '@shumai/db'
+import { ApplicationFailure } from '@temporalio/activity'
+import { generateKeyBetween } from 'jittered-fractional-indexing'
+import { ulid } from 'ulid'
+import { DatabaseSessionStorage } from '../database-session-storage'
+import {
+  createAgentSession,
+  fieldsToTypeBoxSchema,
+  type AutofillField,
+  type DbProviderInfo,
+} from '../index'
 
 import { UpdateAssetMetadataRequest } from '@shumai/dtos'
 
@@ -58,6 +63,7 @@ async function executeAgentPrompt(params: {
   userCommentId?: string | null
   tools?: AgentTool[]
   context: AgentExecutionContext
+  attachedAssets?: Array<{ id: string; name: string; type: string }>
 }): Promise<{ text: string; usage: Usage; sessionId: string }> {
   const { agent, dbProviders, teamSkills, allowedDomains } = params.context
 
@@ -157,6 +163,21 @@ If you need to create files in the local filesystem (for example, a temporary fi
       } as unknown as SessionTreeEntry)
     }
 
+    if (params.attachedAssets && params.attachedAssets.length > 0) {
+      const storage = session.getStorage()
+      const parentId = await storage.getLeafId()
+      await storage.appendEntry({
+        id: ulid(),
+        type: 'custom',
+        parentId,
+        timestamp: new Date().toISOString(),
+        customType: 'context_display_info',
+        data: {
+          assets: params.attachedAssets,
+        },
+      } as unknown as SessionTreeEntry)
+    }
+
     const assistantMessage = await harness.prompt(params.prompt, { images: imagesToPass })
 
     const sessionEntries = await session.getEntries()
@@ -219,6 +240,7 @@ export interface AgentChatParams {
   userCommentId?: string | null
   explicitMention?: boolean
   context: AgentExecutionContext
+  attachedAssets?: Array<{ id: string; name: string; type: string }>
 }
 
 export async function agentChatActivity(params: AgentChatParams) {
@@ -235,6 +257,7 @@ export async function agentChatActivity(params: AgentChatParams) {
     userId: params.userId,
     userCommentId: params.userCommentId,
     context: params.context,
+    attachedAssets: params.attachedAssets,
   })
 }
 
@@ -1118,5 +1141,119 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
         message: `Unsupported tool name: ${toolName}`,
         nonRetryable: true,
       })
+  }
+}
+
+export interface GenerateSessionNameParams {
+  teamId: string
+  agentId: string
+  prompt: string
+  sessionId: string
+  context: {
+    agent: Prisma.AgentGetPayload<{ include: { modelRef: true; provider: true } }>
+    dbProviders: DbProviderInfo[]
+  }
+}
+
+export async function generateSessionNameActivity(
+  params: GenerateSessionNameParams,
+): Promise<void> {
+  const { sessionId, prompt, teamId, agentId } = params
+  const { agent, dbProviders } = params.context
+
+  // 1. Fetch current session and verify it is a chatbot session and unnamed
+  const sessionRecord = await prisma.agentSession.findUnique({
+    where: { id: sessionId },
+  })
+
+  if (!sessionRecord || sessionRecord.type !== 'chat' || sessionRecord.name !== null) {
+    logger.info({ sessionId }, 'Skipping session name generation: not an unnamed chatbot session')
+    return
+  }
+
+  if (!agent || !agent.modelRef || !agent.provider) {
+    logger.warn(
+      { sessionId },
+      'Skipping session name generation: Agent, model, or provider configuration not found',
+    )
+    return
+  }
+
+  const providerName = agent.provider.name
+  const modelId = agent.modelRef.modelId
+
+  let namingSessionId: string | undefined
+
+  try {
+    // 2. Create transient naming session in database
+    const namingSession = await prisma.agentSession.create({
+      data: {
+        agentId,
+        userId: sessionRecord.userId,
+        cwd: process.cwd(),
+        assetId: sessionRecord.assetId,
+        type: 'naming',
+      },
+    })
+    namingSessionId = namingSession.id
+
+    const systemInstruction =
+      "You are a helpful assistant. Generate a short 2 to 4 words title/name for a chat session based on the user's first message. " +
+      'Do NOT include quotation marks, markdown formatting, or any extra conversational text. Return only the title.'
+
+    // 3. Create agent session and harness using the naming session
+    const { harness } = await createAgentSession({
+      teamId,
+      agentId,
+      providerName,
+      modelId,
+      systemPrompt: systemInstruction,
+      teamSkills: [],
+      allowedDomains: [],
+      sessionId: namingSessionId,
+      userId: sessionRecord.userId || undefined,
+      providers: dbProviders,
+    })
+
+    const result = await harness.prompt(prompt)
+    const resultText = result.content
+      .filter((c) => c.type === 'text')
+      .map((c) => {
+        if ('text' in c && typeof c.text === 'string') {
+          return c.text
+        }
+        return ''
+      })
+      .join('\n')
+
+    let chatName = resultText.trim()
+
+    // Clean up quotes if returned
+    if (
+      (chatName.startsWith('"') && chatName.endsWith('"')) ||
+      (chatName.startsWith("'") && chatName.endsWith("'"))
+    ) {
+      chatName = chatName.slice(1, -1).trim()
+    }
+
+    if (chatName) {
+      await prisma.agentSession.update({
+        where: { id: sessionId },
+        data: { name: chatName },
+      })
+      logger.info({ sessionId, chatName }, 'Session name generated successfully')
+    }
+  } catch (err) {
+    logger.error({ sessionId, err }, 'Failed to generate session name')
+  } finally {
+    if (namingSessionId) {
+      await prisma.agentSession
+        .delete({
+          where: { id: namingSessionId },
+        })
+        .catch((deleteErr) => {
+          logger.error({ namingSessionId, deleteErr }, 'Failed to delete naming session')
+        })
+    }
   }
 }

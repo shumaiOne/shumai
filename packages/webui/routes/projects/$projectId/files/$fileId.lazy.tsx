@@ -1,26 +1,29 @@
-import { createLazyFileRoute } from '@tanstack/react-router'
 import { client } from '@/ui/api/client'
-import { FileViewer } from '@/ui/components/file-viewer'
-import { CompareViewer } from '@/ui/components/compare/compare-viewer'
+import { ChatbotSidebar } from '@/ui/components/chatbot-sidebar'
 import { pickDefaultCompareVersions } from '@/ui/components/compare/compare-utils'
+import { CompareViewer } from '@/ui/components/compare/compare-viewer'
+import { FileViewer } from '@/ui/components/file-viewer'
 import { FileViewerLeftSidebar } from '@/ui/components/file-viewer-left-sidebar'
-import { m } from '@/ui/paraglide/messages.js'
 import { FileViewerRightSidebar } from '@/ui/components/file-viewer-right-sidebar'
-import { ResizeHandle } from '@/ui/components/resize-handle'
 import { FileDetailSkeleton } from '@/ui/components/loading-skeletons'
+import { ResizeHandle } from '@/ui/components/resize-handle'
+import { m } from '@/ui/paraglide/messages.js'
+import { useChatbotStore } from '@/ui/stores/chatbot'
 import { useMemberStore } from '@/ui/stores/members'
 import { useTeamContextStore } from '@/ui/stores/team-context'
 import { useTopNavStore } from '@/ui/stores/top-nav'
+import { useUiStore } from '@/ui/stores/ui'
 import { type Annotation } from '@/ui/types'
 import { useMutation } from '@tanstack/react-query'
+import { createLazyFileRoute } from '@tanstack/react-router'
 import { InferRequestType, InferResponseType } from 'hono/client'
 
+import type { MediaController } from '@/ui/components/viewers/types'
 import type { AssetInfo, AssetInfoPaginatedList, CommentInfo } from '@shumai/dtos'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import type { MediaController } from '@/ui/components/viewers/types'
 
 function FileViewPage() {
   const { projectId, fileId } = Route.useParams()
@@ -37,6 +40,8 @@ function FileViewPage() {
   const { teamId, ensureTeamIdForProject } = useTeamContextStore()
   const [rightSidebarWidth, setRightSidebarWidth] = useState(360)
   const [annotations, setAnnotations] = useState<Annotation[]>([])
+  const { fileViewRightSidebarCollapsed } = useUiStore()
+  const { isChatbotOpen } = useChatbotStore()
   const [currentTime, setCurrentTime] = useState(0)
   const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null)
   const [compareActiveAsset, setCompareActiveAsset] = useState<AssetInfo | null>(null)
@@ -431,29 +436,40 @@ function FileViewPage() {
             </FileViewer>
           )}
         </div>
-        <ResizeHandle
-          onResize={(delta) => {
-            setRightSidebarWidth((prev) => Math.max(300, Math.min(600, prev - delta)))
-          }}
-          className="hidden md:block"
-        />
-        <div style={{ width: rightSidebarWidth }} className="flex-shrink-0">
-          <FileViewerRightSidebar
-            teamId={teamId}
-            projectId={projectId}
-            file={sidebarFile}
-            onSaveField={handleSaveField}
-            members={members}
-            onCommentSelect={handleCommentSelect}
-            currentTime={currentTime}
-            onTyping={() => {
-              if (isCompareMode) return
-              mediaControllerRef.current?.pause()
-            }}
-            selectedCommentId={selectedCommentId}
-            hideAnnotationControl={sidebarFile?.mediaType?.startsWith('audio/')}
-          />
-        </div>
+        {(!fileViewRightSidebarCollapsed || isChatbotOpen) && (
+          <>
+            <ResizeHandle
+              onResize={(delta) => {
+                setRightSidebarWidth((prev) => Math.max(300, Math.min(600, prev - delta)))
+              }}
+              className="hidden md:block"
+            />
+            <div
+              style={{ width: rightSidebarWidth }}
+              className="flex-shrink-0 bg-background flex flex-col"
+            >
+              {isChatbotOpen ? (
+                <ChatbotSidebar projectId={projectId} contextAssetId={activeFileId} />
+              ) : (
+                <FileViewerRightSidebar
+                  teamId={teamId}
+                  projectId={projectId}
+                  file={sidebarFile}
+                  onSaveField={handleSaveField}
+                  members={members}
+                  onCommentSelect={handleCommentSelect}
+                  currentTime={currentTime}
+                  onTyping={() => {
+                    if (isCompareMode) return
+                    mediaControllerRef.current?.pause()
+                  }}
+                  selectedCommentId={selectedCommentId}
+                  hideAnnotationControl={sidebarFile?.mediaType?.startsWith('audio/')}
+                />
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

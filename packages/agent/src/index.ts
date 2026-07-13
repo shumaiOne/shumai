@@ -23,6 +23,75 @@ import { createListAssetsTool } from './tools/list-assets'
 import { createReadSkillTool } from './tools/read-skill'
 import { createSandboxedBashTool } from './tools/sandboxed-bash'
 
+export interface DbModelInfo {
+  modelId: string
+  name: string | null
+  config: PrismaJson.ModelConfig
+}
+
+export interface DbProviderInfo {
+  name: string
+  config: PrismaJson.ProviderConfig
+  models: DbModelInfo[]
+}
+
+export function getModelFromDb(providers: DbProviderInfo[], providerName: string, modelId: string) {
+  const dbProvider = providers.find((p) => p.name === providerName)
+  const dbModel = dbProvider?.models.find((m) => m.modelId === modelId)
+
+  if (!dbProvider || !dbModel) return undefined
+
+  // Model contains complex internal types from pi-ai
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let m: any
+  try {
+    // Try to get built-in model as template
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    m = { ...(getModel as any)(providerName, modelId) }
+  } catch {
+    // Not a built-in model
+    m = {
+      id: modelId,
+      name: dbModel.name || modelId,
+      provider: providerName,
+      api: 'openai-responses',
+      baseUrl: '',
+      reasoning: false,
+      input: ['text'],
+      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      contextWindow: 4096,
+      maxTokens: 4096,
+    }
+  }
+
+  // Override with database config
+  if (dbProvider.config.baseUrl) {
+    m.baseUrl = dbProvider.config.baseUrl
+  }
+  if (dbProvider.config.api) {
+    m.api = dbProvider.config.api
+  }
+  Object.assign(m, dbModel.config)
+  if (dbModel.name) {
+    m.name = dbModel.name
+  }
+  return m
+}
+
+export function getApiKeyAndHeadersFromDb(providers: DbProviderInfo[], providerName: string) {
+  // Helper to resolve key from ENV if it matches an ENV var name
+  const resolveKey = (key: string | undefined) => (key ? process.env[key] || key : undefined)
+
+  // Look up the provider in our providers list
+  const dbProvider = providers.find((p) => p.name === providerName)
+  const providerApiKey = dbProvider?.config?.apiKey
+  if (providerApiKey) {
+    return { apiKey: resolveKey(providerApiKey)! }
+  }
+
+  return undefined
+}
+
 export interface CreateAgentSessionParams {
   teamId: string
   agentId: string
@@ -36,15 +105,7 @@ export interface CreateAgentSessionParams {
   userCommentId?: string | null
   customTools?: AgentTool[]
   thinkingLevel?: string
-  providers: Array<{
-    name: string
-    config: PrismaJson.ProviderConfig
-    models: Array<{
-      modelId: string
-      name: string | null
-      config: PrismaJson.ModelConfig
-    }>
-  }>
+  providers: DbProviderInfo[]
 }
 
 export async function createAgentSession(params: CreateAgentSessionParams) {
@@ -74,52 +135,9 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
   const agentDir = path.join(process.cwd(), '.pi', 'agents', agentId)
   if (!fs.existsSync(agentDir)) fs.mkdirSync(agentDir, { recursive: true })
 
-  // Helper to construct a Model object from database providers list
-  const getModelFromDb = (pName: string, mId: string) => {
-    const dbProvider = params.providers.find((p) => p.name === pName)
-    const dbModel = dbProvider?.models.find((m) => m.modelId === mId)
-
-    if (!dbProvider || !dbModel) return undefined
-
-    // Model contains complex internal types from pi-ai
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let m: any
-    try {
-      // Try to get built-in model as template
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      m = { ...(getModel as any)(pName, mId) }
-    } catch {
-      // Not a built-in model
-      m = {
-        id: mId,
-        name: dbModel.name || mId,
-        provider: pName,
-        api: 'openai-responses',
-        baseUrl: '',
-        reasoning: false,
-        input: ['text'],
-        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-        contextWindow: 4096,
-        maxTokens: 4096,
-      }
-    }
-
-    // Override with database config
-    if (dbProvider.config.baseUrl) {
-      m.baseUrl = dbProvider.config.baseUrl
-    }
-    if (dbProvider.config.api) {
-      m.api = dbProvider.config.api
-    }
-    Object.assign(m, dbModel.config)
-    if (dbModel.name) {
-      m.name = dbModel.name
-    }
-    return m
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const model = getModelFromDb(providerName, modelId) || (getModel as any)(providerName, modelId)
+  const model =
+    getModelFromDb(params.providers, providerName, modelId) ||
+    (getModel as unknown as (p: string, m: string) => unknown)(providerName, modelId)
 
   const piDir = path.join(process.cwd(), '.pi')
   if (!fs.existsSync(piDir)) fs.mkdirSync(piDir, { recursive: true })
@@ -269,17 +287,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
       return prompt
     },
     getApiKeyAndHeaders: async (targetModel) => {
-      // Helper to resolve key from ENV if it matches an ENV var name
-      const resolveKey = (key: string | undefined) => (key ? process.env[key] || key : undefined)
-
-      // Look up the provider in our providers list
-      const dbProvider = params.providers.find((p) => p.name === targetModel.provider)
-      const providerApiKey = dbProvider?.config?.apiKey
-      if (providerApiKey) {
-        return { apiKey: resolveKey(providerApiKey)! }
-      }
-
-      return undefined
+      return getApiKeyAndHeadersFromDb(params.providers, targetModel.provider)
     },
     tools: [...mediaTools, readSkill, sandboxedBash, ...systemTools, ...customTools],
   })

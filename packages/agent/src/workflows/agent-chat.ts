@@ -17,6 +17,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     deleteCommentActivity,
     initializeAgentSessionActivity,
     getAssetPathContextActivity,
+    generateSessionNameActivity,
   } = getActivities()
 
   let placeholderCommentId: string | undefined
@@ -91,7 +92,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     const teamId = asset.project.teamId
 
     // 4. Initialize Session if missing
-    let isNewChat = !payload.agent?.sessionId
+    let isNewChat = !payload.agent?.sessionId || payload.agent?.isNewChat === true
     if (!sessionId) {
       if (!userCommentId) {
         throw ApplicationFailure.create({
@@ -126,6 +127,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
 
     // Resolve Attached Files Details
     const attachedFileDetailsList: string[] = []
+    const attachedAssets: Array<{ id: string; name: string; type: string }> = []
     if (payload.agent?.attachedFiles) {
       for (const fileId of payload.agent.attachedFiles) {
         const file = await executeActivity(agentWorkerQueue, getAssetActivity, fileId)
@@ -134,6 +136,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
           attachedFileDetailsList.push(
             `- Name: ${file.name} (ID: ${file.id}, Type: ${file.type}, Media Type: ${file.mediaType || 'unknown'}, Project ID: ${file.projectId || 'unknown'}, Path: ${path})`,
           )
+          attachedAssets.push({ id: file.id, name: file.name, type: file.type })
         }
       }
     }
@@ -148,6 +151,11 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
           referencedAssetDetailsList.push(
             `- Name: ${referencedAsset.name} (ID: ${referencedAsset.id}, Type: ${referencedAsset.type}, Media Type: ${referencedAsset.mediaType || 'unknown'}, Project ID: ${referencedAsset.projectId || 'unknown'}, Path: ${path})`,
           )
+          attachedAssets.push({
+            id: referencedAsset.id,
+            name: referencedAsset.name,
+            type: referencedAsset.type,
+          })
         }
       }
     }
@@ -183,7 +191,20 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       userCommentId: userCommentId || undefined,
       explicitMention: payload.agent?.explicitMention,
       context,
+      attachedAssets,
     })
+
+    if (isNewChat) {
+      await executeActivity(agentWorkerQueue, generateSessionNameActivity, {
+        teamId,
+        agentId,
+        prompt,
+        sessionId,
+        context,
+      }).catch((err) => {
+        console.error('Failed to run generateSessionNameActivity:', err)
+      })
+    }
 
     // 7. Update Placeholder Comment
     if (placeholderCommentId) {
