@@ -158,5 +158,42 @@ describe('Chat API', () => {
         expect.any(Object),
       )
     })
+
+    it('sends ping keep-alive SSE events when there are no new messages', async () => {
+      vi.mocked(chatService.startOrContinueChat).mockResolvedValue({
+        sessionId: 'session1',
+        taskId: 'task1',
+      })
+
+      // No new entries initially
+      // Mock returns a simple array instead of full PrismaPromise, so we bypass type safety.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.mocked(prisma.agentSessionEntry.findMany).mockResolvedValue([] as any)
+
+      const mockTask = {
+        id: 'task1',
+        status: 'completed',
+        output: {},
+      }
+      // Mock returns a simple task object instead of PrismaPromise, so we bypass type safety.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.mocked(prisma.workflowTask.findUnique).mockResolvedValue(mockTask as any)
+
+      const res = await app.request('/teams/team1/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agentId: 'agent1',
+          textPrompt: 'hi',
+        }),
+      })
+
+      expect(res.status).toBe(200)
+      expect(res.headers.get('content-type')).toContain('text/event-stream')
+
+      const text = await res.text()
+      expect(text).toContain('data:')
+      expect(text).toContain('{"type":"ping"}')
+    })
   })
 })

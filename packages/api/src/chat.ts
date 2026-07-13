@@ -109,6 +109,12 @@ const route = new Hono<{ Variables: { user: User } }>()
             })
           }
           lastEntryId = newEntries[newEntries.length - 1].id
+        } else {
+          await stream.writeSSE({
+            data: JSON.stringify({
+              type: 'ping',
+            }),
+          })
         }
 
         // Check if workflow has finished
