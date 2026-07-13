@@ -33,6 +33,7 @@ describe('useChatbotStore', () => {
       messages: [],
       historySessions: [],
       isStreaming: false,
+      selectedAgentId: 'agent-1',
     })
   })
 

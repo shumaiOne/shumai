@@ -29,7 +29,6 @@ import { usePermissions } from '@/ui/hooks/use-permissions'
 import { cn } from '@/ui/lib/utils'
 import { m } from '@/ui/paraglide/messages.js'
 import type { AncestorFolder } from '@shumai/dtos'
-import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import {
   Bot,
@@ -115,20 +114,7 @@ export function BreadcrumbNav({
   const navigate = useNavigate()
   const { canEdit } = usePermissions(projectId)
 
-  const { data: teamSettings } = useQuery({
-    queryKey: ['teams', teamId, 'settings'],
-    queryFn: async () => {
-      const res = await client.api.teams[':teamId'].settings.$get({
-        param: { teamId },
-      })
-      if (!res.ok) throw new Error('failed to fetch settings')
-      return res.json()
-    },
-    enabled: !!teamId && !isPublic,
-  })
-
-  const isChatbotDisabled =
-    !isPublic && !(teamSettings as { chatbotAgentId?: string | null })?.chatbotAgentId
+  const isChatbotDisabled = false
 
   const handleVersionClick = (versionId: string) => {
     if (!fileId) return

@@ -1,20 +1,30 @@
+import { client } from '@/ui/api/client'
 import { ScrollArea } from '@/ui/components/ui/scroll-area'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/ui/components/ui/select'
 import { cn } from '@/ui/lib/utils'
 import { m } from '@/ui/paraglide/messages.js'
 import { useChatbotStore } from '@/ui/stores/chatbot'
+import { useTeamContextStore } from '@/ui/stores/team-context'
 import { useDroppable } from '@dnd-kit/react'
 import type { ChatMessage } from '@shumai/dtos'
+import { useQuery } from '@tanstack/react-query'
 import {
-  ArrowLeft,
-  ArrowUp,
-  Bot,
-  Brain,
-  ChevronDown,
-  History,
-  Loader2,
-  Plus,
-  Trash2,
-  Wrench,
+    ArrowLeft,
+    ArrowUp,
+    Bot,
+    Brain,
+    ChevronDown,
+    History,
+    Loader2,
+    Plus,
+    Trash2,
+    Wrench,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
@@ -40,7 +50,41 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
     deleteSession,
     startNewSession,
     sendMessage,
+    selectedAgentId,
+    setSelectedAgentId,
   } = useChatbotStore()
+
+  const { teamId, ensureTeamIdForProject } = useTeamContextStore()
+
+  useEffect(() => {
+    if (projectId) {
+      ensureTeamIdForProject(projectId)
+    }
+  }, [projectId, ensureTeamIdForProject])
+
+  const { data: agents = [] } = useQuery({
+    queryKey: ['agents', teamId],
+    queryFn: async () => {
+      if (!teamId) return []
+      const res = await client.api.teams[':teamId'].agents.$get({
+        param: { teamId },
+      })
+      if (!res.ok) throw new Error('failed to fetch agents')
+      return res.json()
+    },
+    enabled: !!teamId,
+  })
+
+  const chatAgents = agents.filter((a) => a.type === 'chat' && a.enabled)
+
+  useEffect(() => {
+    if (chatAgents.length > 0) {
+      const exists = chatAgents.some((a) => a.id === selectedAgentId)
+      if (!exists) {
+        setSelectedAgentId(chatAgents[0].id)
+      }
+    }
+  }, [chatAgents, selectedAgentId, setSelectedAgentId])
 
   const [inputText, setInputText] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -488,14 +532,54 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
                 disabled={isStreaming}
               />
 
-              {/* Bottom row inside the border containing the send button */}
-              <div className="flex justify-end items-center px-3 pb-2 pt-1">
+              {/* Bottom row inside the border containing the agent selector and send button */}
+              <div className="flex justify-between items-center px-3 pb-2 pt-1">
+                {/* Agent selector */}
+                <div className="flex items-center gap-1.5 min-w-0 max-w-[70%]">
+                  {chatAgents.length > 0 ? (
+                    <Select
+                      value={selectedAgentId || ''}
+                      onValueChange={(val) => setSelectedAgentId(val)}
+                      disabled={isStreaming}
+                    >
+                      <SelectTrigger className="h-8 border-none bg-transparent hover:bg-muted text-muted-foreground hover:text-foreground focus:ring-0 focus:ring-offset-0 px-2 py-0 gap-1.5 text-xs shrink-0 select-none shadow-none max-w-full">
+                        <SelectValue placeholder={m.select_agent()} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {chatAgents.map((agent) => (
+                          <SelectItem key={agent.id} value={agent.id}>
+                            <div className="flex items-center gap-2">
+                              {agent.avatar ? (
+                                <img
+                                  src={agent.avatar}
+                                  alt={agent.name}
+                                  className="w-4 h-4 rounded-full object-cover"
+                                />
+                              ) : (
+                                <Bot className="w-4 h-4 text-muted-foreground" />
+                              )}
+                              <span className="text-xs">{agent.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="flex items-center gap-1.5 px-2 py-1 text-[11px] text-muted-foreground/60 italic select-none">
+                      <Bot className="h-3.5 w-3.5" />
+                      <span>
+                        {m.no_chat_agents_warning ? m.no_chat_agents_warning() : 'No agents'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
                 <button
                   onClick={handleSend}
-                  disabled={isStreaming || !inputText.trim()}
+                  disabled={isStreaming || !inputText.trim() || !selectedAgentId}
                   className={cn(
                     'p-2 rounded-full transition-all duration-200 flex items-center justify-center shrink-0 shadow-sm',
-                    inputText.trim() && !isStreaming
+                    inputText.trim() && !isStreaming && selectedAgentId
                       ? 'bg-primary text-primary-foreground hover:bg-primary/95 transform hover:-translate-y-0.5'
                       : 'bg-muted text-muted-foreground cursor-not-allowed opacity-50',
                   )}

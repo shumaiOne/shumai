@@ -26,6 +26,8 @@ interface ChatbotState {
   setHistorySessions: (sessions: ChatSessionInfo[]) => void
   isStreaming: boolean
   setIsStreaming: (streaming: boolean) => void
+  selectedAgentId: string | null
+  setSelectedAgentId: (id: string | null) => void
 
   fetchHistorySessions: () => Promise<void>
   loadSession: (sessionId: string) => Promise<void>
@@ -59,6 +61,8 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
   setHistorySessions: (sessions) => set({ historySessions: sessions }),
   isStreaming: false,
   setIsStreaming: (streaming) => set({ isStreaming: streaming }),
+  selectedAgentId: null,
+  setSelectedAgentId: (id) => set({ selectedAgentId: id }),
 
   fetchHistorySessions: async () => {
     try {
@@ -81,10 +85,15 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
       })
       if (res.ok) {
         const messages = await res.json()
+        const sessionInfo = useChatbotStore
+          .getState()
+          .historySessions.find((s) => s.id === sessionId)
+        const agentId = sessionInfo?.agentId || null
         set({
           currentSessionId: sessionId,
           messages: messages as ChatMessage[],
           isHistoryMode: false,
+          ...(agentId ? { selectedAgentId: agentId } : {}),
         })
       } else {
         throw new Error('Failed to load session messages')
@@ -164,9 +173,16 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
 
     const assetIds = state.chatAssets.map((a) => a.id)
 
+    const agentId = state.selectedAgentId
+    if (!agentId) {
+      toast.error('No agent selected')
+      return
+    }
+
     try {
       const res = await client.api.chat.$post({
         json: {
+          agentId,
           textPrompt: text,
           assetIds,
           sessionId: state.currentSessionId || undefined,

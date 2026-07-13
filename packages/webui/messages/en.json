@@ -840,5 +840,6 @@
   "global_chatbot_description": "Select the agent that handles conversation inside the global chatbot sidebar.",
   "select_chatbot_agent": "Select chatbot agent",
   "no_chat_agents_warning": "No chat agents found. Please create a Chat Agent below first.",
-  "settings_saved": "Settings saved successfully"
+  "settings_saved": "Settings saved successfully",
+  "select_agent": "Select Agent"
 }

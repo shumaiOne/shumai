@@ -2,13 +2,6 @@ import { client } from '@/ui/api/client'
 import { Card, CardContent } from '@/ui/components/ui/card'
 import { Button } from '@/ui/components/ui/button'
 import { Badge } from '@/ui/components/ui/badge'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/ui/components/ui/select'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Loader2,
@@ -23,7 +16,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { AgentInfo, AgentType, ThinkingLevel, UpdateTeamSettingsRequest } from '@shumai/dtos'
+import { AgentInfo, AgentType, ThinkingLevel } from '@shumai/dtos'
 import { AgentFormDialog } from './AgentFormDialog'
 import {
   DropdownMenu,
@@ -150,35 +143,6 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
     },
   })
 
-  const { data: teamSettings } = useQuery({
-    queryKey: ['teams', teamId, 'settings'],
-    queryFn: async () => {
-      const res = await client.api.teams[':teamId'].settings.$get({
-        param: { teamId },
-      })
-      if (!res.ok) throw new Error('failed to fetch team settings')
-      return res.json()
-    },
-  })
-
-  const updateSettingsMutation = useMutation({
-    mutationFn: async (params: UpdateTeamSettingsRequest) => {
-      const res = await client.api.teams[':teamId'].settings.$patch({
-        param: { teamId },
-        json: params,
-      })
-      if (!res.ok) throw new Error('failed to update settings')
-      return res.json()
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'settings'] })
-      toast.success(m.settings_saved())
-    },
-    onError: (err) => {
-      toast.error(err.message)
-    },
-  })
-
   const toggleSection = (type: string) => {
     setExpandedSections((prev) => ({
       ...prev,
@@ -250,54 +214,6 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
             </div>
           )}
 
-          {/* Global Chatbot Agent Configuration Card */}
-          <Card className="border-border shadow-xs">
-            <CardContent className="p-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <h4 className="font-semibold text-foreground flex items-center gap-2 text-sm md:text-base">
-                    <Bot className="w-5 h-5 text-primary" />
-                    {m.global_chatbot()}
-                  </h4>
-                  <p className="text-xs md:text-sm text-muted-foreground">
-                    {m.global_chatbot_description()}
-                  </p>
-                </div>
-                <div className="w-full md:w-72 shrink-0">
-                  {agents.filter((a) => a.type === 'chat' && a.enabled).length === 0 ? (
-                    <div className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/20 dark:text-amber-400 p-2.5 rounded-lg border border-amber-200 dark:border-amber-900/30">
-                      {m.no_chat_agents_warning()}
-                    </div>
-                  ) : (
-                    <Select
-                      value={
-                        (teamSettings as { chatbotAgentId?: string | null })?.chatbotAgentId || ''
-                      }
-                      onValueChange={(val) => {
-                        updateSettingsMutation.mutate({
-                          key: 'chatbotAgentId',
-                          value: val || null,
-                        })
-                      }}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder={m.select_chatbot_agent()} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {agents
-                          .filter((a) => a.type === 'chat' && a.enabled)
-                          .map((agent) => (
-                            <SelectItem key={agent.id} value={agent.id}>
-                              {agent.name}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
           {AGENT_TYPES.map((section) => {
             const typeAgents = agents.filter((a) => a.type === section.type)
             const Icon = section.icon

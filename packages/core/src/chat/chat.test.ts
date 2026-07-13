@@ -76,6 +76,7 @@ describe('ChatService', () => {
     const { user, project, rootFolder } = await setupBasicData()
 
     const { sessionId, taskId } = await chatService.startOrContinueChat(user, {
+      agentId: 'test-agent-id',
       textPrompt: 'hello world',
       projectId: project.id,
     })
@@ -120,6 +121,7 @@ describe('ChatService', () => {
 
     // Start
     const { sessionId } = await chatService.startOrContinueChat(user, {
+      agentId: 'test-agent-id',
       textPrompt: 'first message',
       projectId: project.id,
     })
@@ -128,6 +130,7 @@ describe('ChatService', () => {
     const { sessionId: nextSessionId, taskId: nextTaskId } = await chatService.startOrContinueChat(
       user,
       {
+        agentId: 'test-agent-id',
         textPrompt: 'second message',
         sessionId,
       },
@@ -184,6 +187,7 @@ describe('ChatService', () => {
     })
 
     const { taskId } = await chatService.startOrContinueChat(user, {
+      agentId: 'test-agent-id',
       textPrompt: 'process file',
       projectId: project.id,
       assetIds: [childFolder.id],
@@ -206,11 +210,13 @@ describe('ChatService', () => {
     const { user, project } = await setupBasicData()
 
     await chatService.startOrContinueChat(user, {
+      agentId: 'test-agent-id',
       textPrompt: 'chat 1',
       projectId: project.id,
     })
 
     await chatService.startOrContinueChat(user, {
+      agentId: 'test-agent-id',
       textPrompt: 'chat 2',
       projectId: project.id,
     })
@@ -234,6 +240,7 @@ describe('ChatService', () => {
     const { user, project } = await setupBasicData()
 
     const { sessionId } = await chatService.startOrContinueChat(user, {
+      agentId: 'test-agent-id',
       textPrompt: 'hello',
       projectId: project.id,
     })
@@ -270,6 +277,7 @@ describe('ChatService', () => {
     const { user, project } = await setupBasicData()
 
     const { sessionId } = await chatService.startOrContinueChat(user, {
+      agentId: 'test-agent-id',
       textPrompt: 'hello',
       projectId: project.id,
     })
@@ -369,6 +377,7 @@ describe('ChatService', () => {
     const { user, project } = await setupBasicData()
 
     const { sessionId } = await chatService.startOrContinueChat(user, {
+      agentId: 'test-agent-id',
       textPrompt: 'to delete',
       projectId: project.id,
     })
