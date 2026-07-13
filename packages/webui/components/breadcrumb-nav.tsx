@@ -1,28 +1,29 @@
 import { client } from '@/ui/api/client'
 import { Badge } from '@/ui/components/ui/badge'
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuPortal,
-    DropdownMenuSeparator,
-    DropdownMenuSub,
-    DropdownMenuSubContent,
-    DropdownMenuSubTrigger,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuPortal,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu'
 import {
-    DockToLeft,
-    DockToLeftFilled,
-    DockToRight,
-    DockToRightFilled,
+  BotFilled,
+  DockToLeft,
+  DockToLeftFilled,
+  DockToRight,
+  DockToRightFilled,
 } from '@/ui/components/ui/icons'
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from '@/ui/components/ui/tooltip'
 import { usePermissions } from '@/ui/hooks/use-permissions'
 import { cn } from '@/ui/lib/utils'
@@ -31,14 +32,14 @@ import type { AncestorFolder } from '@shumai/dtos'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from '@tanstack/react-router'
 import {
-    Bot,
-    Check,
-    ChevronDown,
-    Columns2,
-    FileIcon,
-    History,
-    LayoutGrid,
-    List,
+  Bot,
+  Check,
+  ChevronDown,
+  Columns2,
+  FileIcon,
+  History,
+  LayoutGrid,
+  List,
 } from 'lucide-react'
 
 interface BreadcrumbNavProps {
@@ -481,12 +482,11 @@ export function BreadcrumbNav({
                       isChatbotDisabled && 'opacity-50 cursor-not-allowed',
                     )}
                   >
-                    <Bot
-                      className={cn(
-                        'h-6 w-6 transition-colors',
-                        isChatbotOpen ? 'text-primary fill-primary/10' : 'text-muted-foreground',
-                      )}
-                    />
+                    {isChatbotOpen ? (
+                      <BotFilled className="h-6 w-6 text-primary transition-colors" />
+                    ) : (
+                      <Bot className="h-6 w-6 text-muted-foreground transition-colors" />
+                    )}
                   </button>
                 </span>
               </TooltipTrigger>
