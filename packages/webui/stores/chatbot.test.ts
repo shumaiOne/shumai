@@ -7,7 +7,7 @@ vi.mock('@/ui/api/client', () => {
   const chatMock = {
     $post: vi.fn(),
     sessions: {
-      $get: vi.fn(() => Promise.resolve({ ok: true, json: async () => ({ data: [] }) } as any)),
+      $get: vi.fn(() => Promise.resolve({ ok: true, json: async () => ({ data: [] }) } as unknown)),
       $delete: vi.fn(),
       messages: {
         $get: vi.fn(),
