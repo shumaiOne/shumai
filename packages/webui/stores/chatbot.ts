@@ -29,6 +29,10 @@ interface ChatbotState {
   selectedAgentId: string | null
   setSelectedAgentId: (id: string | null) => void
 
+  scrollTop: number
+  isAtBottom: boolean
+  setScrollState: (scrollTop: number, isAtBottom: boolean) => void
+
   fetchHistorySessions: (teamId: string) => Promise<void>
   loadSession: (teamId: string, sessionId: string) => Promise<void>
   deleteSession: (teamId: string, sessionId: string) => Promise<void>
@@ -68,6 +72,9 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
   setIsStreaming: (streaming) => set({ isStreaming: streaming }),
   selectedAgentId: null,
   setSelectedAgentId: (id) => set({ selectedAgentId: id }),
+  scrollTop: 0,
+  isAtBottom: true,
+  setScrollState: (scrollTop, isAtBottom) => set({ scrollTop, isAtBottom }),
 
   fetchHistorySessions: async (teamId) => {
     try {
@@ -99,6 +106,8 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
           currentSessionId: sessionId,
           messages: messages as ChatMessage[],
           isHistoryMode: false,
+          scrollTop: 0,
+          isAtBottom: true,
           ...(agentId ? { selectedAgentId: agentId } : {}),
         })
       } else {
@@ -136,6 +145,8 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
       currentSessionId: null,
       messages: [],
       chatAssets: [],
+      scrollTop: 0,
+      isAtBottom: true,
     })
   },
 
@@ -175,6 +186,7 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
       messages: newMessages,
       isStreaming: true,
       chatAssets: [],
+      isAtBottom: true,
     })
 
     const assetIds = state.chatAssets.map((a) => a.id)

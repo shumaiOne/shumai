@@ -88,6 +88,61 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
 
   const [inputText, setInputText] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const isFirstScrollRef = useRef(true)
+
+  const isRestoringRef = useRef(true)
+
+  useEffect(() => {
+    isRestoringRef.current = true
+    isFirstScrollRef.current = true
+  }, [projectId, contextAssetId, isHistoryMode])
+
+  // Restore scroll position on mount or when navigation changes the project/context
+  useEffect(() => {
+    const viewport = scrollAreaRef.current?.querySelector('[data-slot="scroll-area-viewport"]')
+    if (!viewport) return
+
+    const { scrollTop, isAtBottom } = useChatbotStore.getState()
+
+    // Use a timeout to ensure the DOM has settled and scrollHeight is fully calculated
+    const timer = setTimeout(() => {
+      if (isAtBottom) {
+        viewport.scrollTop = viewport.scrollHeight
+      } else {
+        viewport.scrollTop = scrollTop
+      }
+
+      // Allow scroll events triggered by this restoration to fire and be ignored before tracking
+      const enableTimer = setTimeout(() => {
+        isRestoringRef.current = false
+      }, 50)
+
+      return () => clearTimeout(enableTimer)
+    }, 0)
+
+    return () => clearTimeout(timer)
+  }, [projectId, contextAssetId, isHistoryMode])
+
+  // Listen to scroll events on the viewport to save scroll state
+  useEffect(() => {
+    const viewport = scrollAreaRef.current?.querySelector('[data-slot="scroll-area-viewport"]')
+    if (!viewport) return
+
+    const handleScroll = () => {
+      if (isRestoringRef.current) return
+
+      const scrollTop = viewport.scrollTop
+      // We consider the user at the bottom if they are within 10px of the bottom boundary
+      const isAtBottom = viewport.scrollHeight - scrollTop - viewport.clientHeight < 10
+      useChatbotStore.getState().setScrollState(scrollTop, isAtBottom)
+    }
+
+    viewport.addEventListener('scroll', handleScroll)
+    return () => {
+      viewport.removeEventListener('scroll', handleScroll)
+    }
+  }, [projectId, contextAssetId, isHistoryMode])
 
   const { ref: setDroppableRef, isDropTarget: isOver } = useDroppable({
     id: 'chatbot-sidebar',
@@ -99,7 +154,12 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
   // Auto-scroll messages list to bottom
   useEffect(() => {
     if (!isHistoryMode) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      const { isAtBottom } = useChatbotStore.getState()
+      if (isAtBottom || isStreaming) {
+        const behavior = isFirstScrollRef.current ? 'auto' : 'smooth'
+        messagesEndRef.current?.scrollIntoView({ behavior })
+      }
+      isFirstScrollRef.current = false
     }
   }, [messages, isStreaming, isHistoryMode])
 
@@ -473,7 +533,7 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
       ) : (
         <>
           {/* Active Chat view */}
-          <ScrollArea className="flex-1 p-4 min-h-0 [&>div>div]:!block">
+          <ScrollArea ref={scrollAreaRef} className="flex-1 p-4 min-h-0 [&>div>div]:!block">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-48 border-2 border-dashed border-border rounded-lg text-muted-foreground p-4 text-center">
                 <Bot className="h-8 w-8 mb-2 opacity-50 text-muted-foreground" />
