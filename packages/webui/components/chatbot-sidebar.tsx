@@ -184,7 +184,7 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
                       // eslint-disable-next-line @typescript-eslint/no-unused-vars
                       pre: ({ node, ...props }) => (
                         <pre
-                          className="whitespace-pre-wrap break-all break-words bg-gray-100 p-4 rounded-md"
+                          className="whitespace-pre-wrap break-all break-words bg-muted text-foreground p-4 rounded-md border border-border/50 font-mono text-sm"
                           {...props}
                         />
                       ),
