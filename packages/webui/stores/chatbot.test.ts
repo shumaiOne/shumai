@@ -4,17 +4,22 @@ import { client } from '@/ui/api/client'
 import type { ChatMessage } from '@shumai/dtos'
 
 vi.mock('@/ui/api/client', () => {
+  const chatMock = {
+    $post: vi.fn(),
+    sessions: {
+      $get: vi.fn(() => Promise.resolve({ ok: true, json: async () => ({ data: [] }) } as any)),
+      $delete: vi.fn(),
+      messages: {
+        $get: vi.fn(),
+      },
+    },
+  }
   return {
     client: {
       api: {
-        chat: {
-          $post: vi.fn(),
-          sessions: {
-            $get: vi.fn(),
-            $delete: vi.fn(),
-            messages: {
-              $get: vi.fn(),
-            },
+        teams: {
+          ':teamId': {
+            chat: chatMock,
           },
         },
       },
@@ -99,9 +104,9 @@ describe('useChatbotStore', () => {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.mocked(client.api.chat.$post).mockResolvedValue(mockResponse as any)
+    vi.mocked(client.api.teams[':teamId'].chat.$post).mockResolvedValue(mockResponse as any)
 
-    const sendPromise = useChatbotStore.getState().sendMessage('hello', 'proj-123')
+    const sendPromise = useChatbotStore.getState().sendMessage('team-123', 'hello', 'proj-123')
 
     // Optimistic message should be present immediately
     const stateWithOptimistic = useChatbotStore.getState()
@@ -166,9 +171,11 @@ describe('useChatbotStore', () => {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.mocked(client.api.chat.$post).mockResolvedValue(mockResponse as any)
+    vi.mocked(client.api.teams[':teamId'].chat.$post).mockResolvedValue(mockResponse as any)
 
-    const sendPromise = useChatbotStore.getState().sendMessage('new message', 'proj-123')
+    const sendPromise = useChatbotStore
+      .getState()
+      .sendMessage('team-123', 'new message', 'proj-123')
 
     // Optimistic message should be appended immediately
     const stateWithOptimistic = useChatbotStore.getState()
@@ -221,9 +228,9 @@ describe('useChatbotStore', () => {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.mocked(client.api.chat.$post).mockResolvedValue(mockResponse as any)
+    vi.mocked(client.api.teams[':teamId'].chat.$post).mockResolvedValue(mockResponse as any)
 
-    const sendPromise = useChatbotStore.getState().sendMessage('hello', 'proj-123')
+    const sendPromise = useChatbotStore.getState().sendMessage('team-123', 'hello', 'proj-123')
 
     // 3. Verify that both the optimistic context message and user message are present immediately
     const stateWithOptimistic = useChatbotStore.getState()

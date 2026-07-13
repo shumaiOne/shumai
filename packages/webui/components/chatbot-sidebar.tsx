@@ -1,11 +1,11 @@
 import { client } from '@/ui/api/client'
 import { ScrollArea } from '@/ui/components/ui/scroll-area'
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/ui/components/ui/select'
 import { cn } from '@/ui/lib/utils'
 import { m } from '@/ui/paraglide/messages.js'
@@ -15,16 +15,16 @@ import { useDroppable } from '@dnd-kit/react'
 import type { ChatMessage } from '@shumai/dtos'
 import { useQuery } from '@tanstack/react-query'
 import {
-    ArrowLeft,
-    ArrowUp,
-    Bot,
-    Brain,
-    ChevronDown,
-    History,
-    Loader2,
-    Plus,
-    Trash2,
-    Wrench,
+  ArrowLeft,
+  ArrowUp,
+  Bot,
+  Brain,
+  ChevronDown,
+  History,
+  Loader2,
+  Plus,
+  Trash2,
+  Wrench,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
@@ -105,14 +105,14 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
 
   // Fetch history when entering history mode
   useEffect(() => {
-    if (isHistoryMode) {
-      fetchHistorySessions()
+    if (isHistoryMode && teamId) {
+      fetchHistorySessions(teamId)
     }
-  }, [isHistoryMode, fetchHistorySessions])
+  }, [isHistoryMode, fetchHistorySessions, teamId])
 
   const handleSend = () => {
-    if (!inputText.trim() || isStreaming) return
-    sendMessage(inputText, projectId, contextAssetId)
+    if (!inputText.trim() || isStreaming || !teamId) return
+    sendMessage(teamId, inputText, projectId, contextAssetId)
     setInputText('')
   }
 
@@ -441,7 +441,10 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
                       isActive ? 'border-primary' : 'border-border hover:bg-accent/30',
                     )}
                   >
-                    <div onClick={() => loadSession(sess.id)} className="flex-1 min-w-0 pr-6">
+                    <div
+                      onClick={() => teamId && loadSession(teamId, sess.id)}
+                      className="flex-1 min-w-0 pr-6"
+                    >
                       <div className="text-sm font-semibold text-foreground truncate">
                         {sess.name || m.new_chat()}
                       </div>
@@ -452,8 +455,8 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        if (confirm(m.delete_session_confirm())) {
-                          deleteSession(sess.id)
+                        if (teamId && confirm(m.delete_session_confirm())) {
+                          deleteSession(teamId, sess.id)
                         }
                       }}
                       className="absolute right-3 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity text-muted-foreground hover:text-destructive p-1 rounded hover:bg-muted"

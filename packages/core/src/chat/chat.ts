@@ -141,6 +141,7 @@ export class ChatService {
 
   async startOrContinueChat(
     user: User,
+    teamId: string,
     req: ChatRequest,
   ): Promise<{ sessionId: string; taskId: string }> {
     const {
@@ -254,13 +255,17 @@ export class ChatService {
       if (!agent) {
         throw new Error(`Agent with ID "${agentId}" not found`)
       }
+      if (agent.teamId !== teamId) {
+        throw new Error(`Agent does not belong to the specified team`)
+      }
 
       if (activeSessionId) {
         const sessionExists = await tx.agentSession.findUnique({
           where: { id: activeSessionId },
-          select: { id: true },
+          select: { id: true, userId: true },
         })
         if (!sessionExists) throw new Error('Session not found')
+        if (sessionExists.userId !== user.id) throw new Error('Unauthorized session access')
 
         // Update the session's agentId to match the selected agent
         await tx.agentSession.update({
@@ -313,11 +318,15 @@ export class ChatService {
 
   async listSessions(
     userId: string,
+    teamId: string,
     params: { first?: number; after?: string },
   ): Promise<PaginatedData<ChatSessionInfo[]>> {
     const where: Prisma.AgentSessionWhereInput = {
       userId,
       type: 'chat',
+      agent: {
+        teamId,
+      },
     }
 
     return await paginateQuery(
@@ -344,7 +353,7 @@ export class ChatService {
     )
   }
 
-  async listMessages(userId: string, sessionId: string): Promise<ChatMessage[]> {
+  async listMessages(userId: string, teamId: string, sessionId: string): Promise<ChatMessage[]> {
     const session = await this.prismaClient.agentSession.findUnique({
       where: { id: sessionId },
     })
@@ -371,7 +380,7 @@ export class ChatService {
     return buildSessionMessages(pathEntries)
   }
 
-  async deleteSession(userId: string, sessionId: string): Promise<void> {
+  async deleteSession(userId: string, teamId: string, sessionId: string): Promise<void> {
     const session = await this.prismaClient.agentSession.findUnique({
       where: { id: sessionId },
     })

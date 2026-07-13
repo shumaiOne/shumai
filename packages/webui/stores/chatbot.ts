@@ -29,11 +29,16 @@ interface ChatbotState {
   selectedAgentId: string | null
   setSelectedAgentId: (id: string | null) => void
 
-  fetchHistorySessions: () => Promise<void>
-  loadSession: (sessionId: string) => Promise<void>
-  deleteSession: (sessionId: string) => Promise<void>
+  fetchHistorySessions: (teamId: string) => Promise<void>
+  loadSession: (teamId: string, sessionId: string) => Promise<void>
+  deleteSession: (teamId: string, sessionId: string) => Promise<void>
   startNewSession: () => void
-  sendMessage: (text: string, projectId: string, contextAssetId?: string) => Promise<void>
+  sendMessage: (
+    teamId: string,
+    text: string,
+    projectId: string,
+    contextAssetId?: string,
+  ) => Promise<void>
 }
 
 export const useChatbotStore = create<ChatbotState>((set) => ({
@@ -64,9 +69,10 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
   selectedAgentId: null,
   setSelectedAgentId: (id) => set({ selectedAgentId: id }),
 
-  fetchHistorySessions: async () => {
+  fetchHistorySessions: async (teamId) => {
     try {
-      const res = await client.api.chat.sessions.$get({
+      const res = await client.api.teams[':teamId'].chat.sessions.$get({
+        param: { teamId },
         query: { first: '50' },
       })
       if (res.ok) {
@@ -78,10 +84,10 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
     }
   },
 
-  loadSession: async (sessionId) => {
+  loadSession: async (teamId, sessionId) => {
     try {
-      const res = await client.api.chat.sessions[':sessionId'].messages.$get({
-        param: { sessionId },
+      const res = await client.api.teams[':teamId'].chat.sessions[':sessionId'].messages.$get({
+        param: { teamId, sessionId },
       })
       if (res.ok) {
         const messages = await res.json()
@@ -104,10 +110,10 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
     }
   },
 
-  deleteSession: async (sessionId) => {
+  deleteSession: async (teamId, sessionId) => {
     try {
-      const res = await client.api.chat.sessions[':sessionId'].$delete({
-        param: { sessionId },
+      const res = await client.api.teams[':teamId'].chat.sessions[':sessionId'].$delete({
+        param: { teamId, sessionId },
       })
       if (res.ok) {
         toast.success('Session deleted successfully')
@@ -133,7 +139,7 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
     })
   },
 
-  sendMessage: async (text, projectId, contextAssetId) => {
+  sendMessage: async (teamId, text, projectId, contextAssetId) => {
     const state = useChatbotStore.getState()
     if (state.isStreaming) return
 
@@ -180,7 +186,8 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
     }
 
     try {
-      const res = await client.api.chat.$post({
+      const res = await client.api.teams[':teamId'].chat.$post({
+        param: { teamId },
         json: {
           agentId,
           textPrompt: text,
@@ -272,7 +279,7 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
 
       // If we finished successfully, trigger a history list refresh
       const finalState = useChatbotStore.getState()
-      finalState.fetchHistorySessions()
+      finalState.fetchHistorySessions(teamId)
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : 'Failed to send message'
       toast.error(errMsg)

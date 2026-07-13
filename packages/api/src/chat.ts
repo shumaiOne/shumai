@@ -3,38 +3,71 @@ import { zValidator } from '@hono/zod-validator'
 import { streamSSE } from 'hono/streaming'
 import { prisma } from '@shumai/db'
 import { chatService, mapEntryToMessage } from '@shumai/core/src/chat/chat'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { chatRequestSchema, paginationParamsSchema } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
 const route = new Hono<{ Variables: { user: User } }>()
-  .get('/chat/sessions', zValidator('query', paginationParamsSchema), async (c) => {
+  .get('/teams/:teamId/chat/sessions', zValidator('query', paginationParamsSchema), async (c) => {
     const user = c.get('user')
+    const teamId = c.req.param('teamId')
     const query = c.req.valid('query')
 
-    const res = await chatService.listSessions(user.id, query)
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Team,
+      id: teamId,
+    })
+
+    const res = await chatService.listSessions(user.id, teamId, query)
     return c.json(res, 200)
   })
-  .get('/chat/sessions/:sessionId/messages', async (c) => {
+  .get('/teams/:teamId/chat/sessions/:sessionId/messages', async (c) => {
     const user = c.get('user')
+    const teamId = c.req.param('teamId')
     const sessionId = c.req.param('sessionId')
 
-    const res = await chatService.listMessages(user.id, sessionId)
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Team,
+      id: teamId,
+    })
+
+    const res = await chatService.listMessages(user.id, teamId, sessionId)
     return c.json(res, 200)
   })
-  .delete('/chat/sessions/:sessionId', async (c) => {
+  .delete('/teams/:teamId/chat/sessions/:sessionId', async (c) => {
     const user = c.get('user')
+    const teamId = c.req.param('teamId')
     const sessionId = c.req.param('sessionId')
 
-    await chatService.deleteSession(user.id, sessionId)
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Team,
+      id: teamId,
+    })
+
+    await chatService.deleteSession(user.id, teamId, sessionId)
     return new Response(null, { status: 204 })
   })
-  .post('/chat', zValidator('json', chatRequestSchema), async (c) => {
+  .post('/teams/:teamId/chat', zValidator('json', chatRequestSchema), async (c) => {
     const user = c.get('user')
+    const teamId = c.req.param('teamId')
     const req = c.req.valid('json')
 
-    const { sessionId, taskId } = await chatService.startOrContinueChat(user, req)
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Team,
+      id: teamId,
+    })
+
+    const { sessionId, taskId } = await chatService.startOrContinueChat(user, teamId, req)
 
     c.header('x-session-id', sessionId)
 

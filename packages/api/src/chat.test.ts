@@ -43,7 +43,7 @@ describe('Chat API', () => {
     vi.mocked(authzService.hasPermission).mockResolvedValue(undefined)
   })
 
-  describe('GET /chat/sessions', () => {
+  describe('GET /teams/:teamId/chat/sessions', () => {
     it('returns list of sessions', async () => {
       const mockSessions = {
         data: [
@@ -62,15 +62,16 @@ describe('Chat API', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(chatService.listSessions).mockResolvedValue(mockSessions as any)
 
-      const res = await app.request('/chat/sessions?first=10')
+      const res = await app.request('/teams/team1/chat/sessions?first=10')
       expect(res.status).toBe(200)
       const data = await res.json()
       expect(data.data).toHaveLength(1)
       expect(data.data[0].id).toBe('session1')
+      expect(chatService.listSessions).toHaveBeenCalledWith('user1', 'team1', expect.any(Object))
     })
   })
 
-  describe('GET /chat/sessions/:sessionId/messages', () => {
+  describe('GET /teams/:teamId/chat/sessions/:sessionId/messages', () => {
     it('returns list of messages', async () => {
       const mockMessages = [
         {
@@ -84,27 +85,28 @@ describe('Chat API', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(chatService.listMessages).mockResolvedValue(mockMessages as any)
 
-      const res = await app.request('/chat/sessions/session1/messages')
+      const res = await app.request('/teams/team1/chat/sessions/session1/messages')
       expect(res.status).toBe(200)
       const data = await res.json()
       expect(data).toHaveLength(1)
       expect(data[0].content).toBe('hello')
+      expect(chatService.listMessages).toHaveBeenCalledWith('user1', 'team1', 'session1')
     })
   })
 
-  describe('DELETE /chat/sessions/:sessionId', () => {
+  describe('DELETE /teams/:teamId/chat/sessions/:sessionId', () => {
     it('deletes a session', async () => {
       vi.mocked(chatService.deleteSession).mockResolvedValue(undefined)
 
-      const res = await app.request('/chat/sessions/session1', {
+      const res = await app.request('/teams/team1/chat/sessions/session1', {
         method: 'DELETE',
       })
       expect(res.status).toBe(204)
-      expect(chatService.deleteSession).toHaveBeenCalledWith('user1', 'session1')
+      expect(chatService.deleteSession).toHaveBeenCalledWith('user1', 'team1', 'session1')
     })
   })
 
-  describe('POST /chat', () => {
+  describe('POST /teams/:teamId/chat', () => {
     it('starts or continues chat and returns stream', async () => {
       vi.mocked(chatService.startOrContinueChat).mockResolvedValue({
         sessionId: 'session1',
@@ -135,7 +137,7 @@ describe('Chat API', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(prisma.workflowTask.findUnique).mockResolvedValue(mockTask as any)
 
-      const res = await app.request('/chat', {
+      const res = await app.request('/teams/team1/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -150,6 +152,11 @@ describe('Chat API', () => {
       const text = await res.text()
       expect(text).toContain('data:')
       expect(text).toContain('entry1')
+      expect(chatService.startOrContinueChat).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'user1' }),
+        'team1',
+        expect.any(Object),
+      )
     })
   })
 })

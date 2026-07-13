@@ -73,9 +73,9 @@ describe('ChatService', () => {
   }
 
   it('should start a new chat session and trigger workflow', async () => {
-    const { user, project, rootFolder } = await setupBasicData()
+    const { user, team, project, rootFolder } = await setupBasicData()
 
-    const { sessionId, taskId } = await chatService.startOrContinueChat(user, {
+    const { sessionId, taskId } = await chatService.startOrContinueChat(user, team.id, {
       agentId: 'test-agent-id',
       textPrompt: 'hello world',
       projectId: project.id,
@@ -117,10 +117,10 @@ describe('ChatService', () => {
   })
 
   it('should continue an existing chat session', async () => {
-    const { user, project } = await setupBasicData()
+    const { user, team, project } = await setupBasicData()
 
     // Start
-    const { sessionId } = await chatService.startOrContinueChat(user, {
+    const { sessionId } = await chatService.startOrContinueChat(user, team.id, {
       agentId: 'test-agent-id',
       textPrompt: 'first message',
       projectId: project.id,
@@ -129,6 +129,7 @@ describe('ChatService', () => {
     // Continue
     const { sessionId: nextSessionId, taskId: nextTaskId } = await chatService.startOrContinueChat(
       user,
+      team.id,
       {
         agentId: 'test-agent-id',
         textPrompt: 'second message',
@@ -156,7 +157,7 @@ describe('ChatService', () => {
   })
 
   it('should inject context of referenced assets and attached files', async () => {
-    const { user, project, rootFolder } = await setupBasicData()
+    const { user, team, project, rootFolder } = await setupBasicData()
 
     const childFolder = await prisma.asset.create({
       data: {
@@ -186,7 +187,7 @@ describe('ChatService', () => {
       },
     })
 
-    const { taskId } = await chatService.startOrContinueChat(user, {
+    const { taskId } = await chatService.startOrContinueChat(user, team.id, {
       agentId: 'test-agent-id',
       textPrompt: 'process file',
       projectId: project.id,
@@ -207,15 +208,15 @@ describe('ChatService', () => {
   })
 
   it('should list sessions of a user and only return chat type sessions', async () => {
-    const { user, project } = await setupBasicData()
+    const { user, team, project } = await setupBasicData()
 
-    await chatService.startOrContinueChat(user, {
+    await chatService.startOrContinueChat(user, team.id, {
       agentId: 'test-agent-id',
       textPrompt: 'chat 1',
       projectId: project.id,
     })
 
-    await chatService.startOrContinueChat(user, {
+    await chatService.startOrContinueChat(user, team.id, {
       agentId: 'test-agent-id',
       textPrompt: 'chat 2',
       projectId: project.id,
@@ -232,14 +233,14 @@ describe('ChatService', () => {
       },
     })
 
-    const list = await chatService.listSessions(user.id, { first: 10 })
+    const list = await chatService.listSessions(user.id, team.id, { first: 10 })
     expect(list.data).toHaveLength(2)
   })
 
   it('should list messages mapped correctly', async () => {
-    const { user, project } = await setupBasicData()
+    const { user, team, project } = await setupBasicData()
 
-    const { sessionId } = await chatService.startOrContinueChat(user, {
+    const { sessionId } = await chatService.startOrContinueChat(user, team.id, {
       agentId: 'test-agent-id',
       textPrompt: 'hello',
       projectId: project.id,
@@ -264,7 +265,7 @@ describe('ChatService', () => {
       },
     })
 
-    const messages = await chatService.listMessages(user.id, sessionId)
+    const messages = await chatService.listMessages(user.id, team.id, sessionId)
     expect(messages).toHaveLength(1)
     // Casting to any to access properties of union in test assertions
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -274,9 +275,9 @@ describe('ChatService', () => {
   })
 
   it('should hide customType context messages', async () => {
-    const { user, project } = await setupBasicData()
+    const { user, team, project } = await setupBasicData()
 
-    const { sessionId } = await chatService.startOrContinueChat(user, {
+    const { sessionId } = await chatService.startOrContinueChat(user, team.id, {
       agentId: 'test-agent-id',
       textPrompt: 'hello',
       projectId: project.id,
@@ -352,7 +353,7 @@ describe('ChatService', () => {
     })
 
     // Verify listMessages returns only the user, thinking level change and custom display entry message
-    const messages = await chatService.listMessages(user.id, sessionId)
+    const messages = await chatService.listMessages(user.id, team.id, sessionId)
     expect(messages).toHaveLength(3)
     expect(messages[0].id).toBe('test-entry-1-user')
     expect(messages[1].id).toBe('test-entry-3-thinking')
@@ -374,15 +375,15 @@ describe('ChatService', () => {
   })
 
   it('should delete session and cascade', async () => {
-    const { user, project } = await setupBasicData()
+    const { user, team, project } = await setupBasicData()
 
-    const { sessionId } = await chatService.startOrContinueChat(user, {
+    const { sessionId } = await chatService.startOrContinueChat(user, team.id, {
       agentId: 'test-agent-id',
       textPrompt: 'to delete',
       projectId: project.id,
     })
 
-    await chatService.deleteSession(user.id, sessionId)
+    await chatService.deleteSession(user.id, team.id, sessionId)
 
     const session = await prisma.agentSession.findUnique({
       where: { id: sessionId },
