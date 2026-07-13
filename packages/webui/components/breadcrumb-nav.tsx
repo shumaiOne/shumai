@@ -1,45 +1,45 @@
-import { Badge } from '@/ui/components/ui/badge'
 import { client } from '@/ui/api/client'
+import { Badge } from '@/ui/components/ui/badge'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuPortal,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuPortal,
+    DropdownMenuSeparator,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
+    DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu'
 import {
-  DockToLeft,
-  DockToLeftFilled,
-  DockToRight,
-  DockToRightFilled,
+    DockToLeft,
+    DockToLeftFilled,
+    DockToRight,
+    DockToRightFilled,
 } from '@/ui/components/ui/icons'
-import { useQuery } from '@tanstack/react-query'
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
 } from '@/ui/components/ui/tooltip'
-import { Link, useNavigate } from '@tanstack/react-router'
-import {
-  Check,
-  ChevronDown,
-  Columns2,
-  FileIcon,
-  History,
-  LayoutGrid,
-  List,
-  Bot,
-} from 'lucide-react'
 import { usePermissions } from '@/ui/hooks/use-permissions'
 import { cn } from '@/ui/lib/utils'
 import { m } from '@/ui/paraglide/messages.js'
 import type { AncestorFolder } from '@shumai/dtos'
+import { useQuery } from '@tanstack/react-query'
+import { Link, useNavigate } from '@tanstack/react-router'
+import {
+    Bot,
+    Check,
+    ChevronDown,
+    Columns2,
+    FileIcon,
+    History,
+    LayoutGrid,
+    List,
+} from 'lucide-react'
 
 interface BreadcrumbNavProps {
   teamId: string
@@ -474,7 +474,7 @@ export function BreadcrumbNav({
                     disabled={isChatbotDisabled}
                     onClick={onChatbotToggle}
                     className={cn(
-                      'h-9 w-9 flex items-center justify-center rounded-md border border-border bg-background transition-colors',
+                      'h-9 w-9 flex items-center justify-center rounded-full border border-border bg-background transition-colors',
                       isChatbotOpen
                         ? 'bg-accent text-accent-foreground'
                         : 'text-muted-foreground hover:bg-accent hover:text-foreground',
@@ -483,7 +483,7 @@ export function BreadcrumbNav({
                   >
                     <Bot
                       className={cn(
-                        'h-4 w-4 transition-colors',
+                        'h-6 w-6 transition-colors',
                         isChatbotOpen ? 'text-primary fill-primary/10' : 'text-muted-foreground',
                       )}
                     />
