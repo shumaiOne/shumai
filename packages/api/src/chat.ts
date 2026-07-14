@@ -1,12 +1,10 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { streamSSE } from 'hono/streaming'
-import { prisma } from '@shumai/db'
-import { chatService, mapEntryToMessage } from '@shumai/core/src/chat/chat'
+import { chatService } from '@shumai/core/src/chat/chat'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { chatRequestSchema, paginationParamsSchema } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
-import { workflowService } from '@shumai/workflow-core'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -89,19 +87,14 @@ const route = new Hono<{ Variables: { user: User } }>()
         if (stream.aborted) {
           break
         }
-        // Query new entries from the DB
-        const newEntries = await prisma.agentSessionEntry.findMany({
-          where: {
-            sessionId,
-            ...(lastEntryId ? { id: { gt: lastEntryId } } : {}),
-          },
-          orderBy: { id: 'asc' },
-        })
+        // Query new entries from the DB via chatService
+        const { messages, lastEntryId: newLastId } = await chatService.getNewSessionMessages(
+          sessionId,
+          lastEntryId || undefined,
+        )
 
-        if (newEntries.length > 0) {
-          for (const record of newEntries) {
-            const message = mapEntryToMessage(record)
-            if (!message) continue
+        if (messages.length > 0) {
+          for (const message of messages) {
             await stream.writeSSE({
               data: JSON.stringify({
                 type: 'entry',
@@ -109,7 +102,6 @@ const route = new Hono<{ Variables: { user: User } }>()
               }),
             })
           }
-          lastEntryId = newEntries[newEntries.length - 1].id
         } else {
           await stream.writeSSE({
             data: JSON.stringify({
@@ -118,24 +110,20 @@ const route = new Hono<{ Variables: { user: User } }>()
           })
         }
 
-        // Check if workflow has finished
-        const task = await prisma.workflowTask.findUnique({
-          where: { id: taskId },
-          select: { status: true, output: true },
-        })
+        if (newLastId) {
+          lastEntryId = newLastId
+        }
+
+        // Check if workflow has finished via chatService
+        const task = await chatService.getChatWorkflowStatus(taskId)
 
         if (task && (task.status === 'completed' || task.status === 'failed')) {
           // Fetch any remaining entries one last time
-          const finalEntries = await prisma.agentSessionEntry.findMany({
-            where: {
-              sessionId,
-              ...(lastEntryId ? { id: { gt: lastEntryId } } : {}),
-            },
-            orderBy: { id: 'asc' },
-          })
-          for (const record of finalEntries) {
-            const message = mapEntryToMessage(record)
-            if (!message) continue
+          const { messages: finalMessages } = await chatService.getNewSessionMessages(
+            sessionId,
+            lastEntryId || undefined,
+          )
+          for (const message of finalMessages) {
             await stream.writeSSE({
               data: JSON.stringify({
                 type: 'entry',
@@ -145,7 +133,7 @@ const route = new Hono<{ Variables: { user: User } }>()
           }
 
           // Send done status
-          const output = task.output as Record<string, unknown> | null
+          const output = task.output
           await stream.writeSSE({
             data: JSON.stringify({
               type: 'done',
@@ -186,29 +174,20 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: teamId,
     })
 
-    const taskToAbort = await prisma.workflowTask.findFirst({
-      where: {
-        status: { in: ['pending', 'processing'] },
-        type: 'chat',
-        sessionId,
-      },
-    })
-
-    if (!taskToAbort) {
-      return c.json({ error: 'No active execution found for this session' }, 404)
+    try {
+      await chatService.abortSession(user.id, sessionId)
+      return c.json({ success: true }, 200)
+    } catch (error: unknown) {
+      const err = error as Error
+      if (
+        err.message === 'Session not found' ||
+        err.message === 'Unauthorized session access' ||
+        err.message === 'No active execution found for this session'
+      ) {
+        return c.json({ error: err.message }, 404)
+      }
+      throw error
     }
-
-    await workflowService.cancel(taskToAbort.id)
-
-    await prisma.workflowTask.update({
-      where: { id: taskToAbort.id },
-      data: {
-        status: 'failed',
-        output: { error: 'aborted' },
-      },
-    })
-
-    return c.json({ success: true }, 200)
   })
 
 export default route

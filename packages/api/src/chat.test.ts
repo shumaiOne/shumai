@@ -3,12 +3,7 @@ import { Hono } from 'hono'
 import chatRoute from './chat'
 import { chatService } from '@shumai/core/src/chat/chat'
 import { authzService } from '@shumai/core/src/authz/authz'
-
-vi.mock('@shumai/workflow-core', () => ({
-  workflowService: {
-    cancel: vi.fn(),
-  },
-}))
+import type { ChatMessage } from '@shumai/dtos'
 
 vi.mock('@shumai/core/src/chat/chat', async (importOriginal) => {
   const original = await importOriginal<typeof import('@shumai/core/src/chat/chat')>()
@@ -19,24 +14,13 @@ vi.mock('@shumai/core/src/chat/chat', async (importOriginal) => {
       listMessages: vi.fn(),
       deleteSession: vi.fn(),
       startOrContinueChat: vi.fn(),
+      getNewSessionMessages: vi.fn(),
+      getChatWorkflowStatus: vi.fn(),
+      abortSession: vi.fn(),
     },
   }
 })
 vi.mock('@shumai/core/src/authz/authz')
-vi.mock('@shumai/db', () => ({
-  prisma: {
-    agentSessionEntry: {
-      findMany: vi.fn(),
-    },
-    workflowTask: {
-      findUnique: vi.fn(),
-      findFirst: vi.fn(),
-      update: vi.fn(),
-    },
-  },
-}))
-
-import { prisma, type WorkflowTask } from '@shumai/db'
 
 describe('Chat API', () => {
   const app = new Hono<{ Variables: { user: { id: string; name: string } } }>()
@@ -121,29 +105,26 @@ describe('Chat API', () => {
         taskId: 'task1',
       })
 
-      const mockEntries = [
-        {
-          id: 'entry1',
-          sessionId: 'session1',
-          entry: {
-            type: 'message',
-            message: {
+      vi.mocked(chatService.getNewSessionMessages)
+        .mockResolvedValueOnce({
+          messages: [
+            {
+              id: 'entry1',
               role: 'user',
-              content: [{ type: 'text', text: 'hi' }],
-            },
-          },
-        },
-      ]
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      vi.mocked(prisma.agentSessionEntry.findMany).mockResolvedValue(mockEntries as any)
+              content: 'hi',
+            } as unknown as ChatMessage,
+          ],
+          lastEntryId: 'entry1',
+        })
+        .mockResolvedValue({
+          messages: [],
+          lastEntryId: 'entry1',
+        })
 
-      const mockTask = {
-        id: 'task1',
+      vi.mocked(chatService.getChatWorkflowStatus).mockResolvedValue({
         status: 'completed',
         output: {},
-      }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      vi.mocked(prisma.workflowTask.findUnique).mockResolvedValue(mockTask as any)
+      })
 
       const res = await app.request('/teams/team1/chat', {
         method: 'POST',
@@ -173,19 +154,15 @@ describe('Chat API', () => {
         taskId: 'task1',
       })
 
-      // No new entries initially
-      // Mock returns a simple array instead of full PrismaPromise, so we bypass type safety.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      vi.mocked(prisma.agentSessionEntry.findMany).mockResolvedValue([] as any)
+      vi.mocked(chatService.getNewSessionMessages).mockResolvedValue({
+        messages: [],
+        lastEntryId: null,
+      })
 
-      const mockTask = {
-        id: 'task1',
+      vi.mocked(chatService.getChatWorkflowStatus).mockResolvedValue({
         status: 'completed',
         output: {},
-      }
-      // Mock returns a simple task object instead of PrismaPromise, so we bypass type safety.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      vi.mocked(prisma.workflowTask.findUnique).mockResolvedValue(mockTask as any)
+      })
 
       const res = await app.request('/teams/team1/chat', {
         method: 'POST',
@@ -207,23 +184,7 @@ describe('Chat API', () => {
 
   describe('POST /teams/:teamId/chat/sessions/:sessionId/abort', () => {
     it('aborts an active chat session and updates task status', async () => {
-      const mockActiveTask = {
-        id: 'task1',
-        status: 'processing',
-        type: 'chat',
-        sessionId: 'session1',
-        payload: {
-          agent: {
-            sessionId: 'session1',
-          },
-        },
-      }
-      vi.mocked(prisma.workflowTask.findFirst).mockResolvedValue(
-        mockActiveTask as unknown as WorkflowTask,
-      )
-      vi.mocked(prisma.workflowTask.update).mockResolvedValue({} as unknown as WorkflowTask)
-
-      const { workflowService } = await import('@shumai/workflow-core')
+      vi.mocked(chatService.abortSession).mockResolvedValue(undefined)
 
       const res = await app.request('/teams/team1/chat/sessions/session1/abort', {
         method: 'POST',
@@ -233,18 +194,13 @@ describe('Chat API', () => {
       const data = await res.json()
       expect(data).toEqual({ success: true })
 
-      expect(workflowService.cancel).toHaveBeenCalledWith('task1')
-      expect(prisma.workflowTask.update).toHaveBeenCalledWith({
-        where: { id: 'task1' },
-        data: {
-          status: 'failed',
-          output: { error: 'aborted' },
-        },
-      })
+      expect(chatService.abortSession).toHaveBeenCalledWith('user1', 'session1')
     })
 
     it('returns 404 if no active task is found for the session', async () => {
-      vi.mocked(prisma.workflowTask.findFirst).mockResolvedValue(null)
+      vi.mocked(chatService.abortSession).mockRejectedValue(
+        new Error('No active execution found for this session'),
+      )
 
       const res = await app.request('/teams/team1/chat/sessions/session1/abort', {
         method: 'POST',

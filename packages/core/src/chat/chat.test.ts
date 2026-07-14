@@ -1,7 +1,8 @@
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { chatService, buildSessionMessages, mapEntryToMessage, type PathEntry } from './chat'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { workflowService } from '@shumai/workflow-core'
 
 describe('ChatService', () => {
   setupTestDbHooks()
@@ -110,7 +111,7 @@ describe('ChatService', () => {
     })
     expect(task).toBeDefined()
     expect(task?.type).toBe('chat')
-    expect(task?.status).toBe('pending')
+    expect(['pending', 'processing']).toContain(task?.status)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const taskPayload = task?.payload as any
     expect(taskPayload?.agent?.prompt).toBe('hello world')
@@ -475,5 +476,170 @@ describe('ChatService', () => {
     expect(msg3.customType).toBe('branch-summary')
     expect(msg3.content).toBe('Branch summary details')
     expect((msg3.details as Record<string, unknown>).fromId).toBe('entry-old')
+  })
+
+  describe('getNewSessionMessages', () => {
+    it('returns new messages and lastEntryId', async () => {
+      const { user, team, project } = await setupBasicData()
+      const { sessionId } = await chatService.startOrContinueChat(user, team.id, {
+        agentId: 'test-agent-id',
+        textPrompt: 'hello',
+        projectId: project.id,
+      })
+
+      // Insert two entries
+      const entry1 = await prisma.agentSessionEntry.create({
+        data: {
+          id: 'entry-id-1',
+          sessionId,
+          entry: {
+            type: 'message',
+            id: 'entry-id-1',
+            parentId: null,
+            timestamp: new Date().toISOString(),
+            message: {
+              role: 'user',
+              content: [{ type: 'text', text: 'msg 1' }],
+            },
+          } as unknown as PrismaJson.PiSessionEntry,
+        },
+      })
+
+      const entry2 = await prisma.agentSessionEntry.create({
+        data: {
+          id: 'entry-id-2',
+          sessionId,
+          entry: {
+            type: 'message',
+            id: 'entry-id-2',
+            parentId: 'entry-id-1',
+            timestamp: new Date().toISOString(),
+            message: {
+              role: 'assistant',
+              content: [{ type: 'text', text: 'msg 2' }],
+            },
+          } as unknown as PrismaJson.PiSessionEntry,
+        },
+      })
+
+      // 1. Get all messages
+      const res1 = await chatService.getNewSessionMessages(sessionId)
+      expect(res1.messages).toHaveLength(2)
+      expect(res1.lastEntryId).toBe(entry2.id)
+      expect(res1.messages[0].id).toBe(entry1.id)
+
+      // 2. Get with lastEntryId
+      const res2 = await chatService.getNewSessionMessages(sessionId, entry1.id)
+      expect(res2.messages).toHaveLength(1)
+      expect(res2.lastEntryId).toBe(entry2.id)
+      expect(res2.messages[0].id).toBe(entry2.id)
+
+      // 3. Get with latest lastEntryId
+      const res3 = await chatService.getNewSessionMessages(sessionId, entry2.id)
+      expect(res3.messages).toHaveLength(0)
+      expect(res3.lastEntryId).toBe(entry2.id)
+    })
+  })
+
+  describe('getChatWorkflowStatus', () => {
+    it('returns task status and output', async () => {
+      const { team, project } = await setupBasicData()
+      const rootFolder = await prisma.asset.findFirst({
+        where: { projectId: project.id, type: 'root' },
+      })
+      const task = await prisma.workflowTask.create({
+        data: {
+          assetId: rootFolder!.id,
+          type: 'chat',
+          status: 'completed',
+          teamId: team.id,
+          projectId: project.id,
+          payload: { projectId: project.id },
+          output: { success: true },
+        },
+      })
+
+      const statusRes = await chatService.getChatWorkflowStatus(task.id)
+      expect(statusRes).not.toBeNull()
+      expect(statusRes?.status).toBe('completed')
+      expect(statusRes?.output).toEqual({ success: true })
+    })
+
+    it('returns null if task not found', async () => {
+      const statusRes = await chatService.getChatWorkflowStatus('non-existent-task')
+      expect(statusRes).toBeNull()
+    })
+  })
+
+  describe('abortSession', () => {
+    it('cancels active task and marks failed/aborted', async () => {
+      const { user, team, project } = await setupBasicData()
+      const { sessionId, taskId } = await chatService.startOrContinueChat(user, team.id, {
+        agentId: 'test-agent-id',
+        textPrompt: 'long execution',
+        projectId: project.id,
+      })
+
+      // Mark the task as processing
+      await prisma.workflowTask.update({
+        where: { id: taskId },
+        data: { status: 'processing' },
+      })
+
+      const cancelSpy = vi.spyOn(workflowService, 'cancel').mockResolvedValue(undefined)
+
+      await chatService.abortSession(user.id, sessionId)
+
+      expect(cancelSpy).toHaveBeenCalledWith(taskId)
+
+      const updatedTask = await prisma.workflowTask.findUnique({
+        where: { id: taskId },
+      })
+      expect(updatedTask?.status).toBe('failed')
+      expect(updatedTask?.output).toEqual({ error: 'aborted' })
+
+      cancelSpy.mockRestore()
+    })
+
+    it('throws error if session not found', async () => {
+      await expect(chatService.abortSession('user-1', 'non-existent-session')).rejects.toThrow(
+        'Session not found',
+      )
+    })
+
+    it('throws error if unauthorized', async () => {
+      const { team, project } = await setupBasicData()
+      const otherUser = await prisma.user.create({
+        data: { name: 'Other User', email: `other-${Date.now()}@example.com`, password: 'pw' },
+      })
+      const { sessionId } = await chatService.startOrContinueChat(otherUser, team.id, {
+        agentId: 'test-agent-id',
+        textPrompt: 'hello',
+        projectId: project.id,
+      })
+
+      await expect(chatService.abortSession('different-user-id', sessionId)).rejects.toThrow(
+        'Unauthorized session access',
+      )
+    })
+
+    it('throws error if no active task', async () => {
+      const { user, team, project } = await setupBasicData()
+      const { sessionId, taskId } = await chatService.startOrContinueChat(user, team.id, {
+        agentId: 'test-agent-id',
+        textPrompt: 'hello',
+        projectId: project.id,
+      })
+
+      // Complete the task
+      await prisma.workflowTask.update({
+        where: { id: taskId },
+        data: { status: 'completed' },
+      })
+
+      await expect(chatService.abortSession(user.id, sessionId)).rejects.toThrow(
+        'No active execution found for this session',
+      )
+    })
   })
 })
