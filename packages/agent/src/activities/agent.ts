@@ -153,6 +153,10 @@ If you need to create files in the local filesystem (for example, a temporary fi
 
   let heartbeatInterval: ReturnType<typeof setInterval> | null = null
 
+  const onAbort = () => {
+    harness.abort()
+  }
+
   let temporalSignal: EventTarget | undefined
   try {
     temporalSignal = Context.current().cancellationSignal
@@ -161,13 +165,7 @@ If you need to create files in the local filesystem (for example, a temporary fi
   }
 
   if (temporalSignal) {
-    temporalSignal.addEventListener(
-      'abort',
-      () => {
-        harness.abort()
-      },
-      { once: true },
-    )
+    temporalSignal.addEventListener('abort', onAbort, { once: true })
 
     heartbeatInterval = setInterval(() => {
       try {
@@ -258,6 +256,9 @@ If you need to create files in the local filesystem (for example, a temporary fi
   } finally {
     if (heartbeatInterval) {
       clearInterval(heartbeatInterval)
+    }
+    if (temporalSignal) {
+      temporalSignal.removeEventListener('abort', onAbort)
     }
     if (params.taskId) {
       unregisterLocalCancelHandler(params.taskId)

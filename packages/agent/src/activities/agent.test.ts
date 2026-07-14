@@ -195,6 +195,7 @@ describe('Agent Activities', () => {
     } as unknown as AgentExecutionContext
 
     const addEventListenerSpy = vi.spyOn(mockTemporalContext.cancellationSignal, 'addEventListener')
+    const removeEventListenerSpy = vi.spyOn(mockTemporalContext.cancellationSignal, 'removeEventListener')
 
     const executionPromise = agentChatActivity({
       teamId: 't1',
@@ -223,7 +224,9 @@ describe('Agent Activities', () => {
     })
 
     await executionPromise
+    expect(removeEventListenerSpy).toHaveBeenCalledWith('abort', expect.any(Function))
     addEventListenerSpy.mockRestore()
+    removeEventListenerSpy.mockRestore()
   })
 
   it('should include error message in text when stopReason is error', async () => {
