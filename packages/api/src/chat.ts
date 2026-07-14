@@ -186,16 +186,13 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: teamId,
     })
 
-    const activeTasks = await prisma.workflowTask.findMany({
+    const taskToAbort = await prisma.workflowTask.findFirst({
       where: {
         status: { in: ['pending', 'processing'] },
         type: 'chat',
+        sessionId,
       },
     })
-
-    const taskToAbort = activeTasks.find(
-      (t) => (t.payload as PrismaJson.WorkflowTaskPayload)?.agent?.sessionId === sessionId,
-    )
 
     if (!taskToAbort) {
       return c.json({ error: 'No active execution found for this session' }, 404)

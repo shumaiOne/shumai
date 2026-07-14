@@ -30,7 +30,7 @@ vi.mock('@shumai/db', () => ({
     },
     workflowTask: {
       findUnique: vi.fn(),
-      findMany: vi.fn(),
+      findFirst: vi.fn(),
       update: vi.fn(),
     },
   },
@@ -207,20 +207,19 @@ describe('Chat API', () => {
 
   describe('POST /teams/:teamId/chat/sessions/:sessionId/abort', () => {
     it('aborts an active chat session and updates task status', async () => {
-      const mockActiveTasks = [
-        {
-          id: 'task1',
-          status: 'processing',
-          type: 'chat',
-          payload: {
-            agent: {
-              sessionId: 'session1',
-            },
+      const mockActiveTask = {
+        id: 'task1',
+        status: 'processing',
+        type: 'chat',
+        sessionId: 'session1',
+        payload: {
+          agent: {
+            sessionId: 'session1',
           },
         },
-      ]
-      vi.mocked(prisma.workflowTask.findMany).mockResolvedValue(
-        mockActiveTasks as unknown as WorkflowTask[],
+      }
+      vi.mocked(prisma.workflowTask.findFirst).mockResolvedValue(
+        mockActiveTask as unknown as WorkflowTask,
       )
       vi.mocked(prisma.workflowTask.update).mockResolvedValue({} as unknown as WorkflowTask)
 
@@ -245,7 +244,7 @@ describe('Chat API', () => {
     })
 
     it('returns 404 if no active task is found for the session', async () => {
-      vi.mocked(prisma.workflowTask.findMany).mockResolvedValue([])
+      vi.mocked(prisma.workflowTask.findFirst).mockResolvedValue(null)
 
       const res = await app.request('/teams/team1/chat/sessions/session1/abort', {
         method: 'POST',

@@ -630,10 +630,7 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
                     </Select>
                   ) : (
                     <div className="flex items-center gap-1.5 px-2 py-1 text-[11px] text-muted-foreground/60 italic select-none">
-                      <Bot className="h-3.5 w-3.5" />
-                      <span>
-                        {m.no_chat_agents_warning ? m.no_chat_agents_warning() : 'No agents'}
-                      </span>
+                      <span>{m.no_chat_agents_warning()}</span>
                     </div>
                   )}
                 </div>

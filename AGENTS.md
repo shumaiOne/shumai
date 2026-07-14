@@ -305,6 +305,7 @@ We use `prisma-json-types-generator` to enforce strict type-safety for Prisma `J
 
 - Development: Use `bun --bun run prisma migrate dev` to create and apply migrations during development.
 - Production: Use `bun --bun run prisma migrate deploy` to apply pending migrations in production environments.
+- **No Automatic Dev DB Reset**: Do not run `prisma migrate reset --force` or commands that force-reset the database automatically. If migrations become out of sync or a reset is required, stop executing, report the situation to the user, and present suggested manual cleanup/reset steps for the user to execute.
 
 ### Commands
 

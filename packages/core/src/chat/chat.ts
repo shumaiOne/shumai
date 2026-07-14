@@ -292,6 +292,7 @@ export class ChatService {
           status: 'pending',
           teamId,
           projectId,
+          sessionId: activeSessionId,
           payload: {
             projectId,
             agent: {

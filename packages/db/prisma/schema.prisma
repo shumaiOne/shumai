@@ -629,6 +629,7 @@ model WorkflowTask {
   inputTokens   Int                @default(0) @map("input_tokens")
   outputTokens  Int                @default(0) @map("output_tokens")
   model         String?
+  sessionId     String?            @map("session_id")
   createdAt     DateTime           @default(now()) @map("created_at")
   updatedAt     DateTime           @updatedAt @map("updated_at")
 
@@ -638,6 +639,7 @@ model WorkflowTask {
   @@index([teamId])
   @@index([projectId])
   @@index([type])
+  @@index([sessionId])
 }
 enum AgentType {
   chat
