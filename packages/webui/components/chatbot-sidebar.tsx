@@ -1,11 +1,11 @@
 import { client } from '@/ui/api/client'
 import { ScrollArea } from '@/ui/components/ui/scroll-area'
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/ui/components/ui/select'
 import { cn } from '@/ui/lib/utils'
 import { m } from '@/ui/paraglide/messages.js'
@@ -15,16 +15,16 @@ import { useDroppable } from '@dnd-kit/react'
 import type { ChatMessage } from '@shumai/dtos'
 import { useQuery } from '@tanstack/react-query'
 import {
-    ArrowLeft,
-    ArrowUp,
-    Bot,
-    Brain,
-    ChevronDown,
-    History,
-    Loader2,
-    Plus,
-    Trash2,
-    Wrench,
+  ArrowLeft,
+  ArrowUp,
+  Bot,
+  Brain,
+  ChevronDown,
+  History,
+  Loader2,
+  Plus,
+  Trash2,
+  Wrench,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'

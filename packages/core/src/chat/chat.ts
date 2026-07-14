@@ -4,6 +4,7 @@ import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/a
 import { paginateQuery, type PaginatedData } from '@shumai/core/src/pagination'
 import type { ChatRequest, ChatSessionInfo, ChatMessage } from '@shumai/dtos'
 import type { SessionTreeEntry } from '@earendil-works/pi-agent-core'
+import { workflowService } from '@shumai/workflow-core'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -393,6 +394,84 @@ export class ChatService {
     }
     await this.prismaClient.agentSession.delete({
       where: { id: sessionId },
+    })
+  }
+
+  async getNewSessionMessages(
+    sessionId: string,
+    lastEntryId?: string,
+  ): Promise<{ messages: ChatMessage[]; lastEntryId: string | null }> {
+    const entries = await this.prismaClient.agentSessionEntry.findMany({
+      where: {
+        sessionId,
+        ...(lastEntryId ? { id: { gt: lastEntryId } } : {}),
+      },
+      orderBy: { id: 'asc' },
+    })
+
+    if (entries.length === 0) {
+      return { messages: [], lastEntryId: lastEntryId ?? null }
+    }
+
+    const messages: ChatMessage[] = []
+    for (const entry of entries) {
+      const message = mapEntryToMessage(entry)
+      if (message) {
+        messages.push(message)
+      }
+    }
+
+    return {
+      messages,
+      lastEntryId: entries[entries.length - 1].id,
+    }
+  }
+
+  async getChatWorkflowStatus(
+    taskId: string,
+  ): Promise<{ status: string | null; output: Record<string, unknown> | null } | null> {
+    const task = await this.prismaClient.workflowTask.findUnique({
+      where: { id: taskId },
+      select: { status: true, output: true },
+    })
+    if (!task) return null
+    return {
+      status: task.status,
+      output: task.output as Record<string, unknown> | null,
+    }
+  }
+
+  async abortSession(userId: string, sessionId: string): Promise<void> {
+    const session = await this.prismaClient.agentSession.findUnique({
+      where: { id: sessionId },
+    })
+    if (!session) {
+      throw new Error('Session not found')
+    }
+    if (session.userId !== userId) {
+      throw new Error('Unauthorized session access')
+    }
+
+    const taskToAbort = await this.prismaClient.workflowTask.findFirst({
+      where: {
+        status: { in: ['pending', 'processing'] },
+        type: 'chat',
+        sessionId,
+      },
+    })
+
+    if (!taskToAbort) {
+      throw new Error('No active execution found for this session')
+    }
+
+    await workflowService.cancel(taskToAbort.id)
+
+    await this.prismaClient.workflowTask.update({
+      where: { id: taskToAbort.id },
+      data: {
+        status: 'failed',
+        output: { error: 'aborted' },
+      },
     })
   }
 }

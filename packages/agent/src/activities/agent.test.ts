@@ -195,7 +195,10 @@ describe('Agent Activities', () => {
     } as unknown as AgentExecutionContext
 
     const addEventListenerSpy = vi.spyOn(mockTemporalContext.cancellationSignal, 'addEventListener')
-    const removeEventListenerSpy = vi.spyOn(mockTemporalContext.cancellationSignal, 'removeEventListener')
+    const removeEventListenerSpy = vi.spyOn(
+      mockTemporalContext.cancellationSignal,
+      'removeEventListener',
+    )
 
     const executionPromise = agentChatActivity({
       teamId: 't1',
