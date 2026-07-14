@@ -21,13 +21,8 @@ import {
 import * as piAgent from '../index'
 import { type AgentHarness, type Session } from '@earendil-works/pi-agent-core'
 import { type DatabaseSessionMetadata } from '../database-session-storage'
-import {
-  isTemporal,
-  triggerLocalCancel,
-} from '@shumai/workflow-core'
+import { triggerLocalCancel } from '@shumai/workflow-core'
 import { Context } from '@temporalio/activity'
-
-
 
 import {
   prisma,
@@ -101,8 +96,13 @@ describe('Agent Activities', () => {
   })
 
   it('should register local cancellation handler and call harness.abort when cancelled in local mode', async () => {
-    let resolvePrompt: any
-    const promptPromise = new Promise((resolve) => {
+    let resolvePrompt!: (value: {
+      content: Array<{ type: string; text: string } | { type: string }>
+      usage: { input: number; output: number }
+      stopReason?: string
+      errorMessage?: string
+    }) => void
+    const promptPromise = new Promise<Parameters<typeof resolvePrompt>[0]>((resolve) => {
       resolvePrompt = resolve
     })
 
@@ -163,8 +163,13 @@ describe('Agent Activities', () => {
     } as unknown as Context
     vi.spyOn(Context, 'current').mockReturnValue(mockTemporalContext)
 
-    let resolvePrompt: any
-    const promptPromise = new Promise((resolve) => {
+    let resolvePrompt!: (value: {
+      content: Array<{ type: string; text: string } | { type: string }>
+      usage: { input: number; output: number }
+      stopReason?: string
+      errorMessage?: string
+    }) => void
+    const promptPromise = new Promise<Parameters<typeof resolvePrompt>[0]>((resolve) => {
       resolvePrompt = resolve
     })
 

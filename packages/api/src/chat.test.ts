@@ -219,7 +219,9 @@ describe('Chat API', () => {
           },
         },
       ]
-      vi.mocked(prisma.workflowTask.findMany).mockResolvedValue(mockActiveTasks as unknown as WorkflowTask[])
+      vi.mocked(prisma.workflowTask.findMany).mockResolvedValue(
+        mockActiveTasks as unknown as WorkflowTask[],
+      )
       vi.mocked(prisma.workflowTask.update).mockResolvedValue({} as unknown as WorkflowTask)
 
       const { workflowService } = await import('@shumai/workflow-core')

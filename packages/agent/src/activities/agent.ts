@@ -14,11 +14,7 @@ import { uploadService } from '@shumai/core/src/upload/upload'
 import { VersionStackService } from '@shumai/core/src/versionStack/versionStack'
 import { AssetType, prisma, Prisma, type Skill } from '@shumai/db'
 import { ApplicationFailure, Context } from '@temporalio/activity'
-import {
-  isTemporal,
-  registerLocalCancelHandler,
-  unregisterLocalCancelHandler,
-} from '@shumai/workflow-core'
+import { registerLocalCancelHandler, unregisterLocalCancelHandler } from '@shumai/workflow-core'
 import { generateKeyBetween } from 'jittered-fractional-indexing'
 import { ulid } from 'ulid'
 import { DatabaseSessionStorage } from '../database-session-storage'
@@ -157,16 +153,14 @@ If you need to create files in the local filesystem (for example, a temporary fi
 
   let heartbeatInterval: ReturnType<typeof setInterval> | null = null
 
-  let isTemporalActivity = false
-  let temporalSignal: any
+  let temporalSignal: EventTarget | undefined
   try {
     temporalSignal = Context.current().cancellationSignal
-    isTemporalActivity = true
   } catch {
-    isTemporalActivity = false
+    // Ignore
   }
 
-  if (isTemporalActivity && temporalSignal) {
+  if (temporalSignal) {
     temporalSignal.addEventListener(
       'abort',
       () => {

@@ -1,11 +1,11 @@
 import { client } from '@/ui/api/client'
 import { ScrollArea } from '@/ui/components/ui/scroll-area'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '@/ui/components/ui/select'
 import { cn } from '@/ui/lib/utils'
 import { m } from '@/ui/paraglide/messages.js'
@@ -15,17 +15,16 @@ import { useDroppable } from '@dnd-kit/react'
 import type { ChatMessage } from '@shumai/dtos'
 import { useQuery } from '@tanstack/react-query'
 import {
-  ArrowLeft,
-  ArrowUp,
-  Bot,
-  Brain,
-  ChevronDown,
-  History,
-  Loader2,
-  Plus,
-  Square,
-  Trash2,
-  Wrench,
+    ArrowLeft,
+    ArrowUp,
+    Bot,
+    Brain,
+    ChevronDown,
+    History,
+    Loader2,
+    Plus,
+    Trash2,
+    Wrench,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
@@ -649,7 +648,9 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
                     className="p-2 rounded-full transition-all duration-200 flex items-center justify-center shrink-0 shadow-sm bg-destructive text-destructive-foreground hover:bg-destructive/90 transform hover:-translate-y-0.5"
                     title="Stop generation"
                   >
-                    <Square className="h-4 w-4" />
+                    <div className="h-4 w-4 flex items-center justify-center">
+                      <div className="h-3 w-3 bg-current rounded-[2px] bg-white" />
+                    </div>
                   </button>
                 ) : (
                   <button
