@@ -50,6 +50,7 @@ export type WorkflowTaskMinAggregateOutputType = {
   inputTokens: number | null
   outputTokens: number | null
   model: string | null
+  sessionId: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -66,6 +67,7 @@ export type WorkflowTaskMaxAggregateOutputType = {
   inputTokens: number | null
   outputTokens: number | null
   model: string | null
+  sessionId: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -84,6 +86,7 @@ export type WorkflowTaskCountAggregateOutputType = {
   inputTokens: number
   outputTokens: number
   model: number
+  sessionId: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -112,6 +115,7 @@ export type WorkflowTaskMinAggregateInputType = {
   inputTokens?: true
   outputTokens?: true
   model?: true
+  sessionId?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -128,6 +132,7 @@ export type WorkflowTaskMaxAggregateInputType = {
   inputTokens?: true
   outputTokens?: true
   model?: true
+  sessionId?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -146,6 +151,7 @@ export type WorkflowTaskCountAggregateInputType = {
   inputTokens?: true
   outputTokens?: true
   model?: true
+  sessionId?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -251,6 +257,7 @@ export type WorkflowTaskGroupByOutputType = {
   inputTokens: number
   outputTokens: number
   model: string | null
+  sessionId: string | null
   createdAt: Date
   updatedAt: Date
   _count: WorkflowTaskCountAggregateOutputType | null
@@ -292,6 +299,7 @@ export type WorkflowTaskWhereInput = {
   inputTokens?: Prisma.IntFilter<"WorkflowTask"> | number
   outputTokens?: Prisma.IntFilter<"WorkflowTask"> | number
   model?: Prisma.StringNullableFilter<"WorkflowTask"> | string | null
+  sessionId?: Prisma.StringNullableFilter<"WorkflowTask"> | string | null
   createdAt?: Prisma.DateTimeFilter<"WorkflowTask"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"WorkflowTask"> | Date | string
 }
@@ -310,6 +318,7 @@ export type WorkflowTaskOrderByWithRelationInput = {
   inputTokens?: Prisma.SortOrder
   outputTokens?: Prisma.SortOrder
   model?: Prisma.SortOrderInput | Prisma.SortOrder
+  sessionId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -331,6 +340,7 @@ export type WorkflowTaskWhereUniqueInput = Prisma.AtLeast<{
   inputTokens?: Prisma.IntFilter<"WorkflowTask"> | number
   outputTokens?: Prisma.IntFilter<"WorkflowTask"> | number
   model?: Prisma.StringNullableFilter<"WorkflowTask"> | string | null
+  sessionId?: Prisma.StringNullableFilter<"WorkflowTask"> | string | null
   createdAt?: Prisma.DateTimeFilter<"WorkflowTask"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"WorkflowTask"> | Date | string
 }, "id">
@@ -349,6 +359,7 @@ export type WorkflowTaskOrderByWithAggregationInput = {
   inputTokens?: Prisma.SortOrder
   outputTokens?: Prisma.SortOrder
   model?: Prisma.SortOrderInput | Prisma.SortOrder
+  sessionId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.WorkflowTaskCountOrderByAggregateInput
@@ -375,6 +386,7 @@ export type WorkflowTaskScalarWhereWithAggregatesInput = {
   inputTokens?: Prisma.IntWithAggregatesFilter<"WorkflowTask"> | number
   outputTokens?: Prisma.IntWithAggregatesFilter<"WorkflowTask"> | number
   model?: Prisma.StringNullableWithAggregatesFilter<"WorkflowTask"> | string | null
+  sessionId?: Prisma.StringNullableWithAggregatesFilter<"WorkflowTask"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"WorkflowTask"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"WorkflowTask"> | Date | string
 }
@@ -393,6 +405,7 @@ export type WorkflowTaskCreateInput = {
   inputTokens?: number
   outputTokens?: number
   model?: string | null
+  sessionId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -411,6 +424,7 @@ export type WorkflowTaskUncheckedCreateInput = {
   inputTokens?: number
   outputTokens?: number
   model?: string | null
+  sessionId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -429,6 +443,7 @@ export type WorkflowTaskUpdateInput = {
   inputTokens?: Prisma.IntFieldUpdateOperationsInput | number
   outputTokens?: Prisma.IntFieldUpdateOperationsInput | number
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -447,6 +462,7 @@ export type WorkflowTaskUncheckedUpdateInput = {
   inputTokens?: Prisma.IntFieldUpdateOperationsInput | number
   outputTokens?: Prisma.IntFieldUpdateOperationsInput | number
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -465,6 +481,7 @@ export type WorkflowTaskCreateManyInput = {
   inputTokens?: number
   outputTokens?: number
   model?: string | null
+  sessionId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -483,6 +500,7 @@ export type WorkflowTaskUpdateManyMutationInput = {
   inputTokens?: Prisma.IntFieldUpdateOperationsInput | number
   outputTokens?: Prisma.IntFieldUpdateOperationsInput | number
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -501,6 +519,7 @@ export type WorkflowTaskUncheckedUpdateManyInput = {
   inputTokens?: Prisma.IntFieldUpdateOperationsInput | number
   outputTokens?: Prisma.IntFieldUpdateOperationsInput | number
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -519,6 +538,7 @@ export type WorkflowTaskCountOrderByAggregateInput = {
   inputTokens?: Prisma.SortOrder
   outputTokens?: Prisma.SortOrder
   model?: Prisma.SortOrder
+  sessionId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -540,6 +560,7 @@ export type WorkflowTaskMaxOrderByAggregateInput = {
   inputTokens?: Prisma.SortOrder
   outputTokens?: Prisma.SortOrder
   model?: Prisma.SortOrder
+  sessionId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -556,6 +577,7 @@ export type WorkflowTaskMinOrderByAggregateInput = {
   inputTokens?: Prisma.SortOrder
   outputTokens?: Prisma.SortOrder
   model?: Prisma.SortOrder
+  sessionId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -589,6 +611,7 @@ export type WorkflowTaskSelect<ExtArgs extends runtime.Types.Extensions.Internal
   inputTokens?: boolean
   outputTokens?: boolean
   model?: boolean
+  sessionId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["workflowTask"]>
@@ -607,6 +630,7 @@ export type WorkflowTaskSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   inputTokens?: boolean
   outputTokens?: boolean
   model?: boolean
+  sessionId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["workflowTask"]>
@@ -625,6 +649,7 @@ export type WorkflowTaskSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   inputTokens?: boolean
   outputTokens?: boolean
   model?: boolean
+  sessionId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["workflowTask"]>
@@ -643,11 +668,12 @@ export type WorkflowTaskSelectScalar = {
   inputTokens?: boolean
   outputTokens?: boolean
   model?: boolean
+  sessionId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type WorkflowTaskOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "uid" | "teamId" | "projectId" | "assetId" | "type" | "status" | "payload" | "output" | "heartbeat" | "inputTokens" | "outputTokens" | "model" | "createdAt" | "updatedAt", ExtArgs["result"]["workflowTask"]>
+export type WorkflowTaskOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "uid" | "teamId" | "projectId" | "assetId" | "type" | "status" | "payload" | "output" | "heartbeat" | "inputTokens" | "outputTokens" | "model" | "sessionId" | "createdAt" | "updatedAt", ExtArgs["result"]["workflowTask"]>
 
 export type $WorkflowTaskPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "WorkflowTask"
@@ -672,6 +698,7 @@ export type $WorkflowTaskPayload<ExtArgs extends runtime.Types.Extensions.Intern
     inputTokens: number
     outputTokens: number
     model: string | null
+    sessionId: string | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["workflowTask"]>
@@ -1110,6 +1137,7 @@ export interface WorkflowTaskFieldRefs {
   readonly inputTokens: Prisma.FieldRef<"WorkflowTask", 'Int'>
   readonly outputTokens: Prisma.FieldRef<"WorkflowTask", 'Int'>
   readonly model: Prisma.FieldRef<"WorkflowTask", 'String'>
+  readonly sessionId: Prisma.FieldRef<"WorkflowTask", 'String'>
   readonly createdAt: Prisma.FieldRef<"WorkflowTask", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"WorkflowTask", 'DateTime'>
 }

@@ -3,7 +3,7 @@ import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
 import { Executor } from './executor'
 import * as taskActivities from './activities/task'
 import { logger } from '@shumai/core/src/logger'
-import { getConcurrencyLimit } from './workflow-utils'
+import { getConcurrencyLimit, triggerLocalCancel } from './workflow-utils'
 
 type WorkflowFn = (task: WorkflowTask) => Promise<void>
 
@@ -163,6 +163,10 @@ export class LocalExecutor implements Executor {
       }, 0)
     }
     return task.id
+  }
+
+  async cancel(taskId: string): Promise<void> {
+    triggerLocalCancel(taskId)
   }
 
   start(): void {

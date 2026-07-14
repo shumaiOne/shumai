@@ -6,6 +6,7 @@ import { chatService, mapEntryToMessage } from '@shumai/core/src/chat/chat'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { chatRequestSchema, paginationParamsSchema } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
+import { workflowService } from '@shumai/workflow-core'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -172,6 +173,42 @@ const route = new Hono<{ Variables: { user: User } }>()
         })
       }
     })
+  })
+  .post('/teams/:teamId/chat/sessions/:sessionId/abort', async (c) => {
+    const user = c.get('user')
+    const teamId = c.req.param('teamId')
+    const sessionId = c.req.param('sessionId')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Team,
+      id: teamId,
+    })
+
+    const taskToAbort = await prisma.workflowTask.findFirst({
+      where: {
+        status: { in: ['pending', 'processing'] },
+        type: 'chat',
+        sessionId,
+      },
+    })
+
+    if (!taskToAbort) {
+      return c.json({ error: 'No active execution found for this session' }, 404)
+    }
+
+    await workflowService.cancel(taskToAbort.id)
+
+    await prisma.workflowTask.update({
+      where: { id: taskToAbort.id },
+      data: {
+        status: 'failed',
+        output: { error: 'aborted' },
+      },
+    })
+
+    return c.json({ success: true }, 200)
   })
 
 export default route

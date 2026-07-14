@@ -4,6 +4,12 @@ import chatRoute from './chat'
 import { chatService } from '@shumai/core/src/chat/chat'
 import { authzService } from '@shumai/core/src/authz/authz'
 
+vi.mock('@shumai/workflow-core', () => ({
+  workflowService: {
+    cancel: vi.fn(),
+  },
+}))
+
 vi.mock('@shumai/core/src/chat/chat', async (importOriginal) => {
   const original = await importOriginal<typeof import('@shumai/core/src/chat/chat')>()
   return {
@@ -24,11 +30,13 @@ vi.mock('@shumai/db', () => ({
     },
     workflowTask: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
+      update: vi.fn(),
     },
   },
 }))
 
-import { prisma } from '@shumai/db'
+import { prisma, type WorkflowTask } from '@shumai/db'
 
 describe('Chat API', () => {
   const app = new Hono<{ Variables: { user: { id: string; name: string } } }>()
@@ -194,6 +202,57 @@ describe('Chat API', () => {
       const text = await res.text()
       expect(text).toContain('data:')
       expect(text).toContain('{"type":"ping"}')
+    })
+  })
+
+  describe('POST /teams/:teamId/chat/sessions/:sessionId/abort', () => {
+    it('aborts an active chat session and updates task status', async () => {
+      const mockActiveTask = {
+        id: 'task1',
+        status: 'processing',
+        type: 'chat',
+        sessionId: 'session1',
+        payload: {
+          agent: {
+            sessionId: 'session1',
+          },
+        },
+      }
+      vi.mocked(prisma.workflowTask.findFirst).mockResolvedValue(
+        mockActiveTask as unknown as WorkflowTask,
+      )
+      vi.mocked(prisma.workflowTask.update).mockResolvedValue({} as unknown as WorkflowTask)
+
+      const { workflowService } = await import('@shumai/workflow-core')
+
+      const res = await app.request('/teams/team1/chat/sessions/session1/abort', {
+        method: 'POST',
+      })
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data).toEqual({ success: true })
+
+      expect(workflowService.cancel).toHaveBeenCalledWith('task1')
+      expect(prisma.workflowTask.update).toHaveBeenCalledWith({
+        where: { id: 'task1' },
+        data: {
+          status: 'failed',
+          output: { error: 'aborted' },
+        },
+      })
+    })
+
+    it('returns 404 if no active task is found for the session', async () => {
+      vi.mocked(prisma.workflowTask.findFirst).mockResolvedValue(null)
+
+      const res = await app.request('/teams/team1/chat/sessions/session1/abort', {
+        method: 'POST',
+      })
+
+      expect(res.status).toBe(404)
+      const data = await res.json()
+      expect(data.error).toBe('No active execution found for this session')
     })
   })
 })

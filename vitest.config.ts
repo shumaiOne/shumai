@@ -12,7 +12,7 @@ export default defineConfig({
     exclude: [...configDefaults.exclude, 'packages/webui/e2e/**', 'apps/web/e2e/**'],
     server: {
       deps: {
-        inline: ['zod'],
+        inline: ['zod', '@shumai/workflow-core', '@temporalio/activity'],
       },
     },
   },

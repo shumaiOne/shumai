@@ -75,6 +75,7 @@ describe('Transcode Workflow', () => {
       assetId: 'asset-1',
       type: WorkflowTaskType.transcode,
       status: WorkflowTaskStatus.pending,
+      sessionId: null,
       output: null,
       payload: {
         projectId: 'proj-1',
@@ -166,6 +167,7 @@ describe('Transcode Workflow', () => {
       assetId: 'asset-image',
       type: WorkflowTaskType.transcode,
       status: WorkflowTaskStatus.pending,
+      sessionId: null,
       output: null,
       payload: {
         projectId: 'proj-1',
@@ -249,6 +251,7 @@ describe('Transcode Workflow', () => {
       assetId: 'asset-1',
       type: WorkflowTaskType.transcode,
       status: WorkflowTaskStatus.pending,
+      sessionId: null,
       output: null,
       payload: {
         projectId: 'proj-1',
@@ -281,6 +284,7 @@ describe('Transcode Workflow', () => {
       assetId: 'asset-video',
       type: WorkflowTaskType.transcode,
       status: WorkflowTaskStatus.pending,
+      sessionId: null,
       output: null,
       payload: {
         projectId: 'proj-1',
@@ -344,6 +348,7 @@ describe('Transcode Workflow', () => {
       assetId: 'asset-image',
       type: WorkflowTaskType.transcode,
       status: WorkflowTaskStatus.pending,
+      sessionId: null,
       output: null,
       payload: {
         projectId: 'proj-1',
@@ -396,6 +401,7 @@ describe('Transcode Workflow', () => {
       assetId: 'asset-audio',
       type: WorkflowTaskType.transcode,
       status: WorkflowTaskStatus.pending,
+      sessionId: null,
       output: null,
       payload: {
         projectId: 'proj-1',
