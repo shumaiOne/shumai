@@ -403,4 +403,21 @@ describe('LocalExecutor Integration Tests', () => {
       expect(executor2.getAgentConcurrencyLimit()).toBe(5)
     })
   })
+
+  describe('Cancellation', () => {
+    it('registers and triggers local cancel handlers', async () => {
+      const { registerLocalCancelHandler, unregisterLocalCancelHandler } =
+        await import('./workflow-utils')
+
+      const cancelSpy = vi.fn()
+      const taskId = 'task-cancel-test'
+
+      registerLocalCancelHandler(taskId, cancelSpy)
+
+      await executor.cancel(taskId)
+      expect(cancelSpy).toHaveBeenCalled()
+
+      unregisterLocalCancelHandler(taskId)
+    })
+  })
 })

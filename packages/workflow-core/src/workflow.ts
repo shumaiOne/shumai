@@ -23,6 +23,12 @@ export class WorkflowService {
     return this.executor.submit(task)
   }
 
+  async cancel(taskId: string): Promise<void> {
+    if (this.executor.cancel) {
+      await this.executor.cancel(taskId)
+    }
+  }
+
   async executeWait(task: WorkflowTask, timeoutMs: number = 30000): Promise<WorkflowTask> {
     const start = Date.now()
     while (Date.now() - start < timeoutMs) {

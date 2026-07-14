@@ -179,6 +179,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     }
 
     const aiResult = await executeActivity(agentWorkerQueue, agentChatActivity, {
+      taskId: task.id,
       teamId,
       agentId: agentId,
       message: prompt,
@@ -241,10 +242,25 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     // Update placeholder comment with error message
     if (placeholderCommentId && agentWorkerQueue) {
       try {
-        const errorMessage =
-          err instanceof Error && err.message.startsWith('AI error:')
-            ? `AI error: ${err.message.substring(9)}`
-            : 'Sorry, I encountered an error while processing your request.'
+        let errorMessage = 'Sorry, I encountered an error while processing your request.'
+        if (err instanceof Error) {
+          if (err.message.startsWith('AI error:')) {
+            errorMessage = `AI error: ${err.message.substring(9)}`
+          } else if (
+            err.message.includes('aborted') ||
+            err.message.includes('abort') ||
+            err.name === 'AbortError' ||
+            err.message.includes('cancel')
+          ) {
+            errorMessage = 'Agent execution stopped.'
+          }
+        } else if (
+          String(err).includes('aborted') ||
+          String(err).includes('abort') ||
+          String(err).includes('cancel')
+        ) {
+          errorMessage = 'Agent execution stopped.'
+        }
 
         await executeActivity(agentWorkerQueue, updateCommentActivity, {
           commentId: placeholderCommentId,

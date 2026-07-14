@@ -50,6 +50,13 @@ export class TemporalExecutor implements Executor {
     return handle.workflowId
   }
 
+  async cancel(taskId: string): Promise<void> {
+    const client = await this.getClient()
+    const workflowId = `chat-${taskId}`
+    const handle = client.workflow.getHandle(workflowId)
+    await handle.cancel()
+  }
+
   start(): void {
     // Client doesn't need explicit start
   }

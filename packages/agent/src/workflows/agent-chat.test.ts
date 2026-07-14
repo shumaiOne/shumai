@@ -491,23 +491,25 @@ describe('Agent Chat Workflow', () => {
       ])
       .build()
 
-    expect(mockActivities.agentChatActivity).toHaveBeenCalledWith({
-      teamId: 't1',
-      agentId: 'b1',
-      message: 'chatbot prompt',
-      imageUrls: [],
-      projectId: 'p1',
-      folderId: '',
-      agentsInstruction: expectedInstruction,
-      sessionId: 'session-direct-123',
-      userId: undefined,
-      userCommentId: undefined,
-      explicitMention: true,
-      context: { agent: { id: 'b1' } },
-      attachedAssets: [
-        { id: 'file-attachment-1', name: 'attachment.png', type: 'file' },
-        { id: 'referenced-asset-1', name: 'ref-folder', type: 'folder' },
-      ],
-    })
+    expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        teamId: 't1',
+        agentId: 'b1',
+        message: 'chatbot prompt',
+        imageUrls: [],
+        projectId: 'p1',
+        folderId: '',
+        agentsInstruction: expectedInstruction,
+        sessionId: 'session-direct-123',
+        userId: undefined,
+        userCommentId: undefined,
+        explicitMention: true,
+        context: { agent: { id: 'b1' } },
+        attachedAssets: [
+          { id: 'file-attachment-1', name: 'attachment.png', type: 'file' },
+          { id: 'referenced-asset-1', name: 'ref-folder', type: 'folder' },
+        ],
+      }),
+    )
   })
 })

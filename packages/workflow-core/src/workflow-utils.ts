@@ -203,3 +203,27 @@ export function getConcurrencyLimit(envVar: string | undefined, defaultValue: nu
   }
   return parsed
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const globalObjWithCancel = globalThis as any
+if (!globalObjWithCancel.__localCancelHandlers) {
+  globalObjWithCancel.__localCancelHandlers = new Map<string, () => void>()
+}
+const localCancelHandlers: Map<string, () => void> = globalObjWithCancel.__localCancelHandlers
+
+export function registerLocalCancelHandler(taskId: string, cancelFn: () => void) {
+  localCancelHandlers.set(taskId, cancelFn)
+}
+
+export function unregisterLocalCancelHandler(taskId: string) {
+  localCancelHandlers.delete(taskId)
+}
+
+export function triggerLocalCancel(taskId: string): boolean {
+  const handler = localCancelHandlers.get(taskId)
+  if (handler) {
+    handler()
+    return true
+  }
+  return false
+}

@@ -23,6 +23,7 @@ import {
   History,
   Loader2,
   Plus,
+  Square,
   Trash2,
   Wrench,
 } from 'lucide-react'
@@ -50,6 +51,7 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
     deleteSession,
     startNewSession,
     sendMessage,
+    abortActiveSession,
     selectedAgentId,
     setSelectedAgentId,
   } = useChatbotStore()
@@ -637,18 +639,32 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
                   )}
                 </div>
 
-                <button
-                  onClick={handleSend}
-                  disabled={isStreaming || !inputText.trim() || !selectedAgentId}
-                  className={cn(
-                    'p-2 rounded-full transition-all duration-200 flex items-center justify-center shrink-0 shadow-sm',
-                    inputText.trim() && !isStreaming && selectedAgentId
-                      ? 'bg-primary text-primary-foreground hover:bg-primary/95 transform hover:-translate-y-0.5'
-                      : 'bg-muted text-muted-foreground cursor-not-allowed opacity-50',
-                  )}
-                >
-                  <ArrowUp className="h-4 w-4" />
-                </button>
+                {isStreaming ? (
+                  <button
+                    onClick={() => {
+                      if (teamId) {
+                        abortActiveSession(teamId)
+                      }
+                    }}
+                    className="p-2 rounded-full transition-all duration-200 flex items-center justify-center shrink-0 shadow-sm bg-destructive text-destructive-foreground hover:bg-destructive/90 transform hover:-translate-y-0.5"
+                    title="Stop generation"
+                  >
+                    <Square className="h-4 w-4" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleSend}
+                    disabled={!inputText.trim() || !selectedAgentId}
+                    className={cn(
+                      'p-2 rounded-full transition-all duration-200 flex items-center justify-center shrink-0 shadow-sm',
+                      inputText.trim() && selectedAgentId
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/95 transform hover:-translate-y-0.5'
+                        : 'bg-muted text-muted-foreground cursor-not-allowed opacity-50',
+                    )}
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                  </button>
+                )}
               </div>
             </div>
           </div>

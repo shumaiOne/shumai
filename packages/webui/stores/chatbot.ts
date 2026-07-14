@@ -43,6 +43,7 @@ interface ChatbotState {
     projectId: string,
     contextAssetId?: string,
   ) => Promise<void>
+  abortActiveSession: (teamId: string) => Promise<void>
 }
 
 export const useChatbotStore = create<ChatbotState>((set) => ({
@@ -301,6 +302,25 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
       }))
     } finally {
       set({ isStreaming: false })
+    }
+  },
+
+  abortActiveSession: async (teamId) => {
+    const { currentSessionId, isStreaming } = useChatbotStore.getState()
+    if (!currentSessionId || !isStreaming) return
+
+    try {
+      const res = await client.api.teams[':teamId'].chat.sessions[':sessionId'].abort.$post({
+        param: { teamId, sessionId: currentSessionId },
+      })
+      if (res.ok) {
+        toast.success('Agent execution stopped')
+      } else {
+        throw new Error('Failed to abort agent execution')
+      }
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : 'Failed to abort execution'
+      toast.error(errMsg)
     }
   },
 }))

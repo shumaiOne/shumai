@@ -13,7 +13,12 @@ import { s3Service } from '@shumai/core/src/s3/s3'
 import { uploadService } from '@shumai/core/src/upload/upload'
 import { VersionStackService } from '@shumai/core/src/versionStack/versionStack'
 import { AssetType, prisma, Prisma, type Skill } from '@shumai/db'
-import { ApplicationFailure } from '@temporalio/activity'
+import { ApplicationFailure, Context } from '@temporalio/activity'
+import {
+  isTemporal,
+  registerLocalCancelHandler,
+  unregisterLocalCancelHandler,
+} from '@shumai/workflow-core'
 import { generateKeyBetween } from 'jittered-fractional-indexing'
 import { ulid } from 'ulid'
 import { DatabaseSessionStorage } from '../database-session-storage'
@@ -53,6 +58,7 @@ export interface AgentExecutionContext {
 }
 
 async function executeAgentPrompt(params: {
+  taskId?: string
   teamId: string
   agentId: string
   prompt: string
@@ -149,6 +155,39 @@ If you need to create files in the local filesystem (for example, a temporary fi
     }
   }
 
+  let heartbeatInterval: ReturnType<typeof setInterval> | null = null
+
+  let isTemporalActivity = false
+  let temporalSignal: any
+  try {
+    temporalSignal = Context.current().cancellationSignal
+    isTemporalActivity = true
+  } catch {
+    isTemporalActivity = false
+  }
+
+  if (isTemporalActivity && temporalSignal) {
+    temporalSignal.addEventListener(
+      'abort',
+      () => {
+        harness.abort()
+      },
+      { once: true },
+    )
+
+    heartbeatInterval = setInterval(() => {
+      try {
+        Context.current().heartbeat()
+      } catch (err) {
+        logger.debug({ err }, 'Failed to send activity heartbeat')
+      }
+    }, 2000)
+  } else if (params.taskId) {
+    registerLocalCancelHandler(params.taskId, () => {
+      harness.abort()
+    })
+  }
+
   try {
     if (params.agentsInstruction && params.agentsInstruction.trim()) {
       const storage = session.getStorage()
@@ -223,11 +262,17 @@ If you need to create files in the local filesystem (for example, a temporary fi
     }
     return { text, usage, sessionId }
   } finally {
-    // Cleanup handled by agent session if needed
+    if (heartbeatInterval) {
+      clearInterval(heartbeatInterval)
+    }
+    if (params.taskId) {
+      unregisterLocalCancelHandler(params.taskId)
+    }
   }
 }
 
 export interface AgentChatParams {
+  taskId?: string
   teamId: string
   agentId: string
   message: string
@@ -248,6 +293,7 @@ export async function agentChatActivity(params: AgentChatParams) {
   const sessionId = params.sessionId
 
   return executeAgentPrompt({
+    taskId: params.taskId,
     teamId: params.teamId,
     agentId: params.agentId,
     prompt: cleanMessage,
