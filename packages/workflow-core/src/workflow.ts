@@ -20,6 +20,14 @@ export class WorkflowService {
     }
   }
 
+  setExecutorType(type: 'local' | 'temporal') {
+    if (type === 'temporal') {
+      this.executor = new TemporalExecutor(process.env.TEMPORAL_ADDRESS)
+    } else {
+      this.executor = new LocalExecutor()
+    }
+  }
+
   async submit(task: WorkflowTask): Promise<string> {
     return this.executor.submit(task)
   }
@@ -77,7 +85,7 @@ export class WorkflowService {
     queue: string,
     options: { workflowBundle?: unknown; workflowsPath?: string } = {},
   ): Promise<void> {
-    const type = process.env.WORKFLOW_EXECUTOR || 'local'
+    const type = this.executor instanceof TemporalExecutor ? 'temporal' : 'local'
     if (type === 'temporal') {
       const { Worker, NativeConnection } = await import('@temporalio/worker')
 

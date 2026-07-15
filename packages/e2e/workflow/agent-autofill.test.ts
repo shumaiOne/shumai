@@ -13,7 +13,7 @@ const currentDir = path.dirname(fileURLToPath(import.meta.url))
 const agentWorkflowsPath = path.resolve(currentDir, '../../../apps/agent/src/workflows.ts')
 const transcodeWorkflowsPath = path.resolve(currentDir, '../../../apps/transcode/src/workflows.ts')
 
-describe('Workflow E2E - agentAutofillMedia', () => {
+describe.each(['local', 'temporal'] as const)('Workflow E2E - agentAutofillMedia (executor: %s)', (mode) => {
   setupTestDbHooks()
 
   let agentWorkerPromise: Promise<void> | null = null
@@ -22,6 +22,9 @@ describe('Workflow E2E - agentAutofillMedia', () => {
   beforeAll(async () => {
     // Set bucket environment
     process.env.S3_BUCKET = 'shumai-e2e-test-bucket'
+
+    // Configure the workflow service executor dynamically
+    workflowService.setExecutorType(mode)
 
     // Initialize registries
     initAgentWorkflows()
@@ -50,8 +53,7 @@ describe('Workflow E2E - agentAutofillMedia', () => {
       /* eslint-enable @typescript-eslint/no-explicit-any */
     })
 
-    const type = process.env.WORKFLOW_EXECUTOR || 'local'
-    if (type === 'temporal') {
+    if (mode === 'temporal') {
       console.log('Starting background workers for Temporal E2E tests...')
       agentWorkerPromise = workflowService.startWorkers(TaskQueueAgent, {
         workflowsPath: agentWorkflowsPath,
@@ -69,8 +71,7 @@ describe('Workflow E2E - agentAutofillMedia', () => {
   })
 
   afterAll(async () => {
-    const type = process.env.WORKFLOW_EXECUTOR || 'local'
-    if (type === 'temporal') {
+    if (mode === 'temporal') {
       console.log('Shutting down Temporal workers...')
       await workflowService.shutdownWorkers()
       await Promise.all([agentWorkerPromise, transcodeWorkerPromise].filter(Boolean))
