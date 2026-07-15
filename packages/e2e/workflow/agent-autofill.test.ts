@@ -40,7 +40,11 @@ describe.each(['local', 'temporal'] as const)('Workflow E2E - agentAutofillMedia
 
       if (autofillTool) {
         // Execute the real tool callback to perform the actual DB updates
-        await autofillTool.execute('call-123', { title: 'E2E Title Extracted' })
+        await autofillTool.execute('call-123', {
+          title: 'E2E Title Extracted',
+          confidence: 0.95,
+          completed: true,
+        })
       }
 
       // Return a successful assistant response mock
@@ -101,7 +105,7 @@ describe.each(['local', 'temporal'] as const)('Workflow E2E - agentAutofillMedia
       data: { name: 'E2E Test Project', teamId: team.id },
     })
 
-    // Create Metadata Field (aiAutofill = true)
+    // Create Metadata Field (aiAutofill = true, text)
     await prisma.metadataField.create({
       data: {
         key: 'title',
@@ -111,6 +115,45 @@ describe.each(['local', 'temporal'] as const)('Workflow E2E - agentAutofillMedia
         config: { name: 'Title', type: 'text' },
         aiAutofill: true,
         description: 'Auto-extracted title',
+      },
+    })
+
+    // Create Metadata Field (aiAutofill = true, number)
+    await prisma.metadataField.create({
+      data: {
+        key: 'confidence',
+        scope: 'PROJECT',
+        projectId: project.id,
+        teamId: team.id,
+        config: { name: 'Confidence', type: 'number' },
+        aiAutofill: true,
+        description: 'AI extraction confidence',
+      },
+    })
+
+    // Create Metadata Field (aiAutofill = true, boolean)
+    await prisma.metadataField.create({
+      data: {
+        key: 'completed',
+        scope: 'PROJECT',
+        projectId: project.id,
+        teamId: team.id,
+        config: { name: 'Completed', type: 'toggle' },
+        aiAutofill: true,
+        description: 'Completed flag',
+      },
+    })
+
+    // Create Metadata Field (aiAutofill = false, text)
+    await prisma.metadataField.create({
+      data: {
+        key: 'manual_notes',
+        scope: 'PROJECT',
+        projectId: project.id,
+        teamId: team.id,
+        config: { name: 'Manual Notes', type: 'text' },
+        aiAutofill: false,
+        description: 'Manual notes (should not be auto-filled)',
       },
     })
 
@@ -235,7 +278,7 @@ describe.each(['local', 'temporal'] as const)('Workflow E2E - agentAutofillMedia
     expect(finalComment.message).toBe('Autofill completed successfully.')
 
     // Verify AssetMetadataValue contains the AI-extracted title
-    const metadataValue = await prisma.assetMetadataValue.findUnique({
+    const titleVal = await prisma.assetMetadataValue.findUnique({
       where: {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         assetId_fieldKey: {
@@ -244,7 +287,45 @@ describe.each(['local', 'temporal'] as const)('Workflow E2E - agentAutofillMedia
         },
       },
     })
-    expect(metadataValue).toBeDefined()
-    expect(metadataValue?.stringValue).toBe('E2E Title Extracted')
+    expect(titleVal).toBeDefined()
+    expect(titleVal?.stringValue).toBe('E2E Title Extracted')
+
+    // Verify AssetMetadataValue contains the AI-extracted confidence
+    const confidenceVal = await prisma.assetMetadataValue.findUnique({
+      where: {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        assetId_fieldKey: {
+          assetId: asset.id,
+          fieldKey: 'confidence',
+        },
+      },
+    })
+    expect(confidenceVal).toBeDefined()
+    expect(confidenceVal?.numberValue).toBe(0.95)
+
+    // Verify AssetMetadataValue contains the AI-extracted completed flag
+    const completedVal = await prisma.assetMetadataValue.findUnique({
+      where: {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        assetId_fieldKey: {
+          assetId: asset.id,
+          fieldKey: 'completed',
+        },
+      },
+    })
+    expect(completedVal).toBeDefined()
+    expect(completedVal?.booleanValue).toBe(true)
+
+    // Verify manual_notes is NOT auto-filled (remains null/undefined in DB)
+    const manualNotesVal = await prisma.assetMetadataValue.findUnique({
+      where: {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        assetId_fieldKey: {
+          assetId: asset.id,
+          fieldKey: 'manual_notes',
+        },
+      },
+    })
+    expect(manualNotesVal).toBeNull()
   }, 50000)
 })
