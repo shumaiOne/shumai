@@ -7,9 +7,11 @@ import { LocalExecutor } from './local-executor'
 import { TemporalExecutor } from './temporal-executor'
 import { TaskQueueAgent, TaskQueueTranscode, getConcurrencyLimit } from './workflow-utils'
 
+import type { Worker } from '@temporalio/worker'
+
 export class WorkflowService {
   private executor: Executor
-  private activeWorkers: unknown[] = []
+  private activeWorkers: Worker[] = []
 
   constructor() {
     const type = process.env.WORKFLOW_EXECUTOR || 'local'
@@ -74,9 +76,7 @@ export class WorkflowService {
   }
 
   async shutdownWorkers(): Promise<void> {
-    await Promise.all(
-      this.activeWorkers.map((w) => (w as { shutdown: () => Promise<void> }).shutdown()),
-    )
+    await Promise.all(this.activeWorkers.map((w) => w.shutdown()))
     this.activeWorkers = []
   }
 
