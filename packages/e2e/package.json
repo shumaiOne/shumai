@@ -9,6 +9,7 @@
     "@shumai/workflow-core": "workspace:*",
     "@shumai/agent": "workspace:*",
     "@shumai/transcode": "workspace:*",
-    "@shumai/dtos": "workspace:*"
+    "@shumai/dtos": "workspace:*",
+    "@earendil-works/pi-agent-core": "0.78.0"
   }
 }

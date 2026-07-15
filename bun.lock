@@ -188,6 +188,7 @@
       "name": "@shumai/e2e",
       "version": "0.1.9",
       "dependencies": {
+        "@earendil-works/pi-agent-core": "0.78.0",
         "@shumai/agent": "workspace:*",
         "@shumai/core": "workspace:*",
         "@shumai/db": "workspace:*",

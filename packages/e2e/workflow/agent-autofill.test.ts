@@ -1,18 +1,17 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { workflowService, TaskQueueAgent, TaskQueueTranscode } from '@shumai/workflow-core'
 import { initAgentWorkflows } from '@shumai/agent'
 import { initTranscodeWorkflows } from '@shumai/transcode'
 import { s3Service } from '@shumai/core/src/s3/s3'
+import { AgentHarness, type AgentTool } from '@earendil-works/pi-agent-core'
 import { fileURLToPath } from 'url'
 import * as path from 'path'
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url))
 const agentWorkflowsPath = path.resolve(currentDir, '../../../apps/agent/src/workflows.ts')
 const transcodeWorkflowsPath = path.resolve(currentDir, '../../../apps/transcode/src/workflows.ts')
-
-// No module mocks needed because we override activities directly in the global registry below
 
 describe('Workflow E2E - agentAutofillMedia', () => {
   setupTestDbHooks()
@@ -28,18 +27,28 @@ describe('Workflow E2E - agentAutofillMedia', () => {
     initAgentWorkflows()
     initTranscodeWorkflows()
 
-    // Override the AI activity with a mock implementation in the global registry
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const localActs = (globalThis as any).__localActivities
-    if (localActs) {
-      localActs.autofillAiActivity = async () => {
-        return {
-          text: JSON.stringify({ title: 'E2E Title Extracted' }),
-          usage: { inputTokens: 10, outputTokens: 20, model: 'gemini' },
-          sessionId: 'mock-session-123',
-        }
+    // Spy on the harness prompt method to intercept the LLM call while running real activities & tools
+    vi.spyOn(AgentHarness.prototype, 'prompt').mockImplementation(async function (
+      this: AgentHarness,
+    ) {
+      // Find the real autofill_metadata tool configured on the harness
+      const tools = this.getTools()
+      const autofillTool = tools.find((t: AgentTool) => t.name === 'autofill_metadata')
+
+      if (autofillTool) {
+        // Execute the real tool callback to perform the actual DB updates
+        await autofillTool.execute('call-123', { title: 'E2E Title Extracted' })
       }
-    }
+
+      // Return a successful assistant response mock
+      /* eslint-disable @typescript-eslint/no-explicit-any -- Mock assistant response structure */
+      return {
+        content: [{ type: 'text', text: 'Success' }],
+        usage: { input: 10, output: 20 },
+        stopReason: 'stop',
+      } as any
+      /* eslint-enable @typescript-eslint/no-explicit-any */
+    })
 
     const type = process.env.WORKFLOW_EXECUTOR || 'local'
     if (type === 'temporal') {
@@ -68,6 +77,9 @@ describe('Workflow E2E - agentAutofillMedia', () => {
     }
 
     workflowService.close()
+
+    // Restore spied methods
+    vi.restoreAllMocks()
 
     // Clean up E2E files in local filesystem storage
     try {
