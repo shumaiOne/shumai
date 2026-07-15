@@ -235,7 +235,7 @@ export class PrismaTestingHelper<
             })
             throw internalRollbackErrorSymbol
           },
-          { ...opts, timeout: 30000 },
+          { timeout: 60000, ...opts },
         )
         .catch((error) => {
           if (error !== internalRollbackErrorSymbol) {

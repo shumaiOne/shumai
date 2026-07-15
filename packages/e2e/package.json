@@ -10,6 +10,7 @@
     "@shumai/agent": "workspace:*",
     "@shumai/transcode": "workspace:*",
     "@shumai/dtos": "workspace:*",
-    "@earendil-works/pi-agent-core": "0.78.0"
+    "@earendil-works/pi-agent-core": "0.78.0",
+    "@google/genai": "1.52.0"
   }
 }
