@@ -9,6 +9,7 @@ import { TaskQueueAgent, TaskQueueTranscode, getConcurrencyLimit } from './workf
 
 export class WorkflowService {
   private executor: Executor
+  private activeWorkers: unknown[] = []
 
   constructor() {
     const type = process.env.WORKFLOW_EXECUTOR || 'local'
@@ -62,6 +63,13 @@ export class WorkflowService {
 
   close(): void {
     this.executor.close()
+  }
+
+  async shutdownWorkers(): Promise<void> {
+    await Promise.all(
+      this.activeWorkers.map((w) => (w as { shutdown: () => Promise<void> }).shutdown()),
+    )
+    this.activeWorkers = []
   }
 
   // Starts Temporal workers for specific task queues
@@ -155,6 +163,8 @@ export class WorkflowService {
           },
         },
       })
+
+      this.activeWorkers.push(sharedWorker, specificWorker)
 
       await Promise.all([sharedWorker.run(), specificWorker.run()])
     } else {
