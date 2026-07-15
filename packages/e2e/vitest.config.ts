@@ -7,6 +7,10 @@ export default defineConfig({
     globalSetup: './packages/e2e/workflow/test-global-setup.ts',
     globals: false,
     pool: 'forks',
+    fileParallelism: false,
+    sequence: {
+      concurrent: false,
+    },
     include: ['packages/e2e/workflow/**/*.test.ts'],
     server: {
       deps: {
