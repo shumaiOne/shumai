@@ -26,16 +26,12 @@ describe('WorkflowService Temporal Workers Concurrency Control', () => {
     originalExecutor = process.env.WORKFLOW_EXECUTOR
     originalTranscode = process.env.CONCURRENCY_TRANSCODE
     originalAgent = process.env.CONCURRENCY_AGENT
-    process.env.WORKFLOW_EXECUTOR = 'temporal'
+    workflowService.setExecutorType('temporal')
     vi.clearAllMocks()
   })
 
   afterEach(() => {
-    if (originalExecutor === undefined) {
-      delete process.env.WORKFLOW_EXECUTOR
-    } else {
-      process.env.WORKFLOW_EXECUTOR = originalExecutor
-    }
+    workflowService.setExecutorType(originalExecutor === 'temporal' ? 'temporal' : 'local')
 
     if (originalTranscode === undefined) {
       delete process.env.CONCURRENCY_TRANSCODE

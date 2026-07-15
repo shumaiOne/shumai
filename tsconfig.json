@@ -26,7 +26,8 @@
       "@shumai/transcode": ["./packages/transcode/src/index.ts"],
       "@shumai/transcode/src/*": ["./packages/transcode/src/*"],
       "@shumai/cli": ["./apps/cli/src/index.ts"],
-      "@shumai/tableprinter": ["./packages/tableprinter/src/index.ts"]
+      "@shumai/tableprinter": ["./packages/tableprinter/src/index.ts"],
+      "@shumai/e2e/*": ["./packages/e2e/*"]
     }
   },
   "exclude": ["node_modules"]

@@ -138,3 +138,26 @@ jobs:
           name: playwright-report-app-${{ matrix.project }}
           path: playwright-report/
           retention-days: 7
+
+  workflow_e2e:
+    name: Workflow E2E
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep bubblewrap socat ffmpeg
+
+      - name: Run Workflow E2E Tests
+        run: bun run test:e2e:workflow

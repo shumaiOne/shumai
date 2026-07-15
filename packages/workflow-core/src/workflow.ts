@@ -7,11 +7,22 @@ import { LocalExecutor } from './local-executor'
 import { TemporalExecutor } from './temporal-executor'
 import { TaskQueueAgent, TaskQueueTranscode, getConcurrencyLimit } from './workflow-utils'
 
+import type { Worker } from '@temporalio/worker'
+
 export class WorkflowService {
   private executor: Executor
+  private activeWorkers: Worker[] = []
 
   constructor() {
     const type = process.env.WORKFLOW_EXECUTOR || 'local'
+    if (type === 'temporal') {
+      this.executor = new TemporalExecutor(process.env.TEMPORAL_ADDRESS)
+    } else {
+      this.executor = new LocalExecutor()
+    }
+  }
+
+  setExecutorType(type: 'local' | 'temporal') {
     if (type === 'temporal') {
       this.executor = new TemporalExecutor(process.env.TEMPORAL_ADDRESS)
     } else {
@@ -64,12 +75,17 @@ export class WorkflowService {
     this.executor.close()
   }
 
+  async shutdownWorkers(): Promise<void> {
+    await Promise.all(this.activeWorkers.map((w) => w.shutdown()))
+    this.activeWorkers = []
+  }
+
   // Starts Temporal workers for specific task queues
   async startWorkers(
     queue: string,
     options: { workflowBundle?: unknown; workflowsPath?: string } = {},
   ): Promise<void> {
-    const type = process.env.WORKFLOW_EXECUTOR || 'local'
+    const type = this.executor instanceof TemporalExecutor ? 'temporal' : 'local'
     if (type === 'temporal') {
       const { Worker, NativeConnection } = await import('@temporalio/worker')
 
@@ -155,6 +171,8 @@ export class WorkflowService {
           },
         },
       })
+
+      this.activeWorkers.push(sharedWorker, specificWorker)
 
       await Promise.all([sharedWorker.run(), specificWorker.run()])
     } else {

@@ -1,0 +1,15 @@
+{
+  "name": "@shumai/e2e",
+  "version": "0.1.9",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@shumai/db": "workspace:*",
+    "@shumai/core": "workspace:*",
+    "@shumai/workflow-core": "workspace:*",
+    "@shumai/agent": "workspace:*",
+    "@shumai/transcode": "workspace:*",
+    "@shumai/dtos": "workspace:*",
+    "@earendil-works/pi-agent-core": "0.78.0"
+  }
+}

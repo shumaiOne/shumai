@@ -91,6 +91,7 @@ Add any additional context, caveats, or follow-up work.
   - `bun run typecheck`
   - `bun run test`
   - `bun run test:e2e`
+  - `bun run test:e2e:workflow`
 
 - **Backend Testing Mandate**: Every backend feature, service method, workflow, and activity MUST be accompanied by comprehensive tests. Logic-heavy code without corresponding test coverage is considered incomplete.
 
@@ -272,6 +273,14 @@ describe('Team API', () => {
   })
 })
 ```
+
+### Workflow E2E Tests
+
+- Located in `packages/e2e/workflow/**/*.test.ts`.
+- Run via `bun run test:e2e:workflow` (which executes tests against both `local` and `temporal` executors dynamically).
+- **Mandatory test coverage**: When creating or updating workflows or activities, you MUST create or update the corresponding E2E tests.
+- **Mocking**: Mock ONLY AI API calls. Do not mock S3, databases, or media/transcode extraction services.
+- Mock the AI response by spying on `AgentHarness.prototype.prompt`:
 
 ## Prisma Configuration & Migrations
 
