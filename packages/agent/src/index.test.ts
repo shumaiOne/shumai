@@ -329,4 +329,47 @@ describe('Sandbox Network isolation integration', () => {
       initializeSpy.mockRestore()
     }
   })
+
+  it('should filter out denied tools from AgentHarness', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'Test Team 3' },
+    })
+    await prisma.user.create({
+      data: {
+        id: 'test-agent-3',
+        name: 'Agent 3',
+        email: 'agent3@shumai.ai',
+        type: 'agent',
+      },
+    })
+    await prisma.agent.create({
+      data: {
+        id: 'test-agent-3',
+        teamId: team.id,
+        type: 'chat',
+        config: { provider: 'google', model: 'gemini', deniedTools: ['bash'] },
+      },
+    })
+
+    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
+    try {
+      const { harness } = await createAgentSession({
+        teamId: team.id,
+        agentId: 'test-agent-3',
+        providerName: 'google',
+        modelId: 'gemini',
+        systemPrompt: 'prompt',
+        teamSkills: [],
+        allowedDomains: [],
+        providers: [],
+      })
+      const tools = harness.getTools()
+      const bashTool = tools.find((t) => t.name === 'bash')
+      expect(bashTool).toBeUndefined()
+      const readSkillTool = tools.find((t) => t.name === 'read_skill')
+      expect(readSkillTool).toBeDefined()
+    } finally {
+      initializeSpy.mockRestore()
+    }
+  })
 })

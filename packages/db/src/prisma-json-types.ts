@@ -30,6 +30,7 @@ declare global {
       thinkingLevel?: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'
       systemPrompt?: string
       appendSystemPrompt?: string[]
+      deniedTools?: string[]
     }
 
     // ----------------------------------------------------------------------
