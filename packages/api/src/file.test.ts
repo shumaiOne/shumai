@@ -57,6 +57,7 @@ describe('file api', () => {
     vi.spyOn(assetService, 'deleteAssets').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'createComment').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'completeComment').mockImplementation(vi.fn())
+    vi.spyOn(assetService, 'deleteComment').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'listComments').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'restoreAssets').mockImplementation(vi.fn())
     vi.spyOn(metadataService, 'updateAssetMetadata').mockImplementation(vi.fn())
@@ -355,6 +356,30 @@ describe('file api', () => {
       permission: Permission.Read,
       type: ResourceType.Comment,
       id: 'comment-id',
+    })
+  })
+
+  it('DELETE /comments/:commentId', async () => {
+    vi.mocked(assetService.deleteComment).mockResolvedValue(undefined)
+
+    const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
+    const res = await app.request('/comments/comment-id', {
+      method: 'DELETE',
+    })
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.success).toBe(true)
+
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: { id: 'user1', name: 'Test User' },
+      permission: Permission.Read,
+      type: ResourceType.Comment,
+      id: 'comment-id',
+    })
+    expect(assetService.deleteComment).toHaveBeenCalledWith({
+      commentId: 'comment-id',
+      userId: 'user1',
     })
   })
 

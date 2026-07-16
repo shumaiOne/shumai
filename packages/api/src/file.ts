@@ -220,6 +220,20 @@ const route = new Hono<{ Variables: { user: User } }>()
       return c.json(updated)
     },
   )
+  .delete('/comments/:commentId', async (c) => {
+    const commentId = c.req.param('commentId')
+    const user = c.get('user')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Comment,
+      id: commentId,
+    })
+
+    await assetService.deleteComment({ commentId, userId: user.id })
+    return c.json({ success: true })
+  })
   .post('/files/restore', zValidator('json', restoreFilesRequestSchema), async (c) => {
     const user = c.get('user')
     const req = c.req.valid('json')

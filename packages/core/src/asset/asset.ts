@@ -18,6 +18,7 @@ import {
   AssetUserInfo,
 } from '@shumai/dtos'
 import { type Asset, AssetStatus, AssetType, Prisma, type StorageKey } from '@shumai/db'
+import { HTTPException } from 'hono/http-exception'
 import { logger } from '@shumai/core/src/logger'
 import { PaginatedData, paginateQuery, PaginationParams } from '@shumai/core/src/pagination'
 import { s3Service } from '@shumai/core/src/s3/s3'
@@ -1411,6 +1412,91 @@ export class AssetService {
       },
     })
     return this.getComment(commentId)
+  }
+
+  async deleteComment({ commentId, userId }: { commentId: string; userId: string }): Promise<void> {
+    interface AssetContext {
+      parentId: string | null
+      teamRootFolder: { id: string } | null
+      project: { id: string; teamId: string } | null
+    }
+
+    const comment = await this.prismaClient.assetComment.findUnique({
+      where: { id: commentId },
+      include: {
+        asset: {
+          select: {
+            parentId: true,
+            teamRootFolder: { select: { id: true } },
+            project: { select: { id: true, teamId: true } },
+          },
+        },
+      },
+    })
+
+    if (!comment) {
+      throw new HTTPException(404, { message: 'Comment not found' })
+    }
+
+    let teamId: string | null = null
+    if (comment.asset.project) {
+      teamId = comment.asset.project.teamId
+    } else if (comment.asset.teamRootFolder) {
+      teamId = comment.asset.teamRootFolder.id
+    } else {
+      let currentAsset: AssetContext | null = comment.asset
+      while (currentAsset && !teamId) {
+        if (currentAsset.project) {
+          teamId = currentAsset.project.teamId
+          break
+        }
+        if (currentAsset.teamRootFolder) {
+          teamId = currentAsset.teamRootFolder.id
+          break
+        }
+        if (currentAsset.parentId) {
+          const parent: AssetContext | null = await this.prismaClient.asset.findUnique({
+            where: { id: currentAsset.parentId },
+            select: {
+              parentId: true,
+              teamRootFolder: { select: { id: true } },
+              project: { select: { id: true, teamId: true } },
+            },
+          })
+          currentAsset = parent
+        } else {
+          break
+        }
+      }
+    }
+
+    if (!teamId) {
+      throw new HTTPException(403, { message: 'Could not resolve team context for comment' })
+    }
+
+    const member = await this.prismaClient.teamMember.findUnique({
+      where: {
+        teamIdUserId: {
+          teamId,
+          userId,
+        },
+      },
+    })
+
+    if (!member) {
+      throw new HTTPException(403, { message: 'User is not a member of the team' })
+    }
+
+    const isOwner = member.role === 'owner'
+    const isCreator = comment.creatorId === userId
+
+    if (!isOwner && !isCreator) {
+      throw new HTTPException(403, { message: 'You do not have permission to delete this comment' })
+    }
+
+    await this.prismaClient.assetComment.delete({
+      where: { id: commentId },
+    })
   }
 
   async listComments(
