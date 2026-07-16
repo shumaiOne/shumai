@@ -1473,14 +1473,7 @@ export class AssetService {
       const asset = att.asset
       if (asset.storageKey) {
         try {
-          const key = asset.storageKey.key
-          const parts = key.split('/')
-          if (parts.length > 2) {
-            const prefix = parts.slice(0, parts.length - 1).join('/') + '/'
-            await s3Service.deletePrefix(bucket, prefix)
-          } else {
-            await s3Service.deleteObject(bucket, key)
-          }
+          await s3Service.deleteObject(bucket, asset.storageKey.key)
         } catch (err) {
           logger.error({ err, assetId: asset.id }, 'Failed to delete attachment file from S3')
         }

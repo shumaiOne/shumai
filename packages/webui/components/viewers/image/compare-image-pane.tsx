@@ -194,7 +194,7 @@ export const CompareImagePane = forwardRef<ComparePaneHandle, CompareImagePanePr
     return (
       <div
         ref={containerRef}
-        className="relative flex-1 overflow-hidden bg-gray-100 dark:bg-gray-950"
+        className="relative flex-1 overflow-hidden bg-black"
         onMouseDown={onActivate}
       >
         <DrawingCanvas
