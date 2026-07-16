@@ -1415,19 +1415,20 @@ export class AssetService {
   }
 
   async deleteComment({ commentId, userId }: { commentId: string; userId: string }): Promise<void> {
-    interface AssetContext {
-      parentId: string | null
-      teamRootFolder: { id: string } | null
-      project: { id: string; teamId: string } | null
-    }
-
     const comment = await this.prismaClient.assetComment.findUnique({
       where: { id: commentId },
       include: {
+        attachments: {
+          include: {
+            asset: {
+              include: {
+                storageKey: true,
+              },
+            },
+          },
+        },
         asset: {
           select: {
-            parentId: true,
-            teamRootFolder: { select: { id: true } },
             project: { select: { id: true, teamId: true } },
           },
         },
@@ -1438,40 +1439,10 @@ export class AssetService {
       throw new HTTPException(404, { message: 'Comment not found' })
     }
 
-    let teamId: string | null = null
-    if (comment.asset.project) {
-      teamId = comment.asset.project.teamId
-    } else if (comment.asset.teamRootFolder) {
-      teamId = comment.asset.teamRootFolder.id
-    } else {
-      let currentAsset: AssetContext | null = comment.asset
-      while (currentAsset && !teamId) {
-        if (currentAsset.project) {
-          teamId = currentAsset.project.teamId
-          break
-        }
-        if (currentAsset.teamRootFolder) {
-          teamId = currentAsset.teamRootFolder.id
-          break
-        }
-        if (currentAsset.parentId) {
-          const parent: AssetContext | null = await this.prismaClient.asset.findUnique({
-            where: { id: currentAsset.parentId },
-            select: {
-              parentId: true,
-              teamRootFolder: { select: { id: true } },
-              project: { select: { id: true, teamId: true } },
-            },
-          })
-          currentAsset = parent
-        } else {
-          break
-        }
-      }
-    }
+    const teamId = comment.asset.project?.teamId
 
     if (!teamId) {
-      throw new HTTPException(403, { message: 'Could not resolve team context for comment' })
+      throw new HTTPException(400, { message: 'Data corruption: Comment asset is not associated with a project' })
     }
 
     const member = await this.prismaClient.teamMember.findUnique({
@@ -1492,6 +1463,38 @@ export class AssetService {
 
     if (!isOwner && !isCreator) {
       throw new HTTPException(403, { message: 'You do not have permission to delete this comment' })
+    }
+
+    // Clean up attachment files from S3/storage and delete their DB records
+    const bucket = process.env.S3_BUCKET || 'shumai'
+    for (const att of comment.attachments) {
+      const asset = att.asset
+      if (asset.storageKey) {
+        try {
+          const key = asset.storageKey.key
+          const parts = key.split('/')
+          if (parts.length > 2) {
+            const prefix = parts.slice(0, parts.length - 1).join('/') + '/'
+            await s3Service.deletePrefix(bucket, prefix)
+          } else {
+            await s3Service.deleteObject(bucket, key)
+          }
+        } catch (err) {
+          logger.error({ err, assetId: asset.id }, 'Failed to delete attachment file from S3')
+        }
+      }
+
+      await this.prismaClient.asset.delete({
+        where: { id: asset.id },
+      })
+
+      if (asset.storageKey) {
+        await this.prismaClient.storageKey.delete({
+          where: { id: asset.storageKey.id },
+        }).catch(() => {
+          // Silently ignore if already deleted
+        })
+      }
     }
 
     await this.prismaClient.assetComment.delete({

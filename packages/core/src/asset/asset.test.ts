@@ -809,6 +809,71 @@ describe('AssetService', () => {
     ).resolves.not.toThrow()
   })
 
+  it('deleteComment cleans up S3 attachment files and database records', async () => {
+    const { user, project, assets } = await setupBasicAssets()
+
+    // 1. Add user as team owner
+    await prisma.teamMember.create({
+      data: {
+        teamId: project.teamId,
+        userId: user.id,
+        role: 'owner',
+      },
+    })
+
+    // 2. Create StorageKey and Asset for attachment
+    const storageKey = await prisma.storageKey.create({
+      data: {
+        key: 'attachments/test-attachment-file.png',
+        status: 'active',
+      },
+    })
+
+    const attachmentAsset = await prisma.asset.create({
+      data: {
+        name: 'test-attachment-file.png',
+        type: AssetType.file,
+        projectId: project.id,
+        parentId: assets.root.id,
+        creatorId: user.id,
+        storageKeyId: storageKey.id,
+        sizeByte: 100,
+        status: 'uploaded',
+      },
+    })
+
+    // 3. Create a comment with this attachment
+    const comment = await assetService.createComment({
+      assetId: assets.fileA1.id,
+      userId: user.id,
+      message: 'Comment with attachment',
+      attachmentIds: [attachmentAsset.id],
+    })
+
+    // Verify it is created in DB
+    const dbComment = await prisma.assetComment.findUnique({
+      where: { id: comment.id },
+      include: { attachments: true },
+    })
+    expect(dbComment?.attachments.length).toBe(1)
+
+    // 4. Delete the comment
+    await expect(
+      assetService.deleteComment({ commentId: comment.id, userId: user.id }),
+    ).resolves.not.toThrow()
+
+    // 5. Verify the comment is deleted from DB
+    await expect(prisma.assetComment.findUnique({ where: { id: comment.id } })).resolves.toBeNull()
+
+    // 6. Verify that the attachment Asset and StorageKey are deleted from DB
+    await expect(prisma.asset.findUnique({ where: { id: attachmentAsset.id } })).resolves.toBeNull()
+    await expect(prisma.storageKey.findUnique({ where: { id: storageKey.id } })).resolves.toBeNull()
+
+    // 7. Verify S3 deletion was called
+    const { s3Service } = await import('@shumai/core/src/s3/s3')
+    expect(s3Service.deleteObject).toHaveBeenCalledWith('shumai', 'attachments/test-attachment-file.png')
+  })
+
   it('can create and retrieve comments with video timestamp', async () => {
     const { user, assets } = await setupBasicAssets()
 
