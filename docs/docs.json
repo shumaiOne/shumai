@@ -43,6 +43,7 @@
           "using-shumai/agent-providers",
           "using-shumai/agents",
           "using-shumai/agent-skills",
+          "using-shumai/agent-tools",
           "using-shumai/agent-sandbox"
         ]
       },

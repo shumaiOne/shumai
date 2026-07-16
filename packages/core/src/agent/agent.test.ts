@@ -126,6 +126,27 @@ describe('AgentService', () => {
       expect(agent?.skills?.[0].skillId).toBe(skill.id)
     })
 
+    test('Create Agent with Denied Tools', async () => {
+      const db = prisma
+      const svc = new AgentService()
+      const { team, provider, model } = await setupTestData(db)
+
+      const agent = await svc.createAgent({
+        teamId: team.id,
+        name: 'Denied Tools Agent',
+        type: 'chat',
+        enabled: true,
+        providerId: provider.id,
+        modelId: model.id,
+        thinkingLevel: 'medium',
+        deniedTools: ['bash', 'screenshot'],
+      })
+
+      expect(agent?.id).toBeDefined()
+      const config = agent?.config as unknown as PrismaJson.AgentConfig
+      expect(config.deniedTools).toEqual(['bash', 'screenshot'])
+    })
+
     test('Create Agent validation fails if model mismatch', async () => {
       const db = prisma
       const svc = new AgentService()
@@ -186,8 +207,11 @@ describe('AgentService', () => {
         thinkingLevel: 'high',
         soul: 'New soul',
         skills: [skill.id], // Re-enable one
+        deniedTools: ['list_assets'],
       })
       expect(reUpdated.skills?.length).toBe(1)
+      const config = reUpdated.config as unknown as PrismaJson.AgentConfig
+      expect(config.deniedTools).toEqual(['list_assets'])
     })
 
     test('Create Agent with presigned URL extracts S3 key', async () => {

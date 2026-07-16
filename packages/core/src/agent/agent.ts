@@ -114,6 +114,7 @@ export class AgentService {
       systemPrompt,
       soul,
       skills,
+      deniedTools,
     } = params
 
     if (type === 'embedding' || type === 'autofill') {
@@ -152,6 +153,7 @@ export class AgentService {
         model: modelId || '',
         thinkingLevel,
         systemPrompt,
+        deniedTools: deniedTools || [],
       }
 
       const user = await tx.user.create({
@@ -211,6 +213,7 @@ export class AgentService {
       systemPrompt,
       soul,
       skills,
+      deniedTools,
     } = params
 
     const agent = await this.prismaClient.agent.findUnique({
@@ -251,6 +254,7 @@ export class AgentService {
       model: modelId || '',
       thinkingLevel,
       systemPrompt,
+      deniedTools: deniedTools || [],
     }
 
     return this.prismaClient.$transaction(async (tx) => {

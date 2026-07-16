@@ -262,6 +262,15 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     )
   }
 
+  const agent = await prisma.agent.findUnique({
+    where: { id: agentId },
+  })
+  const agentConfig = agent?.config as PrismaJson.AgentConfig | null | undefined
+  const deniedTools = agentConfig?.deniedTools || []
+
+  const allTools = [...mediaTools, readSkill, sandboxedBash, ...systemTools, ...customTools]
+  const enabledTools = allTools.filter((tool) => !deniedTools.includes(tool.name))
+
   const harness = new AgentHarness({
     env: new NodeExecutionEnv({ cwd: process.cwd() }),
     session,
@@ -289,7 +298,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     getApiKeyAndHeaders: async (targetModel) => {
       return getApiKeyAndHeadersFromDb(params.providers, targetModel.provider)
     },
-    tools: [...mediaTools, readSkill, sandboxedBash, ...systemTools, ...customTools],
+    tools: enabledTools,
   })
 
   return { session, harness }

@@ -27,6 +27,7 @@ describe('Agent API', () => {
             model: 'model1',
             thinkingLevel: 'high',
             systemPrompt: 'prompt',
+            deniedTools: ['bash'],
           },
           skills: [],
         },
@@ -43,6 +44,7 @@ describe('Agent API', () => {
       expect(data).toHaveLength(1)
       expect(data[0].name).toBe('Bot 1')
       expect(data[0].providerId).toBe('prov1')
+      expect(data[0].deniedTools).toEqual(['bash'])
     })
   })
 
@@ -55,7 +57,13 @@ describe('Agent API', () => {
         providerId: 'prov1',
         modelId: 'model1',
         soul: 'New Soul',
-        config: { provider: 'prov1', model: 'model1', thinkingLevel: 'low', systemPrompt: 'p' },
+        config: {
+          provider: 'prov1',
+          model: 'model1',
+          thinkingLevel: 'low',
+          systemPrompt: 'p',
+          deniedTools: ['bash'],
+        },
         skills: [],
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -73,6 +81,7 @@ describe('Agent API', () => {
           systemPrompt: 'p',
           soul: 'New Soul',
           skills: ['skill1'],
+          deniedTools: ['bash'],
         }),
       })
 
@@ -80,6 +89,7 @@ describe('Agent API', () => {
       const data = await res.json()
       expect(data.name).toBe('New Agent')
       expect(data.soul).toBe('New Soul')
+      expect(data.deniedTools).toEqual(['bash'])
     })
 
     it('validates request', async () => {
@@ -105,7 +115,7 @@ describe('Agent API', () => {
         providerId: 'prov1',
         modelId: 'model1',
         soul: 'Updated Soul',
-        config: { provider: 'prov1', model: 'model1' },
+        config: { provider: 'prov1', model: 'model1', deniedTools: ['bash'] },
         skills: [],
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -121,6 +131,7 @@ describe('Agent API', () => {
           modelId: 'model1',
           soul: 'Updated Soul',
           skills: [],
+          deniedTools: ['bash'],
         }),
       })
 
@@ -128,6 +139,7 @@ describe('Agent API', () => {
       const data = await res.json()
       expect(data.name).toBe('Updated Agent')
       expect(data.soul).toBe('Updated Soul')
+      expect(data.deniedTools).toEqual(['bash'])
     })
   })
 

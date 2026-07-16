@@ -47,6 +47,7 @@ const route = new Hono<{ Variables: { user: User } }>()
             skillId: s.skillId,
             skill: s.skill,
           })),
+          deniedTools: config.deniedTools || [],
         }
       }),
     )
@@ -89,6 +90,7 @@ const route = new Hono<{ Variables: { user: User } }>()
         skillId: s.skillId,
         skill: s.skill,
       })),
+      deniedTools: config.deniedTools || [],
     }
 
     return c.json(info, 200)
@@ -127,6 +129,7 @@ const route = new Hono<{ Variables: { user: User } }>()
         skillId: s.skillId,
         skill: s.skill,
       })),
+      deniedTools: config.deniedTools || [],
     }
 
     return c.json(info, 200)

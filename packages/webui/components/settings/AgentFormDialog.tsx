@@ -21,11 +21,12 @@ import {
 import { Switch } from '@/ui/components/ui/switch'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm, useStore } from '@tanstack/react-form'
-import { Loader2, Puzzle } from 'lucide-react'
+import { Loader2, Puzzle, Terminal } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
 import { m } from '@/ui/paraglide/messages.js'
 import { toast } from 'sonner'
 import { AgentInfo, AgentType, ThinkingLevel, thinkingLevelSchema } from '@shumai/dtos'
+import { usePermissions } from '@/ui/hooks/use-permissions'
 import { Textarea } from '@/ui/components/ui/textarea'
 import { ScrollArea } from '@/ui/components/ui/scroll-area'
 import { z } from 'zod'
@@ -51,7 +52,51 @@ const agentFormSchema = z.object({
   thinkingLevel: thinkingLevelSchema.optional(),
   systemPrompt: z.string().optional(),
   skills: z.array(z.string()).optional(),
+  deniedTools: z.array(z.string()).optional(),
 })
+
+const BUILTIN_TOOLS = [
+  {
+    id: 'bash',
+    name: () => m.agent_tool_bash_name(),
+    description: () => m.agent_tool_bash_desc(),
+  },
+  {
+    id: 'read_skill',
+    name: () => m.agent_tool_read_skill_name(),
+    description: () => m.agent_tool_read_skill_desc(),
+  },
+  {
+    id: 'analyze_image',
+    name: () => m.agent_tool_analyze_image_name(),
+    description: () => m.agent_tool_analyze_image_desc(),
+  },
+  {
+    id: 'screenshot',
+    name: () => m.agent_tool_screenshot_name(),
+    description: () => m.agent_tool_screenshot_desc(),
+  },
+  {
+    id: 'list_assets',
+    name: () => m.agent_tool_list_assets_name(),
+    description: () => m.agent_tool_list_assets_desc(),
+  },
+  {
+    id: 'create_folder',
+    name: () => m.agent_tool_create_folder_name(),
+    description: () => m.agent_tool_create_folder_desc(),
+  },
+  {
+    id: 'create_file',
+    name: () => m.agent_tool_create_file_name(),
+    description: () => m.agent_tool_create_file_desc(),
+  },
+  {
+    id: 'create_version',
+    name: () => m.agent_tool_create_version_name(),
+    description: () => m.agent_tool_create_version_desc(),
+  },
+]
 
 type AgentFormValues = z.infer<typeof agentFormSchema>
 
@@ -64,6 +109,7 @@ export function AgentFormDialog({
   title,
 }: AgentFormDialogProps) {
   const queryClient = useQueryClient()
+  const { canAdmin } = usePermissions()
 
   // Fetch Providers
   const { data: providers } = useQuery({
@@ -125,6 +171,7 @@ export function AgentFormDialog({
       thinkingLevel: initialValues?.thinkingLevel || 'off',
       systemPrompt: initialValues?.systemPrompt || '',
       skills: initialValues?.skills?.map((s) => s.skillId) || ([] as string[]),
+      deniedTools: initialValues?.deniedTools || ([] as string[]),
     } as AgentFormValues,
     validators: {
       onChange: schema,
@@ -507,6 +554,67 @@ export function AgentFormDialog({
                             )}
                           </>
                         )}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 border-t border-border pt-6">
+                    <Label className="text-base font-bold flex items-center gap-2">
+                      <Terminal className="w-5 h-5 text-primary" />
+                      {m.agent_tools()}
+                    </Label>
+                    <p className="text-xs text-muted-foreground">{m.agent_tools_description()}</p>
+
+                    <div className="space-y-2">
+                      <form.Field
+                        name="deniedTools"
+                        children={(deniedToolsField) => {
+                          const currentDenied = deniedToolsField.state.value || []
+                          return (
+                            <>
+                              {BUILTIN_TOOLS.map((tool) => {
+                                const isEnabled = !currentDenied.includes(tool.id)
+                                return (
+                                  <div
+                                    key={tool.id}
+                                    className="flex items-center justify-between p-3 bg-muted/30 border border-border rounded-lg"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <Terminal className="w-4 h-4 text-muted-foreground" />
+                                      <div className="flex flex-col">
+                                        <span className="text-sm font-medium">{tool.name()}</span>
+                                        <span className="text-[10px] text-muted-foreground line-clamp-1">
+                                          {tool.description()}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs text-muted-foreground">
+                                        {isEnabled ? m.enabled() : m.disabled()}
+                                      </span>
+                                      <Switch
+                                        checked={isEnabled}
+                                        disabled={!canAdmin}
+                                        onCheckedChange={(checked) => {
+                                          if (checked) {
+                                            deniedToolsField.handleChange(
+                                              currentDenied.filter((id) => id !== tool.id),
+                                            )
+                                          } else {
+                                            deniedToolsField.handleChange([
+                                              ...currentDenied,
+                                              tool.id,
+                                            ])
+                                          }
+                                        }}
+                                      />
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </>
+                          )
+                        }}
                       />
                     </div>
                   </div>
