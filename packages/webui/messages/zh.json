@@ -840,6 +840,7 @@
   "global_chatbot_description": "选择在全局聊天机器人边栏中进行对话的智能体。",
   "select_chatbot_agent": "选择聊天机器人智能体",
   "no_chat_agents_warning": "未找到聊天智能体。请先在下方创建聊天智能体。",
-  "settings_saved": "设置保存成功",
-  "select_agent": "选择智能体"
+  "select_agent": "选择智能体",
+  "delete_comment_confirm": "删除评论？",
+  "delete_comment_description": "您确定要删除这条评论吗？此操作将无法撤回。"
 }

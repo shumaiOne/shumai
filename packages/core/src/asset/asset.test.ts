@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
+import { HTTPException } from 'hono/http-exception'
 
 import { AssetType, AssetStatus, Prisma } from '@shumai/db'
 import { AssetService } from './asset'
@@ -719,6 +720,161 @@ describe('AssetService', () => {
     expect(list.data.length).toBe(1) // Only parent comments
     expect(list.data[0].id).toBe(c1.id)
     expect(list.data[0].replies.length).toBe(1)
+  })
+
+  it('deleteComment validation and execution', async () => {
+    const { user, project, assets } = await setupBasicAssets()
+
+    // 1. Create a comment
+    const comment = await assetService.createComment({
+      assetId: assets.fileA1.id,
+      userId: user.id,
+      message: 'Self Comment',
+      attachmentIds: [],
+    })
+
+    // 2. Add user as a team member with owner role (team owner)
+    await prisma.teamMember.create({
+      data: {
+        teamId: project.teamId,
+        userId: user.id,
+        role: 'owner',
+      },
+    })
+
+    // Create another user
+    const otherUser = await prisma.user.create({
+      data: {
+        name: 'OtherUser',
+        type: 'human',
+        email: `other-${Date.now()}@example.com`,
+      },
+    })
+
+    // Add other user to the team as editor
+    await prisma.teamMember.create({
+      data: {
+        teamId: project.teamId,
+        userId: otherUser.id,
+        role: 'editor',
+      },
+    })
+
+    // Create comment by other user
+    const otherComment = await assetService.createComment({
+      assetId: assets.fileA1.id,
+      userId: otherUser.id,
+      message: 'Other Comment',
+      attachmentIds: [],
+    })
+
+    // 3. User (owner) should be able to delete their own comment
+    await expect(
+      assetService.deleteComment({ commentId: comment.id, userId: user.id }),
+    ).resolves.not.toThrow()
+    // Verify it is deleted from DB
+    await expect(prisma.assetComment.findUnique({ where: { id: comment.id } })).resolves.toBeNull()
+
+    // 4. User (owner) should be able to delete other user's comment
+    await expect(
+      assetService.deleteComment({ commentId: otherComment.id, userId: user.id }),
+    ).resolves.not.toThrow()
+    // Verify it is deleted from DB
+    await expect(
+      prisma.assetComment.findUnique({ where: { id: otherComment.id } }),
+    ).resolves.toBeNull()
+
+    // Create a new comment by user
+    const comment2 = await assetService.createComment({
+      assetId: assets.fileA1.id,
+      userId: user.id,
+      message: 'Self Comment 2',
+      attachmentIds: [],
+    })
+
+    // 5. Other user (editor, non-creator) should NOT be able to delete user's comment
+    await expect(
+      assetService.deleteComment({ commentId: comment2.id, userId: otherUser.id }),
+    ).rejects.toThrow(HTTPException)
+
+    // 6. Other user (editor, creator) should be able to delete their own comment
+    const otherComment2 = await assetService.createComment({
+      assetId: assets.fileA1.id,
+      userId: otherUser.id,
+      message: 'Other Comment 2',
+      attachmentIds: [],
+    })
+    await expect(
+      assetService.deleteComment({ commentId: otherComment2.id, userId: otherUser.id }),
+    ).resolves.not.toThrow()
+  })
+
+  it('deleteComment cleans up S3 attachment files and database records', async () => {
+    const { user, project, assets } = await setupBasicAssets()
+
+    // 1. Add user as team owner
+    await prisma.teamMember.create({
+      data: {
+        teamId: project.teamId,
+        userId: user.id,
+        role: 'owner',
+      },
+    })
+
+    // 2. Create StorageKey and Asset for attachment
+    const storageKey = await prisma.storageKey.create({
+      data: {
+        key: 'attachments/test-attachment-file.png',
+        status: 'active',
+      },
+    })
+
+    const attachmentAsset = await prisma.asset.create({
+      data: {
+        name: 'test-attachment-file.png',
+        type: AssetType.file,
+        projectId: project.id,
+        parentId: assets.root.id,
+        creatorId: user.id,
+        storageKeyId: storageKey.id,
+        sizeByte: 100,
+        status: 'uploaded',
+      },
+    })
+
+    // 3. Create a comment with this attachment
+    const comment = await assetService.createComment({
+      assetId: assets.fileA1.id,
+      userId: user.id,
+      message: 'Comment with attachment',
+      attachmentIds: [attachmentAsset.id],
+    })
+
+    // Verify it is created in DB
+    const dbComment = await prisma.assetComment.findUnique({
+      where: { id: comment.id },
+      include: { attachments: true },
+    })
+    expect(dbComment?.attachments.length).toBe(1)
+
+    // 4. Delete the comment
+    await expect(
+      assetService.deleteComment({ commentId: comment.id, userId: user.id }),
+    ).resolves.not.toThrow()
+
+    // 5. Verify the comment is deleted from DB
+    await expect(prisma.assetComment.findUnique({ where: { id: comment.id } })).resolves.toBeNull()
+
+    // 6. Verify that the attachment Asset and StorageKey are deleted from DB
+    await expect(prisma.asset.findUnique({ where: { id: attachmentAsset.id } })).resolves.toBeNull()
+    await expect(prisma.storageKey.findUnique({ where: { id: storageKey.id } })).resolves.toBeNull()
+
+    // 7. Verify S3 deletion was called
+    const { s3Service } = await import('@shumai/core/src/s3/s3')
+    expect(s3Service.deleteObject).toHaveBeenCalledWith(
+      'shumai',
+      'attachments/test-attachment-file.png',
+    )
   })
 
   it('can create and retrieve comments with video timestamp', async () => {

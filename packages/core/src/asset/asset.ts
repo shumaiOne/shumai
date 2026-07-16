@@ -18,6 +18,7 @@ import {
   AssetUserInfo,
 } from '@shumai/dtos'
 import { type Asset, AssetStatus, AssetType, Prisma, type StorageKey } from '@shumai/db'
+import { HTTPException } from 'hono/http-exception'
 import { logger } from '@shumai/core/src/logger'
 import { PaginatedData, paginateQuery, PaginationParams } from '@shumai/core/src/pagination'
 import { s3Service } from '@shumai/core/src/s3/s3'
@@ -1411,6 +1412,91 @@ export class AssetService {
       },
     })
     return this.getComment(commentId)
+  }
+
+  async deleteComment({ commentId, userId }: { commentId: string; userId: string }): Promise<void> {
+    const comment = await this.prismaClient.assetComment.findUnique({
+      where: { id: commentId },
+      include: {
+        attachments: {
+          include: {
+            asset: {
+              include: {
+                storageKey: true,
+              },
+            },
+          },
+        },
+        asset: {
+          select: {
+            project: { select: { id: true, teamId: true } },
+          },
+        },
+      },
+    })
+
+    if (!comment) {
+      throw new HTTPException(404, { message: 'Comment not found' })
+    }
+
+    const teamId = comment.asset.project?.teamId
+
+    if (!teamId) {
+      throw new HTTPException(400, {
+        message: 'Data corruption: Comment asset is not associated with a project',
+      })
+    }
+
+    const member = await this.prismaClient.teamMember.findUnique({
+      where: {
+        teamIdUserId: {
+          teamId,
+          userId,
+        },
+      },
+    })
+
+    if (!member) {
+      throw new HTTPException(403, { message: 'User is not a member of the team' })
+    }
+
+    const isOwner = member.role === 'owner'
+    const isCreator = comment.creatorId === userId
+
+    if (!isOwner && !isCreator) {
+      throw new HTTPException(403, { message: 'You do not have permission to delete this comment' })
+    }
+
+    // Clean up attachment files from S3/storage and delete their DB records
+    const bucket = process.env.S3_BUCKET || 'shumai'
+    for (const att of comment.attachments) {
+      const asset = att.asset
+      if (asset.storageKey) {
+        try {
+          await s3Service.deleteObject(bucket, asset.storageKey.key)
+        } catch (err) {
+          logger.error({ err, assetId: asset.id }, 'Failed to delete attachment file from S3')
+        }
+      }
+
+      await this.prismaClient.asset.delete({
+        where: { id: asset.id },
+      })
+
+      if (asset.storageKey) {
+        await this.prismaClient.storageKey
+          .delete({
+            where: { id: asset.storageKey.id },
+          })
+          .catch(() => {
+            // Silently ignore if already deleted
+          })
+      }
+    }
+
+    await this.prismaClient.assetComment.delete({
+      where: { id: commentId },
+    })
   }
 
   async listComments(

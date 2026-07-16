@@ -413,6 +413,47 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
       }
     }, [])
 
+    useEffect(() => {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        const activeEl = document.activeElement
+        if (
+          activeEl &&
+          (activeEl.tagName === 'INPUT' ||
+            activeEl.tagName === 'TEXTAREA' ||
+            (activeEl instanceof HTMLElement && activeEl.isContentEditable))
+        ) {
+          return
+        }
+
+        const isSpace = e.key === ' '
+        const isInteractive =
+          activeEl &&
+          (activeEl.tagName === 'BUTTON' ||
+            activeEl.tagName === 'A' ||
+            activeEl.tagName === 'SELECT' ||
+            activeEl.tagName === 'OPTION' ||
+            activeEl.getAttribute('role') === 'button' ||
+            activeEl.getAttribute('role') === 'link' ||
+            activeEl.getAttribute('role') === 'checkbox' ||
+            activeEl.getAttribute('role') === 'radio' ||
+            activeEl.getAttribute('role') === 'menuitem')
+
+        if (isSpace && isInteractive) {
+          return
+        }
+
+        if (e.key === ' ' || e.key.toLowerCase() === 'k') {
+          e.preventDefault()
+          togglePlay()
+        }
+      }
+
+      window.addEventListener('keydown', handleKeyDown)
+      return () => {
+        window.removeEventListener('keydown', handleKeyDown)
+      }
+    }, [togglePlay])
+
     const toggleLoop = () => {
       const player = playerRef.current
       if (!player) return

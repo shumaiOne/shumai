@@ -786,6 +786,7 @@ export * from "./global_chatbot.js";
 export * from "./global_chatbot_description.js";
 export * from "./select_chatbot_agent.js";
 export * from "./no_chat_agents_warning.js";
-export * from "./settings_saved.js";
 export * from "./select_agent.js";
+export * from "./delete_comment_confirm.js";
+export * from "./delete_comment_description.js";
 export type LocalizedString = import("../runtime.js").LocalizedString;

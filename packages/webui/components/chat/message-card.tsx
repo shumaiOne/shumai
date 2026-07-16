@@ -7,11 +7,27 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/ui/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/ui/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/ui/components/ui/alert-dialog'
 import { Separator } from '@/ui/components/ui/separator'
 import { formatTimeAgo } from '@/ui/lib/time'
 import type { AttachmentInfo, CommentInfo, UserInfo } from '@shumai/dtos'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Download, File, Terminal } from 'lucide-react'
+import { Download, File, Terminal, MoreHorizontal, Trash2 } from 'lucide-react'
 import React from 'react'
 import Markdown from 'react-markdown'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
@@ -145,6 +161,31 @@ export const MessageCard: React.FC<MessageCardProps> = ({
     },
   })
 
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false)
+
+  const { mutate: deleteComment, isPending: isDeleting } = useMutation({
+    mutationFn: async () => {
+      const res = await client.api.comments[':commentId'].$delete({
+        param: { commentId: message.id },
+      })
+      if (!res.ok) throw new Error('Failed to delete comment')
+      return await res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey.includes('comments'),
+      })
+      setIsDeleteDialogOpen(false)
+    },
+  })
+
+  const canDelete = React.useMemo(() => {
+    if (!me) return false
+    if (me.role === 'owner') return true
+    if (message.creator?.id === me.id) return true
+    return false
+  }, [me, message.creator?.id])
+
   const { data: logs, isLoading: isLogsLoading } = useQuery({
     queryKey: ['agent-sessions', message.sessionId, 'entries'],
     queryFn: async () => {
@@ -222,14 +263,44 @@ export const MessageCard: React.FC<MessageCardProps> = ({
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="font-semibold text-sm">{creator?.name || 'Unknown'}</span>
-          <span className="text-xs text-gray-400">
-            {new Date(message.createdAt!).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </span>
+        <div className="flex items-center justify-between w-full mb-1">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-sm">{creator?.name || 'Unknown'}</span>
+            <span className="text-xs text-gray-400">
+              {new Date(message.createdAt!).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </span>
+          </div>
+          {canDelete && (
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="icon-xs"
+                    variant="ghost"
+                    className="h-6 w-6 cursor-pointer"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreHorizontal className="h-4 w-4 text-foreground/70" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setIsDeleteDialogOpen(true)
+                    }}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    <span>{m.delete()}</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
         </div>
 
         <div className="flow-root mt-1">
@@ -664,6 +735,36 @@ export const MessageCard: React.FC<MessageCardProps> = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{m.delete_comment_confirm()}</AlertDialogTitle>
+            <AlertDialogDescription>{m.delete_comment_description()}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={isDeleting}
+              onClick={(e) => {
+                e.stopPropagation()
+                setIsDeleteDialogOpen(false)
+              }}
+            >
+              {m.cancel()}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90 text-white"
+              disabled={isDeleting}
+              onClick={(e) => {
+                e.stopPropagation()
+                deleteComment()
+              }}
+            >
+              {m.delete()}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

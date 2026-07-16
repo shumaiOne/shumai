@@ -1,30 +1,30 @@
 import { client } from '@/ui/api/client'
-import type { AssetInfo, FieldValueInfo } from '@shumai/dtos'
 import { m } from '@/ui/paraglide/messages.js'
+import type { AssetInfo, FieldValueInfo } from '@shumai/dtos'
 import { useQuery } from '@tanstack/react-query'
 
 import { Badge } from '@/ui/components/ui/badge'
 import { Button } from '@/ui/components/ui/button'
 import { Checkbox } from '@/ui/components/ui/checkbox'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu'
 import { EditableText } from '@/ui/components/ui/editable-text'
+import { ProgressCircle } from '@/ui/components/ui/progress-circle'
 import { Skeleton } from '@/ui/components/ui/skeleton'
 import { formatTimeAgo } from '@/ui/lib/time'
 import { cn } from '@/ui/lib/utils'
+import { useUploadStore } from '@/ui/stores/upload'
 import { useDraggable, useDroppable } from '@dnd-kit/react'
 import { Download, Edit, History, MoreHorizontal, Trash2 } from 'lucide-react'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import type { DragState } from '../dnd-types'
 import FieldRenderer from '../field-renderer'
 import { FilePreview } from './file-preview'
-import { useUploadStore } from '@/ui/stores/upload'
-import { ProgressCircle } from '@/ui/components/ui/progress-circle'
 
 import { FieldType, type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
 import { FIELD_TYPE_ICONS } from '../fields-manager'
@@ -282,7 +282,7 @@ export function FileCard({
       </div>
 
       <div className="flex items-center justify-between gap-2 p-3">
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 line-clamp-3 h-[3lh]">
           <EditableText
             ref={inputRef}
             value={name}
