@@ -1442,7 +1442,9 @@ export class AssetService {
     const teamId = comment.asset.project?.teamId
 
     if (!teamId) {
-      throw new HTTPException(400, { message: 'Data corruption: Comment asset is not associated with a project' })
+      throw new HTTPException(400, {
+        message: 'Data corruption: Comment asset is not associated with a project',
+      })
     }
 
     const member = await this.prismaClient.teamMember.findUnique({
@@ -1489,11 +1491,13 @@ export class AssetService {
       })
 
       if (asset.storageKey) {
-        await this.prismaClient.storageKey.delete({
-          where: { id: asset.storageKey.id },
-        }).catch(() => {
-          // Silently ignore if already deleted
-        })
+        await this.prismaClient.storageKey
+          .delete({
+            where: { id: asset.storageKey.id },
+          })
+          .catch(() => {
+            // Silently ignore if already deleted
+          })
       }
     }
 

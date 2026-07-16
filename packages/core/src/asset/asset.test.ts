@@ -871,7 +871,10 @@ describe('AssetService', () => {
 
     // 7. Verify S3 deletion was called
     const { s3Service } = await import('@shumai/core/src/s3/s3')
-    expect(s3Service.deleteObject).toHaveBeenCalledWith('shumai', 'attachments/test-attachment-file.png')
+    expect(s3Service.deleteObject).toHaveBeenCalledWith(
+      'shumai',
+      'attachments/test-attachment-file.png',
+    )
   })
 
   it('can create and retrieve comments with video timestamp', async () => {

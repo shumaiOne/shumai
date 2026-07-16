@@ -420,9 +420,25 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
           activeEl &&
           (activeEl.tagName === 'INPUT' ||
             activeEl.tagName === 'TEXTAREA' ||
-            activeEl.hasAttribute('contenteditable') ||
-            activeEl.getAttribute('contenteditable') === 'true')
+            (activeEl instanceof HTMLElement && activeEl.isContentEditable))
         ) {
+          return
+        }
+
+        const isSpace = e.key === ' '
+        const isInteractive =
+          activeEl &&
+          (activeEl.tagName === 'BUTTON' ||
+            activeEl.tagName === 'A' ||
+            activeEl.tagName === 'SELECT' ||
+            activeEl.tagName === 'OPTION' ||
+            activeEl.getAttribute('role') === 'button' ||
+            activeEl.getAttribute('role') === 'link' ||
+            activeEl.getAttribute('role') === 'checkbox' ||
+            activeEl.getAttribute('role') === 'radio' ||
+            activeEl.getAttribute('role') === 'menuitem')
+
+        if (isSpace && isInteractive) {
           return
         }
 
