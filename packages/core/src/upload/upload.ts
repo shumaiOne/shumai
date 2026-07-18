@@ -18,7 +18,7 @@ import {
   PresignedUrl,
   TaskInfo,
 } from '@shumai/dtos'
-import { ImageTranscoder, VideoTranscoder } from '@shumai/transcode'
+import { ImageTranscoder, PdfTranscoder, VideoTranscoder } from '@shumai/transcode'
 import { generateKeyBetween } from 'jittered-fractional-indexing'
 import { ulid } from 'ulid'
 import { sanitizeFilename } from '@shumai/core/src/utils/filename'
@@ -303,6 +303,7 @@ export class UploadService {
     const isVideo = asset.mediaType?.startsWith('video/')
     const isImage = asset.mediaType?.startsWith('image/')
     const isAudio = asset.mediaType?.startsWith('audio/')
+    const isPdf = asset.mediaType === 'application/pdf' || asset.name.toLowerCase().endsWith('.pdf')
 
     if (autofillAgent && (isVideo || isImage)) {
       await tx.workflowTask.create({
@@ -320,7 +321,7 @@ export class UploadService {
       })
     }
 
-    if (!isVideo && !isImage && !isAudio) {
+    if (!isVideo && !isImage && !isAudio && !isPdf) {
       await tx.asset.update({
         where: { id: asset.id },
         data: { status: AssetStatus.processed },
@@ -341,6 +342,12 @@ export class UploadService {
       } else if (isImage) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await new ImageTranscoder(tx as any, asset.id, team.id, projectId).withThumbnail().submit()
+      } else if (isPdf) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await new PdfTranscoder(tx as any, asset.id, team.id, projectId)
+          .withSprite()
+          .withPoster()
+          .submit()
       }
     }
   }

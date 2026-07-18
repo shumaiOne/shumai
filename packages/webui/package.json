@@ -83,7 +83,8 @@
     "date-fns": "4.4.0",
     "hono": "4.12.23",
     "@shumai/dtos": "workspace:*",
-    "ulid": "3.0.2"
+    "ulid": "3.0.2",
+    "pdfjs-dist": "6.1.200"
   },
   "devDependencies": {
     "typescript": "6.0.3",

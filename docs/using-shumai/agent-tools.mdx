@@ -3,12 +3,15 @@ title: Agent Tools
 description: Configure the tools and capabilities permitted for each agent.
 ---
 
-Shumai agents are equipped with built-in tools that allow them to interact with the file system, view files, extract video frames, and execute commands. 
+Shumai agents are equipped with built-in tools that allow them to interact with the file system, view files, extract video frames, and execute commands.
 
 By default, **all tools are enabled** for new agents. Team Owners can deny specific tools to restrict agent capabilities.
 
 <Warning>
-**Caution:** Disabling tools can cause agents or skills to fail. For example, disabling the **Sandboxed Terminal** tool will break almost all custom skills that rely on executing commands or script environments. Disable tools only when you have a specific security policy or isolation requirement.
+  **Caution:** Disabling tools can cause agents or skills to fail. For example, disabling the
+  **Sandboxed Terminal** tool will break almost all custom skills that rely on executing commands or
+  script environments. Disable tools only when you have a specific security policy or isolation
+  requirement.
 </Warning>
 
 ---
@@ -18,34 +21,42 @@ By default, **all tools are enabled** for new agents. Team Owners can deny speci
 The following tools can be individually toggled in the agent configuration dialog:
 
 ### 1. Sandboxed Terminal (`bash`)
+
 - **Description:** Allows the agent to run terminal/shell commands in a highly isolated environment.
 - **Why it matters:** Essential for running custom scripts, processing files on disk, or using standard Unix utilities. If disabled, the agent won't be able to run command-line code.
 
 ### 2. Read Skills (`read_skill`)
+
 - **Description:** Allows the agent to load and read skill definitions to perform specialized actions.
 - **Why it matters:** Enables the agent to inspect the instructions/configurations of custom skills registered in your workspace before executing them.
 
 ### 3. Analyze Image (`analyze_image`)
+
 - **Description:** Allows the agent to view and analyze the visual contents of an image file.
 - **Why it matters:** Enables multimodal agents to "see" image assets uploaded to Shumai, allowing them to answer comments or write metadata about images.
 
 ### 4. Video Frame Extraction (`screenshot`)
+
 - **Description:** Allows the agent to extract still image frames from video files for analysis.
 - **Why it matters:** Enables the agent to perform frame-by-frame analysis on videos (e.g. for comments, annotation, or search).
 
 ### 5. Browse Shumai (`list_assets`)
+
 - **Description:** Allows the agent to list folders and browse files in Shumai.
 - **Why it matters:** Gives the agent visual mapping of the project structure so it can search for other files or locate related assets.
 
 ### 6. Create Folder (`create_folder`)
+
 - **Description:** Allows the agent to create new folders in Shumai.
 - **Why it matters:** Needed if the agent organizes outputs or places files in custom subdirectory folders.
 
 ### 7. Create File (`create_file`)
+
 - **Description:** Allows the agent to create and upload new files to Shumai.
 - **Why it matters:** Allows the agent to generate new assets (e.g. text logs, transcoded clips, reports) and save them directly back into your project.
 
 ### 8. Create Version (`create_version`)
+
 - **Description:** Allows the agent to upload and stack a new version of an existing file in Shumai.
 - **Why it matters:** Allows the agent to update files in a clean, non-destructive way by stacking revisions rather than creating duplicate files.
 
@@ -54,6 +65,7 @@ The following tools can be individually toggled in the agent configuration dialo
 ## Restricting Tools
 
 To change which tools an agent can use:
+
 1. Navigate to **Team Settings** > **Agents** (Note: Only Team Owners can view and modify these settings).
 2. Click on the agent you want to edit.
 3. Scroll down below the **Skills** section to find the **Tools** configuration panel.

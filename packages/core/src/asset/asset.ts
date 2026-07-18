@@ -1997,7 +1997,7 @@ export class AssetService {
         asset.media.thumbnail.key,
         'GET',
       )
-    } else if (asset.mediaType?.startsWith('video/') && asset.media.poster?.key) {
+    } else if (asset.media.poster?.key) {
       thumbnailUrl = await s3Service.presign(
         process.env.S3_BUCKET || 'shumai',
         asset.media.poster.key,
@@ -2021,6 +2021,7 @@ export class AssetService {
       originalWidth: asset.media.metadata?.originalWidth,
       spriteUrl,
       duration: asset.media.metadata?.duration,
+      pageCount: asset.media.metadata?.totalFrames,
     }
   }
 

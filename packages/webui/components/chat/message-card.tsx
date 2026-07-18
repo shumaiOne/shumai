@@ -51,6 +51,7 @@ interface MessageCardProps {
   onSelect?: () => void
   frameRate?: number
   startTimecode?: string
+  formatTimestamp?: (second: number) => string
   rootParentId?: string
 }
 
@@ -111,6 +112,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   onSelect,
   frameRate,
   startTimecode,
+  formatTimestamp,
 }) => {
   const message = initialMessage
   const hasDrawInfo =
@@ -124,10 +126,14 @@ export const MessageCard: React.FC<MessageCardProps> = ({
 
   const { videoTimeDisplayMode } = useUiStore()
   const displayTime = React.useMemo(() => {
-    if (message.second === null || message.second === undefined || !frameRate) return ''
+    if (message.second === null || message.second === undefined) return ''
+    if (formatTimestamp) {
+      return formatTimestamp(message.second)
+    }
+    if (!frameRate) return ''
     const frameIndex = Math.round(message.second * frameRate)
     return formatTimecode(frameIndex, frameRate, videoTimeDisplayMode, startTimecode)
-  }, [message.second, frameRate, videoTimeDisplayMode, startTimecode])
+  }, [message.second, frameRate, videoTimeDisplayMode, startTimecode, formatTimestamp])
 
   const { data: me } = useQuery({
     queryKey: ['teams', teamId, 'me'],

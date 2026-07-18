@@ -11,6 +11,7 @@ type FilePreviewItem = {
     originalWidth?: number
     originalHeight?: number
     duration?: number
+    pageCount?: number
   } | null
 }
 
@@ -22,23 +23,30 @@ interface FilePreviewProps {
 export const FilePreview = ({ item, showDuration = false }: FilePreviewProps) => {
   const isVideo = item.preview?.mediaType?.startsWith('video/')
   const isAudio = item.preview?.mediaType?.startsWith('audio/')
+  const isPdf = item.preview?.mediaType === 'application/pdf'
   const hasDuration = isVideo || isAudio
   const duration = item.preview?.duration
-  const durationOverlay =
+  const pageCount = item.preview?.pageCount
+
+  const overlay =
     showDuration && hasDuration && typeof duration === 'number' && duration > 0 ? (
-      <span className="pointer-events-none absolute bottom-1 right-1 text-xs font-medium tabular-nums text-white">
+      <span className="pointer-events-none absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-xs font-medium tabular-nums text-white">
         {formatTime(duration)}
+      </span>
+    ) : showDuration && isPdf && typeof pageCount === 'number' && pageCount > 0 ? (
+      <span className="pointer-events-none absolute bottom-1 right-1 rounded bg-black/60 px-1 py-0.5 text-xs font-medium tabular-nums text-white">
+        {pageCount} P
       </span>
     ) : null
 
-  const isVideoWithSprite =
-    isVideo &&
+  const isMediaWithSprite =
+    (isVideo || isPdf) &&
     item.preview?.spriteUrl &&
     item.preview.thumbnailUrl &&
     item.preview.originalWidth &&
     item.preview.originalHeight
 
-  if (isVideoWithSprite && item.preview) {
+  if (isMediaWithSprite && item.preview) {
     return (
       <>
         <SpriteScrubber
@@ -47,7 +55,7 @@ export const FilePreview = ({ item, showDuration = false }: FilePreviewProps) =>
           videoWidth={item.preview.originalWidth!}
           videoHeight={item.preview.originalHeight!}
         />
-        {durationOverlay}
+        {overlay}
       </>
     )
   }
@@ -60,7 +68,7 @@ export const FilePreview = ({ item, showDuration = false }: FilePreviewProps) =>
           alt="Preview"
           className="w-full h-full object-contain bg-black"
         />
-        {durationOverlay}
+        {overlay}
       </>
     )
   }
@@ -71,7 +79,7 @@ export const FilePreview = ({ item, showDuration = false }: FilePreviewProps) =>
         <div className="w-full h-full flex items-center justify-center bg-zinc-950">
           <AudioLines className="w-8 h-8 text-zinc-500" />
         </div>
-        {durationOverlay}
+        {overlay}
       </>
     )
   }

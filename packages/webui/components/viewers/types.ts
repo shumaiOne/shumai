@@ -49,5 +49,6 @@ export interface FileTypeDefinition {
     hasTimestamp?: boolean
     hasAnnotations?: boolean
     hasAiBots?: boolean
+    formatTimestamp?: (second: number) => string
   }
 }

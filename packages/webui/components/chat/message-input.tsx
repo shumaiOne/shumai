@@ -57,6 +57,7 @@ interface ChatInputProps {
   currentTime?: number
   frameRate?: number
   startTimecode?: string
+  formatTimestamp?: (second: number) => string
   onTyping?: () => void
 }
 
@@ -88,6 +89,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
       currentTime,
       frameRate,
       startTimecode,
+      formatTimestamp,
       onTyping,
     },
     ref,
@@ -98,10 +100,14 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
 
     const { videoTimeDisplayMode } = useUiStore()
     const displayTime = React.useMemo(() => {
-      if (currentTime === undefined || !frameRate) return ''
+      if (currentTime === undefined) return ''
+      if (formatTimestamp) {
+        return formatTimestamp(currentTime)
+      }
+      if (!frameRate) return ''
       const frameIndex = Math.round(currentTime * frameRate)
       return formatTimecode(frameIndex, frameRate, videoTimeDisplayMode, startTimecode)
-    }, [currentTime, frameRate, videoTimeDisplayMode, startTimecode])
+    }, [currentTime, frameRate, videoTimeDisplayMode, startTimecode, formatTimestamp])
 
     const { teamId, ensureTeamIdForProject } = useTeamContextStore()
     const { members: storeMembers, loading: membersLoading, fetchMembers } = useMemberStore()
@@ -135,7 +141,12 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
     const [hasContent, setHasContent] = useState(false)
 
     const paddingLeftClass = React.useMemo(() => {
-      if (!isTimestampEnabled || currentTime === undefined || !frameRate || hasContent) {
+      if (
+        !isTimestampEnabled ||
+        currentTime === undefined ||
+        (!formatTimestamp && !frameRate) ||
+        hasContent
+      ) {
         return ''
       }
       if (videoTimeDisplayMode === 'timecode') {

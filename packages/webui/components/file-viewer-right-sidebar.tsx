@@ -355,6 +355,7 @@ export function FileViewerRightSidebar({
                     onReply={setReplyingTo}
                     onViewAttachment={setViewingAttachment}
                     hasReplies={!!comment.replies?.length}
+                    formatTimestamp={viewerDef?.commentsConfig?.formatTimestamp}
                     frameRate={
                       viewerDef?.commentsConfig?.hasTimestamp
                         ? file?.media?.metadata?.frameRate || 30
@@ -381,6 +382,7 @@ export function FileViewerRightSidebar({
                         onViewAttachment={setViewingAttachment}
                         hasReplies={false}
                         isLastReply={index === (comment.replies?.length ?? 0) - 1}
+                        formatTimestamp={viewerDef?.commentsConfig?.formatTimestamp}
                         frameRate={
                           viewerDef?.commentsConfig?.hasTimestamp
                             ? file?.media?.metadata?.frameRate || 30
@@ -419,6 +421,7 @@ export function FileViewerRightSidebar({
                   hideAnnotationControl={hideAnnotationControl}
                   disableMentions={isPublic}
                   currentTime={viewerDef?.commentsConfig?.hasTimestamp ? currentTime : undefined}
+                  formatTimestamp={viewerDef?.commentsConfig?.formatTimestamp}
                   frameRate={
                     viewerDef?.commentsConfig?.hasTimestamp
                       ? file?.media?.metadata?.frameRate || 30

@@ -82,3 +82,41 @@ export class ImageTranscoder {
     return task.id
   }
 }
+
+export class PdfTranscoder {
+  private spec: PrismaJson.TaskSpec = {}
+
+  constructor(
+    private readonly db: TransactionClient,
+    private readonly assetId: string,
+    private readonly teamId: string,
+    private readonly projectId: string,
+  ) {}
+
+  withSprite(): this {
+    this.spec.sprite = true
+    return this
+  }
+
+  withPoster(): this {
+    this.spec.poster = true
+    return this
+  }
+
+  async submit(): Promise<string> {
+    const task = await this.db.workflowTask.create({
+      data: {
+        assetId: this.assetId,
+        teamId: this.teamId,
+        projectId: this.projectId,
+        type: WorkflowTaskType.transcode,
+        status: WorkflowTaskStatus.pending,
+        payload: {
+          projectId: this.projectId,
+          transcode: this.spec,
+        },
+      },
+    })
+    return task.id
+  }
+}

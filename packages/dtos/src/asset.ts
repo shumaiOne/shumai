@@ -14,6 +14,7 @@ export const previewInfoSchema = z.object({
   originalWidth: z.number().optional(),
   spriteUrl: z.string().optional(),
   duration: z.number().optional(),
+  pageCount: z.number().optional(),
 })
 export type PreviewInfo = z.infer<typeof previewInfoSchema>
 

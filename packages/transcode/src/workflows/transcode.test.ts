@@ -245,6 +245,89 @@ describe('Transcode Workflow', () => {
     })
   })
 
+  it('should process pdf transcode and sprite generation successfully', async () => {
+    const task: WorkflowTask = {
+      id: 'task-pdf',
+      assetId: 'asset-pdf',
+      type: WorkflowTaskType.transcode,
+      status: WorkflowTaskStatus.pending,
+      sessionId: null,
+      output: null,
+      payload: {
+        projectId: 'proj-1',
+        transcode: {
+          sprite: true,
+          poster: true,
+        },
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      heartbeat: null,
+      teamId: 'team-1',
+      projectId: 'proj-1',
+      uid: 'task-uid-pdf',
+      model: null,
+      inputTokens: 0,
+      outputTokens: 0,
+    }
+
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'asset-pdf',
+      storageKey: { key: 'document.pdf' },
+      mediaType: 'application/pdf',
+    })
+
+    mockActivities.getMediaInfoActivity.mockResolvedValue({
+      mimeType: 'application/pdf',
+      metadata: {
+        originalWidth: 800,
+        originalHeight: 1000,
+        duration: 0,
+        frameRate: 0,
+        totalFrames: 12,
+        startTimecode: '00:00:00:00',
+        bitRate: 0,
+        hasAudio: false,
+        format: {},
+      },
+      videoTranscodes: [],
+      imageTranscodes: [],
+    })
+
+    mockActivities.generateSpriteActivity.mockResolvedValue({
+      sprite: { key: 'sprite.webp', frames: 100, tileX: 10, tileY: 10 },
+      poster: { key: 'poster.webp' },
+    })
+
+    await transcodeMedia(task)
+
+    expect(mockActivities.updateAssetStatusActivity).toHaveBeenCalledWith({
+      assetId: 'asset-pdf',
+      status: AssetStatus.processing,
+    })
+
+    expect(mockActivities.generateSpriteActivity).toHaveBeenCalledWith({
+      assetKey: 'document.pdf',
+      filePath: '/tmp/video.mp4',
+      spriteSpec: expect.objectContaining({ key: 'sprite.webp' }),
+      posterSpec: expect.objectContaining({ key: 'poster.webp' }),
+      mediaInfo: expect.objectContaining({ mimeType: 'application/pdf' }),
+    })
+
+    expect(mockActivities.updateAssetMediaActivity).toHaveBeenCalledWith({
+      assetId: 'asset-pdf',
+      mediaInfo: expect.objectContaining({
+        sprite: { key: 'sprite.webp', frames: 100, tileX: 10, tileY: 10 },
+        poster: { key: 'poster.webp' },
+      }),
+    })
+
+    expect(mockActivities.updateAssetStatusActivity).toHaveBeenCalledWith({
+      assetId: 'asset-pdf',
+      status: AssetStatus.processed,
+    })
+  })
+
   it('should handle failures and update task status with error', async () => {
     const task: WorkflowTask = {
       id: 'task-fail',
