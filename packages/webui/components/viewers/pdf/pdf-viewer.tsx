@@ -6,10 +6,8 @@ import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } 
 import { FileViewerProps, MediaController } from '../types'
 import { PdfControlBar } from './pdf-control-bar'
 
-import pdfworker from '@/ui/public/pdf.worker.min.mjs' with { type: 'file' }
-
 if (typeof window !== 'undefined' && pdfjsLib.GlobalWorkerOptions) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfworker
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
 }
 
 export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
