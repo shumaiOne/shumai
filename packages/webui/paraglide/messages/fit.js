@@ -10,7 +10,7 @@ const en_fit = /** @type {(inputs: FitInputs) => LocalizedString} */ () => {
 };
 
 const zh_fit = /** @type {(inputs: FitInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`适应`)
+	return /** @type {LocalizedString} */ (`适应窗口`)
 };
 
 /**

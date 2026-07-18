@@ -2021,6 +2021,7 @@ export class AssetService {
       originalWidth: asset.media.metadata?.originalWidth,
       spriteUrl,
       duration: asset.media.metadata?.duration,
+      pageCount: asset.media.metadata?.totalFrames,
     }
   }
 

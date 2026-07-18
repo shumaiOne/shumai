@@ -287,6 +287,139 @@ export class TranscodeService {
     await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
   }
 
+  async generatePdfSprite(
+    inputFile: string,
+    outputSprite: string,
+    outputPoster: string,
+  ): Promise<{ pageCount: number; originalWidth: number; originalHeight: number }> {
+    const tmpDir = this.createTempDir('pdf-sprite-')
+    try {
+      const pagePrefix = path.join(tmpDir, 'page')
+      try {
+        await execFileAsync('pdftoppm', ['-png', '-f', '1', '-l', '100', inputFile, pagePrefix])
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        if (msg.includes('pdftoppm') || msg.includes('ENOENT') || msg.includes('not found')) {
+          throw new Error(
+            `pdftoppm executable not found in $PATH. Please install poppler-utils / poppler. (${msg})`,
+            { cause: err },
+          )
+        }
+        throw err
+      }
+
+      const files = fs.readdirSync(tmpDir).filter((f) => f.endsWith('.png'))
+      if (files.length === 0) {
+        throw new Error('pdftoppm produced no image outputs')
+      }
+
+      files.sort((a, b) => {
+        const numA = parseInt(a.replace(/[^0-9]/g, ''), 10)
+        const numB = parseInt(b.replace(/[^0-9]/g, ''), 10)
+        return numA - numB
+      })
+
+      const extractedCount = files.length
+      const firstPagePath = path.join(tmpDir, files[0])
+      const firstMeta = await sharp(firstPagePath, { limitInputPixels: false }).metadata()
+      const originalWidth = firstMeta.width || 800
+      const originalHeight = firstMeta.height || 1000
+
+      for (let f = 1; f <= 100; f++) {
+        const pageIdx = Math.min(extractedCount - 1, Math.floor(((f - 1) * extractedCount) / 100))
+        const srcPath = path.join(tmpDir, files[pageIdx])
+        const destPath = path.join(tmpDir, `frame_${f}.png`)
+        if (srcPath !== destPath) {
+          fs.copyFileSync(srcPath, destPath)
+        }
+      }
+
+      const spriteArgs = [
+        '-i',
+        path.join(tmpDir, 'frame_%d.png'),
+        '-filter_complex',
+        'scale=w=480:h=-2,tile=10x10',
+        '-frames:v',
+        '1',
+        '-c:v',
+        'libwebp',
+        '-q:v',
+        '75',
+        outputSprite,
+      ]
+      await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...spriteArgs])
+
+      await sharp(firstPagePath, { limitInputPixels: false })
+        .resize(480, null, { withoutEnlargement: true, fit: 'inside' })
+        .webp({ quality: 75 })
+        .toFile(outputPoster)
+
+      let totalPages = extractedCount
+      try {
+        const { stdout } = await execFileAsync('pdfinfo', [inputFile])
+        const match = stdout.match(/Pages:\s+(\d+)/)
+        if (match) {
+          totalPages = parseInt(match[1], 10)
+        }
+      } catch {
+        // Fallback to extracted count if pdfinfo is unavailable
+      }
+
+      return {
+        pageCount: totalPages,
+        originalWidth,
+        originalHeight,
+      }
+    } finally {
+      this.removeDir(tmpDir)
+    }
+  }
+
+  async getPdfInfo(inputFile: string): Promise<MediaMetadata> {
+    const tmpDir = this.createTempDir('pdf-info-')
+    let originalWidth = 800
+    let originalHeight = 1000
+    let pageCount = 1
+
+    try {
+      const pagePrefix = path.join(tmpDir, 'page')
+      await execFileAsync('pdftoppm', ['-png', '-f', '1', '-l', '1', inputFile, pagePrefix])
+      const files = fs.readdirSync(tmpDir).filter((f) => f.endsWith('.png'))
+      if (files.length > 0) {
+        const meta = await sharp(path.join(tmpDir, files[0]), {
+          limitInputPixels: false,
+        }).metadata()
+        originalWidth = meta.width || 800
+        originalHeight = meta.height || 1000
+      }
+    } catch (err) {
+      console.warn('pdftoppm not available for PDF dimensions extraction:', err)
+    }
+
+    try {
+      const { stdout } = await execFileAsync('pdfinfo', [inputFile])
+      const match = stdout.match(/Pages:\s+(\d+)/)
+      if (match) {
+        pageCount = parseInt(match[1], 10)
+      }
+    } catch {
+      // Fallback
+    } finally {
+      this.removeDir(tmpDir)
+    }
+
+    return {
+      originalWidth,
+      originalHeight,
+      duration: 0,
+      bitRate: 0,
+      frameRate: 0,
+      totalFrames: pageCount,
+      hasAudio: false,
+      mimeType: 'application/pdf',
+    }
+  }
+
   async extractAudio(inputFile: string, outputFile: string, bitrate: string): Promise<void> {
     const args = ['-i', inputFile, '-vn', '-acodec', 'libmp3lame', '-b:a', bitrate, outputFile]
     await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])

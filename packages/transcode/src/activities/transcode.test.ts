@@ -3,7 +3,7 @@ import { s3Service } from '@shumai/core/src/s3/s3'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { transcodeService } from '@shumai/core'
+import { transcodeService } from '@shumai/core/src/transcode/transcode'
 import * as child_process from 'child_process'
 
 vi.mock('child_process', () => ({
@@ -39,10 +39,25 @@ vi.mock('@shumai/core/src/transcode/transcode', () => ({
     getVideoInfo: vi.fn(),
     getAudioInfo: vi.fn(),
     getImageInfo: vi.fn(),
+    getPdfInfo: vi.fn().mockResolvedValue({
+      originalWidth: 800,
+      originalHeight: 1000,
+      duration: 0,
+      bitRate: 0,
+      frameRate: 0,
+      totalFrames: 10,
+      hasAudio: false,
+      mimeType: 'application/pdf',
+    }),
     transcodeVideo: vi.fn(),
     transcodeAudio: vi.fn(),
     transcodeImage: vi.fn(),
     generateSprite: vi.fn(),
+    generatePdfSprite: vi.fn().mockResolvedValue({
+      pageCount: 10,
+      originalWidth: 800,
+      originalHeight: 1000,
+    }),
     createTempDir: vi.fn().mockReturnValue('/tmp'),
     removeDir: vi.fn(),
     takeScreenshots: vi.fn(),

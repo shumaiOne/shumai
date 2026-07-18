@@ -139,23 +139,24 @@ mkdir shumai && cd shumai
 在 Linux 上运行 Shumai 需要安装以下系统依赖：
 
 - **`ffmpeg`** —— 用于媒体转码和元数据提取。
+- **`poppler`** (`poppler-utils`) —— 用于 PDF 页面图像提取和 PDF 雪碧图预览生成 (`pdftoppm`)。
 - **`bubblewrap`**、**`socat`** 和 **`ripgrep`** —— AI Agent 沙箱（`anthropic-experimental/sandbox-runtime`）所需，用于进程隔离、网络通信和工作区搜索。
 
 可以使用以下命令一次性安装所有依赖：
 
 > Ubuntu/Debian
 ```bash
-sudo apt install -y ffmpeg bubblewrap socat ripgrep
+sudo apt install -y ffmpeg poppler-utils bubblewrap socat ripgrep
 ```
 
 > Fedora
 ```bash
-sudo dnf install -y ffmpeg bubblewrap socat ripgrep
+sudo dnf install -y ffmpeg poppler-utils bubblewrap socat ripgrep
 ```
 
 > Arch Linux
 ```bash
-sudo pacman -S --noconfirm ffmpeg bubblewrap socat ripgrep
+sudo pacman -S --noconfirm ffmpeg poppler bubblewrap socat ripgrep
 ```
 
 > [!NOTE]
@@ -176,12 +177,13 @@ sudo pacman -S --noconfirm ffmpeg bubblewrap socat ripgrep
 在 macOS 上运行 Shumai 需要：
 
 - **`ffmpeg`** —— 用于媒体转码和元数据提取。
+- **`poppler`** —— 用于 PDF 页面图像提取和 PDF 雪碧图预览生成 (`pdftoppm`)。
 - **`ripgrep`** —— AI Agent 沙箱（`anthropic-experimental/sandbox-runtime`）所需。
 
 使用 Homebrew 安装所需依赖：
 
 ```bash
-brew install ffmpeg ripgrep
+brew install ffmpeg poppler ripgrep
 ```
 
 ---

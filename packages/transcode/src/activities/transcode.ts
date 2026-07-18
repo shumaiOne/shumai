@@ -1,6 +1,6 @@
 import { prisma, WorkflowTaskType, WorkflowTaskStatus } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import { transcodeService } from '@shumai/core'
+import { transcodeService } from '@shumai/core/src/transcode/transcode'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { stemFromKey } from '@shumai/core/src/utils/filename'
 import { ApplicationFailure } from '@temporalio/activity'
@@ -162,6 +162,25 @@ export async function getMediaInfoActivity(params: {
       metadataUpdates.push(
         { key: 'resolution_width', value: info.originalWidth },
         { key: 'resolution_height', value: info.originalHeight },
+      )
+    } else if (params.mediaType === 'application/pdf') {
+      const info = await transcodeService.getPdfInfo(params.filePath)
+      mediaInfo.frames = info.totalFrames
+      mediaInfo.metadata = {
+        originalWidth: info.originalWidth,
+        originalHeight: info.originalHeight,
+        duration: 0,
+        bitRate: 0,
+        frameRate: 0,
+        totalFrames: info.totalFrames,
+        startTimecode: '00:00:00:00',
+        hasAudio: false,
+        format: {},
+      }
+      metadataUpdates.push(
+        { key: 'resolution_width', value: info.originalWidth },
+        { key: 'resolution_height', value: info.originalHeight },
+        { key: 'total_pages', value: info.totalFrames },
       )
     }
 
@@ -401,12 +420,26 @@ export async function generateSpriteActivity(params: GenerateSpriteActivityParam
   const posterFile = path.join(tmpDir, 'poster.webp')
 
   try {
-    await transcodeService.generateSprite(
-      params.filePath,
-      spriteFile,
-      posterFile,
-      params.mediaInfo.duration,
-    )
+    if (params.mediaInfo.mimeType === 'application/pdf') {
+      const pdfRes = await transcodeService.generatePdfSprite(
+        params.filePath,
+        spriteFile,
+        posterFile,
+      )
+      if (params.mediaInfo && params.mediaInfo.metadata) {
+        params.mediaInfo.metadata.totalFrames = pdfRes.pageCount
+        params.mediaInfo.metadata.originalWidth = pdfRes.originalWidth
+        params.mediaInfo.metadata.originalHeight = pdfRes.originalHeight
+        params.mediaInfo.frames = pdfRes.pageCount
+      }
+    } else {
+      await transcodeService.generateSprite(
+        params.filePath,
+        spriteFile,
+        posterFile,
+        params.mediaInfo.duration,
+      )
+    }
 
     const spriteBuffer = fs.readFileSync(spriteFile)
     await s3Service.putObject(

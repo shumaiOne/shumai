@@ -474,7 +474,10 @@
   "download_original_file": "下载原始文件",
   "zoom_out": "缩小",
   "zoom_in": "放大",
-  "fit": "适应",
+  "fit": "适应窗口",
+  "previous_page": "上一页",
+  "next_page": "下一页",
+  "page_of_pages": "第 {current} / {total} 页",
   "copy_image_to_clipboard": "复制优化图片到剪贴板",
   "download_original_image": "下载原始图片",
 

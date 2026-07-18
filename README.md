@@ -125,23 +125,24 @@ mkdir shumai && cd shumai
 Shumai requires the following system packages on Linux:
 
 - **`ffmpeg`** – Used for media transcoding and metadata extraction.
+- **`poppler`** (`poppler-utils`) – Used for PDF page image extraction and PDF sprite preview generation (`pdftoppm`).
 - **`bubblewrap`**, **`socat`**, and **`ripgrep`** – Required by the AI agent sandbox (`anthropic-experimental/sandbox-runtime`) for process isolation, networking, and workspace search.
 
 Install all required packages with one command:
 
 > Ubuntu/Debian
 ```bash
-sudo apt install -y ffmpeg bubblewrap socat ripgrep
+sudo apt install -y ffmpeg poppler-utils bubblewrap socat ripgrep
 ```
 
 > Fedora
 ```bash
-sudo dnf install -y ffmpeg bubblewrap socat ripgrep
+sudo dnf install -y ffmpeg poppler-utils bubblewrap socat ripgrep
 ```
 
 > Arch Linux
 ```bash
-sudo pacman -S --noconfirm ffmpeg bubblewrap socat ripgrep
+sudo pacman -S --noconfirm ffmpeg poppler bubblewrap socat ripgrep
 ```
 
 > [!NOTE]
@@ -162,12 +163,13 @@ sudo pacman -S --noconfirm ffmpeg bubblewrap socat ripgrep
 Shumai requires:
 
 - **`ffmpeg`** – Used for media transcoding and metadata extraction.
+- **`poppler`** – Used for PDF page image extraction and PDF sprite preview generation (`pdftoppm`).
 - **`ripgrep`** – Required by the AI agent sandbox (`anthropic-experimental/sandbox-runtime`).
 
 Install the required packages with Homebrew:
 
 ```bash
-brew install ffmpeg ripgrep
+brew install ffmpeg poppler ripgrep
 ```
 
 ---

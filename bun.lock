@@ -7,6 +7,7 @@
       "dependencies": {
         "@tanstack/react-virtual": "3.14.2",
         "jittered-fractional-indexing": "1.0.1",
+        "pdfjs-dist": "6.1.200",
       },
       "devDependencies": {
         "@eslint/js": "10.0.1",
@@ -37,7 +38,7 @@
     },
     "apps/agent": {
       "name": "@shumai/agent-app",
-      "version": "0.1.9",
+      "version": "0.1.10",
       "bin": {
         "shumai-agent": "./src/index.ts",
       },
@@ -49,7 +50,7 @@
     },
     "apps/cli": {
       "name": "@shumai/cli",
-      "version": "0.1.9",
+      "version": "0.1.10",
       "bin": {
         "shumai-cli": "./src/index.ts",
       },
@@ -64,7 +65,7 @@
     },
     "apps/transcode": {
       "name": "@shumai/transcode-app",
-      "version": "0.1.9",
+      "version": "0.1.10",
       "bin": {
         "shumai-transcode": "./src/index.ts",
       },
@@ -76,7 +77,7 @@
     },
     "apps/web": {
       "name": "@shumai/web-app",
-      "version": "0.1.9",
+      "version": "0.1.10",
       "dependencies": {
         "@shumai/agent": "workspace:*",
         "@shumai/api": "workspace:*",
@@ -96,7 +97,7 @@
     },
     "packages/agent": {
       "name": "@shumai/agent",
-      "version": "0.1.9",
+      "version": "0.1.10",
       "dependencies": {
         "@anthropic-ai/sandbox-runtime": "0.0.52",
         "@earendil-works/pi-agent-core": "0.78.0",
@@ -120,7 +121,7 @@
     },
     "packages/api": {
       "name": "@shumai/api",
-      "version": "0.1.9",
+      "version": "0.1.10",
       "dependencies": {
         "@hono/zod-validator": "0.7.6",
         "@shumai/core": "workspace:*",
@@ -134,7 +135,7 @@
     },
     "packages/core": {
       "name": "@shumai/core",
-      "version": "0.1.9",
+      "version": "0.1.10",
       "dependencies": {
         "@earendil-works/pi-agent-core": "0.78.0",
         "@shumai/db": "workspace:*",
@@ -162,7 +163,7 @@
     },
     "packages/db": {
       "name": "@shumai/db",
-      "version": "0.1.9",
+      "version": "0.1.10",
       "dependencies": {
         "@earendil-works/pi-agent-core": "0.78.0",
         "@prisma/adapter-pg": "7.8.0",
@@ -178,7 +179,7 @@
     },
     "packages/dtos": {
       "name": "@shumai/dtos",
-      "version": "0.1.9",
+      "version": "0.1.10",
       "dependencies": {
         "@earendil-works/pi-agent-core": "0.78.0",
         "zod": "4.4.3",
@@ -186,7 +187,7 @@
     },
     "packages/e2e": {
       "name": "@shumai/e2e",
-      "version": "0.1.9",
+      "version": "0.1.10",
       "dependencies": {
         "@earendil-works/pi-agent-core": "0.78.0",
         "@google/genai": "1.52.0",
@@ -200,11 +201,11 @@
     },
     "packages/tableprinter": {
       "name": "@shumai/tableprinter",
-      "version": "0.1.9",
+      "version": "0.1.10",
     },
     "packages/transcode": {
       "name": "@shumai/transcode",
-      "version": "0.1.9",
+      "version": "0.1.10",
       "dependencies": {
         "@shumai/core": "workspace:*",
         "@shumai/db": "workspace:*",
@@ -218,7 +219,7 @@
     },
     "packages/webui": {
       "name": "@shumai/webui",
-      "version": "0.1.9",
+      "version": "0.1.10",
       "dependencies": {
         "@base-ui/react": "1.5.0",
         "@dnd-kit/abstract": "0.4.0",
@@ -315,7 +316,7 @@
     },
     "packages/workflow-core": {
       "name": "@shumai/workflow-core",
-      "version": "0.1.9",
+      "version": "0.1.10",
       "dependencies": {
         "@shumai/core": "workspace:*",
         "@shumai/db": "workspace:*",
@@ -731,6 +732,30 @@
     "@lix-js/server-protocol-schema": ["@lix-js/server-protocol-schema@0.1.1", "", {}, "sha512-jBeALB6prAbtr5q4vTuxnRZZv1M2rKe8iNqRQhFJ4Tv7150unEa0vKyz0hs8Gl3fUGsWaNJBh3J8++fpbrpRBQ=="],
 
     "@mistralai/mistralai": ["@mistralai/mistralai@2.2.1", "", { "dependencies": { "ws": "^8.18.0", "zod": "^3.25.0 || ^4.0.0", "zod-to-json-schema": "^3.25.0" } }, "sha512-uKU8CZmL2RzYKmplsU01hii4p3pe4HqJefpWNRWXm1Tcm0Sm4xXfwSLIy4k7ZCPlbETCGcp69E7hZs+WOJ5itQ=="],
+
+    "@napi-rs/canvas": ["@napi-rs/canvas@1.0.2", "", { "optionalDependencies": { "@napi-rs/canvas-android-arm64": "1.0.2", "@napi-rs/canvas-darwin-arm64": "1.0.2", "@napi-rs/canvas-darwin-x64": "1.0.2", "@napi-rs/canvas-linux-arm-gnueabihf": "1.0.2", "@napi-rs/canvas-linux-arm64-gnu": "1.0.2", "@napi-rs/canvas-linux-arm64-musl": "1.0.2", "@napi-rs/canvas-linux-riscv64-gnu": "1.0.2", "@napi-rs/canvas-linux-x64-gnu": "1.0.2", "@napi-rs/canvas-linux-x64-musl": "1.0.2", "@napi-rs/canvas-win32-arm64-msvc": "1.0.2", "@napi-rs/canvas-win32-x64-msvc": "1.0.2" } }, "sha512-EYEqlMYaCbpZDz+IgDH5xp9MTd3ui4dmGqbQYryhMLnSRxrhHKq5KQWHHKxFUcEP4Hp8/BWgvqXocX4j7iSbOQ=="],
+
+    "@napi-rs/canvas-android-arm64": ["@napi-rs/canvas-android-arm64@1.0.2", "", { "os": "android", "cpu": "arm64" }, "sha512-IMXKVQod0ol4vt3gmClUfXz4JAgHYESGPCUqmH3lQxBoL0K/2greJaQE1HVBVxWWFKfLc4OLZVdxg7kXVyXv+g=="],
+
+    "@napi-rs/canvas-darwin-arm64": ["@napi-rs/canvas-darwin-arm64@1.0.2", "", { "os": "darwin", "cpu": "arm64" }, "sha512-Sc8tPi6cF+5lqOzCCKFALJHhDiRwyMzTPYm3bbhdXsOunU0lQO5f05ucyOzN2r55I23Hg5bsjH63uSCvWp3EgQ=="],
+
+    "@napi-rs/canvas-darwin-x64": ["@napi-rs/canvas-darwin-x64@1.0.2", "", { "os": "darwin", "cpu": "x64" }, "sha512-niDXZ9LhKB1zLrUdYB64RHQFDGz9rr0eGx061qtJJU3U20EMMIx28ADF5fVYbhtOgkWQrBjFicfaye1yM0U62A=="],
+
+    "@napi-rs/canvas-linux-arm-gnueabihf": ["@napi-rs/canvas-linux-arm-gnueabihf@1.0.2", "", { "os": "linux", "cpu": "arm" }, "sha512-sgatQL9JxGRH/Amzcvu0P3t8Am3duou74CisfuJ41Dwt8cWy723z/9KZ8LlgmxfypEwEZxSTNFJtU8d281lmhQ=="],
+
+    "@napi-rs/canvas-linux-arm64-gnu": ["@napi-rs/canvas-linux-arm64-gnu@1.0.2", "", { "os": "linux", "cpu": "arm64" }, "sha512-dgKuX0peF3xwY6ZF5QxGS4wbfDqpoFAJYXiLSp+guZKARQUKMkRqZSDrXKj7nfrec3UCMzC0PFCPte0ES98AiA=="],
+
+    "@napi-rs/canvas-linux-arm64-musl": ["@napi-rs/canvas-linux-arm64-musl@1.0.2", "", { "os": "linux", "cpu": "arm64" }, "sha512-qwROoDIC9upfvDoRLuPn2aNg9CGW1x0Ygr4k2Or+8paA9d0qBLwk87U+g8KQpoOviKoPoiwl97kvBYuYD7qZoA=="],
+
+    "@napi-rs/canvas-linux-riscv64-gnu": ["@napi-rs/canvas-linux-riscv64-gnu@1.0.2", "", { "os": "linux", "cpu": "none" }, "sha512-fXRjnPihdnbO6qy1QQOgxAonb68A0TCEG7rj1x7v7rxNElsE8EVIKIEUTvyDtU+sthYSbX+8e7g3oZiLGnOmxw=="],
+
+    "@napi-rs/canvas-linux-x64-gnu": ["@napi-rs/canvas-linux-x64-gnu@1.0.2", "", { "os": "linux", "cpu": "x64" }, "sha512-nPR97DXhbWIAy7yazF3jc06kEPMqYMLmPzFOVNlwKPfIoSChnI+x7dc0hTLaihz3jxrjL6j4BbA7earxfx4X3g=="],
+
+    "@napi-rs/canvas-linux-x64-musl": ["@napi-rs/canvas-linux-x64-musl@1.0.2", "", { "os": "linux", "cpu": "x64" }, "sha512-l7zZY5+jL5qnBZtDz7CoBtY6p7EkHu422g/0zWwrOrzIwWyWxZFRfZZORY1UG7YApymPLx+UbOkN206xXn/c1Q=="],
+
+    "@napi-rs/canvas-win32-arm64-msvc": ["@napi-rs/canvas-win32-arm64-msvc@1.0.2", "", { "os": "win32", "cpu": "arm64" }, "sha512-yE0koHCFF4PIbMc2o2SEALhnipz7WBISh5glLvQiomtIoCcW0np3H4Lw93ceJAfJttTTeIIWFbwH84F7EVzjMQ=="],
+
+    "@napi-rs/canvas-win32-x64-msvc": ["@napi-rs/canvas-win32-x64-msvc@1.0.2", "", { "os": "win32", "cpu": "x64" }, "sha512-okU8/t2foV6C31n0GtvEMbfD5rOFc70+/6xUNME9Guld29sgSOIGUEDScAWFlcP3k5TYQRl9TNkwJEEjh15w8A=="],
 
     "@noble/ciphers": ["@noble/ciphers@2.2.0", "", {}, "sha512-Z6pjIZ/8IJcCGzb2S/0Px5J81yij85xASuk1teLNeg75bfT07MV3a/O2Mtn1I2se43k3lkVEcFaR10N4cgQcZA=="],
 
@@ -2241,6 +2266,8 @@
     "path-scurry": ["path-scurry@1.11.1", "", { "dependencies": { "lru-cache": "^10.2.0", "minipass": "^5.0.0 || ^6.0.2 || ^7.0.0" } }, "sha512-Xa4Nw17FS9ApQFJ9umLiJS4orGjm7ZzwUrwamcGQuHSzDyth9boKDaycYdDcZDuqYATXw4HFXgaqWTctW/v1HA=="],
 
     "pathe": ["pathe@2.0.3", "", {}, "sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w=="],
+
+    "pdfjs-dist": ["pdfjs-dist@6.1.200", "", { "optionalDependencies": { "@napi-rs/canvas": "^1.0.0" } }, "sha512-o8MolyzirkkLrcdsae/HEOiIcXWI7DS5zGpvqW8xTC2YUsW30rltFw2bDGvw/fskUdEMrQm2br68jzDS5BH2vw=="],
 
     "pend": ["pend@1.2.0", "", {}, "sha512-F3asv42UuXchdzt+xXqfW1OGlVBe+mxa2mqI0pg5yAHZPvFmY3Y6drSf/GQ1A86WgWEN9Kzh/WrgKa6iGcHXLg=="],
 

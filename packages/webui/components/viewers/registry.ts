@@ -2,9 +2,10 @@ import type { AssetInfo } from '@shumai/dtos'
 import { FileTypeDefinition } from './types'
 import { videoTypeDefinition } from './video'
 import { imageTypeDefinition } from './image'
+import { pdfTypeDefinition } from './pdf'
 import { defaultTypeDefinition } from './default'
 
-const registry: FileTypeDefinition[] = [videoTypeDefinition, imageTypeDefinition]
+const registry: FileTypeDefinition[] = [pdfTypeDefinition, videoTypeDefinition, imageTypeDefinition]
 
 export function getViewerForFile(file: AssetInfo | null | undefined): FileTypeDefinition {
   if (!file) return defaultTypeDefinition

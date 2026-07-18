@@ -475,6 +475,9 @@
   "zoom_out": "Zoom Out",
   "zoom_in": "Zoom In",
   "fit": "Fit",
+  "previous_page": "Previous Page",
+  "next_page": "Next Page",
+  "page_of_pages": "Page {current} of {total}",
   "copy_image_to_clipboard": "Copy optimized image to clipboard",
   "download_original_image": "Download original image",
 
