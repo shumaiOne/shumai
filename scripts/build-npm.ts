@@ -3,6 +3,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { cp, mkdir, readdir, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { temporalWorkflow } from '../packages/workflow-core/src/bun-temporal-plugin'
+import pdfWorkerPlugin from '../packages/webui/src/bun-pdf-worker-plugin'
 
 console.log('\n🚀 Starting NPM packaging build process for all applications...\n')
 
@@ -488,6 +489,7 @@ export default defineConfig({
 
 // 2. Build shumai (Main app & platform binaries)
 const shumaiPlugins = [
+  pdfWorkerPlugin(),
   temporalWorkflow({
     bundleOptions: {},
   }),
