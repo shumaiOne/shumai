@@ -164,14 +164,17 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
 
       return () => {
         active = false
+        loadingTask.destroy().catch(() => {})
       }
-    }, [fileUrl])
+    }, [fileUrl, startTime])
 
     // Render active PDF page into image
     useEffect(() => {
       if (!pdfDoc) return
 
       let active = true
+      let renderTask: pdfjsLib.RenderTask | null = null
+
       pdfDoc
         .getPage(currentPage)
         .then((page) => {
@@ -187,9 +190,9 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
 
           if (!ctx) return
 
-          page
-            .render({ canvasContext: ctx, viewport, canvas })
-            .promise.then(() => {
+          renderTask = page.render({ canvasContext: ctx, viewport, canvas })
+          renderTask.promise
+            .then(() => {
               if (!active) return
               setPageImageUrl(canvas.toDataURL('image/png'))
               setPageDimensions({
@@ -198,15 +201,20 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
               })
             })
             .catch((err) => {
+              if (!active) return
               console.error('Failed to render page:', err)
             })
         })
         .catch((err) => {
+          if (!active) return
           console.error('Failed to get page:', err)
         })
 
       return () => {
         active = false
+        if (renderTask) {
+          renderTask.cancel()
+        }
       }
     }, [pdfDoc, currentPage])
 
