@@ -1,5 +1,6 @@
 import { loadEnvConfig } from '@shumai/core/src/env-loader'
-import { join } from 'node:path'
+import { readdirSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 loadEnvConfig(process.cwd(), process.env.NODE_ENV !== 'production')
 
 import index from '@shumai/webui/index.html'
@@ -82,6 +83,27 @@ async function run() {
         const routePath = file.path.startsWith('.') ? file.path.slice(1) : file.path
         const filePath = join(import.meta.dir, file.path)
         routes[routePath] = () => new Response(Bun.file(filePath), { headers: file.headers })
+      }
+
+      const sampleFile = bundle.files[0]?.path || bundle.index || ''
+      const bundleDir = join(import.meta.dir, dirname(sampleFile))
+      try {
+        const dirFiles = readdirSync(bundleDir)
+        const pdfWorkerFile = dirFiles.find((f) => f.startsWith('pdf.worker'))
+        if (pdfWorkerFile) {
+          const routePath = '/' + pdfWorkerFile
+          const filePath = join(bundleDir, pdfWorkerFile)
+          const bunFile = Bun.file(filePath)
+          routes[routePath] = () =>
+            new Response(bunFile, {
+              headers: {
+                'content-type': 'text/javascript;charset=utf-8',
+                etag: `"${bunFile.size}-${bunFile.lastModified}"`,
+              },
+            })
+        }
+      } catch (err) {
+        console.warn('Failed to register pdf.worker route:', err)
       }
 
       const mainHtmlPath = join(import.meta.dir, bundle.index)
