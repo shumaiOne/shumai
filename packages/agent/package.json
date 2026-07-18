@@ -20,7 +20,8 @@
     "@sinclair/typebox": "0.34.49",
     "ulid": "3.0.2",
     "adm-zip": "0.5.17",
-    "zod": "4.4.3"
+    "zod": "4.4.3",
+    "jittered-fractional-indexing": "1.0.1"
   },
   "devDependencies": {
     "@types/adm-zip": "0.5.8"

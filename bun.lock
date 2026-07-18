@@ -4,11 +4,6 @@
   "workspaces": {
     "": {
       "name": "shumai",
-      "dependencies": {
-        "@tanstack/react-virtual": "3.14.2",
-        "jittered-fractional-indexing": "1.0.1",
-        "pdfjs-dist": "6.1.200",
-      },
       "devDependencies": {
         "@eslint/js": "10.0.1",
         "@inlang/paraglide-js": "2.20.0",
@@ -112,6 +107,7 @@
         "@temporalio/worker": "1.17.2",
         "@temporalio/workflow": "1.17.2",
         "adm-zip": "0.5.17",
+        "jittered-fractional-indexing": "1.0.1",
         "ulid": "3.0.2",
         "zod": "4.4.3",
       },
@@ -281,6 +277,7 @@
         "lexical": "0.42.0",
         "lucide-react": "1.17.0",
         "next-themes": "0.4.6",
+        "pdfjs-dist": "6.1.200",
         "radix-ui": "1.4.3",
         "react": "19.2.0",
         "react-day-picker": "10.0.1",
