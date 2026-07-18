@@ -7,7 +7,7 @@ import { FileViewerProps, MediaController } from '../types'
 import { PdfControlBar } from './pdf-control-bar'
 
 if (typeof window !== 'undefined' && pdfjsLib.GlobalWorkerOptions) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
 }
 
 export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
