@@ -11,13 +11,7 @@ if (typeof window !== 'undefined' && pdfjsLib.GlobalWorkerOptions) {
 }
 
 export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
-  ({ file, annotations, shareId, children }, ref) => {
-    useImperativeHandle(ref, () => ({
-      play: () => {},
-      pause: () => {},
-      seekTo: () => {},
-    }))
-
+  ({ file, annotations, shareId, children, onPlay, onPause, onTimeUpdate, startTime }, ref) => {
     const {
       isDrawing,
       currentTool,
@@ -27,12 +21,37 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
     } = useAnnotationStore()
 
     const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null)
-    const [currentPage, setCurrentPage] = useState(1)
+    const [currentPage, setCurrentPage] = useState<number>(() =>
+      startTime && !isNaN(startTime) ? Math.max(1, Math.round(startTime)) : 1,
+    )
     const [totalPages, setTotalPages] = useState(1)
     const [pageImageUrl, setPageImageUrl] = useState<string>('')
     const [pageDimensions, setPageDimensions] = useState({ width: 800, height: 1000 })
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+
+    useImperativeHandle(
+      ref,
+      () => ({
+        play: () => {
+          onPlay?.()
+        },
+        pause: () => {
+          onPause?.()
+        },
+        seekTo: (second: number) => {
+          if (second && !isNaN(second)) {
+            const targetPage = Math.max(1, Math.min(totalPages, Math.round(second)))
+            setCurrentPage(targetPage)
+          }
+        },
+      }),
+      [totalPages, onPlay, onPause],
+    )
+
+    useEffect(() => {
+      onTimeUpdate?.(currentPage)
+    }, [currentPage, onTimeUpdate])
 
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
     const [zoom, setZoom] = useState(1)
@@ -81,7 +100,11 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
           if (!active) return
           setPdfDoc(doc)
           setTotalPages(doc.numPages)
-          setCurrentPage(1)
+          setCurrentPage((prevPage) =>
+            startTime && !isNaN(startTime)
+              ? Math.max(1, Math.min(doc.numPages, Math.round(startTime)))
+              : prevPage,
+          )
           setLoading(false)
         })
         .catch((err) => {
@@ -241,7 +264,10 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
         <PdfControlBar
           currentPage={currentPage}
           totalPages={totalPages}
-          onPageChange={setCurrentPage}
+          onPageChange={(page) => {
+            setCurrentPage(page)
+            onPlay?.()
+          }}
           zoom={zoom}
           onZoomIn={() => handleZoom(1.2)}
           onZoomOut={() => handleZoom(0.8)}
