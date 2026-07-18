@@ -53,6 +53,50 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
       onTimeUpdate?.(currentPage)
     }, [currentPage, onTimeUpdate])
 
+    // Keyboard navigation shortcuts
+    useEffect(() => {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        const activeEl = document.activeElement
+        if (
+          activeEl &&
+          (activeEl.tagName === 'INPUT' ||
+            activeEl.tagName === 'TEXTAREA' ||
+            (activeEl instanceof HTMLElement && activeEl.isContentEditable))
+        ) {
+          return
+        }
+
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown') {
+          e.preventDefault()
+          setCurrentPage((prev) => {
+            const next = Math.min(totalPages, prev + 1)
+            if (next !== prev) onPlay?.()
+            return next
+          })
+        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
+          e.preventDefault()
+          setCurrentPage((prev) => {
+            const next = Math.max(1, prev - 1)
+            if (next !== prev) onPlay?.()
+            return next
+          })
+        } else if (e.key === 'Home') {
+          e.preventDefault()
+          setCurrentPage(1)
+          onPlay?.()
+        } else if (e.key === 'End') {
+          e.preventDefault()
+          setCurrentPage(totalPages)
+          onPlay?.()
+        }
+      }
+
+      window.addEventListener('keydown', handleKeyDown)
+      return () => {
+        window.removeEventListener('keydown', handleKeyDown)
+      }
+    }, [totalPages, onPlay])
+
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
     const [zoom, setZoom] = useState(1)
     const [pan, setPan] = useState({ x: 0, y: 0 })
