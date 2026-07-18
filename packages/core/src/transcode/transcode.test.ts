@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { transcodeService } from './transcode'
 import * as path from 'path'
 import * as child_process from 'child_process'
+import * as fs from 'fs'
 import { WorkflowTask } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import sharp from 'sharp'
@@ -346,5 +347,85 @@ describe('TranscodeService', () => {
       ],
       expect.any(Function),
     )
+  })
+
+  it('should generate PDF sprite sheet and poster using pdftoppm, ffmpeg, and sharp', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(child_process.execFile as any).mockImplementation(
+      (
+        cmd: string,
+        args: string[],
+        cb: (err: Error | null, res: { stdout: string; stderr: string }) => void,
+      ) => {
+        if (cmd === 'pdftoppm') {
+          // Create dummy page-1.png in temp directory (target output path prefix is args[args.length - 1])
+          const pagePrefix = args[args.length - 1]
+          const pagePath = `${pagePrefix}-1.png`
+          fs.writeFileSync(pagePath, 'fake-png-data')
+          cb(null, { stdout: '', stderr: '' })
+        } else if (cmd === 'pdfinfo') {
+          cb(null, { stdout: 'Title: Document\nPages: 15\nPage size: 612 x 792 pts', stderr: '' })
+        } else if (cmd === 'ffmpeg') {
+          cb(null, { stdout: '', stderr: '' })
+        } else {
+          cb(null, { stdout: '', stderr: '' })
+        }
+      },
+    )
+
+    const outputSprite = path.join(tempDir, 'sprite.webp')
+    const outputPoster = path.join(tempDir, 'poster.webp')
+
+    const result = await transcodeService.generatePdfSprite('input.pdf', outputSprite, outputPoster)
+
+    expect(result.pageCount).toBe(15)
+    expect(result.originalWidth).toBe(800)
+    expect(result.originalHeight).toBe(600)
+
+    expect(child_process.execFile).toHaveBeenCalledWith(
+      'pdftoppm',
+      expect.arrayContaining(['-png', '-f', '1', '-l', '100', 'input.pdf']),
+      expect.any(Function),
+    )
+    expect(child_process.execFile).toHaveBeenCalledWith(
+      'ffmpeg',
+      expect.arrayContaining(['-filter_complex', 'scale=w=480:h=-2,tile=10x10']),
+      expect.any(Function),
+    )
+    expect(child_process.execFile).toHaveBeenCalledWith(
+      'pdfinfo',
+      ['input.pdf'],
+      expect.any(Function),
+    )
+  })
+
+  it('should extract PDF info metadata using pdftoppm and pdfinfo', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(child_process.execFile as any).mockImplementation(
+      (
+        cmd: string,
+        args: string[],
+        cb: (err: Error | null, res: { stdout: string; stderr: string }) => void,
+      ) => {
+        if (cmd === 'pdftoppm') {
+          const pagePrefix = args[args.length - 1]
+          const pagePath = `${pagePrefix}-1.png`
+          fs.writeFileSync(pagePath, 'fake-png-data')
+          cb(null, { stdout: '', stderr: '' })
+        } else if (cmd === 'pdfinfo') {
+          cb(null, { stdout: 'Pages: 42\n', stderr: '' })
+        } else {
+          cb(null, { stdout: '', stderr: '' })
+        }
+      },
+    )
+
+    const info = await transcodeService.getPdfInfo('document.pdf')
+
+    expect(info.mimeType).toBe('application/pdf')
+    expect(info.totalFrames).toBe(42)
+    expect(info.originalWidth).toBe(800)
+    expect(info.originalHeight).toBe(600)
+    expect(info.hasAudio).toBe(false)
   })
 })
