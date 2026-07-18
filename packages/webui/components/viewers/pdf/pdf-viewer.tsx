@@ -191,6 +191,11 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
           if (!ctx) return
 
           renderTask = page.render({ canvasContext: ctx, viewport, canvas })
+          if (!active) {
+            renderTask.cancel()
+            return
+          }
+
           renderTask.promise
             .then(() => {
               if (!active) return
@@ -201,7 +206,15 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
               })
             })
             .catch((err) => {
-              if (!active) return
+              if (
+                !active ||
+                (err &&
+                  typeof err === 'object' &&
+                  'name' in err &&
+                  err.name === 'RenderingCancelledException')
+              ) {
+                return
+              }
               console.error('Failed to render page:', err)
             })
         })
