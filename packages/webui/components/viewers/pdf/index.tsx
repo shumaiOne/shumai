@@ -10,5 +10,6 @@ export const pdfTypeDefinition: FileTypeDefinition = {
     hasTimestamp: true,
     hasAnnotations: true,
     hasAiBots: true,
+    formatTimestamp: (second: number) => `P${Math.round(second)}`,
   },
 }
