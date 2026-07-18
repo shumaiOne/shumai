@@ -70,7 +70,7 @@ async function run() {
   const pdfWorkerRoute = () => {
     const pdfWorkerPath = isProd
       ? join(import.meta.dir, 'pdf.worker.min.mjs')
-      : join(import.meta.dir, 'packages/webui/public/pdf.worker.min.mjs')
+      : join(process.cwd(), 'packages/webui/public/pdf.worker.min.mjs')
     return new Response(Bun.file(pdfWorkerPath), {
       headers: { 'content-type': 'text/javascript;charset=utf-8' },
     })
