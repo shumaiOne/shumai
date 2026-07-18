@@ -67,12 +67,22 @@ async function run() {
     files: HtmlBundleFile[]
   }
 
+  const pdfWorkerRoute = () => {
+    const pdfWorkerPath = isProd
+      ? join(import.meta.dir, 'pdf.worker.min.mjs')
+      : join(import.meta.dir, 'packages/webui/public/pdf.worker.min.mjs')
+    return new Response(Bun.file(pdfWorkerPath), {
+      headers: { 'content-type': 'text/javascript;charset=utf-8' },
+    })
+  }
+
   // Bun's native Serve config routes require specific handler types that are hard
   // to dynamically construct without using 'any'.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const routes: Record<string, any> = {
     '/api/*': app.fetch,
     '/files/*': app.fetch,
+    '/pdf.worker.min.mjs': pdfWorkerRoute,
   }
 
   if (isProd) {

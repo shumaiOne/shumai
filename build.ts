@@ -4,6 +4,7 @@ import tailwindPlugin from 'bun-plugin-tailwind'
 import { existsSync } from 'fs'
 import { rm } from 'fs/promises'
 import { temporalWorkflow } from './packages/workflow-core/src/bun-temporal-plugin'
+import pdfWorkerPlugin from './packages/webui/src/bun-pdf-worker-plugin'
 
 console.log('\n🚀 Starting build process...\n')
 
@@ -23,6 +24,7 @@ await Bun.build({
   splitting: true,
   naming: '[name].[ext]',
   plugins: [
+    pdfWorkerPlugin(),
     temporalWorkflow({
       bundleOptions: {},
     }),
