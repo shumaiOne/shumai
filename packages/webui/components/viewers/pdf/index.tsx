@@ -7,7 +7,7 @@ export const pdfTypeDefinition: FileTypeDefinition = {
   match: (file) => file.mediaType === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'),
   viewer: PdfViewer,
   commentsConfig: {
-    hasTimestamp: false,
+    hasTimestamp: true,
     hasAnnotations: true,
     hasAiBots: true,
   },
