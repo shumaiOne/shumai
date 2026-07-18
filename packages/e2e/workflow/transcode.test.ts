@@ -455,5 +455,94 @@ describe.each(['local', 'temporal'] as const)(
       expect(output).toBeDefined()
       expect(output.key).toContain('annotations/')
     }, 50000)
+
+    it('should run transcodeMedia workflow for a PDF asset successfully', async () => {
+      // 1. Seed Database
+      const team = await prisma.team.create({
+        data: { name: 'E2E PDF Transcode Team' },
+      })
+
+      const project = await prisma.project.create({
+        data: { name: 'E2E PDF Transcode Project', teamId: team.id },
+      })
+
+      const storageKey = await prisma.storageKey.create({
+        data: {
+          key: 'projects/e2e/test.pdf',
+        },
+      })
+
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'test.pdf',
+          type: 'file',
+          status: 'uploaded',
+          mediaType: 'application/pdf',
+          projectId: project.id,
+          storageKeyId: storageKey.id,
+        },
+      })
+
+      // 2. Seed S3 Storage from fixture test.pdf
+      const pdfPath = path.join(fixturesDir, 'test.pdf')
+      const pdfBuffer = fs.readFileSync(pdfPath)
+      await s3Service.putObject(
+        'shumai-e2e-test-bucket-transcode',
+        'projects/e2e/test.pdf',
+        pdfBuffer,
+        pdfBuffer.length,
+        'application/pdf',
+      )
+
+      // 3. Create Workflow Task
+      const task = await prisma.workflowTask.create({
+        data: {
+          type: 'transcode',
+          status: 'pending',
+          assetId: asset.id,
+          projectId: project.id,
+          teamId: team.id,
+          payload: {
+            projectId: project.id,
+            transcode: {
+              poster: true,
+              sprite: true,
+            },
+          },
+        },
+      })
+
+      // 4. Wait for workflow to complete
+      console.log(
+        `Submitted E2E PDF Transcode Workflow Task. ID: ${task.id}. Awaiting completion...`,
+      )
+      const completedTask = await workflowService.executeWait(task, 45000)
+
+      // 5. Verification
+      expect(completedTask.status).toBe('completed')
+
+      // Verify Asset status is updated to processed
+      const updatedAsset = await prisma.asset.findUnique({
+        where: { id: asset.id },
+      })
+      expect(updatedAsset?.status).toBe(AssetStatus.processed)
+
+      // Verify media info contains pdf details, poster, sprite, and pageCount
+      const mediaInfo = updatedAsset?.media as unknown as {
+        mimeType: string
+        poster: { key: string }
+        sprite: { key: string }
+        frames?: number
+        pageCount?: number
+        metadata?: { totalFrames?: number; pageCount?: number }
+      }
+      expect(mediaInfo).toBeDefined()
+      expect(mediaInfo.mimeType).toBe('application/pdf')
+      expect(mediaInfo.poster).toBeDefined()
+      expect(mediaInfo.poster.key).toContain('poster.webp')
+      expect(mediaInfo.sprite).toBeDefined()
+      expect(mediaInfo.sprite.key).toContain('sprite.webp')
+      expect(mediaInfo.frames ?? mediaInfo.metadata?.totalFrames).toBeGreaterThan(0)
+    }, 50000)
   },
 )
