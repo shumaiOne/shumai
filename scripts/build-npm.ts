@@ -488,21 +488,21 @@ export default defineConfig({
 }
 
 // 2. Build shumai (Main app & platform binaries)
-const shumaiPlugins = [
-  pdfWorkerPlugin(),
+const platformPlugins = [
   temporalWorkflow({
     bundleOptions: {},
   }),
   tailwindPlugin,
 ]
+const mainPlugins = [pdfWorkerPlugin(), ...platformPlugins]
 const shumaiExternal = commonExternal.filter((dep) => dep !== 'zod')
-await buildPlatformPackages('shumai', dummyRunnerPath, shumaiPlugins, shumaiExternal)
+await buildPlatformPackages('shumai', dummyRunnerPath, platformPlugins, shumaiExternal)
 await buildMainPackage({
   appName: 'shumai',
   description: 'A fullstack AI-powered media workspace and workflow engine',
   hasPrisma: true,
   entrypoint: './apps/web/src/index.ts',
-  plugins: shumaiPlugins,
+  plugins: mainPlugins,
   external: shumaiExternal,
 })
 

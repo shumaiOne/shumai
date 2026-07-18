@@ -19,6 +19,9 @@ export function pdfWorkerPlugin(options: PdfWorkerPluginOptions = {}): BunPlugin
     setup(build) {
       build.onEnd(async () => {
         const outdir = build.config.outdir || 'dist'
+        if (outdir.endsWith('/bin') || outdir.endsWith('\\bin')) {
+          return
+        }
         const dest = join(resolve(process.cwd(), outdir), filename)
         if (existsSync(src)) {
           await Bun.write(dest, Bun.file(src))
