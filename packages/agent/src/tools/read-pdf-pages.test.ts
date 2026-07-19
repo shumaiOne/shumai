@@ -95,7 +95,7 @@ describe('readPdfPagesTool', () => {
       data: {
         assetId: 'asset-1',
         projectId: 'project-1',
-        type: 'transcode',
+        type: 'transcode_pdf_pages',
         status: 'pending',
         payload: {
           projectId: 'project-1',

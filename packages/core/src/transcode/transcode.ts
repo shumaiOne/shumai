@@ -543,7 +543,7 @@ export class TranscodeService {
       data: {
         assetId,
         projectId,
-        type: WorkflowTaskType.transcode,
+        type: WorkflowTaskType.transcode_video,
         status: WorkflowTaskStatus.pending,
         payload: {
           projectId,
@@ -558,7 +558,7 @@ export class TranscodeService {
       data: {
         assetId,
         projectId,
-        type: WorkflowTaskType.transcode,
+        type: WorkflowTaskType.transcode_image,
         status: WorkflowTaskStatus.pending,
         payload: {
           projectId,

@@ -100,6 +100,12 @@ enum TeamMemberScope {
 
 enum WorkflowTaskType {
   transcode
+  transcode_video
+  transcode_image
+  transcode_pdf
+  transcode_pdf_pages
+  transcode_screenshot
+  transcode_image_annotation
   ai_metadata_autofill
   chat
   ai_embedding

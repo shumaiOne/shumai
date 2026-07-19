@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { transcodeMedia } from './transcode'
+import { overlayImageAnnotationWorkflow } from './overlay-image-annotation'
 import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
 import * as workflowUtils from '@shumai/workflow-core'
 
@@ -14,20 +14,17 @@ vi.mock('@shumai/workflow-core', async (importOriginal) => {
   }
 })
 
-describe('transcodeMedia Fallback Dispatcher', () => {
+describe('overlayImageAnnotationWorkflow', () => {
   const mockActivities = {
     updateTaskStatusActivity: Object.assign(vi.fn(), {
       _activityName: 'updateTaskStatusActivity',
-    }),
-    updateAssetStatusActivity: Object.assign(vi.fn(), {
-      _activityName: 'updateAssetStatusActivity',
     }),
     getAssetActivity: Object.assign(vi.fn(), { _activityName: 'getAssetActivity' }),
     getTranscodeWorkerQueueActivity: Object.assign(vi.fn(), {
       _activityName: 'getTranscodeWorkerQueueActivity',
     }),
-    renderPdfPagesActivity: Object.assign(vi.fn(), {
-      _activityName: 'renderPdfPagesActivity',
+    overlayAnnotationsActivity: Object.assign(vi.fn(), {
+      _activityName: 'overlayAnnotationsActivity',
     }),
   }
 
@@ -49,21 +46,20 @@ describe('transcodeMedia Fallback Dispatcher', () => {
     mockActivities.getTranscodeWorkerQueueActivity.mockResolvedValue('transcode_worker_queue')
   })
 
-  it('should dispatch to pdfPages workflow when payload.pdfPages is present', async () => {
+  it('should run image annotation overlay workflow successfully', async () => {
     const task: WorkflowTask = {
-      id: 'task-pdf-pages',
-      assetId: 'asset-pdf',
-      type: WorkflowTaskType.transcode,
+      id: 'task-image-ann',
+      assetId: 'asset-image',
+      type: WorkflowTaskType.transcode_image_annotation,
       status: WorkflowTaskStatus.pending,
+      sessionId: null,
+      output: null,
       payload: {
         projectId: 'proj-1',
-        pdfPages: {
-          start: 1,
-          end: 2,
+        imageAnnotation: {
+          annotations: [{ type: 'box', color: '#ff0000', points: [] }],
         },
       },
-      output: null,
-      sessionId: null,
       createdAt: new Date(),
       updatedAt: new Date(),
       heartbeat: null,
@@ -76,48 +72,30 @@ describe('transcodeMedia Fallback Dispatcher', () => {
     }
 
     mockActivities.getAssetActivity.mockResolvedValue({
-      id: 'asset-pdf',
-      storageKey: { key: 'doc.pdf' },
-      mediaType: 'application/pdf',
+      id: 'asset-image',
+      storageKey: { key: 'image.png' },
+      mediaType: 'image/png',
+      media: {
+        imageTranscodes: [{ key: 'image-transcoded.webp' }],
+      },
     })
 
-    mockActivities.renderPdfPagesActivity.mockResolvedValue([])
+    mockActivities.overlayAnnotationsActivity.mockResolvedValue(
+      'files/asset-image/annotations/ann1.webp',
+    )
 
-    await transcodeMedia(task)
+    await overlayImageAnnotationWorkflow(task)
 
-    expect(mockActivities.renderPdfPagesActivity).toHaveBeenCalled()
-  })
-
-  it('should handle failures and update task status with error', async () => {
-    const task: WorkflowTask = {
-      id: 'task-fail',
-      assetId: 'asset-1',
-      type: WorkflowTaskType.transcode,
-      status: WorkflowTaskStatus.pending,
-      sessionId: null,
-      output: null,
-      payload: {
-        projectId: 'proj-1',
-      },
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      heartbeat: null,
-      teamId: 'team-1',
-      projectId: 'proj-1',
-      uid: 'task-uid',
-      model: null,
-      inputTokens: 0,
-      outputTokens: 0,
-    }
-
-    mockActivities.getAssetActivity.mockRejectedValue(new Error('FFmpeg failed'))
-
-    await expect(transcodeMedia(task)).rejects.toThrow('FFmpeg failed')
+    expect(mockActivities.overlayAnnotationsActivity).toHaveBeenCalledWith({
+      assetKey: 'image-transcoded.webp',
+      assetId: 'asset-image',
+      annotations: [{ type: 'box', color: '#ff0000', points: [] }],
+    })
 
     expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
-      taskId: 'task-fail',
-      status: WorkflowTaskStatus.failed,
-      output: { error: 'FFmpeg failed' },
+      taskId: 'task-image-ann',
+      status: WorkflowTaskStatus.completed,
+      output: { key: 'files/asset-image/annotations/ann1.webp' },
     })
   })
 })

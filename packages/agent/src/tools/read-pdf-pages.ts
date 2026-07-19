@@ -100,7 +100,7 @@ export function createReadPdfPagesTool(
           data: {
             assetId: targetAssetId,
             projectId: asset.projectId || 'none',
-            type: WorkflowTaskType.transcode,
+            type: WorkflowTaskType.transcode_pdf_pages,
             status: WorkflowTaskStatus.pending,
             payload: {
               projectId: asset.projectId || 'none',

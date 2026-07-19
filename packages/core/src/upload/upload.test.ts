@@ -182,7 +182,7 @@ describe('UploadService', () => {
     expect(updatedAsset?.status).toBe(AssetStatus.uploaded)
 
     const workflowTask = await prisma.workflowTask.findFirst({
-      where: { assetId: asset.id, type: WorkflowTaskType.transcode },
+      where: { assetId: asset.id, type: WorkflowTaskType.transcode_video },
     })
     expect(workflowTask).toBeDefined()
     expect(workflowTask?.payload).toEqual({
@@ -219,7 +219,7 @@ describe('UploadService', () => {
     await uploadService.confirmFileUpload(userId, task.id, { fileId: asset.id })
 
     const workflowTask = await prisma.workflowTask.findFirst({
-      where: { assetId: asset.id, type: WorkflowTaskType.transcode },
+      where: { assetId: asset.id, type: WorkflowTaskType.transcode_image },
     })
     expect(workflowTask).toBeDefined()
     expect(workflowTask?.payload).toEqual({
@@ -257,7 +257,7 @@ describe('UploadService', () => {
     expect(updatedAsset?.status).toBe(AssetStatus.processed)
 
     const workflowTask = await prisma.workflowTask.findFirst({
-      where: { assetId: asset.id, type: WorkflowTaskType.transcode },
+      where: { assetId: asset.id, type: WorkflowTaskType.transcode_video },
     })
     expect(workflowTask).toBeNull()
   })
@@ -290,7 +290,7 @@ describe('UploadService', () => {
     expect(updatedAsset?.status).toBe(AssetStatus.uploaded)
 
     const workflowTask = await prisma.workflowTask.findFirst({
-      where: { assetId: asset.id, type: WorkflowTaskType.transcode },
+      where: { assetId: asset.id, type: WorkflowTaskType.transcode_video },
     })
     expect(workflowTask).toBeDefined()
   })
@@ -323,7 +323,7 @@ describe('UploadService', () => {
     expect(updatedAsset?.status).toBe(AssetStatus.uploaded)
 
     const workflowTask = await prisma.workflowTask.findFirst({
-      where: { assetId: asset.id, type: WorkflowTaskType.transcode },
+      where: { assetId: asset.id, type: WorkflowTaskType.transcode_video },
     })
     expect(workflowTask).toBeDefined()
   })

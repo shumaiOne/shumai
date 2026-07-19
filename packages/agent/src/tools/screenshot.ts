@@ -57,7 +57,7 @@ export function createScreenshotTool(
           data: {
             assetId,
             projectId: asset.projectId || 'none',
-            type: WorkflowTaskType.transcode,
+            type: WorkflowTaskType.transcode_screenshot,
             status: WorkflowTaskStatus.pending,
             payload: {
               projectId: asset.projectId || 'none',

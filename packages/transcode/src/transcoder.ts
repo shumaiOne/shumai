@@ -38,7 +38,7 @@ export class VideoTranscoder {
         assetId: this.assetId,
         teamId: this.teamId,
         projectId: this.projectId,
-        type: WorkflowTaskType.transcode,
+        type: WorkflowTaskType.transcode_video,
         status: WorkflowTaskStatus.pending,
         payload: {
           projectId: this.projectId,
@@ -71,7 +71,7 @@ export class ImageTranscoder {
         assetId: this.assetId,
         teamId: this.teamId,
         projectId: this.projectId,
-        type: WorkflowTaskType.transcode,
+        type: WorkflowTaskType.transcode_image,
         status: WorkflowTaskStatus.pending,
         payload: {
           projectId: this.projectId,
@@ -109,7 +109,7 @@ export class PdfTranscoder {
         assetId: this.assetId,
         teamId: this.teamId,
         projectId: this.projectId,
-        type: WorkflowTaskType.transcode,
+        type: WorkflowTaskType.transcode_pdf,
         status: WorkflowTaskStatus.pending,
         payload: {
           projectId: this.projectId,
