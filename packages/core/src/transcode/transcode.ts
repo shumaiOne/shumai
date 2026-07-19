@@ -21,18 +21,44 @@ export interface CjkFontConfig {
 }
 
 export function findCjkFontPath(): CjkFontConfig | undefined {
-  if (process.env.PDF_CJK_FONT_PATH && fs.existsSync(process.env.PDF_CJK_FONT_PATH)) {
-    return { fontPath: process.env.PDF_CJK_FONT_PATH }
-  }
   const candidates: { fontPath: string; fontName?: string }[] = [
+    // Custom env override
+    ...(process.env.PDF_CJK_FONT_PATH
+      ? [
+          {
+            fontPath: process.env.PDF_CJK_FONT_PATH,
+            fontName: process.env.PDF_CJK_FONT_NAME,
+          },
+        ]
+      : []),
+    // macOS
     { fontPath: '/System/Library/Fonts/Supplemental/Arial Unicode.ttf' },
     { fontPath: '/Library/Fonts/Arial Unicode.ttf' },
     { fontPath: '/System/Library/Fonts/PingFang.ttc', fontName: 'PingFangSC-Regular' },
     { fontPath: '/System/Library/Fonts/STHeiti Light.ttc', fontName: 'STHeitiSC-Light' },
-    { fontPath: '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc' },
-    { fontPath: '/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc' },
-    { fontPath: '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc' },
-    { fontPath: '/usr/share/fonts/truetype/arphic/ukai.ttc' },
+    // Linux / Ubuntu / Debian Noto & WenQuanYi CJK
+    {
+      fontPath: '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
+      fontName: 'NotoSansCJKsc-Regular',
+    },
+    {
+      fontPath: '/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc',
+      fontName: 'NotoSansCJKsc-Regular',
+    },
+    { fontPath: '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc', fontName: 'WenQuanYiZenHei' },
+    { fontPath: '/usr/share/fonts/truetype/arphic/ukai.ttc', fontName: 'AR-PL-UKai-CN' },
+    {
+      fontPath: '/usr/share/fonts/noto/NotoSansCJK-Regular.ttc',
+      fontName: 'Noto Sans CJK SC',
+    },
+    // Lightweight Linux / Docker Droid Fallbacks
+    { fontPath: '/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf' },
+    { fontPath: '/usr/share/fonts/truetype/droid/DroidSansFallback.ttf' },
+    { fontPath: '/usr/share/fonts/google-droid/DroidSansFallback.ttf' },
+    // Windows CJK Fonts
+    { fontPath: 'C:\\Windows\\Fonts\\msyh.ttc', fontName: 'MicrosoftYaHei' },
+    { fontPath: 'C:\\Windows\\Fonts\\simsun.ttc', fontName: 'SimSun' },
+    { fontPath: 'C:\\Windows\\Fonts\\simhei.ttf' },
   ]
   for (const item of candidates) {
     if (fs.existsSync(item.fontPath)) {
