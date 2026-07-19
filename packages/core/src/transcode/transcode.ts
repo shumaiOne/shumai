@@ -299,8 +299,14 @@ export class TranscodeService {
       try {
         await execFileAsync('pdftoppm', ['-png', '-f', '1', '-l', '100', inputFile, pagePrefix])
       } catch (err) {
+        const errCode = (err as Record<string, unknown>)?.code
         const msg = err instanceof Error ? err.message : String(err)
-        if (msg.includes('pdftoppm') || msg.includes('ENOENT') || msg.includes('not found')) {
+        const lower = msg.toLowerCase()
+        if (
+          errCode === 'ENOENT' ||
+          lower.includes('enoent') ||
+          (lower.includes('not found') && lower.includes('pdftoppm'))
+        ) {
           throw new Error(
             `pdftoppm executable not found in $PATH. Please install poppler-utils / poppler. (${msg})`,
             { cause: err },
@@ -694,8 +700,14 @@ export class TranscodeService {
           pagePrefix,
         ])
       } catch (err) {
+        const errCode = (err as Record<string, unknown>)?.code
         const msg = err instanceof Error ? err.message : String(err)
-        if (msg.includes('pdftoppm') || msg.includes('ENOENT') || msg.includes('not found')) {
+        const lower = msg.toLowerCase()
+        if (
+          errCode === 'ENOENT' ||
+          lower.includes('enoent') ||
+          (lower.includes('not found') && lower.includes('pdftoppm'))
+        ) {
           throw new Error(
             `pdftoppm executable not found in $PATH. Please install poppler-utils / poppler. (${msg})`,
             { cause: err },

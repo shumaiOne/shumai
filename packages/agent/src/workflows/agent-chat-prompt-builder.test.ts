@@ -62,6 +62,7 @@ describe('AgentChatPromptBuilder', () => {
     expect(result).toContain('File Type: pdf')
     expect(result).toContain('Total Pages: 15')
     expect(result).toContain("call the 'read_pdf_pages' tool")
+    expect(result).toContain('Maximum 20 pages allowed per call.')
     expect(result).not.toContain("call the 'screenshot' tool")
     expect(result).not.toContain("call the 'analyze_image' tool")
   })

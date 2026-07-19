@@ -149,7 +149,7 @@ export class AgentChatPromptBuilder {
       } else if (type === 'video') {
         instruction += `\n\nIf you need to view visual frames or take screenshots of the video, call the 'screenshot' tool. You must specify the 'start' (seconds), 'end' (seconds), and 'count' (number of screenshots) parameters.`
       } else if (type === 'pdf') {
-        instruction += `\n\nIf you need to view pages of the PDF document, call the 'read_pdf_pages' tool. You must specify the 'start' (page number) and 'end' (page number) parameters.`
+        instruction += `\n\nIf you need to view pages of the PDF document, call the 'read_pdf_pages' tool. You must specify the 'start' (page number) and 'end' (page number) parameters. Maximum 20 pages allowed per call.`
       }
     }
 

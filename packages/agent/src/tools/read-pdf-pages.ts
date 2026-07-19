@@ -23,10 +23,48 @@ export function createReadPdfPagesTool(
     name: 'read_pdf_pages',
     label: 'Read PDF Pages',
     description:
-      'Converts specific page range of a PDF document into 1080p WebP images for visual analysis.',
+      'Converts specific page range of a PDF document into 1080p WebP images for visual analysis. Maximum 20 pages allowed per call.',
     parameters: readPdfPagesSchema,
     execute: async (_toolCallId, params) => {
       try {
+        if (params.start < 1) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Invalid page range: start page (${params.start}) must be at least 1.`,
+              },
+            ],
+            details: {},
+          }
+        }
+
+        if (params.start > params.end) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Invalid page range: start page (${params.start}) must be less than or equal to end page (${params.end}).`,
+              },
+            ],
+            details: {},
+          }
+        }
+
+        const MAX_PAGE_RANGE = 20
+        const requestedPages = params.end - params.start + 1
+        if (requestedPages > MAX_PAGE_RANGE) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Page range (${requestedPages} pages requested) exceeds the maximum limit of ${MAX_PAGE_RANGE} pages per request.`,
+              },
+            ],
+            details: {},
+          }
+        }
+
         const targetAssetId = params.assetId || assetId
         const asset = await prisma.asset.findUnique({
           where: { id: targetAssetId },

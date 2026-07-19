@@ -126,6 +126,36 @@ describe('readPdfPagesTool', () => {
     expect(result.details.sourceKeys).toEqual(['pdf_pages/page_1.webp', 'pdf_pages/page_2.webp'])
   })
 
+  it('should return error text if start page is less than 1', async () => {
+    const tool = createReadPdfPagesTool('asset-1')
+    const result = await tool.execute('call-1', { start: 0, end: 5 })
+
+    expect(result.content[0]).toEqual({
+      type: 'text',
+      text: 'Invalid page range: start page (0) must be at least 1.',
+    })
+  })
+
+  it('should return error text if start page is greater than end page', async () => {
+    const tool = createReadPdfPagesTool('asset-1')
+    const result = await tool.execute('call-1', { start: 5, end: 2 })
+
+    expect(result.content[0]).toEqual({
+      type: 'text',
+      text: 'Invalid page range: start page (5) must be less than or equal to end page (2).',
+    })
+  })
+
+  it('should return error text if page range exceeds maximum limit of 20', async () => {
+    const tool = createReadPdfPagesTool('asset-1')
+    const result = await tool.execute('call-1', { start: 1, end: 25 })
+
+    expect(result.content[0]).toEqual({
+      type: 'text',
+      text: 'Page range (25 pages requested) exceeds the maximum limit of 20 pages per request.',
+    })
+  })
+
   it('should return error text if asset not found', async () => {
     vi.mocked(prisma.asset.findUnique).mockResolvedValue(null)
 
