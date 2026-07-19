@@ -19,6 +19,7 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
     cleanupTmpDirActivity,
     takeScreenshotsActivity,
     overlayAnnotationsActivity,
+    renderPdfPagesActivity,
     createEmbeddingTaskIfEnabledActivity,
   } = getActivities()
 
@@ -36,6 +37,34 @@ export async function transcodeMedia(task: WorkflowTask): Promise<void> {
     })
 
     const payload = task.payload
+
+    if (payload?.pdfPages) {
+      const asset = await executeActivity(workerQueue, getAssetActivity, task.assetId)
+      const key = asset?.storageKey?.key
+      if (!asset || !key) {
+        throw ApplicationFailure.create({
+          message: 'Asset not found or has no key',
+          nonRetryable: true,
+        })
+      }
+
+      const pages = await executeActivity(workerQueue, renderPdfPagesActivity, {
+        assetKey: key,
+        assetId: asset.id,
+        start: payload.pdfPages.start,
+        end: payload.pdfPages.end,
+        commentTimestamp: payload.pdfPages.commentTimestamp,
+        annotations: payload.pdfPages.annotations,
+      })
+
+      // Update Task Status to completed with output
+      await executeActivity(workerQueue, updateTaskStatusActivity, {
+        taskId: task.id,
+        status: 'completed',
+        output: { pages },
+      })
+      return
+    }
 
     if (payload?.screenshot) {
       const asset = await executeActivity(workerQueue, getAssetActivity, task.assetId)

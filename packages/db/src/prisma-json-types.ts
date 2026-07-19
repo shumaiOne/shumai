@@ -255,6 +255,13 @@ declare global {
       annotations?: AnnotationList | null
     }
 
+    export interface PdfPagesSpec {
+      start: number
+      end: number
+      commentTimestamp?: number | null
+      annotations?: AnnotationList | null
+    }
+
     export interface WorkflowTaskPayload {
       projectId: string
       transcode?: TaskSpec
@@ -265,6 +272,7 @@ declare global {
       agentToolCall?: AgentToolCallPayload
       screenshot?: ScreenshotSpec
       imageAnnotation?: ImageAnnotationSpec
+      pdfPages?: PdfPagesSpec
     }
 
     // ----------------------------------------------------------------------

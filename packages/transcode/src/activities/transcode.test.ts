@@ -12,6 +12,7 @@ vi.mock('child_process', () => ({
 import {
   getMediaInfoActivity,
   overlayAnnotationsActivity,
+  renderPdfPagesActivity,
   takeScreenshotsActivity,
   transcodeVideoActivity,
   transcodeAudioActivity,
@@ -62,6 +63,7 @@ vi.mock('@shumai/core/src/transcode/transcode', () => ({
     removeDir: vi.fn(),
     takeScreenshots: vi.fn(),
     overlayAnnotations: vi.fn(),
+    renderPdfPages: vi.fn(),
   },
 }))
 
@@ -319,6 +321,31 @@ describe('Transcode Activities', () => {
       annotations: [],
     })
     expect(result).toBe('annotations/ann.webp')
+  })
+
+  it('should call transcodeService.renderPdfPages', async () => {
+    vi.mocked(transcodeService.renderPdfPages).mockResolvedValue([
+      { key: 'pdf_pages/doc-page-1.webp', page: 1 },
+    ])
+
+    const result = await renderPdfPagesActivity({
+      assetKey: 'doc.pdf',
+      assetId: 'asset-pdf',
+      start: 1,
+      end: 1,
+      commentTimestamp: 1,
+      annotations: [],
+    })
+
+    expect(transcodeService.renderPdfPages).toHaveBeenCalledWith({
+      assetKey: 'doc.pdf',
+      assetId: 'asset-pdf',
+      start: 1,
+      end: 1,
+      commentTimestamp: 1,
+      annotations: [],
+    })
+    expect(result).toEqual([{ key: 'pdf_pages/doc-page-1.webp', page: 1 }])
   })
 
   describe('Non-retryable Error Handling', () => {

@@ -606,6 +606,36 @@ export async function overlayAnnotationsActivity(params: {
   }
 }
 
+export async function renderPdfPagesActivity(params: {
+  assetKey: string
+  assetId: string
+  start: number
+  end: number
+  commentTimestamp?: number | null
+  annotations?: PrismaJson.AnnotationList | null
+}): Promise<Array<{ key: string; page: number }>> {
+  try {
+    return await transcodeService.renderPdfPages(params)
+  } catch (err) {
+    const { code, message } = getErrorDetails(err)
+    const lowerMsg = message.toLowerCase()
+    if (
+      code === 'ENOENT' ||
+      lowerMsg.includes('enoent') ||
+      lowerMsg.includes('nosuchkey') ||
+      lowerMsg.includes('pdftoppm') ||
+      lowerMsg.includes('sharp')
+    ) {
+      throw ApplicationFailure.create({
+        message: `PDF page rendering failed: ${message}`,
+        nonRetryable: true,
+        cause: err instanceof Error ? err : undefined,
+      })
+    }
+    throw err
+  }
+}
+
 export interface CreateEmbeddingTaskIfEnabledParams {
   assetId: string
   teamId: string | null

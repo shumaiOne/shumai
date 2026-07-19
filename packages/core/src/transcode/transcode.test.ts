@@ -1,11 +1,19 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { transcodeService } from './transcode'
+import { s3Service } from '@shumai/core/src/s3/s3'
 import * as path from 'path'
 import * as child_process from 'child_process'
 import * as fs from 'fs'
 import { WorkflowTask } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import sharp from 'sharp'
+
+vi.mock('@shumai/core/src/s3/s3', () => ({
+  s3Service: {
+    downloadToFile: vi.fn(),
+    putObject: vi.fn(),
+  },
+}))
 
 // Mock child_process
 vi.mock('child_process', () => ({
@@ -17,7 +25,10 @@ vi.mock('sharp', () => {
   const mockSharp = {
     resize: vi.fn().mockReturnThis(),
     webp: vi.fn().mockReturnThis(),
-    toFile: vi.fn().mockResolvedValue({}),
+    toFile: vi.fn().mockImplementation(async (filePath: string) => {
+      fs.writeFileSync(filePath, 'fake-webp-data')
+      return {}
+    }),
     metadata: vi.fn().mockResolvedValue({ width: 800, height: 600, format: 'png' }),
   }
   const sharpFunc = vi.fn(() => mockSharp)
@@ -427,5 +438,42 @@ describe('TranscodeService', () => {
     expect(info.originalWidth).toBe(800)
     expect(info.originalHeight).toBe(600)
     expect(info.hasAudio).toBe(false)
+  })
+
+  it('should render PDF pages and upload to S3', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(child_process.execFile as any).mockImplementation(
+      (
+        cmd: string,
+        args: string[],
+        cb: (err: Error | null, res: { stdout: string; stderr: string }) => void,
+      ) => {
+        if (cmd === 'pdftoppm') {
+          const pagePrefix = args[args.length - 1]
+          const pagePath = `${pagePrefix}-1.png`
+          fs.writeFileSync(pagePath, 'fake-png-data')
+          cb(null, { stdout: '', stderr: '' })
+        } else {
+          cb(null, { stdout: '', stderr: '' })
+        }
+      },
+    )
+
+    vi.mocked(s3Service.downloadToFile).mockResolvedValue(undefined)
+    vi.mocked(s3Service.putObject).mockResolvedValue(
+      {} as unknown as Awaited<ReturnType<typeof s3Service.putObject>>,
+    )
+
+    const result = await transcodeService.renderPdfPages({
+      assetKey: 'projects/p1/doc.pdf',
+      assetId: 'asset-1',
+      start: 1,
+      end: 1,
+    })
+
+    expect(result.length).toBe(1)
+    expect(result[0].page).toBe(1)
+    expect(result[0].key).toContain('files/asset-1/pdf_pages/doc-page-1-')
+    expect(s3Service.putObject).toHaveBeenCalled()
   })
 })

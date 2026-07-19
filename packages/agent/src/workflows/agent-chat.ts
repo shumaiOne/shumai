@@ -124,6 +124,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mediaInfo = asset.media as any
     const duration = mediaInfo?.duration
+    const totalPages = mediaInfo?.frames || mediaInfo?.metadata?.totalFrames
 
     // Resolve Attached Files Details
     const attachedFileDetailsList: string[] = []
@@ -163,7 +164,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     const instruction = new AgentChatPromptBuilder(asset.id)
       .withContinuation(!isNewChat)
       .withPathContext(pathContext)
-      .withAssetDetails(asset.name, asset.mediaType, duration)
+      .withAssetDetails(asset.name, asset.mediaType, duration, totalPages)
       .withCommentTimestamp(commentTimestamp)
       .withExplicitMention(payload.agent?.explicitMention)
       .withAttachedFiles(attachedFileDetailsList)
