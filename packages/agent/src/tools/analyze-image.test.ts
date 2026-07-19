@@ -121,7 +121,7 @@ describe('analyzeImageTool', () => {
       data: {
         assetId: 'asset-1',
         projectId: 'project-1',
-        type: 'transcode',
+        type: 'transcode_image_annotation',
         status: 'pending',
         payload: {
           projectId: 'project-1',

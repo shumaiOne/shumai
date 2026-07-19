@@ -1,5 +1,5 @@
 import { prisma } from '@shumai/db'
-import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
+import { WorkflowTask, WorkflowTaskStatus } from '@shumai/db'
 import { Executor } from './executor'
 import * as taskActivities from './activities/task'
 import { logger } from '@shumai/core/src/logger'
@@ -145,7 +145,9 @@ export class LocalExecutor implements Executor {
         }, 5000)
 
         const limiter =
-          task.type === WorkflowTaskType.transcode ? this.transcodeLimiter : this.generalLimiter
+          task.type && task.type.startsWith('transcode')
+            ? this.transcodeLimiter
+            : this.generalLimiter
 
         limiter
           .run(async () => {
@@ -247,7 +249,9 @@ export class LocalExecutor implements Executor {
         }, 5000)
 
         const limiter =
-          task.type === WorkflowTaskType.transcode ? this.transcodeLimiter : this.generalLimiter
+          task.type && task.type.startsWith('transcode')
+            ? this.transcodeLimiter
+            : this.generalLimiter
 
         const promise = limiter
           .run(async () => {

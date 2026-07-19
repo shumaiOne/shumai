@@ -279,7 +279,7 @@ describe('TranscodeService', () => {
     })) as WorkflowTask
 
     expect(task.assetId).toBe('asset-123')
-    expect(task.type).toBe('transcode')
+    expect(task.type).toBe('transcode_video')
     expect(task.status).toBe('pending')
     expect(task.payload?.projectId).toBe('proj-123')
     expect(task.payload?.transcode?.videoStrategy).toBe('best_match')
@@ -482,7 +482,8 @@ describe('TranscodeService', () => {
   describe('overlayAnnotationsOnBuffer Pixel Tests', () => {
     it('should draw annotation overlay on a 100x200 image and mutate pixels', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const realSharp = ((await vi.importActual('sharp')) as any).default || (await vi.importActual('sharp'))
+      const actualSharp = (await vi.importActual('sharp')) as any
+      const realSharp = (actualSharp.default || actualSharp) as typeof sharp
 
       const inputBuffer = await realSharp({
         create: {
@@ -507,7 +508,7 @@ describe('TranscodeService', () => {
       ]
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sharpSpy = vi.mocked(sharp as any).mockImplementation((input: any, options: any) => realSharp(input, options))
+      const sharpSpy = vi.mocked(sharp).mockImplementation((input: any, options?: any) => realSharp(input, options))
 
       const outputBuffer = await transcodeService.overlayAnnotationsOnBuffer(
         inputBuffer,
@@ -537,7 +538,8 @@ describe('TranscodeService', () => {
 
     it('should draw annotation overlay on a 200x100 image and mutate pixels', async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const realSharp = ((await vi.importActual('sharp')) as any).default || (await vi.importActual('sharp'))
+      const actualSharp = (await vi.importActual('sharp')) as any
+      const realSharp = (actualSharp.default || actualSharp) as typeof sharp
 
       const inputBuffer = await realSharp({
         create: {
@@ -562,7 +564,7 @@ describe('TranscodeService', () => {
       ]
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sharpSpy = vi.mocked(sharp as any).mockImplementation((input: any, options: any) => realSharp(input, options))
+      const sharpSpy = vi.mocked(sharp).mockImplementation((input: any, options?: any) => realSharp(input, options))
 
       const outputBuffer = await transcodeService.overlayAnnotationsOnBuffer(
         inputBuffer,

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { transcodeMedia } from './transcode'
+import { takeVideoScreenshotsWorkflow } from './take-video-screenshots'
 import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
 import * as workflowUtils from '@shumai/workflow-core'
 
@@ -14,21 +14,16 @@ vi.mock('@shumai/workflow-core', async (importOriginal) => {
   }
 })
 
-describe('transcodeMedia Fallback Dispatcher', () => {
+describe('takeVideoScreenshotsWorkflow', () => {
   const mockActivities = {
     updateTaskStatusActivity: Object.assign(vi.fn(), {
       _activityName: 'updateTaskStatusActivity',
-    }),
-    updateAssetStatusActivity: Object.assign(vi.fn(), {
-      _activityName: 'updateAssetStatusActivity',
     }),
     getAssetActivity: Object.assign(vi.fn(), { _activityName: 'getAssetActivity' }),
     getTranscodeWorkerQueueActivity: Object.assign(vi.fn(), {
       _activityName: 'getTranscodeWorkerQueueActivity',
     }),
-    renderPdfPagesActivity: Object.assign(vi.fn(), {
-      _activityName: 'renderPdfPagesActivity',
-    }),
+    takeScreenshotsActivity: Object.assign(vi.fn(), { _activityName: 'takeScreenshotsActivity' }),
   }
 
   beforeEach(() => {
@@ -49,21 +44,24 @@ describe('transcodeMedia Fallback Dispatcher', () => {
     mockActivities.getTranscodeWorkerQueueActivity.mockResolvedValue('transcode_worker_queue')
   })
 
-  it('should dispatch to pdfPages workflow when payload.pdfPages is present', async () => {
+  it('should run screenshot workflow successfully', async () => {
     const task: WorkflowTask = {
-      id: 'task-pdf-pages',
-      assetId: 'asset-pdf',
-      type: WorkflowTaskType.transcode,
+      id: 'task-screenshot',
+      assetId: 'asset-video',
+      type: WorkflowTaskType.transcode_screenshot,
       status: WorkflowTaskStatus.pending,
+      sessionId: null,
+      output: null,
       payload: {
         projectId: 'proj-1',
-        pdfPages: {
-          start: 1,
-          end: 2,
+        screenshot: {
+          start: 0,
+          end: 10,
+          count: 2,
+          commentTimestamp: 5.0,
+          annotations: [],
         },
       },
-      output: null,
-      sessionId: null,
       createdAt: new Date(),
       updatedAt: new Date(),
       heartbeat: null,
@@ -76,48 +74,37 @@ describe('transcodeMedia Fallback Dispatcher', () => {
     }
 
     mockActivities.getAssetActivity.mockResolvedValue({
-      id: 'asset-pdf',
-      storageKey: { key: 'doc.pdf' },
-      mediaType: 'application/pdf',
+      id: 'asset-video',
+      storageKey: { key: 'video.mp4' },
+      mediaType: 'video/mp4',
     })
 
-    mockActivities.renderPdfPagesActivity.mockResolvedValue([])
+    mockActivities.takeScreenshotsActivity.mockResolvedValue([
+      { key: 'files/asset-video/screenshots/shot1.webp', timestamp: 0.0 },
+      { key: 'files/asset-video/screenshots/shot2.webp', timestamp: 5.0 },
+    ])
 
-    await transcodeMedia(task)
+    await takeVideoScreenshotsWorkflow(task)
 
-    expect(mockActivities.renderPdfPagesActivity).toHaveBeenCalled()
-  })
-
-  it('should handle failures and update task status with error', async () => {
-    const task: WorkflowTask = {
-      id: 'task-fail',
-      assetId: 'asset-1',
-      type: WorkflowTaskType.transcode,
-      status: WorkflowTaskStatus.pending,
-      sessionId: null,
-      output: null,
-      payload: {
-        projectId: 'proj-1',
-      },
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      heartbeat: null,
-      teamId: 'team-1',
-      projectId: 'proj-1',
-      uid: 'task-uid',
-      model: null,
-      inputTokens: 0,
-      outputTokens: 0,
-    }
-
-    mockActivities.getAssetActivity.mockRejectedValue(new Error('FFmpeg failed'))
-
-    await expect(transcodeMedia(task)).rejects.toThrow('FFmpeg failed')
+    expect(mockActivities.takeScreenshotsActivity).toHaveBeenCalledWith({
+      assetKey: 'video.mp4',
+      assetId: 'asset-video',
+      start: 0,
+      end: 10,
+      count: 2,
+      commentTimestamp: 5.0,
+      annotations: [],
+    })
 
     expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
-      taskId: 'task-fail',
-      status: WorkflowTaskStatus.failed,
-      output: { error: 'FFmpeg failed' },
+      taskId: 'task-screenshot',
+      status: WorkflowTaskStatus.completed,
+      output: {
+        screenshots: [
+          { key: 'files/asset-video/screenshots/shot1.webp', timestamp: 0.0 },
+          { key: 'files/asset-video/screenshots/shot2.webp', timestamp: 5.0 },
+        ],
+      },
     })
   })
 })

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { transcodeMedia } from './transcode'
+import { renderPdfPagesWorkflow } from './render-pdf-pages'
 import { WorkflowTask, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
 import * as workflowUtils from '@shumai/workflow-core'
 
@@ -14,13 +14,10 @@ vi.mock('@shumai/workflow-core', async (importOriginal) => {
   }
 })
 
-describe('transcodeMedia Fallback Dispatcher', () => {
+describe('renderPdfPagesWorkflow', () => {
   const mockActivities = {
     updateTaskStatusActivity: Object.assign(vi.fn(), {
       _activityName: 'updateTaskStatusActivity',
-    }),
-    updateAssetStatusActivity: Object.assign(vi.fn(), {
-      _activityName: 'updateAssetStatusActivity',
     }),
     getAssetActivity: Object.assign(vi.fn(), { _activityName: 'getAssetActivity' }),
     getTranscodeWorkerQueueActivity: Object.assign(vi.fn(), {
@@ -49,17 +46,19 @@ describe('transcodeMedia Fallback Dispatcher', () => {
     mockActivities.getTranscodeWorkerQueueActivity.mockResolvedValue('transcode_worker_queue')
   })
 
-  it('should dispatch to pdfPages workflow when payload.pdfPages is present', async () => {
+  it('should run renderPdfPagesWorkflow successfully', async () => {
     const task: WorkflowTask = {
       id: 'task-pdf-pages',
       assetId: 'asset-pdf',
-      type: WorkflowTaskType.transcode,
+      type: WorkflowTaskType.transcode_pdf_pages,
       status: WorkflowTaskStatus.pending,
       payload: {
         projectId: 'proj-1',
         pdfPages: {
           start: 1,
           end: 2,
+          commentTimestamp: 2,
+          annotations: [],
         },
       },
       output: null,
@@ -81,43 +80,31 @@ describe('transcodeMedia Fallback Dispatcher', () => {
       mediaType: 'application/pdf',
     })
 
-    mockActivities.renderPdfPagesActivity.mockResolvedValue([])
+    mockActivities.renderPdfPagesActivity.mockResolvedValue([
+      { key: 'pdf_pages/doc-page-1.webp', page: 1 },
+      { key: 'pdf_pages/doc-page-2.webp', page: 2 },
+    ])
 
-    await transcodeMedia(task)
+    await renderPdfPagesWorkflow(task)
 
-    expect(mockActivities.renderPdfPagesActivity).toHaveBeenCalled()
-  })
-
-  it('should handle failures and update task status with error', async () => {
-    const task: WorkflowTask = {
-      id: 'task-fail',
-      assetId: 'asset-1',
-      type: WorkflowTaskType.transcode,
-      status: WorkflowTaskStatus.pending,
-      sessionId: null,
-      output: null,
-      payload: {
-        projectId: 'proj-1',
-      },
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      heartbeat: null,
-      teamId: 'team-1',
-      projectId: 'proj-1',
-      uid: 'task-uid',
-      model: null,
-      inputTokens: 0,
-      outputTokens: 0,
-    }
-
-    mockActivities.getAssetActivity.mockRejectedValue(new Error('FFmpeg failed'))
-
-    await expect(transcodeMedia(task)).rejects.toThrow('FFmpeg failed')
+    expect(mockActivities.renderPdfPagesActivity).toHaveBeenCalledWith({
+      assetKey: 'doc.pdf',
+      assetId: 'asset-pdf',
+      start: 1,
+      end: 2,
+      commentTimestamp: 2,
+      annotations: [],
+    })
 
     expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
-      taskId: 'task-fail',
-      status: WorkflowTaskStatus.failed,
-      output: { error: 'FFmpeg failed' },
+      taskId: 'task-pdf-pages',
+      status: WorkflowTaskStatus.completed,
+      output: {
+        pages: [
+          { key: 'pdf_pages/doc-page-1.webp', page: 1 },
+          { key: 'pdf_pages/doc-page-2.webp', page: 2 },
+        ],
+      },
     })
   })
 })

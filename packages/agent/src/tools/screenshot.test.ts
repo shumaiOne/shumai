@@ -95,7 +95,7 @@ describe('screenshotTool', () => {
       data: {
         assetId: 'asset-1',
         projectId: 'project-1',
-        type: 'transcode',
+        type: 'transcode_screenshot',
         status: 'pending',
         payload: {
           projectId: 'project-1',

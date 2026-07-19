@@ -41,6 +41,30 @@ export class TemporalExecutor implements Executor {
         workflowName = 'transcodeWorkflow'
         taskQueue = TaskQueueTranscode
         break
+      case WorkflowTaskType.transcode_video:
+        workflowName = 'transcodeVideoWorkflow'
+        taskQueue = TaskQueueTranscode
+        break
+      case WorkflowTaskType.transcode_image:
+        workflowName = 'transcodeImageWorkflow'
+        taskQueue = TaskQueueTranscode
+        break
+      case WorkflowTaskType.transcode_pdf:
+        workflowName = 'transcodePdfWorkflow'
+        taskQueue = TaskQueueTranscode
+        break
+      case WorkflowTaskType.transcode_pdf_pages:
+        workflowName = 'renderPdfPagesWorkflow'
+        taskQueue = TaskQueueTranscode
+        break
+      case WorkflowTaskType.transcode_screenshot:
+        workflowName = 'takeVideoScreenshotsWorkflow'
+        taskQueue = TaskQueueTranscode
+        break
+      case WorkflowTaskType.transcode_image_annotation:
+        workflowName = 'overlayImageAnnotationWorkflow'
+        taskQueue = TaskQueueTranscode
+        break
       default:
         throw new Error(`Unknown task type: ${task.type}`)
     }

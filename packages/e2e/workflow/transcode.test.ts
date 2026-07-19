@@ -94,7 +94,7 @@ describe.each(['local', 'temporal'] as const)(
       // 3. Create Workflow Task
       const task = await prisma.workflowTask.create({
         data: {
-          type: 'transcode',
+          type: 'transcode_video',
           status: 'pending',
           assetId: asset.id,
           projectId: project.id,
@@ -184,7 +184,7 @@ describe.each(['local', 'temporal'] as const)(
       // 3. Create Workflow Task
       const task = await prisma.workflowTask.create({
         data: {
-          type: 'transcode',
+          type: 'transcode_image',
           status: 'pending',
           assetId: asset.id,
           projectId: project.id,
@@ -265,7 +265,7 @@ describe.each(['local', 'temporal'] as const)(
       // 3. Create Workflow Task
       const task = await prisma.workflowTask.create({
         data: {
-          type: 'transcode',
+          type: 'transcode_video',
           status: 'pending',
           assetId: asset.id,
           projectId: project.id,
@@ -344,7 +344,7 @@ describe.each(['local', 'temporal'] as const)(
       // 3. Create Workflow Task
       const task = await prisma.workflowTask.create({
         data: {
-          type: 'transcode',
+          type: 'transcode_screenshot',
           status: 'pending',
           assetId: asset.id,
           projectId: project.id,
@@ -418,7 +418,7 @@ describe.each(['local', 'temporal'] as const)(
       // 3. Create Workflow Task
       const task = await prisma.workflowTask.create({
         data: {
-          type: 'transcode',
+          type: 'transcode_image_annotation',
           status: 'pending',
           assetId: asset.id,
           projectId: project.id,
@@ -497,7 +497,7 @@ describe.each(['local', 'temporal'] as const)(
       // 3. Create Workflow Task
       const task = await prisma.workflowTask.create({
         data: {
-          type: 'transcode',
+          type: 'transcode_pdf',
           status: 'pending',
           assetId: asset.id,
           projectId: project.id,
