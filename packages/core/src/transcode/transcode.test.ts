@@ -478,4 +478,116 @@ describe('TranscodeService', () => {
     expect(result[0].key).toContain('files/asset-1/pdf_pages/doc-page-1-')
     expect(s3Service.putObject).toHaveBeenCalled()
   })
+
+  describe('overlayAnnotationsOnBuffer Pixel Tests', () => {
+    it('should draw annotation overlay on a 100x200 image and mutate pixels', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const realSharp = ((await vi.importActual('sharp')) as any).default || (await vi.importActual('sharp'))
+
+      const inputBuffer = await realSharp({
+        create: {
+          width: 100,
+          height: 200,
+          channels: 4,
+          background: { r: 255, g: 255, b: 255, alpha: 1 },
+        },
+      })
+        .png()
+        .toBuffer()
+
+      const annotations: PrismaJson.AnnotationList = [
+        {
+          type: 'box',
+          color: '#ff0000',
+          points: [
+            [0.2, 0.2],
+            [0.8, 0.8],
+          ],
+        },
+      ]
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sharpSpy = vi.mocked(sharp as any).mockImplementation((input: any, options: any) => realSharp(input, options))
+
+      const outputBuffer = await transcodeService.overlayAnnotationsOnBuffer(
+        inputBuffer,
+        annotations,
+      )
+      sharpSpy.mockRestore()
+
+      const { data, info } = await realSharp(outputBuffer)
+        .raw()
+        .toBuffer({ resolveWithObject: true })
+
+      expect(info.width).toBe(100)
+      expect(info.height).toBe(200)
+
+      const pixelX = 50
+      const pixelY = 40
+      const offset = (pixelY * info.width + pixelX) * info.channels
+
+      const r = data[offset]
+      const g = data[offset + 1]
+      const b = data[offset + 2]
+
+      expect(r).toBeGreaterThan(150)
+      expect(g).toBeLessThan(120)
+      expect(b).toBeLessThan(120)
+    })
+
+    it('should draw annotation overlay on a 200x100 image and mutate pixels', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const realSharp = ((await vi.importActual('sharp')) as any).default || (await vi.importActual('sharp'))
+
+      const inputBuffer = await realSharp({
+        create: {
+          width: 200,
+          height: 100,
+          channels: 4,
+          background: { r: 255, g: 255, b: 255, alpha: 1 },
+        },
+      })
+        .png()
+        .toBuffer()
+
+      const annotations: PrismaJson.AnnotationList = [
+        {
+          type: 'box',
+          color: '#00ff00',
+          points: [
+            [0.1, 0.1],
+            [0.9, 0.9],
+          ],
+        },
+      ]
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sharpSpy = vi.mocked(sharp as any).mockImplementation((input: any, options: any) => realSharp(input, options))
+
+      const outputBuffer = await transcodeService.overlayAnnotationsOnBuffer(
+        inputBuffer,
+        annotations,
+      )
+      sharpSpy.mockRestore()
+
+      const { data, info } = await realSharp(outputBuffer)
+        .raw()
+        .toBuffer({ resolveWithObject: true })
+
+      expect(info.width).toBe(200)
+      expect(info.height).toBe(100)
+
+      const pixelX = 100
+      const pixelY = 10
+      const offset = (pixelY * info.width + pixelX) * info.channels
+
+      const r = data[offset]
+      const g = data[offset + 1]
+      const b = data[offset + 2]
+
+      expect(r).toBeLessThan(100)
+      expect(g).toBeGreaterThan(200)
+      expect(b).toBeLessThan(100)
+    })
+  })
 })

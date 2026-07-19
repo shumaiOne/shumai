@@ -643,18 +643,9 @@ export class TranscodeService {
           params.annotations &&
           params.annotations.length > 0
         ) {
-          const meta = await sharp(localShotPath, { limitInputPixels: false }).metadata()
-          const width = meta.width || 1280
-          const height = meta.height || 720
-
-          const svgStr = renderAnnotationsToSvg(width, height, params.annotations)
-          const tempCompositedPath = path.join(tmpDir, `composite-${outName}`)
-
-          await sharp(localShotPath, { limitInputPixels: false })
-            .composite([{ input: Buffer.from(svgStr), top: 0, left: 0 }])
-            .toFile(tempCompositedPath)
-
-          fs.renameSync(tempCompositedPath, localShotPath)
+          const shotBuffer = fs.readFileSync(localShotPath)
+          const composited = await this.overlayAnnotationsOnBuffer(shotBuffer, params.annotations)
+          fs.writeFileSync(localShotPath, composited)
         }
 
         // 6. Upload to S3
@@ -735,10 +726,10 @@ export class TranscodeService {
         const localPngPath = path.join(tmpDir, files[i])
         const webpName = `${stem}-page-${pageNum}-${ulid()}.webp`
 
-        let pipeline = sharp(localPngPath, { limitInputPixels: false }).resize(1920, 1080, {
-          fit: 'inside',
-          withoutEnlargement: false,
-        })
+        let webpBuffer = await sharp(localPngPath, { limitInputPixels: false })
+          .resize(1920, 1080, { fit: 'inside', withoutEnlargement: false })
+          .webp({ quality: 85 })
+          .toBuffer()
 
         // Overlay annotations if comment page matches pageNum
         const commentPage =
@@ -752,15 +743,8 @@ export class TranscodeService {
           params.annotations &&
           params.annotations.length > 0
         ) {
-          const meta = await pipeline.metadata()
-          const width = meta.width || 1920
-          const height = meta.height || 1080
-
-          const svgStr = renderAnnotationsToSvg(width, height, params.annotations)
-          pipeline = pipeline.composite([{ input: Buffer.from(svgStr), top: 0, left: 0 }])
+          webpBuffer = await this.overlayAnnotationsOnBuffer(webpBuffer, params.annotations)
         }
-
-        const webpBuffer = await pipeline.webp({ quality: 85 }).toBuffer()
 
         // Upload to S3 directly from buffer
         const s3Key = `files/${params.assetId}/pdf_pages/${webpName}`
@@ -775,41 +759,56 @@ export class TranscodeService {
     }
   }
 
+  async overlayAnnotationsOnBuffer(
+    imageBuffer: Buffer,
+    annotations: PrismaJson.AnnotationList,
+  ): Promise<Buffer> {
+    if (!annotations || annotations.length === 0) {
+      return imageBuffer
+    }
+
+    const meta = await sharp(imageBuffer, { limitInputPixels: false }).metadata()
+    const width = meta.width || 1920
+    const height = meta.height || 1080
+
+    const svgStr = renderAnnotationsToSvg(width, height, annotations)
+    return await sharp(imageBuffer, { limitInputPixels: false })
+      .composite([{ input: Buffer.from(svgStr), top: 0, left: 0 }])
+      .resize(16383, 16383, { fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 85 })
+      .toBuffer()
+  }
+
   async overlayAnnotations(params: {
     assetKey: string
     assetId: string
     annotations: PrismaJson.AnnotationList
   }): Promise<string> {
     const bucket = process.env.S3_BUCKET || 'shumai'
+    const outName = `annotation-${ulid()}.webp`
     const tmpDir = this.createTempDir('annotation-')
     const imgPath = path.join(tmpDir, path.basename(params.assetKey))
 
     try {
       // 1. Download image
       await s3Service.downloadToFile(bucket, params.assetKey, imgPath)
+      const inputBuffer = fs.readFileSync(imgPath)
 
-      // 2. Read dimensions
-      const meta = await sharp(imgPath, { limitInputPixels: false }).metadata()
-      const width = meta.width || 1920
-      const height = meta.height || 1080
+      // 2. Overlay annotations in memory using helper method
+      const compositedBuffer = await this.overlayAnnotationsOnBuffer(
+        inputBuffer,
+        params.annotations,
+      )
 
-      // 3. Render SVG
-      const svgStr = renderAnnotationsToSvg(width, height, params.annotations)
-
-      // 4. Composite
-      const outName = `annotation-${ulid()}.webp`
-      const localOutPath = path.join(tmpDir, outName)
-
-      await sharp(imgPath, { limitInputPixels: false })
-        .composite([{ input: Buffer.from(svgStr), top: 0, left: 0 }])
-        .resize(16383, 16383, { fit: 'inside', withoutEnlargement: true })
-        .webp({ quality: 90 })
-        .toFile(localOutPath)
-
-      // 5. Upload to S3
+      // 3. Upload to S3
       const s3Key = `files/${params.assetId}/annotations/${outName}`
-      const fileBuffer = fs.readFileSync(localOutPath)
-      await s3Service.putObject(bucket, s3Key, fileBuffer, fileBuffer.length, 'image/webp')
+      await s3Service.putObject(
+        bucket,
+        s3Key,
+        compositedBuffer,
+        compositedBuffer.length,
+        'image/webp',
+      )
 
       return s3Key
     } finally {
