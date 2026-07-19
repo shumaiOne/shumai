@@ -25,6 +25,8 @@ vi.mock('sharp', () => {
   const mockSharp = {
     resize: vi.fn().mockReturnThis(),
     webp: vi.fn().mockReturnThis(),
+    composite: vi.fn().mockReturnThis(),
+    toBuffer: vi.fn().mockResolvedValue(Buffer.from('fake-webp-buffer')),
     toFile: vi.fn().mockImplementation(async (filePath: string) => {
       fs.writeFileSync(filePath, 'fake-webp-data')
       return {}

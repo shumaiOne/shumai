@@ -734,13 +734,11 @@ export class TranscodeService {
         const pageNum = params.start + i
         const localPngPath = path.join(tmpDir, files[i])
         const webpName = `${stem}-page-${pageNum}-${ulid()}.webp`
-        const localWebpPath = path.join(tmpDir, webpName)
 
-        // Convert to 1080p WebP (fit inside 1920x1080)
-        await sharp(localPngPath, { limitInputPixels: false })
-          .resize(1920, 1080, { fit: 'inside', withoutEnlargement: false })
-          .webp({ quality: 85 })
-          .toFile(localWebpPath)
+        let pipeline = sharp(localPngPath, { limitInputPixels: false }).resize(1920, 1080, {
+          fit: 'inside',
+          withoutEnlargement: false,
+        })
 
         // Overlay annotations if comment page matches pageNum
         const commentPage =
@@ -754,23 +752,18 @@ export class TranscodeService {
           params.annotations &&
           params.annotations.length > 0
         ) {
-          const meta = await sharp(localWebpPath, { limitInputPixels: false }).metadata()
+          const meta = await pipeline.metadata()
           const width = meta.width || 1920
           const height = meta.height || 1080
 
           const svgStr = renderAnnotationsToSvg(width, height, params.annotations)
-          const tempCompositedPath = path.join(tmpDir, `composite-${webpName}`)
-
-          await sharp(localWebpPath, { limitInputPixels: false })
-            .composite([{ input: Buffer.from(svgStr), top: 0, left: 0 }])
-            .toFile(tempCompositedPath)
-
-          fs.renameSync(tempCompositedPath, localWebpPath)
+          pipeline = pipeline.composite([{ input: Buffer.from(svgStr), top: 0, left: 0 }])
         }
 
-        // Upload to S3
+        const webpBuffer = await pipeline.webp({ quality: 85 }).toBuffer()
+
+        // Upload to S3 directly from buffer
         const s3Key = `files/${params.assetId}/pdf_pages/${webpName}`
-        const webpBuffer = fs.readFileSync(localWebpPath)
         await s3Service.putObject(bucket, s3Key, webpBuffer, webpBuffer.length, 'image/webp')
 
         results.push({ key: s3Key, page: pageNum })
