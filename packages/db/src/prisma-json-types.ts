@@ -124,13 +124,20 @@ declare global {
       codec: string
     }
 
+    export interface PdfTranscode {
+      key?: string
+      url?: string
+    }
+
     export interface MediaInfo {
       duration: number
       filesize: number
       frames: number
+      proxyType?: 'image' | 'video' | 'audio' | 'pdf'
       imageTranscodes: ImageTranscode[]
       videoTranscodes: VideoTranscode[]
       videoPreview: VideoTranscode
+      pdfTranscode?: PdfTranscode
       sprite?: SpriteInfo
       poster?: PosterInfo
       thumbnail?: ImageTranscode

@@ -507,8 +507,11 @@ describe('TranscodeService', () => {
         },
       ]
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sharpSpy = vi.mocked(sharp).mockImplementation((input: any, options?: any) => realSharp(input, options))
+      const sharpSpy = vi
+        .mocked(sharp)
+        .mockImplementation((input: unknown, options?: unknown) =>
+          realSharp(input as Parameters<typeof sharp>[0], options as Parameters<typeof sharp>[1]),
+        )
 
       const outputBuffer = await transcodeService.overlayAnnotationsOnBuffer(
         inputBuffer,
@@ -563,8 +566,11 @@ describe('TranscodeService', () => {
         },
       ]
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sharpSpy = vi.mocked(sharp).mockImplementation((input: any, options?: any) => realSharp(input, options))
+      const sharpSpy = vi
+        .mocked(sharp)
+        .mockImplementation((input: unknown, options?: unknown) =>
+          realSharp(input as Parameters<typeof sharp>[0], options as Parameters<typeof sharp>[1]),
+        )
 
       const outputBuffer = await transcodeService.overlayAnnotationsOnBuffer(
         inputBuffer,
@@ -590,6 +596,33 @@ describe('TranscodeService', () => {
       expect(r).toBeLessThan(100)
       expect(g).toBeGreaterThan(200)
       expect(b).toBeLessThan(100)
+    })
+
+    it('should generate PDF from text file including CJK characters', async () => {
+      const txtFile = path.join(tempDir, 'test.txt')
+      const pdfFile = path.join(tempDir, 'output.pdf')
+      fs.writeFileSync(txtFile, 'Hello World\n你好世界\nこんにちは世界\n안녕하세요世界')
+
+      await transcodeService.generatePdfFromText(txtFile, pdfFile)
+
+      expect(fs.existsSync(pdfFile)).toBe(true)
+      const stat = fs.statSync(pdfFile)
+      expect(stat.size).toBeGreaterThan(0)
+    })
+
+    it('should generate PDF from CSV file including CJK characters', async () => {
+      const csvFile = path.join(tempDir, 'test.csv')
+      const pdfFile = path.join(tempDir, 'output.pdf')
+      fs.writeFileSync(
+        csvFile,
+        'Name,Age,Country\nHello World,25,USA\n你好世界,30,China\nこんにちは,28,Japan\n안녕하세요,22,Korea',
+      )
+
+      await transcodeService.generatePdfFromCsv(csvFile, pdfFile)
+
+      expect(fs.existsSync(pdfFile)).toBe(true)
+      const stat = fs.statSync(pdfFile)
+      expect(stat.size).toBeGreaterThan(0)
     })
   })
 })

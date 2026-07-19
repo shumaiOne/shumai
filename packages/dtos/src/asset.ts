@@ -9,6 +9,7 @@ export type AssetInfoPaginatedList = z.infer<typeof assetInfoPaginatedListSchema
 
 export const previewInfoSchema = z.object({
   mediaType: z.string().nullable(),
+  proxyType: z.enum(['image', 'video', 'audio', 'pdf']).nullable().optional(),
   thumbnailUrl: z.string().optional(),
   originalHeight: z.number().optional(),
   originalWidth: z.number().optional(),
@@ -63,6 +64,7 @@ export const assetInfoSchema = z.object({
   targetType: z.string().optional().nullable(),
   status: z.string(),
   mediaType: z.string().nullable(),
+  proxyType: z.enum(['image', 'video', 'audio', 'pdf']).nullable().optional(),
   latestChildren: z.array(childPreviewSchema).optional(),
   preview: previewInfoSchema.nullable().optional(),
   createdAt: z.string(),
@@ -105,6 +107,7 @@ export const assetInfoSchema = z.object({
         )
         .optional(),
       videoPreview: z.object({ url: z.string(), key: z.string().optional() }).optional(),
+      pdfTranscode: z.object({ url: z.string(), key: z.string().optional() }).optional(),
       mimeType: z.string().optional(),
       metadata: mediaMetadataSchema.optional(),
     })

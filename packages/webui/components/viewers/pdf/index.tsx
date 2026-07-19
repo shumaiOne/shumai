@@ -4,7 +4,7 @@ import PdfViewer from './pdf-viewer'
 export const pdfTypeDefinition: FileTypeDefinition = {
   id: 'pdf',
   name: 'PDF',
-  match: (file) => file.mediaType === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'),
+  match: (file) => file.proxyType === 'pdf',
   viewer: PdfViewer,
   commentsConfig: {
     hasTimestamp: true,

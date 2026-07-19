@@ -59,10 +59,26 @@ export async function getMediaInfoActivity(params: {
             ? 'document'
             : 'file'
 
+    const isPdf =
+      params.mediaType === 'application/pdf' ||
+      params.mediaType === 'text/plain' ||
+      params.mediaType === 'text/csv'
+
+    const proxyType: 'image' | 'video' | 'audio' | 'pdf' | undefined = isVideo
+      ? 'video'
+      : isAudio
+        ? 'audio'
+        : isImage
+          ? 'image'
+          : isPdf || isDocument
+            ? 'pdf'
+            : undefined
+
     const mediaInfo: PrismaJson.MediaInfo = {
       duration: 0,
       filesize: 0,
       frames: 0,
+      proxyType,
       imageTranscodes: [],
       videoTranscodes: [],
       videoPreview: { width: 0, height: 0 },
@@ -80,6 +96,9 @@ export async function getMediaInfoActivity(params: {
     const metadataUpdates: { key: string; value: string | number }[] = [
       { key: 'file_type', value: fileType },
     ]
+    if (proxyType) {
+      metadataUpdates.push({ key: 'proxy_type', value: proxyType })
+    }
 
     if (isVideo) {
       const info = await transcodeService.getVideoInfo(params.filePath)
@@ -163,7 +182,7 @@ export async function getMediaInfoActivity(params: {
         { key: 'resolution_width', value: info.originalWidth },
         { key: 'resolution_height', value: info.originalHeight },
       )
-    } else if (params.mediaType === 'application/pdf') {
+    } else if (isPdf || isDocument) {
       const info = await transcodeService.getPdfInfo(params.filePath)
       mediaInfo.frames = info.totalFrames
       mediaInfo.metadata = {
@@ -420,7 +439,7 @@ export async function generateSpriteActivity(params: GenerateSpriteActivityParam
   const posterFile = path.join(tmpDir, 'poster.webp')
 
   try {
-    if (params.mediaInfo.mimeType === 'application/pdf') {
+    if (params.mediaInfo.proxyType === 'pdf' || params.mediaInfo.mimeType === 'application/pdf') {
       const pdfRes = await transcodeService.generatePdfSprite(
         params.filePath,
         spriteFile,
@@ -482,6 +501,50 @@ export async function generateSpriteActivity(params: GenerateSpriteActivityParam
   } finally {
     if (fs.existsSync(spriteFile)) fs.unlinkSync(spriteFile)
     if (fs.existsSync(posterFile)) fs.unlinkSync(posterFile)
+  }
+}
+
+export interface GeneratePdfProxyActivityParams {
+  assetId: string
+  assetKey: string
+  filePath: string
+  mediaType: string
+  filename: string
+}
+
+export async function generatePdfProxyActivity(
+  params: GeneratePdfProxyActivityParams,
+): Promise<{ pdfProxyKey: string; pdfFilePath: string }> {
+  const isTxt = params.mediaType === 'text/plain' || params.filename.toLowerCase().endsWith('.txt')
+  const isCsv = params.mediaType === 'text/csv' || params.filename.toLowerCase().endsWith('.csv')
+
+  if (!isTxt && !isCsv) {
+    return { pdfProxyKey: params.assetKey, pdfFilePath: params.filePath }
+  }
+
+  const bucket = process.env.S3_BUCKET || 'shumai'
+  const pdfProxyKey = `files/${params.assetId}/proxy.pdf`
+  const tmpDir = path.dirname(params.filePath)
+  const pdfFilePath = path.join(tmpDir, 'proxy.pdf')
+
+  try {
+    if (isCsv) {
+      await transcodeService.generatePdfFromCsv(params.filePath, pdfFilePath)
+    } else {
+      await transcodeService.generatePdfFromText(params.filePath, pdfFilePath)
+    }
+
+    const buffer = fs.readFileSync(pdfFilePath)
+    await s3Service.putObject(bucket, pdfProxyKey, buffer, buffer.length, 'application/pdf')
+
+    return { pdfProxyKey, pdfFilePath }
+  } catch (err) {
+    const { message } = getErrorDetails(err)
+    throw ApplicationFailure.create({
+      message: `Failed to generate PDF proxy for text/csv: ${message}`,
+      nonRetryable: true,
+      cause: err instanceof Error ? err : undefined,
+    })
   }
 }
 

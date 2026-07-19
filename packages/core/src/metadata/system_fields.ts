@@ -113,6 +113,23 @@ export const systemFields: Prisma.MetadataFieldCreateInput[] = [
     },
   },
   {
+    key: 'proxy_type',
+    scope: 'SYSTEM',
+    readOnly: true,
+    config: {
+      name: 'Proxy Type',
+      type: 'select',
+      select: {
+        options: [
+          { id: 'image', displayName: 'Image', color: 'system' },
+          { id: 'video', displayName: 'Video', color: 'system' },
+          { id: 'audio', displayName: 'Audio', color: 'system' },
+          { id: 'pdf', displayName: 'PDF', color: 'system' },
+        ],
+      },
+    },
+  },
+  {
     key: 'audio_bit_depth',
     scope: 'SYSTEM',
     readOnly: true,

@@ -1,3 +1,4 @@
+import PDFDocument from 'pdfkit'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { stemFromKey } from '@shumai/core/src/utils/filename'
 import { prisma, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
@@ -12,6 +13,89 @@ import { promisify } from 'util'
 import { dataFormatNames } from './dataFormatNames'
 
 const execFileAsync = promisify(execFile)
+
+export interface CjkFontConfig {
+  fontPath: string
+  fontName?: string
+}
+
+export function findCjkFontPath(): CjkFontConfig | undefined {
+  if (process.env.PDF_CJK_FONT_PATH && fs.existsSync(process.env.PDF_CJK_FONT_PATH)) {
+    return { fontPath: process.env.PDF_CJK_FONT_PATH }
+  }
+  const candidates: { fontPath: string; fontName?: string }[] = [
+    { fontPath: '/System/Library/Fonts/Supplemental/Arial Unicode.ttf' },
+    { fontPath: '/Library/Fonts/Arial Unicode.ttf' },
+    { fontPath: '/System/Library/Fonts/PingFang.ttc', fontName: 'PingFangSC-Regular' },
+    { fontPath: '/System/Library/Fonts/STHeiti Light.ttc', fontName: 'STHeitiSC-Light' },
+    { fontPath: '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc' },
+    { fontPath: '/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc' },
+    { fontPath: '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc' },
+    { fontPath: '/usr/share/fonts/truetype/arphic/ukai.ttc' },
+  ]
+  for (const item of candidates) {
+    if (fs.existsSync(item.fontPath)) {
+      return item
+    }
+  }
+  return undefined
+}
+
+export function parseCsvContent(content: string): string[][] {
+  const rows: string[][] = []
+  let currentRow: string[] = []
+  let currentField = ''
+  let insideQuotes = false
+
+  for (let i = 0; i < content.length; i++) {
+    const char = content[i]
+    const nextChar = content[i + 1]
+
+    if (insideQuotes) {
+      if (char === '"' && nextChar === '"') {
+        currentField += '"'
+        i++
+      } else if (char === '"') {
+        insideQuotes = false
+      } else {
+        currentField += char
+      }
+    } else {
+      if (char === '"') {
+        insideQuotes = true
+      } else if (char === ',') {
+        currentRow.push(currentField.trim())
+        currentField = ''
+      } else if (char === '\n' || (char === '\r' && nextChar === '\n')) {
+        if (char === '\r') i++
+        currentRow.push(currentField.trim())
+        if (currentRow.some((f) => f.length > 0)) {
+          rows.push(currentRow)
+        }
+        currentRow = []
+        currentField = ''
+      } else if (char === '\r') {
+        currentRow.push(currentField.trim())
+        if (currentRow.some((f) => f.length > 0)) {
+          rows.push(currentRow)
+        }
+        currentRow = []
+        currentField = ''
+      } else {
+        currentField += char
+      }
+    }
+  }
+
+  if (currentField || currentRow.length > 0) {
+    currentRow.push(currentField.trim())
+    if (currentRow.some((f) => f.length > 0)) {
+      rows.push(currentRow)
+    }
+  }
+
+  return rows
+}
 
 export interface MediaMetadata {
   originalWidth: number
@@ -425,6 +509,132 @@ export class TranscodeService {
       hasAudio: false,
       mimeType: 'application/pdf',
     }
+  }
+
+  async generatePdfFromText(inputFile: string, outputFile: string): Promise<void> {
+    const content = fs.readFileSync(inputFile, 'utf-8')
+    const containsCjk = /[\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff\uac00-\ud7af]/.test(
+      content,
+    )
+    const cjkFont = containsCjk ? findCjkFontPath() : undefined
+
+    return new Promise<void>((resolve, reject) => {
+      const doc = new PDFDocument({
+        size: 'A4',
+        margin: 40,
+        bufferPages: true,
+      })
+      const writeStream = fs.createWriteStream(outputFile)
+      doc.pipe(writeStream)
+
+      if (cjkFont) {
+        if (cjkFont.fontName !== undefined) {
+          doc.font(cjkFont.fontPath, cjkFont.fontName)
+        } else {
+          doc.font(cjkFont.fontPath)
+        }
+      } else {
+        doc.font('Helvetica')
+      }
+      doc.fontSize(10)
+
+      doc.text(content, {
+        lineGap: 3,
+        paragraphGap: 4,
+      })
+
+      doc.end()
+
+      writeStream.on('finish', () => resolve())
+      writeStream.on('error', (err) => reject(err))
+    })
+  }
+
+  async generatePdfFromCsv(inputFile: string, outputFile: string): Promise<void> {
+    const content = fs.readFileSync(inputFile, 'utf-8')
+    const rows = parseCsvContent(content)
+    const containsCjk = /[\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff\uac00-\ud7af]/.test(
+      content,
+    )
+    const cjkFont = containsCjk ? findCjkFontPath() : undefined
+
+    if (rows.length === 0) {
+      rows.push(['(Empty CSV)'])
+    }
+
+    const maxCols = Math.max(...rows.map((r) => r.length))
+    const isLandscape = maxCols > 5
+
+    return new Promise<void>((resolve, reject) => {
+      const doc = new PDFDocument({
+        size: 'A4',
+        layout: isLandscape ? 'landscape' : 'portrait',
+        margin: 30,
+        bufferPages: true,
+      })
+      const writeStream = fs.createWriteStream(outputFile)
+      doc.pipe(writeStream)
+
+      const setFont = () => {
+        if (cjkFont) {
+          if (cjkFont.fontName !== undefined) {
+            doc.font(cjkFont.fontPath, cjkFont.fontName)
+          } else {
+            doc.font(cjkFont.fontPath)
+          }
+        } else {
+          doc.font('Helvetica')
+        }
+        doc.fontSize(9)
+      }
+
+      setFont()
+
+      const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right
+      const colWidth = Math.max(40, pageWidth / maxCols)
+
+      const startX = doc.page.margins.left
+      let startY = doc.page.margins.top
+      const rowHeight = 20
+
+      const drawRow = (row: string[], isHeader: boolean, y: number) => {
+        if (isHeader) {
+          doc.rect(startX, y, colWidth * maxCols, rowHeight).fill('#e0e0e0')
+          doc.fillColor('#000000')
+        }
+        for (let col = 0; col < maxCols; col++) {
+          const text = row[col] || ''
+          const x = startX + col * colWidth
+          doc.rect(x, y, colWidth, rowHeight).stroke('#cccccc')
+          doc.fillColor('#000000').text(text, x + 4, y + 5, {
+            width: colWidth - 8,
+            height: rowHeight - 6,
+            ellipsis: true,
+          })
+        }
+      }
+
+      const headerRow = rows[0]
+      drawRow(headerRow, true, startY)
+      startY += rowHeight
+
+      for (let r = 1; r < rows.length; r++) {
+        if (startY + rowHeight > doc.page.height - doc.page.margins.bottom) {
+          doc.addPage()
+          setFont()
+          startY = doc.page.margins.top
+          drawRow(headerRow, true, startY)
+          startY += rowHeight
+        }
+        drawRow(rows[r], false, startY)
+        startY += rowHeight
+      }
+
+      doc.end()
+
+      writeStream.on('finish', () => resolve())
+      writeStream.on('error', (err) => reject(err))
+    })
   }
 
   async extractAudio(inputFile: string, outputFile: string, bitrate: string): Promise<void> {

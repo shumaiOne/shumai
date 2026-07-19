@@ -4,8 +4,10 @@ import { formatTime } from '../viewers/video/utils'
 
 type FilePreviewItem = {
   type?: string | null
+  proxyType?: 'image' | 'video' | 'audio' | 'pdf' | null
   preview?: {
     mediaType?: string | null
+    proxyType?: 'image' | 'video' | 'audio' | 'pdf' | null
     spriteUrl?: string
     thumbnailUrl?: string
     originalWidth?: number
@@ -21,9 +23,10 @@ interface FilePreviewProps {
 }
 
 export const FilePreview = ({ item, showDuration = false }: FilePreviewProps) => {
-  const isVideo = item.preview?.mediaType?.startsWith('video/')
-  const isAudio = item.preview?.mediaType?.startsWith('audio/')
-  const isPdf = item.preview?.mediaType === 'application/pdf'
+  const proxyType = item.preview?.proxyType || item.proxyType
+  const isVideo = proxyType === 'video'
+  const isAudio = proxyType === 'audio'
+  const isPdf = proxyType === 'pdf'
   const hasDuration = isVideo || isAudio
   const duration = item.preview?.duration
   const pageCount = item.preview?.pageCount

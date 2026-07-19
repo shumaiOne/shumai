@@ -1697,6 +1697,13 @@ export class AssetService {
           'GET',
         )
       }
+      if (media && media.pdfTranscode?.key) {
+        media.pdfTranscode.url = await s3Service.presign(
+          process.env.S3_BUCKET || 'shumai',
+          media.pdfTranscode.key,
+          'GET',
+        )
+      }
 
       const key = latestVersion.storageKey?.key
       if (key) {
@@ -1715,6 +1722,8 @@ export class AssetService {
         }
       }
 
+      const proxyType = (media?.proxyType || null) as 'image' | 'video' | 'audio' | 'pdf' | null
+
       result.push({
         id: a.id,
         name:
@@ -1727,6 +1736,7 @@ export class AssetService {
         targetType: a.type === AssetType.symlink ? a.target?.type : null,
         status: latestVersion.status,
         mediaType: latestVersion.mediaType,
+        proxyType,
         latestChildren,
         preview,
         createdAt: a.createdAt.toISOString(),
@@ -2014,8 +2024,11 @@ export class AssetService {
       )
     }
 
+    const proxyType = (asset.media?.proxyType || null) as 'image' | 'video' | 'audio' | 'pdf' | null
+
     return {
       mediaType: asset.mediaType,
+      proxyType,
       thumbnailUrl,
       originalHeight: asset.media.metadata?.originalHeight,
       originalWidth: asset.media.metadata?.originalWidth,

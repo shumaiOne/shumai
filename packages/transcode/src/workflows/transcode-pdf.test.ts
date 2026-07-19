@@ -34,6 +34,9 @@ describe('transcodePdfWorkflow', () => {
     downloadMediaToTmpActivity: Object.assign(vi.fn(), {
       _activityName: 'downloadMediaToTmpActivity',
     }),
+    generatePdfProxyActivity: Object.assign(vi.fn(), {
+      _activityName: 'generatePdfProxyActivity',
+    }),
     cleanupTmpDirActivity: Object.assign(vi.fn(), { _activityName: 'cleanupTmpDirActivity' }),
     createEmbeddingTaskIfEnabledActivity: Object.assign(vi.fn(), {
       _activityName: 'createEmbeddingTaskIfEnabledActivity',
@@ -59,6 +62,10 @@ describe('transcodePdfWorkflow', () => {
     mockActivities.downloadMediaToTmpActivity.mockResolvedValue({
       filePath: '/tmp/doc.pdf',
       tmpDir: '/tmp',
+    })
+    mockActivities.generatePdfProxyActivity.mockResolvedValue({
+      pdfProxyKey: 'document.pdf',
+      pdfFilePath: '/tmp/doc.pdf',
     })
   })
 

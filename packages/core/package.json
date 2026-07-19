@@ -19,6 +19,7 @@
     "hono": "4.12.23",
     "jittered-fractional-indexing": "1.0.1",
     "pino": "10.3.1",
+    "pdfkit": "^0.16.0",
     "sharp": "0.34.5",
     "tweetnacl": "1.0.3",
     "ulid": "3.0.2",
@@ -27,6 +28,7 @@
   },
   "devDependencies": {
     "@types/adm-zip": "0.5.8",
-    "@types/extract-zip": "2.0.3"
+    "@types/extract-zip": "2.0.3",
+    "@types/pdfkit": "^0.13.9"
   }
 }

@@ -20,6 +20,7 @@ import {
   downloadMediaToTmpActivity,
   transcodeImageActivity,
   generateSpriteActivity,
+  generatePdfProxyActivity,
   transcodeVideoChunkActivity,
   deleteS3ObjectActivity,
 } from './transcode'
@@ -59,6 +60,8 @@ vi.mock('@shumai/core/src/transcode/transcode', () => ({
       originalWidth: 800,
       originalHeight: 1000,
     }),
+    generatePdfFromText: vi.fn(),
+    generatePdfFromCsv: vi.fn(),
     createTempDir: vi.fn().mockReturnValue('/tmp'),
     removeDir: vi.fn(),
     takeScreenshots: vi.fn(),
@@ -223,9 +226,37 @@ describe('Transcode Activities', () => {
 
     expect(metadataService.updateAssetMetadata).toHaveBeenCalledWith(
       asset.id,
-      expect.arrayContaining([{ key: 'file_type', value: 'document' }]),
+      expect.arrayContaining([
+        { key: 'file_type', value: 'document' },
+        { key: 'proxy_type', value: 'pdf' },
+      ]),
       true,
     )
+  })
+
+  it('should generate PDF proxy for text/csv files in generatePdfProxyActivity', async () => {
+    const asset = await prisma.asset.create({
+      data: { name: 'test.txt', type: 'file', status: 'uploaded' },
+    })
+
+    const generatePdfFromTextSpy = vi
+      .spyOn(transcodeService, 'generatePdfFromText')
+      .mockImplementation(async (_inPath, outPath) => {
+        const fs = await import('fs')
+        fs.writeFileSync(outPath, 'fake pdf content')
+      })
+
+    const res = await generatePdfProxyActivity({
+      assetId: asset.id,
+      assetKey: 'files/asset1/test.txt',
+      filePath: '/tmp/test.txt',
+      mediaType: 'text/plain',
+      filename: 'test.txt',
+    })
+
+    expect(res.pdfProxyKey).toBe(`files/${asset.id}/proxy.pdf`)
+    expect(generatePdfFromTextSpy).toHaveBeenCalled()
+    generatePdfFromTextSpy.mockRestore()
   })
 
   it('should set file_type to file for unknown types', async () => {
