@@ -1,12 +1,13 @@
-import PDFDocument from 'pdfkit'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { stemFromKey } from '@shumai/core/src/utils/filename'
 import { prisma, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
 import '@shumai/db/src/prisma-json-types'
 import { execFile } from 'child_process'
+import { parse } from 'csv-parse/sync'
 import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
+import PDFDocument from 'pdfkit'
 import sharp from 'sharp'
 import { ulid } from 'ulid'
 import { promisify } from 'util'
@@ -42,59 +43,21 @@ export function findCjkFontPath(): CjkFontConfig | undefined {
 }
 
 export function parseCsvContent(content: string): string[][] {
-  const rows: string[][] = []
-  let currentRow: string[] = []
-  let currentField = ''
-  let insideQuotes = false
-
-  for (let i = 0; i < content.length; i++) {
-    const char = content[i]
-    const nextChar = content[i + 1]
-
-    if (insideQuotes) {
-      if (char === '"' && nextChar === '"') {
-        currentField += '"'
-        i++
-      } else if (char === '"') {
-        insideQuotes = false
-      } else {
-        currentField += char
-      }
-    } else {
-      if (char === '"') {
-        insideQuotes = true
-      } else if (char === ',') {
-        currentRow.push(currentField.trim())
-        currentField = ''
-      } else if (char === '\n' || (char === '\r' && nextChar === '\n')) {
-        if (char === '\r') i++
-        currentRow.push(currentField.trim())
-        if (currentRow.some((f) => f.length > 0)) {
-          rows.push(currentRow)
-        }
-        currentRow = []
-        currentField = ''
-      } else if (char === '\r') {
-        currentRow.push(currentField.trim())
-        if (currentRow.some((f) => f.length > 0)) {
-          rows.push(currentRow)
-        }
-        currentRow = []
-        currentField = ''
-      } else {
-        currentField += char
-      }
-    }
+  try {
+    /* eslint-disable @typescript-eslint/naming-convention */
+    return parse(content, {
+      skip_empty_lines: true,
+      relax_column_count: true,
+      relax_quotes: true,
+      trim: true,
+      delimiter_auto: true,
+    })
+  } catch {
+    return content
+      .split(/\r?\n/)
+      .filter((line) => line.trim().length > 0)
+      .map((line) => line.split(',').map((cell) => cell.trim()))
   }
-
-  if (currentField || currentRow.length > 0) {
-    currentRow.push(currentField.trim())
-    if (currentRow.some((f) => f.length > 0)) {
-      rows.push(currentRow)
-    }
-  }
-
-  return rows
 }
 
 export interface MediaMetadata {

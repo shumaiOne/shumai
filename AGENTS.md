@@ -142,6 +142,7 @@ We follow Bun's monorepo conventions for dependency management:
 4.  **Workspace Imports**: Use `workspace:*` for internal package dependencies.
 5.  **Clean Root**: The root `package.json` must not contain runtime `dependencies`. It is reserved for shared `devDependencies` and workspace-wide `scripts`.
 6.  **Installation**: Always run `bun install` from the root. Use the `--filter` flag if you only want to update a specific package (e.g., `bun install --filter @shumai/webui`).
+7.  **Adding Packages**: Never edit `package.json` manually to add new dependencies. Always use `bun add` (e.g., `bun add <package> --filter <workspace>`) without specifying an explicit version, letting Bun resolve the correct version.
 
 ## TypeScript Configuration
 
