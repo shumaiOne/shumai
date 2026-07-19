@@ -49,6 +49,44 @@ describe('AgentChatPromptBuilder', () => {
     expect(result).not.toContain("call the 'analyze_image' tool")
   })
 
+  it('should build prompt with PDF asset details and total pages', () => {
+    const builder = new AgentChatPromptBuilder('a1').withAssetDetails(
+      'doc.pdf',
+      'application/pdf',
+      undefined,
+      15,
+    )
+    const result = builder.build()
+
+    expect(result).toContain('File Name: doc.pdf')
+    expect(result).toContain('File Type: pdf')
+    expect(result).toContain('Total Pages: 15')
+    expect(result).toContain("call the 'read_pdf_pages' tool")
+    expect(result).toContain('Maximum 20 pages allowed per call.')
+    expect(result).not.toContain("call the 'screenshot' tool")
+    expect(result).not.toContain("call the 'analyze_image' tool")
+  })
+
+  it('should build prompt with comment page for PDF asset', () => {
+    const builder = new AgentChatPromptBuilder('a1')
+      .withAssetDetails('doc.pdf', 'application/pdf', undefined, 10)
+      .withCommentTimestamp(3)
+    const result = builder.build()
+
+    expect(result).toContain('Comment Page: 3')
+  })
+
+  it('should build prompt for PDF continuation mode with comment page', () => {
+    const builder = new AgentChatPromptBuilder('a1')
+      .withContinuation(true)
+      .withAssetDetails('doc.pdf', 'application/pdf', undefined, 10)
+      .withCommentTimestamp(4)
+    const result = builder.build()
+
+    expect(result).toContain('Comment Page: 4')
+    expect(result).not.toContain('Comment Timestamp:')
+  })
+
   it('should build prompt with comment timestamp', () => {
     const builder = new AgentChatPromptBuilder('a1').withCommentTimestamp(5.5)
     const result = builder.build()

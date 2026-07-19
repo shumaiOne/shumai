@@ -77,6 +77,11 @@ const BUILTIN_TOOLS = [
     description: () => m.agent_tool_screenshot_desc(),
   },
   {
+    id: 'read_pdf_pages',
+    name: () => m.agent_tool_read_pdf_pages_name(),
+    description: () => m.agent_tool_read_pdf_pages_desc(),
+  },
+  {
     id: 'list_assets',
     name: () => m.agent_tool_list_assets_name(),
     description: () => m.agent_tool_list_assets_desc(),

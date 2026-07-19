@@ -42,6 +42,9 @@ describe('Transcode Workflow', () => {
     overlayAnnotationsActivity: Object.assign(vi.fn(), {
       _activityName: 'overlayAnnotationsActivity',
     }),
+    renderPdfPagesActivity: Object.assign(vi.fn(), {
+      _activityName: 'renderPdfPagesActivity',
+    }),
     createEmbeddingTaskIfEnabledActivity: Object.assign(vi.fn(), {
       _activityName: 'createEmbeddingTaskIfEnabledActivity',
     }),
@@ -475,6 +478,68 @@ describe('Transcode Workflow', () => {
       taskId: 'task-image-ann',
       status: WorkflowTaskStatus.completed,
       output: { key: 'files/asset-image/annotations/ann1.webp' },
+    })
+  })
+
+  it('should run pdfPages workflow successfully', async () => {
+    const task: WorkflowTask = {
+      id: 'task-pdf-pages',
+      assetId: 'asset-pdf',
+      type: WorkflowTaskType.transcode,
+      status: WorkflowTaskStatus.pending,
+      payload: {
+        projectId: 'proj-1',
+        pdfPages: {
+          start: 1,
+          end: 2,
+          commentTimestamp: 2,
+          annotations: [],
+        },
+      },
+      output: null,
+      sessionId: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      heartbeat: null,
+      teamId: 'team-1',
+      projectId: 'proj-1',
+      uid: 'task-uid',
+      model: null,
+      inputTokens: 0,
+      outputTokens: 0,
+    }
+
+    mockActivities.getAssetActivity.mockResolvedValue({
+      id: 'asset-pdf',
+      storageKey: { key: 'doc.pdf' },
+      mediaType: 'application/pdf',
+    })
+
+    mockActivities.renderPdfPagesActivity.mockResolvedValue([
+      { key: 'pdf_pages/doc-page-1.webp', page: 1 },
+      { key: 'pdf_pages/doc-page-2.webp', page: 2 },
+    ])
+
+    await transcodeMedia(task)
+
+    expect(mockActivities.renderPdfPagesActivity).toHaveBeenCalledWith({
+      assetKey: 'doc.pdf',
+      assetId: 'asset-pdf',
+      start: 1,
+      end: 2,
+      commentTimestamp: 2,
+      annotations: [],
+    })
+
+    expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
+      taskId: 'task-pdf-pages',
+      status: WorkflowTaskStatus.completed,
+      output: {
+        pages: [
+          { key: 'pdf_pages/doc-page-1.webp', page: 1 },
+          { key: 'pdf_pages/doc-page-2.webp', page: 2 },
+        ],
+      },
     })
   })
 

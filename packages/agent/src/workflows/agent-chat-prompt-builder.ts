@@ -1,4 +1,4 @@
-export function getSimpleMediaType(mediaType?: string): 'image' | 'video' | 'other' {
+export function getSimpleMediaType(mediaType?: string): 'image' | 'video' | 'pdf' | 'other' {
   if (!mediaType) return 'other'
   const lower = mediaType.toLowerCase()
   if (
@@ -11,6 +11,9 @@ export function getSimpleMediaType(mediaType?: string): 'image' | 'video' | 'oth
   if (lower.startsWith('video/')) {
     return 'video'
   }
+  if (lower === 'application/pdf' || lower.endsWith('.pdf')) {
+    return 'pdf'
+  }
   return 'other'
 }
 
@@ -19,6 +22,7 @@ export class AgentChatPromptBuilder {
   private assetName?: string
   private mediaType?: string
   private videoDuration?: number
+  private totalPages?: number
   private commentTimestamp?: number
   private pathContext?: string
   private explicitMention = false
@@ -55,10 +59,16 @@ export class AgentChatPromptBuilder {
     return this
   }
 
-  withAssetDetails(name: string, mediaType: string | null, duration?: number): this {
+  withAssetDetails(
+    name: string,
+    mediaType: string | null,
+    duration?: number,
+    totalPages?: number,
+  ): this {
     this.assetName = name
     this.mediaType = mediaType || undefined
     this.videoDuration = duration
+    this.totalPages = totalPages
     return this
   }
 
@@ -78,7 +88,12 @@ export class AgentChatPromptBuilder {
     if (this.isContinuation) {
       let instruction = ''
       if (this.commentTimestamp !== undefined) {
-        instruction += `Comment Timestamp: ${this.commentTimestamp.toFixed(2)} seconds`
+        const type = getSimpleMediaType(this.mediaType)
+        if (type === 'pdf') {
+          instruction += `Comment Page: ${Math.round(this.commentTimestamp)}`
+        } else {
+          instruction += `Comment Timestamp: ${this.commentTimestamp.toFixed(2)} seconds`
+        }
       }
       if (this.attachedFiles.length > 0 || this.referencedAssets.length > 0) {
         instruction += `\n\n[Context: New Attached Files & Referenced Assets]`
@@ -101,10 +116,17 @@ export class AgentChatPromptBuilder {
       instruction += `\nFile Type: ${type}`
       if (type === 'video' && this.videoDuration !== undefined) {
         instruction += `\nVideo Length: ${this.videoDuration.toFixed(2)} seconds`
+      } else if (type === 'pdf' && this.totalPages !== undefined) {
+        instruction += `\nTotal Pages: ${this.totalPages}`
       }
     }
     if (this.commentTimestamp !== undefined) {
-      instruction += `\nComment Timestamp: ${this.commentTimestamp.toFixed(2)} seconds`
+      const type = getSimpleMediaType(this.mediaType)
+      if (type === 'pdf') {
+        instruction += `\nComment Page: ${Math.round(this.commentTimestamp)}`
+      } else {
+        instruction += `\nComment Timestamp: ${this.commentTimestamp.toFixed(2)} seconds`
+      }
     }
     if (this.pathContext) {
       instruction += `\n\nAsset Path Context:\n${this.pathContext}`
@@ -126,6 +148,8 @@ export class AgentChatPromptBuilder {
         instruction += `\n\nIf you need to view the image data, call the 'analyze_image' tool. It does not require any parameters.`
       } else if (type === 'video') {
         instruction += `\n\nIf you need to view visual frames or take screenshots of the video, call the 'screenshot' tool. You must specify the 'start' (seconds), 'end' (seconds), and 'count' (number of screenshots) parameters.`
+      } else if (type === 'pdf') {
+        instruction += `\n\nIf you need to view pages of the PDF document, call the 'read_pdf_pages' tool. You must specify the 'start' (page number) and 'end' (page number) parameters. Maximum 20 pages allowed per call.`
       }
     }
 

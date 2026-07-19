@@ -389,6 +389,8 @@
   "agent_tool_analyze_image_desc": "允许智能体查看和分析图片文件的视觉内容。",
   "agent_tool_screenshot_name": "提取视频帧",
   "agent_tool_screenshot_desc": "允许智能体从视频文件中提取静态画面进行分析。",
+  "agent_tool_read_pdf_pages_name": "读取 PDF 页面",
+  "agent_tool_read_pdf_pages_desc": "允许智能体将 PDF 文件的指定页面转换为图片并查看。",
   "agent_tool_list_assets_name": "浏览 Shumai",
   "agent_tool_list_assets_desc": "允许智能体列出文件夹并浏览 Shumai 中的文件。",
   "agent_tool_create_folder_name": "创建文件夹",

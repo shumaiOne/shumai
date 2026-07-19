@@ -15,6 +15,7 @@ import { agentService } from '@shumai/core/src/agent/agent'
 import { DatabaseSessionStorage } from './database-session-storage'
 import { createAnalyzeImageTool } from './tools/analyze-image'
 import { createScreenshotTool } from './tools/screenshot'
+import { createReadPdfPagesTool } from './tools/read-pdf-pages'
 import { getSimpleMediaType } from './workflows/agent-chat-prompt-builder'
 import { createCreateFileTool } from './tools/create-file'
 import { createCreateFolderTool } from './tools/create-folder'
@@ -240,6 +241,8 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
         mediaTools.push(createAnalyzeImageTool(assetId, userCommentId))
       } else if (type === 'video') {
         mediaTools.push(createScreenshotTool(assetId, userCommentId))
+      } else if (type === 'pdf') {
+        mediaTools.push(createReadPdfPagesTool(assetId, userCommentId))
       }
     }
   }

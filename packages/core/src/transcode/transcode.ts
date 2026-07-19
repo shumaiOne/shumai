@@ -1,4 +1,5 @@
 import { s3Service } from '@shumai/core/src/s3/s3'
+import { stemFromKey } from '@shumai/core/src/utils/filename'
 import { prisma, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
 import '@shumai/db/src/prisma-json-types'
 import { execFile } from 'child_process'
@@ -298,8 +299,14 @@ export class TranscodeService {
       try {
         await execFileAsync('pdftoppm', ['-png', '-f', '1', '-l', '100', inputFile, pagePrefix])
       } catch (err) {
+        const errCode = (err as Record<string, unknown>)?.code
         const msg = err instanceof Error ? err.message : String(err)
-        if (msg.includes('pdftoppm') || msg.includes('ENOENT') || msg.includes('not found')) {
+        const lower = msg.toLowerCase()
+        if (
+          errCode === 'ENOENT' ||
+          lower.includes('enoent') ||
+          (lower.includes('not found') && lower.includes('pdftoppm'))
+        ) {
           throw new Error(
             `pdftoppm executable not found in $PATH. Please install poppler-utils / poppler. (${msg})`,
             { cause: err },
@@ -636,18 +643,9 @@ export class TranscodeService {
           params.annotations &&
           params.annotations.length > 0
         ) {
-          const meta = await sharp(localShotPath, { limitInputPixels: false }).metadata()
-          const width = meta.width || 1280
-          const height = meta.height || 720
-
-          const svgStr = renderAnnotationsToSvg(width, height, params.annotations)
-          const tempCompositedPath = path.join(tmpDir, `composite-${outName}`)
-
-          await sharp(localShotPath, { limitInputPixels: false })
-            .composite([{ input: Buffer.from(svgStr), top: 0, left: 0 }])
-            .toFile(tempCompositedPath)
-
-          fs.renameSync(tempCompositedPath, localShotPath)
+          const shotBuffer = fs.readFileSync(localShotPath)
+          const composited = await this.overlayAnnotationsOnBuffer(shotBuffer, params.annotations)
+          fs.writeFileSync(localShotPath, composited)
         }
 
         // 6. Upload to S3
@@ -664,41 +662,153 @@ export class TranscodeService {
     }
   }
 
+  async renderPdfPages(params: {
+    assetKey: string
+    assetId: string
+    start: number
+    end: number
+    commentTimestamp?: number | null
+    annotations?: PrismaJson.AnnotationList | null
+  }): Promise<Array<{ key: string; page: number }>> {
+    const bucket = process.env.S3_BUCKET || 'shumai'
+    const tmpDir = this.createTempDir('pdf-pages-')
+    const pdfPath = path.join(tmpDir, path.basename(params.assetKey))
+
+    try {
+      // 1. Download PDF file
+      await s3Service.downloadToFile(bucket, params.assetKey, pdfPath)
+
+      // 2. Render pages via pdftoppm (-png -f start -l end)
+      const pagePrefix = path.join(tmpDir, 'page')
+      try {
+        await execFileAsync('pdftoppm', [
+          '-png',
+          '-f',
+          params.start.toString(),
+          '-l',
+          params.end.toString(),
+          pdfPath,
+          pagePrefix,
+        ])
+      } catch (err) {
+        const errCode = (err as Record<string, unknown>)?.code
+        const msg = err instanceof Error ? err.message : String(err)
+        const lower = msg.toLowerCase()
+        if (
+          errCode === 'ENOENT' ||
+          lower.includes('enoent') ||
+          (lower.includes('not found') && lower.includes('pdftoppm'))
+        ) {
+          throw new Error(
+            `pdftoppm executable not found in $PATH. Please install poppler-utils / poppler. (${msg})`,
+            { cause: err },
+          )
+        }
+        throw err
+      }
+
+      const files = fs.readdirSync(tmpDir).filter((f) => f.endsWith('.png'))
+      if (files.length === 0) {
+        throw new Error('pdftoppm produced no image outputs')
+      }
+
+      files.sort((a, b) => {
+        const numA = parseInt(a.replace(/[^0-9]/g, ''), 10)
+        const numB = parseInt(b.replace(/[^0-9]/g, ''), 10)
+        return numA - numB
+      })
+
+      const results: Array<{ key: string; page: number }> = []
+      const stem = stemFromKey(params.assetKey)
+
+      for (let i = 0; i < files.length; i++) {
+        const pageNum = params.start + i
+        const localPngPath = path.join(tmpDir, files[i])
+        const webpName = `${stem}-page-${pageNum}-${ulid()}.webp`
+
+        let webpBuffer = await sharp(localPngPath, { limitInputPixels: false })
+          .resize(1920, 1080, { fit: 'inside', withoutEnlargement: false })
+          .webp({ quality: 85 })
+          .toBuffer()
+
+        // Overlay annotations if comment page matches pageNum
+        const commentPage =
+          params.commentTimestamp !== undefined && params.commentTimestamp !== null
+            ? Math.round(params.commentTimestamp)
+            : null
+
+        if (
+          commentPage !== null &&
+          pageNum === commentPage &&
+          params.annotations &&
+          params.annotations.length > 0
+        ) {
+          webpBuffer = await this.overlayAnnotationsOnBuffer(webpBuffer, params.annotations)
+        }
+
+        // Upload to S3 directly from buffer
+        const s3Key = `files/${params.assetId}/pdf_pages/${webpName}`
+        await s3Service.putObject(bucket, s3Key, webpBuffer, webpBuffer.length, 'image/webp')
+
+        results.push({ key: s3Key, page: pageNum })
+      }
+
+      return results
+    } finally {
+      this.removeDir(tmpDir)
+    }
+  }
+
+  async overlayAnnotationsOnBuffer(
+    imageBuffer: Buffer,
+    annotations: PrismaJson.AnnotationList,
+  ): Promise<Buffer> {
+    if (!annotations || annotations.length === 0) {
+      return imageBuffer
+    }
+
+    const meta = await sharp(imageBuffer, { limitInputPixels: false }).metadata()
+    const width = meta.width || 1920
+    const height = meta.height || 1080
+
+    const svgStr = renderAnnotationsToSvg(width, height, annotations)
+    return await sharp(imageBuffer, { limitInputPixels: false })
+      .composite([{ input: Buffer.from(svgStr), top: 0, left: 0 }])
+      .resize(16383, 16383, { fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 85 })
+      .toBuffer()
+  }
+
   async overlayAnnotations(params: {
     assetKey: string
     assetId: string
     annotations: PrismaJson.AnnotationList
   }): Promise<string> {
     const bucket = process.env.S3_BUCKET || 'shumai'
+    const outName = `annotation-${ulid()}.webp`
     const tmpDir = this.createTempDir('annotation-')
     const imgPath = path.join(tmpDir, path.basename(params.assetKey))
 
     try {
       // 1. Download image
       await s3Service.downloadToFile(bucket, params.assetKey, imgPath)
+      const inputBuffer = fs.readFileSync(imgPath)
 
-      // 2. Read dimensions
-      const meta = await sharp(imgPath, { limitInputPixels: false }).metadata()
-      const width = meta.width || 1920
-      const height = meta.height || 1080
+      // 2. Overlay annotations in memory using helper method
+      const compositedBuffer = await this.overlayAnnotationsOnBuffer(
+        inputBuffer,
+        params.annotations,
+      )
 
-      // 3. Render SVG
-      const svgStr = renderAnnotationsToSvg(width, height, params.annotations)
-
-      // 4. Composite
-      const outName = `annotation-${ulid()}.webp`
-      const localOutPath = path.join(tmpDir, outName)
-
-      await sharp(imgPath, { limitInputPixels: false })
-        .composite([{ input: Buffer.from(svgStr), top: 0, left: 0 }])
-        .resize(16383, 16383, { fit: 'inside', withoutEnlargement: true })
-        .webp({ quality: 90 })
-        .toFile(localOutPath)
-
-      // 5. Upload to S3
+      // 3. Upload to S3
       const s3Key = `files/${params.assetId}/annotations/${outName}`
-      const fileBuffer = fs.readFileSync(localOutPath)
-      await s3Service.putObject(bucket, s3Key, fileBuffer, fileBuffer.length, 'image/webp')
+      await s3Service.putObject(
+        bucket,
+        s3Key,
+        compositedBuffer,
+        compositedBuffer.length,
+        'image/webp',
+      )
 
       return s3Key
     } finally {

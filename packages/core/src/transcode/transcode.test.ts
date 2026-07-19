@@ -1,11 +1,19 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { transcodeService } from './transcode'
+import { s3Service } from '@shumai/core/src/s3/s3'
 import * as path from 'path'
 import * as child_process from 'child_process'
 import * as fs from 'fs'
 import { WorkflowTask } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import sharp from 'sharp'
+
+vi.mock('@shumai/core/src/s3/s3', () => ({
+  s3Service: {
+    downloadToFile: vi.fn(),
+    putObject: vi.fn(),
+  },
+}))
 
 // Mock child_process
 vi.mock('child_process', () => ({
@@ -17,7 +25,12 @@ vi.mock('sharp', () => {
   const mockSharp = {
     resize: vi.fn().mockReturnThis(),
     webp: vi.fn().mockReturnThis(),
-    toFile: vi.fn().mockResolvedValue({}),
+    composite: vi.fn().mockReturnThis(),
+    toBuffer: vi.fn().mockResolvedValue(Buffer.from('fake-webp-buffer')),
+    toFile: vi.fn().mockImplementation(async (filePath: string) => {
+      fs.writeFileSync(filePath, 'fake-webp-data')
+      return {}
+    }),
     metadata: vi.fn().mockResolvedValue({ width: 800, height: 600, format: 'png' }),
   }
   const sharpFunc = vi.fn(() => mockSharp)
@@ -427,5 +440,154 @@ describe('TranscodeService', () => {
     expect(info.originalWidth).toBe(800)
     expect(info.originalHeight).toBe(600)
     expect(info.hasAudio).toBe(false)
+  })
+
+  it('should render PDF pages and upload to S3', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(child_process.execFile as any).mockImplementation(
+      (
+        cmd: string,
+        args: string[],
+        cb: (err: Error | null, res: { stdout: string; stderr: string }) => void,
+      ) => {
+        if (cmd === 'pdftoppm') {
+          const pagePrefix = args[args.length - 1]
+          const pagePath = `${pagePrefix}-1.png`
+          fs.writeFileSync(pagePath, 'fake-png-data')
+          cb(null, { stdout: '', stderr: '' })
+        } else {
+          cb(null, { stdout: '', stderr: '' })
+        }
+      },
+    )
+
+    vi.mocked(s3Service.downloadToFile).mockResolvedValue(undefined)
+    vi.mocked(s3Service.putObject).mockResolvedValue(
+      {} as unknown as Awaited<ReturnType<typeof s3Service.putObject>>,
+    )
+
+    const result = await transcodeService.renderPdfPages({
+      assetKey: 'projects/p1/doc.pdf',
+      assetId: 'asset-1',
+      start: 1,
+      end: 1,
+    })
+
+    expect(result.length).toBe(1)
+    expect(result[0].page).toBe(1)
+    expect(result[0].key).toContain('files/asset-1/pdf_pages/doc-page-1-')
+    expect(s3Service.putObject).toHaveBeenCalled()
+  })
+
+  describe('overlayAnnotationsOnBuffer Pixel Tests', () => {
+    it('should draw annotation overlay on a 100x200 image and mutate pixels', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const realSharp = ((await vi.importActual('sharp')) as any).default || (await vi.importActual('sharp'))
+
+      const inputBuffer = await realSharp({
+        create: {
+          width: 100,
+          height: 200,
+          channels: 4,
+          background: { r: 255, g: 255, b: 255, alpha: 1 },
+        },
+      })
+        .png()
+        .toBuffer()
+
+      const annotations: PrismaJson.AnnotationList = [
+        {
+          type: 'box',
+          color: '#ff0000',
+          points: [
+            [0.2, 0.2],
+            [0.8, 0.8],
+          ],
+        },
+      ]
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sharpSpy = vi.mocked(sharp as any).mockImplementation((input: any, options: any) => realSharp(input, options))
+
+      const outputBuffer = await transcodeService.overlayAnnotationsOnBuffer(
+        inputBuffer,
+        annotations,
+      )
+      sharpSpy.mockRestore()
+
+      const { data, info } = await realSharp(outputBuffer)
+        .raw()
+        .toBuffer({ resolveWithObject: true })
+
+      expect(info.width).toBe(100)
+      expect(info.height).toBe(200)
+
+      const pixelX = 50
+      const pixelY = 40
+      const offset = (pixelY * info.width + pixelX) * info.channels
+
+      const r = data[offset]
+      const g = data[offset + 1]
+      const b = data[offset + 2]
+
+      expect(r).toBeGreaterThan(150)
+      expect(g).toBeLessThan(120)
+      expect(b).toBeLessThan(120)
+    })
+
+    it('should draw annotation overlay on a 200x100 image and mutate pixels', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const realSharp = ((await vi.importActual('sharp')) as any).default || (await vi.importActual('sharp'))
+
+      const inputBuffer = await realSharp({
+        create: {
+          width: 200,
+          height: 100,
+          channels: 4,
+          background: { r: 255, g: 255, b: 255, alpha: 1 },
+        },
+      })
+        .png()
+        .toBuffer()
+
+      const annotations: PrismaJson.AnnotationList = [
+        {
+          type: 'box',
+          color: '#00ff00',
+          points: [
+            [0.1, 0.1],
+            [0.9, 0.9],
+          ],
+        },
+      ]
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sharpSpy = vi.mocked(sharp as any).mockImplementation((input: any, options: any) => realSharp(input, options))
+
+      const outputBuffer = await transcodeService.overlayAnnotationsOnBuffer(
+        inputBuffer,
+        annotations,
+      )
+      sharpSpy.mockRestore()
+
+      const { data, info } = await realSharp(outputBuffer)
+        .raw()
+        .toBuffer({ resolveWithObject: true })
+
+      expect(info.width).toBe(200)
+      expect(info.height).toBe(100)
+
+      const pixelX = 100
+      const pixelY = 10
+      const offset = (pixelY * info.width + pixelX) * info.channels
+
+      const r = data[offset]
+      const g = data[offset + 1]
+      const b = data[offset + 2]
+
+      expect(r).toBeLessThan(100)
+      expect(g).toBeGreaterThan(200)
+      expect(b).toBeLessThan(100)
+    })
   })
 })
