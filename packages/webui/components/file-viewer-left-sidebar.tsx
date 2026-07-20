@@ -22,8 +22,7 @@ export const CarouselFilePreview = ({ item }: { item: AssetInfo }) => {
     )
   }
 
-  const isAudio =
-    item.preview?.mediaType?.startsWith('audio/') || item.mediaType?.startsWith('audio/')
+  const isAudio = item.preview?.proxyType === 'audio' || item.proxyType === 'audio'
   if (isAudio) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-muted">

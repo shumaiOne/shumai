@@ -92,14 +92,13 @@ export const NotificationCard = ({ notification }: NotificationCardProps) => {
   })()
 
   const isVideoWithSprite =
-    asset?.mediaType?.startsWith('video/') &&
+    asset?.proxyType === 'video' &&
     asset.preview &&
     asset.thumbnailUrl &&
     asset.originalWidth &&
     asset.originalHeight
 
-  const hasPreview =
-    asset?.preview && (asset.mediaType?.startsWith('image') || asset.mediaType?.startsWith('video'))
+  const hasPreview = asset?.preview && (asset.proxyType === 'image' || asset.proxyType === 'video')
 
   return (
     <div className="flex py-2 cursor-pointer group border border-transparent items-center justify-center">

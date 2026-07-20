@@ -43,9 +43,11 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
     tmpDir = download.tmpDir
 
     const spec = task.payload?.transcode || {}
+    const proxyType = asset.mediaType?.startsWith('audio/') ? 'audio' : 'video'
     const mediaInfo = await executeActivity(workerQueue, getMediaInfoActivity, {
       filePath,
       assetId: asset.id,
+      proxyType,
       mediaType: asset.mediaType || '',
     })
 

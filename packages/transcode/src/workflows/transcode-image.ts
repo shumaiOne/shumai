@@ -43,6 +43,7 @@ export async function transcodeImageWorkflow(task: WorkflowTask): Promise<void> 
     const mediaInfo = await executeActivity(workerQueue, getMediaInfoActivity, {
       filePath,
       assetId: asset.id,
+      proxyType: 'image',
       mediaType: asset.mediaType || '',
     })
 

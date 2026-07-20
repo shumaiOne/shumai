@@ -61,6 +61,7 @@ describe('Agent Chat Workflow', () => {
       type: 'file',
       name: 'test-file.png',
       mediaType: 'image/png',
+      media: { proxyType: 'image' },
       parentId: 'parent-folder-id',
     })
     mockActivities.getCommentActivity.mockResolvedValue({
@@ -133,7 +134,7 @@ describe('Agent Chat Workflow', () => {
     // Verify agent instruction composition
     const expectedInstruction1 = new AgentChatPromptBuilder('a1')
       .withPathContext('Path: folder/subfolder/file.png')
-      .withAssetDetails('test-file.png', 'image/png', undefined)
+      .withAssetDetails('test-file.png', 'image/png', undefined, undefined, 'image')
       .withCommentTimestamp(null)
       .withExplicitMention(true)
       .build()
@@ -239,7 +240,7 @@ describe('Agent Chat Workflow', () => {
     // Verify instruction contains not explicitly mentioned instructions
     const expectedInstruction3 = new AgentChatPromptBuilder('a1')
       .withPathContext('Path: folder/subfolder/file.png')
-      .withAssetDetails('test-file.png', 'image/png', undefined)
+      .withAssetDetails('test-file.png', 'image/png', undefined, undefined, 'image')
       .withCommentTimestamp(null)
       .withExplicitMention(false)
       .build()
@@ -271,18 +272,21 @@ describe('Agent Chat Workflow', () => {
         {
           asset: {
             mediaType: 'image/png',
+            media: { proxyType: 'image' },
             storageKey: { key: 'attachments/image1.png' },
           },
         },
         {
           asset: {
             mediaType: 'video/mp4', // non-image, should be ignored
+            media: { proxyType: 'video' },
             storageKey: { key: 'attachments/video.mp4' },
           },
         },
         {
           asset: {
             mediaType: 'image/jpeg',
+            media: { proxyType: 'image' },
             storageKey: { key: 'attachments/image2.jpg' },
           },
         },
@@ -305,7 +309,7 @@ describe('Agent Chat Workflow', () => {
 
     const expectedInstruction4 = new AgentChatPromptBuilder('a1')
       .withPathContext('Path: folder/subfolder/file.png')
-      .withAssetDetails('test-file.png', 'image/png', undefined)
+      .withAssetDetails('test-file.png', 'image/png', undefined, undefined, 'image')
       .withCommentTimestamp(null)
       .withExplicitMention(false)
       .build()

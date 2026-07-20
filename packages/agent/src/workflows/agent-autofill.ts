@@ -64,8 +64,9 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
     const projectId = asset.project.id
 
     // 2. Prepare Data (Images)
-    const isImage = asset.mediaType?.startsWith('image/') || false
-    const isVideo = asset.mediaType?.startsWith('video/') || false
+    const proxyType = (asset.media as PrismaJson.MediaInfo | null)?.proxyType
+    const isImage = proxyType === 'image'
+    const isVideo = proxyType === 'video'
 
     if (!isImage && !isVideo) {
       throw ApplicationFailure.create({

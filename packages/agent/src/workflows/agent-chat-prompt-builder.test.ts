@@ -25,7 +25,13 @@ describe('AgentChatPromptBuilder', () => {
   })
 
   it('should build prompt with image asset details', () => {
-    const builder = new AgentChatPromptBuilder('a1').withAssetDetails('test.png', 'image/png')
+    const builder = new AgentChatPromptBuilder('a1').withAssetDetails(
+      'test.png',
+      'image/png',
+      undefined,
+      undefined,
+      'image',
+    )
     const result = builder.build()
 
     expect(result).toContain('File Name: test.png')
@@ -39,6 +45,8 @@ describe('AgentChatPromptBuilder', () => {
       'movie.mp4',
       'video/mp4',
       12.34,
+      undefined,
+      'video',
     )
     const result = builder.build()
 
@@ -55,6 +63,7 @@ describe('AgentChatPromptBuilder', () => {
       'application/pdf',
       undefined,
       15,
+      'pdf',
     )
     const result = builder.build()
 
@@ -69,7 +78,7 @@ describe('AgentChatPromptBuilder', () => {
 
   it('should build prompt with comment page for PDF asset', () => {
     const builder = new AgentChatPromptBuilder('a1')
-      .withAssetDetails('doc.pdf', 'application/pdf', undefined, 10)
+      .withAssetDetails('doc.pdf', 'application/pdf', undefined, 10, 'pdf')
       .withCommentTimestamp(3)
     const result = builder.build()
 
@@ -79,7 +88,7 @@ describe('AgentChatPromptBuilder', () => {
   it('should build prompt for PDF continuation mode with comment page', () => {
     const builder = new AgentChatPromptBuilder('a1')
       .withContinuation(true)
-      .withAssetDetails('doc.pdf', 'application/pdf', undefined, 10)
+      .withAssetDetails('doc.pdf', 'application/pdf', undefined, 10, 'pdf')
       .withCommentTimestamp(4)
     const result = builder.build()
 
@@ -98,7 +107,7 @@ describe('AgentChatPromptBuilder', () => {
     const builder = new AgentChatPromptBuilder('a1')
       .withExplicitMention(true)
       .withPathContext('src/main.ts')
-      .withAssetDetails('movie.mp4', 'video/mp4', 12.34)
+      .withAssetDetails('movie.mp4', 'video/mp4', 12.34, undefined, 'video')
       .withCommentTimestamp(8.2)
     const result = builder.build()
 

@@ -64,6 +64,7 @@ describe('Agent Autofill Workflow', () => {
       storageKey: { key: 'asset-key' },
       project: { id: 'p1', teamId: 't1' },
       mediaType: 'image/png',
+      media: { proxyType: 'image' },
     })
     mockActivities.downloadMediaToTmpActivity.mockResolvedValue({
       filePath: '/tmp/test.png',
@@ -290,6 +291,7 @@ describe('Agent Autofill Workflow', () => {
       storageKey: { key: 'asset-key' },
       project: { id: 'p1', teamId: 't1' },
       mediaType: 'audio/mp3',
+      media: { proxyType: 'audio' },
     })
 
     const task = await prisma.workflowTask.create({

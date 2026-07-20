@@ -191,6 +191,7 @@ export const attachmentInfoSchema = z.object({
   assetId: z.string(),
   url: z.string(),
   mediaType: z.string().nullable(),
+  proxyType: z.enum(['image', 'video', 'audio', 'pdf']).nullable().optional(),
 })
 export type AttachmentInfo = z.infer<typeof attachmentInfoSchema>
 

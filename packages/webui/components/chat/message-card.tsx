@@ -346,7 +346,7 @@ export const MessageCard: React.FC<MessageCardProps> = ({
         {message.attachments && message.attachments.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-3">
             {message.attachments.map((att) => {
-              const isImage = att.mediaType?.startsWith('image/')
+              const isImage = att.proxyType === 'image'
               const name = att.url?.split('/').pop()?.split('?')[0] || 'file'
               return (
                 <div

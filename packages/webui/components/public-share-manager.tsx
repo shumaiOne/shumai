@@ -647,10 +647,9 @@ export function PublicShareManager({
                   mediaControllerRef.current?.pause()
                 }}
                 selectedCommentId={selectedCommentId}
-                hideAnnotationControl={(isCompareMode
-                  ? compareActiveAsset
-                  : currentSelectedItem
-                )?.mediaType?.startsWith('audio/')}
+                hideAnnotationControl={
+                  (isCompareMode ? compareActiveAsset : currentSelectedItem)?.proxyType === 'audio'
+                }
               />
             </div>
           </>

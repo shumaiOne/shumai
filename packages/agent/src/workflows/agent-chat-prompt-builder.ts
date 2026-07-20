@@ -1,19 +1,7 @@
-export function getSimpleMediaType(mediaType?: string): 'image' | 'video' | 'pdf' | 'other' {
-  if (!mediaType) return 'other'
-  const lower = mediaType.toLowerCase()
-  if (
-    lower.startsWith('image/') ||
-    lower === 'application/x-photoshop' ||
-    lower === 'image/vnd.adobe.photoshop'
-  ) {
-    return 'image'
-  }
-  if (lower.startsWith('video/')) {
-    return 'video'
-  }
-  if (lower === 'application/pdf' || lower.endsWith('.pdf')) {
-    return 'pdf'
-  }
+export function getSimpleMediaType(proxyType?: string | null): 'image' | 'video' | 'pdf' | 'other' {
+  if (proxyType === 'image') return 'image'
+  if (proxyType === 'video') return 'video'
+  if (proxyType === 'pdf') return 'pdf'
   return 'other'
 }
 
@@ -21,6 +9,7 @@ export class AgentChatPromptBuilder {
   private assetId: string
   private assetName?: string
   private mediaType?: string
+  private proxyType?: string
   private videoDuration?: number
   private totalPages?: number
   private commentTimestamp?: number
@@ -64,9 +53,11 @@ export class AgentChatPromptBuilder {
     mediaType: string | null,
     duration?: number,
     totalPages?: number,
+    proxyType?: string | null,
   ): this {
     this.assetName = name
     this.mediaType = mediaType || undefined
+    this.proxyType = proxyType || undefined
     this.videoDuration = duration
     this.totalPages = totalPages
     return this
@@ -85,10 +76,12 @@ export class AgentChatPromptBuilder {
   }
 
   build(): string {
+    const effectiveType = this.proxyType || this.mediaType
+
     if (this.isContinuation) {
       let instruction = ''
       if (this.commentTimestamp !== undefined) {
-        const type = getSimpleMediaType(this.mediaType)
+        const type = getSimpleMediaType(effectiveType)
         if (type === 'pdf') {
           instruction += `Comment Page: ${Math.round(this.commentTimestamp)}`
         } else {
@@ -111,8 +104,8 @@ export class AgentChatPromptBuilder {
     if (this.assetName) {
       instruction += `\nFile Name: ${this.assetName}`
     }
-    if (this.mediaType) {
-      const type = getSimpleMediaType(this.mediaType)
+    if (effectiveType) {
+      const type = getSimpleMediaType(effectiveType)
       instruction += `\nFile Type: ${type}`
       if (type === 'video' && this.videoDuration !== undefined) {
         instruction += `\nVideo Length: ${this.videoDuration.toFixed(2)} seconds`
@@ -121,7 +114,7 @@ export class AgentChatPromptBuilder {
       }
     }
     if (this.commentTimestamp !== undefined) {
-      const type = getSimpleMediaType(this.mediaType)
+      const type = getSimpleMediaType(effectiveType)
       if (type === 'pdf') {
         instruction += `\nComment Page: ${Math.round(this.commentTimestamp)}`
       } else {
@@ -142,8 +135,8 @@ export class AgentChatPromptBuilder {
       }
     }
 
-    if (this.mediaType) {
-      const type = getSimpleMediaType(this.mediaType)
+    if (effectiveType) {
+      const type = getSimpleMediaType(effectiveType)
       if (type === 'image') {
         instruction += `\n\nIf you need to view the image data, call the 'analyze_image' tool. It does not require any parameters.`
       } else if (type === 'video') {

@@ -181,6 +181,7 @@ describe('ChatService', () => {
         name: 'doc.jpg',
         type: 'file',
         mediaType: 'image/jpeg',
+        media: { proxyType: 'image' },
         status: 'processed',
         projectId: project.id,
         parentId: childFolder.id,

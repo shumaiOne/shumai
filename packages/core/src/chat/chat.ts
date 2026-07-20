@@ -232,7 +232,8 @@ export class ChatService {
         where: { id: fileId },
         include: { storageKey: true },
       })
-      if (file && file.mediaType?.startsWith('image/') && file.storageKey?.key) {
+      const isImage = (file?.media as PrismaJson.MediaInfo | null)?.proxyType === 'image'
+      if (file && isImage && file.storageKey?.key) {
         resolvedImageUrls.push(file.storageKey.key)
       }
     }

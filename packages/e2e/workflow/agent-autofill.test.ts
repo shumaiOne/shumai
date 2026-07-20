@@ -230,6 +230,7 @@ describe.each(['local', 'temporal'] as const)(
           type: 'file',
           status: 'uploaded',
           mediaType: 'image/png',
+          media: { proxyType: 'image' },
           projectId: project.id,
           storageKeyId: storageKey.id,
         },
