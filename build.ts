@@ -34,6 +34,7 @@ await Bun.build({
     '@temporalio/client',
     '@temporalio/worker',
     '@temporalio/workflow',
+    'pdfkit',
   ],
   // compile: {
   //   outfile: 'Shumai',

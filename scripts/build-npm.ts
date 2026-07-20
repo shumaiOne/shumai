@@ -33,6 +33,7 @@ const commonExternal = [
   '@temporalio/client',
   '@temporalio/worker',
   '@temporalio/workflow',
+  'pdfkit',
   'prisma',
   'zod',
 ]
