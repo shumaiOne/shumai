@@ -524,7 +524,9 @@ export function FileBrowser({
                         ? 'audio'
                         : f.file.name.endsWith('.pdf') ||
                             f.file.name.endsWith('.txt') ||
-                            f.file.name.endsWith('.csv')
+                            f.file.name.endsWith('.csv') ||
+                            f.file.name.endsWith('.md') ||
+                            f.file.name.endsWith('.markdown')
                           ? 'pdf'
                           : null,
               createdAt: new Date().toISOString(),

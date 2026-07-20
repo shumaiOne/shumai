@@ -15,9 +15,13 @@ export function getProxyType(
     lowerMediaType === 'application/pdf' ||
     lowerMediaType === 'text/plain' ||
     lowerMediaType === 'text/csv' ||
+    lowerMediaType === 'text/markdown' ||
+    lowerMediaType === 'text/x-markdown' ||
     lowerFilename.endsWith('.pdf') ||
     lowerFilename.endsWith('.txt') ||
-    lowerFilename.endsWith('.csv')
+    lowerFilename.endsWith('.csv') ||
+    lowerFilename.endsWith('.md') ||
+    lowerFilename.endsWith('.markdown')
   ) {
     return 'pdf'
   }

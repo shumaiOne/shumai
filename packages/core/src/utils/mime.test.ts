@@ -54,11 +54,15 @@ describe('getProxyType', () => {
     expect(getProxyType('audio/mpeg', 'song.mp3')).toBe('audio')
   })
 
-  it('should detect pdf proxyType only for pdf, csv, and txt files', () => {
+  it('should detect pdf proxyType only for pdf, csv, txt, and markdown files', () => {
     expect(getProxyType('application/pdf', 'doc.pdf')).toBe('pdf')
     expect(getProxyType('text/plain', 'notes.txt')).toBe('pdf')
     expect(getProxyType('text/csv', 'data.csv')).toBe('pdf')
+    expect(getProxyType('text/markdown', 'README.md')).toBe('pdf')
+    expect(getProxyType('text/x-markdown', 'doc.markdown')).toBe('pdf')
     expect(getProxyType(null, 'file.txt')).toBe('pdf')
+    expect(getProxyType(null, 'README.md')).toBe('pdf')
+    expect(getProxyType(null, 'doc.markdown')).toBe('pdf')
   })
 
   it('should return null for unsupported files including office files', () => {

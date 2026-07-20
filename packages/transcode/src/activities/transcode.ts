@@ -503,7 +503,13 @@ export interface GeneratePdfProxyActivityParams {
 export async function generatePdfProxyActivity(
   params: GeneratePdfProxyActivityParams,
 ): Promise<{ pdfProxyKey: string; pdfFilePath: string }> {
-  const isTxt = params.mediaType === 'text/plain' || params.filename.toLowerCase().endsWith('.txt')
+  const isTxt =
+    params.mediaType === 'text/plain' ||
+    params.mediaType === 'text/markdown' ||
+    params.mediaType === 'text/x-markdown' ||
+    params.filename.toLowerCase().endsWith('.txt') ||
+    params.filename.toLowerCase().endsWith('.md') ||
+    params.filename.toLowerCase().endsWith('.markdown')
   const isCsv = params.mediaType === 'text/csv' || params.filename.toLowerCase().endsWith('.csv')
 
   if (!isTxt && !isCsv) {
@@ -529,7 +535,7 @@ export async function generatePdfProxyActivity(
   } catch (err) {
     const { message } = getErrorDetails(err)
     throw ApplicationFailure.create({
-      message: `Failed to generate PDF proxy for text/csv: ${message}`,
+      message: `Failed to generate PDF proxy for text/csv/markdown: ${message}`,
       nonRetryable: true,
       cause: err instanceof Error ? err : undefined,
     })
