@@ -8,7 +8,6 @@ import {
   failTask,
   cleanupTmpDir,
 } from './common'
-import { isMimePsd } from './transcode-utils'
 
 export async function transcodeImageWorkflow(task: WorkflowTask): Promise<void> {
   let tmpDir: string | undefined

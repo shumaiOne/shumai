@@ -102,7 +102,7 @@ describe('transcodePdfWorkflow', () => {
     })
 
     mockActivities.getMediaInfoActivity.mockResolvedValue({
-      mimeType: 'application/pdf',
+      proxyType: 'pdf',
       metadata: {
         originalWidth: 800,
         originalHeight: 1000,
@@ -135,7 +135,7 @@ describe('transcodePdfWorkflow', () => {
       filePath: '/tmp/doc.pdf',
       spriteSpec: expect.objectContaining({ key: 'sprite.webp' }),
       posterSpec: expect.objectContaining({ key: 'poster.webp' }),
-      mediaInfo: expect.objectContaining({ mimeType: 'application/pdf' }),
+      mediaInfo: expect.objectContaining({ proxyType: 'pdf' }),
     })
 
     expect(mockActivities.updateAssetMediaActivity).toHaveBeenCalledWith({

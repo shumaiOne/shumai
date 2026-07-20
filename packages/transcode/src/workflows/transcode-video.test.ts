@@ -98,7 +98,7 @@ describe('transcodeVideoWorkflow', () => {
     })
 
     mockActivities.getMediaInfoActivity.mockResolvedValue({
-      mimeType: 'video/mp4',
+      proxyType: 'video',
       metadata: {
         originalWidth: 1920,
         originalHeight: 1080,
@@ -187,7 +187,7 @@ describe('transcodeVideoWorkflow', () => {
     })
 
     mockActivities.getMediaInfoActivity.mockResolvedValue({
-      mimeType: 'audio/wav',
+      proxyType: 'audio',
       metadata: {
         originalWidth: 0,
         originalHeight: 0,
@@ -224,7 +224,7 @@ describe('transcodeVideoWorkflow', () => {
     expect(mockActivities.updateAssetMediaActivity).toHaveBeenCalledWith({
       assetId: 'asset-audio',
       mediaInfo: expect.objectContaining({
-        mimeType: 'audio/wav',
+        proxyType: 'audio',
         videoTranscodes: [
           {
             width: 0,
