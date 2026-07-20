@@ -5,7 +5,7 @@ import { CompareImagePane } from './compare-image-pane'
 export const imageTypeDefinition: FileTypeDefinition = {
   id: 'image',
   name: 'Image',
-  match: (file) => !!file.mediaType?.startsWith('image/'),
+  match: (file) => file.proxyType === 'image',
   viewer: ImageViewer,
   comparePane: CompareImagePane,
   commentsConfig: {

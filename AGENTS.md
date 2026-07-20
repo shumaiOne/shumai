@@ -141,7 +141,7 @@ We follow Bun's monorepo conventions for dependency management:
 3.  **Local DevDependencies**: Tools specific to a single package (e.g., `@vitejs/plugin-react` for `webui`) should be declared in that package's local `package.json`.
 4.  **Workspace Imports**: Use `workspace:*` for internal package dependencies.
 5.  **Clean Root**: The root `package.json` must not contain runtime `dependencies`. It is reserved for shared `devDependencies` and workspace-wide `scripts`.
-6.  **Installation**: Always run `bun install` from the root. Use the `--filter` flag if you only want to update a specific package (e.g., `bun install --filter @shumai/webui`).
+6.  **Adding Packages**: Never edit `package.json` manually to add new dependencies. Always use `bun add` (e.g., `bun add <package> --filter <workspace>`) from the root without specifying an explicit version, letting Bun resolve the correct version.
 
 ## TypeScript Configuration
 
@@ -314,6 +314,7 @@ We use `prisma-json-types-generator` to enforce strict type-safety for Prisma `J
 
 - Development: Use `bun --bun run prisma migrate dev` to create and apply migrations during development.
 - Production: Use `bun --bun run prisma migrate deploy` to apply pending migrations in production environments.
+- **No Manual Migration Creation**: Never create migration SQL files or directories manually by hand. Always use Prisma CLI commands (e.g. `bun --bun run prisma migrate dev --create-only` to generate a migration template, or `bun --bun run prisma migrate dev`) so Prisma correctly tracks migration metadata and checksums.
 - **No Automatic Dev DB Reset**: Do not run `prisma migrate reset --force` or commands that force-reset the database automatically. If migrations become out of sync or a reset is required, stop executing, report the situation to the user, and present suggested manual cleanup/reset steps for the user to execute.
 
 ### Commands

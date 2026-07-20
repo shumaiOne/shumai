@@ -22,6 +22,7 @@ export async function transcodePdfWorkflow(task: WorkflowTask): Promise<void> {
       generateSpriteActivity,
       updateAssetMediaActivity,
       downloadMediaToTmpActivity,
+      generatePdfProxyActivity,
       createEmbeddingTaskIfEnabledActivity,
     } = getActivities()
 
@@ -35,12 +36,22 @@ export async function transcodePdfWorkflow(task: WorkflowTask): Promise<void> {
     const download = await executeActivity(workerQueue, downloadMediaToTmpActivity, {
       assetKey: key,
     })
-    const { filePath } = download
+    let currentFilePath = download.filePath
     tmpDir = download.tmpDir
+
+    const pdfProxy = await executeActivity(workerQueue, generatePdfProxyActivity, {
+      assetId: asset.id,
+      assetKey: key,
+      filePath: currentFilePath,
+      mediaType: asset.mediaType || '',
+      filename: asset.name || '',
+    })
+
+    currentFilePath = pdfProxy.pdfFilePath
 
     const spec = task.payload?.transcode || {}
     const mediaInfo = await executeActivity(workerQueue, getMediaInfoActivity, {
-      filePath,
+      filePath: currentFilePath,
       assetId: asset.id,
       mediaType: asset.mediaType || '',
     })
@@ -50,6 +61,9 @@ export async function transcodePdfWorkflow(task: WorkflowTask): Promise<void> {
       downloadUrl: '',
       filesizeInBytes: 0,
       codec: '',
+    }
+    mediaInfo.pdfTranscode = {
+      key: pdfProxy.pdfProxyKey,
     }
 
     if (spec.sprite || spec.poster) {
@@ -68,7 +82,7 @@ export async function transcodePdfWorkflow(task: WorkflowTask): Promise<void> {
 
       const spriteResult = await executeActivity(workerQueue, generateSpriteActivity, {
         assetKey: key,
-        filePath,
+        filePath: currentFilePath,
         spriteSpec,
         posterSpec,
         mediaInfo,

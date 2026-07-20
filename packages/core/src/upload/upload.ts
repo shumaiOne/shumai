@@ -303,7 +303,13 @@ export class UploadService {
     const isVideo = asset.mediaType?.startsWith('video/')
     const isImage = asset.mediaType?.startsWith('image/')
     const isAudio = asset.mediaType?.startsWith('audio/')
-    const isPdf = asset.mediaType === 'application/pdf' || asset.name.toLowerCase().endsWith('.pdf')
+    const isPdf =
+      asset.mediaType === 'application/pdf' ||
+      asset.mediaType === 'text/plain' ||
+      asset.mediaType === 'text/csv' ||
+      asset.name.toLowerCase().endsWith('.pdf') ||
+      asset.name.toLowerCase().endsWith('.txt') ||
+      asset.name.toLowerCase().endsWith('.csv')
 
     if (autofillAgent && (isVideo || isImage)) {
       await tx.workflowTask.create({

@@ -236,7 +236,7 @@ describe('UploadService', () => {
     })
     const asset = await prisma.asset.create({
       data: {
-        name: 'file.txt',
+        name: 'file.json',
         type: AssetType.file,
         project: { connect: { id: projectId } },
         parent: { connect: { id: parentId } },
@@ -247,7 +247,7 @@ describe('UploadService', () => {
             create: { key: 'test-key' },
           },
         },
-        mediaType: 'text/plain',
+        mediaType: 'application/json',
       },
     })
 
