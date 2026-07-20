@@ -34,6 +34,9 @@ function getMimeType(filePath: string): string {
     '.mp4': 'video/mp4',
     '.mov': 'video/quicktime',
     '.pdf': 'application/pdf',
+    '.txt': 'text/plain',
+    '.md': 'text/markdown',
+    '.markdown': 'text/markdown',
   }
   return mimeTypes[ext] || 'application/octet-stream'
 }

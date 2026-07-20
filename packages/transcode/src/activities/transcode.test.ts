@@ -263,6 +263,34 @@ describe('Transcode Activities', () => {
     generatePdfFromTextSpy.mockRestore()
   })
 
+  it('should generate PDF proxy for markdown files in generatePdfProxyActivity', async () => {
+    const asset = await prisma.asset.create({
+      data: { name: 'README.md', type: 'file', status: 'uploaded' },
+    })
+
+    const generatePdfFromTextSpy = vi
+      .spyOn(transcodeService, 'generatePdfFromText')
+      .mockImplementation(async (_inPath, outPath) => {
+        const fs = await import('fs')
+        fs.writeFileSync(outPath, 'fake pdf content from md')
+      })
+
+    const res = await generatePdfProxyActivity({
+      assetId: asset.id,
+      assetKey: 'files/asset1/README.md',
+      filePath: '/tmp/README.md',
+      mediaType: 'text/markdown',
+      filename: 'README.md',
+    })
+
+    expect(res.pdfProxyKey).toBe(`files/${asset.id}/proxy.pdf`)
+    expect(generatePdfFromTextSpy).toHaveBeenCalledWith(
+      '/tmp/README.md',
+      expect.stringContaining('proxy.pdf'),
+    )
+    generatePdfFromTextSpy.mockRestore()
+  })
+
   it('should set file_type to file for unknown types', async () => {
     const asset = await prisma.asset.create({
       data: { name: 'u.xyz', type: 'file', status: 'uploaded' },

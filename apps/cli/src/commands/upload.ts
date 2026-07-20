@@ -33,6 +33,8 @@ export function getMediaType(filename: string): string {
     '.wav': 'audio/wav',
     '.ogg': 'audio/ogg',
     '.txt': 'text/plain',
+    '.md': 'text/markdown',
+    '.markdown': 'text/markdown',
     '.json': 'application/json',
     '.pdf': 'application/pdf',
     '.zip': 'application/zip',
