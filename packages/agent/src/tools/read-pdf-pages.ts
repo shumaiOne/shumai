@@ -78,7 +78,7 @@ export function createReadPdfPagesTool(
         }
 
         const proxyType = (asset.media as PrismaJson.MediaInfo | null)?.proxyType
-        if (proxyType && proxyType !== 'pdf') {
+        if (proxyType !== 'pdf') {
           return {
             content: [{ type: 'text', text: `Asset ${targetAssetId} is not a PDF or document.` }],
             details: {},

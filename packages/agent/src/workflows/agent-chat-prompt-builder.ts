@@ -76,7 +76,7 @@ export class AgentChatPromptBuilder {
   }
 
   build(): string {
-    const effectiveType = this.proxyType || this.mediaType
+    const effectiveType = this.proxyType
 
     if (this.isContinuation) {
       let instruction = ''
