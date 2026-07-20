@@ -79,7 +79,7 @@ describe('file api', () => {
       fileCount: 1,
       type: 'file',
       status: 'active',
-      mediaType: 'image/jpeg',
+      proxyType: 'image',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })
@@ -107,7 +107,7 @@ describe('file api', () => {
       fileCount: 1,
       type: 'file',
       status: 'active',
-      mediaType: 'image/jpeg',
+      proxyType: 'image',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })
@@ -500,7 +500,7 @@ describe('file api', () => {
       fileCount: 1,
       type: 'file',
       status: 'active',
-      mediaType: 'image/jpeg',
+      proxyType: 'image',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })

@@ -54,12 +54,10 @@ export async function transcodeImageWorkflow(task: WorkflowTask): Promise<void> 
       codec: '',
     }
 
-    const mimeType = mediaInfo.mimeType
     const metadata = mediaInfo.metadata
 
-    const isImage = mimeType.startsWith('image/')
-    const isPsd = isMimePsd(mimeType)
-    if ((isImage || isPsd) && metadata) {
+    const isImage = mediaInfo.proxyType === 'image'
+    if (isImage && metadata) {
       const imageSpec: PrismaJson.ImageTranscode = {
         width: metadata.originalWidth,
         height: metadata.originalHeight,

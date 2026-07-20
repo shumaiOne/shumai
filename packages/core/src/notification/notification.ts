@@ -401,7 +401,6 @@ export class NotificationService {
       info.asset = {
         id: a.id,
         name: a.name,
-        mediaType: a.mediaType || undefined,
         proxyType: (a.media as PrismaJson.MediaInfo | null)?.proxyType || undefined,
         preview: previewUrl || undefined,
         thumbnailUrl: thumbnailUrl || undefined,

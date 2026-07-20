@@ -53,7 +53,6 @@ describe('folder api', () => {
       fileCount: 1,
       type: 'folder',
       status: 'active',
-      mediaType: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })
@@ -81,7 +80,6 @@ describe('folder api', () => {
       fileCount: 1,
       type: 'folder',
       status: 'active',
-      mediaType: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })
@@ -113,7 +111,6 @@ describe('folder api', () => {
       fileCount: 0,
       type: 'folder',
       status: 'active',
-      mediaType: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })
@@ -147,7 +144,6 @@ describe('folder api', () => {
           fileCount: 0,
           type: 'folder',
           status: 'active',
-          mediaType: null,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },
@@ -223,7 +219,6 @@ describe('folder api', () => {
           fileCount: 0,
           type: 'folder',
           status: 'active',
-          mediaType: null,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },
@@ -261,7 +256,6 @@ describe('folder api', () => {
       fileCount: 1,
       type: 'folder',
       status: 'active',
-      mediaType: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })

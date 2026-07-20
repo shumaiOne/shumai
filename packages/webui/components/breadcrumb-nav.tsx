@@ -50,7 +50,6 @@ interface BreadcrumbNavProps {
     name?: string
     type: 'file' | 'folder'
     version?: number
-    mediaType?: string | null
     proxyType?: 'image' | 'video' | 'audio' | 'pdf' | null
   }
   isRootFolder: boolean

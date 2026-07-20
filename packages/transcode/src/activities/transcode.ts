@@ -73,7 +73,6 @@ export async function getMediaInfoActivity(params: {
       videoPreview: { width: 0, height: 0 },
       finishedAt: new Date().toISOString(),
       metadata: null,
-      mimeType: params.mediaType || '',
       original: {
         key: '', // Will be filled by caller or updated later
         downloadUrl: '',
@@ -428,7 +427,7 @@ export async function generateSpriteActivity(params: GenerateSpriteActivityParam
   const posterFile = path.join(tmpDir, 'poster.webp')
 
   try {
-    if (params.mediaInfo.proxyType === 'pdf' || params.mediaInfo.mimeType === 'application/pdf') {
+    if (params.mediaInfo.proxyType === 'pdf') {
       const pdfRes = await transcodeService.generatePdfSprite(
         params.filePath,
         spriteFile,

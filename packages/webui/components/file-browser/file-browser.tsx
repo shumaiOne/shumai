@@ -513,10 +513,20 @@ export function FileBrowser({
               fileCount: 0,
               type: 'file',
               status: hasUrl ? 'uploading' : 'error',
-              mediaType:
+              proxyType:
                 f.file.name.toLowerCase().endsWith('.wma') && f.file.type?.startsWith('video/')
-                  ? f.file.type.replace(/^video\//, 'audio/')
-                  : f.file.type || null,
+                  ? 'audio'
+                  : f.file.type?.startsWith('image/')
+                    ? 'image'
+                    : f.file.type?.startsWith('video/')
+                      ? 'video'
+                      : f.file.type?.startsWith('audio/')
+                        ? 'audio'
+                        : f.file.name.endsWith('.pdf') ||
+                            f.file.name.endsWith('.txt') ||
+                            f.file.name.endsWith('.csv')
+                          ? 'pdf'
+                          : null,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             }

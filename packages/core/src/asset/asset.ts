@@ -1735,7 +1735,6 @@ export class AssetService {
         type: a.type,
         targetType: a.type === AssetType.symlink ? a.target?.type : null,
         status: latestVersion.status,
-        mediaType: latestVersion.mediaType,
         proxyType,
         latestChildren,
         preview,
@@ -2027,7 +2026,6 @@ export class AssetService {
     }
 
     return {
-      mediaType: asset.mediaType,
       proxyType,
       thumbnailUrl,
       originalHeight: asset.media.metadata?.originalHeight,
@@ -2067,7 +2065,6 @@ export class AssetService {
             id: a.id,
             assetId: a.asset.id,
             url,
-            mediaType: a.asset.mediaType,
             proxyType: attachmentProxyType,
           })
         }

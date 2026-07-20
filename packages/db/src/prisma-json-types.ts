@@ -143,7 +143,6 @@ declare global {
       thumbnail?: ImageTranscode
       finishedAt: string
       metadata: Metadata | null
-      mimeType: string
       original: OriginalInfo | null
     }
 

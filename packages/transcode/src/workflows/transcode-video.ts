@@ -58,10 +58,9 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
       codec: '',
     }
 
-    const mimeType = mediaInfo.mimeType
     const metadata = mediaInfo.metadata
 
-    if (mimeType.startsWith('video/') && metadata) {
+    if (mediaInfo.proxyType === 'video' && metadata) {
       const videoResolutions = getTargetVideoResolutions(
         spec.videoStrategy || 'best_match',
         metadata.originalWidth,
@@ -103,7 +102,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
       })
     }
 
-    const isAudio = mimeType.startsWith('audio/')
+    const isAudio = mediaInfo.proxyType === 'audio'
     if (isAudio && metadata) {
       const audioTranscode = await executeActivity(workerQueue, transcodeAudioActivity, {
         assetKey: key,

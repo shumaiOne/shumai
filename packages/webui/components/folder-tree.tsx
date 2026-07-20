@@ -487,7 +487,6 @@ export function FolderTree({
                 sizeByte: 0,
                 fileCount: 0,
                 status: 'processed',
-                mediaType: null,
                 createdAt: '',
                 updatedAt: '',
               }}

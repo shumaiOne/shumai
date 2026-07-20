@@ -31,7 +31,6 @@ export const sampleVideoAsset: AssetInfo = {
   fileCount: 1,
   type: 'file',
   status: 'ready',
-  mediaType: 'video',
   proxyType: 'video',
   createdAt: '2024-01-01T00:00:00.000Z',
   updatedAt: '2024-01-01T00:00:00.000Z',
@@ -151,7 +150,6 @@ export const sampleAudioAsset: AssetInfo = {
   ...sampleVideoAsset,
   id: 'e2e-sample-audio-asset',
   name: 'sample-audio.mp4',
-  mediaType: 'audio/mp4',
   proxyType: 'audio',
   media: {
     proxyType: 'audio',
