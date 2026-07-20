@@ -4,19 +4,19 @@ import { kindOf, pickDefaultCompareVersions, clampFrame, isSameType } from './co
 describe('compare-utils', () => {
   describe('kindOf', () => {
     it('classifies image media types', () => {
-      expect(kindOf('image/png')).toBe('image')
-      expect(kindOf('image/webp')).toBe('image')
+      expect(kindOf('image')).toBe('image')
+      expect(kindOf({ proxyType: 'image' })).toBe('image')
     })
 
     it('classifies video media types', () => {
-      expect(kindOf('video/mp4')).toBe('video')
-      expect(kindOf('video/quicktime')).toBe('video')
+      expect(kindOf('video')).toBe('video')
+      expect(kindOf({ proxyType: 'video' })).toBe('video')
     })
 
     it('returns unsupported for missing or unknown types', () => {
       expect(kindOf(null)).toBe('unsupported')
       expect(kindOf(undefined)).toBe('unsupported')
-      expect(kindOf('application/pdf')).toBe('unsupported')
+      expect(kindOf('pdf')).toBe('unsupported')
     })
   })
 

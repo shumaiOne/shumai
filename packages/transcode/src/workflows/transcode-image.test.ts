@@ -94,7 +94,7 @@ describe('transcodeImageWorkflow', () => {
     })
 
     mockActivities.getMediaInfoActivity.mockResolvedValue({
-      mimeType: 'image/jpeg',
+      proxyType: 'image',
       metadata: {
         originalWidth: 1000,
         originalHeight: 1000,

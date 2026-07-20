@@ -230,6 +230,8 @@ describe.each(['local', 'temporal'] as const)(
           type: 'file',
           status: 'uploaded',
           mediaType: 'image/png',
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- partial MediaInfo mock for testing
+          media: { proxyType: 'image' } as any,
           projectId: project.id,
           storageKeyId: storageKey.id,
         },

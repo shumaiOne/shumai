@@ -53,6 +53,7 @@ export async function transcodePdfWorkflow(task: WorkflowTask): Promise<void> {
     const mediaInfo = await executeActivity(workerQueue, getMediaInfoActivity, {
       filePath: currentFilePath,
       assetId: asset.id,
+      proxyType: 'pdf',
       mediaType: asset.mediaType || '',
     })
 

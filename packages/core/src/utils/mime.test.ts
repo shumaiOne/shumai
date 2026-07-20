@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { detectSupportedMimeType } from './mime'
+import { detectSupportedMimeType, getProxyType } from './mime'
 
 describe('detectSupportedMimeType', () => {
   it('should detect JPEG', () => {
@@ -37,5 +37,34 @@ describe('detectSupportedMimeType', () => {
   it('should return null for unknown type', () => {
     const buffer = new Uint8Array([0x00, 0x00, 0x00, 0x00])
     expect(detectSupportedMimeType(buffer)).toBeNull()
+  })
+})
+
+describe('getProxyType', () => {
+  it('should detect image proxyType', () => {
+    expect(getProxyType('image/png', 'test.png')).toBe('image')
+    expect(getProxyType('image/jpeg', 'photo.jpg')).toBe('image')
+  })
+
+  it('should detect video proxyType', () => {
+    expect(getProxyType('video/mp4', 'clip.mp4')).toBe('video')
+  })
+
+  it('should detect audio proxyType', () => {
+    expect(getProxyType('audio/mpeg', 'song.mp3')).toBe('audio')
+  })
+
+  it('should detect pdf proxyType only for pdf, csv, and txt files', () => {
+    expect(getProxyType('application/pdf', 'doc.pdf')).toBe('pdf')
+    expect(getProxyType('text/plain', 'notes.txt')).toBe('pdf')
+    expect(getProxyType('text/csv', 'data.csv')).toBe('pdf')
+    expect(getProxyType(null, 'file.txt')).toBe('pdf')
+  })
+
+  it('should return null for unsupported files including office files', () => {
+    expect(getProxyType('application/zip', 'archive.zip')).toBeNull()
+    expect(getProxyType('application/msword', 'letter.doc')).toBeNull()
+    expect(getProxyType(null, 'sheet.xlsx')).toBeNull()
+    expect(getProxyType(null, 'unknown.bin')).toBeNull()
   })
 })

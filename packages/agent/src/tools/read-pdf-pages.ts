@@ -77,6 +77,14 @@ export function createReadPdfPagesTool(
           }
         }
 
+        const proxyType = (asset.media as PrismaJson.MediaInfo | null)?.proxyType
+        if (proxyType !== 'pdf') {
+          return {
+            content: [{ type: 'text', text: `Asset ${targetAssetId} is not a PDF or document.` }],
+            details: {},
+          }
+        }
+
         // Fetch trigger comment details for comment page and annotations
         let commentTimestamp: number | null = null
         let annotations: unknown = null

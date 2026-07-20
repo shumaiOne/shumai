@@ -114,7 +114,7 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
   // fullscreen). Compare keeps it in-flow. Colors stay theme-aware either way.
   const overlay = state.isFullScreen && floatOverlayInFullScreen
 
-  const isAudio = data.mediaType?.startsWith('audio/')
+  const isAudio = data.proxyType === 'audio'
   const previewResolutions = resolutions.filter((r) => !r.isRaw)
 
   const startTimecode = data.media?.metadata?.startTimecode

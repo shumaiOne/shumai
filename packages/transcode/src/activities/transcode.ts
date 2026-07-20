@@ -3,6 +3,7 @@ import { s3Service } from '@shumai/core/src/s3/s3'
 import { transcodeService } from '@shumai/core/src/transcode/transcode'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { stemFromKey } from '@shumai/core/src/utils/filename'
+import { getProxyType } from '@shumai/core/src/utils/mime'
 import { ApplicationFailure } from '@temporalio/activity'
 import * as path from 'path'
 import * as fs from 'fs'
@@ -24,7 +25,12 @@ function getErrorDetails(err: unknown): { code?: string; message: string; name?:
     const record = err as Record<string, unknown>
     return {
       code: typeof record.code === 'string' ? record.code : undefined,
-      message: typeof record.message === 'string' ? record.message : String(err),
+      message:
+        typeof record.message === 'string'
+          ? record.message
+          : err instanceof Error
+            ? err.message
+            : String(err),
       name: typeof record.name === 'string' ? record.name : undefined,
     }
   }
@@ -36,18 +42,16 @@ function getErrorDetails(err: unknown): { code?: string; message: string; name?:
 export async function getMediaInfoActivity(params: {
   filePath: string
   assetId: string
-  mediaType: string
+  proxyType?: 'image' | 'video' | 'audio' | 'pdf' | null
+  mediaType?: string
 }): Promise<PrismaJson.MediaInfo> {
   try {
-    const isVideo = params.mediaType.startsWith('video/')
-    const isImage = params.mediaType.startsWith('image/')
-    const isAudio = params.mediaType.startsWith('audio/')
-    const isDocument =
-      params.mediaType.startsWith('text/') ||
-      params.mediaType === 'application/pdf' ||
-      params.mediaType.includes('msword') ||
-      params.mediaType.includes('officedocument') ||
-      params.mediaType.includes('vnd.ms-')
+    const proxyType =
+      params.proxyType || getProxyType(params.mediaType, params.filePath) || undefined
+    const isVideo = proxyType === 'video'
+    const isImage = proxyType === 'image'
+    const isAudio = proxyType === 'audio'
+    const isPdf = proxyType === 'pdf'
 
     const fileType = isVideo
       ? 'video'
@@ -55,24 +59,9 @@ export async function getMediaInfoActivity(params: {
         ? 'audio'
         : isImage
           ? 'image'
-          : isDocument
+          : isPdf
             ? 'document'
             : 'file'
-
-    const isPdf =
-      params.mediaType === 'application/pdf' ||
-      params.mediaType === 'text/plain' ||
-      params.mediaType === 'text/csv'
-
-    const proxyType: 'image' | 'video' | 'audio' | 'pdf' | undefined = isVideo
-      ? 'video'
-      : isAudio
-        ? 'audio'
-        : isImage
-          ? 'image'
-          : isPdf || isDocument
-            ? 'pdf'
-            : undefined
 
     const mediaInfo: PrismaJson.MediaInfo = {
       duration: 0,
@@ -84,7 +73,6 @@ export async function getMediaInfoActivity(params: {
       videoPreview: { width: 0, height: 0 },
       finishedAt: new Date().toISOString(),
       metadata: null,
-      mimeType: params.mediaType,
       original: {
         key: '', // Will be filled by caller or updated later
         downloadUrl: '',
@@ -182,7 +170,7 @@ export async function getMediaInfoActivity(params: {
         { key: 'resolution_width', value: info.originalWidth },
         { key: 'resolution_height', value: info.originalHeight },
       )
-    } else if (isPdf || isDocument) {
+    } else if (isPdf) {
       const info = await transcodeService.getPdfInfo(params.filePath)
       mediaInfo.frames = info.totalFrames
       mediaInfo.metadata = {
@@ -439,7 +427,7 @@ export async function generateSpriteActivity(params: GenerateSpriteActivityParam
   const posterFile = path.join(tmpDir, 'poster.webp')
 
   try {
-    if (params.mediaInfo.proxyType === 'pdf' || params.mediaInfo.mimeType === 'application/pdf') {
+    if (params.mediaInfo.proxyType === 'pdf') {
       const pdfRes = await transcodeService.generatePdfSprite(
         params.filePath,
         spriteFile,

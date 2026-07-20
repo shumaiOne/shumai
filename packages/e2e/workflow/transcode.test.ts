@@ -128,14 +128,14 @@ describe.each(['local', 'temporal'] as const)(
 
       // Verify media info contains videoTranscodes, poster, sprite, and duration details
       const mediaInfo = updatedAsset?.media as unknown as {
-        mimeType: string
+        proxyType: string
         duration: number
         videoTranscodes: { key: string }[]
         poster: unknown
         sprite: unknown
       }
       expect(mediaInfo).toBeDefined()
-      expect(mediaInfo.mimeType).toBe('video/mp4')
+      expect(mediaInfo.proxyType).toBe('video')
       expect(mediaInfo.duration).toBeCloseTo(1.0, 1)
       expect(mediaInfo.videoTranscodes).toBeDefined()
       expect(mediaInfo.videoTranscodes.length).toBeGreaterThan(0)
@@ -213,12 +213,12 @@ describe.each(['local', 'temporal'] as const)(
       expect(updatedAsset?.status).toBe(AssetStatus.processed)
 
       const mediaInfo = updatedAsset?.media as unknown as {
-        mimeType: string
+        proxyType: string
         imageTranscodes: unknown[]
         thumbnail: unknown
       }
       expect(mediaInfo).toBeDefined()
-      expect(mediaInfo.mimeType).toBe('image/png')
+      expect(mediaInfo.proxyType).toBe('image')
       expect(mediaInfo.imageTranscodes).toBeDefined()
       expect(mediaInfo.imageTranscodes.length).toBeGreaterThan(0)
       expect(mediaInfo.thumbnail).toBeDefined()
@@ -292,11 +292,11 @@ describe.each(['local', 'temporal'] as const)(
       expect(updatedAsset?.status).toBe(AssetStatus.processed)
 
       const mediaInfo = updatedAsset?.media as unknown as {
-        mimeType: string
+        proxyType: string
         videoTranscodes: { key: string }[]
       }
       expect(mediaInfo).toBeDefined()
-      expect(mediaInfo.mimeType).toBe('audio/wav')
+      expect(mediaInfo.proxyType).toBe('audio')
       expect(mediaInfo.videoTranscodes).toBeDefined()
       expect(mediaInfo.videoTranscodes.length).toBeGreaterThan(0)
       // Audio proxy key should end with -audio-proxy.mp4
@@ -529,7 +529,7 @@ describe.each(['local', 'temporal'] as const)(
 
       // Verify media info contains pdf details, poster, sprite, and pageCount
       const mediaInfo = updatedAsset?.media as unknown as {
-        mimeType: string
+        proxyType: string
         poster: { key: string }
         sprite: { key: string }
         frames?: number
@@ -537,7 +537,7 @@ describe.each(['local', 'temporal'] as const)(
         metadata?: { totalFrames?: number; pageCount?: number }
       }
       expect(mediaInfo).toBeDefined()
-      expect(mediaInfo.mimeType).toBe('application/pdf')
+      expect(mediaInfo.proxyType).toBe('pdf')
       expect(mediaInfo.poster).toBeDefined()
       expect(mediaInfo.poster.key).toContain('poster.webp')
       expect(mediaInfo.sprite).toBeDefined()

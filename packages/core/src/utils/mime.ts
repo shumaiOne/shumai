@@ -1,3 +1,30 @@
+export type ProxyType = 'image' | 'video' | 'audio' | 'pdf'
+
+export function getProxyType(
+  mediaType?: string | null,
+  filename?: string | null,
+): ProxyType | null {
+  const lowerMediaType = mediaType?.toLowerCase() || ''
+  const lowerFilename = filename?.toLowerCase() || ''
+
+  if (lowerMediaType.startsWith('image/')) return 'image'
+  if (lowerMediaType.startsWith('video/')) return 'video'
+  if (lowerMediaType.startsWith('audio/')) return 'audio'
+
+  if (
+    lowerMediaType === 'application/pdf' ||
+    lowerMediaType === 'text/plain' ||
+    lowerMediaType === 'text/csv' ||
+    lowerFilename.endsWith('.pdf') ||
+    lowerFilename.endsWith('.txt') ||
+    lowerFilename.endsWith('.csv')
+  ) {
+    return 'pdf'
+  }
+
+  return null
+}
+
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
 
 export function detectSupportedMimeType(buffer: Uint8Array): string | null {

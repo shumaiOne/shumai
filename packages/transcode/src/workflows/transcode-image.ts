@@ -8,7 +8,6 @@ import {
   failTask,
   cleanupTmpDir,
 } from './common'
-import { isMimePsd } from './transcode-utils'
 
 export async function transcodeImageWorkflow(task: WorkflowTask): Promise<void> {
   let tmpDir: string | undefined
@@ -43,6 +42,7 @@ export async function transcodeImageWorkflow(task: WorkflowTask): Promise<void> 
     const mediaInfo = await executeActivity(workerQueue, getMediaInfoActivity, {
       filePath,
       assetId: asset.id,
+      proxyType: 'image',
       mediaType: asset.mediaType || '',
     })
 
@@ -53,12 +53,10 @@ export async function transcodeImageWorkflow(task: WorkflowTask): Promise<void> 
       codec: '',
     }
 
-    const mimeType = mediaInfo.mimeType
     const metadata = mediaInfo.metadata
 
-    const isImage = mimeType.startsWith('image/')
-    const isPsd = isMimePsd(mimeType)
-    if ((isImage || isPsd) && metadata) {
+    const isImage = mediaInfo.proxyType === 'image'
+    if (isImage && metadata) {
       const imageSpec: PrismaJson.ImageTranscode = {
         width: metadata.originalWidth,
         height: metadata.originalHeight,

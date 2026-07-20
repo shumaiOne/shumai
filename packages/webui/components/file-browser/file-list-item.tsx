@@ -214,8 +214,7 @@ export function FileListItem({
                 alt=""
                 className="w-full h-full object-cover"
               />
-            ) : displayItem.preview?.mediaType?.startsWith('audio/') ||
-              displayItem.mediaType?.startsWith('audio/') ? (
+            ) : displayItem.preview?.proxyType === 'audio' || displayItem.proxyType === 'audio' ? (
               <AudioLines className="h-4 w-4 text-muted-foreground" />
             ) : displayItem.type === 'folder' ? (
               <Folder className="h-4 w-4 text-primary" />

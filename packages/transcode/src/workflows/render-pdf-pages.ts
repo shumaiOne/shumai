@@ -18,9 +18,10 @@ export async function renderPdfPagesWorkflow(task: WorkflowTask): Promise<void> 
 
     const { asset, key } = await fetchAssetWithKey(workerQueue, task.assetId)
     const { renderPdfPagesActivity } = getActivities()
+    const pdfKey = (asset.media as PrismaJson.MediaInfo | null)?.pdfTranscode?.key || key
 
     const pages = await executeActivity(workerQueue, renderPdfPagesActivity, {
-      assetKey: key,
+      assetKey: pdfKey,
       assetId: asset.id,
       start: payload.pdfPages.start,
       end: payload.pdfPages.end,

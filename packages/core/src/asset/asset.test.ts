@@ -1475,6 +1475,7 @@ describe('AssetService', () => {
           mediaType: 'video/mp4',
           status: 'processed',
           media: {
+            proxyType: 'video',
             poster: { key: 'poster-key' },
             metadata: { duration: 262 },
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1485,7 +1486,7 @@ describe('AssetService', () => {
       const info = await assetService.getAsset({ assetId: video.id })
 
       expect(info.preview).toBeDefined()
-      expect(info.preview?.mediaType).toBe('video/mp4')
+      expect(info.preview?.proxyType).toBe('video')
       expect(info.preview?.duration).toBe(262)
     })
 
@@ -1502,6 +1503,7 @@ describe('AssetService', () => {
           mediaType: 'image/png',
           status: 'processed',
           media: {
+            proxyType: 'image',
             thumbnail: { key: 'thumb-key' },
             metadata: { originalWidth: 100, originalHeight: 80 },
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1530,6 +1532,7 @@ describe('AssetService', () => {
           mediaType: 'image/png',
           status: 'processed',
           media: {
+            proxyType: 'image',
             thumbnail: { key: 'thumb-key' },
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
           } as any,
@@ -1554,7 +1557,7 @@ describe('AssetService', () => {
       expect(info.type).toBe(AssetType.symlink)
       // Resolved from target
       expect(info.sizeByte).toBe(5000)
-      expect(info.mediaType).toBe('image/png')
+      expect(info.proxyType).toBe('image')
       expect(info.media).toBeDefined()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect((info.media as any).thumbnail?.key).toBe('thumb-key')

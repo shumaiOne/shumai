@@ -118,7 +118,7 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
     const [currentResolution, setCurrentResolution] = useState(initialRes?.resolution ?? 'Original')
     const currentSrcRef = useRef(initialRes?.url)
 
-    const isAudio = file.mediaType?.startsWith('audio/')
+    const isAudio = file.proxyType === 'audio'
     const { currentFrame, seekToFrame } = useFramePlayer(videoRef, frameRate, totalFrames, isAudio)
 
     const zoomRef = useRef(zoom)
@@ -440,7 +440,7 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
       >
         <div ref={videoContainerRef} className="absolute inset-0 z-[-1]" />
 
-        {file.mediaType?.startsWith('audio/') ? (
+        {isAudio ? (
           <div className="flex flex-col items-center justify-center text-muted-foreground w-full h-full pointer-events-none select-none">
             <AudioLines
               className={cn(

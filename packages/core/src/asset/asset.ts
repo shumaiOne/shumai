@@ -1735,7 +1735,6 @@ export class AssetService {
         type: a.type,
         targetType: a.type === AssetType.symlink ? a.target?.type : null,
         status: latestVersion.status,
-        mediaType: latestVersion.mediaType,
         proxyType,
         latestChildren,
         preview,
@@ -2000,8 +1999,10 @@ export class AssetService {
   private async toPreviewInfo(asset: Asset | AssetWithIncludes): Promise<PreviewInfo | null> {
     if (!asset.media) return null
 
+    const proxyType = (asset.media?.proxyType || null) as 'image' | 'video' | 'audio' | 'pdf' | null
+
     let thumbnailUrl = undefined
-    if (asset.mediaType?.startsWith('image/') && asset.media.thumbnail?.key) {
+    if (proxyType === 'image' && asset.media.thumbnail?.key) {
       thumbnailUrl = await s3Service.presign(
         process.env.S3_BUCKET || 'shumai',
         asset.media.thumbnail.key,
@@ -2024,10 +2025,7 @@ export class AssetService {
       )
     }
 
-    const proxyType = (asset.media?.proxyType || null) as 'image' | 'video' | 'audio' | 'pdf' | null
-
     return {
-      mediaType: asset.mediaType,
       proxyType,
       thumbnailUrl,
       originalHeight: asset.media.metadata?.originalHeight,
@@ -2057,11 +2055,17 @@ export class AssetService {
             a.asset.storageKey.key,
             'GET',
           )
+          const attachmentProxyType = (a.asset.media?.proxyType || null) as
+            | 'image'
+            | 'video'
+            | 'audio'
+            | 'pdf'
+            | null
           attachments.push({
             id: a.id,
             assetId: a.asset.id,
             url,
-            mediaType: a.asset.mediaType,
+            proxyType: attachmentProxyType,
           })
         }
       }

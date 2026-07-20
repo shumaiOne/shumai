@@ -49,6 +49,7 @@ describe('readPdfPagesTool', () => {
     vi.mocked(prisma.asset.findUnique).mockResolvedValue({
       id: 'asset-1',
       projectId: 'project-1',
+      media: { proxyType: 'pdf' },
     } as unknown as Asset)
 
     vi.mocked(prisma.assetComment.findUnique).mockResolvedValue({
@@ -165,6 +166,38 @@ describe('readPdfPagesTool', () => {
     expect(result.content[0]).toEqual({
       type: 'text',
       text: 'Asset with ID asset-1 not found.',
+    })
+  })
+
+  it('should return error text if proxyType is not pdf', async () => {
+    vi.mocked(prisma.asset.findUnique).mockResolvedValue({
+      id: 'asset-1',
+      projectId: 'project-1',
+      media: { proxyType: 'image' },
+    } as unknown as Asset)
+
+    const tool = createReadPdfPagesTool('asset-1')
+    const result = await tool.execute('call-1', { start: 1, end: 3 })
+
+    expect(result.content[0]).toEqual({
+      type: 'text',
+      text: 'Asset asset-1 is not a PDF or document.',
+    })
+  })
+
+  it('should return error text if proxyType is null/undefined (unprocessed)', async () => {
+    vi.mocked(prisma.asset.findUnique).mockResolvedValue({
+      id: 'asset-1',
+      projectId: 'project-1',
+      media: null,
+    } as unknown as Asset)
+
+    const tool = createReadPdfPagesTool('asset-1')
+    const result = await tool.execute('call-1', { start: 1, end: 3 })
+
+    expect(result.content[0]).toEqual({
+      type: 'text',
+      text: 'Asset asset-1 is not a PDF or document.',
     })
   })
 })

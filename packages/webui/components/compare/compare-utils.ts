@@ -1,10 +1,11 @@
 import type { PaneKind } from './types'
 
 /** Classify an asset's media type into a compare pane kind. */
-export function kindOf(mediaType: string | null | undefined): PaneKind {
-  if (!mediaType) return 'unsupported'
-  if (mediaType.startsWith('image/')) return 'image'
-  if (mediaType.startsWith('video/')) return 'video'
+export function kindOf(item: { proxyType?: string | null } | string | null | undefined): PaneKind {
+  if (!item) return 'unsupported'
+  const proxyType = typeof item === 'object' ? item.proxyType : item
+  if (proxyType === 'image') return 'image'
+  if (proxyType === 'video') return 'video'
   return 'unsupported'
 }
 

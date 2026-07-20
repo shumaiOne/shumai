@@ -22,6 +22,7 @@ import { ImageTranscoder, PdfTranscoder, VideoTranscoder } from '@shumai/transco
 import { generateKeyBetween } from 'jittered-fractional-indexing'
 import { ulid } from 'ulid'
 import { sanitizeFilename } from '@shumai/core/src/utils/filename'
+import { getProxyType } from '@shumai/core/src/utils/mime'
 
 export class UploadService {
   constructor(private readonly prismaClient: typeof prisma = prisma) {}
@@ -300,16 +301,14 @@ export class UploadService {
       },
     })
 
-    const isVideo = asset.mediaType?.startsWith('video/')
-    const isImage = asset.mediaType?.startsWith('image/')
-    const isAudio = asset.mediaType?.startsWith('audio/')
-    const isPdf =
-      asset.mediaType === 'application/pdf' ||
-      asset.mediaType === 'text/plain' ||
-      asset.mediaType === 'text/csv' ||
-      asset.name.toLowerCase().endsWith('.pdf') ||
-      asset.name.toLowerCase().endsWith('.txt') ||
-      asset.name.toLowerCase().endsWith('.csv')
+    const proxyType =
+      (asset.media as PrismaJson.MediaInfo | null)?.proxyType ||
+      getProxyType(asset.mediaType, asset.name)
+
+    const isVideo = proxyType === 'video'
+    const isImage = proxyType === 'image'
+    const isAudio = proxyType === 'audio'
+    const isPdf = proxyType === 'pdf'
 
     if (autofillAgent && (isVideo || isImage)) {
       await tx.workflowTask.create({
@@ -327,7 +326,7 @@ export class UploadService {
       })
     }
 
-    if (!isVideo && !isImage && !isAudio && !isPdf) {
+    if (!proxyType) {
       await tx.asset.update({
         where: { id: asset.id },
         data: { status: AssetStatus.processed },

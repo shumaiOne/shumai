@@ -88,8 +88,9 @@ export async function generateEmbeddingActivity(params: GenerateEmbeddingParams)
     outputTokens: 0,
   }
 
-  const isImage = asset.mediaType.startsWith('image/')
-  const isVideo = asset.mediaType.startsWith('video/')
+  const proxyType = (asset.media as PrismaJson.MediaInfo | null)?.proxyType
+  const isImage = proxyType === 'image'
+  const isVideo = proxyType === 'video'
 
   if (!isImage && !isVideo) {
     throw ApplicationFailure.create({

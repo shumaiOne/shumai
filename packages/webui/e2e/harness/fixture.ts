@@ -31,10 +31,11 @@ export const sampleVideoAsset: AssetInfo = {
   fileCount: 1,
   type: 'file',
   status: 'ready',
-  mediaType: 'video',
+  proxyType: 'video',
   createdAt: '2024-01-01T00:00:00.000Z',
   updatedAt: '2024-01-01T00:00:00.000Z',
   media: {
+    proxyType: 'video',
     original: {
       downloadUrl: SAMPLE_VIDEO_URL,
       key: 'sample.mp4',
@@ -81,6 +82,7 @@ export const containerLongerVideoAsset: AssetInfo = {
   ...sampleVideoAsset,
   id: 'e2e-container-longer-asset',
   media: {
+    ...sampleVideoAsset.media,
     original: {
       downloadUrl: SAMPLE_VIDEO_URL,
       key: 'sample.mp4',
@@ -123,6 +125,7 @@ export const longAudioVideoAsset: AssetInfo = {
   id: 'e2e-long-audio-asset',
   name: 'sample-long-audio.mp4',
   media: {
+    ...sampleVideoAsset.media,
     original: {
       downloadUrl: LONG_AUDIO_VIDEO_URL,
       key: 'sample-long-audio.mp4',
@@ -147,8 +150,9 @@ export const sampleAudioAsset: AssetInfo = {
   ...sampleVideoAsset,
   id: 'e2e-sample-audio-asset',
   name: 'sample-audio.mp4',
-  mediaType: 'audio/mp4',
+  proxyType: 'audio',
   media: {
+    proxyType: 'audio',
     original: {
       downloadUrl: SAMPLE_AUDIO_URL,
       key: 'sample-audio.mp4',

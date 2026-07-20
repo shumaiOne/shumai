@@ -194,7 +194,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
     const dbTotalFrames = metadata?.totalFrames || 0
     const containerDuration = metadata?.duration || 0
 
-    const isAudio = data.mediaType?.startsWith('audio/')
+    const isAudio = data.proxyType === 'audio'
     const totalFrames = resolveTotalFrames({ dbTotalFrames, containerDuration, frameRate })
     const { currentFrame, seekToFrame } = useFramePlayer(videoRef, frameRate, totalFrames, isAudio)
 
@@ -626,7 +626,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
             {/* Hidden VideoJS container */}
             <div ref={videoContainerRef} className="absolute inset-0 z-[-1]" />
 
-            {data.mediaType?.startsWith('audio/') ? (
+            {isAudio ? (
               <div className="flex flex-col items-center justify-center text-muted-foreground w-full h-full pointer-events-none select-none">
                 <AudioLines
                   className={cn(

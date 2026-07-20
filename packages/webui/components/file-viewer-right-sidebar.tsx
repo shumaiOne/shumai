@@ -315,7 +315,7 @@ export function FileViewerRightSidebar({
   return (
     <div className="bg-background h-full flex flex-col overflow-hidden">
       {/* Lightbox */}
-      {viewingAttachment && viewingAttachment.mediaType?.startsWith('image/') && (
+      {viewingAttachment && viewingAttachment.proxyType === 'image' && (
         <div
           className="fixed inset-0 z-[100] bg-black/95 flex flex-col items-center justify-center p-4 animate-in fade-in duration-200"
           onClick={() => setViewingAttachment(null)}

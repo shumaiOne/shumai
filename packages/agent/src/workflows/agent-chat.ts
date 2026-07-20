@@ -74,7 +74,8 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       // 5. Prepare Images (Attachments only)
       if (userComment.attachments) {
         for (const att of userComment.attachments) {
-          if (att.asset?.mediaType?.startsWith('image/') && att.asset?.storageKey?.key) {
+          const attProxyType = (att.asset?.media as PrismaJson.MediaInfo | null)?.proxyType
+          if (attProxyType === 'image' && att.asset?.storageKey?.key) {
             attachmentImageUrls.push(att.asset.storageKey.key)
           }
         }
@@ -161,10 +162,11 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       }
     }
 
+    const proxyType = (asset.media as PrismaJson.MediaInfo | null)?.proxyType
     const instruction = new AgentChatPromptBuilder(asset.id)
       .withContinuation(!isNewChat)
       .withPathContext(pathContext)
-      .withAssetDetails(asset.name, asset.mediaType, duration, totalPages)
+      .withAssetDetails(asset.name, asset.mediaType, duration, totalPages, proxyType)
       .withCommentTimestamp(commentTimestamp)
       .withExplicitMention(payload.agent?.explicitMention)
       .withAttachedFiles(attachedFileDetailsList)

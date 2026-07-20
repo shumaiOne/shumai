@@ -235,15 +235,14 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     const asset = await prisma.asset.findUnique({
       where: { id: assetId },
     })
-    if (asset?.mediaType) {
-      const type = getSimpleMediaType(asset.mediaType)
-      if (type === 'image') {
-        mediaTools.push(createAnalyzeImageTool(assetId, userCommentId))
-      } else if (type === 'video') {
-        mediaTools.push(createScreenshotTool(assetId, userCommentId))
-      } else if (type === 'pdf') {
-        mediaTools.push(createReadPdfPagesTool(assetId, userCommentId))
-      }
+    const proxyType = (asset?.media as PrismaJson.MediaInfo | null)?.proxyType
+    const type = getSimpleMediaType(proxyType)
+    if (type === 'image') {
+      mediaTools.push(createAnalyzeImageTool(assetId, userCommentId))
+    } else if (type === 'video') {
+      mediaTools.push(createScreenshotTool(assetId, userCommentId))
+    } else if (type === 'pdf') {
+      mediaTools.push(createReadPdfPagesTool(assetId, userCommentId))
     }
   }
 

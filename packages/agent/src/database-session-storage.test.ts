@@ -409,6 +409,8 @@ describe('DatabaseSessionStorage', () => {
         name: 'test.png',
         type: 'file',
         mediaType: 'image/png',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- partial MediaInfo mock for testing
+        media: { proxyType: 'image' } as any,
         projectId: project.id,
         status: 'uploaded',
       },
@@ -461,6 +463,8 @@ describe('DatabaseSessionStorage', () => {
         name: 'test.mp4',
         type: 'file',
         mediaType: 'video/mp4',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- partial MediaInfo mock for testing
+        media: { proxyType: 'video' } as any,
         projectId: project.id,
         status: 'uploaded',
       },

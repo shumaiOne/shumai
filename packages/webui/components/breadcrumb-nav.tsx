@@ -50,7 +50,7 @@ interface BreadcrumbNavProps {
     name?: string
     type: 'file' | 'folder'
     version?: number
-    mediaType?: string | null
+    proxyType?: 'image' | 'video' | 'audio' | 'pdf' | null
   }
   isRootFolder: boolean
   displayStyle?: 'card' | 'list'
@@ -158,7 +158,7 @@ export function BreadcrumbNav({
     }
   }
 
-  const isAudio = currentAsset.mediaType?.startsWith('audio/')
+  const isAudio = currentAsset.proxyType === 'audio'
   const hasVideoTranscodes =
     !isAudio &&
     downloadInfo?.videoTranscodes &&

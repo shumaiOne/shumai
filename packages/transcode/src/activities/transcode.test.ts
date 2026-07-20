@@ -117,6 +117,7 @@ describe('Transcode Activities', () => {
     const result = await getMediaInfoActivity({
       assetId: asset.id,
       filePath: '/tmp/v.mp4',
+      proxyType: 'video',
       mediaType: 'video/mp4',
     })
 
@@ -153,6 +154,7 @@ describe('Transcode Activities', () => {
     const result = await getMediaInfoActivity({
       assetId: asset.id,
       filePath: '/tmp/i.png',
+      proxyType: 'image',
       mediaType: 'image/png',
     })
 
@@ -188,6 +190,7 @@ describe('Transcode Activities', () => {
     const result = await getMediaInfoActivity({
       assetId: asset.id,
       filePath: '/tmp/a.mp3',
+      proxyType: 'audio',
       mediaType: 'audio/mpeg',
     })
 
@@ -221,6 +224,7 @@ describe('Transcode Activities', () => {
     await getMediaInfoActivity({
       assetId: asset.id,
       filePath: '/tmp/d.pdf',
+      proxyType: 'pdf',
       mediaType: 'application/pdf',
     })
 

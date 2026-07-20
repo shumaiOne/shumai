@@ -161,7 +161,7 @@ function FileViewPage() {
             ? (versionsDataList.find((v: { id: string }) => v.id === activeFileId)?.version ??
               versionsDataList.length)
             : undefined,
-          mediaType: fileData.mediaType,
+          proxyType: fileData.proxyType,
         },
         isRootFolder: false,
         fileId,
@@ -464,7 +464,7 @@ function FileViewPage() {
                     mediaControllerRef.current?.pause()
                   }}
                   selectedCommentId={selectedCommentId}
-                  hideAnnotationControl={sidebarFile?.mediaType?.startsWith('audio/')}
+                  hideAnnotationControl={sidebarFile?.proxyType === 'audio'}
                 />
               )}
             </div>
