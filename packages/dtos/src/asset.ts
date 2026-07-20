@@ -109,6 +109,7 @@ export const assetInfoSchema = z.object({
       videoPreview: z.object({ url: z.string(), key: z.string().optional() }).optional(),
       pdfTranscode: z.object({ url: z.string(), key: z.string().optional() }).optional(),
       mimeType: z.string().optional(),
+      proxyType: z.enum(['image', 'video', 'audio', 'pdf']).nullable().optional(),
       metadata: mediaMetadataSchema.optional(),
     })
     .optional(),

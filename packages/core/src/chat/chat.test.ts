@@ -181,7 +181,8 @@ describe('ChatService', () => {
         name: 'doc.jpg',
         type: 'file',
         mediaType: 'image/jpeg',
-        media: { proxyType: 'image' },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- partial MediaInfo mock for testing
+        media: { proxyType: 'image' } as any,
         status: 'processed',
         projectId: project.id,
         parentId: childFolder.id,
