@@ -15,19 +15,9 @@ export function getProxyType(
     lowerMediaType === 'application/pdf' ||
     lowerMediaType === 'text/plain' ||
     lowerMediaType === 'text/csv' ||
-    lowerMediaType.includes('msword') ||
-    lowerMediaType.includes('officedocument') ||
-    lowerMediaType.includes('vnd.ms-') ||
-    lowerMediaType.startsWith('text/') ||
     lowerFilename.endsWith('.pdf') ||
     lowerFilename.endsWith('.txt') ||
-    lowerFilename.endsWith('.csv') ||
-    lowerFilename.endsWith('.doc') ||
-    lowerFilename.endsWith('.docx') ||
-    lowerFilename.endsWith('.xls') ||
-    lowerFilename.endsWith('.xlsx') ||
-    lowerFilename.endsWith('.ppt') ||
-    lowerFilename.endsWith('.pptx')
+    lowerFilename.endsWith('.csv')
   ) {
     return 'pdf'
   }

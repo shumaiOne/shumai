@@ -54,16 +54,17 @@ describe('getProxyType', () => {
     expect(getProxyType('audio/mpeg', 'song.mp3')).toBe('audio')
   })
 
-  it('should detect pdf proxyType for pdf, csv, txt, and doc files', () => {
+  it('should detect pdf proxyType only for pdf, csv, and txt files', () => {
     expect(getProxyType('application/pdf', 'doc.pdf')).toBe('pdf')
     expect(getProxyType('text/plain', 'notes.txt')).toBe('pdf')
     expect(getProxyType('text/csv', 'data.csv')).toBe('pdf')
-    expect(getProxyType('application/msword', 'letter.doc')).toBe('pdf')
     expect(getProxyType(null, 'file.txt')).toBe('pdf')
   })
 
-  it('should return null for unsupported files', () => {
+  it('should return null for unsupported files including office files', () => {
     expect(getProxyType('application/zip', 'archive.zip')).toBeNull()
+    expect(getProxyType('application/msword', 'letter.doc')).toBeNull()
+    expect(getProxyType(null, 'sheet.xlsx')).toBeNull()
     expect(getProxyType(null, 'unknown.bin')).toBeNull()
   })
 })
