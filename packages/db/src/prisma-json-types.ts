@@ -308,6 +308,7 @@ declare global {
       attachedFiles?: string[]
       assetIds?: string[]
       isNewChat?: boolean
+      hasAssetChanged?: boolean
     }
 
     // ----------------------------------------------------------------------

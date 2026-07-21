@@ -150,4 +150,18 @@ describe('AgentChatPromptBuilder', () => {
     expect(result).toContain('Attached Files:\n- file1.txt')
     expect(result).toContain('Referenced Workspace Assets:\n- folder1')
   })
+
+  it('should include location change context block in continuation mode when asset has changed', () => {
+    const builder = new AgentChatPromptBuilder('a2')
+      .withContinuation(true)
+      .withAssetChanged(true)
+      .withAssetDetails('new-folder', 'folder', undefined, undefined, 'folder')
+      .withPathContext('projects/my-proj/new-folder')
+    const result = builder.build()
+
+    expect(result).toContain('[Context: User Navigated to a New Location]')
+    expect(result).toContain('New Location Asset ID: a2')
+    expect(result).toContain('File Name: new-folder')
+    expect(result).toContain('Asset Path Context:\nprojects/my-proj/new-folder')
+  })
 })

@@ -185,6 +185,7 @@ export class ChatService {
 
     // 2. Project / Asset scoping resolution
     let targetAssetId = ''
+    let hasAssetChanged = false
 
     if (passedSessionId) {
       const session = await this.prismaClient.agentSession.findUnique({
@@ -194,7 +195,18 @@ export class ChatService {
       if (!session) throw new Error('Session not found')
       if (session.userId !== user.id) throw new Error('Unauthorized session access')
       if (!session.assetId) throw new Error('Session has no associated asset')
-      targetAssetId = session.assetId
+
+      if (contextAssetId && contextAssetId !== session.assetId) {
+        const contextAsset = await this.prismaClient.asset.findUnique({
+          where: { id: contextAssetId },
+          include: { project: true },
+        })
+        if (!contextAsset) throw new Error('Context asset not found')
+        targetAssetId = contextAssetId
+        hasAssetChanged = true
+      } else {
+        targetAssetId = session.assetId
+      }
     } else {
       // Start a new session
       if (contextAssetId) {
@@ -269,10 +281,13 @@ export class ChatService {
         if (!sessionExists) throw new Error('Session not found')
         if (sessionExists.userId !== user.id) throw new Error('Unauthorized session access')
 
-        // Update the session's agentId to match the selected agent
+        // Update the session's agentId and assetId (if location changed)
         await tx.agentSession.update({
           where: { id: activeSessionId },
-          data: { agentId },
+          data: {
+            agentId,
+            ...(hasAssetChanged ? { assetId: targetAssetId } : {}),
+          },
         })
       } else {
         const newSession = await tx.agentSession.create({
@@ -307,6 +322,7 @@ export class ChatService {
               sessionId: activeSessionId,
               userId: user.id,
               isNewChat: !passedSessionId,
+              hasAssetChanged,
             },
           },
         },
