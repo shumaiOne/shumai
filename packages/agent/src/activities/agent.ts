@@ -763,7 +763,7 @@ export async function getAgentAutofillContextActivity(params: {
 }
 
 export async function getAssetActivity(assetId: string) {
-  return prisma.asset.findUnique({
+  const asset = await prisma.asset.findUnique({
     where: { id: assetId },
     include: {
       storageKey: true,
@@ -774,6 +774,30 @@ export async function getAssetActivity(assetId: string) {
       },
     },
   })
+
+  if (asset && asset.type === AssetType.version_stack) {
+    const latestVersion = await prisma.asset.findFirst({
+      where: { parentId: asset.id, isDeleted: false },
+      orderBy: { sortIndex: 'asc' },
+      include: {
+        storageKey: true,
+        project: {
+          include: {
+            team: true,
+          },
+        },
+      },
+    })
+
+    if (latestVersion) {
+      return {
+        ...latestVersion,
+        project: latestVersion.project ?? asset.project,
+      }
+    }
+  }
+
+  return asset
 }
 
 export async function getCommentActivity(commentId: string) {

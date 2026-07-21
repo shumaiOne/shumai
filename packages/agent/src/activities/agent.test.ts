@@ -596,6 +596,45 @@ describe('Agent Database Activities Integration', () => {
       const fetchedComment = await getCommentActivity(comment.id)
       expect(fetchedComment?.id).toBe(comment.id)
     })
+
+    it('should resolve version stack asset to its latest version file', async () => {
+      const stack = await prisma.asset.create({
+        data: {
+          name: 'Stack',
+          type: AssetType.version_stack,
+          status: AssetStatus.uploaded,
+          projectId: project.id,
+        },
+      })
+
+      await prisma.asset.create({
+        data: {
+          name: 'v1.png',
+          type: AssetType.file,
+          mediaType: 'image/png',
+          status: AssetStatus.uploaded,
+          projectId: project.id,
+          parentId: stack.id,
+          sortIndex: 'a1',
+        },
+      })
+
+      const v2 = await prisma.asset.create({
+        data: {
+          name: 'v2.png',
+          type: AssetType.file,
+          mediaType: 'image/png',
+          status: AssetStatus.uploaded,
+          projectId: project.id,
+          parentId: stack.id,
+          sortIndex: 'a0',
+        },
+      })
+
+      const fetchedAsset = await getAssetActivity(stack.id)
+      expect(fetchedAsset?.id).toBe(v2.id)
+      expect(fetchedAsset?.name).toBe('v2.png')
+    })
   })
 
   describe('getAssetPathContextActivity', () => {
