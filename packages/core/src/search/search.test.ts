@@ -7,6 +7,7 @@ import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { workflowService } from '@shumai/workflow-core'
 
 import { AssetType } from '@shumai/db'
+import { assetService } from '@shumai/core/src/asset/asset'
 
 describe('SearchService', () => {
   setupTestDbHooks()
@@ -557,6 +558,57 @@ describe('SearchService', () => {
       isSemantic: false,
     })
     expect(resultWithSymlink.data.find((a) => a.id === symlink.id)).toBeDefined()
+  })
+
+  it('excludes soft-deleted (trashed) files from latestChildren when searching folders', async () => {
+    const { rootFolder } = await setupBasicAssets()
+
+    const subfolder = await prisma.asset.create({
+      data: {
+        name: 'subfolder',
+        type: AssetType.folder,
+        projectId: rootFolder.projectId,
+        parentId: rootFolder.id,
+        status: 'uploaded',
+      },
+    })
+
+    const childFile1 = await prisma.asset.create({
+      data: {
+        name: 'child1.txt',
+        type: AssetType.file,
+        projectId: rootFolder.projectId,
+        parentId: subfolder.id,
+        status: 'uploaded',
+        sortIndex: 'a0',
+      },
+    })
+
+    await prisma.asset.create({
+      data: {
+        name: 'child2.txt',
+        type: AssetType.file,
+        projectId: rootFolder.projectId,
+        parentId: subfolder.id,
+        status: 'uploaded',
+        sortIndex: 'a1',
+      },
+    })
+
+    await assetService.deleteAssets([childFile1.id])
+
+    const result = await searchService.search(rootFolder.id, {
+      recursively: false,
+      assetType: 'folder',
+      operator: 'AND',
+      conditions: [],
+      isSemantic: false,
+    })
+
+    const searchedSubfolder = result.data.find((a) => a.id === subfolder.id)
+    expect(searchedSubfolder).toBeDefined()
+
+    expect(searchedSubfolder?.latestChildren?.length).toBe(1)
   })
 
   describe('Semantic Search with multiple chunks and distance ordering', () => {
