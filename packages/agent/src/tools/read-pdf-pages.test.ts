@@ -56,11 +56,11 @@ vi.mock('@shumai/core/src/authz/authz', () => ({
 describe('readPdfPagesTool', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(authzService.hasPermission).mockResolvedValue()
   })
 
   it('should trigger pdfPages transcode workflow and return image outputs', async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user-1' } as User)
-    vi.mocked(authzService.hasPermission).mockResolvedValue()
 
     vi.mocked(prisma.asset.findUnique).mockResolvedValue({
       id: 'asset-1',
@@ -152,7 +152,7 @@ describe('readPdfPagesTool', () => {
   })
 
   it('should return error text if start page is less than 1', async () => {
-    const tool = createReadPdfPagesTool()
+    const tool = createReadPdfPagesTool('user-1')
     const result = await tool.execute('call-1', { assetId: 'asset-1', start: 0, end: 5 })
 
     expect(result.content[0]).toEqual({
@@ -162,7 +162,7 @@ describe('readPdfPagesTool', () => {
   })
 
   it('should return error text if start page is greater than end page', async () => {
-    const tool = createReadPdfPagesTool()
+    const tool = createReadPdfPagesTool('user-1')
     const result = await tool.execute('call-1', { assetId: 'asset-1', start: 5, end: 2 })
 
     expect(result.content[0]).toEqual({
@@ -172,7 +172,7 @@ describe('readPdfPagesTool', () => {
   })
 
   it('should return error text if page range exceeds maximum limit of 20', async () => {
-    const tool = createReadPdfPagesTool()
+    const tool = createReadPdfPagesTool('user-1')
     const result = await tool.execute('call-1', { assetId: 'asset-1', start: 1, end: 25 })
 
     expect(result.content[0]).toEqual({
@@ -184,7 +184,7 @@ describe('readPdfPagesTool', () => {
   it('should return error text if asset not found', async () => {
     vi.mocked(prisma.asset.findUnique).mockResolvedValue(null)
 
-    const tool = createReadPdfPagesTool()
+    const tool = createReadPdfPagesTool('user-1')
     const result = await tool.execute('call-1', { assetId: 'asset-1', start: 1, end: 3 })
 
     expect(result.content[0]).toEqual({
@@ -200,7 +200,7 @@ describe('readPdfPagesTool', () => {
       media: { proxyType: 'image' },
     } as unknown as Asset)
 
-    const tool = createReadPdfPagesTool()
+    const tool = createReadPdfPagesTool('user-1')
     const result = await tool.execute('call-1', { assetId: 'asset-1', start: 1, end: 3 })
 
     expect(result.content[0]).toEqual({
@@ -216,7 +216,7 @@ describe('readPdfPagesTool', () => {
       media: null,
     } as unknown as Asset)
 
-    const tool = createReadPdfPagesTool()
+    const tool = createReadPdfPagesTool('user-1')
     const result = await tool.execute('call-1', { assetId: 'asset-1', start: 1, end: 3 })
 
     expect(result.content[0]).toEqual({

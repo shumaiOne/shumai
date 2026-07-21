@@ -228,11 +228,14 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
   const userCommentId =
     passedUserCommentId !== undefined ? passedUserCommentId : metadata.userCommentId
 
-  const mediaTools: AgentTool[] = [
-    createAnalyzeImageTool(userId, userCommentId),
-    createScreenshotTool(userId, userCommentId),
-    createReadPdfPagesTool(userId, userCommentId),
-  ]
+  const mediaTools: AgentTool[] = []
+  if (userId) {
+    mediaTools.push(
+      createAnalyzeImageTool(userId, userCommentId),
+      createScreenshotTool(userId, userCommentId),
+      createReadPdfPagesTool(userId, userCommentId),
+    )
+  }
 
   const sandboxedBash = createSandboxedBashTool(process.cwd(), skillEnvs, {
     getBlockedHost: () => sandboxState.blockedHost,

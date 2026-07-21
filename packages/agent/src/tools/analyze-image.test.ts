@@ -139,7 +139,7 @@ describe('analyzeImageTool', () => {
       contentType: 'image/webp',
     } as unknown as { buffer: Buffer; contentType: string })
 
-    const tool = createAnalyzeImageTool(undefined, 'comment-1')
+    const tool = createAnalyzeImageTool('user-1', 'comment-1')
     const result = await tool.execute('call-1', { assetId: 'asset-1' })
 
     expect(prisma.workflowTask.create).toHaveBeenCalledWith({

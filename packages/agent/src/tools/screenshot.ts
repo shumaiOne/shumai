@@ -1,7 +1,7 @@
 import { Type } from '@sinclair/typebox'
 import { type AgentTool } from '@earendil-works/pi-agent-core'
 import { type ImageContent } from '@earendil-works/pi-ai'
-import { prisma, WorkflowTaskType, WorkflowTaskStatus } from '@shumai/db'
+import { prisma, WorkflowTaskType, WorkflowTaskStatus, type User } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { workflowService } from '@shumai/workflow-core'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
@@ -16,7 +16,7 @@ const screenshotSchema = Type.Object({
 })
 
 export function createScreenshotTool(
-  userId?: string,
+  userId: string,
   userCommentId?: string | null,
 ): AgentTool<typeof screenshotSchema> {
   return {
@@ -29,21 +29,19 @@ export function createScreenshotTool(
       try {
         const assetId = params.assetId
 
-        if (userId) {
-          const user = await prisma.user.findUnique({ where: { id: userId } })
-          if (!user) {
-            return {
-              content: [{ type: 'text', text: `User not found: ${userId}` }],
-              details: {},
-            }
+        if (!userId) {
+          return {
+            content: [{ type: 'text', text: 'User ID is required for authorization.' }],
+            details: {},
           }
-          await authzService.hasPermission({
-            user,
-            permission: Permission.Read,
-            type: ResourceType.Asset,
-            id: assetId,
-          })
         }
+
+        await authzService.hasPermission({
+          user: { id: userId } as User,
+          permission: Permission.Read,
+          type: ResourceType.Asset,
+          id: assetId,
+        })
 
         const asset = await prisma.asset.findUnique({
           where: { id: assetId },
