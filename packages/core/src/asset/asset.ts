@@ -102,6 +102,7 @@ export class AssetService {
             metadataValues: true,
             storageKey: true,
             children: {
+              where: { isDeleted: false },
               include: { creator: true, metadataValues: true, storageKey: true },
               take: 3,
               orderBy: { sortIndex: 'asc' },
@@ -109,6 +110,7 @@ export class AssetService {
           },
         },
         children: {
+          where: { isDeleted: false },
           include: { creator: true, metadataValues: true, storageKey: true },
           take: 3,
           orderBy: { sortIndex: 'asc' },
@@ -661,6 +663,7 @@ export class AssetService {
                 metadataValues: true,
                 storageKey: true,
                 children: {
+                  where: { isDeleted: false },
                   include: { creator: true, metadataValues: true, storageKey: true },
                   take: 3,
                   orderBy: { sortIndex: 'asc' },
@@ -668,6 +671,7 @@ export class AssetService {
               },
             },
             children: {
+              where: { isDeleted: false },
               include: { creator: true, metadataValues: true, storageKey: true },
               take: 3,
               orderBy: { sortIndex: 'asc' },
@@ -745,6 +749,7 @@ export class AssetService {
               metadataValues: true,
               storageKey: true,
               children: {
+                where: { isDeleted: false },
                 include: { creator: true, metadataValues: true, storageKey: true },
                 take: 3,
                 orderBy: { sortIndex: 'asc' },
@@ -752,6 +757,7 @@ export class AssetService {
             },
           },
           children: {
+            where: { isDeleted: false },
             include: { creator: true, metadataValues: true, storageKey: true },
             take: 3,
             orderBy: { sortIndex: 'asc' },
@@ -794,6 +800,7 @@ export class AssetService {
             metadataValues: true,
             storageKey: true,
             children: {
+              where: { isDeleted: false },
               include: { creator: true, metadataValues: true, storageKey: true },
               take: 3,
               orderBy: { sortIndex: 'asc' },
@@ -801,6 +808,7 @@ export class AssetService {
           },
         },
         children: {
+          where: { isDeleted: false },
           include: { creator: true, metadataValues: true, storageKey: true },
           take: 3,
           orderBy: { sortIndex: 'asc' },
@@ -936,6 +944,7 @@ export class AssetService {
             metadataValues: true,
             storageKey: true,
             children: {
+              where: { isDeleted: false },
               include: { creator: true, metadataValues: true, storageKey: true },
               take: 3,
               orderBy: { sortIndex: 'asc' },
@@ -943,6 +952,7 @@ export class AssetService {
           },
         },
         children: {
+          where: { isDeleted: false },
           include: { creator: true, metadataValues: true, storageKey: true },
           take: 3,
           orderBy: { sortIndex: 'asc' },
@@ -1641,6 +1651,7 @@ export class AssetService {
         folderForPreview.children
       ) {
         for (const child of folderForPreview.children) {
+          if (child.isDeleted) continue
           let previewAsset = child as Asset
           let mediaType = child.mediaType
 
