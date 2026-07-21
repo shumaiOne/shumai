@@ -155,6 +155,51 @@ describe('ChatService', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const taskPayload = task?.payload as any
     expect(taskPayload?.agent?.prompt).toBe('second message')
+    expect(taskPayload?.agent?.hasAssetChanged).toBe(false)
+  })
+
+  it('should update session assetId and set hasAssetChanged when continuing chat with a new contextAssetId', async () => {
+    const { user, team, project, rootFolder } = await setupBasicData()
+
+    const newFolder = await prisma.asset.create({
+      data: {
+        name: 'new_folder',
+        type: 'folder',
+        status: 'processed',
+        projectId: project.id,
+        parentId: rootFolder.id,
+      },
+    })
+
+    // Start session on rootFolder
+    const { sessionId } = await chatService.startOrContinueChat(user, team.id, {
+      agentId: 'test-agent-id',
+      textPrompt: 'message in root folder',
+      projectId: project.id,
+      contextAssetId: rootFolder.id,
+    })
+
+    const sessionBefore = await prisma.agentSession.findUnique({ where: { id: sessionId } })
+    expect(sessionBefore?.assetId).toBe(rootFolder.id)
+
+    // Continue session on newFolder
+    const { taskId: nextTaskId } = await chatService.startOrContinueChat(user, team.id, {
+      agentId: 'test-agent-id',
+      textPrompt: 'message after switching to new folder',
+      sessionId,
+      contextAssetId: newFolder.id,
+    })
+
+    // Verify session assetId updated
+    const sessionAfter = await prisma.agentSession.findUnique({ where: { id: sessionId } })
+    expect(sessionAfter?.assetId).toBe(newFolder.id)
+
+    // Verify task payload has assetId set to newFolder.id and hasAssetChanged is true
+    const task = await prisma.workflowTask.findUnique({ where: { id: nextTaskId } })
+    expect(task?.assetId).toBe(newFolder.id)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const taskPayload = task?.payload as any
+    expect(taskPayload?.agent?.hasAssetChanged).toBe(true)
   })
 
   it('should inject context of referenced assets and attached files', async () => {

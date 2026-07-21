@@ -19,6 +19,7 @@ export class AgentChatPromptBuilder {
   private referencedAssets: string[] = []
 
   private isContinuation = false
+  private hasAssetChanged = false
 
   constructor(assetId: string) {
     this.assetId = assetId
@@ -26,6 +27,11 @@ export class AgentChatPromptBuilder {
 
   withContinuation(isContinuation: boolean): this {
     this.isContinuation = isContinuation
+    return this
+  }
+
+  withAssetChanged(hasAssetChanged?: boolean): this {
+    this.hasAssetChanged = !!hasAssetChanged
     return this
   }
 
@@ -80,8 +86,27 @@ export class AgentChatPromptBuilder {
 
     if (this.isContinuation) {
       let instruction = ''
+      if (this.hasAssetChanged) {
+        instruction += `[Context: User Navigated to a New Location]\nNew Location Asset ID: ${this.assetId}`
+        if (this.assetName) {
+          instruction += `\nFile Name: ${this.assetName}`
+        }
+        if (effectiveType) {
+          const type = getSimpleMediaType(effectiveType)
+          instruction += `\nFile Type: ${type}`
+          if (type === 'video' && this.videoDuration !== undefined) {
+            instruction += `\nVideo Length: ${this.videoDuration.toFixed(2)} seconds`
+          } else if (type === 'pdf' && this.totalPages !== undefined) {
+            instruction += `\nTotal Pages: ${this.totalPages}`
+          }
+        }
+        if (this.pathContext) {
+          instruction += `\n\nAsset Path Context:\n${this.pathContext}`
+        }
+      }
       if (this.commentTimestamp !== undefined) {
         const type = getSimpleMediaType(effectiveType)
+        if (instruction) instruction += '\n\n'
         if (type === 'pdf') {
           instruction += `Comment Page: ${Math.round(this.commentTimestamp)}`
         } else {
@@ -89,7 +114,8 @@ export class AgentChatPromptBuilder {
         }
       }
       if (this.attachedFiles.length > 0 || this.referencedAssets.length > 0) {
-        instruction += `\n\n[Context: New Attached Files & Referenced Assets]`
+        if (instruction) instruction += '\n\n'
+        instruction += `[Context: New Attached Files & Referenced Assets]`
         if (this.attachedFiles.length > 0) {
           instruction += `\nAttached Files:\n${this.attachedFiles.join('\n')}`
         }

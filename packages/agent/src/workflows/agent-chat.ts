@@ -165,6 +165,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     const proxyType = (asset.media as PrismaJson.MediaInfo | null)?.proxyType
     const instruction = new AgentChatPromptBuilder(asset.id)
       .withContinuation(!isNewChat)
+      .withAssetChanged(payload.agent?.hasAssetChanged)
       .withPathContext(pathContext)
       .withAssetDetails(asset.name, asset.mediaType, duration, totalPages, proxyType)
       .withCommentTimestamp(commentTimestamp)
