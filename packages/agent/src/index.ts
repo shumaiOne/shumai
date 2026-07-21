@@ -373,6 +373,7 @@ export function formatSkillsForPrompt(
   for (const skill of skills) {
     const filePath = path.join(process.cwd(), '.pi', 'skills', skill.id, 'SKILL.md')
     lines.push('  <skill>')
+    lines.push(`    <id>${escapeXml(skill.id)}</id>`)
     lines.push(`    <name>${escapeXml(skill.name)}</name>`)
     lines.push(`    <description>${escapeXml(skill.description || 'No description')}</description>`)
     lines.push(`    <location>${escapeXml(filePath)}</location>`)

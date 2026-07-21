@@ -43,6 +43,7 @@ describe('formatSkillsForPrompt', () => {
     // Verify lines and XML elements
     expect(result).toContain('<available_skills>')
     expect(result).toContain('<skill>')
+    expect(result).toContain('<id>skill-1</id>')
     expect(result).toContain('<name>Deploy &amp; Test</name>')
     expect(result).toContain(
       '<description>Deploys code &lt;deploy&gt; and &quot;runs&quot; tests.</description>',
