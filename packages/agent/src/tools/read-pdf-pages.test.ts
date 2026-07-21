@@ -5,16 +5,21 @@ import {
   WorkflowTaskStatus,
   type Asset,
   type AssetComment,
+  type User,
   type WorkflowTask,
 } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { workflowService } from '@shumai/workflow-core'
+import { authzService } from '@shumai/core/src/authz/authz'
 
 vi.mock('@shumai/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@shumai/db')>()
   return {
     ...actual,
     prisma: {
+      user: {
+        findUnique: vi.fn(),
+      },
       asset: {
         findUnique: vi.fn(),
       },
@@ -40,12 +45,23 @@ vi.mock('@shumai/workflow-core', () => ({
   },
 }))
 
+vi.mock('@shumai/core/src/authz/authz', () => ({
+  authzService: {
+    hasPermission: vi.fn(),
+  },
+  Permission: { Read: 'Read' },
+  ResourceType: { Asset: 'asset' },
+}))
+
 describe('readPdfPagesTool', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(authzService.hasPermission).mockResolvedValue()
   })
 
   it('should trigger pdfPages transcode workflow and return image outputs', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user-1' } as User)
+
     vi.mocked(prisma.asset.findUnique).mockResolvedValue({
       id: 'asset-1',
       projectId: 'project-1',
@@ -54,6 +70,7 @@ describe('readPdfPagesTool', () => {
 
     vi.mocked(prisma.assetComment.findUnique).mockResolvedValue({
       id: 'comment-1',
+      assetId: 'asset-1',
       second: 2,
       annotation: [
         {
@@ -89,8 +106,15 @@ describe('readPdfPagesTool', () => {
       } as unknown as { buffer: Buffer; contentType: string }
     })
 
-    const tool = createReadPdfPagesTool('asset-1', 'comment-1')
-    const result = await tool.execute('call-1', { start: 1, end: 2 })
+    const tool = createReadPdfPagesTool('user-1', 'comment-1')
+    const result = await tool.execute('call-1', { assetId: 'asset-1', start: 1, end: 2 })
+
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: { id: 'user-1' },
+      permission: 'Read',
+      type: 'asset',
+      id: 'asset-1',
+    })
 
     expect(prisma.workflowTask.create).toHaveBeenCalledWith({
       data: {
@@ -128,8 +152,8 @@ describe('readPdfPagesTool', () => {
   })
 
   it('should return error text if start page is less than 1', async () => {
-    const tool = createReadPdfPagesTool('asset-1')
-    const result = await tool.execute('call-1', { start: 0, end: 5 })
+    const tool = createReadPdfPagesTool('user-1')
+    const result = await tool.execute('call-1', { assetId: 'asset-1', start: 0, end: 5 })
 
     expect(result.content[0]).toEqual({
       type: 'text',
@@ -138,8 +162,8 @@ describe('readPdfPagesTool', () => {
   })
 
   it('should return error text if start page is greater than end page', async () => {
-    const tool = createReadPdfPagesTool('asset-1')
-    const result = await tool.execute('call-1', { start: 5, end: 2 })
+    const tool = createReadPdfPagesTool('user-1')
+    const result = await tool.execute('call-1', { assetId: 'asset-1', start: 5, end: 2 })
 
     expect(result.content[0]).toEqual({
       type: 'text',
@@ -148,8 +172,8 @@ describe('readPdfPagesTool', () => {
   })
 
   it('should return error text if page range exceeds maximum limit of 20', async () => {
-    const tool = createReadPdfPagesTool('asset-1')
-    const result = await tool.execute('call-1', { start: 1, end: 25 })
+    const tool = createReadPdfPagesTool('user-1')
+    const result = await tool.execute('call-1', { assetId: 'asset-1', start: 1, end: 25 })
 
     expect(result.content[0]).toEqual({
       type: 'text',
@@ -160,8 +184,8 @@ describe('readPdfPagesTool', () => {
   it('should return error text if asset not found', async () => {
     vi.mocked(prisma.asset.findUnique).mockResolvedValue(null)
 
-    const tool = createReadPdfPagesTool('asset-1')
-    const result = await tool.execute('call-1', { start: 1, end: 3 })
+    const tool = createReadPdfPagesTool('user-1')
+    const result = await tool.execute('call-1', { assetId: 'asset-1', start: 1, end: 3 })
 
     expect(result.content[0]).toEqual({
       type: 'text',
@@ -176,8 +200,8 @@ describe('readPdfPagesTool', () => {
       media: { proxyType: 'image' },
     } as unknown as Asset)
 
-    const tool = createReadPdfPagesTool('asset-1')
-    const result = await tool.execute('call-1', { start: 1, end: 3 })
+    const tool = createReadPdfPagesTool('user-1')
+    const result = await tool.execute('call-1', { assetId: 'asset-1', start: 1, end: 3 })
 
     expect(result.content[0]).toEqual({
       type: 'text',
@@ -192,8 +216,8 @@ describe('readPdfPagesTool', () => {
       media: null,
     } as unknown as Asset)
 
-    const tool = createReadPdfPagesTool('asset-1')
-    const result = await tool.execute('call-1', { start: 1, end: 3 })
+    const tool = createReadPdfPagesTool('user-1')
+    const result = await tool.execute('call-1', { assetId: 'asset-1', start: 1, end: 3 })
 
     expect(result.content[0]).toEqual({
       type: 'text',

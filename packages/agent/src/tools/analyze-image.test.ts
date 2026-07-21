@@ -5,16 +5,21 @@ import {
   WorkflowTaskStatus,
   type Asset,
   type AssetComment,
+  type User,
   type WorkflowTask,
 } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { workflowService } from '@shumai/workflow-core'
+import { authzService } from '@shumai/core/src/authz/authz'
 
 vi.mock('@shumai/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@shumai/db')>()
   return {
     ...actual,
     prisma: {
+      user: {
+        findUnique: vi.fn(),
+      },
       asset: {
         findUnique: vi.fn(),
       },
@@ -40,12 +45,23 @@ vi.mock('@shumai/workflow-core', () => ({
   },
 }))
 
+vi.mock('@shumai/core/src/authz/authz', () => ({
+  authzService: {
+    hasPermission: vi.fn(),
+  },
+  Permission: { Read: 'Read' },
+  ResourceType: { Asset: 'asset' },
+}))
+
 describe('analyzeImageTool', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('should fetch the image from S3 when comment has no annotations', async () => {
+  it('should check user permissions and fetch the image from S3 when comment has no annotations', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user-1' } as User)
+    vi.mocked(authzService.hasPermission).mockResolvedValue()
+
     vi.mocked(prisma.asset.findUnique).mockResolvedValue({
       id: 'asset-1',
       projectId: 'project-1',
@@ -55,6 +71,7 @@ describe('analyzeImageTool', () => {
 
     vi.mocked(prisma.assetComment.findUnique).mockResolvedValue({
       id: 'comment-1',
+      assetId: 'asset-1',
       annotation: null,
     } as unknown as AssetComment)
 
@@ -63,8 +80,15 @@ describe('analyzeImageTool', () => {
       contentType: 'image/png',
     } as unknown as { buffer: Buffer; contentType: string })
 
-    const tool = createAnalyzeImageTool('asset-1', 'comment-1')
-    const result = await tool.execute('call-1', {})
+    const tool = createAnalyzeImageTool('user-1', 'comment-1')
+    const result = await tool.execute('call-1', { assetId: 'asset-1' })
+
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: { id: 'user-1' },
+      permission: 'Read',
+      type: 'asset',
+      id: 'asset-1',
+    })
 
     expect(result.content[0].type).toBe('image')
     expect((result.content[0] as unknown as { data: string }).data).toBe(
@@ -87,6 +111,7 @@ describe('analyzeImageTool', () => {
 
     vi.mocked(prisma.assetComment.findUnique).mockResolvedValue({
       id: 'comment-1',
+      assetId: 'asset-1',
       annotation: [
         {
           type: 'box',
@@ -114,8 +139,8 @@ describe('analyzeImageTool', () => {
       contentType: 'image/webp',
     } as unknown as { buffer: Buffer; contentType: string })
 
-    const tool = createAnalyzeImageTool('asset-1', 'comment-1')
-    const result = await tool.execute('call-1', {})
+    const tool = createAnalyzeImageTool('user-1', 'comment-1')
+    const result = await tool.execute('call-1', { assetId: 'asset-1' })
 
     expect(prisma.workflowTask.create).toHaveBeenCalledWith({
       data: {

@@ -5,16 +5,21 @@ import {
   WorkflowTaskStatus,
   type Asset,
   type AssetComment,
+  type User,
   type WorkflowTask,
 } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { workflowService } from '@shumai/workflow-core'
+import { authzService } from '@shumai/core/src/authz/authz'
 
 vi.mock('@shumai/db', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@shumai/db')>()
   return {
     ...actual,
     prisma: {
+      user: {
+        findUnique: vi.fn(),
+      },
       asset: {
         findUnique: vi.fn(),
       },
@@ -40,12 +45,23 @@ vi.mock('@shumai/workflow-core', () => ({
   },
 }))
 
+vi.mock('@shumai/core/src/authz/authz', () => ({
+  authzService: {
+    hasPermission: vi.fn(),
+  },
+  Permission: { Read: 'Read' },
+  ResourceType: { Asset: 'asset' },
+}))
+
 describe('screenshotTool', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
   it('should trigger screenshot transcode workflow and return image outputs', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user-1' } as User)
+    vi.mocked(authzService.hasPermission).mockResolvedValue()
+
     vi.mocked(prisma.asset.findUnique).mockResolvedValue({
       id: 'asset-1',
       projectId: 'project-1',
@@ -53,6 +69,7 @@ describe('screenshotTool', () => {
 
     vi.mocked(prisma.assetComment.findUnique).mockResolvedValue({
       id: 'comment-1',
+      assetId: 'asset-1',
       second: 5.0,
       annotation: [
         {
@@ -88,8 +105,15 @@ describe('screenshotTool', () => {
       } as unknown as { buffer: Buffer; contentType: string }
     })
 
-    const tool = createScreenshotTool('asset-1', 'comment-1')
-    const result = await tool.execute('call-1', { start: 0, end: 10, count: 2 })
+    const tool = createScreenshotTool('user-1', 'comment-1')
+    const result = await tool.execute('call-1', { assetId: 'asset-1', start: 0, end: 10, count: 2 })
+
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: { id: 'user-1' },
+      permission: 'Read',
+      type: 'asset',
+      id: 'asset-1',
+    })
 
     expect(prisma.workflowTask.create).toHaveBeenCalledWith({
       data: {

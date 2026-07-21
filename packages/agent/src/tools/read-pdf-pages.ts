@@ -1,22 +1,21 @@
 import { Type } from '@sinclair/typebox'
 import { type AgentTool } from '@earendil-works/pi-agent-core'
 import { type ImageContent } from '@earendil-works/pi-ai'
-import { prisma, WorkflowTaskType, WorkflowTaskStatus } from '@shumai/db'
+import { prisma, WorkflowTaskType, WorkflowTaskStatus, type User } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { workflowService } from '@shumai/workflow-core'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 
 const readPdfPagesSchema = Type.Object({
+  assetId: Type.String({
+    description: 'Asset ID of the PDF document. This parameter is required.',
+  }),
   start: Type.Number({ description: 'Start page number (1-based index)' }),
   end: Type.Number({ description: 'End page number (1-based index)' }),
-  assetId: Type.Optional(
-    Type.String({
-      description: 'Asset ID of the PDF document (optional, defaults to current asset)',
-    }),
-  ),
 })
 
 export function createReadPdfPagesTool(
-  assetId: string,
+  userId: string,
   userCommentId?: string | null,
 ): AgentTool<typeof readPdfPagesSchema> {
   return {
@@ -65,7 +64,22 @@ export function createReadPdfPagesTool(
           }
         }
 
-        const targetAssetId = params.assetId || assetId
+        const targetAssetId = params.assetId
+
+        if (!userId) {
+          return {
+            content: [{ type: 'text', text: 'User ID is required for authorization.' }],
+            details: {},
+          }
+        }
+
+        await authzService.hasPermission({
+          user: { id: userId } as User,
+          permission: Permission.Read,
+          type: ResourceType.Asset,
+          id: targetAssetId,
+        })
+
         const asset = await prisma.asset.findUnique({
           where: { id: targetAssetId },
         })
@@ -92,7 +106,7 @@ export function createReadPdfPagesTool(
           const comment = await prisma.assetComment.findUnique({
             where: { id: userCommentId },
           })
-          if (comment) {
+          if (comment && comment.assetId === targetAssetId) {
             commentTimestamp = comment.second !== null ? comment.second : null
             if (comment.annotation) {
               const list = comment.annotation

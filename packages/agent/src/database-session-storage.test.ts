@@ -445,9 +445,9 @@ describe('DatabaseSessionStorage', () => {
       providers: [],
     })
 
-    // 4. Assert that the tools were instantiated using the new comment ID, not the original one
-    expect(createAnalyzeImageToolSpy).toHaveBeenCalledWith(asset.id, 'new-comment-456')
-    expect(createScreenshotToolSpy).not.toHaveBeenCalled()
+    // 4. Assert that the tools were instantiated using the new comment ID and user ID
+    expect(createAnalyzeImageToolSpy).toHaveBeenCalledWith(user.id, 'new-comment-456')
+    expect(createScreenshotToolSpy).toHaveBeenCalledWith(user.id, 'new-comment-456')
   })
 
   it('should use the current comment ID for media tools in subsequent turns (video)', async () => {
@@ -499,8 +499,8 @@ describe('DatabaseSessionStorage', () => {
       providers: [],
     })
 
-    // 4. Assert that the tools were instantiated using the new comment ID, not the original one
-    expect(createScreenshotToolSpy).toHaveBeenCalledWith(asset.id, 'new-comment-456')
-    expect(createAnalyzeImageToolSpy).not.toHaveBeenCalled()
+    // 4. Assert that the tools were instantiated using the new comment ID and user ID
+    expect(createScreenshotToolSpy).toHaveBeenCalledWith(user.id, 'new-comment-456')
+    expect(createAnalyzeImageToolSpy).toHaveBeenCalledWith(user.id, 'new-comment-456')
   })
 })

@@ -1,18 +1,22 @@
 import { Type } from '@sinclair/typebox'
 import { type AgentTool } from '@earendil-works/pi-agent-core'
 import { type ImageContent } from '@earendil-works/pi-ai'
-import { prisma, WorkflowTaskType, WorkflowTaskStatus } from '@shumai/db'
+import { prisma, WorkflowTaskType, WorkflowTaskStatus, type User } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { workflowService } from '@shumai/workflow-core'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 
 const screenshotSchema = Type.Object({
+  assetId: Type.String({
+    description: 'The asset ID of the video asset. This parameter is required.',
+  }),
   start: Type.Number({ description: 'Start time in seconds' }),
   end: Type.Number({ description: 'End time in seconds' }),
   count: Type.Number({ description: 'Number of screenshots to take' }),
 })
 
 export function createScreenshotTool(
-  assetId: string,
+  userId: string,
   userCommentId?: string | null,
 ): AgentTool<typeof screenshotSchema> {
   return {
@@ -23,6 +27,22 @@ export function createScreenshotTool(
     parameters: screenshotSchema,
     execute: async (_toolCallId, params) => {
       try {
+        const assetId = params.assetId
+
+        if (!userId) {
+          return {
+            content: [{ type: 'text', text: 'User ID is required for authorization.' }],
+            details: {},
+          }
+        }
+
+        await authzService.hasPermission({
+          user: { id: userId } as User,
+          permission: Permission.Read,
+          type: ResourceType.Asset,
+          id: assetId,
+        })
+
         const asset = await prisma.asset.findUnique({
           where: { id: assetId },
         })
@@ -41,7 +61,7 @@ export function createScreenshotTool(
           const comment = await prisma.assetComment.findUnique({
             where: { id: userCommentId },
           })
-          if (comment) {
+          if (comment && comment.assetId === assetId) {
             commentTimestamp = comment.second !== null ? comment.second : null
             if (comment.annotation) {
               const list = comment.annotation

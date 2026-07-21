@@ -1,14 +1,19 @@
 import { Type } from '@sinclair/typebox'
 import { type AgentTool } from '@earendil-works/pi-agent-core'
 import { type ImageContent } from '@earendil-works/pi-ai'
-import { prisma, WorkflowTaskType, WorkflowTaskStatus } from '@shumai/db'
+import { prisma, WorkflowTaskType, WorkflowTaskStatus, type User } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { workflowService } from '@shumai/workflow-core'
+import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 
-const analyzeImageSchema = Type.Object({})
+const analyzeImageSchema = Type.Object({
+  assetId: Type.String({
+    description: 'The asset ID of the image to analyze. This parameter is required.',
+  }),
+})
 
 export function createAnalyzeImageTool(
-  assetId: string,
+  userId: string,
   userCommentId?: string | null,
 ): AgentTool<typeof analyzeImageSchema> {
   return {
@@ -17,8 +22,24 @@ export function createAnalyzeImageTool(
     description:
       'Retrieves and views the image content. Call this tool if you need to analyze the image.',
     parameters: analyzeImageSchema,
-    execute: async () => {
+    execute: async (_toolCallId, params) => {
       try {
+        const assetId = params.assetId
+
+        if (!userId) {
+          return {
+            content: [{ type: 'text', text: 'User ID is required for authorization.' }],
+            details: {},
+          }
+        }
+
+        await authzService.hasPermission({
+          user: { id: userId } as User,
+          permission: Permission.Read,
+          type: ResourceType.Asset,
+          id: assetId,
+        })
+
         const asset = await prisma.asset.findUnique({
           where: { id: assetId },
           include: { storageKey: true },
@@ -48,13 +69,13 @@ export function createAnalyzeImageTool(
           }
         }
 
-        // Check if trigger comment has draw annotations
+        // Check if trigger comment has draw annotations for this asset
         let annotations: unknown = null
         if (userCommentId) {
           const comment = await prisma.assetComment.findUnique({
             where: { id: userCommentId },
           })
-          if (comment?.annotation) {
+          if (comment && comment.assetId === assetId && comment.annotation) {
             const list = comment.annotation
             if (Array.isArray(list) && list.length > 0) {
               annotations = list

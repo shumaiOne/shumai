@@ -16,7 +16,6 @@ import { DatabaseSessionStorage } from './database-session-storage'
 import { createAnalyzeImageTool } from './tools/analyze-image'
 import { createScreenshotTool } from './tools/screenshot'
 import { createReadPdfPagesTool } from './tools/read-pdf-pages'
-import { getSimpleMediaType } from './workflows/agent-chat-prompt-builder'
 import { createCreateFileTool } from './tools/create-file'
 import { createCreateFolderTool } from './tools/create-folder'
 import { createCreateVersionTool } from './tools/create-version'
@@ -226,24 +225,16 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
   }
 
   const metadata = await storage.getMetadata()
-  const assetId = metadata.assetId
   const userCommentId =
     passedUserCommentId !== undefined ? passedUserCommentId : metadata.userCommentId
 
   const mediaTools: AgentTool[] = []
-  if (assetId) {
-    const asset = await prisma.asset.findUnique({
-      where: { id: assetId },
-    })
-    const proxyType = (asset?.media as PrismaJson.MediaInfo | null)?.proxyType
-    const type = getSimpleMediaType(proxyType)
-    if (type === 'image') {
-      mediaTools.push(createAnalyzeImageTool(assetId, userCommentId))
-    } else if (type === 'video') {
-      mediaTools.push(createScreenshotTool(assetId, userCommentId))
-    } else if (type === 'pdf') {
-      mediaTools.push(createReadPdfPagesTool(assetId, userCommentId))
-    }
+  if (userId) {
+    mediaTools.push(
+      createAnalyzeImageTool(userId, userCommentId),
+      createScreenshotTool(userId, userCommentId),
+      createReadPdfPagesTool(userId, userCommentId),
+    )
   }
 
   const sandboxedBash = createSandboxedBashTool(process.cwd(), skillEnvs, {
