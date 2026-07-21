@@ -1,5 +1,5 @@
 import { prisma } from '@shumai/db'
-import { WorkflowTaskStatus, AssetStatus, Prisma } from '@shumai/db'
+import { WorkflowTaskStatus, AssetStatus, AssetType, Prisma } from '@shumai/db'
 
 export async function getTranscodeWorkerQueueActivity(): Promise<string> {
   return 'transcode_queue'
@@ -20,7 +20,7 @@ export async function getAssetStatusActivity(params: {
 }
 
 export async function getAssetActivity(assetId: string) {
-  return prisma.asset.findUnique({
+  const asset = await prisma.asset.findUnique({
     where: { id: assetId },
     include: {
       storageKey: true,
@@ -31,6 +31,30 @@ export async function getAssetActivity(assetId: string) {
       },
     },
   })
+
+  if (asset && asset.type === AssetType.version_stack) {
+    const latestVersion = await prisma.asset.findFirst({
+      where: { parentId: asset.id, isDeleted: false },
+      orderBy: { sortIndex: 'asc' },
+      include: {
+        storageKey: true,
+        project: {
+          include: {
+            team: true,
+          },
+        },
+      },
+    })
+
+    if (latestVersion) {
+      return {
+        ...latestVersion,
+        project: latestVersion.project ?? asset.project,
+      }
+    }
+  }
+
+  return asset
 }
 
 export interface UpdateTaskStatusParams {

@@ -325,4 +325,133 @@ describe.each(['local', 'temporal'] as const)('Workflow E2E - agentChat (executo
       'direct-session-456',
     )
   }, 50000)
+
+  it('should run agentChat workflow with version stack asset successfully', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'E2E Version Stack Team' },
+    })
+
+    const project = await prisma.project.create({
+      data: { name: 'E2E Version Stack Project', teamId: team.id },
+    })
+
+    const agentUser = await prisma.user.create({
+      data: {
+        name: 'E2E VS Agent User',
+        email: 'e2e-vs-agent@shumai.ai',
+        type: 'agent',
+      },
+    })
+
+    await prisma.teamMember.create({
+      data: {
+        teamId: team.id,
+        userId: agentUser.id,
+        role: 'editor',
+      },
+    })
+
+    const provider = await prisma.provider.create({
+      data: {
+        name: 'google',
+        teamId: team.id,
+        config: { api: 'google-generative-ai', apiKey: 'dummy-google-api-key' },
+      },
+    })
+
+    const model = await prisma.model.create({
+      data: {
+        modelId: 'gemini',
+        name: 'Gemini',
+        providerId: provider.id,
+        config: {
+          input: ['text', 'image'],
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          contextWindow: 8192,
+          maxTokens: 2048,
+          reasoning: false,
+        },
+      },
+    })
+
+    await prisma.agent.create({
+      data: {
+        id: agentUser.id,
+        teamId: team.id,
+        type: 'chat',
+        enabled: true,
+        providerId: provider.id,
+        modelId: model.id,
+        config: {
+          provider: 'google',
+          model: 'gemini',
+        },
+      },
+    })
+
+    const versionStack = await prisma.asset.create({
+      data: {
+        name: 'VersionStack Container',
+        type: 'version_stack',
+        status: 'uploaded',
+        projectId: project.id,
+      },
+    })
+
+    await prisma.asset.create({
+      data: {
+        name: 'version-1.png',
+        type: 'file',
+        status: 'uploaded',
+        mediaType: 'image/png',
+        projectId: project.id,
+        parentId: versionStack.id,
+        sortIndex: 'a0',
+      },
+    })
+
+    const regularUser = await prisma.user.create({
+      data: {
+        name: 'Regular User 3',
+        email: 'user3@example.com',
+        type: 'human',
+      },
+    })
+
+    await prisma.agentSession.create({
+      data: {
+        id: 'vs-session-789',
+        agentId: agentUser.id,
+        userId: regularUser.id,
+        cwd: process.cwd(),
+        assetId: versionStack.id,
+      },
+    })
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'chat',
+        status: 'pending',
+        assetId: versionStack.id,
+        projectId: project.id,
+        teamId: team.id,
+        payload: {
+          projectId: project.id,
+          agent: {
+            agentId: agentUser.id,
+            sessionId: 'vs-session-789',
+            prompt: 'Explain this version stack file',
+            userId: regularUser.id,
+          },
+        },
+      },
+    })
+
+    const completedTask = await workflowService.executeWait(task, 45000)
+
+    expect(completedTask.status).toBe('completed')
+    expect((completedTask.output as unknown as { sessionId: string })?.sessionId).toBe(
+      'vs-session-789',
+    )
+  }, 50000)
 })

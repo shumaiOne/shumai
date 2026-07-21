@@ -516,4 +516,55 @@ describe('Agent Chat Workflow', () => {
       }),
     )
   })
+
+  it('should handle version stack asset by building instructions with resolved latest version asset details', async () => {
+    mockActivities.getAssetActivity.mockImplementation(async (id: string) => {
+      if (id === 'vs-1') {
+        return {
+          id: 'v2-latest',
+          project: { teamId: 't1' },
+          type: 'file',
+          name: 'latest-video.mp4',
+          mediaType: 'video/mp4',
+          media: { proxyType: 'video', duration: 42 },
+          parentId: 'vs-1',
+        }
+      }
+      return null
+    })
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'chat',
+        status: 'pending',
+        assetId: 'vs-1',
+        payload: {
+          projectId: 'p1',
+          agent: {
+            prompt: 'Explain this version stack video',
+            sessionId: 'session-vs-123',
+            agentId: 'b1',
+          },
+        },
+      },
+    })
+
+    await agentChat(task)
+
+    const expectedInstruction = new AgentChatPromptBuilder('v2-latest')
+      .withContinuation(true)
+      .withPathContext('Path: folder/subfolder/file.png')
+      .withAssetDetails('latest-video.mp4', 'video/mp4', 42, undefined, 'video')
+      .build()
+
+    expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        teamId: 't1',
+        agentId: 'b1',
+        message: 'Explain this version stack video',
+        agentsInstruction: expectedInstruction,
+        sessionId: 'session-vs-123',
+      }),
+    )
+  })
 })
