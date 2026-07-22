@@ -380,8 +380,8 @@ export function SearchFilterDialog({
         </div>
 
         {/* Results Body ported from Demo */}
-        <ScrollArea className="flex-1 min-h-0 bg-background">
-          <div className="p-4 md:p-5">
+        <ScrollArea className="flex-1 min-h-0 bg-background [&>div>div]:block!">
+          <div className="p-4 md:p-5 min-w-0">
             <div className="flex items-center justify-between mb-3 px-1">
               <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/60 font-mono">
                 {m.search_results()}
@@ -394,7 +394,7 @@ export function SearchFilterDialog({
               )}
             </div>
 
-            <div className="flex flex-col border border-border rounded-xl divide-y divide-border overflow-hidden">
+            <div className="flex flex-col border border-border rounded-xl divide-y divide-border overflow-hidden min-w-0">
               {!hasActiveCriteria ? (
                 <div className="py-20 text-center flex flex-col items-center justify-center bg-muted/20 px-4">
                   <Search className="w-10 h-10 text-muted-foreground/30 mb-2" />
@@ -449,7 +449,7 @@ export function SearchFilterDialog({
                     <div
                       key={record.id}
                       onClick={() => handleResultClick(record)}
-                      className="p-3.5 flex items-center gap-3 hover:bg-muted/40 transition-colors group/record cursor-pointer"
+                      className="p-3.5 flex items-center gap-3 hover:bg-muted/40 transition-colors group/record cursor-pointer min-w-0"
                     >
                       <div
                         className={cn(
@@ -471,8 +471,8 @@ export function SearchFilterDialog({
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="truncate">
+                        <div className="flex items-center justify-between gap-3 min-w-0">
+                          <div className="flex-1 min-w-0">
                             <span className="font-medium text-sm text-foreground group-hover/record:text-primary transition-colors block truncate">
                               {record.name}
                             </span>
@@ -485,7 +485,7 @@ export function SearchFilterDialog({
                               record.startTime !== null &&
                               record.endTime !== undefined &&
                               record.endTime !== null && (
-                                <span className="text-[10px] font-semibold text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded mt-1 inline-block">
+                                <span className="text-[10px] font-semibold text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded mt-1 inline-block max-w-full truncate">
                                   {m.match_found_at()} {formatTimestamp(record.startTime)} -{' '}
                                   {formatTimestamp(record.endTime)}
                                 </span>
