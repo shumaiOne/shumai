@@ -6,7 +6,7 @@ import {
   type ThinkingLevel,
 } from '@earendil-works/pi-agent-core'
 import { NodeExecutionEnv } from '@earendil-works/pi-agent-core/node'
-import { getModel } from '@earendil-works/pi-ai'
+import { getModel } from '@earendil-works/pi-ai/compat'
 import { Type, type TSchema } from '@sinclair/typebox'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -47,7 +47,11 @@ export function getModelFromDb(providers: DbProviderInfo[], providerName: string
   try {
     // Try to get built-in model as template
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    m = { ...(getModel as any)(providerName, modelId) }
+    const builtIn = (getModel as any)(providerName, modelId)
+    if (!builtIn) {
+      throw new Error(`Model ${modelId} is not a built-in model`)
+    }
+    m = { ...builtIn }
   } catch {
     // Not a built-in model
     m = {
