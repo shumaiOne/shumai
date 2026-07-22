@@ -1,5 +1,6 @@
 import { setupTestDbHooks } from '@shumai/db/test'
 import { teamService } from '@shumai/core/src/team/team'
+import { agentService } from '@shumai/core/src/agent/agent'
 import { providerService } from './provider'
 import { describe, expect, it } from 'vitest'
 import { ProviderConfigSerializable, providerModelSchema } from '@shumai/dtos'
@@ -147,5 +148,46 @@ describe('ProviderService', () => {
     await providerService.delete(team.id, provider.id)
     const afterDelete = await providerService.listByTeam(team.id)
     expect(afterDelete.find((p) => p.id === provider.id)).toBeUndefined()
+  })
+
+  it('should preserve model IDs and linked agent modelId when updating provider config', async () => {
+    const team = await teamService.ensureDefaultTeam()
+    await providerService.initBuiltinProviders(team.id)
+
+    const providers = await providerService.listByTeam(team.id)
+    const googleProvider = providers.find((p) => p.name === 'google')
+    expect(googleProvider).toBeDefined()
+
+    const initialModels = await providerService.listModelsByProvider(team.id, googleProvider!.id)
+    expect(initialModels.length).toBeGreaterThan(0)
+    const initialModelId = initialModels[0].id
+
+    // Create an agent pointing to the google provider and first model
+    const agent = await agentService.createAgent({
+      teamId: team.id,
+      name: 'Google Agent',
+      type: 'chat',
+      enabled: true,
+      thinkingLevel: 'off',
+      providerId: googleProvider!.id,
+      modelId: initialModelId,
+    })
+    expect(agent?.modelId).toBe(initialModelId)
+
+    // Update provider config (e.g. API key) with the same model list
+    const newConfig: ProviderConfigSerializable = {
+      ...googleProvider!.config,
+      apiKey: 'new-google-api-key',
+    }
+    await providerService.update(team.id, googleProvider!.id, newConfig, initialModels)
+
+    // Verify model IDs were preserved
+    const updatedModels = await providerService.listModelsByProvider(team.id, googleProvider!.id)
+    expect(updatedModels[0].id).toBe(initialModelId)
+
+    // Verify agent's modelId is still linked and not nulled out
+    const updatedAgents = await agentService.listAgents({ teamId: team.id })
+    const updatedAgent = updatedAgents.find((a) => a.id === agent!.id)
+    expect(updatedAgent?.modelId).toBe(initialModelId)
   })
 })

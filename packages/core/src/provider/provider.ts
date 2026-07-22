@@ -111,23 +111,51 @@ export class ProviderService {
     models: ProviderModel[],
   ) {
     return this.prismaClient.$transaction(async (tx) => {
-      // Delete all existing models for this provider
-      await tx.model.deleteMany({
+      const existingModels = await tx.model.findMany({
         where: { providerId: id },
       })
 
-      // Update provider and recreate models
+      const existingByModelId = new Map(existingModels.map((m) => [m.modelId, m]))
+      const incomingModelIds = new Set(models.map((m) => m.modelId))
+
+      // Delete models that are no longer in the incoming list
+      const modelsToDelete = existingModels.filter((m) => !incomingModelIds.has(m.modelId))
+      if (modelsToDelete.length > 0) {
+        await tx.model.deleteMany({
+          where: {
+            id: { in: modelsToDelete.map((m) => m.id) },
+          },
+        })
+      }
+
+      // Update existing models or create new ones
+      for (const m of models) {
+        const existing = existingByModelId.get(m.modelId)
+        if (existing) {
+          await tx.model.update({
+            where: { id: existing.id },
+            data: {
+              name: m.name,
+              config: m.config,
+            },
+          })
+        } else {
+          await tx.model.create({
+            data: {
+              providerId: id,
+              modelId: m.modelId,
+              name: m.name,
+              config: m.config,
+            },
+          })
+        }
+      }
+
+      // Update provider config
       return tx.provider.update({
         where: { id, teamId },
         data: {
           config,
-          models: {
-            create: models.map((m) => ({
-              modelId: m.modelId,
-              name: m.name,
-              config: m.config,
-            })),
-          },
         },
         include: { models: true },
       })
