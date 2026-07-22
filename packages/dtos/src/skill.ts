@@ -16,6 +16,7 @@ export interface SkillInfo {
   config: SkillConfig | null
   assetId: string
   hash: string
+  permission: 'owner' | 'editor' | 'reviewer'
   createdAt: string
   updatedAt: string
 }
@@ -40,6 +41,12 @@ export const updateSkillConfigRequestSchema = z.object({
 })
 
 export type UpdateSkillConfigRequest = z.infer<typeof updateSkillConfigRequestSchema>
+
+export const updateSkillPermissionRequestSchema = z.object({
+  permission: z.enum(['owner', 'editor', 'reviewer']),
+})
+
+export type UpdateSkillPermissionRequest = z.infer<typeof updateSkillPermissionRequestSchema>
 
 export interface ListSkillsResponse {
   skills: SkillInfo[]

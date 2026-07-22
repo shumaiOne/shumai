@@ -34,27 +34,15 @@ export function createListAssetsTool(userId: string): AgentTool<typeof listAsset
     description: 'List the assets (files and folders) inside a parent folder with pagination.',
     parameters: listAssetsSchema,
     execute: async (_toolCallId, params) => {
-      try {
-        const result = await executeAgentToolWorkflow({
-          toolName: 'list_assets',
-          args: params,
-          userId,
-          assetId: params.parent,
-        })
-        return {
-          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          details: result,
-        }
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Error listing assets: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-          details: {},
-        }
+      const result = await executeAgentToolWorkflow({
+        toolName: 'list_assets',
+        args: params,
+        userId,
+        assetId: params.parent,
+      })
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        details: result,
       }
     },
   }

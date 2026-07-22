@@ -2,7 +2,11 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { skillService } from '@shumai/core/src/skill/skill'
-import { upsertSkillRequestSchema, updateSkillConfigRequestSchema } from '@shumai/dtos'
+import {
+  upsertSkillRequestSchema,
+  updateSkillConfigRequestSchema,
+  updateSkillPermissionRequestSchema,
+} from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
@@ -73,5 +77,24 @@ const route = new Hono<{ Variables: { user: User } }>()
     const skill = await skillService.updateSkillConfig(id, req.config)
     return c.json(skill)
   })
+  .patch(
+    '/skills/:id/permission',
+    zValidator('json', updateSkillPermissionRequestSchema),
+    async (c) => {
+      const user = c.get('user')
+      const id = c.req.param('id')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Admin,
+        type: ResourceType.Skill,
+        id,
+      })
+
+      const skill = await skillService.updateSkillPermission(id, req.permission)
+      return c.json(skill)
+    },
+  )
 
 export default route

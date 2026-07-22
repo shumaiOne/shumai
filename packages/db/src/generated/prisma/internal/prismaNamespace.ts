@@ -3022,6 +3022,7 @@ export const SkillScalarFieldEnum = {
   config: 'config',
   assetId: 'assetId',
   hash: 'hash',
+  permission: 'permission',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   teamId: 'teamId'

@@ -19,27 +19,15 @@ export function createCreateFolderTool(userId: string): AgentTool<typeof createF
     description: 'Create a new folder in a specified parent folder.',
     parameters: createFolderSchema,
     execute: async (_toolCallId, params) => {
-      try {
-        const result = await executeAgentToolWorkflow({
-          toolName: 'create_folder',
-          args: params,
-          userId,
-          assetId: params.parent,
-        })
-        return {
-          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          details: result,
-        }
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Error creating folder: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-          details: {},
-        }
+      const result = await executeAgentToolWorkflow({
+        toolName: 'create_folder',
+        args: params,
+        userId,
+        assetId: params.parent,
+      })
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        details: result,
       }
     },
   }

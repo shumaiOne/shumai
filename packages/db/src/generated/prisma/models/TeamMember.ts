@@ -452,10 +452,6 @@ export type TeamMemberUncheckedUpdateManyWithoutTeamNestedInput = {
   deleteMany?: Prisma.TeamMemberScalarWhereInput | Prisma.TeamMemberScalarWhereInput[]
 }
 
-export type EnumTeamMemberRoleFieldUpdateOperationsInput = {
-  set?: $Enums.TeamMemberRole
-}
-
 export type EnumTeamMemberScopeFieldUpdateOperationsInput = {
   set?: $Enums.TeamMemberScope
 }

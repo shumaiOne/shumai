@@ -243,7 +243,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
       sandboxState.blockedHost = ''
     },
   })
-  const readSkill = createReadSkillTool(onEnvsAdded)
+  const readSkill = createReadSkillTool(userId, onEnvsAdded)
 
   const systemTools: AgentTool[] = []
   if (userId) {

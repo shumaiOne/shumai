@@ -34,6 +34,14 @@ import {
 } from '@/ui/components/ui/alert-dialog'
 import { SkillInfo } from '@shumai/dtos'
 import { m } from '@/ui/paraglide/messages.js'
+import { usePermissions } from '@/ui/hooks/use-permissions'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/ui/components/ui/select'
 
 const Github = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
@@ -59,6 +67,7 @@ interface SkillsConfigCardProps {
 
 export const SkillsConfigCard: React.FC<SkillsConfigCardProps> = ({ teamId }) => {
   const queryClient = useQueryClient()
+  const { canAdmin } = usePermissions()
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -85,6 +94,29 @@ export const SkillsConfigCard: React.FC<SkillsConfigCardProps> = ({ teamId }) =>
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'skills'] })
       setIsDeleteDialogOpen(false)
+    },
+  })
+
+  // Update Skill Permission
+  const updatePermissionMutation = useMutation({
+    mutationFn: async ({
+      id,
+      permission,
+    }: {
+      id: string
+      permission: 'owner' | 'editor' | 'reviewer'
+    }) => {
+      const res = await client.api.skills[':id'].permission.$patch({
+        param: { id },
+        json: { permission },
+      })
+      if (!res.ok) throw new Error(m.failed_to_update_permission())
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'skills'] })
+    },
+    onError: (err: Error) => {
+      alert(err.message || m.failed_to_update_permission())
     },
   })
 
@@ -127,6 +159,7 @@ export const SkillsConfigCard: React.FC<SkillsConfigCardProps> = ({ teamId }) =>
               <SkillItem
                 key={skill.id}
                 skill={skill}
+                canAdmin={canAdmin}
                 onDelete={() => {
                   setSelectedSkill(skill)
                   setIsDeleteDialogOpen(true)
@@ -135,6 +168,9 @@ export const SkillsConfigCard: React.FC<SkillsConfigCardProps> = ({ teamId }) =>
                   setSelectedSkill(skill)
                   setIsConfigDialogOpen(true)
                 }}
+                onPermissionChange={(permission) =>
+                  updatePermissionMutation.mutate({ id: skill.id, permission })
+                }
               />
             ))}
           </div>
@@ -194,12 +230,16 @@ export const SkillsConfigCard: React.FC<SkillsConfigCardProps> = ({ teamId }) =>
 
 const SkillItem = ({
   skill,
+  canAdmin,
   onDelete,
   onConfigure,
+  onPermissionChange,
 }: {
   skill: SkillInfo
+  canAdmin: boolean
   onDelete: () => void
   onConfigure: () => void
+  onPermissionChange: (permission: 'owner' | 'editor' | 'reviewer') => void
 }) => {
   return (
     <div
@@ -232,11 +272,26 @@ const SkillItem = ({
           {skill.description || m.no_description_provided()}
         </p>
       </div>
-      <div className="mt-4 flex items-center justify-between text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-        <span>
+      <div className="mt-4 flex items-center justify-between gap-2 pt-2 border-t border-border/50 text-xs">
+        <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
           {m.updated_date()} {new Date(skill.updatedAt).toLocaleDateString()}
         </span>
-        <div className="px-2 py-0.5 rounded-full bg-primary/10 text-primary">{m.installed()}</div>
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <Select
+            value={skill.permission || 'reviewer'}
+            onValueChange={(val) => onPermissionChange(val as 'owner' | 'editor' | 'reviewer')}
+            disabled={!canAdmin}
+          >
+            <SelectTrigger className="h-7 text-xs px-2 bg-background border-border w-[140px]">
+              <SelectValue placeholder={m.skill_permission()} />
+            </SelectTrigger>
+            <SelectContent align="end">
+              <SelectItem value="reviewer">{m.permission_all_users()}</SelectItem>
+              <SelectItem value="editor">{m.permission_owner_and_editor()}</SelectItem>
+              <SelectItem value="owner">{m.permission_owner_only()}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     </div>
   )
