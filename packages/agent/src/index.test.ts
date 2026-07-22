@@ -1,5 +1,10 @@
 import { describe, it, expect, vi } from 'vitest'
-import { formatSkillsForPrompt, createAgentSession, getModelFromDb, type DbProviderInfo } from './index'
+import {
+  formatSkillsForPrompt,
+  createAgentSession,
+  getModelFromDb,
+  type DbProviderInfo,
+} from './index'
 import { createSandboxedBashTool } from './tools/sandboxed-bash'
 import { SandboxManager, type SandboxAskCallback } from '@anthropic-ai/sandbox-runtime'
 import { prisma } from '@shumai/db'
