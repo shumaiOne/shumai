@@ -35,4 +35,76 @@ describe('SqlQueryBuilder', () => {
     const builder = new SqlQueryBuilder().select(Prisma.sql`id`)
     expect(() => builder.build()).toThrow('FROM clause is required')
   })
+
+  describe('Bug Reproduction Tests for buildSqlCondition', () => {
+    it('Bug 1: createdAt eq date should match full day range (>= startOfDay AND <= endOfDay)', () => {
+      const builder = new SqlQueryBuilder()
+        .from(Prisma.sql`assets a`)
+        .addSearchConditions('AND', [{ field: 'createdAt', operator: 'eq', value: '2026-07-22' }])
+
+      const query = builder.build()
+      expect(query.text).toBe(
+        'SELECT * FROM assets a WHERE (a."created_at" >= $1 AND a."created_at" <= $2)',
+      )
+      const startVal = query.values[0] as Date
+      const endVal = query.values[1] as Date
+      expect(startVal.getHours()).toBe(0)
+      expect(startVal.getMinutes()).toBe(0)
+      expect(startVal.getSeconds()).toBe(0)
+      expect(endVal.getHours()).toBe(23)
+      expect(endVal.getMinutes()).toBe(59)
+      expect(endVal.getSeconds()).toBe(59)
+    })
+
+    it('Bug 2: createdAt lte date should use end-of-day timestamp (23:59:59.999)', () => {
+      const builder = new SqlQueryBuilder()
+        .from(Prisma.sql`assets a`)
+        .addSearchConditions('AND', [{ field: 'createdAt', operator: 'lte', value: '2026-07-22' }])
+
+      const query = builder.build()
+      expect(query.text).toBe('SELECT * FROM assets a WHERE (a."created_at" <= $1)')
+      const endVal = query.values[0] as Date
+      expect(endVal.getHours()).toBe(23)
+      expect(endVal.getMinutes()).toBe(59)
+      expect(endVal.getSeconds()).toBe(59)
+    })
+
+    it('Bug 3: custom metadata numeric query should ONLY query number_value', () => {
+      const builder = new SqlQueryBuilder()
+        .from(Prisma.sql`assets a`)
+        .addSearchConditions('AND', [{ field: 'rating', operator: 'gt', value: 100 }])
+
+      const query = builder.build()
+      expect(query.text).toBe(
+        'SELECT * FROM assets a WHERE (a.id IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = $1 AND number_value > $2))',
+      )
+      expect(query.values).toEqual(['rating', 100])
+    })
+
+    it('Bug 4: isDate should not misclassify dash-separated non-date string values like "1-2"', () => {
+      const builder = new SqlQueryBuilder()
+        .from(Prisma.sql`assets a`)
+        .addSearchConditions('AND', [{ field: 'sku', operator: 'eq', value: '1-2' }])
+
+      const query = builder.build()
+      expect(query.text).toBe(
+        'SELECT * FROM assets a WHERE (a.id IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = $1 AND string_value = $2))',
+      )
+      expect(query.values).toEqual(['sku', '1-2'])
+    })
+
+    it('Bug 5: custom field names with special characters are safely parameterized', () => {
+      const builder = new SqlQueryBuilder()
+        .from(Prisma.sql`assets a`)
+        .addSearchConditions('AND', [
+          { field: 'custom_field"test', operator: 'eq', value: 'hello' },
+        ])
+
+      const query = builder.build()
+      expect(query.text).toBe(
+        'SELECT * FROM assets a WHERE (a.id IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = $1 AND string_value = $2))',
+      )
+      expect(query.values).toEqual(['custom_field"test', 'hello'])
+    })
+  })
 })

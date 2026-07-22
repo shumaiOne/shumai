@@ -101,7 +101,7 @@ export class SqlQueryBuilder {
   private isDate(value: unknown): boolean {
     if (value instanceof Date) return true
     if (typeof value !== 'string') return false
-    const valStr = value.toLowerCase()
+    const valStr = value.trim().toLowerCase()
     const relativeKeywords = [
       'today',
       'yesterday',
@@ -111,11 +111,14 @@ export class SqlQueryBuilder {
       'one month ago',
       'one month from now',
     ]
-    if (relativeKeywords.includes(valStr) || valStr.match(/\d+\s+days?\s+(ago|from\s+now)/)) {
+    if (relativeKeywords.includes(valStr) || valStr.match(/^\d+\s+days?\s+(ago|from\s+now)$/)) {
       return true
     }
+    if (!valStr.match(/^\d{4}-\d{2}-\d{2}/)) {
+      return false
+    }
     const d = new Date(value)
-    return !isNaN(d.getTime()) && value.includes('-')
+    return !isNaN(d.getTime())
   }
 
   private toDate(value: unknown): Date {
@@ -123,12 +126,8 @@ export class SqlQueryBuilder {
   }
 
   private toDateBound(value: unknown, bound: 'start' | 'end'): Date {
-    const d = this.parseRelativeDate(value)
-    if (d instanceof Date) return d
-    if (d && 'gte' in d && 'lte' in d) {
-      return bound === 'start' ? d.gte! : d.lte!
-    }
-    return new Date(value as string)
+    const range = this.parseDateRange(value)
+    return bound === 'start' ? range.start : range.end
   }
 
   private parseDateRange(value: unknown): { start: Date; end: Date } {
@@ -137,6 +136,11 @@ export class SqlQueryBuilder {
       return { start: d.gte!, end: d.lte! }
     }
     const date = d instanceof Date ? d : new Date(value as string)
+    const valStr = typeof value === 'string' ? value : ''
+    const hasTime = valStr.includes('T') || valStr.includes(':')
+    if (hasTime) {
+      return { start: date, end: date }
+    }
     const start = new Date(date)
     start.setHours(0, 0, 0, 0)
     const end = new Date(date)
@@ -239,18 +243,8 @@ export class SqlQueryBuilder {
   }
 
   private buildSqlCondition(field: string, operator: string, value: unknown): Prisma.Sql | null {
-    const colName =
-      field === 'sizeByte' || field === 'size_byte'
-        ? 'size_byte'
-        : field === 'createdAt' || field === 'created_at'
-          ? 'created_at'
-          : field === 'updatedAt' || field === 'updated_at'
-            ? 'updated_at'
-            : field
-
-    const dbCol = Prisma.raw(`a."${colName}"`)
-
     if (field === 'name') {
+      const dbCol = Prisma.raw(`a."name"`)
       const valStr = String(value)
       switch (operator) {
         case 'eq':
@@ -271,6 +265,7 @@ export class SqlQueryBuilder {
     }
 
     if (field === 'sizeByte' || field === 'size_byte') {
+      const dbCol = Prisma.raw(`a."size_byte"`)
       const valNum = Number(value)
       switch (operator) {
         case 'eq':
@@ -296,12 +291,17 @@ export class SqlQueryBuilder {
       field === 'created_at' ||
       field === 'updated_at'
     ) {
-      const valDate = this.toDate(value)
+      const colName = field === 'createdAt' || field === 'created_at' ? 'created_at' : 'updated_at'
+      const dbCol = Prisma.raw(`a."${colName}"`)
       switch (operator) {
-        case 'eq':
-          return Prisma.sql`${dbCol} = ${valDate}`
-        case 'neq':
-          return Prisma.sql`${dbCol} != ${valDate}`
+        case 'eq': {
+          const range = this.parseDateRange(value)
+          return Prisma.sql`${dbCol} >= ${range.start} AND ${dbCol} <= ${range.end}`
+        }
+        case 'neq': {
+          const range = this.parseDateRange(value)
+          return Prisma.sql`(${dbCol} < ${range.start} OR ${dbCol} > ${range.end})`
+        }
         case 'gt':
           return Prisma.sql`${dbCol} > ${this.toDateBound(value, 'end')}`
         case 'gte':
@@ -333,14 +333,42 @@ export class SqlQueryBuilder {
         const matchSql = this.buildEavValueMatch(value)
         return Prisma.sql`a.id NOT IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field}) OR a.id IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field} AND NOT (${matchSql}))`
       }
-      case 'gt':
-        return Prisma.sql`a.id IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field} AND (number_value > ${Number(value)} OR date_value > ${this.toDateBound(value, 'end')}))`
-      case 'gte':
-        return Prisma.sql`a.id IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field} AND (number_value >= ${Number(value)} OR date_value >= ${this.toDateBound(value, 'start')}))`
-      case 'lt':
-        return Prisma.sql`a.id IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field} AND (number_value < ${Number(value)} OR date_value < ${this.toDateBound(value, 'start')}))`
-      case 'lte':
-        return Prisma.sql`a.id IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field} AND (number_value <= ${Number(value)} OR date_value <= ${this.toDateBound(value, 'end')}))`
+      case 'gt': {
+        if (
+          typeof value === 'number' ||
+          (typeof value === 'string' && !isNaN(Number(value)) && !this.isDate(value))
+        ) {
+          return Prisma.sql`a.id IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field} AND number_value > ${Number(value)})`
+        }
+        return Prisma.sql`a.id IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field} AND date_value > ${this.toDateBound(value, 'end')})`
+      }
+      case 'gte': {
+        if (
+          typeof value === 'number' ||
+          (typeof value === 'string' && !isNaN(Number(value)) && !this.isDate(value))
+        ) {
+          return Prisma.sql`a.id IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field} AND number_value >= ${Number(value)})`
+        }
+        return Prisma.sql`a.id IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field} AND date_value >= ${this.toDateBound(value, 'start')})`
+      }
+      case 'lt': {
+        if (
+          typeof value === 'number' ||
+          (typeof value === 'string' && !isNaN(Number(value)) && !this.isDate(value))
+        ) {
+          return Prisma.sql`a.id IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field} AND number_value < ${Number(value)})`
+        }
+        return Prisma.sql`a.id IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field} AND date_value < ${this.toDateBound(value, 'start')})`
+      }
+      case 'lte': {
+        if (
+          typeof value === 'number' ||
+          (typeof value === 'string' && !isNaN(Number(value)) && !this.isDate(value))
+        ) {
+          return Prisma.sql`a.id IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field} AND number_value <= ${Number(value)})`
+        }
+        return Prisma.sql`a.id IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field} AND date_value <= ${this.toDateBound(value, 'end')})`
+      }
       case 'contains':
         return Prisma.sql`a.id IN (SELECT asset_id FROM asset_metadata_values WHERE field_key = ${field} AND string_value ILIKE ${'%' + String(value) + '%'})`
       case 'notContains':
