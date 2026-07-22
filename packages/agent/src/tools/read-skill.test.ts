@@ -18,16 +18,11 @@ describe('readSkillTool', () => {
     vi.clearAllMocks()
   })
 
-  it('should return error if skill not found', async () => {
+  it('should throw error if skill not found', async () => {
     const readSkillTool = createReadSkillTool(undefined, () => {})
-    const result = await readSkillTool.execute(
-      '1',
-      { skillId: 'non-existent' },
-      undefined,
-      undefined,
-    )
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect((result.content[0] as any).text).toContain('not found')
+    await expect(
+      readSkillTool.execute('1', { skillId: 'non-existent' }, undefined, undefined),
+    ).rejects.toThrow('not found')
   })
 
   it('should read skill from cache if hash matches', async () => {
@@ -308,14 +303,9 @@ describe('readSkillTool', () => {
       expect((resultOwner.content[0] as any).text).toBe('# Owner Skill')
 
       const reviewerTool = createReadSkillTool(reviewerUser.id, () => {})
-      const resultReviewer = await reviewerTool.execute(
-        '1',
-        { skillId: ownerSkill.id },
-        undefined,
-        undefined,
-      )
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      expect((resultReviewer.content[0] as any).text).toContain('Permission denied')
+      await expect(
+        reviewerTool.execute('1', { skillId: ownerSkill.id }, undefined, undefined),
+      ).rejects.toThrow('Permission denied')
     })
   })
 })
