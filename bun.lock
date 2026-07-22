@@ -33,7 +33,7 @@
     },
     "apps/agent": {
       "name": "@shumai/agent-app",
-      "version": "0.1.10",
+      "version": "0.2.0",
       "bin": {
         "shumai-agent": "./src/index.ts",
       },
@@ -45,7 +45,7 @@
     },
     "apps/cli": {
       "name": "@shumai/cli",
-      "version": "0.1.10",
+      "version": "0.2.0",
       "bin": {
         "shumai-cli": "./src/index.ts",
       },
@@ -60,7 +60,7 @@
     },
     "apps/transcode": {
       "name": "@shumai/transcode-app",
-      "version": "0.1.10",
+      "version": "0.2.0",
       "bin": {
         "shumai-transcode": "./src/index.ts",
       },
@@ -72,7 +72,7 @@
     },
     "apps/web": {
       "name": "@shumai/web-app",
-      "version": "0.1.10",
+      "version": "0.2.0",
       "dependencies": {
         "@shumai/agent": "workspace:*",
         "@shumai/api": "workspace:*",
@@ -92,11 +92,11 @@
     },
     "packages/agent": {
       "name": "@shumai/agent",
-      "version": "0.1.10",
+      "version": "0.2.0",
       "dependencies": {
         "@anthropic-ai/sandbox-runtime": "0.0.52",
         "@earendil-works/pi-agent-core": "0.78.0",
-        "@earendil-works/pi-ai": "0.75.4",
+        "@earendil-works/pi-ai": "0.80.7",
         "@google/genai": "1.52.0",
         "@shumai/core": "workspace:*",
         "@shumai/db": "workspace:*",
@@ -117,7 +117,7 @@
     },
     "packages/api": {
       "name": "@shumai/api",
-      "version": "0.1.10",
+      "version": "0.2.0",
       "dependencies": {
         "@hono/zod-validator": "0.7.6",
         "@shumai/core": "workspace:*",
@@ -131,7 +131,7 @@
     },
     "packages/core": {
       "name": "@shumai/core",
-      "version": "0.1.10",
+      "version": "0.2.0",
       "dependencies": {
         "@earendil-works/pi-agent-core": "0.78.0",
         "@shumai/db": "workspace:*",
@@ -162,7 +162,7 @@
     },
     "packages/db": {
       "name": "@shumai/db",
-      "version": "0.1.10",
+      "version": "0.2.0",
       "dependencies": {
         "@earendil-works/pi-agent-core": "0.78.0",
         "@prisma/adapter-pg": "7.8.0",
@@ -178,7 +178,7 @@
     },
     "packages/dtos": {
       "name": "@shumai/dtos",
-      "version": "0.1.10",
+      "version": "0.2.0",
       "dependencies": {
         "@earendil-works/pi-agent-core": "0.78.0",
         "zod": "4.4.3",
@@ -186,7 +186,7 @@
     },
     "packages/e2e": {
       "name": "@shumai/e2e",
-      "version": "0.1.10",
+      "version": "0.2.0",
       "dependencies": {
         "@earendil-works/pi-agent-core": "0.78.0",
         "@google/genai": "1.52.0",
@@ -200,11 +200,11 @@
     },
     "packages/tableprinter": {
       "name": "@shumai/tableprinter",
-      "version": "0.1.10",
+      "version": "0.2.0",
     },
     "packages/transcode": {
       "name": "@shumai/transcode",
-      "version": "0.1.10",
+      "version": "0.2.0",
       "dependencies": {
         "@shumai/core": "workspace:*",
         "@shumai/db": "workspace:*",
@@ -218,7 +218,7 @@
     },
     "packages/webui": {
       "name": "@shumai/webui",
-      "version": "0.1.10",
+      "version": "0.2.0",
       "dependencies": {
         "@base-ui/react": "1.5.0",
         "@dnd-kit/abstract": "0.4.0",
@@ -316,7 +316,7 @@
     },
     "packages/workflow-core": {
       "name": "@shumai/workflow-core",
-      "version": "0.1.10",
+      "version": "0.2.0",
       "dependencies": {
         "@shumai/core": "workspace:*",
         "@shumai/db": "workspace:*",
@@ -465,7 +465,7 @@
 
     "@earendil-works/pi-agent-core": ["@earendil-works/pi-agent-core@0.78.0", "", { "dependencies": { "@earendil-works/pi-ai": "^0.78.0", "ignore": "7.0.5", "typebox": "1.1.38", "yaml": "2.9.0" } }, "sha512-xhWd59Qzd8yO88gYQw2S4dEQstJJEiUtxRP01//YzVJ61jCtUASMfcyAmYhgGYR4Onp7GmwEAbBBGOiV6Iwk9g=="],
 
-    "@earendil-works/pi-ai": ["@earendil-works/pi-ai@0.75.4", "", { "dependencies": { "@anthropic-ai/sdk": "0.91.1", "@aws-sdk/client-bedrock-runtime": "3.1048.0", "@google/genai": "1.52.0", "@mistralai/mistralai": "2.2.1", "http-proxy-agent": "7.0.2", "https-proxy-agent": "7.0.6", "openai": "6.26.0", "partial-json": "0.1.7", "typebox": "1.1.38" }, "bin": { "pi-ai": "dist/cli.js" } }, "sha512-m/w8Hh3vQ0rAycwJiJWdzkypkn4295f4eq/966lDRy8aX5sk6bgYXH8TQmL16TO7Uwc7MbJG0QoyFHgX8RqXUQ=="],
+    "@earendil-works/pi-ai": ["@earendil-works/pi-ai@0.80.7", "", { "dependencies": { "@anthropic-ai/sdk": "0.91.1", "@aws-sdk/client-bedrock-runtime": "3.1048.0", "@google/genai": "1.52.0", "@mistralai/mistralai": "2.2.6", "@opentelemetry/api": "1.9.0", "@smithy/node-http-handler": "4.7.3", "http-proxy-agent": "7.0.2", "https-proxy-agent": "7.0.6", "openai": "6.26.0", "partial-json": "0.1.7", "typebox": "1.1.38" }, "bin": { "pi-ai": "dist/cli.js" } }, "sha512-8RLKLwe5TFM9kKFMNu/lTzveduq4GxZbnlG6ba8FAhLeb5wJP4zbj1eBumKBRvggpFQnW5R/Vo2a8zTlHsV9SQ=="],
 
     "@electric-sql/pglite": ["@electric-sql/pglite@0.4.1", "", {}, "sha512-mZ9NzzUSYPOCnxHH1oAHPRzoMFJHY472raDKwXl/+6oPbpdJ7g8LsCN4FSaIIfkiCKHhb3iF/Zqo3NYxaIhU7Q=="],
 
@@ -731,7 +731,7 @@
 
     "@lix-js/server-protocol-schema": ["@lix-js/server-protocol-schema@0.1.1", "", {}, "sha512-jBeALB6prAbtr5q4vTuxnRZZv1M2rKe8iNqRQhFJ4Tv7150unEa0vKyz0hs8Gl3fUGsWaNJBh3J8++fpbrpRBQ=="],
 
-    "@mistralai/mistralai": ["@mistralai/mistralai@2.2.1", "", { "dependencies": { "ws": "^8.18.0", "zod": "^3.25.0 || ^4.0.0", "zod-to-json-schema": "^3.25.0" } }, "sha512-uKU8CZmL2RzYKmplsU01hii4p3pe4HqJefpWNRWXm1Tcm0Sm4xXfwSLIy4k7ZCPlbETCGcp69E7hZs+WOJ5itQ=="],
+    "@mistralai/mistralai": ["@mistralai/mistralai@2.2.6", "", { "dependencies": { "@opentelemetry/semantic-conventions": "^1.40.0", "ws": "^8.18.0", "zod": "^3.25.0 || ^4.0.0", "zod-to-json-schema": "^3.25.0" }, "peerDependencies": { "@opentelemetry/api": "^1.9.0" }, "optionalPeers": ["@opentelemetry/api"] }, "sha512-W8pX7zHxjJvMIpw8JMxeJEleapXX0Q9NPszdNzqkM3MIEoIGPObdodujj+WHteXEvGfaP/AMwlNyRfEzSY6dQQ=="],
 
     "@napi-rs/canvas": ["@napi-rs/canvas@1.0.2", "", { "optionalDependencies": { "@napi-rs/canvas-android-arm64": "1.0.2", "@napi-rs/canvas-darwin-arm64": "1.0.2", "@napi-rs/canvas-darwin-x64": "1.0.2", "@napi-rs/canvas-linux-arm-gnueabihf": "1.0.2", "@napi-rs/canvas-linux-arm64-gnu": "1.0.2", "@napi-rs/canvas-linux-arm64-musl": "1.0.2", "@napi-rs/canvas-linux-riscv64-gnu": "1.0.2", "@napi-rs/canvas-linux-x64-gnu": "1.0.2", "@napi-rs/canvas-linux-x64-musl": "1.0.2", "@napi-rs/canvas-win32-arm64-msvc": "1.0.2", "@napi-rs/canvas-win32-x64-msvc": "1.0.2" } }, "sha512-EYEqlMYaCbpZDz+IgDH5xp9MTd3ui4dmGqbQYryhMLnSRxrhHKq5KQWHHKxFUcEP4Hp8/BWgvqXocX4j7iSbOQ=="],
 
@@ -762,6 +762,8 @@
     "@noble/hashes": ["@noble/hashes@2.2.0", "", {}, "sha512-IYqDGiTXab6FniAgnSdZwgWbomxpy9FtYvLKs7wCUs2a8RkITG+DFGO1DM9cr+E3/RgADRpFjrKVaJ1z6sjtEg=="],
 
     "@nodable/entities": ["@nodable/entities@2.1.1", "", {}, "sha512-Pig3HxDIoMgjdEH8OCf/dkcTmLFjJRjWuq8jSnklu284/TKOPibSRERmOykiwmyXTtv61mP+44f3GMx0tLAyjg=="],
+
+    "@opentelemetry/api": ["@opentelemetry/api@1.9.0", "", {}, "sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg=="],
 
     "@opentelemetry/semantic-conventions": ["@opentelemetry/semantic-conventions@1.41.1", "", {}, "sha512-/UhIkaZgPutTFmQ7RnIJGgDXZmtEJ7Dvi86xNTFWcnRxVRNk/aotsqDJYeEvDP+FSMB2SdW+pQzNMcWP0rwuNA=="],
 
@@ -3244,6 +3246,8 @@
     "wrap-ansi-cjs/ansi-styles": ["ansi-styles@4.3.0", "", { "dependencies": { "color-convert": "^2.0.1" } }, "sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg=="],
 
     "yauzl/buffer-crc32": ["buffer-crc32@0.2.13", "", {}, "sha512-VO9Ht/+p3SN7SKWqcrgEzjGbRSJYTx+Q1pTQC0wrWqHx0vpJraQ6GtHx8tvcg1rlK1byhU5gccxgOgj7B0TDkQ=="],
+
+    "@earendil-works/pi-agent-core/@earendil-works/pi-ai/@mistralai/mistralai": ["@mistralai/mistralai@2.2.1", "", { "dependencies": { "ws": "^8.18.0", "zod": "^3.25.0 || ^4.0.0", "zod-to-json-schema": "^3.25.0" } }, "sha512-uKU8CZmL2RzYKmplsU01hii4p3pe4HqJefpWNRWXm1Tcm0Sm4xXfwSLIy4k7ZCPlbETCGcp69E7hZs+WOJ5itQ=="],
 
     "@isaacs/cliui/string-width/emoji-regex": ["emoji-regex@9.2.2", "", {}, "sha512-L18DaJsXSUk2+42pv8mLs5jJT2hqFkFE4j21wOmgbUqsZ2hL72NsUU785g9RXgo3s0ZNgVl42TiHp3ZtOv/Vyg=="],
 

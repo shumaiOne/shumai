@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { formatSkillsForPrompt, createAgentSession } from './index'
+import { formatSkillsForPrompt, createAgentSession, getModelFromDb, type DbProviderInfo } from './index'
 import { createSandboxedBashTool } from './tools/sandboxed-bash'
 import { SandboxManager, type SandboxAskCallback } from '@anthropic-ai/sandbox-runtime'
 import { prisma } from '@shumai/db'
@@ -372,5 +372,37 @@ describe('Sandbox Network isolation integration', () => {
     } finally {
       initializeSpy.mockRestore()
     }
+  })
+})
+
+describe('getModelFromDb', () => {
+  it('should correctly initialize non-built-in model with provider and id', () => {
+    const providers: DbProviderInfo[] = [
+      {
+        name: 'google',
+        config: { api: 'google-generative-ai', apiKey: 'GOOGLE_API_KEY' },
+        models: [
+          {
+            modelId: 'non-existent-or-future-model',
+            name: 'Future Model',
+            config: {
+              api: 'google-generative-ai',
+              reasoning: false,
+              input: ['text'],
+              cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+              contextWindow: 8192,
+              maxTokens: 4096,
+            },
+          },
+        ],
+      },
+    ]
+
+    const model = getModelFromDb(providers, 'google', 'non-existent-or-future-model')
+
+    expect(model).toBeDefined()
+    expect(model?.id).toBe('non-existent-or-future-model')
+    expect(model?.provider).toBe('google')
+    expect(model?.api).toBe('google-generative-ai')
   })
 })
