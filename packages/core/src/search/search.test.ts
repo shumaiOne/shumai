@@ -127,6 +127,7 @@ describe('SearchService', () => {
     // String fields
     await createWithMeta('str-apple', { text: 'apple' })
     await createWithMeta('str-banana', { text: 'banana' })
+    await createWithMeta('sku-1-2', { sku: '1-2' })
 
     // Number fields
     await createWithMeta('num-10', { num: 10 })
@@ -181,6 +182,7 @@ describe('SearchService', () => {
         val: 'str-apple',
         expected: [
           'str-banana',
+          'sku-1-2',
           'num-10',
           'num-20',
           'bool-true',
@@ -200,6 +202,7 @@ describe('SearchService', () => {
         val: 'apple',
         expected: [
           'str-banana',
+          'sku-1-2',
           'num-10',
           'num-20',
           'bool-true',
@@ -220,6 +223,7 @@ describe('SearchService', () => {
         expected: [
           'str-apple',
           'str-banana',
+          'sku-1-2',
           'num-10',
           'num-20',
           'bool-true',
@@ -235,12 +239,14 @@ describe('SearchService', () => {
 
       // String Metadata
       { field: 'text', op: 'eq', val: 'apple', expected: ['str-apple'] },
+      { field: 'sku', op: 'eq', val: '1-2', expected: ['sku-1-2'] },
       {
         field: 'text',
         op: 'neq',
         val: 'apple',
         expected: [
           'str-banana',
+          'sku-1-2',
           'num-10',
           'num-20',
           'bool-true',
@@ -258,6 +264,7 @@ describe('SearchService', () => {
         op: 'isEmpty',
         val: null,
         expected: [
+          'sku-1-2',
           'num-10',
           'num-20',
           'bool-true',
@@ -281,6 +288,7 @@ describe('SearchService', () => {
         expected: [
           'str-apple',
           'str-banana',
+          'sku-1-2',
           'num-20',
           'bool-true',
           'bool-false',
@@ -293,6 +301,7 @@ describe('SearchService', () => {
         ],
       },
       { field: 'num', op: 'gt', val: 15, expected: ['num-20'] },
+      { field: 'num', op: 'gt', val: 100, expected: [] },
       { field: 'num', op: 'lt', val: 15, expected: ['num-10'] },
       { field: 'num', op: 'gte', val: 20, expected: ['num-20'] },
       { field: 'num', op: 'lte', val: 10, expected: ['num-10'] },
@@ -314,6 +323,7 @@ describe('SearchService', () => {
         expected: [
           'str-apple',
           'str-banana',
+          'sku-1-2',
           'num-10',
           'num-20',
           'bool-true',
@@ -332,6 +342,7 @@ describe('SearchService', () => {
         expected: [
           'str-apple',
           'str-banana',
+          'sku-1-2',
           'num-10',
           'num-20',
           'bool-true',
@@ -346,6 +357,7 @@ describe('SearchService', () => {
 
       // Date Metadata
       { field: 'date', op: 'eq', val: 'today', expected: ['date-today'] },
+      { field: 'date', op: 'lte', val: 'today', expected: ['date-today', 'date-yesterday'] },
       { field: 'date', op: 'isWithin', val: 'today', expected: ['date-today'] },
       { field: 'date', op: 'lt', val: 'today', expected: ['date-yesterday'] },
       { field: 'date', op: 'gt', val: 'yesterday', expected: ['date-today'] },
@@ -358,6 +370,7 @@ describe('SearchService', () => {
         expected: [
           'str-apple',
           'str-banana',
+          'sku-1-2',
           'num-10',
           'num-20',
           'bool-true',
@@ -378,6 +391,47 @@ describe('SearchService', () => {
         expected: [
           'str-apple',
           'str-banana',
+          'sku-1-2',
+          'num-10',
+          'num-20',
+          'bool-true',
+          'bool-false',
+          'multi-a-b',
+          'multi-b-c',
+          'date-today',
+          'date-yesterday',
+          'name-contains-test',
+          'nothing',
+        ],
+      },
+      {
+        field: 'createdAt',
+        op: 'eq',
+        val: 'today',
+        expected: [
+          'str-apple',
+          'str-banana',
+          'sku-1-2',
+          'num-10',
+          'num-20',
+          'bool-true',
+          'bool-false',
+          'multi-a-b',
+          'multi-b-c',
+          'date-today',
+          'date-yesterday',
+          'name-contains-test',
+          'nothing',
+        ],
+      },
+      {
+        field: 'createdAt',
+        op: 'lte',
+        val: 'today',
+        expected: [
+          'str-apple',
+          'str-banana',
+          'sku-1-2',
           'num-10',
           'num-20',
           'bool-true',
