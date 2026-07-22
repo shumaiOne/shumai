@@ -47,6 +47,7 @@ describe('Skill API', () => {
           config: null,
           assetId: 'asset1',
           hash: 'hash1',
+          permission: 'reviewer' as const,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },
@@ -79,6 +80,7 @@ describe('Skill API', () => {
         config: null,
         assetId: 'asset1',
         hash: 'hash1',
+        permission: 'reviewer' as const,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }
@@ -110,6 +112,7 @@ describe('Skill API', () => {
         config: null,
         assetId: 'asset1',
         hash: 'hash1',
+        permission: 'reviewer' as const,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }
@@ -174,6 +177,7 @@ describe('Skill API', () => {
         config: mockConfig,
         assetId: 'asset1',
         hash: 'hash1',
+        permission: 'reviewer' as const,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }
@@ -195,6 +199,40 @@ describe('Skill API', () => {
         }),
       )
       expect(skillService.updateSkillConfig).toHaveBeenCalledWith('skill1', mockConfig)
+    })
+  })
+
+  describe('PATCH /skills/:id/permission', () => {
+    test('Success', async () => {
+      const mockSkill = {
+        id: 'skill1',
+        name: 'Skill 1',
+        description: 'Desc 1',
+        config: null,
+        assetId: 'asset1',
+        hash: 'hash1',
+        permission: 'owner' as const,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+      vi.spyOn(skillService, 'updateSkillPermission').mockResolvedValue(mockSkill)
+
+      const res = await app.request('/skills/skill1/permission', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer test' },
+        body: JSON.stringify({ permission: 'owner' }),
+      })
+
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual(mockSkill)
+      expect(authzService.hasPermission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: ResourceType.Skill,
+          id: 'skill1',
+          permission: Permission.Admin,
+        }),
+      )
+      expect(skillService.updateSkillPermission).toHaveBeenCalledWith('skill1', 'owner')
     })
   })
 })

@@ -1,4 +1,4 @@
-import { prisma } from '@shumai/db'
+import { prisma, type TeamMemberRole } from '@shumai/db'
 import { SkillInfo, UpsertSkillRequest } from '@shumai/dtos'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import AdmZip from 'adm-zip'
@@ -121,6 +121,14 @@ export class SkillService {
     const skill = await this.prismaClient.skill.update({
       where: { id },
       data: { config },
+    })
+    return this.toSkillInfo(skill)
+  }
+
+  async updateSkillPermission(id: string, permission: TeamMemberRole): Promise<SkillInfo> {
+    const skill = await this.prismaClient.skill.update({
+      where: { id },
+      data: { permission },
     })
     return this.toSkillInfo(skill)
   }
@@ -276,6 +284,7 @@ export class SkillService {
       config: s.config as PrismaJson.SkillConfig,
       assetId: s.assetId,
       hash: s.hash,
+      permission: s.permission || 'reviewer',
       createdAt: s.createdAt.toISOString(),
       updatedAt: s.updatedAt.toISOString(),
     }

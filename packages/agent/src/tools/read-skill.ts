@@ -7,7 +7,14 @@ const readSkillSchema = Type.Object({
   skillId: Type.String({ description: 'The ID of the skill to read' }),
 })
 
+const ROLE_HIERARCHY: Record<string, number> = {
+  owner: 3,
+  editor: 2,
+  reviewer: 1,
+}
+
 export const createReadSkillTool = (
+  userId: string | undefined,
   onEnvsAdded: (envs: Record<string, string>) => void,
 ): AgentTool<typeof readSkillSchema, { skillId: string }> => ({
   name: 'read_skill',
@@ -23,6 +30,41 @@ export const createReadSkillTool = (
       if (!skill) {
         return {
           content: [{ type: 'text', text: `Skill with ID ${params.skillId} not found.` }],
+          details: { skillId: params.skillId },
+        }
+      }
+
+      const requiredLevel = ROLE_HIERARCHY[skill.permission] || 1
+
+      if (userId) {
+        const member = await prisma.teamMember.findUnique({
+          where: {
+            teamIdUserId: {
+              teamId: skill.teamId,
+              userId,
+            },
+          },
+        })
+        const userLevel = member ? ROLE_HIERARCHY[member.role] || 0 : 0
+        if (userLevel < requiredLevel) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Permission denied: Insufficient role to load skill "${skill.name}". Minimum required role is "${skill.permission}".`,
+              },
+            ],
+            details: { skillId: params.skillId },
+          }
+        }
+      } else if (requiredLevel > 1) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Permission denied: User context required to load skill "${skill.name}". Minimum required role is "${skill.permission}".`,
+            },
+          ],
           details: { skillId: params.skillId },
         }
       }

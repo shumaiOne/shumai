@@ -223,13 +223,6 @@ export type EnumTeamMemberRoleFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumTeamMemberRoleFilter<$PrismaModel> | $Enums.TeamMemberRole
 }
 
-export type EnumTeamMemberScopeFilter<$PrismaModel = never> = {
-  equals?: $Enums.TeamMemberScope | Prisma.EnumTeamMemberScopeFieldRefInput<$PrismaModel>
-  in?: $Enums.TeamMemberScope[] | Prisma.ListEnumTeamMemberScopeFieldRefInput<$PrismaModel>
-  notIn?: $Enums.TeamMemberScope[] | Prisma.ListEnumTeamMemberScopeFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumTeamMemberScopeFilter<$PrismaModel> | $Enums.TeamMemberScope
-}
-
 export type EnumTeamMemberRoleWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.TeamMemberRole | Prisma.EnumTeamMemberRoleFieldRefInput<$PrismaModel>
   in?: $Enums.TeamMemberRole[] | Prisma.ListEnumTeamMemberRoleFieldRefInput<$PrismaModel>
@@ -238,6 +231,13 @@ export type EnumTeamMemberRoleWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumTeamMemberRoleFilter<$PrismaModel>
   _max?: Prisma.NestedEnumTeamMemberRoleFilter<$PrismaModel>
+}
+
+export type EnumTeamMemberScopeFilter<$PrismaModel = never> = {
+  equals?: $Enums.TeamMemberScope | Prisma.EnumTeamMemberScopeFieldRefInput<$PrismaModel>
+  in?: $Enums.TeamMemberScope[] | Prisma.ListEnumTeamMemberScopeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.TeamMemberScope[] | Prisma.ListEnumTeamMemberScopeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumTeamMemberScopeFilter<$PrismaModel> | $Enums.TeamMemberScope
 }
 
 export type EnumTeamMemberScopeWithAggregatesFilter<$PrismaModel = never> = {
@@ -838,13 +838,6 @@ export type NestedEnumTeamMemberRoleFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumTeamMemberRoleFilter<$PrismaModel> | $Enums.TeamMemberRole
 }
 
-export type NestedEnumTeamMemberScopeFilter<$PrismaModel = never> = {
-  equals?: $Enums.TeamMemberScope | Prisma.EnumTeamMemberScopeFieldRefInput<$PrismaModel>
-  in?: $Enums.TeamMemberScope[] | Prisma.ListEnumTeamMemberScopeFieldRefInput<$PrismaModel>
-  notIn?: $Enums.TeamMemberScope[] | Prisma.ListEnumTeamMemberScopeFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumTeamMemberScopeFilter<$PrismaModel> | $Enums.TeamMemberScope
-}
-
 export type NestedEnumTeamMemberRoleWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.TeamMemberRole | Prisma.EnumTeamMemberRoleFieldRefInput<$PrismaModel>
   in?: $Enums.TeamMemberRole[] | Prisma.ListEnumTeamMemberRoleFieldRefInput<$PrismaModel>
@@ -853,6 +846,13 @@ export type NestedEnumTeamMemberRoleWithAggregatesFilter<$PrismaModel = never> =
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumTeamMemberRoleFilter<$PrismaModel>
   _max?: Prisma.NestedEnumTeamMemberRoleFilter<$PrismaModel>
+}
+
+export type NestedEnumTeamMemberScopeFilter<$PrismaModel = never> = {
+  equals?: $Enums.TeamMemberScope | Prisma.EnumTeamMemberScopeFieldRefInput<$PrismaModel>
+  in?: $Enums.TeamMemberScope[] | Prisma.ListEnumTeamMemberScopeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.TeamMemberScope[] | Prisma.ListEnumTeamMemberScopeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumTeamMemberScopeFilter<$PrismaModel> | $Enums.TeamMemberScope
 }
 
 export type NestedEnumTeamMemberScopeWithAggregatesFilter<$PrismaModel = never> = {

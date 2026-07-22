@@ -19,7 +19,7 @@ describe('readSkillTool', () => {
   })
 
   it('should return error if skill not found', async () => {
-    const readSkillTool = createReadSkillTool(() => {})
+    const readSkillTool = createReadSkillTool(undefined, () => {})
     const result = await readSkillTool.execute(
       '1',
       { skillId: 'non-existent' },
@@ -49,7 +49,7 @@ describe('readSkillTool', () => {
       return ''
     })
 
-    const readSkillTool = createReadSkillTool(() => {})
+    const readSkillTool = createReadSkillTool(undefined, () => {})
     const result = await readSkillTool.execute('1', { skillId: skill.id }, undefined, undefined)
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -101,7 +101,7 @@ describe('readSkillTool', () => {
       contentType: 'application/zip',
     })
 
-    const readSkillTool = createReadSkillTool(() => {})
+    const readSkillTool = createReadSkillTool(undefined, () => {})
     const result = await readSkillTool.execute('1', { skillId: skill.id }, undefined, undefined)
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -146,7 +146,7 @@ describe('readSkillTool', () => {
       })
 
       let capturedEnvs: Record<string, string> = {}
-      const readSkillTool = createReadSkillTool((envs) => {
+      const readSkillTool = createReadSkillTool(undefined, (envs) => {
         capturedEnvs = { ...capturedEnvs, ...envs }
       })
       await readSkillTool.execute('1', { skillId: skill.id }, undefined, undefined)
@@ -181,7 +181,7 @@ describe('readSkillTool', () => {
       })
 
       let capturedEnvs: Record<string, string> = {}
-      const readSkillTool = createReadSkillTool((envs) => {
+      const readSkillTool = createReadSkillTool(undefined, (envs) => {
         capturedEnvs = { ...capturedEnvs, ...envs }
       })
       await readSkillTool.execute('1', { skillId: skill.id }, undefined, undefined)
@@ -216,7 +216,7 @@ describe('readSkillTool', () => {
       })
 
       let capturedEnvs: Record<string, string> = {}
-      const readSkillTool = createReadSkillTool((envs) => {
+      const readSkillTool = createReadSkillTool(undefined, (envs) => {
         capturedEnvs = { ...capturedEnvs, ...envs }
       })
       await readSkillTool.execute('1', { skillId: skill.id }, undefined, undefined)
@@ -251,7 +251,7 @@ describe('readSkillTool', () => {
       })
 
       let capturedEnvs: Record<string, string> = {}
-      const readSkillTool = createReadSkillTool((envs) => {
+      const readSkillTool = createReadSkillTool(undefined, (envs) => {
         capturedEnvs = { ...capturedEnvs, ...envs }
       })
       await readSkillTool.execute('1', { skillId: skill.id }, undefined, undefined)
@@ -259,6 +259,63 @@ describe('readSkillTool', () => {
       expect(capturedEnvs).toEqual({
         FALLBACK_VAR_UNDEF: 'host-val2',
       })
+    })
+  })
+
+  describe('permissions', () => {
+    it('should allow loading skill matching user role level or lower', async () => {
+      const team = await prisma.team.create({ data: { name: 'Permission Team' } })
+      const ownerUser = await prisma.user.create({
+        data: { name: 'Owner User', email: 'owner@test.com' },
+      })
+      const reviewerUser = await prisma.user.create({
+        data: { name: 'Reviewer User', email: 'reviewer@test.com' },
+      })
+
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: ownerUser.id, role: 'owner' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: reviewerUser.id, role: 'reviewer' },
+      })
+
+      const ownerSkill = await prisma.skill.create({
+        data: {
+          name: 'Owner Skill',
+          assetId: 'asset1',
+          hash: 'hash-owner',
+          teamId: team.id,
+          permission: 'owner',
+        },
+      })
+
+      vi.spyOn(fs, 'existsSync').mockReturnValue(true)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.spyOn(fs, 'readFileSync').mockImplementation((path: any) => {
+        if (path.toString().endsWith('.hash')) return 'hash-owner'
+        if (path.toString().endsWith('SKILL.md')) return '# Owner Skill'
+        return ''
+      })
+
+      const ownerTool = createReadSkillTool(ownerUser.id, () => {})
+      const resultOwner = await ownerTool.execute(
+        '1',
+        { skillId: ownerSkill.id },
+        undefined,
+        undefined,
+      )
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((resultOwner.content[0] as any).text).toBe('# Owner Skill')
+
+      const reviewerTool = createReadSkillTool(reviewerUser.id, () => {})
+      const resultReviewer = await reviewerTool.execute(
+        '1',
+        { skillId: ownerSkill.id },
+        undefined,
+        undefined,
+      )
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((resultReviewer.content[0] as any).text).toContain('Permission denied')
     })
   })
 })

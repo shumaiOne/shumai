@@ -262,6 +262,7 @@ model Skill {
   config      Json?    @default("{}")
   assetId     String   @map("asset_id")
   hash        String   @map("hash")
+  permission  TeamMemberRole @default(reviewer)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 

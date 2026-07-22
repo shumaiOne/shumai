@@ -32,6 +32,7 @@ export type SkillMinAggregateOutputType = {
   description: string | null
   assetId: string | null
   hash: string | null
+  permission: $Enums.TeamMemberRole | null
   createdAt: Date | null
   updatedAt: Date | null
   teamId: string | null
@@ -43,6 +44,7 @@ export type SkillMaxAggregateOutputType = {
   description: string | null
   assetId: string | null
   hash: string | null
+  permission: $Enums.TeamMemberRole | null
   createdAt: Date | null
   updatedAt: Date | null
   teamId: string | null
@@ -55,6 +57,7 @@ export type SkillCountAggregateOutputType = {
   config:PrismaJson.SkillConfig
   assetId: number
   hash: number
+  permission: number
   createdAt: number
   updatedAt: number
   teamId: number
@@ -68,6 +71,7 @@ export type SkillMinAggregateInputType = {
   description?: true
   assetId?: true
   hash?: true
+  permission?: true
   createdAt?: true
   updatedAt?: true
   teamId?: true
@@ -79,6 +83,7 @@ export type SkillMaxAggregateInputType = {
   description?: true
   assetId?: true
   hash?: true
+  permission?: true
   createdAt?: true
   updatedAt?: true
   teamId?: true
@@ -91,6 +96,7 @@ export type SkillCountAggregateInputType = {
   config?: true
   assetId?: true
   hash?: true
+  permission?: true
   createdAt?: true
   updatedAt?: true
   teamId?: true
@@ -176,6 +182,7 @@ export type SkillGroupByOutputType = {
   config:PrismaJson.SkillConfig | null
   assetId: string
   hash: string
+  permission: $Enums.TeamMemberRole
   createdAt: Date
   updatedAt: Date
   teamId: string
@@ -209,6 +216,7 @@ export type SkillWhereInput = {
   config?: Prisma.JsonNullableFilter<"Skill">
   assetId?: Prisma.StringFilter<"Skill"> | string
   hash?: Prisma.StringFilter<"Skill"> | string
+  permission?: Prisma.EnumTeamMemberRoleFilter<"Skill"> | $Enums.TeamMemberRole
   createdAt?: Prisma.DateTimeFilter<"Skill"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Skill"> | Date | string
   teamId?: Prisma.StringFilter<"Skill"> | string
@@ -223,6 +231,7 @@ export type SkillOrderByWithRelationInput = {
   config?: Prisma.SortOrderInput | Prisma.SortOrder
   assetId?: Prisma.SortOrder
   hash?: Prisma.SortOrder
+  permission?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   teamId?: Prisma.SortOrder
@@ -241,6 +250,7 @@ export type SkillWhereUniqueInput = Prisma.AtLeast<{
   config?: Prisma.JsonNullableFilter<"Skill">
   assetId?: Prisma.StringFilter<"Skill"> | string
   hash?: Prisma.StringFilter<"Skill"> | string
+  permission?: Prisma.EnumTeamMemberRoleFilter<"Skill"> | $Enums.TeamMemberRole
   createdAt?: Prisma.DateTimeFilter<"Skill"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Skill"> | Date | string
   teamId?: Prisma.StringFilter<"Skill"> | string
@@ -255,6 +265,7 @@ export type SkillOrderByWithAggregationInput = {
   config?: Prisma.SortOrderInput | Prisma.SortOrder
   assetId?: Prisma.SortOrder
   hash?: Prisma.SortOrder
+  permission?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   teamId?: Prisma.SortOrder
@@ -273,6 +284,7 @@ export type SkillScalarWhereWithAggregatesInput = {
   config?: Prisma.JsonNullableWithAggregatesFilter<"Skill">
   assetId?: Prisma.StringWithAggregatesFilter<"Skill"> | string
   hash?: Prisma.StringWithAggregatesFilter<"Skill"> | string
+  permission?: Prisma.EnumTeamMemberRoleWithAggregatesFilter<"Skill"> | $Enums.TeamMemberRole
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Skill"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Skill"> | Date | string
   teamId?: Prisma.StringWithAggregatesFilter<"Skill"> | string
@@ -285,6 +297,7 @@ export type SkillCreateInput = {
   config?:PrismaJson.SkillConfig | Prisma.NullableJsonNullValueInput
   assetId: string
   hash: string
+  permission?: $Enums.TeamMemberRole
   createdAt?: Date | string
   updatedAt?: Date | string
   team: Prisma.TeamCreateNestedOneWithoutSkillsInput
@@ -298,6 +311,7 @@ export type SkillUncheckedCreateInput = {
   config?:PrismaJson.SkillConfig | Prisma.NullableJsonNullValueInput
   assetId: string
   hash: string
+  permission?: $Enums.TeamMemberRole
   createdAt?: Date | string
   updatedAt?: Date | string
   teamId: string
@@ -311,6 +325,7 @@ export type SkillUpdateInput = {
   config?:PrismaJson.SkillConfig | Prisma.NullableJsonNullValueInput
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
   hash?: Prisma.StringFieldUpdateOperationsInput | string
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   team?: Prisma.TeamUpdateOneRequiredWithoutSkillsNestedInput
@@ -324,6 +339,7 @@ export type SkillUncheckedUpdateInput = {
   config?:PrismaJson.SkillConfig | Prisma.NullableJsonNullValueInput
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
   hash?: Prisma.StringFieldUpdateOperationsInput | string
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -337,6 +353,7 @@ export type SkillCreateManyInput = {
   config?:PrismaJson.SkillConfig | Prisma.NullableJsonNullValueInput
   assetId: string
   hash: string
+  permission?: $Enums.TeamMemberRole
   createdAt?: Date | string
   updatedAt?: Date | string
   teamId: string
@@ -349,6 +366,7 @@ export type SkillUpdateManyMutationInput = {
   config?:PrismaJson.SkillConfig | Prisma.NullableJsonNullValueInput
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
   hash?: Prisma.StringFieldUpdateOperationsInput | string
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -360,6 +378,7 @@ export type SkillUncheckedUpdateManyInput = {
   config?:PrismaJson.SkillConfig | Prisma.NullableJsonNullValueInput
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
   hash?: Prisma.StringFieldUpdateOperationsInput | string
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -387,6 +406,7 @@ export type SkillCountOrderByAggregateInput = {
   config?: Prisma.SortOrder
   assetId?: Prisma.SortOrder
   hash?: Prisma.SortOrder
+  permission?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   teamId?: Prisma.SortOrder
@@ -398,6 +418,7 @@ export type SkillMaxOrderByAggregateInput = {
   description?: Prisma.SortOrder
   assetId?: Prisma.SortOrder
   hash?: Prisma.SortOrder
+  permission?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   teamId?: Prisma.SortOrder
@@ -409,6 +430,7 @@ export type SkillMinOrderByAggregateInput = {
   description?: Prisma.SortOrder
   assetId?: Prisma.SortOrder
   hash?: Prisma.SortOrder
+  permission?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   teamId?: Prisma.SortOrder
@@ -461,6 +483,10 @@ export type SkillUncheckedUpdateManyWithoutTeamNestedInput = {
   deleteMany?: Prisma.SkillScalarWhereInput | Prisma.SkillScalarWhereInput[]
 }
 
+export type EnumTeamMemberRoleFieldUpdateOperationsInput = {
+  set?: $Enums.TeamMemberRole
+}
+
 export type SkillCreateNestedOneWithoutAgentSkillsInput = {
   create?: Prisma.XOR<Prisma.SkillCreateWithoutAgentSkillsInput, Prisma.SkillUncheckedCreateWithoutAgentSkillsInput>
   connectOrCreate?: Prisma.SkillCreateOrConnectWithoutAgentSkillsInput
@@ -482,6 +508,7 @@ export type SkillCreateWithoutTeamInput = {
   config?:PrismaJson.SkillConfig | Prisma.NullableJsonNullValueInput
   assetId: string
   hash: string
+  permission?: $Enums.TeamMemberRole
   createdAt?: Date | string
   updatedAt?: Date | string
   agentSkills?: Prisma.AgentSkillCreateNestedManyWithoutSkillInput
@@ -494,6 +521,7 @@ export type SkillUncheckedCreateWithoutTeamInput = {
   config?:PrismaJson.SkillConfig | Prisma.NullableJsonNullValueInput
   assetId: string
   hash: string
+  permission?: $Enums.TeamMemberRole
   createdAt?: Date | string
   updatedAt?: Date | string
   agentSkills?: Prisma.AgentSkillUncheckedCreateNestedManyWithoutSkillInput
@@ -535,6 +563,7 @@ export type SkillScalarWhereInput = {
   config?: Prisma.JsonNullableFilter<"Skill">
   assetId?: Prisma.StringFilter<"Skill"> | string
   hash?: Prisma.StringFilter<"Skill"> | string
+  permission?: Prisma.EnumTeamMemberRoleFilter<"Skill"> | $Enums.TeamMemberRole
   createdAt?: Prisma.DateTimeFilter<"Skill"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Skill"> | Date | string
   teamId?: Prisma.StringFilter<"Skill"> | string
@@ -547,6 +576,7 @@ export type SkillCreateWithoutAgentSkillsInput = {
   config?:PrismaJson.SkillConfig | Prisma.NullableJsonNullValueInput
   assetId: string
   hash: string
+  permission?: $Enums.TeamMemberRole
   createdAt?: Date | string
   updatedAt?: Date | string
   team: Prisma.TeamCreateNestedOneWithoutSkillsInput
@@ -559,6 +589,7 @@ export type SkillUncheckedCreateWithoutAgentSkillsInput = {
   config?:PrismaJson.SkillConfig | Prisma.NullableJsonNullValueInput
   assetId: string
   hash: string
+  permission?: $Enums.TeamMemberRole
   createdAt?: Date | string
   updatedAt?: Date | string
   teamId: string
@@ -587,6 +618,7 @@ export type SkillUpdateWithoutAgentSkillsInput = {
   config?:PrismaJson.SkillConfig | Prisma.NullableJsonNullValueInput
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
   hash?: Prisma.StringFieldUpdateOperationsInput | string
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   team?: Prisma.TeamUpdateOneRequiredWithoutSkillsNestedInput
@@ -599,6 +631,7 @@ export type SkillUncheckedUpdateWithoutAgentSkillsInput = {
   config?:PrismaJson.SkillConfig | Prisma.NullableJsonNullValueInput
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
   hash?: Prisma.StringFieldUpdateOperationsInput | string
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -611,6 +644,7 @@ export type SkillCreateManyTeamInput = {
   config?:PrismaJson.SkillConfig | Prisma.NullableJsonNullValueInput
   assetId: string
   hash: string
+  permission?: $Enums.TeamMemberRole
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -622,6 +656,7 @@ export type SkillUpdateWithoutTeamInput = {
   config?:PrismaJson.SkillConfig | Prisma.NullableJsonNullValueInput
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
   hash?: Prisma.StringFieldUpdateOperationsInput | string
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   agentSkills?: Prisma.AgentSkillUpdateManyWithoutSkillNestedInput
@@ -634,6 +669,7 @@ export type SkillUncheckedUpdateWithoutTeamInput = {
   config?:PrismaJson.SkillConfig | Prisma.NullableJsonNullValueInput
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
   hash?: Prisma.StringFieldUpdateOperationsInput | string
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   agentSkills?: Prisma.AgentSkillUncheckedUpdateManyWithoutSkillNestedInput
@@ -646,6 +682,7 @@ export type SkillUncheckedUpdateManyWithoutTeamInput = {
   config?:PrismaJson.SkillConfig | Prisma.NullableJsonNullValueInput
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
   hash?: Prisma.StringFieldUpdateOperationsInput | string
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -688,6 +725,7 @@ export type SkillSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   config?: boolean
   assetId?: boolean
   hash?: boolean
+  permission?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   teamId?: boolean
@@ -703,6 +741,7 @@ export type SkillSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   config?: boolean
   assetId?: boolean
   hash?: boolean
+  permission?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   teamId?: boolean
@@ -716,6 +755,7 @@ export type SkillSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   config?: boolean
   assetId?: boolean
   hash?: boolean
+  permission?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   teamId?: boolean
@@ -729,12 +769,13 @@ export type SkillSelectScalar = {
   config?: boolean
   assetId?: boolean
   hash?: boolean
+  permission?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   teamId?: boolean
 }
 
-export type SkillOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "description" | "config" | "assetId" | "hash" | "createdAt" | "updatedAt" | "teamId", ExtArgs["result"]["skill"]>
+export type SkillOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "description" | "config" | "assetId" | "hash" | "permission" | "createdAt" | "updatedAt" | "teamId", ExtArgs["result"]["skill"]>
 export type SkillInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
   agentSkills?: boolean | Prisma.Skill$agentSkillsArgs<ExtArgs>
@@ -763,6 +804,7 @@ export type $SkillPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     config:PrismaJson.SkillConfig | null
     assetId: string
     hash: string
+    permission: $Enums.TeamMemberRole
     createdAt: Date
     updatedAt: Date
     teamId: string
@@ -1197,6 +1239,7 @@ export interface SkillFieldRefs {
   readonly config: Prisma.FieldRef<"Skill", 'Json'>
   readonly assetId: Prisma.FieldRef<"Skill", 'String'>
   readonly hash: Prisma.FieldRef<"Skill", 'String'>
+  readonly permission: Prisma.FieldRef<"Skill", 'TeamMemberRole'>
   readonly createdAt: Prisma.FieldRef<"Skill", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Skill", 'DateTime'>
   readonly teamId: Prisma.FieldRef<"Skill", 'String'>
