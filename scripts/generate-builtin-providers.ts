@@ -89,9 +89,13 @@ async function loadModelData(): Promise<Record<string, unknown>> {
     return rawProviders
   }
 
-  throw new Error(
-    `Model data directory not found at ${piMonoDataDir}. Please run 'npm run generate-models' in pi-mono.`,
-  )
+  console.log('Local pi-mono data directory not found, fetching from models.dev API...')
+  const res = await fetch('https://models.dev/api/v1/models')
+  if (!res.ok) {
+    throw new Error(`Failed to fetch models from models.dev: ${res.statusText}`)
+  }
+  const data = (await res.json()) as Record<string, unknown>
+  return data
 }
 
 async function sync() {
@@ -188,7 +192,15 @@ ${providerEntries.join('\n')}
   console.log(`Successfully generated aggregator: ${outPath}`)
 }
 
-sync().catch((err) => {
-  console.error(err)
-  process.exit(1)
-})
+const isEntryScript =
+  import.meta.main ||
+  (process.argv[1] &&
+    process.argv[1].endsWith('generate-builtin-providers.ts') &&
+    !process.argv[1].includes('.test.'))
+
+if (isEntryScript) {
+  sync().catch((err) => {
+    console.error(err)
+    process.exit(1)
+  })
+}
