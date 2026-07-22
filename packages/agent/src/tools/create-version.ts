@@ -59,45 +59,33 @@ export function createCreateVersionTool(userId: string): AgentTool<typeof create
     description: 'Create a new version of an existing file from a local file path.',
     parameters: createVersionSchema,
     execute: async (_toolCallId, params) => {
-      try {
-        const absolutePath = path.resolve(process.cwd(), params.path)
-        if (!fs.existsSync(absolutePath)) {
-          throw new Error(`Local file not found at path: ${params.path}`)
-        }
+      const absolutePath = path.resolve(process.cwd(), params.path)
+      if (!fs.existsSync(absolutePath)) {
+        throw new Error(`Local file not found at path: ${params.path}`)
+      }
 
-        const fileSize = fs.statSync(absolutePath).size
-        const mimeType = getMimeType(absolutePath)
+      const fileSize = fs.statSync(absolutePath).size
+      const mimeType = getMimeType(absolutePath)
 
-        // Generate compliant S3 key matching normal file upload format
-        const s3Key = `files/${ulid()}/${sanitizeFilename(path.basename(absolutePath))}`
-        await s3Service.uploadFileToKey(absolutePath, s3Key, mimeType)
+      // Generate compliant S3 key matching normal file upload format
+      const s3Key = `files/${ulid()}/${sanitizeFilename(path.basename(absolutePath))}`
+      await s3Service.uploadFileToKey(absolutePath, s3Key, mimeType)
 
-        const result = await executeAgentToolWorkflow({
-          toolName: 'create_version',
-          args: {
-            parent: params.parent,
-            s3Key,
-            name: path.basename(absolutePath),
-            size: fileSize,
-            contentType: mimeType,
-          },
-          userId,
-          assetId: params.parent,
-        })
-        return {
-          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-          details: result,
-        }
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Error creating file version: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-          details: {},
-        }
+      const result = await executeAgentToolWorkflow({
+        toolName: 'create_version',
+        args: {
+          parent: params.parent,
+          s3Key,
+          name: path.basename(absolutePath),
+          size: fileSize,
+          contentType: mimeType,
+        },
+        userId,
+        assetId: params.parent,
+      })
+      return {
+        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+        details: result,
       }
     },
   }

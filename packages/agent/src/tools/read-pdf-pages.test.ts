@@ -151,49 +151,37 @@ describe('readPdfPagesTool', () => {
     expect(result.details.sourceKeys).toEqual(['pdf_pages/page_1.webp', 'pdf_pages/page_2.webp'])
   })
 
-  it('should return error text if start page is less than 1', async () => {
+  it('should throw error if start page is less than 1', async () => {
     const tool = createReadPdfPagesTool('user-1')
-    const result = await tool.execute('call-1', { assetId: 'asset-1', start: 0, end: 5 })
-
-    expect(result.content[0]).toEqual({
-      type: 'text',
-      text: 'Invalid page range: start page (0) must be at least 1.',
-    })
+    await expect(tool.execute('call-1', { assetId: 'asset-1', start: 0, end: 5 })).rejects.toThrow(
+      'Invalid page range: start page (0) must be at least 1.',
+    )
   })
 
-  it('should return error text if start page is greater than end page', async () => {
+  it('should throw error if start page is greater than end page', async () => {
     const tool = createReadPdfPagesTool('user-1')
-    const result = await tool.execute('call-1', { assetId: 'asset-1', start: 5, end: 2 })
-
-    expect(result.content[0]).toEqual({
-      type: 'text',
-      text: 'Invalid page range: start page (5) must be less than or equal to end page (2).',
-    })
+    await expect(tool.execute('call-1', { assetId: 'asset-1', start: 5, end: 2 })).rejects.toThrow(
+      'Invalid page range: start page (5) must be less than or equal to end page (2).',
+    )
   })
 
-  it('should return error text if page range exceeds maximum limit of 20', async () => {
+  it('should throw error if page range exceeds maximum limit of 20', async () => {
     const tool = createReadPdfPagesTool('user-1')
-    const result = await tool.execute('call-1', { assetId: 'asset-1', start: 1, end: 25 })
-
-    expect(result.content[0]).toEqual({
-      type: 'text',
-      text: 'Page range (25 pages requested) exceeds the maximum limit of 20 pages per request.',
-    })
+    await expect(tool.execute('call-1', { assetId: 'asset-1', start: 1, end: 25 })).rejects.toThrow(
+      'Page range (25 pages requested) exceeds the maximum limit of 20 pages per request.',
+    )
   })
 
-  it('should return error text if asset not found', async () => {
+  it('should throw error if asset not found', async () => {
     vi.mocked(prisma.asset.findUnique).mockResolvedValue(null)
 
     const tool = createReadPdfPagesTool('user-1')
-    const result = await tool.execute('call-1', { assetId: 'asset-1', start: 1, end: 3 })
-
-    expect(result.content[0]).toEqual({
-      type: 'text',
-      text: 'Asset with ID asset-1 not found.',
-    })
+    await expect(tool.execute('call-1', { assetId: 'asset-1', start: 1, end: 3 })).rejects.toThrow(
+      'Asset with ID asset-1 not found.',
+    )
   })
 
-  it('should return error text if proxyType is not pdf', async () => {
+  it('should throw error if proxyType is not pdf', async () => {
     vi.mocked(prisma.asset.findUnique).mockResolvedValue({
       id: 'asset-1',
       projectId: 'project-1',
@@ -201,15 +189,12 @@ describe('readPdfPagesTool', () => {
     } as unknown as Asset)
 
     const tool = createReadPdfPagesTool('user-1')
-    const result = await tool.execute('call-1', { assetId: 'asset-1', start: 1, end: 3 })
-
-    expect(result.content[0]).toEqual({
-      type: 'text',
-      text: 'Asset asset-1 is not a PDF or document.',
-    })
+    await expect(tool.execute('call-1', { assetId: 'asset-1', start: 1, end: 3 })).rejects.toThrow(
+      'Asset asset-1 is not a PDF or document.',
+    )
   })
 
-  it('should return error text if proxyType is null/undefined (unprocessed)', async () => {
+  it('should throw error if proxyType is null/undefined (unprocessed)', async () => {
     vi.mocked(prisma.asset.findUnique).mockResolvedValue({
       id: 'asset-1',
       projectId: 'project-1',
@@ -217,11 +202,8 @@ describe('readPdfPagesTool', () => {
     } as unknown as Asset)
 
     const tool = createReadPdfPagesTool('user-1')
-    const result = await tool.execute('call-1', { assetId: 'asset-1', start: 1, end: 3 })
-
-    expect(result.content[0]).toEqual({
-      type: 'text',
-      text: 'Asset asset-1 is not a PDF or document.',
-    })
+    await expect(tool.execute('call-1', { assetId: 'asset-1', start: 1, end: 3 })).rejects.toThrow(
+      'Asset asset-1 is not a PDF or document.',
+    )
   })
 })

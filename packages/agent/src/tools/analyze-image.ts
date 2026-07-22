@@ -23,125 +23,102 @@ export function createAnalyzeImageTool(
       'Retrieves and views the image content. Call this tool if you need to analyze the image.',
     parameters: analyzeImageSchema,
     execute: async (_toolCallId, params) => {
-      try {
-        const assetId = params.assetId
+      const assetId = params.assetId
 
-        if (!userId) {
-          return {
-            content: [{ type: 'text', text: 'User ID is required for authorization.' }],
-            details: {},
-          }
+      if (!userId) {
+        throw new Error('User ID is required for authorization.')
+      }
+
+      await authzService.hasPermission({
+        user: { id: userId } as User,
+        permission: Permission.Read,
+        type: ResourceType.Asset,
+        id: assetId,
+      })
+
+      const asset = await prisma.asset.findUnique({
+        where: { id: assetId },
+        include: { storageKey: true },
+      })
+
+      if (!asset) {
+        throw new Error(`Asset with ID ${assetId} not found.`)
+      }
+
+      // Get default media key
+      let mediaKey = asset.storageKey?.key
+      if (asset.media) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mediaInfo = asset.media as any
+        if (mediaInfo.imageTranscodes && mediaInfo.imageTranscodes.length > 0) {
+          mediaKey = mediaInfo.imageTranscodes[0].key || mediaKey
         }
+      }
 
-        await authzService.hasPermission({
-          user: { id: userId } as User,
-          permission: Permission.Read,
-          type: ResourceType.Asset,
-          id: assetId,
+      if (!mediaKey) {
+        throw new Error('No media content found for this asset.')
+      }
+
+      // Check if trigger comment has draw annotations for this asset
+      let annotations: unknown = null
+      if (userCommentId) {
+        const comment = await prisma.assetComment.findUnique({
+          where: { id: userCommentId },
         })
-
-        const asset = await prisma.asset.findUnique({
-          where: { id: assetId },
-          include: { storageKey: true },
-        })
-
-        if (!asset) {
-          return {
-            content: [{ type: 'text', text: `Asset with ID ${assetId} not found.` }],
-            details: {},
+        if (comment && comment.assetId === assetId && comment.annotation) {
+          const list = comment.annotation
+          if (Array.isArray(list) && list.length > 0) {
+            annotations = list
           }
         }
+      }
 
-        // Get default media key
-        let mediaKey = asset.storageKey?.key
-        if (asset.media) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const mediaInfo = asset.media as any
-          if (mediaInfo.imageTranscodes && mediaInfo.imageTranscodes.length > 0) {
-            mediaKey = mediaInfo.imageTranscodes[0].key || mediaKey
-          }
-        }
+      let keyToUse = mediaKey
 
-        if (!mediaKey) {
-          return {
-            content: [{ type: 'text', text: 'No media content found for this asset.' }],
-            details: {},
-          }
-        }
-
-        // Check if trigger comment has draw annotations for this asset
-        let annotations: unknown = null
-        if (userCommentId) {
-          const comment = await prisma.assetComment.findUnique({
-            where: { id: userCommentId },
-          })
-          if (comment && comment.assetId === assetId && comment.annotation) {
-            const list = comment.annotation
-            if (Array.isArray(list) && list.length > 0) {
-              annotations = list
-            }
-          }
-        }
-
-        let keyToUse = mediaKey
-
-        if (annotations) {
-          // Trigger transcode workflow to draw annotation
-          const task = await prisma.workflowTask.create({
-            data: {
-              assetId,
+      if (annotations) {
+        // Trigger transcode workflow to draw annotation
+        const task = await prisma.workflowTask.create({
+          data: {
+            assetId,
+            projectId: asset.projectId || 'none',
+            type: WorkflowTaskType.transcode_image_annotation,
+            status: WorkflowTaskStatus.pending,
+            payload: {
               projectId: asset.projectId || 'none',
-              type: WorkflowTaskType.transcode_image_annotation,
-              status: WorkflowTaskStatus.pending,
-              payload: {
-                projectId: asset.projectId || 'none',
-                imageAnnotation: {
-                  annotations: annotations as PrismaJson.AnnotationList,
-                },
+              imageAnnotation: {
+                annotations: annotations as PrismaJson.AnnotationList,
               },
             },
-          })
-
-          const completedTask = await workflowService.executeWait(task)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const output = completedTask.output as any
-          if (output?.key) {
-            keyToUse = output.key
-          } else {
-            throw new Error('Image annotation transcode workflow failed to output S3 key.')
-          }
-        }
-
-        // Retrieve the image content from S3
-        const bucket = process.env.S3_BUCKET || 'shumai'
-        const { buffer, contentType } = await s3Service.getObject(bucket, keyToUse)
-
-        const content: ImageContent[] = [
-          {
-            type: 'image',
-            data: buffer.toString('base64'),
-            mimeType: contentType || 'image/webp',
           },
-        ]
+        })
 
-        return {
-          content,
-          details: {
-            sourceKeys: [keyToUse],
-          },
+        const completedTask = await workflowService.executeWait(task)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const output = completedTask.output as any
+        if (output?.key) {
+          keyToUse = output.key
+        } else {
+          throw new Error('Image annotation transcode workflow failed to output S3 key.')
         }
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Error analyzing image: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            },
-          ],
-          details: {},
-        }
+      }
+
+      // Retrieve the image content from S3
+      const bucket = process.env.S3_BUCKET || 'shumai'
+      const { buffer, contentType } = await s3Service.getObject(bucket, keyToUse)
+
+      const content: ImageContent[] = [
+        {
+          type: 'image',
+          data: buffer.toString('base64'),
+          mimeType: contentType || 'image/webp',
+        },
+      ]
+
+      return {
+        content,
+        details: {
+          sourceKeys: [keyToUse],
+        },
       }
     },
   }
