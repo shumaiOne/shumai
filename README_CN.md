@@ -206,17 +206,18 @@ brew install ffmpeg poppler imagemagick ripgrep
 在 Windows 上运行 Shumai 需要：
 
 - **`ffmpeg`** —— 用于媒体转码和元数据提取。
+- **`imagemagick`** —— 用于 PSD 格式图像转码和 sRGB 色彩空间转换。
 
-使用你偏好的包管理器安装 `ffmpeg`：
+使用你偏好的包管理器安装所需依赖：
 
 **winget**
 ```powershell
-winget install Gyan.FFmpeg
+winget install Gyan.FFmpeg ImageMagick.ImageMagick
 ```
 
 **Chocolatey**
 ```powershell
-choco install ffmpeg
+choco install ffmpeg imagemagick
 ```
 
 #### 第四步：全局安装 Shumai

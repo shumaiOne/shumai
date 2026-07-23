@@ -192,17 +192,18 @@ brew install ffmpeg poppler imagemagick ripgrep
 Shumai requires:
 
 - **`ffmpeg`** – Used for media transcoding and metadata extraction.
+- **`imagemagick`** – Used for PSD format transcoding and color profile conversion to sRGB.
 
-Install `ffmpeg` using your preferred package manager:
+Install required packages using your preferred package manager:
 
 **winget**
 ```powershell
-winget install Gyan.FFmpeg
+winget install Gyan.FFmpeg ImageMagick.ImageMagick
 ```
 
 **Chocolatey**
 ```powershell
-choco install ffmpeg
+choco install ffmpeg imagemagick
 ```
 
 #### Step 4: Install Shumai globally
