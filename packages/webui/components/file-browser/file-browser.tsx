@@ -540,12 +540,18 @@ export function FileBrowser({
       queryClient.invalidateQueries({
         queryKey: ['search', teamId, assetId],
       })
+      queryClient.invalidateQueries({
+        queryKey: ['teams', teamId, 'upload', 'tasks'],
+      })
 
       // The RPC client returns an object that we cast to the expected type
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await uploadFiles(currentFiles, data.presignedUrls as any, data.taskId!)
       queryClient.invalidateQueries({
         queryKey: ['search', teamId, assetId],
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['teams', teamId, 'upload', 'tasks'],
       })
     },
   })
