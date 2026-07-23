@@ -870,5 +870,18 @@
   "no_chat_agents_warning": "No chat agents found. Please create a Chat Agent below first.",
   "select_agent": "Select Agent",
   "delete_comment_confirm": "Delete Comment?",
-  "delete_comment_description": "Are you sure you want to delete this comment? This action cannot be undone."
+  "delete_comment_description": "Are you sure you want to delete this comment? This action cannot be undone.",
+  "ai_usage": "AI Token Usage",
+  "ai_usage_description": "Monitor AI token consumption and estimated costs for your team and members.",
+  "usage": "Usage",
+  "input_tokens": "Input Tokens",
+  "output_tokens": "Output Tokens",
+  "cache_read_tokens": "Cache Read Tokens",
+  "total_tokens": "Total Tokens",
+  "cost": "Cost",
+  "team_view": "Team",
+  "members_view": "Members",
+  "access_denied": "Access Denied",
+  "only_owner_dashboard": "Only team owners can access the dashboard.",
+  "role": "Role"
 }
