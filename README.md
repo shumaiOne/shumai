@@ -126,14 +126,14 @@ Shumai requires the following system packages on Linux:
 
 - **`ffmpeg`** – Used for media transcoding and metadata extraction.
 - **`poppler`** (`poppler-utils`) – Used for PDF page image extraction and PDF sprite preview generation (`pdftoppm`).
-- **`imagemagick`** (`imagemagick-7.q16`) – Used for PSD format transcoding and color profile conversion to sRGB.
+- **`imagemagick`** – Used for PSD format transcoding and color profile conversion to sRGB.
 - **`bubblewrap`**, **`socat`**, and **`ripgrep`** – Required by the AI agent sandbox (`anthropic-experimental/sandbox-runtime`) for process isolation, networking, and workspace search.
 
 Install all required packages with one command:
 
 > Ubuntu/Debian
 ```bash
-sudo apt install -y ffmpeg poppler-utils imagemagick-7.q16 bubblewrap socat ripgrep
+sudo apt install -y ffmpeg poppler-utils imagemagick bubblewrap socat ripgrep
 ```
 
 > Fedora

@@ -50,7 +50,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     bubblewrap \
     gosu \
     poppler-utils \
-    imagemagick-7.q16 \
+    imagemagick \
     fonts-noto-cjk \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*

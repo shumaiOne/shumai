@@ -140,14 +140,14 @@ mkdir shumai && cd shumai
 
 - **`ffmpeg`** —— 用于媒体转码和元数据提取。
 - **`poppler`** (`poppler-utils`) —— 用于 PDF 页面图像提取和 PDF 雪碧图预览生成 (`pdftoppm`)。
-- **`imagemagick`** (`imagemagick-7.q16`) —— 用于 PSD 格式图像转码和 sRGB 色彩空间转换。
+- **`imagemagick`** —— 用于 PSD 格式图像转码和 sRGB 色彩空间转换。
 - **`bubblewrap`**、**`socat`** 和 **`ripgrep`** —— AI Agent 沙箱（`anthropic-experimental/sandbox-runtime`）所需，用于进程隔离、网络通信和工作区搜索。
 
 可以使用以下命令一次性安装所有依赖：
 
 > Ubuntu/Debian
 ```bash
-sudo apt install -y ffmpeg poppler-utils imagemagick-7.q16 bubblewrap socat ripgrep
+sudo apt install -y ffmpeg poppler-utils imagemagick bubblewrap socat ripgrep
 ```
 
 > Fedora
