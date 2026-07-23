@@ -870,5 +870,18 @@
   "no_chat_agents_warning": "未找到聊天智能体。请先在下方创建聊天智能体。",
   "select_agent": "选择智能体",
   "delete_comment_confirm": "删除评论？",
-  "delete_comment_description": "您确定要删除这条评论吗？此操作将无法撤回。"
+  "delete_comment_description": "您确定要删除这条评论吗？此操作将无法撤回。",
+  "ai_usage": "AI Token 用量",
+  "ai_usage_description": "查看并监控团队及成员的 AI Token 消耗与预估费用。",
+  "usage": "用量",
+  "input_tokens": "输入 Token",
+  "output_tokens": "输出 Token",
+  "cache_read_tokens": "缓存读取 Token",
+  "total_tokens": "总 Token",
+  "cost": "费用",
+  "team_view": "团队",
+  "members_view": "成员",
+  "access_denied": "访问被拒绝",
+  "only_owner_dashboard": "只有团队所有者才能访问仪表盘。",
+  "role": "角色"
 }

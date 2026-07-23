@@ -147,16 +147,19 @@ describe('AiUsageService', () => {
   })
 
   it('filters statistics correctly by timeframe', async () => {
-    const { team, user } = await createTestTeamAndUser()
+    vi.useFakeTimers()
+    const now = new Date('2026-07-23T15:30:00Z')
+    vi.setSystemTime(now)
 
-    const now = new Date()
+    try {
+      const { team, user } = await createTestTeamAndUser()
 
-    // 5 minutes ago (within current 1h bucket)
-    const recent = new Date(now.getTime() - 5 * 60 * 1000)
-    // 2 hours ago (within 24h, outside 1h)
-    const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000)
-    // 3 days ago (within 7d, outside 24h)
-    const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000)
+      // 5 minutes ago (within current 1h bucket)
+      const recent = new Date(now.getTime() - 5 * 60 * 1000)
+      // 2 hours ago (within 24h, outside 1h)
+      const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000)
+      // 3 days ago (within 7d, outside 24h)
+      const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000)
 
     await aiUsageService.recordUsage({
       teamId: team.id,
@@ -211,6 +214,9 @@ describe('AiUsageService', () => {
       timeframe: '7d',
     })
     expect(stats7d.team?.inputTokens).toBe(700)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('throws 404 when querying non-existent team member', async () => {
