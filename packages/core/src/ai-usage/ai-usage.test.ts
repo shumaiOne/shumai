@@ -161,59 +161,59 @@ describe('AiUsageService', () => {
       // 3 days ago (within 7d, outside 24h)
       const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000)
 
-    await aiUsageService.recordUsage({
-      teamId: team.id,
-      userId: user.id,
-      inputTokens: 100,
-      outputTokens: 50,
-      cacheReadTokens: 10,
-      totalTokens: 150,
-      cost: 0.001,
-      timestamp: recent,
-    })
+      await aiUsageService.recordUsage({
+        teamId: team.id,
+        userId: user.id,
+        inputTokens: 100,
+        outputTokens: 50,
+        cacheReadTokens: 10,
+        totalTokens: 150,
+        cost: 0.001,
+        timestamp: recent,
+      })
 
-    await aiUsageService.recordUsage({
-      teamId: team.id,
-      userId: user.id,
-      inputTokens: 200,
-      outputTokens: 100,
-      cacheReadTokens: 20,
-      totalTokens: 300,
-      cost: 0.002,
-      timestamp: twoHoursAgo,
-    })
+      await aiUsageService.recordUsage({
+        teamId: team.id,
+        userId: user.id,
+        inputTokens: 200,
+        outputTokens: 100,
+        cacheReadTokens: 20,
+        totalTokens: 300,
+        cost: 0.002,
+        timestamp: twoHoursAgo,
+      })
 
-    await aiUsageService.recordUsage({
-      teamId: team.id,
-      userId: user.id,
-      inputTokens: 400,
-      outputTokens: 200,
-      cacheReadTokens: 40,
-      totalTokens: 600,
-      cost: 0.004,
-      timestamp: threeDaysAgo,
-    })
+      await aiUsageService.recordUsage({
+        teamId: team.id,
+        userId: user.id,
+        inputTokens: 400,
+        outputTokens: 200,
+        cacheReadTokens: 40,
+        totalTokens: 600,
+        cost: 0.004,
+        timestamp: threeDaysAgo,
+      })
 
-    // 1h timeframe should only include recent
-    const stats1h = await aiUsageService.getTeamUsageStats({
-      teamId: team.id,
-      timeframe: '1h',
-    })
-    expect(stats1h.team?.inputTokens).toBe(100)
+      // 1h timeframe should only include recent
+      const stats1h = await aiUsageService.getTeamUsageStats({
+        teamId: team.id,
+        timeframe: '1h',
+      })
+      expect(stats1h.team?.inputTokens).toBe(100)
 
-    // 24h timeframe should include recent + 2 hours ago
-    const stats24h = await aiUsageService.getTeamUsageStats({
-      teamId: team.id,
-      timeframe: '24h',
-    })
-    expect(stats24h.team?.inputTokens).toBe(300)
+      // 24h timeframe should include recent + 2 hours ago
+      const stats24h = await aiUsageService.getTeamUsageStats({
+        teamId: team.id,
+        timeframe: '24h',
+      })
+      expect(stats24h.team?.inputTokens).toBe(300)
 
-    // 7d timeframe should include all 3
-    const stats7d = await aiUsageService.getTeamUsageStats({
-      teamId: team.id,
-      timeframe: '7d',
-    })
-    expect(stats7d.team?.inputTokens).toBe(700)
+      // 7d timeframe should include all 3
+      const stats7d = await aiUsageService.getTeamUsageStats({
+        teamId: team.id,
+        timeframe: '7d',
+      })
+      expect(stats7d.team?.inputTokens).toBe(700)
     } finally {
       vi.useRealTimers()
     }

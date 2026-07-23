@@ -32,7 +32,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ripgrep bubblewrap socat ffmpeg poppler-utils
+          sudo apt-get install -y ripgrep bubblewrap socat ffmpeg poppler-utils imagemagick-7.q16
 
       - name: Lint
         run: bun run lint
@@ -157,7 +157,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ripgrep bubblewrap socat ffmpeg poppler-utils
+          sudo apt-get install -y ripgrep bubblewrap socat ffmpeg poppler-utils imagemagick-7.q16
 
       - name: Run Workflow E2E Tests
         run: bun run test:e2e:workflow

@@ -389,6 +389,9 @@ export async function transcodeImageActivity(
       code === 'ENOENT' ||
       lowerMsg.includes('enoent') ||
       lowerMsg.includes('sharp') ||
+      lowerMsg.includes('imagemagick') ||
+      lowerMsg.includes('magick') ||
+      lowerMsg.includes('convert') ||
       lowerMsg.includes('spawn') ||
       lowerMsg.includes('format')
     ) {

@@ -7,7 +7,7 @@ export function getProxyType(
   const lowerMediaType = mediaType?.toLowerCase() || ''
   const lowerFilename = filename?.toLowerCase() || ''
 
-  if (lowerMediaType.startsWith('image/')) return 'image'
+  if (lowerMediaType.startsWith('image/') || lowerFilename.endsWith('.psd')) return 'image'
   if (lowerMediaType.startsWith('video/')) return 'video'
   if (lowerMediaType.startsWith('audio/')) return 'audio'
 
@@ -32,6 +32,9 @@ export function getProxyType(
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
 
 export function detectSupportedMimeType(buffer: Uint8Array): string | null {
+  if (startsWithAscii(buffer, 0, '8BPS')) {
+    return 'image/vnd.adobe.photoshop'
+  }
   if (startsWith(buffer, [0xff, 0xd8, 0xff])) {
     return buffer[3] === 0xf7 ? null : 'image/jpeg'
   }

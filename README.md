@@ -126,23 +126,24 @@ Shumai requires the following system packages on Linux:
 
 - **`ffmpeg`** – Used for media transcoding and metadata extraction.
 - **`poppler`** (`poppler-utils`) – Used for PDF page image extraction and PDF sprite preview generation (`pdftoppm`).
+- **`imagemagick`** (`imagemagick-7.q16`) – Used for PSD format transcoding and color profile conversion to sRGB.
 - **`bubblewrap`**, **`socat`**, and **`ripgrep`** – Required by the AI agent sandbox (`anthropic-experimental/sandbox-runtime`) for process isolation, networking, and workspace search.
 
 Install all required packages with one command:
 
 > Ubuntu/Debian
 ```bash
-sudo apt install -y ffmpeg poppler-utils bubblewrap socat ripgrep
+sudo apt install -y ffmpeg poppler-utils imagemagick-7.q16 bubblewrap socat ripgrep
 ```
 
 > Fedora
 ```bash
-sudo dnf install -y ffmpeg poppler-utils bubblewrap socat ripgrep
+sudo dnf install -y ffmpeg poppler-utils ImageMagick bubblewrap socat ripgrep
 ```
 
 > Arch Linux
 ```bash
-sudo pacman -S --noconfirm ffmpeg poppler bubblewrap socat ripgrep
+sudo pacman -S --noconfirm ffmpeg poppler imagemagick bubblewrap socat ripgrep
 ```
 
 > [!NOTE]
@@ -164,12 +165,13 @@ Shumai requires:
 
 - **`ffmpeg`** – Used for media transcoding and metadata extraction.
 - **`poppler`** – Used for PDF page image extraction and PDF sprite preview generation (`pdftoppm`).
+- **`imagemagick`** – Used for PSD format transcoding and color profile conversion to sRGB.
 - **`ripgrep`** – Required by the AI agent sandbox (`anthropic-experimental/sandbox-runtime`).
 
 Install the required packages with Homebrew:
 
 ```bash
-brew install ffmpeg poppler ripgrep
+brew install ffmpeg poppler imagemagick ripgrep
 ```
 
 ---
