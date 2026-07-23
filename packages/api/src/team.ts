@@ -15,8 +15,9 @@ import {
   updateTeamMemberRoleRequestSchema,
   createApiTokenRequestSchema,
 } from '@shumai/dtos'
-import { updateUserMetadataRequestSchema } from '@shumai/dtos'
+import { updateUserMetadataRequestSchema, getTeamAiUsageQuerySchema } from '@shumai/dtos'
 import { apiTokenService } from '@shumai/core/src/user/api-token'
+import { aiUsageService } from '@shumai/core/src/ai-usage/ai-usage'
 import type { Prisma } from '@shumai/db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
@@ -312,6 +313,26 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     await apiTokenService.deleteToken(user.id, tokenId)
     return c.json({ success: true })
+  })
+  .get('/teams/:teamId/ai-usage', zValidator('query', getTeamAiUsageQuerySchema), async (c) => {
+    const user = c.get('user')
+    const teamId = c.req.param('teamId')
+    const { timeframe, userId } = c.req.valid('query')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Admin,
+      type: ResourceType.Team,
+      id: teamId,
+    })
+
+    const stats = await aiUsageService.getTeamUsageStats({
+      teamId,
+      timeframe,
+      userId,
+    })
+
+    return c.json(stats)
   })
 
 export default route

@@ -25,11 +25,15 @@ import {
   type DbProviderInfo,
 } from '../index'
 
+import { aiUsageService } from '@shumai/core/src/ai-usage/ai-usage'
 import { UpdateAssetMetadataRequest } from '@shumai/dtos'
 
 export interface Usage {
   inputTokens: number
   outputTokens: number
+  cacheReadTokens: number
+  totalTokens: number
+  cost: number
   model: string
 }
 
@@ -209,7 +213,57 @@ If you need to create files in the local filesystem (for example, a temporary fi
       } as unknown as SessionTreeEntry)
     }
 
+    let totalInputTokens = 0
+    let totalOutputTokens = 0
+    let totalCacheReadTokens = 0
+    let grandTotalTokens = 0
+    let totalCost = 0
+
+    if (typeof harness.subscribe === 'function') {
+      harness.subscribe(async (event) => {
+        if (event.type === 'message_end' && event.message.role === 'assistant') {
+          const assistantMsg = event.message
+          const u = assistantMsg.usage
+          if (u) {
+            const inputTokens = u.input || 0
+            const outputTokens = u.output || 0
+            const cacheReadTokens = u.cacheRead || 0
+            const totalTokens = u.totalTokens || inputTokens + outputTokens
+            const cost = u.cost?.total || 0
+
+            totalInputTokens += inputTokens
+            totalOutputTokens += outputTokens
+            totalCacheReadTokens += cacheReadTokens
+            grandTotalTokens += totalTokens
+            totalCost += cost
+
+            try {
+              await aiUsageService.recordUsage({
+                teamId: params.teamId,
+                userId: params.userId,
+                inputTokens,
+                outputTokens,
+                cacheReadTokens,
+                totalTokens,
+                cost,
+              })
+            } catch (err) {
+              logger.error({ err }, 'Failed to record AI usage')
+            }
+          }
+        }
+      })
+    }
+
     const assistantMessage = await harness.prompt(params.prompt, { images: imagesToPass })
+
+    if (totalInputTokens === 0 && totalOutputTokens === 0 && assistantMessage.usage) {
+      totalInputTokens = assistantMessage.usage.input || 0
+      totalOutputTokens = assistantMessage.usage.output || 0
+      totalCacheReadTokens = assistantMessage.usage.cacheRead || 0
+      grandTotalTokens = assistantMessage.usage.totalTokens || totalInputTokens + totalOutputTokens
+      totalCost = assistantMessage.usage.cost?.total || 0
+    }
 
     const sessionEntries = await session.getEntries()
     sessionEntries.forEach((entry) => {
@@ -243,8 +297,11 @@ If you need to create files in the local filesystem (for example, a temporary fi
 
     const usage: Usage = {
       model: modelId,
-      inputTokens: assistantMessage.usage?.input || 0,
-      outputTokens: assistantMessage.usage?.output || 0,
+      inputTokens: totalInputTokens,
+      outputTokens: totalOutputTokens,
+      cacheReadTokens: totalCacheReadTokens,
+      totalTokens: grandTotalTokens,
+      cost: totalCost,
     }
 
     const storage = session.getStorage()

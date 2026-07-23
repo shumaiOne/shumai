@@ -95,6 +95,84 @@ describe('Agent Activities', () => {
     expect(piAgent.createAgentSession).toHaveBeenCalled()
   })
 
+  it('should subscribe to harness events and record usage for assistant message_end events', async () => {
+    const { aiUsageService } = await import('@shumai/core/src/ai-usage/ai-usage')
+    const spyRecordUsage = vi.spyOn(aiUsageService, 'recordUsage').mockResolvedValue()
+
+    let subscribeListener!: (event: unknown) => Promise<void>
+    const mockHarness = {
+      subscribe: vi.fn().mockImplementation((listener) => {
+        subscribeListener = listener
+      }),
+      prompt: vi.fn().mockImplementation(async () => {
+        // Trigger assistant message end event during turn
+        if (subscribeListener) {
+          await subscribeListener({
+            type: 'message_end',
+            message: {
+              role: 'assistant',
+              usage: {
+                input: 150,
+                output: 75,
+                cacheRead: 25,
+                totalTokens: 225,
+                cost: { total: 0.0015 },
+              },
+            },
+          })
+        }
+        return {
+          content: [{ type: 'text', text: 'Subscribed response' }],
+          usage: { input: 150, output: 75 },
+        }
+      }),
+    }
+
+    const mockSession = {
+      getEntries: vi.fn().mockResolvedValue([]),
+      getStorage: vi.fn().mockReturnValue({ sessionId: 'mock-session-id' }),
+    }
+
+    vi.mocked(piAgent.createAgentSession).mockResolvedValue({
+      session: mockSession as unknown as Session<DatabaseSessionMetadata>,
+      harness: mockHarness as unknown as AgentHarness,
+    })
+
+    const context = {
+      agent: { id: 'b1', provider: { name: 'google' }, modelRef: { modelId: 'gemini' } },
+      dbProviders: [],
+      teamSkills: [],
+      allowedDomains: [],
+    } as unknown as AgentExecutionContext
+
+    const res = await agentChatActivity({
+      teamId: 'team123',
+      agentId: 'b1',
+      message: 'Hi',
+      imageUrls: [],
+      projectId: 'p1',
+      folderId: 'f1',
+      sessionId: 'mock-session-id',
+      userId: 'user123',
+      context,
+    })
+
+    expect(res.text).toBe('Subscribed response')
+    expect(res.usage.inputTokens).toBe(150)
+    expect(res.usage.outputTokens).toBe(75)
+    expect(res.usage.cacheReadTokens).toBe(25)
+    expect(res.usage.cost).toBe(0.0015)
+    expect(spyRecordUsage).toHaveBeenCalledWith({
+      teamId: 'team123',
+      userId: 'user123',
+      inputTokens: 150,
+      outputTokens: 75,
+      cacheReadTokens: 25,
+      totalTokens: 225,
+      cost: 0.0015,
+    })
+  })
+
   it('should register local cancellation handler and call harness.abort when cancelled in local mode', async () => {
     let resolvePrompt!: (value: {
       content: Array<{ type: string; text: string } | { type: string }>

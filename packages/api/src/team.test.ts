@@ -37,6 +37,13 @@ vi.mock('@shumai/core/src/user/api-token', () => ({
   },
 }))
 
+vi.mock('@shumai/core/src/ai-usage/ai-usage', () => ({
+  aiUsageService: {
+    recordUsage: vi.fn(),
+    getTeamUsageStats: vi.fn(),
+  },
+}))
+
 describe('team api', () => {
   const app = new Hono().use('*', authMiddleware).route('/', teamRoute)
   let mockCreateTeam: any // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -402,6 +409,67 @@ describe('team api', () => {
       const data = await res.json()
       expect(data).toEqual({ success: true })
       expect(apiTokenService.deleteToken).toHaveBeenCalledWith('user1', 'token1')
+    })
+
+    it('GET /teams/:teamId/ai-usage returns team usage stats for owner', async () => {
+      const { aiUsageService } = await import('@shumai/core/src/ai-usage/ai-usage')
+      vi.mocked(aiUsageService.getTeamUsageStats).mockResolvedValue({
+        timeframe: '30d',
+        team: {
+          inputTokens: 1000,
+          outputTokens: 500,
+          cacheReadTokens: 200,
+          totalTokens: 1500,
+          cost: 0.005,
+        },
+      })
+
+      const res = await app.request('/teams/t1/ai-usage?timeframe=30d')
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.team.totalTokens).toBe(1500)
+      expect(authzService.hasPermission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          permission: Permission.Admin,
+          type: ResourceType.Team,
+          id: 't1',
+        }),
+      )
+      expect(aiUsageService.getTeamUsageStats).toHaveBeenCalledWith({
+        teamId: 't1',
+        timeframe: '30d',
+        userId: undefined,
+      })
+    })
+
+    it('GET /teams/:teamId/ai-usage?userId=user1 returns specific member usage stats', async () => {
+      const { aiUsageService } = await import('@shumai/core/src/ai-usage/ai-usage')
+      vi.mocked(aiUsageService.getTeamUsageStats).mockResolvedValue({
+        timeframe: '7d',
+        member: {
+          userId: 'user1',
+          userName: 'Test User',
+          userEmail: 'user1@example.com',
+          role: 'owner',
+          inputTokens: 400,
+          outputTokens: 200,
+          cacheReadTokens: 50,
+          totalTokens: 600,
+          cost: 0.002,
+        },
+      })
+
+      const res = await app.request('/teams/t1/ai-usage?timeframe=7d&userId=user1')
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.member.userId).toBe('user1')
+      expect(aiUsageService.getTeamUsageStats).toHaveBeenCalledWith({
+        teamId: 't1',
+        timeframe: '7d',
+        userId: 'user1',
+      })
     })
   })
 })

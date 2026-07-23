@@ -7,21 +7,21 @@ import {
 } from '@earendil-works/pi-agent-core'
 import { NodeExecutionEnv } from '@earendil-works/pi-agent-core/node'
 import { getModel } from '@earendil-works/pi-ai/compat'
+import { agentService } from '@shumai/core/src/agent/agent'
+import { prisma } from '@shumai/db'
 import { Type, type TSchema } from '@sinclair/typebox'
 import * as fs from 'fs'
 import * as path from 'path'
-import { prisma } from '@shumai/db'
-import { agentService } from '@shumai/core/src/agent/agent'
 import { DatabaseSessionStorage } from './database-session-storage'
 import { createAnalyzeImageTool } from './tools/analyze-image'
-import { createScreenshotTool } from './tools/screenshot'
-import { createReadPdfPagesTool } from './tools/read-pdf-pages'
 import { createCreateFileTool } from './tools/create-file'
 import { createCreateFolderTool } from './tools/create-folder'
 import { createCreateVersionTool } from './tools/create-version'
 import { createListAssetsTool } from './tools/list-assets'
+import { createReadPdfPagesTool } from './tools/read-pdf-pages'
 import { createReadSkillTool } from './tools/read-skill'
 import { createSandboxedBashTool } from './tools/sandboxed-bash'
+import { createScreenshotTool } from './tools/screenshot'
 
 export interface DbModelInfo {
   modelId: string
@@ -380,15 +380,15 @@ export function formatSkillsForPrompt(
   return lines.join('\n')
 }
 
-import { registerWorkflow, registerActivities } from '@shumai/workflow-core'
 import { WorkflowTaskType } from '@shumai/db'
-import { agentEmbeddingMedia } from './workflows/agent-embedding'
-import { queryEmbeddingForSearch } from './workflows/query-embedding-for-search'
-import { agentAutofillMedia } from './workflows/agent-autofill'
-import { agentChat } from './workflows/agent-chat'
-import { agentToolCall } from './workflows/agent-tool-call'
+import { registerActivities, registerWorkflow } from '@shumai/workflow-core'
 import * as agentActivities from './activities/agent'
 import * as aiActivities from './activities/ai'
+import { agentAutofillMedia } from './workflows/agent-autofill'
+import { agentChat } from './workflows/agent-chat'
+import { agentEmbeddingMedia } from './workflows/agent-embedding'
+import { agentToolCall } from './workflows/agent-tool-call'
+import { queryEmbeddingForSearch } from './workflows/query-embedding-for-search'
 
 export function initAgentWorkflows() {
   registerWorkflow(WorkflowTaskType.ai_embedding, agentEmbeddingMedia)
@@ -401,19 +401,19 @@ export function initAgentWorkflows() {
   registerActivities(aiActivities)
 }
 
-export * from './database-session-storage'
 export * from './activities/agent'
 export {
+  extractAiMetadataActivity,
+  generateEmbeddingActivity,
+  generateImageEmbeddingActivity,
+  generateTextEmbeddingActivity,
+  generateVideoChunkEmbeddingActivity,
+  type ExtractAiMetadataParams,
   type GeneratedEmbedding,
   type GenerateEmbeddingParams,
-  generateEmbeddingActivity,
   type GenerateTextEmbeddingParams,
-  generateTextEmbeddingActivity,
-  type ExtractAiMetadataParams,
-  extractAiMetadataActivity,
-  generateImageEmbeddingActivity,
-  generateVideoChunkEmbeddingActivity,
 } from './activities/ai'
+export * from './database-session-storage'
 export * from './workflows/agent-autofill'
 export * from './workflows/agent-chat'
 export * from './workflows/agent-embedding'

@@ -182,3 +182,8 @@ export type Collection = Prisma.CollectionModel
  * 
  */
 export type ApiToken = Prisma.ApiTokenModel
+/**
+ * Model AiUsage
+ * 
+ */
+export type AiUsage = Prisma.AiUsageModel
