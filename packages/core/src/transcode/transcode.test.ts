@@ -3,6 +3,7 @@ import { transcodeService } from './transcode'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import * as path from 'path'
 import * as child_process from 'child_process'
+import { execFile } from 'child_process'
 import * as fs from 'fs'
 import { WorkflowTask } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
@@ -24,6 +25,7 @@ vi.mock('child_process', () => ({
 vi.mock('sharp', () => {
   const mockSharp = {
     resize: vi.fn().mockReturnThis(),
+    toColorspace: vi.fn().mockReturnThis(),
     webp: vi.fn().mockReturnThis(),
     composite: vi.fn().mockReturnThis(),
     toBuffer: vi.fn().mockResolvedValue(Buffer.from('fake-webp-buffer')),
@@ -182,15 +184,60 @@ describe('TranscodeService', () => {
     )
   })
 
-  it('should use sharp for image transcoding', async () => {
+  it('should use sharp for image transcoding with sRGB conversion', async () => {
     const outputFile = path.join(tempDir, 'output.webp')
     await transcodeService.transcodeImage('input.png', outputFile, 480, 80)
 
     expect(sharp).toHaveBeenCalledWith('input.png', { limitInputPixels: false })
     const mockSharp = vi.mocked(sharp).mock.results[0].value
+    expect(mockSharp.toColorspace).toHaveBeenCalledWith('srgb')
     expect(mockSharp.resize).toHaveBeenCalledWith(480, 7680, expect.any(Object))
     expect(mockSharp.webp).toHaveBeenCalledWith({ quality: 80 })
     expect(mockSharp.toFile).toHaveBeenCalledWith(outputFile)
+  })
+
+  it('should use ImageMagick for PSD image transcoding', async () => {
+    const outputFile = path.join(tempDir, 'output_psd.webp')
+    const psdBuffer = Buffer.from('8BPS-fake-psd-content')
+    await transcodeService.transcodeImage(psdBuffer, outputFile, 480, 80)
+
+    expect(execFile).toHaveBeenCalledWith(
+      'magick',
+      expect.arrayContaining([
+        '-colorspace',
+        'sRGB',
+        expect.stringContaining('[0]'),
+        '-quality',
+        '80',
+      ]),
+      expect.any(Function),
+    )
+  })
+
+  it('should get PSD image info using ImageMagick identify', async () => {
+    const mockExecFile = vi.mocked(execFile)
+    mockExecFile.mockImplementation((cmd: unknown, args: unknown, callback: unknown) => {
+      const cb = callback as (
+        err: Error | null,
+        result: { stdout: string; stderr: string },
+        extra: string,
+      ) => void
+      const argsArr = args as string[] | undefined
+      if (cmd === 'magick' && argsArr && argsArr[0] === 'identify') {
+        cb(null, { stdout: '1920 1080\n', stderr: '' }, '')
+      } else if (typeof cb === 'function') {
+        cb(null, { stdout: '', stderr: '' }, '')
+      }
+      return {} as ReturnType<typeof execFile>
+    })
+
+    const psdPath = path.join(tempDir, 'sample.psd')
+    fs.writeFileSync(psdPath, '8BPS-sample')
+
+    const info = await transcodeService.getImageInfo(psdPath)
+    expect(info.originalWidth).toBe(1920)
+    expect(info.originalHeight).toBe(1080)
+    expect(info.mimeType).toBe('psd')
   })
 
   it('should fetch image if input is a URL', async () => {
@@ -215,6 +262,7 @@ describe('TranscodeService', () => {
 
     expect(sharp).toHaveBeenCalledWith(inputBuffer, { limitInputPixels: false })
     const mockSharp = vi.mocked(sharp).mock.results[vi.mocked(sharp).mock.results.length - 1].value
+    expect(mockSharp.toColorspace).toHaveBeenCalledWith('srgb')
     expect(mockSharp.resize).toHaveBeenCalledWith(480, 7680, expect.any(Object))
     expect(mockSharp.webp).toHaveBeenCalledWith({ quality: 80 })
     expect(mockSharp.toFile).toHaveBeenCalledWith(outputFile)

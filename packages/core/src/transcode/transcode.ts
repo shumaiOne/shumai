@@ -120,8 +120,68 @@ export interface ExtractVideoFramesParams {
   isImage: boolean
 }
 
+export function isPsdInput(input: string | Buffer): boolean {
+  if (typeof input === 'string') {
+    if (input.toLowerCase().endsWith('.psd')) return true
+    if (fs.existsSync(input)) {
+      try {
+        const fd = fs.openSync(input, 'r')
+        const buf = Buffer.alloc(4)
+        fs.readSync(fd, buf, 0, 4, 0)
+        fs.closeSync(fd)
+        return buf.toString('ascii') === '8BPS'
+      } catch {
+        return false
+      }
+    }
+    return false
+  }
+  return (
+    input.length >= 4 &&
+    input[0] === 0x38 &&
+    input[1] === 0x42 &&
+    input[2] === 0x50 &&
+    input[3] === 0x53
+  )
+}
+
 export class TranscodeService {
   constructor(private readonly prismaClient: typeof prisma = prisma) {}
+
+  private async execImageMagick(args: string[]): Promise<{ stdout: string; stderr: string }> {
+    try {
+      return await execFileAsync('magick', args)
+    } catch (err: unknown) {
+      const code = (err as Record<string, unknown>)?.code
+      if (code === 'ENOENT') {
+        return await execFileAsync('convert', args)
+      }
+      throw err
+    }
+  }
+
+  private async execImageMagickIdentify(
+    filePath: string,
+  ): Promise<{ width: number; height: number }> {
+    const fileArg = `${filePath}[0]`
+    let stdout: string
+    try {
+      const res = await execFileAsync('magick', ['identify', '-format', '%w %h', fileArg])
+      stdout = res.stdout
+    } catch (err: unknown) {
+      const code = (err as Record<string, unknown>)?.code
+      if (code === 'ENOENT') {
+        const res = await execFileAsync('identify', ['-format', '%w %h', fileArg])
+        stdout = res.stdout
+      } else {
+        throw err
+      }
+    }
+    const parts = stdout.trim().split(/\s+/)
+    const width = parseInt(parts[0], 10) || 0
+    const height = parseInt(parts[1], 10) || 0
+    return { width, height }
+  }
 
   private resolveCodecName(stream: {
     /* eslint-disable @typescript-eslint/naming-convention */
@@ -222,12 +282,46 @@ export class TranscodeService {
 
   async getImageInfo(inputFile: string): Promise<MediaMetadata> {
     let input: string | Buffer = inputFile
+    let tempDirToCleanup: string | null = null
+
     if (inputFile.startsWith('http')) {
       const resp = await fetch(inputFile)
       if (!resp.ok) {
         throw new Error(`Failed to fetch image from ${inputFile}: ${resp.statusText}`)
       }
       input = Buffer.from(await resp.arrayBuffer())
+    }
+
+    if (isPsdInput(input)) {
+      let psdPath: string
+      if (typeof input === 'string') {
+        psdPath = input
+      } else {
+        tempDirToCleanup = this.createTempDir('psd-info-')
+        psdPath = path.join(tempDirToCleanup, 'input.psd')
+        fs.writeFileSync(psdPath, input)
+      }
+
+      try {
+        const { width, height } = await this.execImageMagickIdentify(psdPath)
+        return {
+          originalWidth: width,
+          originalHeight: height,
+          duration: 0,
+          bitRate: 0,
+          frameRate: 0,
+          totalFrames: 0,
+          startTimecode: undefined,
+          hasAudio: false,
+          mimeType: 'psd',
+        }
+      } catch (err) {
+        console.warn('ImageMagick identify failed for PSD, falling back to sharp:', err)
+      } finally {
+        if (tempDirToCleanup) {
+          this.removeDir(tempDirToCleanup)
+        }
+      }
     }
 
     const metadata = await sharp(input, { limitInputPixels: false }).metadata()
@@ -309,13 +403,48 @@ export class TranscodeService {
       input = Buffer.from(await resp.arrayBuffer())
     }
 
-    const sharpInstance = sharp(input, { limitInputPixels: false })
-
     const WEBP_MAX_DIMENSION = 7680
     const targetW = width > 0 ? Math.min(width, WEBP_MAX_DIMENSION) : WEBP_MAX_DIMENSION
     const targetH = height && height > 0 ? Math.min(height, WEBP_MAX_DIMENSION) : WEBP_MAX_DIMENSION
 
-    sharpInstance.resize(targetW, targetH, {
+    if (isPsdInput(input)) {
+      let psdPath: string
+      let tempDirToCleanup: string | null = null
+      if (typeof input === 'string') {
+        psdPath = input
+      } else {
+        tempDirToCleanup = this.createTempDir('psd-transcode-')
+        psdPath = path.join(tempDirToCleanup, 'input.psd')
+        fs.writeFileSync(psdPath, input)
+      }
+
+      try {
+        const resizeGeometry =
+          targetH < WEBP_MAX_DIMENSION
+            ? `${targetW}x${targetH}>`
+            : `${targetW}x${WEBP_MAX_DIMENSION}>`
+
+        await this.execImageMagick([
+          `${psdPath}[0]`,
+          '-colorspace',
+          'sRGB',
+          '-resize',
+          resizeGeometry,
+          '-quality',
+          quality.toString(),
+          outputFile,
+        ])
+        return
+      } finally {
+        if (tempDirToCleanup) {
+          this.removeDir(tempDirToCleanup)
+        }
+      }
+    }
+
+    const sharpInstance = sharp(input, { limitInputPixels: false })
+
+    sharpInstance.toColorspace('srgb').resize(targetW, targetH, {
       withoutEnlargement: true,
       fit: 'inside',
     })
@@ -430,6 +559,7 @@ export class TranscodeService {
       await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...spriteArgs])
 
       await sharp(firstPagePath, { limitInputPixels: false })
+        .toColorspace('srgb')
         .resize(480, null, { withoutEnlargement: true, fit: 'inside' })
         .webp({ quality: 75 })
         .toFile(outputPoster)
@@ -926,6 +1056,7 @@ export class TranscodeService {
         const webpName = `${stem}-page-${pageNum}-${ulid()}.webp`
 
         let webpBuffer = await sharp(localPngPath, { limitInputPixels: false })
+          .toColorspace('srgb')
           .resize(1920, 1080, { fit: 'inside', withoutEnlargement: false })
           .webp({ quality: 85 })
           .toBuffer()
@@ -973,6 +1104,7 @@ export class TranscodeService {
     const svgStr = renderAnnotationsToSvg(width, height, annotations)
     return await sharp(imageBuffer, { limitInputPixels: false })
       .composite([{ input: Buffer.from(svgStr), top: 0, left: 0 }])
+      .toColorspace('srgb')
       .resize(16383, 16383, { fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 85 })
       .toBuffer()

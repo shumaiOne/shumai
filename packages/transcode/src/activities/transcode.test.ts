@@ -469,6 +469,21 @@ describe('Transcode Activities', () => {
       ).rejects.toThrowError(/Image transcoding failed/)
     })
 
+    it('should throw non-retryable ApplicationFailure when transcodeImageActivity fails with ImageMagick error', async () => {
+      vi.mocked(s3Service.headObject).mockRejectedValue(new Error('Not found'))
+      vi.mocked(transcodeService.transcodeImage).mockRejectedValue(
+        new Error('imagemagick convert failed'),
+      )
+
+      await expect(
+        transcodeImageActivity({
+          assetKey: 'i.psd',
+          filePath: '/tmp/i.psd',
+          imageSpec: { width: 800, height: 600, quality: 90, format: 'webp' },
+        }),
+      ).rejects.toThrowError(/Image transcoding failed/)
+    })
+
     it('should throw non-retryable ApplicationFailure when generateSpriteActivity fails with error', async () => {
       vi.mocked(s3Service.headObject).mockRejectedValue(new Error('Not found'))
       vi.mocked(transcodeService.generateSprite).mockRejectedValue(new Error('FFmpeg failed'))

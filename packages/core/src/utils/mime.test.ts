@@ -27,6 +27,11 @@ describe('detectSupportedMimeType', () => {
     expect(detectSupportedMimeType(buffer)).toBe('image/webp')
   })
 
+  it('should detect PSD', () => {
+    const buffer = new Uint8Array([0x38, 0x42, 0x50, 0x53, 0x00, 0x01])
+    expect(detectSupportedMimeType(buffer)).toBe('image/vnd.adobe.photoshop')
+  })
+
   it('should detect MP4', () => {
     const buffer = new Uint8Array([
       0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d,
@@ -44,6 +49,8 @@ describe('getProxyType', () => {
   it('should detect image proxyType', () => {
     expect(getProxyType('image/png', 'test.png')).toBe('image')
     expect(getProxyType('image/jpeg', 'photo.jpg')).toBe('image')
+    expect(getProxyType('image/vnd.adobe.photoshop', 'design.psd')).toBe('image')
+    expect(getProxyType(null, 'design.psd')).toBe('image')
   })
 
   it('should detect video proxyType', () => {
