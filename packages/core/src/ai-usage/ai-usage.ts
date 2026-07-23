@@ -1,4 +1,4 @@
-import { prisma } from '@shumai/db'
+import { prisma, Prisma } from '@shumai/db'
 import type { TeamUsageStatsResponse, Timeframe } from '@shumai/dtos'
 import { HTTPException } from 'hono/http-exception'
 
@@ -92,13 +92,8 @@ export class AiUsageService {
               cost: params.cost,
             },
           })
-        } catch (err: unknown) {
-          if (
-            err &&
-            typeof err === 'object' &&
-            'code' in err &&
-            (err as { code: string }).code === 'P2002'
-          ) {
+        } catch (err) {
+          if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
             await prisma.aiUsage.updateMany({
               where: {
                 teamId: params.teamId,
