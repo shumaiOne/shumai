@@ -304,6 +304,7 @@ export type AiUsageOrderByWithRelationInput = {
 
 export type AiUsageWhereUniqueInput = Prisma.AtLeast<{
   id?: string
+  teamId_userId_periodStart?: Prisma.AiUsageTeamIdUserIdPeriodStartCompoundUniqueInput
   AND?: Prisma.AiUsageWhereInput | Prisma.AiUsageWhereInput[]
   OR?: Prisma.AiUsageWhereInput[]
   NOT?: Prisma.AiUsageWhereInput | Prisma.AiUsageWhereInput[]
@@ -319,7 +320,7 @@ export type AiUsageWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"AiUsage"> | Date | string
   team?: Prisma.XOR<Prisma.TeamScalarRelationFilter, Prisma.TeamWhereInput>
   user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
-}, "id">
+}, "id" | "teamId_userId_periodStart">
 
 export type AiUsageOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -461,6 +462,12 @@ export type AiUsageListRelationFilter = {
 
 export type AiUsageOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
+}
+
+export type AiUsageTeamIdUserIdPeriodStartCompoundUniqueInput = {
+  teamId: string
+  userId: string
+  periodStart: Date | string
 }
 
 export type AiUsageCountOrderByAggregateInput = {

@@ -834,6 +834,7 @@ model AiUsage {
   user User? @relation("UserToAiUsage", fields: [userId], references: [id], onDelete: SetNull)
 
   @@map("ai_usages")
+  @@unique([teamId, userId, periodStart])
   @@index([teamId, periodStart])
   @@index([teamId, userId, periodStart])
 }

@@ -30,28 +30,24 @@ export class AiUsageService {
     totalTokens: number
     cost: number
   }): Promise<void> {
-    const existing = await prisma.aiUsage.findFirst({
-      where: {
-        teamId: params.teamId,
-        userId: params.userId,
-        periodStart: params.periodStart,
-      },
-    })
-
-    if (existing) {
-      await prisma.aiUsage.update({
-        where: { id: existing.id },
-        data: {
+    if (params.userId !== null) {
+      await prisma.aiUsage.upsert({
+        where: {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          teamId_userId_periodStart: {
+            teamId: params.teamId,
+            userId: params.userId,
+            periodStart: params.periodStart,
+          },
+        },
+        update: {
           inputTokens: { increment: params.inputTokens },
           outputTokens: { increment: params.outputTokens },
           cacheReadTokens: { increment: params.cacheReadTokens },
           totalTokens: { increment: params.totalTokens },
           cost: { increment: params.cost },
         },
-      })
-    } else {
-      await prisma.aiUsage.create({
-        data: {
+        create: {
           teamId: params.teamId,
           userId: params.userId,
           periodStart: params.periodStart,
@@ -62,6 +58,66 @@ export class AiUsageService {
           cost: params.cost,
         },
       })
+    } else {
+      const existing = await prisma.aiUsage.findFirst({
+        where: {
+          teamId: params.teamId,
+          userId: null,
+          periodStart: params.periodStart,
+        },
+      })
+
+      if (existing) {
+        await prisma.aiUsage.update({
+          where: { id: existing.id },
+          data: {
+            inputTokens: { increment: params.inputTokens },
+            outputTokens: { increment: params.outputTokens },
+            cacheReadTokens: { increment: params.cacheReadTokens },
+            totalTokens: { increment: params.totalTokens },
+            cost: { increment: params.cost },
+          },
+        })
+      } else {
+        try {
+          await prisma.aiUsage.create({
+            data: {
+              teamId: params.teamId,
+              userId: null,
+              periodStart: params.periodStart,
+              inputTokens: params.inputTokens,
+              outputTokens: params.outputTokens,
+              cacheReadTokens: params.cacheReadTokens,
+              totalTokens: params.totalTokens,
+              cost: params.cost,
+            },
+          })
+        } catch (err: unknown) {
+          if (
+            err &&
+            typeof err === 'object' &&
+            'code' in err &&
+            (err as { code: string }).code === 'P2002'
+          ) {
+            await prisma.aiUsage.updateMany({
+              where: {
+                teamId: params.teamId,
+                userId: null,
+                periodStart: params.periodStart,
+              },
+              data: {
+                inputTokens: { increment: params.inputTokens },
+                outputTokens: { increment: params.outputTokens },
+                cacheReadTokens: { increment: params.cacheReadTokens },
+                totalTokens: { increment: params.totalTokens },
+                cost: { increment: params.cost },
+              },
+            })
+          } else {
+            throw err
+          }
+        }
+      }
     }
   }
 
@@ -69,7 +125,6 @@ export class AiUsageService {
     const timestamp = params.timestamp ?? new Date()
     const periodStart = new Date(timestamp)
     periodStart.setMinutes(0, 0, 0)
-    periodStart.setMilliseconds(0)
 
     // 1. Update/create Team Total record (userId = null)
     await this.incrementBucket({
@@ -104,20 +159,22 @@ export class AiUsageService {
 
     switch (params.timeframe) {
       case '1h':
-        since.setHours(since.getHours() - 1)
+        // For 1h, target the current 1h bucket floored to start of current hour
+        since.setMinutes(0, 0, 0)
         break
       case '24h':
         since.setDate(since.getDate() - 1)
+        since.setMinutes(0, 0, 0)
         break
       case '7d':
         since.setDate(since.getDate() - 7)
+        since.setMinutes(0, 0, 0)
         break
       case '30d':
         since.setDate(since.getDate() - 30)
+        since.setMinutes(0, 0, 0)
         break
     }
-
-    since.setMinutes(0, 0, 0)
 
     if (!params.userId) {
       // Return Team-Level Usage (userId = null)
@@ -150,7 +207,7 @@ export class AiUsageService {
           outputTokens,
           cacheReadTokens,
           totalTokens,
-          cost: Math.round(cost * 1000000) / 1000000,
+          cost: Math.round((cost + Number.EPSILON) * 1000000) / 1000000,
         },
       }
     } else {
@@ -201,7 +258,7 @@ export class AiUsageService {
           outputTokens,
           cacheReadTokens,
           totalTokens,
-          cost: Math.round(cost * 1000000) / 1000000,
+          cost: Math.round((cost + Number.EPSILON) * 1000000) / 1000000,
         },
       }
     }

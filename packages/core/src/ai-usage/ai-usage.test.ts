@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { aiUsageService } from './ai-usage'
@@ -151,8 +151,8 @@ describe('AiUsageService', () => {
 
     const now = new Date()
 
-    // 30 minutes ago (within 1h)
-    const recent = new Date(now.getTime() - 30 * 60 * 1000)
+    // 5 minutes ago (within current 1h bucket)
+    const recent = new Date(now.getTime() - 5 * 60 * 1000)
     // 2 hours ago (within 24h, outside 1h)
     const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000)
     // 3 days ago (within 7d, outside 24h)
@@ -223,5 +223,85 @@ describe('AiUsageService', () => {
         userId: 'non-existent-user-id',
       }),
     ).rejects.toThrow(HTTPException)
+  })
+
+  it('targets only current hour bucket for 1h timeframe instead of including previous hour bucket', async () => {
+    const { team, user } = await createTestTeamAndUser()
+
+    // 10:15 AM (previous hour)
+    const prevHour = new Date('2026-07-23T10:15:00Z')
+    // 11:10 AM (current hour)
+    const currHour = new Date('2026-07-23T11:10:00Z')
+
+    await aiUsageService.recordUsage({
+      teamId: team.id,
+      userId: user.id,
+      inputTokens: 100,
+      outputTokens: 0,
+      cacheReadTokens: 0,
+      totalTokens: 100,
+      cost: 0.001,
+      timestamp: prevHour,
+    })
+
+    await aiUsageService.recordUsage({
+      teamId: team.id,
+      userId: user.id,
+      inputTokens: 50,
+      outputTokens: 0,
+      cacheReadTokens: 0,
+      totalTokens: 50,
+      cost: 0.0005,
+      timestamp: currHour,
+    })
+
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-23T11:15:00Z'))
+
+    try {
+      const stats1h = await aiUsageService.getTeamUsageStats({
+        teamId: team.id,
+        timeframe: '1h',
+      })
+      expect(stats1h.team?.inputTokens).toBe(50)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('handles concurrent recordUsage calls for the same team and user without duplication or race errors', async () => {
+    const { team, user } = await createTestTeamAndUser()
+    const now = new Date()
+
+    await Promise.all([
+      aiUsageService.recordUsage({
+        teamId: team.id,
+        userId: user.id,
+        inputTokens: 100,
+        outputTokens: 50,
+        cacheReadTokens: 10,
+        totalTokens: 150,
+        cost: 0.001,
+        timestamp: now,
+      }),
+      aiUsageService.recordUsage({
+        teamId: team.id,
+        userId: user.id,
+        inputTokens: 200,
+        outputTokens: 100,
+        cacheReadTokens: 20,
+        totalTokens: 300,
+        cost: 0.002,
+        timestamp: now,
+      }),
+    ])
+
+    const stats = await aiUsageService.getTeamUsageStats({
+      teamId: team.id,
+      timeframe: '1h',
+    })
+
+    expect(stats.team?.inputTokens).toBe(300)
+    expect(stats.team?.outputTokens).toBe(150)
   })
 })
