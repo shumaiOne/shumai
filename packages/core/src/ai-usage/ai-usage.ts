@@ -117,6 +117,9 @@ export class AiUsageService {
         break
     }
 
+    since.setMinutes(0, 0, 0)
+
+
     if (!params.userId) {
       // Return Team-Level Usage (userId = null)
       const teamRecords = await prisma.aiUsage.findMany({
