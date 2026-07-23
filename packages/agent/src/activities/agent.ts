@@ -219,41 +219,39 @@ If you need to create files in the local filesystem (for example, a temporary fi
     let grandTotalTokens = 0
     let totalCost = 0
 
-    if (typeof harness.subscribe === 'function') {
-      harness.subscribe(async (event) => {
-        if (event.type === 'message_end' && event.message.role === 'assistant') {
-          const assistantMsg = event.message
-          const u = assistantMsg.usage
-          if (u) {
-            const inputTokens = u.input || 0
-            const outputTokens = u.output || 0
-            const cacheReadTokens = u.cacheRead || 0
-            const totalTokens = u.totalTokens || inputTokens + outputTokens
-            const cost = u.cost?.total || 0
+    harness.subscribe(async (event) => {
+      if (event.type === 'message_end' && event.message.role === 'assistant') {
+        const assistantMsg = event.message
+        const u = assistantMsg.usage
+        if (u) {
+          const inputTokens = u.input || 0
+          const outputTokens = u.output || 0
+          const cacheReadTokens = u.cacheRead || 0
+          const totalTokens = u.totalTokens || inputTokens + outputTokens
+          const cost = u.cost?.total || 0
 
-            totalInputTokens += inputTokens
-            totalOutputTokens += outputTokens
-            totalCacheReadTokens += cacheReadTokens
-            grandTotalTokens += totalTokens
-            totalCost += cost
+          totalInputTokens += inputTokens
+          totalOutputTokens += outputTokens
+          totalCacheReadTokens += cacheReadTokens
+          grandTotalTokens += totalTokens
+          totalCost += cost
 
-            try {
-              await aiUsageService.recordUsage({
-                teamId: params.teamId,
-                userId: params.userId,
-                inputTokens,
-                outputTokens,
-                cacheReadTokens,
-                totalTokens,
-                cost,
-              })
-            } catch (err) {
-              logger.error({ err }, 'Failed to record AI usage')
-            }
+          try {
+            await aiUsageService.recordUsage({
+              teamId: params.teamId,
+              userId: params.userId,
+              inputTokens,
+              outputTokens,
+              cacheReadTokens,
+              totalTokens,
+              cost,
+            })
+          } catch (err) {
+            logger.error({ err }, 'Failed to record AI usage')
           }
         }
-      })
-    }
+      }
+    })
 
     const assistantMessage = await harness.prompt(params.prompt, { images: imagesToPass })
 

@@ -56,6 +56,7 @@ describe('Agent Activities', () => {
 
   it('should call agentChatActivity and prompt the harness', async () => {
     const mockHarness = {
+      subscribe: vi.fn(),
       prompt: vi.fn().mockResolvedValue({
         content: [{ type: 'text', text: 'AI response' }],
         usage: { input: 10, output: 20 },
@@ -185,6 +186,7 @@ describe('Agent Activities', () => {
     })
 
     const mockHarness = {
+      subscribe: vi.fn(),
       prompt: vi.fn().mockReturnValue(promptPromise),
       abort: vi.fn(),
     }
@@ -252,6 +254,7 @@ describe('Agent Activities', () => {
     })
 
     const mockHarness = {
+      subscribe: vi.fn(),
       prompt: vi.fn().mockReturnValue(promptPromise),
       abort: vi.fn(),
     }
@@ -312,6 +315,7 @@ describe('Agent Activities', () => {
 
   it('should include error message in text when stopReason is error', async () => {
     const mockHarness = {
+      subscribe: vi.fn(),
       prompt: vi.fn().mockResolvedValue({
         content: [],
         usage: { input: 0, output: 0 },
@@ -352,6 +356,7 @@ describe('Agent Activities', () => {
 
   it('should pass thinkingLevel from agent config to createAgentSession', async () => {
     const mockHarness = {
+      subscribe: vi.fn(),
       prompt: vi.fn().mockResolvedValue({
         content: [],
         usage: { input: 0, output: 0 },
@@ -400,6 +405,7 @@ describe('Agent Activities', () => {
 
   it('should call autofillAiActivity and run autofill tool', async () => {
     const mockHarness = {
+      subscribe: vi.fn(),
       prompt: vi.fn().mockResolvedValue({
         content: [{ type: 'text', text: 'Captured' }],
         usage: { input: 5, output: 5 },
@@ -1040,6 +1046,7 @@ describe('Agent Database Activities Integration', () => {
       })
 
       const mockHarness = {
+        subscribe: vi.fn(),
         prompt: vi.fn().mockResolvedValue({
           content: [{ type: 'text', text: '  "Summarized Chat Title"  ' }],
         }),
