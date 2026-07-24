@@ -19,11 +19,12 @@ import { useTopNavStore } from '@/ui/stores/top-nav'
 import { useUiStore } from '@/ui/stores/ui'
 import { useUserMetadataStore } from '@/ui/stores/user-metadata'
 import { Feedback, PointerActivationConstraints } from '@dnd-kit/dom'
-import { DragDropProvider, DragOverlay, KeyboardSensor, PointerSensor } from '@dnd-kit/react'
+import { DragDropProvider, DragOverlay, PointerSensor } from '@dnd-kit/react'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '../lib/utils'
+import { getSelectedRangeIds } from '../lib/selection-utils'
 import { ChatbotSidebar } from './chatbot-sidebar'
 import { SnapToPointer } from './dnd-modifiers'
 import { FileBrowser } from './file-browser/file-browser'
@@ -337,27 +338,18 @@ export default function FileSystemManager({
       const lastSelectedItem = allItems.find((i) => i.id === lastSelectedId)
 
       if (lastSelectedItem) {
-        if (lastSelectedItem.type === item.type) {
-          // Only select range if they are the same type
-          const typeItems = item.type === 'folder' ? folders : files
-          const lastIndex = typeItems.findIndex((i) => i.id === lastSelectedId)
-          const currentIndex = typeItems.findIndex((i) => i.id === item.id)
+        const newSelectedIds = getSelectedRangeIds(
+          lastSelectedItem,
+          item,
+          lastSelectedId,
+          folders,
+          files,
+          selectedIds,
+        )
 
-          if (lastIndex !== -1 && currentIndex !== -1) {
-            const start = Math.min(lastIndex, currentIndex)
-            const end = Math.max(lastIndex, currentIndex)
-            const rangeItems = typeItems.slice(start, end + 1)
-
-            const newSelectedIds = new Set(selectedIds)
-            rangeItems.forEach((rangeItem) => {
-              newSelectedIds.add(rangeItem.id)
-            })
-            setSelectedIds(newSelectedIds)
-            setSelectedItem(item)
-            return
-          }
-        } else {
-          // If types are different, do nothing (as requested by user)
+        if (newSelectedIds) {
+          setSelectedIds(newSelectedIds)
+          setSelectedItem(item)
           return
         }
       }
@@ -426,7 +418,6 @@ export default function FileSystemManager({
               PointerSensor.configure({
                 activationConstraints: [new PointerActivationConstraints.Distance({ value: 10 })],
               }),
-              KeyboardSensor,
             ]
       }
       onDragStart={handleDragStart}

@@ -139,7 +139,7 @@ function ListRow({
           : undefined
       }
       className={cn(
-        'group border-b border-border transition-colors hover:bg-primary/20 absolute top-0 left-0 w-full flex flex-col',
+        'group border-b border-border transition-colors hover:bg-primary/20 absolute top-0 left-0 w-full flex flex-col outline-none focus:outline-none focus-visible:outline-none',
         isSelected && 'bg-primary/10',
         showDropFeedback && 'bg-primary/10',
         isTopOver && 'border-t-2 border-t-primary',

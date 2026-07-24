@@ -12,7 +12,7 @@ import { ShareSettingsSidebar } from './share-settings-sidebar'
 import { FolderTree } from './folder-tree'
 import { ResizeHandle } from './resize-handle'
 import { useFileSystemDnd } from './use-file-system-dnd'
-import { DragDropProvider, DragOverlay, KeyboardSensor, PointerSensor } from '@dnd-kit/react'
+import { DragDropProvider, DragOverlay, PointerSensor } from '@dnd-kit/react'
 import { PointerActivationConstraints } from '@dnd-kit/dom'
 import { SnapToPointer } from './dnd-modifiers'
 import { useUiStore } from '@/ui/stores/ui'
@@ -268,7 +268,6 @@ export default function ShareManager({
         PointerSensor.configure({
           activationConstraints: [new PointerActivationConstraints.Distance({ value: 10 })],
         }),
-        KeyboardSensor,
       ]}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}

@@ -183,12 +183,12 @@ export function FileListItem({
           e.preventDefault()
         }
       }}
-      className="group cursor-pointer select-none transition-colors whitespace-nowrap flex w-full"
+      className="group cursor-pointer select-none transition-colors whitespace-nowrap flex w-full outline-none focus:outline-none focus-visible:outline-none"
     >
       <div
         className={cn(
           'px-4 py-2 sticky left-0 z-10 transition-colors border-r shrink-0',
-          isSelected ? 'bg-muted' : 'bg-card group-hover:bg-muted',
+          isSelected || isChecked ? 'bg-muted' : 'bg-card group-hover:bg-muted',
         )}
         style={{
           width: columnSizing?.['name'] || 300,

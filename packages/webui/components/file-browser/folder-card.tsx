@@ -272,7 +272,7 @@ export function FolderCard({
           : undefined
       }
       className={cn(
-        'group relative w-full max-w-[340px] select-none cursor-pointer isolate flex flex-col items-center h-full',
+        'group relative w-full max-w-[340px] select-none cursor-pointer isolate flex flex-col items-center h-full outline-none focus:outline-none focus-visible:outline-none',
       )}
     >
       <div className="absolute inset-0 z-10 pointer-events-none">
