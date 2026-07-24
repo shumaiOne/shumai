@@ -42,6 +42,7 @@ interface ChatbotState {
     text: string,
     projectId: string,
     contextAssetId?: string,
+    onAssetMutation?: () => void,
   ) => Promise<void>
   abortActiveSession: (teamId: string) => Promise<void>
 }
@@ -151,7 +152,7 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
     })
   },
 
-  sendMessage: async (teamId, text, projectId, contextAssetId) => {
+  sendMessage: async (teamId, text, projectId, contextAssetId, onAssetMutation) => {
     const state = useChatbotStore.getState()
     if (state.isStreaming) return
 
@@ -251,6 +252,16 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
                 }
               } else if (data.type === 'entry') {
                 const entry = data.entry as ChatMessage
+                const entryObj = entry as unknown as Record<string, unknown>
+                if (
+                  entryObj.role === 'toolResult' &&
+                  typeof entryObj.toolName === 'string' &&
+                  ['create_file', 'create_folder', 'create_version'].includes(entryObj.toolName) &&
+                  !entryObj.isError
+                ) {
+                  onAssetMutation?.()
+                }
+
                 set((s) => {
                   const isExisting = s.messages.some((m) => m.id === entry.id)
                   // Replace temp/optimistic message when the real counterpart streams back

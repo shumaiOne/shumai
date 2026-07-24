@@ -13,7 +13,7 @@ import { useChatbotStore } from '@/ui/stores/chatbot'
 import { useTeamContextStore } from '@/ui/stores/team-context'
 import { useDroppable } from '@dnd-kit/react'
 import type { ChatMessage } from '@shumai/dtos'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft,
   ArrowUp,
@@ -26,7 +26,7 @@ import {
   Trash2,
   Wrench,
 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import { formatTimeAgo } from '../lib/time'
 
@@ -171,9 +171,20 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
     }
   }, [isHistoryMode, fetchHistorySessions, teamId])
 
+  const queryClient = useQueryClient()
+
+  const handleAssetMutation = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['search'] })
+    queryClient.invalidateQueries({ queryKey: ['folders'] })
+    queryClient.invalidateQueries({ queryKey: ['files'] })
+    queryClient.invalidateQueries({ queryKey: ['file'] })
+    queryClient.invalidateQueries({ queryKey: ['version_stacks'] })
+    queryClient.invalidateQueries({ queryKey: ['projects'] })
+  }, [queryClient])
+
   const handleSend = () => {
     if (!inputText.trim() || isStreaming || !teamId) return
-    sendMessage(teamId, inputText, projectId, contextAssetId)
+    sendMessage(teamId, inputText, projectId, contextAssetId, handleAssetMutation)
     setInputText('')
   }
 

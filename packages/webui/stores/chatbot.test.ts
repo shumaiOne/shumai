@@ -259,4 +259,44 @@ describe('useChatbotStore', () => {
     expect(finalState.messages[0].id).toBe('context-display-ulid')
     expect(finalState.messages[1].id).toBe('user-msg-ulid')
   })
+
+  it('should invoke onAssetMutation callback when asset creation tool result arrives', async () => {
+    const mockEvents = [
+      'data: {"type":"session","sessionId":"sess-123"}\n\n',
+      'data: {"type":"entry","entry":{"id":"user-msg-ulid","role":"user","content":[{"type":"text","text":"create a file"}],"timestamp":123}}\n\n',
+      'data: {"type":"entry","entry":{"id":"tool-res-ulid","role":"toolResult","toolName":"create_file","isError":false,"content":"File created","timestamp":124}}\n\n',
+      'data: {"type":"done","status":"completed"}\n\n',
+    ]
+
+    let eventIdx = 0
+    const mockReader = {
+      read: vi.fn(async () => {
+        if (eventIdx < mockEvents.length) {
+          const value = new TextEncoder().encode(mockEvents[eventIdx++])
+          return { done: false, value }
+        }
+        return { done: true, value: undefined }
+      }),
+    }
+
+    const mockResponse = {
+      ok: true,
+      headers: {
+        get: vi.fn(() => 'sess-123'),
+      },
+      body: {
+        getReader: () => mockReader,
+      },
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(client.api.teams[':teamId'].chat.$post).mockResolvedValue(mockResponse as any)
+
+    const onAssetMutation = vi.fn()
+    await useChatbotStore
+      .getState()
+      .sendMessage('team-123', 'create a file', 'proj-123', undefined, onAssetMutation)
+
+    expect(onAssetMutation).toHaveBeenCalledTimes(1)
+  })
 })
