@@ -2,7 +2,6 @@ import { Type } from '@sinclair/typebox'
 import { type AgentTool } from '@earendil-works/pi-agent-core'
 import { type ImageContent } from '@earendil-works/pi-ai'
 import { prisma, WorkflowTaskType, WorkflowTaskStatus, type User } from '@shumai/db'
-import { logger } from '@shumai/core/src/logger'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { workflowService } from '@shumai/workflow-core'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
@@ -65,18 +64,6 @@ export function createScreenshotTool(
           }
         }
       }
-
-      logger.info(
-        {
-          assetId,
-          userId,
-          userCommentId,
-          commentTimestamp,
-          hasAnnotations: Boolean(annotations),
-          params,
-        },
-        '[screenshotTool] Executing screenshot tool call',
-      )
 
       // Trigger transcode workflow to take screenshots
       const task = await prisma.workflowTask.create({
