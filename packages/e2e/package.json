@@ -4,13 +4,14 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@shumai/db": "workspace:*",
-    "@shumai/core": "workspace:*",
-    "@shumai/workflow-core": "workspace:*",
-    "@shumai/agent": "workspace:*",
-    "@shumai/transcode": "workspace:*",
-    "@shumai/dtos": "workspace:*",
     "@earendil-works/pi-agent-core": "0.78.0",
-    "@google/genai": "1.52.0"
+    "@google/genai": "1.52.0",
+    "@shumai/agent": "workspace:*",
+    "@shumai/core": "workspace:*",
+    "@shumai/db": "workspace:*",
+    "@shumai/dtos": "workspace:*",
+    "@shumai/transcode": "workspace:*",
+    "@shumai/workflow-core": "workspace:*",
+    "sharp": "0.35.3"
   }
 }
