@@ -1,3 +1,4 @@
+import { logger } from '@shumai/core/src/logger'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { stemFromKey } from '@shumai/core/src/utils/filename'
 import { prisma, WorkflowTaskStatus, WorkflowTaskType } from '@shumai/db'
@@ -911,6 +912,20 @@ export class TranscodeService {
     const videoPath = path.join(tmpDir, path.basename(params.assetKey))
 
     try {
+      logger.info(
+        {
+          assetId: params.assetId,
+          assetKey: params.assetKey,
+          start: params.start,
+          end: params.end,
+          count: params.count,
+          commentTimestamp: params.commentTimestamp,
+          hasAnnotations: Boolean(params.annotations && params.annotations.length > 0),
+          annotationsCount: params.annotations?.length ?? 0,
+        },
+        '[takeScreenshots] Starting screenshot extraction',
+      )
+
       // 1. Download video
       await s3Service.downloadToFile(bucket, params.assetKey, videoPath)
 
@@ -923,10 +938,18 @@ export class TranscodeService {
         timestamps = Array.from({ length: params.count }, (_, i) => params.start + i * step)
       }
 
-      // 3. Snap closest timestamp to commentTimestamp if within range
+      logger.info(
+        { initialTimestamps: timestamps, count: params.count },
+        '[takeScreenshots] Generated initial sampling timestamps',
+      )
+
+      // 3. Snap closest timestamp to commentTimestamp if within range (with 100ms tolerance)
       const commentTimestamp = params.commentTimestamp
+      const EPSILON = 0.1
       if (commentTimestamp !== undefined && commentTimestamp !== null) {
-        if (commentTimestamp >= params.start && commentTimestamp <= params.end) {
+        const inRange =
+          commentTimestamp >= params.start - EPSILON && commentTimestamp <= params.end + EPSILON
+        if (inRange) {
           let closestIdx = 0
           let minDiff = Math.abs(timestamps[0] - commentTimestamp)
           for (let i = 1; i < timestamps.length; i++) {
@@ -936,8 +959,30 @@ export class TranscodeService {
               closestIdx = i
             }
           }
+          const oldTs = timestamps[closestIdx]
           timestamps[closestIdx] = commentTimestamp
+          logger.info(
+            {
+              commentTimestamp,
+              snappedIdx: closestIdx,
+              replacedTimestamp: oldTs,
+              newTimestamp: commentTimestamp,
+              resultingTimestamps: timestamps,
+            },
+            '[takeScreenshots] Snapped commentTimestamp to closest timestamp index',
+          )
+        } else {
+          logger.warn(
+            {
+              commentTimestamp,
+              start: params.start,
+              end: params.end,
+            },
+            '[takeScreenshots] commentTimestamp is OUT OF RANGE [start, end], skipping snap',
+          )
         }
+      } else {
+        logger.info('[takeScreenshots] No commentTimestamp provided')
       }
 
       const results: Array<{ key: string; timestamp: number }> = []
@@ -964,14 +1009,17 @@ export class TranscodeService {
         ]
         await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
 
-        // 5. Overlay annotations if timestamp matches commentTimestamp exactly
-        if (
+        const isMatch =
           commentTimestamp !== undefined &&
           commentTimestamp !== null &&
-          t === commentTimestamp &&
-          params.annotations &&
-          params.annotations.length > 0
-        ) {
+          Math.abs(t - commentTimestamp) < 1e-4
+
+        // 5. Overlay annotations if timestamp matches commentTimestamp (within float tolerance)
+        if (isMatch && params.annotations && params.annotations.length > 0) {
+          logger.info(
+            { timestamp: t, commentTimestamp, annotationsCount: params.annotations.length },
+            '[takeScreenshots] Overlaying annotations onto frame',
+          )
           const shotBuffer = fs.readFileSync(localShotPath)
           const composited = await this.overlayAnnotationsOnBuffer(shotBuffer, params.annotations)
           fs.writeFileSync(localShotPath, composited)

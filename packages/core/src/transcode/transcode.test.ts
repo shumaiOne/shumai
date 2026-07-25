@@ -646,6 +646,97 @@ describe('TranscodeService', () => {
       expect(b).toBeLessThan(100)
     })
 
+    it('should snap commentTimestamp and overlay annotations when start/end has rounding mismatch', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(child_process.execFile as any).mockImplementation(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (file: string, args: string[], cb: any) => {
+          if (file === 'ffmpeg') {
+            const outPath = args[args.length - 1]
+            fs.writeFileSync(outPath, 'fake-webp-image')
+          }
+          cb(null, { stdout: '', stderr: '' })
+        },
+      )
+
+      const overlaySpy = vi
+        .spyOn(transcodeService, 'overlayAnnotationsOnBuffer')
+        .mockResolvedValue(Buffer.from('composited-buffer'))
+
+      const annotations: PrismaJson.AnnotationList = [
+        {
+          type: 'box',
+          color: '#ff0000',
+          points: [
+            [0.2, 0.2],
+            [0.8, 0.8],
+          ],
+        },
+      ]
+
+      const results = await transcodeService.takeScreenshots({
+        assetKey: 'test/video.mp4',
+        assetId: 'asset-123',
+        start: 4.57,
+        end: 4.57,
+        count: 1,
+        commentTimestamp: 4.566666666666667,
+        annotations,
+      })
+
+      expect(results).toHaveLength(1)
+      expect(results[0].timestamp).toBe(4.566666666666667)
+      expect(overlaySpy).toHaveBeenCalledWith(expect.any(Buffer), annotations)
+
+      overlaySpy.mockRestore()
+    })
+
+    it('should overlay annotation on ONLY the single snapped frame in a multi-screenshot range', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(child_process.execFile as any).mockImplementation(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (file: string, args: string[], cb: any) => {
+          if (file === 'ffmpeg') {
+            const outPath = args[args.length - 1]
+            fs.writeFileSync(outPath, 'fake-webp-image')
+          }
+          cb(null, { stdout: '', stderr: '' })
+        },
+      )
+
+      const overlaySpy = vi
+        .spyOn(transcodeService, 'overlayAnnotationsOnBuffer')
+        .mockResolvedValue(Buffer.from('composited-buffer'))
+
+      const annotations: PrismaJson.AnnotationList = [
+        {
+          type: 'box',
+          color: '#ff0000',
+          points: [
+            [0.2, 0.2],
+            [0.8, 0.8],
+          ],
+        },
+      ]
+
+      const results = await transcodeService.takeScreenshots({
+        assetKey: 'test/video.mp4',
+        assetId: 'asset-123',
+        start: 0,
+        end: 1,
+        count: 30,
+        commentTimestamp: 0.566666666666667,
+        annotations,
+      })
+
+      expect(results).toHaveLength(30)
+      // Exactly 1 overlay call for the snapped timestamp out of 30 frames
+      expect(overlaySpy).toHaveBeenCalledTimes(1)
+      expect(overlaySpy).toHaveBeenCalledWith(expect.any(Buffer), annotations)
+
+      overlaySpy.mockRestore()
+    })
+
     it('should generate PDF from text file including CJK characters', async () => {
       const txtFile = path.join(tempDir, 'test.txt')
       const pdfFile = path.join(tempDir, 'output.pdf')
