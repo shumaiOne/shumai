@@ -82,7 +82,18 @@ describe('DatabaseSessionStorage', () => {
 
     expect(await storage.getLeafId()).toBeNull()
 
-    await storage.setLeafId('entry-1')
+    const entry: SessionTreeEntry = {
+      type: 'message',
+      id: 'entry-1',
+      parentId: null,
+      timestamp: new Date().toISOString(),
+      message: {
+        role: 'user',
+        content: [{ type: 'text', text: 'Test' }],
+        timestamp: Date.now(),
+      },
+    }
+    await storage.appendEntry(entry)
     expect(await storage.getLeafId()).toBe('entry-1')
 
     await storage.setLeafId(null)
@@ -502,5 +513,75 @@ describe('DatabaseSessionStorage', () => {
     // 4. Assert that the tools were instantiated using the new comment ID and user ID
     expect(createScreenshotToolSpy).toHaveBeenCalledWith(user.id, 'new-comment-456')
     expect(createAnalyzeImageToolSpy).toHaveBeenCalledWith(user.id, 'new-comment-456')
+  })
+
+  describe('P1 Bug Reproductions', () => {
+    it('should persist a leaf entry and validate targetId when setLeafId is called', async () => {
+      const { agent } = await setupTestData()
+      const storage = await DatabaseSessionStorage.create({ agentId: agent.id })
+
+      const msgEntry: SessionTreeEntry = {
+        type: 'message',
+        id: 'msg-100',
+        parentId: null,
+        timestamp: new Date().toISOString(),
+        message: {
+          role: 'user',
+          content: [{ type: 'text', text: 'Hello' }],
+          timestamp: Date.now(),
+        },
+      }
+      await storage.appendEntry(msgEntry)
+      expect(await storage.getLeafId()).toBe('msg-100')
+
+      // setLeafId to an existing entry
+      await storage.setLeafId('msg-100')
+
+      // Verify that a 'leaf' entry was appended to database entries
+      const entries = await storage.getEntries()
+      const leafEntries = entries.filter((e) => e.type === 'leaf')
+      expect(leafEntries.length).toBe(1)
+      expect(leafEntries[0]).toMatchObject({
+        type: 'leaf',
+        targetId: 'msg-100',
+      })
+
+      // Calling setLeafId with non-existent targetId should throw not_found error
+      await expect(storage.setLeafId('non-existent-id')).rejects.toThrow(
+        'Entry non-existent-id not found',
+      )
+    })
+
+    it('should execute appendEntry in a single atomic transaction', async () => {
+      const { agent } = await setupTestData()
+      const storage = await DatabaseSessionStorage.create({ agentId: agent.id })
+
+      // Mock prisma.agentSession.update to throw an error during setLeafId inside appendEntry
+      const updateSpy = vi
+        .spyOn(prisma.agentSession, 'update')
+        .mockRejectedValueOnce(new Error('DB Update Failed'))
+
+      const entry: SessionTreeEntry = {
+        type: 'message',
+        id: 'atomic-msg-1',
+        parentId: null,
+        timestamp: new Date().toISOString(),
+        message: {
+          role: 'user',
+          content: [{ type: 'text', text: 'Atomic test' }],
+          timestamp: Date.now(),
+        },
+      }
+
+      await expect(storage.appendEntry(entry)).rejects.toThrow('DB Update Failed')
+
+      // Because appendEntry should be atomic, atomic-msg-1 must NOT exist in the database
+      const dbEntry = await prisma.agentSessionEntry.findUnique({
+        where: { id: 'atomic-msg-1' },
+      })
+      expect(dbEntry).toBeNull()
+
+      updateSpy.mockRestore()
+    })
   })
 })
