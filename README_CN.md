@@ -37,7 +37,8 @@ Shumai 是一个开源的 Frame.io 替代方案，专为创意团队打造，让
 
 下面是一个简短的 demo 视频，展示了 Shumai Agent 能做什么：
 
-https://github.com/user-attachments/assets/8c52d0d3-e871-40c2-8c5a-48223a2497d8
+https://github.com/user-attachments/assets/5856aef8-37de-4b68-8448-e4d67749f364
+
 
 > [!NOTE]
 > **媒体处理与存储机制：** 上传媒体文件后，Shumai 始终会保留并存储原始文件。请注意，系统中显示的文件大小为原始文件的大小，不包含转码后生成的代理文件大小。无论图片还是视频，都会额外生成一张 480p 的 WebP 封面图，作为文件列表中的预览图。此外：
