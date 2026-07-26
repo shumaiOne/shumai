@@ -16,20 +16,31 @@
 
 ## Features
 
-- **S3-Compatible & Local Storage**: Securely store and serve your creative assets using a local filesystem or any S3-compatible cloud storage (AWS S3, Cloudflare R2, MinIO, etc.).
-- **Frame-by-Frame Annotations & Comments**: Give precise feedback using frame-specific drawing tools and timestamped comments directly on video and image assets.
-- **Secure Sharing & Collections**: Create secure public share links and curated media collections to collaborate with clients and stakeholders.
-- **Granular Access Control**: Manage workspace permissions using team-level and project-level role-based access controls.
-- **Distributed Transcoding via Temporal**: Offload resource-heavy video transcoding to a background worker pool orchestrated by Temporal.
-- **Custom Asset Metadata**: Define and customize dynamic metadata fields tailored to your production pipeline.
+Shumai is an open-source Frame.io alternative built for creative teams to collaborate and share media with ease:
 
-#### Shumai Agent
+* **S3-Compatible & Local Storage**: Store and serve creative assets securely using the local filesystem or any S3-compatible storage service, including AWS S3, Cloudflare R2, and MinIO.
+* **Frame-by-Frame Annotations & Comments**: Leave precise feedback with frame-specific drawing tools and timestamped comments on both video and image assets.
+* **Secure Sharing & Collections**: Create private share links and curated media collections for clients, stakeholders, and collaborators.
+* **Granular Access Control**: Manage workspace permissions with team-level and project-level role-based access control.
+* **Distributed Transcoding via Temporal**: Offload resource-intensive video transcoding to a background worker pool orchestrated by Temporal.
+* **Custom Asset Metadata**: Define dynamic metadata fields tailored to your production pipeline.
 
-- **Collaborative AI Chat**: Converse with a context-aware AI agent by using `@mentions` directly within the file's comments area.
-- **Custom Skills & Tools**: Extend the agent's capabilities by registering custom scripts, tools, and automation skills.
-- **Isolated Sandbox Execution**: Run agent-submitted scripts securely within a sandboxed environment.
-- **AI Metadata Autofill**: Automatically autofill custom metadata for new assets.
-- **Semantic Search**: Find assets based on visual or conceptual search queries using vector embeddings(Gemini Embedding 2).
+But Shumai goes beyond being a Frame.io alternative. With modern models like GPT-Image-2 and Seedance 2.5, AI can already handle a surprising amount of creative work. That means you can create or update videos and images from a simple prompt without having to jump back into Photoshop, Premiere or Houdini. That is why Shumai includes a powerful agent system:
+
+* **Agent as a Team Member**: Mention a context-aware AI agent with `@mentions` directly in asset comments, just like a real teammate.
+* **Agent as a One-to-One Assistant**: Chat privately with the agent and ask it to help with tasks.
+* **Custom Skills & Tools**: Extend the agent by registering custom scripts, tools, and automation skills.
+* **Isolated Sandbox Execution**: Run agent-submitted scripts safely in a sandboxed environment.
+* **AI Metadata Autofill**: Automatically fill in custom metadata for new assets.
+* **Semantic Search**: Find assets by visual or conceptual meaning using vector embeddings (Gemini Embedding 2).
+
+Here is a short demo video showing what the Shumai agent can do:
+
+
+
+https://github.com/user-attachments/assets/8c52d0d3-e871-40c2-8c5a-48223a2497d8
+
+
 
 > [!NOTE]
 > **Media Processing & Storage:** When uploading media, Shumai always preserves and stores your original raw file. Note that the file size shown in the system represents the original file size and does not include the size of any transcoded files. For all media types (both images and videos), Shumai creates a 480p WebP poster image to serve as the preview in the file list view. Additionally:
