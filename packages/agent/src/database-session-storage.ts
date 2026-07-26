@@ -46,10 +46,30 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
   }
 
   async setLeafId(leafId: string | null): Promise<void> {
-    await prisma.agentSession.update({
-      where: { id: this.sessionId },
-      data: { leafId },
+    if (leafId === null) {
+      await prisma.agentSession.update({
+        where: { id: this.sessionId },
+        data: { leafId: null },
+      })
+      return
+    }
+
+    const existing = await prisma.agentSessionEntry.findFirst({
+      where: { id: leafId },
     })
+    if (!existing) {
+      throw new Error(`Entry ${leafId} not found`)
+    }
+
+    const currentLeafId = await this.getLeafId()
+    const leafEntry: SessionTreeEntry = {
+      type: 'leaf',
+      id: await this.createEntryId(),
+      parentId: currentLeafId,
+      timestamp: new Date().toISOString(),
+      targetId: leafId,
+    }
+    await this.appendEntry(leafEntry)
   }
 
   async createEntryId(): Promise<string> {
@@ -96,16 +116,21 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
       }
     }
 
-    await prisma.agentSessionEntry.create({
-      data: {
-        id: entry.id,
-        sessionId: this.sessionId,
-        entry: strippedEntry,
-      },
-    })
+    const targetLeafId = entry.type === 'leaf' ? entry.targetId : entry.id
 
-    // Auto-update leafId on append
-    await this.setLeafId(entry.id)
+    await prisma.$transaction([
+      prisma.agentSessionEntry.create({
+        data: {
+          id: entry.id,
+          sessionId: this.sessionId,
+          entry: strippedEntry,
+        },
+      }),
+      prisma.agentSession.update({
+        where: { id: this.sessionId },
+        data: { leafId: targetLeafId },
+      }),
+    ])
   }
 
   async getEntry(id: string): Promise<SessionTreeEntry | undefined> {
