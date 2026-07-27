@@ -1254,6 +1254,7 @@ describe('Agent Database Activities Integration', () => {
         entry: { parentId: string; message: { content: Array<{ text: string }> } }
       }
       expect(c1Entry).toBeDefined()
+      expect(c1Entry.entry.parentId).toBeNull()
       // c1 has a reply c3, so it should include [Comment ID: c1.id]
       expect(c1Entry.entry.message.content[0].text).toContain(`[Comment ID: ${c1.id}]`)
 

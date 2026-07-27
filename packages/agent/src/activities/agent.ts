@@ -518,30 +518,16 @@ export async function initializeAgentSessionActivity(params: {
   const existingEntries = await prisma.agentSessionEntry.findMany({
     where: { sessionId },
   })
-
-  // Ensure root entry (parentId === null) exists
-  let rootEntry = existingEntries.find(
-    (e) => (e.entry as { parentId?: string | null }).parentId === null,
-  )
-  if (!rootEntry) {
-    const rootId = ulid()
-    rootEntry = await prisma.agentSessionEntry.create({
-      data: {
-        id: rootId,
-        sessionId,
-        entry: {
-          id: rootId,
-          type: 'session_info',
-          parentId: null,
-          timestamp: session.createdAt.toISOString(),
-        },
-      },
-    })
-    existingEntries.push(rootEntry)
-  }
-
-  const rootEntryId = rootEntry.id
   const existingEntryIds = new Set(existingEntries.map((e) => e.id))
+
+  // Find the latest top-level comment entry in existing entries to set as initial trunk pointer
+  let lastTopLevelCommentEntryId: string | null = null
+  for (const e of existingEntries) {
+    const entryData = e.entry as { parentId?: string | null }
+    if (entryData.parentId === null) {
+      lastTopLevelCommentEntryId = e.id
+    }
+  }
 
   // Fetch asset creatorId to determine owner role tag
   const asset = await prisma.asset.findUnique({
@@ -569,20 +555,17 @@ export async function initializeAgentSessionActivity(params: {
     include: { creator: true },
   })
 
-  // Track the entry ID of the latest top-level comment on the main trunk
-  let lastTopLevelCommentEntryId = rootEntryId
-
   // Perform lazy incremental sync for un-synced comments up to (and excluding) userComment
   for (const c of allComments) {
     const isTopLevel = !c.replyToId
 
     if (c.id === userComment.id) break
 
-    let parentId: string
+    let parentId: string | null
     if (isTopLevel) {
       parentId = lastTopLevelCommentEntryId
     } else {
-      parentId = c.replyToId && existingEntryIds.has(c.replyToId) ? c.replyToId : rootEntryId
+      parentId = c.replyToId && existingEntryIds.has(c.replyToId) ? c.replyToId : null
     }
 
     if (!existingEntryIds.has(c.id)) {
@@ -646,7 +629,7 @@ export async function initializeAgentSessionActivity(params: {
   const userCommentParentId = userComment.replyToId
     ? existingEntryIds.has(userComment.replyToId)
       ? userComment.replyToId
-      : rootEntryId
+      : null
     : lastTopLevelCommentEntryId
 
   // Set session leafId to userCommentParentId so harness.prompt appends userComment at the right parent entry
