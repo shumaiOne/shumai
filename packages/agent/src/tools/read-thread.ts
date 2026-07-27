@@ -6,7 +6,7 @@ import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/a
 const readThreadSchema = Type.Object({
   threadId: Type.String({
     description:
-      'The top-level comment ID (threadId) or comment ID to read full conversation thread history for.',
+      'The top-level comment ID or comment ID to read full conversation thread history for. Must be a comment ID (do NOT pass asset IDs).',
   }),
 })
 
@@ -15,7 +15,7 @@ export function createReadThreadTool(userId?: string | null): AgentTool<typeof r
     name: 'read_thread',
     label: 'Read Comment Thread',
     description:
-      'Retrieves the full conversation history of a specific comment thread on the asset by its thread ID.',
+      'Retrieves the full conversation history of a specific comment thread by its comment ID. Do NOT pass asset IDs to this tool.',
     parameters: readThreadSchema,
     execute: async (_toolCallId, params) => {
       const targetCommentId = params.threadId
