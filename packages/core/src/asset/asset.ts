@@ -1969,7 +1969,7 @@ export class AssetService {
         const key = file.storageKeyId ? storageKeyMap.get(file.storageKeyId) : null
         if (!key) return null
 
-        const url = await s3Service.presign(process.env.S3_BUCKET || 'shumai', key, 'GET', true)
+        const url = await s3Service.getAbsolutePathOrUrl(process.env.S3_BUCKET || 'shumai', key)
 
         return {
           id: file.id,

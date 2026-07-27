@@ -6,6 +6,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { InferRequestType, InferResponseType } from 'hono/client'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { copyToClipboard } from '@/ui/lib/clipboard'
+import { m } from '@/ui/paraglide/messages.js'
 
 interface UseFileActionsProps {
   teamId: string
@@ -226,6 +228,32 @@ export function useFileActions({
     }
   }
 
+  const handleCopyNameAndPath = async (items: AssetInfo[]) => {
+    if (items.length === 0) return
+    try {
+      const res = await getDownloadLinks({
+        json: { ids: items.map((i) => i.id!) },
+      })
+      const files = res.files
+      if (files.length === 0) return
+
+      let text = ''
+      if (files.length === 1) {
+        text = `Name: ${files[0].name}\nPath: ${files[0].url}`
+      } else {
+        text = files.map((f) => `${f.name}\t${f.url}`).join('\n')
+      }
+
+      const ok = await copyToClipboard(text)
+      if (ok) {
+        toast.success(m.copied_name_and_path_to_clipboard())
+      }
+    } catch (error) {
+      toast.error('Failed to copy name and path')
+      console.error(error)
+    }
+  }
+
   const startDownload = () => {
     const files = [...resolvedFiles]
     setIsDownloadDialogOpen(false)
@@ -321,7 +349,10 @@ export function useFileActions({
     }
   }
 
-  const handleAction = (action: 'rename' | 'delete' | 'download' | 'restore', item: AssetInfo) => {
+  const handleAction = (
+    action: 'rename' | 'delete' | 'download' | 'restore' | 'copy-name-and-path',
+    item: AssetInfo,
+  ) => {
     const isSelected = selectedIds.has(item.id!)
     const targetItems = isSelected
       ? [...folders, ...files].filter((i) => selectedIds.has(i.id!))
@@ -340,6 +371,9 @@ export function useFileActions({
       case 'restore':
         handleRestore(targetItems)
         break
+      case 'copy-name-and-path':
+        handleCopyNameAndPath(targetItems)
+        break
     }
   }
 
@@ -350,6 +384,7 @@ export function useFileActions({
     handleDelete,
     handleRestore,
     handleDownload,
+    handleCopyNameAndPath,
     handleNewFolder,
     handleAction,
     onRenameSubmit,

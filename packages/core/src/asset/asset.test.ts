@@ -9,6 +9,7 @@ import { AssetService } from './asset'
 vi.mock('@shumai/core/src/s3/s3', () => ({
   s3Service: {
     presign: vi.fn().mockResolvedValue('http://mock-s3-url'),
+    getAbsolutePathOrUrl: vi.fn().mockResolvedValue('http://mock-s3-url'),
     putObject: vi.fn().mockResolvedValue(undefined),
     deleteObject: vi.fn().mockResolvedValue(1),
     deletePrefix: vi.fn().mockResolvedValue(1),

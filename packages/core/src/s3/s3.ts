@@ -55,6 +55,7 @@ export interface S3Service {
   uploadFile(filePath: string, contentType: string): Promise<string>
   uploadFileToKey(filePath: string, key: string, contentType: string): Promise<void>
   presign(bucket: string, key: string, method: string, download?: boolean): Promise<string>
+  getAbsolutePathOrUrl(bucket: string, key: string): Promise<string>
 }
 
 export class S3StorageService implements S3Service {
@@ -229,6 +230,10 @@ export class S3StorageService implements S3Service {
     }
 
     return url
+  }
+
+  async getAbsolutePathOrUrl(bucket: string, key: string): Promise<string> {
+    return this.presign(bucket, key, 'GET', true)
   }
 }
 
@@ -440,6 +445,10 @@ export class LocalStorageService implements S3Service {
       url += '?download=1'
     }
     return url
+  }
+
+  async getAbsolutePathOrUrl(bucket: string, key: string): Promise<string> {
+    return this.getFilePath(bucket, key)
   }
 }
 

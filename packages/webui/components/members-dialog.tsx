@@ -22,6 +22,7 @@ import { Input } from '@/ui/components/ui/input'
 import { ChevronDown, Copy, Loader2, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { copyToClipboard as copyTextToClipboard } from '@/ui/lib/clipboard'
 import { m } from '@/ui/paraglide/messages.js'
 
 export interface Member {
@@ -131,10 +132,12 @@ export function MembersDialog({
     }
   }
 
-  const copyToClipboard = () => {
+  const copyToClipboard = async () => {
     if (inviteLink) {
-      navigator.clipboard.writeText(inviteLink)
-      toast.success(m.invite_link_copied())
+      const ok = await copyTextToClipboard(inviteLink)
+      if (ok) {
+        toast.success(m.invite_link_copied())
+      }
     }
   }
 

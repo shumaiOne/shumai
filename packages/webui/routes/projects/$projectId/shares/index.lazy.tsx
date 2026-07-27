@@ -3,6 +3,7 @@ import { client } from '@/ui/api/client'
 import { FolderTree } from '@/ui/components/folder-tree'
 import { ResizeHandle } from '@/ui/components/resize-handle'
 import { m } from '@/ui/paraglide/messages.js'
+import { copyToClipboard } from '@/ui/lib/clipboard'
 import { Switch } from '@/ui/components/ui/switch'
 import { Button } from '@/ui/components/ui/button'
 import {
@@ -117,10 +118,12 @@ function SharesPage() {
     return <ProjectFolderSkeleton />
   }
 
-  const handleCopyLink = (shareId: string) => {
+  const handleCopyLink = async (shareId: string) => {
     const url = `${window.location.origin}/share/${shareId}`
-    navigator.clipboard.writeText(url)
-    toast.success(m.link_copied())
+    const ok = await copyToClipboard(url)
+    if (ok) {
+      toast.success(m.link_copied())
+    }
   }
 
   return (
