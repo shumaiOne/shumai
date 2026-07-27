@@ -17,12 +17,6 @@ export class AgentChatPromptBuilder {
   private attachedFiles: string[] = []
   private referencedAssets: string[] = []
   private userInfo?: { name: string; role: string }
-  private topLevelThreads: Array<{
-    id: string
-    author: string
-    message: string
-    replyCount?: number
-  }> = []
 
   private isContinuation = false
   private hasAssetChanged = false
@@ -85,15 +79,6 @@ export class AgentChatPromptBuilder {
   withCommentTimestamp(second?: number | null): this {
     if (second !== undefined && second !== null) {
       this.commentTimestamp = second
-    }
-    return this
-  }
-
-  withTopLevelThreads(
-    threads?: Array<{ id: string; author: string; message: string; replyCount?: number }>,
-  ): this {
-    if (threads) {
-      this.topLevelThreads = threads
     }
     return this
   }
@@ -191,18 +176,6 @@ export class AgentChatPromptBuilder {
 
     if (this.userInfo) {
       instruction += `\n\nUser Info:\nName: ${this.userInfo.name}\nRole: ${this.userInfo.role}`
-    }
-
-    if (this.topLevelThreads.length > 0) {
-      instruction += `\n\n[Context: Recent Asset Comments & Threads Overview]\nThe asset has the following comments and threads:\n`
-      instruction += this.topLevelThreads
-        .map((t) => {
-          if ((t.replyCount ?? 0) > 0) {
-            return `- Thread ID "${t.id}" (by ${t.author}, ${t.replyCount} replies): "${t.message}" [Use 'read_thread' tool to inspect thread replies]`
-          }
-          return `- Comment (by ${t.author}): "${t.message}"`
-        })
-        .join('\n')
     }
 
     return instruction

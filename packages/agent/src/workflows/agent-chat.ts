@@ -171,12 +171,6 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       })
     }
 
-    const topLevelThreads = await executeActivity(
-      agentWorkerQueue,
-      getAssetTopLevelThreadsActivity,
-      { assetId: task.assetId },
-    )
-
     const proxyType = (asset.media as PrismaJson.MediaInfo | null)?.proxyType
     const promptBuilder = new AgentChatPromptBuilder(asset.id)
       .withContinuation(!isNewChat)
@@ -186,7 +180,6 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       .withCommentTimestamp(commentTimestamp)
       .withAttachedFiles(attachedFileDetailsList)
       .withReferencedAssets(referencedAssetDetailsList)
-      .withTopLevelThreads(topLevelThreads)
 
     if (userInfo) {
       promptBuilder.withUserInfo(userInfo.name, userInfo.role)
