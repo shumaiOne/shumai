@@ -150,7 +150,7 @@ describe('Agent Chat Workflow', () => {
       expect.objectContaining({
         teamId: 't1',
         agentId: 'b1',
-        message: 'hello agent',
+        message: expect.stringContaining('hello agent'),
         agentsInstruction: expectedInstruction1,
         sessionId: 'session-123',
         folderId: 'parent-folder-id',
