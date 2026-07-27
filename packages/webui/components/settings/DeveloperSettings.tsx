@@ -14,6 +14,7 @@ import {
 } from '@/ui/components/ui/table'
 import { Loader2, Plus, Trash2, Copy, Check } from 'lucide-react'
 import { toast } from 'sonner'
+import { copyToClipboard } from '@/ui/lib/clipboard'
 import type { ApiTokenResponse } from '@shumai/dtos'
 import { m } from '@/ui/paraglide/messages.js'
 
@@ -75,8 +76,8 @@ export function DeveloperSettings({ teamId }: { teamId: string }) {
     createToken(tokenName.trim())
   }
 
-  const handleCopy = (id: string, token: string) => {
-    navigator.clipboard.writeText(token)
+  const handleCopy = async (id: string, token: string) => {
+    await copyToClipboard(token)
     setCopiedId(id)
     toast.success(m.copied_api_token_to_clipboard())
     setTimeout(() => setCopiedId(null), 2000)

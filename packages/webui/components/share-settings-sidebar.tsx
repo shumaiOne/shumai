@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import React, { useState } from 'react'
 import { toast } from 'sonner'
+import { copyToClipboard as copyTextToClipboard } from '@/ui/lib/clipboard'
 import { DateTimePicker } from '@/ui/components/datetime-picker'
 import {
   Select,
@@ -88,9 +89,11 @@ export function ShareSettingsSidebar({
 
   const shareUrl = `${window.location.origin}/share/${shareLink.id}`
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-    toast.success(m.copied_to_clipboard())
+  const copyToClipboard = async (text: string) => {
+    const ok = await copyTextToClipboard(text)
+    if (ok) {
+      toast.success(m.copied_to_clipboard())
+    }
   }
 
   const toggleFieldVisibility = (fieldId: string) => {

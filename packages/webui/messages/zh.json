@@ -269,6 +269,8 @@
   "failed_to_revoke_token": "撤销令牌失败",
   "copied_to_clipboard": "已复制到剪贴板",
   "copied_api_token_to_clipboard": "已将 API 令牌复制到剪贴板",
+  "copy_name_and_path": "复制名称和路径",
+  "copied_name_and_path_to_clipboard": "已复制名称和路径到剪贴板",
 
   "ai": "AI",
   "providers": "提供商",

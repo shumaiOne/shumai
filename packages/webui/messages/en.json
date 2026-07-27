@@ -269,6 +269,8 @@
   "failed_to_revoke_token": "Failed to revoke token",
   "copied_to_clipboard": "Copied to clipboard",
   "copied_api_token_to_clipboard": "Copied API token to clipboard",
+  "copy_name_and_path": "Copy name and path",
+  "copied_name_and_path_to_clipboard": "Copied name and path to clipboard",
 
   "ai": "AI",
   "providers": "Providers",
