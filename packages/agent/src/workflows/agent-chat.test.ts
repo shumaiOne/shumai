@@ -189,7 +189,7 @@ describe('Agent Chat Workflow', () => {
     })
   })
 
-  it('should skip session initialization if sessionId is already provided', async () => {
+  it('should call initializeAgentSessionActivity to sync new comments even if sessionId is already provided', async () => {
     const task = await prisma.workflowTask.create({
       data: {
         type: 'chat',
@@ -204,7 +204,12 @@ describe('Agent Chat Workflow', () => {
 
     await agentChat(task)
 
-    expect(mockActivities.initializeAgentSessionActivity).not.toHaveBeenCalled()
+    expect(mockActivities.initializeAgentSessionActivity).toHaveBeenCalledWith({
+      teamId: 't1',
+      agentId: 'b1',
+      userCommentId: 'c1',
+      userId: undefined,
+    })
     const expectedInstruction2 = new AgentChatPromptBuilder('a1')
       .withContinuation(true)
       .withPathContext('Path: folder/subfolder/file.png')
@@ -214,7 +219,7 @@ describe('Agent Chat Workflow', () => {
 
     expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
       expect.objectContaining({
-        sessionId: 'existing-session-456',
+        sessionId: 'session-123',
         agentsInstruction: expectedInstruction2,
       }),
     )

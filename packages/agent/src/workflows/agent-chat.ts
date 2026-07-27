@@ -109,22 +109,20 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     }
     const teamId = asset.project.teamId
 
-    // 4. Initialize Session if missing
-    let isNewChat = !payload.agent?.sessionId || payload.agent?.isNewChat === true
-    if (!sessionId) {
-      if (!userCommentId) {
-        throw ApplicationFailure.create({
-          message: 'sessionId is required when userCommentId is missing',
-          nonRetryable: true,
-        })
-      }
+    // 4. Initialize Session & Incremental Comment Sync
+    const isNewChat = !payload.agent?.sessionId || payload.agent?.isNewChat === true
+    if (userCommentId) {
       sessionId = await executeActivity(agentWorkerQueue, initializeAgentSessionActivity, {
         teamId,
         agentId: agentId,
         userCommentId,
         userId: payload.agent?.userId,
       })
-      isNewChat = true
+    } else if (!sessionId) {
+      throw ApplicationFailure.create({
+        message: 'sessionId is required when userCommentId is missing',
+        nonRetryable: true,
+      })
     }
 
     // 4b. Fetch Agent Context
