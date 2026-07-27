@@ -17,6 +17,7 @@ import {
   executeAgentToolActivity,
   generateSessionNameActivity,
   type GenerateSessionNameParams,
+  getUserTeamInfoActivity,
 } from './agent'
 import * as piAgent from '../index'
 import { type AgentHarness, type Session } from '@earendil-works/pi-agent-core'
@@ -548,8 +549,18 @@ describe('Agent Database Activities Integration', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- entry is stored as Json in DB and needs casting to check properties
       const parsedEntry = agentSession?.entries[0].entry as any
       expect(parsedEntry.message.content[0].text).toContain(
-        `[${user.name}]: Hello <@${user.name}> check this`,
+        `[${user.name} (owner)]: Hello <@${user.name}> check this`,
       )
+    })
+
+    it('should return user name and role for team member', async () => {
+      const info = await getUserTeamInfoActivity({
+        userId: user.id,
+        teamId: team.id,
+      })
+      expect(info).toBeDefined()
+      expect(info?.name).toBe(user.name)
+      expect(info?.role).toBe('owner')
     })
   })
 

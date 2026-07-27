@@ -164,4 +164,11 @@ describe('AgentChatPromptBuilder', () => {
     expect(result).toContain('File Name: new-folder')
     expect(result).toContain('Asset Path Context:\nprojects/my-proj/new-folder')
   })
+
+  it('should build prompt with user info when provided and not continuation', () => {
+    const builder = new AgentChatPromptBuilder('a1').withUserInfo('Alice', 'owner')
+    const result = builder.build()
+
+    expect(result).toContain('User Info:\nName: Alice\nRole: owner')
+  })
 })

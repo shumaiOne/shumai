@@ -49,12 +49,16 @@ describe('Agent Chat Workflow', () => {
       generateSessionNameActivity: Object.assign(vi.fn(), {
         _activityName: 'generateSessionNameActivity',
       }),
+      getUserTeamInfoActivity: Object.assign(vi.fn(), {
+        _activityName: 'getUserTeamInfoActivity',
+      }),
     }
 
     mockActivities.getAgentWorkerQueueActivity.mockResolvedValue('agent_queue')
     mockActivities.updateTaskStatusActivity.mockResolvedValue({})
     mockActivities.createCommentActivity.mockResolvedValue({ id: 'comment-placeholder-id' })
     mockActivities.generateSessionNameActivity.mockResolvedValue(undefined)
+    mockActivities.getUserTeamInfoActivity.mockResolvedValue({ name: 'Test User', role: 'owner' })
     mockActivities.getAssetActivity.mockResolvedValue({
       id: 'a1',
       project: { teamId: 't1' },
@@ -564,6 +568,39 @@ describe('Agent Chat Workflow', () => {
         message: 'Explain this version stack video',
         agentsInstruction: expectedInstruction,
         sessionId: 'session-vs-123',
+      }),
+    )
+  })
+
+  it('should inject user info for 1-on-1 new chat sessions', async () => {
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'chat',
+        status: 'pending',
+        assetId: 'a1',
+        payload: {
+          projectId: 'p1',
+          agent: {
+            prompt: 'Hello agent from 1-on-1 chat',
+            sessionId: 'session-new-1-on-1',
+            agentId: 'b1',
+            userId: 'user-alice',
+            isNewChat: true,
+          },
+        },
+      },
+    })
+
+    await agentChat(task)
+
+    expect(mockActivities.getUserTeamInfoActivity).toHaveBeenCalledWith({
+      userId: 'user-alice',
+      teamId: 't1',
+    })
+
+    expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentsInstruction: expect.stringContaining('User Info:\nName: Test User\nRole: owner'),
       }),
     )
   })
