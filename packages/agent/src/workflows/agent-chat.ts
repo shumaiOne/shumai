@@ -18,6 +18,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     initializeAgentSessionActivity,
     getAssetPathContextActivity,
     generateSessionNameActivity,
+    getUserTeamInfoActivity,
   } = getActivities()
 
   let placeholderCommentId: string | undefined
@@ -162,8 +163,16 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       }
     }
 
+    let userInfo: { name: string; role: string } | null = null
+    if (!userCommentId && isNewChat && payload.agent?.userId) {
+      userInfo = await executeActivity(agentWorkerQueue, getUserTeamInfoActivity, {
+        userId: payload.agent.userId,
+        teamId,
+      })
+    }
+
     const proxyType = (asset.media as PrismaJson.MediaInfo | null)?.proxyType
-    const instruction = new AgentChatPromptBuilder(asset.id)
+    const promptBuilder = new AgentChatPromptBuilder(asset.id)
       .withContinuation(!isNewChat)
       .withAssetChanged(payload.agent?.hasAssetChanged)
       .withPathContext(pathContext)
@@ -172,7 +181,12 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       .withExplicitMention(payload.agent?.explicitMention)
       .withAttachedFiles(attachedFileDetailsList)
       .withReferencedAssets(referencedAssetDetailsList)
-      .build()
+
+    if (userInfo) {
+      promptBuilder.withUserInfo(userInfo.name, userInfo.role)
+    }
+
+    const instruction = promptBuilder.build()
 
     // 6. Call AI Chat
     let folderId = ''

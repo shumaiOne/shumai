@@ -338,15 +338,58 @@ export interface AgentChatParams {
   attachedAssets?: Array<{ id: string; name: string; type: string }>
 }
 
+export async function getUserTeamInfoActivity(params: {
+  userId?: string
+  teamId: string
+}): Promise<{ name: string; role: string } | null> {
+  if (!params.userId) return null
+  const [user, member] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: params.userId },
+      select: { name: true },
+    }),
+    prisma.teamMember.findUnique({
+      where: { teamIdUserId: { teamId: params.teamId, userId: params.userId } },
+      select: { role: true },
+    }),
+  ])
+  if (!user) return null
+  return {
+    name: user.name || 'Unknown User',
+    role: member?.role || 'user',
+  }
+}
+
 export async function agentChatActivity(params: AgentChatParams) {
   const cleanMessage = params.message.replace(/<@[A-Z0-9]+>/g, '').trim()
   const sessionId = params.sessionId
+
+  let prompt = cleanMessage
+  if (params.userCommentId) {
+    let targetUserId = params.userId
+    if (!targetUserId) {
+      const comment = await prisma.assetComment.findUnique({
+        where: { id: params.userCommentId },
+        select: { creatorId: true },
+      })
+      targetUserId = comment?.creatorId || undefined
+    }
+    if (targetUserId) {
+      const userInfo = await getUserTeamInfoActivity({
+        userId: targetUserId,
+        teamId: params.teamId,
+      })
+      if (userInfo) {
+        prompt = `[${userInfo.name} (${userInfo.role})]: ${cleanMessage}`
+      }
+    }
+  }
 
   return executeAgentPrompt({
     taskId: params.taskId,
     teamId: params.teamId,
     agentId: params.agentId,
-    prompt: cleanMessage,
+    prompt,
     images: params.imageUrls,
     agentsInstruction: params.agentsInstruction || '',
     sessionId,
@@ -531,6 +574,27 @@ export async function initializeAgentSessionActivity(params: {
     }
   }
 
+  const userRoleMap = new Map<string, string>()
+  const humanCreatorIds = Array.from(
+    new Set(
+      existingComments
+        .filter((c) => c.creator?.type !== 'agent' && c.creatorId)
+        .map((c) => c.creatorId!),
+    ),
+  )
+  if (humanCreatorIds.length > 0) {
+    const members = await prisma.teamMember.findMany({
+      where: {
+        teamId: params.teamId,
+        userId: { in: humanCreatorIds },
+      },
+      select: { userId: true, role: true },
+    })
+    for (const m of members) {
+      userRoleMap.set(m.userId, m.role)
+    }
+  }
+
   // Save context as AgentSessionEntry records
   let prevId: string | null = null
   for (const c of existingComments) {
@@ -547,7 +611,8 @@ export async function initializeAgentSessionActivity(params: {
       const agentName = c.creator?.name || 'Ai Agent'
       messageContent = `[Agent Message][${agentName}]: ${messageContent}`
     } else if (c.creator?.name) {
-      messageContent = `[${c.creator.name}]: ${messageContent}`
+      const role = (c.creatorId ? userRoleMap.get(c.creatorId) : undefined) || 'user'
+      messageContent = `[${c.creator.name} (${role})]: ${messageContent}`
     }
 
     const entryId = ulid()

@@ -17,12 +17,20 @@ export class AgentChatPromptBuilder {
   private explicitMention = false
   private attachedFiles: string[] = []
   private referencedAssets: string[] = []
+  private userInfo?: { name: string; role: string }
 
   private isContinuation = false
   private hasAssetChanged = false
 
   constructor(assetId: string) {
     this.assetId = assetId
+  }
+
+  withUserInfo(name?: string, role?: string): this {
+    if (name) {
+      this.userInfo = { name, role: role || 'user' }
+    }
+    return this
   }
 
   withContinuation(isContinuation: boolean): this {
@@ -176,6 +184,10 @@ export class AgentChatPromptBuilder {
       instruction += `\n\nThe user explicitly mentioned you in their message. You MUST reply to this message.`
     } else {
       instruction += `\n\nThe user did not explicitly mention you, but is replying in a thread where you are the participant. Let's decide if you should reply or not. If the user is not directly addressing you or doesn't need a response from you, you may choose to not reply. To choose not to reply, respond with exactly and only the text: __NO_REPLY__.`
+    }
+
+    if (this.userInfo) {
+      instruction += `\n\nUser Info:\nName: ${this.userInfo.name}\nRole: ${this.userInfo.role}`
     }
 
     return instruction
