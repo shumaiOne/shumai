@@ -1198,4 +1198,66 @@ describe('Agent Database Activities Integration', () => {
       expect(piAgent.createAgentSession).not.toHaveBeenCalled()
     })
   })
+
+  describe('initializeAgentSessionActivity', () => {
+    it('should perform lazy session creation and incremental 1:1 message entry sync', async () => {
+      const team = await prisma.team.create({
+        data: { id: 't-lazy-1', name: 'Lazy Team' },
+      })
+      const user = await prisma.user.create({
+        data: { id: 'u-lazy-1', name: 'Matt', email: 'matt@test.com' },
+      })
+      const agentUser = await prisma.user.create({
+        data: { id: 'agent-lazy-1', name: 'Ai Agent', email: 'agent@shumai.ai', type: 'agent' },
+      })
+      const agent = await prisma.agent.create({
+        data: {
+          id: agentUser.id,
+          teamId: team.id,
+          type: 'chat',
+          config: { provider: 'openai', model: 'gpt-4' },
+        },
+      })
+      const file = await prisma.asset.create({
+        data: { name: 'file.mp4', type: 'file', status: 'processed' },
+      })
+
+      const c1 = await prisma.assetComment.create({
+        data: { assetId: file.id, message: 'First comment', creatorId: user.id },
+      })
+      const c2 = await prisma.assetComment.create({
+        data: { assetId: file.id, message: 'Second comment', creatorId: user.id },
+      })
+      const c3 = await prisma.assetComment.create({
+        data: {
+          assetId: file.id,
+          message: '@agent summarize',
+          creatorId: user.id,
+          replyToId: c1.id,
+        },
+      })
+
+      const sessionId = await initializeAgentSessionActivity({
+        teamId: team.id,
+        agentId: agent.id,
+        userCommentId: c3.id,
+      })
+
+      expect(sessionId).toBeDefined()
+
+      const entries = await prisma.agentSessionEntry.findMany({
+        where: { sessionId },
+      })
+
+      expect(entries.length).toBeGreaterThanOrEqual(3)
+      const c1Entry = entries.find((e) => e.id === c1.id)
+      expect(c1Entry).toBeDefined()
+      expect(c2).toBeDefined()
+
+      const session = await prisma.agentSession.findUnique({
+        where: { id: sessionId },
+      })
+      expect(session?.leafId).toBe(c1.id)
+    })
+  })
 })

@@ -1,7 +1,4 @@
-import {
-  type AgentTool,
-  type SessionTreeEntry,
-} from '@earendil-works/pi-agent-core'
+import { type AgentMessage, type AgentTool, type SessionTreeEntry } from '@earendil-works/pi-agent-core'
 import { type ImageContent } from '@earendil-works/pi-ai'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
@@ -489,13 +486,18 @@ export async function initializeAgentSessionActivity(params: {
     include: { creator: true },
   })
 
+  if (!userComment) {
+    throw ApplicationFailure.create({
+      message: `comment ${params.userCommentId} not found`,
+      nonRetryable: true,
+    })
+  }
+
   // Reuse existing AgentSession for the asset or create one
-  let session = userComment?.assetId
-    ? await prisma.agentSession.findFirst({
-        where: { assetId: userComment.assetId, type: 'comment' },
-        orderBy: { createdAt: 'asc' },
-      })
-    : null
+  let session = await prisma.agentSession.findFirst({
+    where: { assetId: userComment.assetId, type: 'comment' },
+    orderBy: { createdAt: 'asc' },
+  })
 
   if (!session) {
     session = await prisma.agentSession.create({
@@ -503,7 +505,7 @@ export async function initializeAgentSessionActivity(params: {
         agentId,
         userId: params.userId || null,
         cwd: process.cwd(),
-        assetId: userComment ? userComment.assetId : null,
+        assetId: userComment.assetId,
         userCommentId: params.userCommentId,
         type: 'comment',
       },
@@ -511,8 +513,105 @@ export async function initializeAgentSessionActivity(params: {
   }
 
   const sessionId = session.id
+  const rootEntryId = `root-${sessionId}`
 
-  if (userComment && !userComment.sessionId) {
+  // Ensure root entry exists
+  const existingRoot = await prisma.agentSessionEntry.findUnique({
+    where: { id: rootEntryId },
+  })
+  if (!existingRoot) {
+    await prisma.agentSessionEntry.create({
+      data: {
+        id: rootEntryId,
+        sessionId,
+        entry: {
+          id: rootEntryId,
+          type: 'session_info',
+          parentId: null,
+          timestamp: session.createdAt.toISOString(),
+        },
+      },
+    })
+  }
+
+  // Fetch all existing entries for this session to check what's already synced
+  const existingEntries = await prisma.agentSessionEntry.findMany({
+    where: { sessionId },
+    select: { id: true },
+  })
+  const existingEntryIds = new Set(existingEntries.map((e) => e.id))
+
+  // Fetch all comments for the asset in chronological order
+  const allComments = await prisma.assetComment.findMany({
+    where: { assetId: userComment.assetId },
+    orderBy: { createdAt: 'asc' },
+    include: { creator: true },
+  })
+
+  // Perform lazy incremental sync for un-synced comments up to (and excluding) userComment
+  for (const c of allComments) {
+    if (c.id === userComment.id) break
+    if (existingEntryIds.has(c.id)) continue
+
+    const parentId = c.replyToId && existingEntryIds.has(c.replyToId) ? c.replyToId : rootEntryId
+    const isAgent = c.creator?.type === 'agent' || c.creatorId === agentId
+    const authorName = c.creator?.name || (isAgent ? 'Ai Agent' : 'User')
+    const messageContent = c.message || ''
+    const formattedText = isAgent ? messageContent : `[${authorName}]: ${messageContent}`
+
+    const messageObj: AgentMessage = isAgent
+      ? ({
+          role: 'assistant',
+          content: [{ type: 'text', text: formattedText }],
+          api: 'shumai',
+          provider: 'openai',
+          model: 'gpt-4',
+          usage: {
+            input: 0,
+            output: 0,
+            cacheRead: 0,
+            cacheWrite: 0,
+            totalTokens: 0,
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+          },
+          stopReason: 'stop',
+          timestamp: c.createdAt.getTime(),
+        } as unknown as AgentMessage)
+      : {
+          role: 'user',
+          content: [{ type: 'text', text: formattedText }],
+          timestamp: c.createdAt.getTime(),
+        }
+
+    await prisma.agentSessionEntry.create({
+      data: {
+        id: c.id,
+        sessionId,
+        entry: {
+          id: c.id,
+          type: 'message',
+          parentId,
+          timestamp: c.createdAt.toISOString(),
+          message: messageObj,
+        },
+      },
+    })
+    existingEntryIds.add(c.id)
+  }
+
+  // Determine parentId for userComment
+  const userCommentParentId =
+    userComment.replyToId && existingEntryIds.has(userComment.replyToId)
+      ? userComment.replyToId
+      : rootEntryId
+
+  // Set session leafId to userCommentParentId so harness.prompt appends userComment at the right parent entry
+  await prisma.agentSession.update({
+    where: { id: sessionId },
+    data: { leafId: userCommentParentId },
+  })
+
+  if (!userComment.sessionId) {
     await prisma.assetComment.update({
       where: { id: userComment.id },
       data: { sessionId },

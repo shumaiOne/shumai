@@ -135,6 +135,9 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     sessionId,
     cwd: process.cwd(),
   })
+  if (passedUserCommentId) {
+    storage.nextEntryId = passedUserCommentId
+  }
   const session = new Session(storage)
 
   const agentDir = path.join(process.cwd(), '.pi', 'agents', agentId)

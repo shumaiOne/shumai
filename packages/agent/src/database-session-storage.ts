@@ -72,7 +72,14 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
     await this.appendEntry(leafEntry)
   }
 
+  nextEntryId?: string
+
   async createEntryId(): Promise<string> {
+    if (this.nextEntryId) {
+      const id = this.nextEntryId
+      this.nextEntryId = undefined
+      return id
+    }
     return ulid()
   }
 
