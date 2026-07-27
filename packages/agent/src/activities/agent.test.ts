@@ -1252,7 +1252,10 @@ describe('Agent Database Activities Integration', () => {
       expect(entries.length).toBeGreaterThanOrEqual(3)
       const c1Entry = entries.find((e) => e.id === c1.id)
       expect(c1Entry).toBeDefined()
-      expect(c2).toBeDefined()
+
+      const c2Entry = entries.find((e) => e.id === c2.id) as unknown as { entry: { parentId: string } }
+      expect(c2Entry).toBeDefined()
+      expect(c2Entry.entry.parentId).toBe(c1.id)
 
       const session = await prisma.agentSession.findUnique({
         where: { id: sessionId },

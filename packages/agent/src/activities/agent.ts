@@ -548,62 +548,79 @@ export async function initializeAgentSessionActivity(params: {
     include: { creator: true },
   })
 
+  // Track the entry ID of the latest top-level comment on the main trunk
+  let lastTopLevelCommentEntryId = rootEntryId
+
   // Perform lazy incremental sync for un-synced comments up to (and excluding) userComment
   for (const c of allComments) {
+    const isTopLevel = !c.replyToId
+
     if (c.id === userComment.id) break
-    if (existingEntryIds.has(c.id)) continue
 
-    const parentId = c.replyToId && existingEntryIds.has(c.replyToId) ? c.replyToId : rootEntryId
-    const isAgent = c.creator?.type === 'agent' || c.creatorId === agentId
-    const authorName = c.creator?.name || (isAgent ? 'Ai Agent' : 'User')
-    const messageContent = c.message || ''
-    const formattedText = isAgent ? messageContent : `[${authorName}]: ${messageContent}`
+    let parentId: string
+    if (isTopLevel) {
+      parentId = lastTopLevelCommentEntryId
+    } else {
+      parentId = c.replyToId && existingEntryIds.has(c.replyToId) ? c.replyToId : rootEntryId
+    }
 
-    const messageObj: AgentMessage = isAgent
-      ? ({
-          role: 'assistant',
-          content: [{ type: 'text', text: formattedText }],
-          api: 'shumai',
-          provider: 'openai',
-          model: 'gpt-4',
-          usage: {
-            input: 0,
-            output: 0,
-            cacheRead: 0,
-            cacheWrite: 0,
-            totalTokens: 0,
-            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
-          },
-          stopReason: 'stop',
-          timestamp: c.createdAt.getTime(),
-        } as unknown as AgentMessage)
-      : {
-          role: 'user',
-          content: [{ type: 'text', text: formattedText }],
-          timestamp: c.createdAt.getTime(),
-        }
+    if (!existingEntryIds.has(c.id)) {
+      const isAgent = c.creator?.type === 'agent' || c.creatorId === agentId
+      const authorName = c.creator?.name || (isAgent ? 'Ai Agent' : 'User')
+      const messageContent = c.message || ''
+      const formattedText = isAgent ? messageContent : `[${authorName}]: ${messageContent}`
 
-    await prisma.agentSessionEntry.create({
-      data: {
-        id: c.id,
-        sessionId,
-        entry: {
+      const messageObj: AgentMessage = isAgent
+        ? ({
+            role: 'assistant',
+            content: [{ type: 'text', text: formattedText }],
+            api: 'shumai',
+            provider: 'openai',
+            model: 'gpt-4',
+            usage: {
+              input: 0,
+              output: 0,
+              cacheRead: 0,
+              cacheWrite: 0,
+              totalTokens: 0,
+              cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+            },
+            stopReason: 'stop',
+            timestamp: c.createdAt.getTime(),
+          } as unknown as AgentMessage)
+        : {
+            role: 'user',
+            content: [{ type: 'text', text: formattedText }],
+            timestamp: c.createdAt.getTime(),
+          }
+
+      await prisma.agentSessionEntry.create({
+        data: {
           id: c.id,
-          type: 'message',
-          parentId,
-          timestamp: c.createdAt.toISOString(),
-          message: messageObj,
+          sessionId,
+          entry: {
+            id: c.id,
+            type: 'message',
+            parentId,
+            timestamp: c.createdAt.toISOString(),
+            message: messageObj,
+          },
         },
-      },
-    })
-    existingEntryIds.add(c.id)
+      })
+      existingEntryIds.add(c.id)
+    }
+
+    if (isTopLevel) {
+      lastTopLevelCommentEntryId = c.id
+    }
   }
 
   // Determine parentId for userComment
-  const userCommentParentId =
-    userComment.replyToId && existingEntryIds.has(userComment.replyToId)
+  const userCommentParentId = userComment.replyToId
+    ? existingEntryIds.has(userComment.replyToId)
       ? userComment.replyToId
       : rootEntryId
+    : lastTopLevelCommentEntryId
 
   // Set session leafId to userCommentParentId so harness.prompt appends userComment at the right parent entry
   await prisma.agentSession.update({
