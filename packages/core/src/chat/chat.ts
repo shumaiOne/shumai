@@ -317,7 +317,6 @@ export class ChatService {
               imageUrls: resolvedImageUrls,
               attachedFiles,
               assetIds,
-              explicitMention: true,
               agentId,
               sessionId: activeSessionId,
               userId: user.id,

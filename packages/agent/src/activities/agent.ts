@@ -333,7 +333,6 @@ export interface AgentChatParams {
   sessionId: string
   userId?: string
   userCommentId?: string | null
-  explicitMention?: boolean
   context: AgentExecutionContext
   attachedAssets?: Array<{ id: string; name: string; type: string }>
 }

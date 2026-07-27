@@ -2,19 +2,11 @@ import { describe, it, expect } from 'vitest'
 import { AgentChatPromptBuilder } from './agent-chat-prompt-builder'
 
 describe('AgentChatPromptBuilder', () => {
-  it('should build prompt with baseline configurations (implicit mention, other asset type)', () => {
+  it('should build prompt with baseline configurations', () => {
     const builder = new AgentChatPromptBuilder('a1')
     const result = builder.build()
 
     expect(result).toContain('The user is discussing an asset with ID: a1.')
-    expect(result).toContain('The user did not explicitly mention you')
-  })
-
-  it('should build prompt with explicit mention', () => {
-    const builder = new AgentChatPromptBuilder('a1').withExplicitMention(true)
-    const result = builder.build()
-
-    expect(result).toContain('The user explicitly mentioned you')
   })
 
   it('should build prompt with path context', () => {
@@ -105,7 +97,6 @@ describe('AgentChatPromptBuilder', () => {
 
   it('should build prompt with all fields combined', () => {
     const builder = new AgentChatPromptBuilder('a1')
-      .withExplicitMention(true)
       .withPathContext('src/main.ts')
       .withAssetDetails('movie.mp4', 'video/mp4', 12.34, undefined, 'video')
       .withCommentTimestamp(8.2)
@@ -118,7 +109,6 @@ describe('AgentChatPromptBuilder', () => {
     expect(result).toContain('Comment Timestamp: 8.20 seconds')
     expect(result).toContain('Asset Path Context:\nsrc/main.ts')
     expect(result).toContain("call the 'screenshot' tool")
-    expect(result).toContain('The user explicitly mentioned you')
   })
 
   it('should build prompt with attached files and referenced assets', () => {

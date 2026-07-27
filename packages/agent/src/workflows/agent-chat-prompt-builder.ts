@@ -14,7 +14,6 @@ export class AgentChatPromptBuilder {
   private totalPages?: number
   private commentTimestamp?: number
   private pathContext?: string
-  private explicitMention = false
   private attachedFiles: string[] = []
   private referencedAssets: string[] = []
   private userInfo?: { name: string; role: string }
@@ -81,11 +80,6 @@ export class AgentChatPromptBuilder {
     if (second !== undefined && second !== null) {
       this.commentTimestamp = second
     }
-    return this
-  }
-
-  withExplicitMention(explicitMention?: boolean): this {
-    this.explicitMention = !!explicitMention
     return this
   }
 
@@ -178,12 +172,6 @@ export class AgentChatPromptBuilder {
       } else if (type === 'pdf') {
         instruction += `\n\nIf you need to view pages of the PDF document, call the 'read_pdf_pages' tool. You must specify the 'start' (page number) and 'end' (page number) parameters. Maximum 20 pages allowed per call.`
       }
-    }
-
-    if (this.explicitMention) {
-      instruction += `\n\nThe user explicitly mentioned you in their message. You MUST reply to this message.`
-    } else {
-      instruction += `\n\nThe user did not explicitly mention you, but is replying in a thread where you are the participant. Let's decide if you should reply or not. If the user is not directly addressing you or doesn't need a response from you, you may choose to not reply. To choose not to reply, respond with exactly and only the text: __NO_REPLY__.`
     }
 
     if (this.userInfo) {
