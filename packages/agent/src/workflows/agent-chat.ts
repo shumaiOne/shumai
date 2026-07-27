@@ -18,7 +18,6 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     getAssetPathContextActivity,
     generateSessionNameActivity,
     getUserTeamInfoActivity,
-    getAssetTopLevelThreadsActivity,
   } = getActivities()
 
   let placeholderCommentId: string | undefined
