@@ -99,7 +99,7 @@ describe('Agent Chat Workflow', () => {
         assetId: 'a1',
         payload: {
           projectId: 'p1',
-          agent: { userCommentId: 'c1', agentId: 'b1', explicitMention: true },
+          agent: { userCommentId: 'c1', agentId: 'b1' },
         },
       },
     })
@@ -140,7 +140,6 @@ describe('Agent Chat Workflow', () => {
       .withPathContext('Path: folder/subfolder/file.png')
       .withAssetDetails('test-file.png', 'image/png', undefined, undefined, 'image')
       .withCommentTimestamp(null)
-      .withExplicitMention(true)
       .build()
 
     expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
@@ -207,7 +206,6 @@ describe('Agent Chat Workflow', () => {
       .withPathContext('Path: folder/subfolder/file.png')
       .withAssetDetails('test-file.png', 'image/png', undefined)
       .withCommentTimestamp(null)
-      .withExplicitMention(false)
       .build()
 
     expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
@@ -219,52 +217,6 @@ describe('Agent Chat Workflow', () => {
 
     // Verify session name generation is skipped
     expect(mockActivities.generateSessionNameActivity).not.toHaveBeenCalled()
-  })
-
-  it('should delete placeholder comment and finish when AI responds with __NO_REPLY__', async () => {
-    mockActivities.agentChatActivity.mockResolvedValue({
-      text: '__NO_REPLY__',
-      sessionId: 'session-123',
-    })
-
-    const task = await prisma.workflowTask.create({
-      data: {
-        type: 'chat',
-        status: 'pending',
-        assetId: 'a1',
-        payload: {
-          projectId: 'p1',
-          agent: { userCommentId: 'c1', agentId: 'b1', explicitMention: false },
-        },
-      },
-    })
-
-    await agentChat(task)
-
-    // Verify instruction contains not explicitly mentioned instructions
-    const expectedInstruction3 = new AgentChatPromptBuilder('a1')
-      .withPathContext('Path: folder/subfolder/file.png')
-      .withAssetDetails('test-file.png', 'image/png', undefined, undefined, 'image')
-      .withCommentTimestamp(null)
-      .withExplicitMention(false)
-      .build()
-
-    expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
-      expect.objectContaining({
-        agentsInstruction: expectedInstruction3,
-      }),
-    )
-
-    // Verify placeholder comment is deleted
-    expect(mockActivities.deleteCommentActivity).toHaveBeenCalledWith('comment-placeholder-id')
-    expect(mockActivities.updateCommentActivity).not.toHaveBeenCalled()
-
-    // Verify task still completes successfully
-    expect(mockActivities.updateTaskStatusActivity).toHaveBeenCalledWith({
-      taskId: task.id,
-      status: 'completed',
-      output: { sessionId: 'session-123' },
-    })
   })
 
   it('should collect S3 keys for image attachments from the user comment', async () => {
@@ -315,7 +267,6 @@ describe('Agent Chat Workflow', () => {
       .withPathContext('Path: folder/subfolder/file.png')
       .withAssetDetails('test-file.png', 'image/png', undefined, undefined, 'image')
       .withCommentTimestamp(null)
-      .withExplicitMention(false)
       .build()
 
     expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
@@ -358,7 +309,6 @@ describe('Agent Chat Workflow', () => {
       .withPathContext('Path: folder/subfolder/file.png')
       .withAssetDetails('test-asset', 'video/mp4', 10)
       .withCommentTimestamp(null)
-      .withExplicitMention(false)
       .build()
 
     expect(mockActivities.agentChatActivity).toHaveBeenCalledWith(
@@ -472,7 +422,6 @@ describe('Agent Chat Workflow', () => {
             prompt: 'chatbot prompt',
             attachedFiles: ['file-attachment-1'],
             assetIds: ['referenced-asset-1'],
-            explicitMention: true,
           },
         },
       },
@@ -490,7 +439,6 @@ describe('Agent Chat Workflow', () => {
       .withPathContext('folder/subfolder/file.png')
       .withAssetDetails('test-file.png', 'image/png', undefined)
       .withCommentTimestamp(undefined)
-      .withExplicitMention(true)
       .withAttachedFiles([
         '- Name: attachment.png (ID: file-attachment-1, Type: file, Media Type: image/png, Project ID: p1, Path: attachment.png)',
       ])
@@ -511,7 +459,6 @@ describe('Agent Chat Workflow', () => {
         sessionId: 'session-direct-123',
         userId: undefined,
         userCommentId: undefined,
-        explicitMention: true,
         context: { agent: { id: 'b1' } },
         attachedAssets: [
           { id: 'file-attachment-1', name: 'attachment.png', type: 'file' },

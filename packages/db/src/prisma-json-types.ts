@@ -302,7 +302,6 @@ declare global {
       userId?: string
       sessionId?: string
       userCommentId?: string
-      explicitMention?: boolean
       prompt?: string
       imageUrls?: string[]
       attachedFiles?: string[]

@@ -1144,7 +1144,6 @@ describe('AssetService', () => {
     const p1 = tasksRule1[0].payload
     expect(p1?.agent?.agentId).toBe(agent.id)
     expect(p1?.agent?.sessionId).toBeUndefined()
-    expect(p1?.agent?.explicitMention).toBe(true)
     expect(p1?.agent?.userId).toBe(user.id)
 
     // Rule 2: user mentions agent in reply, and root is not an agent comment
@@ -1163,7 +1162,6 @@ describe('AssetService', () => {
     const p2 = tasksRule2[0].payload
     expect(p2?.agent?.agentId).toBe(agent.id)
     expect(p2?.agent?.sessionId).toBeUndefined()
-    expect(p2?.agent?.explicitMention).toBe(true)
     expect(p2?.agent?.userId).toBe(user.id)
 
     // Create a root user comment
@@ -1195,7 +1193,7 @@ describe('AssetService', () => {
       },
     })
 
-    // Rule 3a: any user creates a reply directly to the agent comment, no explicit mention
+    // Rule 3a: any user creates a reply directly to the agent comment, no explicit mention -> NO task created
     const reply3a = await assetService.createComment({
       assetId: file.id,
       userId: user.id,
@@ -1216,12 +1214,7 @@ describe('AssetService', () => {
         payload: { path: ['agent', 'userCommentId'], equals: reply3a.id },
       },
     })
-    expect(tasksRule3a.length).toBe(1)
-    const p3a = tasksRule3a[0].payload
-    expect(p3a?.agent?.agentId).toBe(botUser.id)
-    expect(p3a?.agent?.sessionId).toBe('test-session-rule3')
-    expect(p3a?.agent?.explicitMention).toBe(false)
-    expect(p3a?.agent?.userId).toBe(user.id)
+    expect(tasksRule3a.length).toBe(0)
 
     // Rule 3b: any user creates a reply directly to the agent comment, explicitly mentions agent
     const reply3b = await assetService.createComment({
@@ -1248,7 +1241,6 @@ describe('AssetService', () => {
     const p3b = tasksRule3b[0].payload
     expect(p3b?.agent?.agentId).toBe(botUser.id)
     expect(p3b?.agent?.sessionId).toBe('test-session-rule3')
-    expect(p3b?.agent?.explicitMention).toBe(true)
     expect(p3b?.agent?.userId).toBe(user.id)
   })
 

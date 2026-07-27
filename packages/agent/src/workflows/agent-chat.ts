@@ -14,7 +14,6 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     updateCommentActivity,
     updateTaskUsageActivity,
     getAgentWorkerQueueActivity,
-    deleteCommentActivity,
     initializeAgentSessionActivity,
     getAssetPathContextActivity,
     generateSessionNameActivity,
@@ -178,7 +177,6 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       .withPathContext(pathContext)
       .withAssetDetails(asset.name, asset.mediaType, duration, totalPages, proxyType)
       .withCommentTimestamp(commentTimestamp)
-      .withExplicitMention(payload.agent?.explicitMention)
       .withAttachedFiles(attachedFileDetailsList)
       .withReferencedAssets(referencedAssetDetailsList)
 
@@ -208,7 +206,6 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       sessionId,
       userId: payload.agent?.userId,
       userCommentId: userCommentId || undefined,
-      explicitMention: payload.agent?.explicitMention,
       context,
       attachedAssets,
     })
@@ -227,15 +224,11 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
 
     // 7. Update Placeholder Comment
     if (placeholderCommentId) {
-      if (aiResult.text.trim() === '__NO_REPLY__') {
-        await executeActivity(agentWorkerQueue, deleteCommentActivity, placeholderCommentId)
-      } else {
-        await executeActivity(agentWorkerQueue, updateCommentActivity, {
-          commentId: placeholderCommentId,
-          message: aiResult.text,
-          sessionId: aiResult.sessionId,
-        })
-      }
+      await executeActivity(agentWorkerQueue, updateCommentActivity, {
+        commentId: placeholderCommentId,
+        message: aiResult.text,
+        sessionId: aiResult.sessionId,
+      })
     }
 
     // 8. Update Usage

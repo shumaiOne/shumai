@@ -1323,8 +1323,7 @@ export class AssetService {
         const isRootAgent = !!rootSessionId || parentComment.creator?.type === 'agent'
         const rootAgentId = parentComment.creatorId
 
-        if (isRootAgent && rootAgentId) {
-          const explicitMention = mentionedAgentIds.has(rootAgentId)
+        if (isRootAgent && rootAgentId && mentionedAgentIds.has(rootAgentId)) {
           await tx.workflowTask.create({
             data: {
               assetId: a.id,
@@ -1338,7 +1337,6 @@ export class AssetService {
                   userCommentId: comment.id,
                   agentId: rootAgentId,
                   sessionId: rootSessionId || undefined,
-                  explicitMention,
                   userId: req.userId,
                 },
               },
@@ -1373,7 +1371,6 @@ export class AssetService {
                 agent: {
                   userCommentId: comment.id,
                   agentId: agentId,
-                  explicitMention: true,
                   userId: req.userId,
                 },
               },
