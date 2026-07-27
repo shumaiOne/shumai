@@ -30,7 +30,7 @@ interface FileBrowserContextMenuProps {
   onRename: (item: AssetInfo) => void
   onDelete: (items: AssetInfo[]) => void
   onDownload: (items: AssetInfo[]) => void
-  onCopyNameAndPath?: (items: AssetInfo[]) => void
+  onCopyNameAndDownloadLink?: (items: AssetInfo[]) => void
   onRestore: (items: AssetInfo[]) => void
   onNewFolder: (name: string) => void
   onUploadFile: () => void
@@ -56,7 +56,7 @@ export function FileBrowserContextMenu({
   onRename,
   onDelete,
   onDownload,
-  onCopyNameAndPath,
+  onCopyNameAndDownloadLink,
   onRestore,
   onNewFolder,
   onUploadFile,
@@ -100,11 +100,11 @@ export function FileBrowserContextMenu({
     }
   }
 
-  const handleCopyNameAndPath = () => {
+  const handleCopyNameAndDownloadLink = () => {
     if (isItemSelected) {
-      onCopyNameAndPath?.(selectedItems)
+      onCopyNameAndDownloadLink?.(selectedItems)
     } else if (item) {
-      onCopyNameAndPath?.([item])
+      onCopyNameAndDownloadLink?.([item])
     }
   }
 
@@ -120,9 +120,9 @@ export function FileBrowserContextMenu({
           <Download className="mr-2 h-4 w-4" />
           <span>{m.download()}</span>
         </ContextMenuItem>
-        <ContextMenuItem onSelect={handleCopyNameAndPath}>
+        <ContextMenuItem onSelect={handleCopyNameAndDownloadLink}>
           <Copy className="mr-2 h-4 w-4" />
-          <span>{m.copy_name_and_path()}</span>
+          <span>{m.copy_name_and_download_link()}</span>
         </ContextMenuItem>
         {canEdit && (
           <ContextMenuItem
@@ -191,9 +191,9 @@ export function FileBrowserContextMenu({
           <Download className="mr-2 h-4 w-4" />
           <span>{m.download()}</span>
         </ContextMenuItem>
-        <ContextMenuItem onSelect={handleCopyNameAndPath}>
+        <ContextMenuItem onSelect={handleCopyNameAndDownloadLink}>
           <Copy className="mr-2 h-4 w-4" />
-          <span>{m.copy_name_and_path()}</span>
+          <span>{m.copy_name_and_download_link()}</span>
         </ContextMenuItem>
         {canEdit && (
           <ContextMenuItem onSelect={() => onMoveTo(itemsToModify)}>
@@ -265,9 +265,9 @@ export function FileBrowserContextMenu({
           <Download className="mr-2 h-4 w-4" />
           <span>{m.download()}</span>
         </ContextMenuItem>
-        <ContextMenuItem onSelect={handleCopyNameAndPath}>
+        <ContextMenuItem onSelect={handleCopyNameAndDownloadLink}>
           <Copy className="mr-2 h-4 w-4" />
-          <span>{m.copy_name_and_path()}</span>
+          <span>{m.copy_name_and_download_link()}</span>
         </ContextMenuItem>
 
         {canEdit && (

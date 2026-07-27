@@ -228,7 +228,7 @@ export function useFileActions({
     }
   }
 
-  const handleCopyNameAndPath = async (items: AssetInfo[]) => {
+  const handleCopyNameAndDownloadLink = async (items: AssetInfo[]) => {
     if (items.length === 0) return
     try {
       const res = await getDownloadLinks({
@@ -246,10 +246,10 @@ export function useFileActions({
 
       const ok = await copyToClipboard(text)
       if (ok) {
-        toast.success(m.copied_name_and_path_to_clipboard())
+        toast.success(m.copied_name_and_download_link_to_clipboard())
       }
     } catch (error) {
-      toast.error('Failed to copy name and path')
+      toast.error('Failed to copy name and download link')
       console.error(error)
     }
   }
@@ -350,7 +350,7 @@ export function useFileActions({
   }
 
   const handleAction = (
-    action: 'rename' | 'delete' | 'download' | 'restore' | 'copy-name-and-path',
+    action: 'rename' | 'delete' | 'download' | 'restore' | 'copy-name-and-download-link',
     item: AssetInfo,
   ) => {
     const isSelected = selectedIds.has(item.id!)
@@ -371,8 +371,8 @@ export function useFileActions({
       case 'restore':
         handleRestore(targetItems)
         break
-      case 'copy-name-and-path':
-        handleCopyNameAndPath(targetItems)
+      case 'copy-name-and-download-link':
+        handleCopyNameAndDownloadLink(targetItems)
         break
     }
   }
@@ -384,7 +384,7 @@ export function useFileActions({
     handleDelete,
     handleRestore,
     handleDownload,
-    handleCopyNameAndPath,
+    handleCopyNameAndDownloadLink,
     handleNewFolder,
     handleAction,
     onRenameSubmit,

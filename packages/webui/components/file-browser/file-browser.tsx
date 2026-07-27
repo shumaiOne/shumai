@@ -400,7 +400,7 @@ export function FileBrowser({
     handleRename,
     handleRestore,
     handleDownload,
-    handleCopyNameAndPath,
+    handleCopyNameAndDownloadLink,
     handleAction,
     onRenameSubmit,
     isDeleteDialogOpen,
@@ -1162,7 +1162,7 @@ export function FileBrowser({
           onRename={handleRename}
           onDelete={handleDelete}
           onDownload={handleDownload}
-          onCopyNameAndPath={handleCopyNameAndPath}
+          onCopyNameAndDownloadLink={handleCopyNameAndDownloadLink}
           onNewFolder={handleNewFolder}
           onUploadFile={handleUploadFilesClick}
           onUploadFolder={handleUploadFolderClick}
