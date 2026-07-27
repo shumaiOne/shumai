@@ -513,32 +513,34 @@ export async function initializeAgentSessionActivity(params: {
   }
 
   const sessionId = session.id
-  const rootEntryId = `root-${sessionId}`
 
-  // Ensure root entry exists
-  const existingRoot = await prisma.agentSessionEntry.findUnique({
-    where: { id: rootEntryId },
+  // Fetch all existing entries for this session to check what's already synced
+  const existingEntries = await prisma.agentSessionEntry.findMany({
+    where: { sessionId },
   })
-  if (!existingRoot) {
-    await prisma.agentSessionEntry.create({
+
+  // Ensure root entry (parentId === null) exists
+  let rootEntry = existingEntries.find(
+    (e) => (e.entry as { parentId?: string | null }).parentId === null,
+  )
+  if (!rootEntry) {
+    const rootId = ulid()
+    rootEntry = await prisma.agentSessionEntry.create({
       data: {
-        id: rootEntryId,
+        id: rootId,
         sessionId,
         entry: {
-          id: rootEntryId,
+          id: rootId,
           type: 'session_info',
           parentId: null,
           timestamp: session.createdAt.toISOString(),
         },
       },
     })
+    existingEntries.push(rootEntry)
   }
 
-  // Fetch all existing entries for this session to check what's already synced
-  const existingEntries = await prisma.agentSessionEntry.findMany({
-    where: { sessionId },
-    select: { id: true },
-  })
+  const rootEntryId = rootEntry.id
   const existingEntryIds = new Set(existingEntries.map((e) => e.id))
 
   // Fetch all comments for the asset in chronological order
