@@ -18,6 +18,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     getAssetPathContextActivity,
     generateSessionNameActivity,
     getUserTeamInfoActivity,
+    getCommentReplyCountActivity,
   } = getActivities()
 
   let placeholderCommentId: string | undefined
@@ -56,7 +57,23 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       if (!userComment) {
         throw ApplicationFailure.create({ message: 'User comment not found', nonRetryable: true })
       }
-      prompt = userComment.message || ''
+      const isTopLevel = !userComment.replyToId
+      let replyCount = 0
+      if (isTopLevel) {
+        replyCount = await executeActivity(
+          agentWorkerQueue,
+          getCommentReplyCountActivity,
+          userCommentId,
+        )
+      }
+
+      const authorName = userComment.creator?.name || 'User'
+      const isOwner =
+        userComment.asset?.creatorId && userComment.creatorId === userComment.asset.creatorId
+      const userRoleText = isOwner ? ' (owner)' : ''
+      const commentIdTag = isTopLevel && replyCount > 0 ? `[Comment ID: ${userComment.id}]` : ''
+      prompt = `[${authorName}${userRoleText}]${commentIdTag}: ${userComment.message || ''}`
+
       if (userComment.second !== null && userComment.second !== undefined) {
         commentTimestamp = userComment.second
       }

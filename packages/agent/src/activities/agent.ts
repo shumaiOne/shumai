@@ -543,6 +543,25 @@ export async function initializeAgentSessionActivity(params: {
   const rootEntryId = rootEntry.id
   const existingEntryIds = new Set(existingEntries.map((e) => e.id))
 
+  // Fetch asset creatorId to determine owner role tag
+  const asset = await prisma.asset.findUnique({
+    where: { id: userComment.assetId },
+    select: { creatorId: true },
+  })
+
+  // Fetch reply counts per parent comment for this asset to identify top-level comments with replies
+  const commentReplyCounts = await prisma.assetComment.groupBy({
+    by: ['replyToId'],
+    where: { assetId: userComment.assetId, replyToId: { not: null } },
+    _count: { _all: true },
+  })
+  const replyCountMap = new Map<string, number>()
+  for (const item of commentReplyCounts) {
+    if (item.replyToId) {
+      replyCountMap.set(item.replyToId, item._count._all)
+    }
+  }
+
   // Fetch all comments for the asset in chronological order
   const allComments = await prisma.assetComment.findMany({
     where: { assetId: userComment.assetId },
@@ -569,8 +588,14 @@ export async function initializeAgentSessionActivity(params: {
     if (!existingEntryIds.has(c.id)) {
       const isAgent = c.creator?.type === 'agent' || c.creatorId === agentId
       const authorName = c.creator?.name || (isAgent ? 'Ai Agent' : 'User')
+      const isOwner = asset?.creatorId && c.creatorId === asset.creatorId
+      const userRoleText = isOwner ? ' (owner)' : ''
+      const isMultiReplyTopLevel = !c.replyToId && (replyCountMap.get(c.id) ?? 0) > 0
+      const commentIdTag = isMultiReplyTopLevel ? `[Comment ID: ${c.id}]` : ''
       const messageContent = c.message || ''
-      const formattedText = isAgent ? messageContent : `[${authorName}]: ${messageContent}`
+      const formattedText = isAgent
+        ? messageContent
+        : `[${authorName}${userRoleText}]${commentIdTag}: ${messageContent}`
 
       const messageObj: AgentMessage = isAgent
         ? ({
@@ -935,7 +960,17 @@ export async function getAssetActivity(assetId: string) {
 export async function getCommentActivity(commentId: string) {
   return prisma.assetComment.findUnique({
     where: { id: commentId },
-    include: { attachments: { include: { asset: { include: { storageKey: true } } } } },
+    include: {
+      creator: true,
+      asset: { select: { creatorId: true } },
+      attachments: { include: { asset: { include: { storageKey: true } } } },
+    },
+  })
+}
+
+export async function getCommentReplyCountActivity(commentId: string): Promise<number> {
+  return prisma.assetComment.count({
+    where: { replyToId: commentId },
   })
 }
 
