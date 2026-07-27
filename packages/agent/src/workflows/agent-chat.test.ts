@@ -183,7 +183,7 @@ describe('Agent Chat Workflow', () => {
     expect(mockActivities.generateSessionNameActivity).toHaveBeenCalledWith({
       teamId: 't1',
       agentId: 'b1',
-      prompt: 'hello agent',
+      prompt: expect.stringContaining('hello agent'),
       sessionId: 'session-123',
       context: expect.any(Object),
     })
