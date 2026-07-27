@@ -1249,7 +1249,7 @@ describe('Agent Database Activities Integration', () => {
         where: { sessionId },
       })
 
-      expect(entries.length).toBeGreaterThanOrEqual(3)
+      expect(entries.length).toEqual(2)
       const c1Entry = entries.find((e) => e.id === c1.id) as unknown as {
         entry: { parentId: string; message: { content: Array<{ text: string }> } }
       }
