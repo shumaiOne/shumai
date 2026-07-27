@@ -1,5 +1,4 @@
 import {
-  type AgentMessage,
   type AgentTool,
   type SessionTreeEntry,
 } from '@earendil-works/pi-agent-core'
@@ -490,164 +489,60 @@ export async function initializeAgentSessionActivity(params: {
     include: { creator: true },
   })
 
-  // Create a new AgentSession
-  const newSession = await prisma.agentSession.create({
-    data: {
-      agentId,
-      userId: params.userId || null,
-      cwd: process.cwd(),
-      assetId: userComment ? userComment.assetId : null,
-      userCommentId: params.userCommentId,
-    },
-  })
-  const sessionId = newSession.id
-
-  // Fetch existing comments as context
-  let existingComments: Array<{
-    id: string
-    message: string | null
-    createdAt: Date
-    creatorId: string | null
-    creator: { type: string; name: string } | null
-    sessionId: string | null
-  }> = []
-
-  if (userComment) {
-    if (!userComment.replyToId) {
-      // Rule 1: outside of a reply, add all other comments on that asset
-      existingComments = await prisma.assetComment.findMany({
-        where: {
-          assetId: userComment.assetId,
-          id: { not: userComment.id },
-        },
-        orderBy: { id: 'asc' },
-        include: { creator: true },
+  // Reuse existing AgentSession for the asset or create one
+  let session = userComment?.assetId
+    ? await prisma.agentSession.findFirst({
+        where: { assetId: userComment.assetId, type: 'comment' },
+        orderBy: { createdAt: 'asc' },
       })
-    } else {
-      // Rule 2: in a reply, add root comment + all other replies to it
-      const rootComment = await prisma.assetComment.findUnique({
-        where: { id: userComment.replyToId },
-        include: { creator: true },
-      })
-      if (rootComment) {
-        const replies = await prisma.assetComment.findMany({
-          where: {
-            replyToId: rootComment.id,
-            id: { not: userComment.id },
-          },
-          orderBy: { id: 'asc' },
-          include: { creator: true },
-        })
-        existingComments = [rootComment, ...replies]
-      }
-    }
-  }
+    : null
 
-  // Resolve user mentions from IDs to names
-  const mentionRegex = /<@([^>]+)>/g
-  const mentionedUserIds = new Set<string>()
-  for (const c of existingComments) {
-    if (c.message) {
-      const matches = [...c.message.matchAll(mentionRegex)]
-      for (const match of matches) {
-        mentionedUserIds.add(match[1])
-      }
-    }
-  }
-
-  const userIdToNameMap = new Map<string, string>()
-  if (mentionedUserIds.size > 0) {
-    const resolvedUsers = await prisma.user.findMany({
-      where: {
-        id: { in: Array.from(mentionedUserIds) },
-      },
-      select: {
-        id: true,
-        name: true,
-      },
-    })
-    for (const u of resolvedUsers) {
-      if (u.name) {
-        userIdToNameMap.set(u.id, u.name)
-      }
-    }
-  }
-
-  const userRoleMap = new Map<string, string>()
-  const humanCreatorIds = Array.from(
-    new Set(
-      existingComments
-        .filter((c) => c.creator?.type !== 'agent' && c.creatorId)
-        .map((c) => c.creatorId!),
-    ),
-  )
-  if (humanCreatorIds.length > 0) {
-    const members = await prisma.teamMember.findMany({
-      where: {
-        teamId: params.teamId,
-        userId: { in: humanCreatorIds },
-      },
-      select: { userId: true, role: true },
-    })
-    for (const m of members) {
-      userRoleMap.set(m.userId, m.role)
-    }
-  }
-
-  // Save context as AgentSessionEntry records
-  let prevId: string | null = null
-  for (const c of existingComments) {
-    const isAgent = c.creator?.type === 'agent' || c.sessionId !== null
-    let messageContent = c.message || ''
-
-    // Replace <@USER_ID> with <@USER_NAME>
-    messageContent = messageContent.replace(mentionRegex, (match, userId) => {
-      const resolvedName = userIdToNameMap.get(userId)
-      return resolvedName ? `<@${resolvedName}>` : match
-    })
-
-    if (isAgent) {
-      const agentName = c.creator?.name || 'Ai Agent'
-      messageContent = `[Agent Message][${agentName}]: ${messageContent}`
-    } else if (c.creator?.name) {
-      const role = (c.creatorId ? userRoleMap.get(c.creatorId) : undefined) || 'user'
-      messageContent = `[${c.creator.name} (${role})]: ${messageContent}`
-    }
-
-    const entryId = ulid()
-    const message: AgentMessage = {
-      role: 'user',
-      content: [{ type: 'text', text: messageContent }],
-      timestamp: c.createdAt.getTime(),
-    }
-
-    const entryJson: SessionTreeEntry = {
-      type: 'message',
-      id: entryId,
-      parentId: prevId,
-      timestamp: c.createdAt.toISOString(),
-      message,
-    }
-
-    await prisma.agentSessionEntry.create({
+  if (!session) {
+    session = await prisma.agentSession.create({
       data: {
-        id: entryId,
-        sessionId,
-        entry: entryJson as unknown as PrismaJson.PiSessionEntry,
+        agentId,
+        userId: params.userId || null,
+        cwd: process.cwd(),
+        assetId: userComment ? userComment.assetId : null,
+        userCommentId: params.userCommentId,
+        type: 'comment',
       },
     })
-    prevId = entryId
   }
 
-  // Update leafId of the session
-  if (prevId) {
-    await prisma.agentSession.update({
-      where: { id: sessionId },
-      data: { leafId: prevId },
+  const sessionId = session.id
+
+  if (userComment && !userComment.sessionId) {
+    await prisma.assetComment.update({
+      where: { id: userComment.id },
+      data: { sessionId },
     })
   }
 
   return sessionId
+}
+
+export async function getAssetTopLevelThreadsActivity(params: {
+  assetId: string
+}): Promise<Array<{ id: string; author: string; message: string; replyCount: number }>> {
+  const topLevelComments = await prisma.assetComment.findMany({
+    where: {
+      assetId: params.assetId,
+      replyToId: null,
+    },
+    orderBy: { createdAt: 'asc' },
+    include: {
+      creator: true,
+      _count: { select: { replies: true } },
+    },
+  })
+
+  return topLevelComments.map((c) => ({
+    id: c.id,
+    author: c.creator?.name || (c.creator?.type === 'agent' ? 'Ai Agent' : 'User'),
+    message: c.message || '(no message text)',
+    replyCount: c._count.replies,
+  }))
 }
 
 export async function deleteCommentActivity(commentId: string) {

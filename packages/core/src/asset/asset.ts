@@ -1318,8 +1318,15 @@ export class AssetService {
       const mentionedAgentIds = new Set(botMentionMatches.map((match) => match[1]))
       const handledAgentIds = new Set<string>()
 
+      const assetSession = a.project
+        ? await tx.agentSession.findFirst({
+            where: { assetId: a.id, type: 'comment' },
+            orderBy: { createdAt: 'asc' },
+          })
+        : null
+
       if (parentComment && a.project) {
-        const rootSessionId = parentComment.sessionId
+        const rootSessionId = parentComment.sessionId || assetSession?.id
         const isRootAgent = !!rootSessionId || parentComment.creator?.type === 'agent'
         const rootAgentId = parentComment.creatorId
 
@@ -1371,6 +1378,7 @@ export class AssetService {
                 agent: {
                   userCommentId: comment.id,
                   agentId: agentId,
+                  sessionId: assetSession?.id || undefined,
                   userId: req.userId,
                 },
               },

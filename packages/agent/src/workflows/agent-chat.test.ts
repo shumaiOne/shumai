@@ -52,6 +52,9 @@ describe('Agent Chat Workflow', () => {
       getUserTeamInfoActivity: Object.assign(vi.fn(), {
         _activityName: 'getUserTeamInfoActivity',
       }),
+      getAssetTopLevelThreadsActivity: Object.assign(vi.fn(), {
+        _activityName: 'getAssetTopLevelThreadsActivity',
+      }),
     }
 
     mockActivities.getAgentWorkerQueueActivity.mockResolvedValue('agent_queue')
@@ -59,6 +62,7 @@ describe('Agent Chat Workflow', () => {
     mockActivities.createCommentActivity.mockResolvedValue({ id: 'comment-placeholder-id' })
     mockActivities.generateSessionNameActivity.mockResolvedValue(undefined)
     mockActivities.getUserTeamInfoActivity.mockResolvedValue({ name: 'Test User', role: 'owner' })
+    mockActivities.getAssetTopLevelThreadsActivity.mockResolvedValue([])
     mockActivities.getAssetActivity.mockResolvedValue({
       id: 'a1',
       project: { teamId: 't1' },

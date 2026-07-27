@@ -221,7 +221,13 @@ export const MessageCard: React.FC<MessageCardProps> = ({
   }
 
   const preprocessMarkdown = (text: string): string => {
-    return text.replace(/<@([a-zA-Z0-9_-]+)>/g, '@$1').replace(/^\[([^\]]+)\]:/gm, '\\[$1\\]:')
+    return text
+      .replace(/<@([a-zA-Z0-9_-]+)>/g, (_match, userId) => {
+        const mentionedUser = message.mentions?.find((m) => m.id === userId) || getUser(userId)
+        const name = mentionedUser?.name || (userId === 'default' ? 'Ai Agent' : userId)
+        return `@${name}`
+      })
+      .replace(/^\[([^\]]+)\]:/gm, '\\[$1\\]:')
   }
 
   const handleReply = () => {

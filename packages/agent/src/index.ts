@@ -20,6 +20,7 @@ import { createCreateVersionTool } from './tools/create-version'
 import { createListAssetsTool } from './tools/list-assets'
 import { createReadPdfPagesTool } from './tools/read-pdf-pages'
 import { createReadSkillTool } from './tools/read-skill'
+import { createReadThreadTool } from './tools/read-thread'
 import { createSandboxedBashTool } from './tools/sandboxed-bash'
 import { createScreenshotTool } from './tools/screenshot'
 
@@ -256,6 +257,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
       createCreateFolderTool(userId),
       createCreateFileTool(userId),
       createCreateVersionTool(userId),
+      createReadThreadTool(userId),
     )
   }
 

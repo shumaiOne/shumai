@@ -18,6 +18,7 @@ import {
   generateSessionNameActivity,
   type GenerateSessionNameParams,
   getUserTeamInfoActivity,
+  getAssetTopLevelThreadsActivity,
 } from './agent'
 import * as piAgent from '../index'
 import { type AgentHarness, type Session } from '@earendil-works/pi-agent-core'
@@ -503,7 +504,7 @@ describe('Agent Database Activities Integration', () => {
   })
 
   describe('initializeAgentSessionActivity', () => {
-    it('should initialize a session, create agent/user records if missing, and store existing comments context', async () => {
+    it('should initialize or reuse an asset session, create agent/user records if missing, and attach sessionId to comment', async () => {
       // Create first comment so it acts as context
       await prisma.assetComment.create({
         data: {
@@ -536,21 +537,25 @@ describe('Agent Database Activities Integration', () => {
       expect(agentUser).toBeDefined()
       expect(agentUser?.type).toBe('agent')
 
-      // Verify agentSession created
+      // Verify agentSession created for the asset
       const agentSession = await prisma.agentSession.findUnique({
         where: { id: sessionId },
-        include: { entries: true },
       })
       expect(agentSession).toBeDefined()
-      expect(agentSession?.leafId).toBeDefined()
+      expect(agentSession?.assetId).toBe(asset.id)
+      expect(agentSession?.type).toBe('comment')
 
-      // Verify historical comment is converted and saved to entries (mentions replaced, prefixes added)
-      expect(agentSession?.entries.length).toBe(1)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- entry is stored as Json in DB and needs casting to check properties
-      const parsedEntry = agentSession?.entries[0].entry as any
-      expect(parsedEntry.message.content[0].text).toContain(
-        `[${user.name} (owner)]: Hello <@${user.name}> check this`,
-      )
+      // Verify user comment is updated with sessionId
+      const updatedComment = await prisma.assetComment.findUnique({
+        where: { id: userComment.id },
+      })
+      expect(updatedComment?.sessionId).toBe(sessionId)
+
+      // Test getAssetTopLevelThreadsActivity
+      const topLevelThreads = await getAssetTopLevelThreadsActivity({ assetId: asset.id })
+      expect(topLevelThreads.length).toBe(2)
+      expect(topLevelThreads[0].message).toContain('Hello')
+      expect(topLevelThreads[1].message).toBe('Reply comment')
     })
 
     it('should return user name and role for team member', async () => {
