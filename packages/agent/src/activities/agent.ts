@@ -642,20 +642,6 @@ export async function initializeAgentSessionActivity(params: {
   }
 
   // Check which top-level comments have reply threads (for prompt tagging)
-  const commentIdsWithThreads = new Set<string>()
-  if (!isThread && existingComments.length > 0) {
-    const threadCounts = await prisma.assetComment.groupBy({
-      by: ['replyToId'],
-      where: {
-        assetId: userComment.assetId,
-        replyToId: { in: existingComments.map((c) => c.id) },
-      },
-    })
-    for (const tc of threadCounts) {
-      if (tc.replyToId) commentIdsWithThreads.add(tc.replyToId)
-    }
-  }
-
   // Resolve user mentions from IDs to names
   const mentionRegex = /<@([^>]+)>/g
   const mentionedUserIds = new Set<string>()
@@ -735,10 +721,6 @@ export async function initializeAgentSessionActivity(params: {
     } else if (c.creator?.name) {
       const role = (c.creatorId ? userRoleMap.get(c.creatorId) : undefined) || 'user'
       messageContent = `[${c.creator.name} (${role})]: ${messageContent}`
-    }
-
-    if (commentIdsWithThreads.has(c.id)) {
-      messageContent = `[Thread ID: ${c.id}] ${messageContent}`
     }
 
     const entryId = c.id
