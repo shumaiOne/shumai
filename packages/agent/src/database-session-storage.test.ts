@@ -234,10 +234,10 @@ describe('DatabaseSessionStorage', () => {
 
     await storage.appendEntry(entry)
 
-    // Record entry is generic Json
+    // Record data is generic Json
     const record = await prisma.agentSessionEntry.findUnique({ where: { id: 'msg-1' } })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const savedEntry = record?.entry as any
+    const savedEntry = record?.data as any
     expect(savedEntry.message.content[0].data).toBe('__S3_DATA__')
 
     // Verify retrieval reinjects data
@@ -281,7 +281,7 @@ describe('DatabaseSessionStorage', () => {
     // Verify saved entry is stripped
     const record = await prisma.agentSessionEntry.findUnique({ where: { id: 'msg-skill' } })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const savedEntry = record?.entry as any
+    const savedEntry = record?.data as any
     expect(savedEntry.message.content[0].text).toBe('__SKILL_CONTENT__')
 
     // Verify retrieval reinjects data

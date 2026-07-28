@@ -299,18 +299,21 @@ describe('ChatService', () => {
       data: {
         id: 'test-entry-id',
         sessionId,
-        entry: {
-          type: 'message',
-          id: 'test-entry-id',
-          parentId: null,
-          timestamp: new Date().toISOString(),
+        type: 'message',
+        parentId: null,
+        data: {
           message: {
             role: 'user',
             content: [{ type: 'text', text: 'hello' }],
             timestamp: Date.now(),
           },
-        },
+        } as PrismaJson.PiSessionEntryData,
       },
+    })
+
+    await prisma.agentSession.update({
+      where: { id: sessionId },
+      data: { leafId: 'test-entry-id' },
     })
 
     const messages = await chatService.listMessages(user.id, team.id, sessionId)
@@ -336,68 +339,65 @@ describe('ChatService', () => {
       data: {
         id: 'test-entry-1-user',
         sessionId,
-        entry: {
-          type: 'message',
-          id: 'test-entry-1-user',
-          parentId: null,
-          timestamp: new Date().toISOString(),
+        type: 'message',
+        parentId: null,
+        data: {
           message: {
             role: 'user',
             content: [{ type: 'text', text: 'hello' }],
             timestamp: Date.now(),
           },
-        } as unknown as PrismaJson.PiSessionEntry,
+        } as PrismaJson.PiSessionEntryData,
       },
     })
 
-    // 2. Manually insert a test entry representing a custom context message
-    await prisma.agentSessionEntry.create({
-      data: {
-        id: 'test-entry-2-context',
-        sessionId,
-        entry: {
-          type: 'custom_message',
+      // 2. Manually insert a test entry representing a custom context message
+      await prisma.agentSessionEntry.create({
+        data: {
           id: 'test-entry-2-context',
+          sessionId,
+          type: 'custom_message',
           parentId: 'test-entry-1-user',
-          timestamp: new Date().toISOString(),
-          customType: 'context',
-          content: 'some context',
-          display: 'chat',
-        } as unknown as PrismaJson.PiSessionEntry,
-      },
-    })
-
-    // 3. Manually insert a test entry representing a custom thinking level change
-    await prisma.agentSessionEntry.create({
-      data: {
-        id: 'test-entry-3-thinking',
-        sessionId,
-        entry: {
-          type: 'thinking_level_change',
-          id: 'test-entry-3-thinking',
-          parentId: 'test-entry-2-context',
-          timestamp: new Date().toISOString(),
-          thinkingLevel: 'deep',
-        } as unknown as PrismaJson.PiSessionEntry,
-      },
-    })
-
-    // 4. Manually insert a test entry representing custom context_display_info entry
-    await prisma.agentSessionEntry.create({
-      data: {
-        id: 'test-entry-4-display',
-        sessionId,
-        entry: {
-          type: 'custom',
-          id: 'test-entry-4-display',
-          parentId: 'test-entry-3-thinking',
-          timestamp: new Date().toISOString(),
-          customType: 'context_display_info',
           data: {
-            assets: [{ id: 'a1', name: 'File A', type: 'file' }],
-          },
-        } as unknown as PrismaJson.PiSessionEntry,
-      },
+            customType: 'context',
+            content: 'some context',
+            display: 'chat',
+          } as PrismaJson.PiSessionEntryData,
+        },
+      })
+
+      // 3. Manually insert a test entry representing a custom thinking level change
+      await prisma.agentSessionEntry.create({
+        data: {
+          id: 'test-entry-3-thinking',
+          sessionId,
+          type: 'thinking_level_change',
+          parentId: 'test-entry-2-context',
+          data: {
+            thinkingLevel: 'deep',
+          } as PrismaJson.PiSessionEntryData,
+        },
+      })
+
+      // 4. Manually insert a test entry representing custom context_display_info entry
+      await prisma.agentSessionEntry.create({
+        data: {
+          id: 'test-entry-4-display',
+          sessionId,
+          type: 'custom',
+          parentId: 'test-entry-3-thinking',
+          data: {
+            customType: 'context_display_info',
+            data: {
+              assets: [{ id: 'a1', name: 'File A', type: 'file' }],
+            },
+          } as PrismaJson.PiSessionEntryData,
+        },
+      })
+
+    await prisma.agentSession.update({
+      where: { id: sessionId },
+      data: { leafId: 'test-entry-4-display' },
     })
 
     // Verify listMessages returns only the user, thinking level change and custom display entry message
@@ -539,16 +539,14 @@ describe('ChatService', () => {
         data: {
           id: 'entry-id-1',
           sessionId,
-          entry: {
-            type: 'message',
-            id: 'entry-id-1',
-            parentId: null,
-            timestamp: new Date().toISOString(),
+          type: 'message',
+          parentId: null,
+          data: {
             message: {
               role: 'user',
               content: [{ type: 'text', text: 'msg 1' }],
             },
-          } as unknown as PrismaJson.PiSessionEntry,
+          } as PrismaJson.PiSessionEntryData,
         },
       })
 
@@ -556,16 +554,14 @@ describe('ChatService', () => {
         data: {
           id: 'entry-id-2',
           sessionId,
-          entry: {
-            type: 'message',
-            id: 'entry-id-2',
-            parentId: 'entry-id-1',
-            timestamp: new Date().toISOString(),
+          type: 'message',
+          parentId: 'entry-id-1',
+          data: {
             message: {
               role: 'assistant',
               content: [{ type: 'text', text: 'msg 2' }],
             },
-          } as unknown as PrismaJson.PiSessionEntry,
+          } as PrismaJson.PiSessionEntryData,
         },
       })
 

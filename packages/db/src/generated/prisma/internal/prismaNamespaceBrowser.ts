@@ -508,7 +508,11 @@ export type AgentSessionScalarFieldEnum = (typeof AgentSessionScalarFieldEnum)[k
 export const AgentSessionEntryScalarFieldEnum = {
   id: 'id',
   sessionId: 'sessionId',
-  entry: 'entry'
+  assetId: 'assetId',
+  type: 'type',
+  parentId: 'parentId',
+  data: 'data',
+  createdAt: 'createdAt'
 } as const
 
 export type AgentSessionEntryScalarFieldEnum = (typeof AgentSessionEntryScalarFieldEnum)[keyof typeof AgentSessionEntryScalarFieldEnum]

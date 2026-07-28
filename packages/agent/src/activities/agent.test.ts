@@ -21,7 +21,7 @@ import {
 } from './agent'
 import * as piAgent from '../index'
 import { type AgentHarness, type Session } from '@earendil-works/pi-agent-core'
-import { type DatabaseSessionMetadata } from '../database-session-storage'
+import { DatabaseSessionStorage, type DatabaseSessionMetadata } from '../database-session-storage'
 import { triggerLocalCancel } from '@shumai/workflow-core'
 import { Context } from '@temporalio/activity'
 
@@ -546,11 +546,117 @@ describe('Agent Database Activities Integration', () => {
 
       // Verify historical comment is converted and saved to entries (mentions replaced, prefixes added)
       expect(agentSession?.entries.length).toBe(1)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- entry is stored as Json in DB and needs casting to check properties
-      const parsedEntry = agentSession?.entries[0].entry as any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- entry data is stored as Json in DB and needs casting to check properties
+      const parsedEntry = agentSession?.entries[0].data as any
       expect(parsedEntry.message.content[0].text).toContain(
         `[${user.name} (owner)]: Hello <@${user.name}> check this`,
       )
+    })
+
+    it('should distinguish Main Session (userCommentId: null) and Thread Session (userCommentId: rootId) during lazy sync', async () => {
+      // 1. Top-level comments
+      const mainComment1 = await prisma.assetComment.create({
+        data: { assetId: asset.id, message: 'Main Comment 1', creatorId: user.id },
+      })
+      const mainComment2 = await prisma.assetComment.create({
+        data: { assetId: asset.id, message: 'Main Comment 2', creatorId: user.id },
+      })
+
+      // 2. Thread reply under mainComment1
+      const threadReply1 = await prisma.assetComment.create({
+        data: {
+          assetId: asset.id,
+          message: 'Thread Reply 1',
+          creatorId: user.id,
+          replyToId: mainComment1.id,
+        },
+      })
+
+      // 3. Initialize session for mention on mainComment2 (Main Session)
+      const mainSessionId = await initializeAgentSessionActivity({
+        teamId: team.id,
+        agentId: 'test-agent-id',
+        userCommentId: mainComment2.id,
+        userId: user.id,
+      })
+
+      const mainSession = await prisma.agentSession.findUnique({
+        where: { id: mainSessionId },
+      })
+      expect(mainSession?.userCommentId).toBeNull() // Main Session has userCommentId = null
+
+      // Retrieve main session entries
+      const mainEntries = await prisma.agentSessionEntry.findMany({
+        where: { sessionId: mainSessionId },
+        orderBy: { createdAt: 'asc' },
+      })
+
+      // Main session contains mainComment1, but NOT threadReply1
+      expect(mainEntries.length).toBe(1)
+      expect(mainEntries[0].id).toBe(mainComment1.id)
+
+      const mainStorage = new DatabaseSessionStorage(mainSessionId)
+      const mainLeafId = await mainStorage.getLeafId()
+      const mainPath = await mainStorage.getPathToRoot(mainLeafId)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mainText = (mainPath[0] as any).message.content[0].text
+      expect(mainText).toContain(`[Thread ID: ${mainComment1.id}]`)
+
+      // 4. Initialize session for mention on threadReply1 (Thread Session)
+      const threadSessionId = await initializeAgentSessionActivity({
+        teamId: team.id,
+        agentId: 'test-agent-id',
+        userCommentId: threadReply1.id,
+        userId: user.id,
+      })
+
+      const threadSession = await prisma.agentSession.findUnique({
+        where: { id: threadSessionId },
+      })
+      expect(threadSession?.userCommentId).toBe(mainComment1.id) // Thread Session has userCommentId = rootComment.id
+    })
+
+    it('should dynamically tag top-level comments with [Thread ID: id] even if thread was created after initial sync', async () => {
+      const msg3 = await prisma.assetComment.create({
+        data: { assetId: asset.id, message: 'Question in msg3', creatorId: user.id },
+      })
+
+      const session1Id = await initializeAgentSessionActivity({
+        teamId: team.id,
+        agentId: 'test-agent-id',
+        userCommentId: msg3.id,
+        userId: user.id,
+      })
+
+      await prisma.assetComment.create({
+        data: {
+          assetId: asset.id,
+          message: 'Reply msg4',
+          creatorId: user.id,
+          replyToId: msg3.id,
+        },
+      })
+
+      const msg6 = await prisma.assetComment.create({
+        data: { assetId: asset.id, message: 'Question in msg6', creatorId: user.id },
+      })
+
+      await initializeAgentSessionActivity({
+        teamId: team.id,
+        agentId: 'test-agent-id',
+        userCommentId: msg6.id,
+        userId: user.id,
+      })
+
+      const storage = new DatabaseSessionStorage(session1Id)
+      const leafId = await storage.getLeafId()
+      const pathEntries = await storage.getPathToRoot(leafId)
+
+      const msg3Entry = pathEntries.find((e) => e.id === msg3.id)
+      expect(msg3Entry).toBeDefined()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const text = (msg3Entry as any).message.content[0].text
+      expect(text).toContain(`[Thread ID: ${msg3.id}]`)
     })
 
     it('should return user name and role for team member', async () => {

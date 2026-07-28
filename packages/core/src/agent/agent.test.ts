@@ -286,5 +286,57 @@ describe('AgentService', () => {
       expect(agents[0].provider).toBeDefined()
       expect(agents[0].modelRef).toBeDefined()
     })
+
+    test('getSessionEntries follows parentId across shared sessions', async () => {
+      const db = prisma
+      const svc = new AgentService()
+      const { agent } = await setupTestData(db)
+
+      const mainSession = await db.agentSession.create({
+        data: {
+          agentId: agent.id,
+          type: 'comment',
+          cwd: '/tmp',
+        },
+      })
+
+      const threadSession = await db.agentSession.create({
+        data: {
+          agentId: agent.id,
+          type: 'comment',
+          cwd: '/tmp',
+        },
+      })
+
+      const entry1 = await db.agentSessionEntry.create({
+        data: {
+          id: '01ENTRY0000000000000000001',
+          sessionId: mainSession.id,
+          type: 'message',
+          parentId: null,
+          data: { text: 'Main Entry 1' },
+        },
+      })
+
+      const entry2 = await db.agentSessionEntry.create({
+        data: {
+          id: '01ENTRY0000000000000000002',
+          sessionId: threadSession.id,
+          type: 'message',
+          parentId: entry1.id,
+          data: { text: 'Thread Entry 2' },
+        },
+      })
+
+      await db.agentSession.update({
+        where: { id: threadSession.id },
+        data: { leafId: entry2.id },
+      })
+
+      const entries = await svc.getSessionEntries({ sessionId: threadSession.id })
+      expect(entries).toHaveLength(2)
+      expect(entries[0].id).toBe(entry1.id)
+      expect(entries[1].id).toBe(entry2.id)
+    })
   })
 })

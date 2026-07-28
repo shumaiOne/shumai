@@ -474,11 +474,6 @@ export type AgentSessionMinOrderByAggregateInput = {
   updatedAt?: Prisma.SortOrder
 }
 
-export type AgentSessionScalarRelationFilter = {
-  is?: Prisma.AgentSessionWhereInput
-  isNot?: Prisma.AgentSessionWhereInput
-}
-
 export type AgentSessionCreateNestedManyWithoutUserInput = {
   create?: Prisma.XOR<Prisma.AgentSessionCreateWithoutUserInput, Prisma.AgentSessionUncheckedCreateWithoutUserInput> | Prisma.AgentSessionCreateWithoutUserInput[] | Prisma.AgentSessionUncheckedCreateWithoutUserInput[]
   connectOrCreate?: Prisma.AgentSessionCreateOrConnectWithoutUserInput | Prisma.AgentSessionCreateOrConnectWithoutUserInput[]
@@ -631,10 +626,12 @@ export type AgentSessionCreateNestedOneWithoutEntriesInput = {
   connect?: Prisma.AgentSessionWhereUniqueInput
 }
 
-export type AgentSessionUpdateOneRequiredWithoutEntriesNestedInput = {
+export type AgentSessionUpdateOneWithoutEntriesNestedInput = {
   create?: Prisma.XOR<Prisma.AgentSessionCreateWithoutEntriesInput, Prisma.AgentSessionUncheckedCreateWithoutEntriesInput>
   connectOrCreate?: Prisma.AgentSessionCreateOrConnectWithoutEntriesInput
   upsert?: Prisma.AgentSessionUpsertWithoutEntriesInput
+  disconnect?: Prisma.AgentSessionWhereInput | boolean
+  delete?: Prisma.AgentSessionWhereInput | boolean
   connect?: Prisma.AgentSessionWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.AgentSessionUpdateToOneWithWhereWithoutEntriesInput, Prisma.AgentSessionUpdateWithoutEntriesInput>, Prisma.AgentSessionUncheckedUpdateWithoutEntriesInput>
 }
