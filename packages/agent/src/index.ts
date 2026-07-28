@@ -320,6 +320,8 @@ export function fieldsToTypeBoxSchema(fields: AutofillField[]) {
   const properties: Record<string, TSchema> = {}
   for (const f of fields) {
     let schema: TSchema
+    const fieldName = f.config.name
+    const fieldDesc = f.description || fieldName
     switch (f.config.type) {
       case 'text':
       case 'longText':
@@ -332,17 +334,36 @@ export function fieldsToTypeBoxSchema(fields: AutofillField[]) {
       case 'toggle':
         schema = Type.Boolean()
         break
-      case 'select':
+      case 'select': {
+        const options = f.config.select?.options || []
         schema = Type.String({
-          enum: f.config.select?.options?.map((o) => o.id) || [],
+          enum: options.map((o) => o.id),
         })
+        if (options.length > 0) {
+          const optionLines = options.map((o) => `- ${o.displayName} => ${o.id}`).join('\n')
+          schema.description = `The field '${fieldName}' represents ${fieldDesc}.\nSelect one option and return the option ID as the value.\n\nAvailable options:\n${optionLines}`
+        }
         break
+      }
+      case 'selectMulti': {
+        const options = f.config.selectMulti?.options || []
+        schema = Type.Array(
+          Type.String({
+            enum: options.map((o) => o.id),
+          }),
+        )
+        if (options.length > 0) {
+          const optionLines = options.map((o) => `- ${o.displayName} => ${o.id}`).join('\n')
+          schema.description = `The field '${fieldName}' represents ${fieldDesc}.\nSelect applicable options and return the option IDs as the value.\n\nAvailable options:\n${optionLines}`
+        }
+        break
+      }
       default:
         schema = Type.String()
     }
 
-    if (f.description) {
-      schema.description = f.description
+    if (!schema.description) {
+      schema.description = `The field '${fieldName}' represents ${fieldDesc}.`
     }
     properties[f.id] = schema
   }

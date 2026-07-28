@@ -9,8 +9,9 @@ describe('fieldsToTypeBoxSchema', () => {
     ]
     const schema = fieldsToTypeBoxSchema(fields)
     expect(schema.properties.f1.type).toBe('string')
-    expect(schema.properties.f1.description).toBe('The title')
+    expect(schema.properties.f1.description).toBe("The field 'Title' represents The title.")
     expect(schema.properties.f2.type).toBe('string')
+    expect(schema.properties.f2.description).toBe("The field 'Desc' represents Desc.")
   })
 
   it('converts numeric fields', () => {
@@ -29,12 +30,13 @@ describe('fieldsToTypeBoxSchema', () => {
     expect(schema.properties.f1.type).toBe('boolean')
   })
 
-  it('converts select fields with enums', () => {
+  it('converts select fields with enums and option descriptions', () => {
     const fields: AutofillField[] = [
       {
         id: 'f1',
+        description: 'Species of animal',
         config: {
-          name: 'Status',
+          name: 'Species',
           type: 'select',
           select: {
             options: [
@@ -48,6 +50,33 @@ describe('fieldsToTypeBoxSchema', () => {
     const schema = fieldsToTypeBoxSchema(fields)
     expect(schema.properties.f1.type).toBe('string')
     expect(schema.properties.f1.enum).toEqual(['opt1', 'opt2'])
+    expect(schema.properties.f1.description).toBe(
+      "The field 'Species' represents Species of animal.\nSelect one option and return the option ID as the value.\n\nAvailable options:\n- Option 1 => opt1\n- Option 2 => opt2",
+    )
+  })
+
+  it('converts selectMulti fields with array enums and option descriptions', () => {
+    const fields: AutofillField[] = [
+      {
+        id: 'f1',
+        config: {
+          name: 'Tags',
+          type: 'selectMulti',
+          selectMulti: {
+            options: [
+              { id: 'opt1', displayName: 'Tag 1', color: 'red' },
+              { id: 'opt2', displayName: 'Tag 2', color: 'blue' },
+            ],
+          },
+        },
+      },
+    ]
+    const schema = fieldsToTypeBoxSchema(fields)
+    expect(schema.properties.f1.type).toBe('array')
+    expect(schema.properties.f1.items.enum).toEqual(['opt1', 'opt2'])
+    expect(schema.properties.f1.description).toBe(
+      "The field 'Tags' represents Tags.\nSelect applicable options and return the option IDs as the value.\n\nAvailable options:\n- Tag 1 => opt1\n- Tag 2 => opt2",
+    )
   })
 
   it('defaults to string for unknown types', () => {

@@ -1,7 +1,7 @@
 import {
-  type AgentMessage,
-  type AgentTool,
-  type SessionTreeEntry,
+    type AgentMessage,
+    type AgentTool,
+    type SessionTreeEntry,
 } from '@earendil-works/pi-agent-core'
 import { type ImageContent } from '@earendil-works/pi-ai'
 import { assetService } from '@shumai/core/src/asset/asset'
@@ -13,16 +13,16 @@ import { s3Service } from '@shumai/core/src/s3/s3'
 import { uploadService } from '@shumai/core/src/upload/upload'
 import { VersionStackService } from '@shumai/core/src/versionStack/versionStack'
 import { AssetType, prisma, Prisma, type Skill } from '@shumai/db'
-import { ApplicationFailure, Context } from '@temporalio/activity'
 import { registerLocalCancelHandler, unregisterLocalCancelHandler } from '@shumai/workflow-core'
+import { ApplicationFailure, Context } from '@temporalio/activity'
 import { generateKeyBetween } from 'jittered-fractional-indexing'
 import { ulid } from 'ulid'
 import { DatabaseSessionStorage } from '../database-session-storage'
 import {
-  createAgentSession,
-  fieldsToTypeBoxSchema,
-  type AutofillField,
-  type DbProviderInfo,
+    createAgentSession,
+    fieldsToTypeBoxSchema,
+    type AutofillField,
+    type DbProviderInfo,
 } from '../index'
 
 import { aiUsageService } from '@shumai/core/src/ai-usage/ai-usage'
