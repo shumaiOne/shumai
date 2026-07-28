@@ -1,11 +1,12 @@
-import { ApplicationFailure } from '@temporalio/workflow'
 import type { WorkflowTask } from '@shumai/db'
 import {
-  getActivities,
   executeActivity,
+  getActivities,
   TaskQueueAgent,
   TaskQueueTranscode,
 } from '@shumai/workflow-core'
+import { ApplicationFailure } from '@temporalio/workflow'
+import { getProxyType } from '@shumai/core/src/utils/mime'
 
 export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
   const {
@@ -64,7 +65,9 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
     const projectId = asset.project.id
 
     // 2. Prepare Data (Images)
-    const proxyType = (asset.media as PrismaJson.MediaInfo | null)?.proxyType
+    const proxyType =
+      (asset.media as PrismaJson.MediaInfo | null)?.proxyType ||
+      getProxyType(asset.mediaType, asset.name)
     const isImage = proxyType === 'image'
     const isVideo = proxyType === 'video'
 

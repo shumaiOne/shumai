@@ -24,6 +24,7 @@ export async function transcodePdfWorkflow(task: WorkflowTask): Promise<void> {
       downloadMediaToTmpActivity,
       generatePdfProxyActivity,
       createEmbeddingTaskIfEnabledActivity,
+      createAutofillTaskIfEnabledActivity,
     } = getActivities()
 
     await executeActivity(workerQueue, updateAssetStatusActivity, {
@@ -103,6 +104,12 @@ export async function transcodePdfWorkflow(task: WorkflowTask): Promise<void> {
     })
 
     await executeActivity(workerQueue, createEmbeddingTaskIfEnabledActivity, {
+      assetId: asset.id,
+      teamId: task.teamId,
+      projectId: task.projectId,
+    })
+
+    await executeActivity(workerQueue, createAutofillTaskIfEnabledActivity, {
       assetId: asset.id,
       teamId: task.teamId,
       projectId: task.projectId,

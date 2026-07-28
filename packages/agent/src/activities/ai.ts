@@ -8,6 +8,7 @@ import * as path from 'path'
 import { promisify } from 'util'
 import { ApplicationFailure } from '@temporalio/activity'
 import { prisma } from '@shumai/db'
+import { getProxyType } from '@shumai/core/src/utils/mime'
 
 const execFileAsync = promisify(execFile)
 
@@ -88,7 +89,9 @@ export async function generateEmbeddingActivity(params: GenerateEmbeddingParams)
     outputTokens: 0,
   }
 
-  const proxyType = (asset.media as PrismaJson.MediaInfo | null)?.proxyType
+  const proxyType =
+    (asset.media as PrismaJson.MediaInfo | null)?.proxyType ||
+    getProxyType(asset.mediaType, asset.name)
   const isImage = proxyType === 'image'
   const isVideo = proxyType === 'video'
 

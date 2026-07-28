@@ -769,6 +769,82 @@ export async function createEmbeddingTaskIfEnabledActivity(
   })
 }
 
+export interface CreateAutofillTaskIfEnabledParams {
+  assetId: string
+  teamId: string | null
+  projectId: string | null
+}
+
+export async function createAutofillTaskIfEnabledActivity(
+  params: CreateAutofillTaskIfEnabledParams,
+): Promise<void> {
+  const asset = await prisma.asset.findUnique({
+    where: { id: params.assetId },
+    include: {
+      project: true,
+    },
+  })
+  if (!asset) {
+    return
+  }
+
+  const proxyType =
+    (asset.media as PrismaJson.MediaInfo | null)?.proxyType ||
+    getProxyType(asset.mediaType, asset.name)
+  const isVideo = proxyType === 'video'
+  const isImage = proxyType === 'image'
+  if (!isVideo && !isImage) {
+    return
+  }
+
+  const teamId = params.teamId || asset.project?.teamId || null
+  const projectId = params.projectId || asset.projectId
+
+  if (!teamId) {
+    return
+  }
+
+  // Check if there is an active autofill agent for the team
+  const autofillAgent = await prisma.agent.findFirst({
+    where: {
+      type: 'autofill',
+      enabled: true,
+      user: { teamMembers: { some: { teamId } } },
+    },
+  })
+
+  if (!autofillAgent) {
+    return
+  }
+
+  // Check if a pending/processing autofill task already exists for this asset to avoid duplicates
+  const existing = await prisma.workflowTask.findFirst({
+    where: {
+      assetId: params.assetId,
+      type: WorkflowTaskType.ai_metadata_autofill,
+      status: { in: [WorkflowTaskStatus.pending, WorkflowTaskStatus.processing] },
+    },
+  })
+  if (existing) {
+    return
+  }
+
+  // Create autofill task
+  await prisma.workflowTask.create({
+    data: {
+      assetId: params.assetId,
+      type: WorkflowTaskType.ai_metadata_autofill,
+      status: WorkflowTaskStatus.pending,
+      teamId,
+      projectId,
+      payload: {
+        projectId: projectId ?? '',
+        agent: { agentId: autofillAgent.id },
+      },
+    },
+  })
+}
+
 export interface TranscodeVideoChunkParams {
   assetId: string
   filePath: string

@@ -38,6 +38,9 @@ describe('transcodeImageWorkflow', () => {
     createEmbeddingTaskIfEnabledActivity: Object.assign(vi.fn(), {
       _activityName: 'createEmbeddingTaskIfEnabledActivity',
     }),
+    createAutofillTaskIfEnabledActivity: Object.assign(vi.fn(), {
+      _activityName: 'createAutofillTaskIfEnabledActivity',
+    }),
   }
 
   beforeEach(() => {
@@ -141,6 +144,12 @@ describe('transcodeImageWorkflow', () => {
     })
 
     expect(mockActivities.createEmbeddingTaskIfEnabledActivity).toHaveBeenCalledWith({
+      assetId: 'asset-image',
+      teamId: 'team-1',
+      projectId: 'proj-1',
+    })
+
+    expect(mockActivities.createAutofillTaskIfEnabledActivity).toHaveBeenCalledWith({
       assetId: 'asset-image',
       teamId: 'team-1',
       projectId: 'proj-1',

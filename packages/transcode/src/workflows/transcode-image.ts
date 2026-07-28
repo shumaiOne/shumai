@@ -23,6 +23,7 @@ export async function transcodeImageWorkflow(task: WorkflowTask): Promise<void> 
       updateAssetMediaActivity,
       downloadMediaToTmpActivity,
       createEmbeddingTaskIfEnabledActivity,
+      createAutofillTaskIfEnabledActivity,
     } = getActivities()
 
     await executeActivity(workerQueue, updateAssetStatusActivity, {
@@ -91,6 +92,12 @@ export async function transcodeImageWorkflow(task: WorkflowTask): Promise<void> 
     })
 
     await executeActivity(workerQueue, createEmbeddingTaskIfEnabledActivity, {
+      assetId: asset.id,
+      teamId: task.teamId,
+      projectId: task.projectId,
+    })
+
+    await executeActivity(workerQueue, createAutofillTaskIfEnabledActivity, {
       assetId: asset.id,
       teamId: task.teamId,
       projectId: task.projectId,
