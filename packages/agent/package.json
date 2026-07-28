@@ -6,7 +6,7 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
-    "@anthropic-ai/sandbox-runtime": "0.0.52",
+    "@anthropic-ai/sandbox-runtime": "0.0.66",
     "@earendil-works/pi-agent-core": "0.78.0",
     "@earendil-works/pi-ai": "0.80.7",
     "@google/genai": "1.52.0",

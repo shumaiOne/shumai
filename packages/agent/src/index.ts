@@ -1,9 +1,9 @@
 import { SandboxManager } from '@anthropic-ai/sandbox-runtime'
 import {
-    AgentHarness,
-    Session,
-    type AgentTool,
-    type ThinkingLevel,
+  AgentHarness,
+  Session,
+  type AgentTool,
+  type ThinkingLevel,
 } from '@earendil-works/pi-agent-core'
 import { NodeExecutionEnv } from '@earendil-works/pi-agent-core/node'
 import { getModel } from '@earendil-works/pi-ai/compat'
@@ -412,15 +412,15 @@ export function initAgentWorkflows() {
 
 export * from './activities/agent'
 export {
-    extractAiMetadataActivity,
-    generateEmbeddingActivity,
-    generateImageEmbeddingActivity,
-    generateTextEmbeddingActivity,
-    generateVideoChunkEmbeddingActivity,
-    type ExtractAiMetadataParams,
-    type GeneratedEmbedding,
-    type GenerateEmbeddingParams,
-    type GenerateTextEmbeddingParams
+  extractAiMetadataActivity,
+  generateEmbeddingActivity,
+  generateImageEmbeddingActivity,
+  generateTextEmbeddingActivity,
+  generateVideoChunkEmbeddingActivity,
+  type ExtractAiMetadataParams,
+  type GeneratedEmbedding,
+  type GenerateEmbeddingParams,
+  type GenerateTextEmbeddingParams,
 } from './activities/ai'
 export * from './database-session-storage'
 export * from './workflows/agent-autofill'
@@ -428,4 +428,3 @@ export * from './workflows/agent-chat'
 export * from './workflows/agent-embedding'
 export * from './workflows/agent-tool-call'
 export * from './workflows/query-embedding-for-search'
-
