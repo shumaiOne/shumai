@@ -1,13 +1,7 @@
 import { assetService } from '@shumai/core/src/asset/asset'
 import { PaginatedData, PaginationParams, paginateQuery } from '@shumai/core/src/pagination'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import {
-  AssetStatus,
-  AssetType,
-  Prisma,
-  TaskStatus,
-  prisma,
-} from '@shumai/db'
+import { AssetStatus, AssetType, Prisma, TaskStatus, prisma } from '@shumai/db'
 import {
   ConfirmFileUploadRequest,
   CreateUploadTaskRequest,

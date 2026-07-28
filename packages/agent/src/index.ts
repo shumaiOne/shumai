@@ -320,29 +320,55 @@ export function fieldsToTypeBoxSchema(fields: AutofillField[]) {
   const properties: Record<string, TSchema> = {}
   for (const f of fields) {
     let schema: TSchema
+    const fieldName = f.config.name
     switch (f.config.type) {
       case 'text':
       case 'longText':
-        schema = Type.String()
+        schema = Type.String({ title: fieldName })
         break
       case 'number':
       case 'rating':
-        schema = Type.Number()
+        schema = Type.Number({ title: fieldName })
         break
       case 'toggle':
-        schema = Type.Boolean()
+        schema = Type.Boolean({ title: fieldName })
         break
-      case 'select':
+      case 'select': {
+        const options = f.config.select?.options || []
         schema = Type.String({
-          enum: f.config.select?.options?.map((o) => o.id) || [],
+          title: fieldName,
+          enum: options.map((o) => o.id),
         })
+        if (options.length > 0) {
+          const optionMapStr = options.map((o) => `"${o.id}" (${o.displayName})`).join(', ')
+          const optionDesc = `[Allowed options: ${optionMapStr}]`
+          const baseDesc = f.description ? `${fieldName}: ${f.description}` : fieldName
+          schema.description = `${baseDesc} ${optionDesc}`
+        }
         break
+      }
+      case 'selectMulti': {
+        const options = f.config.selectMulti?.options || []
+        schema = Type.Array(
+          Type.String({
+            enum: options.map((o) => o.id),
+          }),
+          { title: fieldName },
+        )
+        if (options.length > 0) {
+          const optionMapStr = options.map((o) => `"${o.id}" (${o.displayName})`).join(', ')
+          const optionDesc = `[Allowed options: ${optionMapStr}]`
+          const baseDesc = f.description ? `${fieldName}: ${f.description}` : fieldName
+          schema.description = `${baseDesc} ${optionDesc}`
+        }
+        break
+      }
       default:
-        schema = Type.String()
+        schema = Type.String({ title: fieldName })
     }
 
-    if (f.description) {
-      schema.description = f.description
+    if (!schema.description) {
+      schema.description = f.description ? `${fieldName}: ${f.description}` : fieldName
     }
     properties[f.id] = schema
   }
