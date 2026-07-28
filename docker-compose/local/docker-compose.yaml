@@ -18,6 +18,8 @@ services:
 
   shumai:
     image: shumaione/shumai:latest
+    security_opt:
+      - seccomp=unconfined
     container_name: shumai_app
     ports:
       - '3000:3000'
