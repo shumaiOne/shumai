@@ -41,6 +41,9 @@ describe('transcodePdfWorkflow', () => {
     createEmbeddingTaskIfEnabledActivity: Object.assign(vi.fn(), {
       _activityName: 'createEmbeddingTaskIfEnabledActivity',
     }),
+    createAutofillTaskIfEnabledActivity: Object.assign(vi.fn(), {
+      _activityName: 'createAutofillTaskIfEnabledActivity',
+    }),
   }
 
   beforeEach(() => {
@@ -149,6 +152,12 @@ describe('transcodePdfWorkflow', () => {
     expect(mockActivities.updateAssetStatusActivity).toHaveBeenCalledWith({
       assetId: 'asset-pdf',
       status: AssetStatus.processed,
+    })
+
+    expect(mockActivities.createAutofillTaskIfEnabledActivity).toHaveBeenCalledWith({
+      assetId: 'asset-pdf',
+      teamId: 'team-1',
+      projectId: 'proj-1',
     })
   })
 })

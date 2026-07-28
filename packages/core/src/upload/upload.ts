@@ -6,8 +6,6 @@ import {
   AssetType,
   Prisma,
   TaskStatus,
-  WorkflowTaskStatus,
-  WorkflowTaskType,
   prisma,
 } from '@shumai/db'
 import {
@@ -292,15 +290,6 @@ export class UploadService {
     })
     if (!team) throw new Error('Team not found')
 
-    // Ai Tasks
-    const autofillAgent = await tx.agent.findFirst({
-      where: {
-        type: 'autofill',
-        enabled: true,
-        user: { teamMembers: { some: { teamId: team.id } } },
-      },
-    })
-
     const proxyType =
       (asset.media as PrismaJson.MediaInfo | null)?.proxyType ||
       getProxyType(asset.mediaType, asset.name)
@@ -309,22 +298,6 @@ export class UploadService {
     const isImage = proxyType === 'image'
     const isAudio = proxyType === 'audio'
     const isPdf = proxyType === 'pdf'
-
-    if (autofillAgent && (isVideo || isImage)) {
-      await tx.workflowTask.create({
-        data: {
-          assetId: asset.id,
-          type: WorkflowTaskType.ai_metadata_autofill,
-          status: WorkflowTaskStatus.pending,
-          teamId: team.id,
-          projectId,
-          payload: {
-            projectId,
-            agent: { agentId: autofillAgent.id },
-          },
-        },
-      })
-    }
 
     if (!proxyType) {
       await tx.asset.update({

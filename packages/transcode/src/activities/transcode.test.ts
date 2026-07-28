@@ -23,6 +23,7 @@ import {
   generatePdfProxyActivity,
   transcodeVideoChunkActivity,
   deleteS3ObjectActivity,
+  createAutofillTaskIfEnabledActivity,
 } from './transcode'
 
 vi.mock('@shumai/core/src/s3/s3', () => ({
@@ -636,6 +637,56 @@ describe('Transcode Activities', () => {
         height: 0,
         key: 'files/proj-123/a-audio-proxy.mp4',
       })
+    })
+
+    it('should create ai_metadata_autofill task when autofill agent exists and asset is image', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'Test User Autofill', email: 'test-autofill-agent@test.com' },
+      })
+      const team = await prisma.team.create({
+        data: { name: 'Test Team Autofill' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: user.id, role: 'owner' },
+      })
+      const project = await prisma.project.create({
+        data: { name: 'Test Project Autofill', teamId: team.id },
+      })
+      const autofillAgent = await prisma.agent.create({
+        data: {
+          id: user.id,
+          type: 'autofill',
+          enabled: true,
+          teamId: team.id,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          config: { provider: 'test', model: 'test' } as any,
+        },
+      })
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'photo.png',
+          mediaType: 'image/png',
+          type: 'file',
+          status: 'processed',
+          projectId: project.id,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          media: { proxyType: 'image' } as any,
+        },
+      })
+
+      await createAutofillTaskIfEnabledActivity({
+        assetId: asset.id,
+        teamId: team.id,
+        projectId: project.id,
+      })
+
+      const task = await prisma.workflowTask.findFirst({
+        where: { assetId: asset.id, type: 'ai_metadata_autofill' },
+      })
+      expect(task).toBeDefined()
+      expect(task?.status).toBe('pending')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((task?.payload as any)?.agent?.agentId).toBe(autofillAgent.id)
     })
   })
 })

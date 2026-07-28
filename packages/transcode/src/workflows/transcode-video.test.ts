@@ -41,6 +41,9 @@ describe('transcodeVideoWorkflow', () => {
     createEmbeddingTaskIfEnabledActivity: Object.assign(vi.fn(), {
       _activityName: 'createEmbeddingTaskIfEnabledActivity',
     }),
+    createAutofillTaskIfEnabledActivity: Object.assign(vi.fn(), {
+      _activityName: 'createAutofillTaskIfEnabledActivity',
+    }),
   }
 
   beforeEach(() => {
@@ -146,6 +149,12 @@ describe('transcodeVideoWorkflow', () => {
     })
 
     expect(mockActivities.createEmbeddingTaskIfEnabledActivity).toHaveBeenCalledWith({
+      assetId: 'asset-1',
+      teamId: 'team-1',
+      projectId: 'proj-1',
+    })
+
+    expect(mockActivities.createAutofillTaskIfEnabledActivity).toHaveBeenCalledWith({
       assetId: 'asset-1',
       teamId: 'team-1',
       projectId: 'proj-1',
