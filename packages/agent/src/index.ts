@@ -324,19 +324,18 @@ export function fieldsToTypeBoxSchema(fields: AutofillField[]) {
     switch (f.config.type) {
       case 'text':
       case 'longText':
-        schema = Type.String({ title: fieldName })
+        schema = Type.String()
         break
       case 'number':
       case 'rating':
-        schema = Type.Number({ title: fieldName })
+        schema = Type.Number()
         break
       case 'toggle':
-        schema = Type.Boolean({ title: fieldName })
+        schema = Type.Boolean()
         break
       case 'select': {
         const options = f.config.select?.options || []
         schema = Type.String({
-          title: fieldName,
           enum: options.map((o) => o.id),
         })
         if (options.length > 0) {
@@ -353,7 +352,6 @@ export function fieldsToTypeBoxSchema(fields: AutofillField[]) {
           Type.String({
             enum: options.map((o) => o.id),
           }),
-          { title: fieldName },
         )
         if (options.length > 0) {
           const optionMapStr = options.map((o) => `"${o.id}" (${o.displayName})`).join(', ')
@@ -364,7 +362,7 @@ export function fieldsToTypeBoxSchema(fields: AutofillField[]) {
         break
       }
       default:
-        schema = Type.String({ title: fieldName })
+        schema = Type.String()
     }
 
     if (!schema.description) {

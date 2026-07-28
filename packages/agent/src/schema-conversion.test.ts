@@ -9,10 +9,8 @@ describe('fieldsToTypeBoxSchema', () => {
     ]
     const schema = fieldsToTypeBoxSchema(fields)
     expect(schema.properties.f1.type).toBe('string')
-    expect(schema.properties.f1.title).toBe('Title')
     expect(schema.properties.f1.description).toBe('Title: The title')
     expect(schema.properties.f2.type).toBe('string')
-    expect(schema.properties.f2.title).toBe('Desc')
     expect(schema.properties.f2.description).toBe('Desc')
   })
 
@@ -23,16 +21,13 @@ describe('fieldsToTypeBoxSchema', () => {
     ]
     const schema = fieldsToTypeBoxSchema(fields)
     expect(schema.properties.f1.type).toBe('number')
-    expect(schema.properties.f1.title).toBe('Price')
     expect(schema.properties.f2.type).toBe('number')
-    expect(schema.properties.f2.title).toBe('Rating')
   })
 
   it('converts toggle fields', () => {
     const fields: AutofillField[] = [{ id: 'f1', config: { name: 'Active', type: 'toggle' } }]
     const schema = fieldsToTypeBoxSchema(fields)
     expect(schema.properties.f1.type).toBe('boolean')
-    expect(schema.properties.f1.title).toBe('Active')
   })
 
   it('converts select fields with enums and option descriptions', () => {
@@ -54,7 +49,6 @@ describe('fieldsToTypeBoxSchema', () => {
     ]
     const schema = fieldsToTypeBoxSchema(fields)
     expect(schema.properties.f1.type).toBe('string')
-    expect(schema.properties.f1.title).toBe('Species')
     expect(schema.properties.f1.enum).toEqual(['opt1', 'opt2'])
     expect(schema.properties.f1.description).toBe(
       'Species: Species of animal [Allowed options: "opt1" (Option 1), "opt2" (Option 2)]',
@@ -79,7 +73,6 @@ describe('fieldsToTypeBoxSchema', () => {
     ]
     const schema = fieldsToTypeBoxSchema(fields)
     expect(schema.properties.f1.type).toBe('array')
-    expect(schema.properties.f1.title).toBe('Tags')
     expect(schema.properties.f1.items.enum).toEqual(['opt1', 'opt2'])
     expect(schema.properties.f1.description).toBe(
       'Tags [Allowed options: "opt1" (Tag 1), "opt2" (Tag 2)]',
@@ -93,6 +86,5 @@ describe('fieldsToTypeBoxSchema', () => {
     ]
     const schema = fieldsToTypeBoxSchema(fields)
     expect(schema.properties.f1.type).toBe('string')
-    expect(schema.properties.f1.title).toBe('Unknown')
   })
 })

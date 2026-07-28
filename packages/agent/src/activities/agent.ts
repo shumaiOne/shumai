@@ -409,6 +409,7 @@ export interface AutofillAiParams {
 export async function autofillAiActivity(params: AutofillAiParams) {
   const prompt = 'Analyze the provided images and extract metadata.'
   const toolSchema = fieldsToTypeBoxSchema(params.fields)
+  console.log('==== autofill schema', toolSchema)
   let capturedData: Record<string, unknown> | null = null
 
   const autofillTool: AgentTool = {
