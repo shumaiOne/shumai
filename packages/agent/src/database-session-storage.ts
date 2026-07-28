@@ -6,7 +6,6 @@ import {
   type SessionMetadata,
   type SessionStorage,
   type SessionTreeEntry,
-  type SessionTreeEntryBase,
 } from '@earendil-works/pi-agent-core'
 import { agentService } from '@shumai/core/src/agent/agent'
 
@@ -76,6 +75,23 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
     return ulid()
   }
 
+  private recordToEntry(record: {
+    id: string
+    type: string | null
+    parentId: string | null
+    createdAt: Date
+    data: unknown
+  }): SessionTreeEntry {
+    const payload = (record.data as Record<string, unknown>) || {}
+    return {
+      id: record.id,
+      type: (record.type || 'message') as SessionTreeEntry['type'],
+      parentId: record.parentId,
+      timestamp: record.createdAt.toISOString(),
+      ...payload,
+    } as unknown as SessionTreeEntry
+  }
+
   async appendEntry(entry: SessionTreeEntry): Promise<void> {
     const strippedEntry = structuredClone(entry)
 
@@ -118,12 +134,28 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
 
     const targetLeafId = entry.type === 'leaf' ? entry.targetId : entry.id
 
+    // Extract base fields and store type-specific properties in data payload
+    const payload = { ...strippedEntry } as Record<string, unknown>
+    delete payload.id
+    delete payload.type
+    delete payload.parentId
+    delete payload.timestamp
+
+    const session = await prisma.agentSession.findUnique({
+      where: { id: this.sessionId },
+      select: { assetId: true },
+    })
+
     await prisma.$transaction([
       prisma.agentSessionEntry.create({
         data: {
           id: entry.id,
           sessionId: this.sessionId,
-          entry: strippedEntry,
+          assetId: session?.assetId || null,
+          type: entry.type,
+          parentId: entry.parentId || null,
+          createdAt: entry.timestamp ? new Date(entry.timestamp) : new Date(),
+          data: payload as unknown as PrismaJson.PiSessionEntryData,
         },
       }),
       prisma.agentSession.update({
@@ -138,7 +170,7 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
       where: { id },
     })
     if (!record) return undefined
-    const entry = record.entry as unknown as SessionTreeEntry
+    const entry = this.recordToEntry(record)
     await this.reinjectImageDataAsync(entry)
     await this.reinjectSkillContentAsync(entry)
     return entry
@@ -150,14 +182,11 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
     const records = await prisma.agentSessionEntry.findMany({
       where: {
         sessionId: this.sessionId,
-        entry: {
-          path: ['type'],
-          equals: type,
-        },
+        type,
       },
       orderBy: { id: 'asc' },
     })
-    const entries = records.map((r) => r.entry as unknown as SessionTreeEntry) as Array<
+    const entries = records.map((r) => this.recordToEntry(r)) as Array<
       Extract<SessionTreeEntry, { type: TType }>
     >
     for (const entry of entries) {
@@ -168,43 +197,49 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
   }
 
   async getLabel(id: string): Promise<string | undefined> {
-    const record = await prisma.agentSessionEntry.findFirst({
-      where: {
-        sessionId: this.sessionId,
-        entry: {
-          path: ['id'],
-          equals: id,
-        },
-      },
-    })
-    // Entry is generic Json
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (record?.entry as any)?.label
+    const entry = await this.getEntry(id)
+    return (entry as { label?: string } | undefined)?.label
   }
 
   async getPathToRoot(leafId: string | null): Promise<SessionTreeEntry[]> {
     if (!leafId) return []
 
-    // Fetch all entries for this session in a single query to avoid N+1 problem
-    const records = await prisma.agentSessionEntry.findMany({
-      where: { sessionId: this.sessionId },
-    })
-
-    // Build a map for fast lookup
-    const entryMap = new Map<string, SessionTreeEntry>()
-    for (const record of records) {
-      entryMap.set(record.id, record.entry as unknown as SessionTreeEntry)
+    interface EntryRow {
+      id: string
+      type: string | null
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      parent_id: string | null
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      created_at: Date
+      data: unknown
     }
 
-    const pathEntries: SessionTreeEntry[] = []
-    let currentId: string | null = leafId
+    const rows = await prisma.$queryRaw<EntryRow[]>`
+      WITH RECURSIVE entry_path AS (
+        SELECT id, type, parent_id, created_at, data, 1 AS depth
+        FROM agent_session_entries
+        WHERE id = ${leafId}
 
-    while (currentId) {
-      const entry = entryMap.get(currentId)
-      if (!entry) break
-      pathEntries.unshift(entry)
-      currentId = (entry as SessionTreeEntryBase).parentId
-    }
+        UNION ALL
+
+        SELECT e.id, e.type, e.parent_id, e.created_at, e.data, ep.depth + 1
+        FROM agent_session_entries e
+        INNER JOIN entry_path ep ON e.id = ep.parent_id
+      )
+      SELECT id, type, parent_id, created_at, data
+      FROM entry_path
+      ORDER BY depth DESC;
+    `
+
+    const pathEntries: SessionTreeEntry[] = rows.map((r) =>
+      this.recordToEntry({
+        id: r.id,
+        type: r.type,
+        parentId: r.parent_id,
+        createdAt: r.created_at,
+        data: r.data,
+      }),
+    )
 
     // Only reinject image data (which may involve S3 calls) for the entries in the path
     for (const entry of pathEntries) {
@@ -220,7 +255,7 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
       where: { sessionId: this.sessionId },
       orderBy: { id: 'asc' },
     })
-    const entries = records.map((r) => r.entry as unknown as SessionTreeEntry)
+    const entries = records.map((r) => this.recordToEntry(r))
     for (const entry of entries) {
       await this.reinjectImageDataAsync(entry)
       await this.reinjectSkillContentAsync(entry)

@@ -1,14 +1,12 @@
 export {}
 
-import { SessionTreeEntry } from '@earendil-works/pi-agent-core'
-
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace PrismaJson {
     // ----------------------------------------------------------------------
     // Agent Session Entry
     // ----------------------------------------------------------------------
-    export type PiSessionEntry = SessionTreeEntry
+    export type PiSessionEntryData = Record<string, unknown>
 
     // ----------------------------------------------------------------------
     // User Agent Settings

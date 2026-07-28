@@ -5,6 +5,7 @@ import { paginateQuery, type PaginatedData } from '@shumai/core/src/pagination'
 import type { ChatRequest, ChatSessionInfo, ChatMessage } from '@shumai/dtos'
 import type { SessionTreeEntry } from '@earendil-works/pi-agent-core'
 import { workflowService } from '@shumai/workflow-core'
+import { agentService } from '@shumai/core/src/agent/agent'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -100,14 +101,22 @@ export function buildSessionMessages(pathEntries: PathEntry[]): ChatMessage[] {
 export function mapEntryToMessage(
   entryRecord: Prisma.AgentSessionEntryGetPayload<Record<string, never>>,
 ): ChatMessage | null {
-  const entryObj = entryRecord.entry as unknown as SessionTreeEntry
+  const payload = (entryRecord.data as Record<string, unknown>) || {}
+  const entryObj = {
+    id: entryRecord.id,
+    type: (entryRecord.type || 'message') as SessionTreeEntry['type'],
+    parentId: entryRecord.parentId,
+    timestamp: entryRecord.createdAt.toISOString(),
+    ...payload,
+  } as unknown as SessionTreeEntry
+
   if (
     entryObj.type === 'custom_message' &&
     (entryObj as { customType?: string }).customType === 'context'
   ) {
     return null
   }
-  const pathEntries = [{ ...entryObj, id: entryRecord.id }]
+  const pathEntries = [entryObj]
   const messages = buildSessionMessages(pathEntries)
   if (messages.length > 0) {
     return messages[0]
@@ -116,6 +125,7 @@ export function mapEntryToMessage(
     id: entryRecord.id,
     role: 'user',
     content: '',
+    timestamp: entryRecord.createdAt.getTime(),
   } as unknown as ChatMessage
 }
 
@@ -382,18 +392,26 @@ export class ChatService {
       throw new Error('Unauthorized session access')
     }
 
-    const entries = await this.prismaClient.agentSessionEntry.findMany({
-      where: { sessionId },
-      orderBy: { id: 'asc' },
-    })
+    const entries = await agentService.getSessionEntries({ sessionId })
 
-    const pathEntries = entries.map((e) => {
-      const entryObj = e.entry as unknown as SessionTreeEntry
-      return {
-        ...entryObj,
-        id: e.id,
-      }
-    })
+    const pathEntries = entries.map(
+      (e: {
+        id: string
+        type: string | null
+        parentId: string | null
+        createdAt: Date
+        data: unknown
+      }) => {
+        const payload = (e.data as Record<string, unknown>) || {}
+        return {
+          id: e.id,
+          type: (e.type || 'message') as SessionTreeEntry['type'],
+          parentId: e.parentId,
+          timestamp: e.createdAt.toISOString(),
+          ...payload,
+        } as unknown as SessionTreeEntry
+      },
+    )
 
     return buildSessionMessages(pathEntries)
   }

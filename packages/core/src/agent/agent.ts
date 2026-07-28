@@ -330,9 +330,62 @@ export class AgentService {
   }
 
   async getSessionEntries(params: { sessionId: string }) {
-    return this.prismaClient.agentSessionEntry.findMany({
-      where: { sessionId: params.sessionId },
-      orderBy: { id: 'asc' },
+    const session = await this.prismaClient.agentSession.findUnique({
+      where: { id: params.sessionId },
+      select: { leafId: true },
+    })
+
+    if (!session?.leafId) {
+      return []
+    }
+
+    interface EntryRow {
+      id: string
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      session_id: string | null
+      type: string | null
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      parent_id: string | null
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      created_at: Date
+      data: unknown
+    }
+
+    const rows = await this.prismaClient.$queryRaw<EntryRow[]>`
+      WITH RECURSIVE entry_path AS (
+        SELECT id, session_id, type, parent_id, created_at, data, 1 AS depth
+        FROM agent_session_entries
+        WHERE id = ${session.leafId}
+
+        UNION ALL
+
+        SELECT e.id, e.session_id, e.type, e.parent_id, e.created_at, e.data, ep.depth + 1
+        FROM agent_session_entries e
+        INNER JOIN entry_path ep ON e.id = ep.parent_id
+      )
+      SELECT id, session_id, type, parent_id, created_at, data
+      FROM entry_path
+      ORDER BY depth DESC;
+    `
+
+    return rows.map((r) => {
+      const payload = (r.data as Record<string, unknown>) || {}
+      const entryObj = {
+        id: r.id,
+        type: r.type || 'message',
+        parentId: r.parent_id,
+        timestamp: r.created_at.toISOString(),
+        ...payload,
+      }
+      return {
+        id: r.id,
+        sessionId: r.session_id || params.sessionId,
+        type: r.type,
+        parentId: r.parent_id,
+        data: r.data,
+        createdAt: r.created_at,
+        entry: entryObj,
+      }
     })
   }
 }
