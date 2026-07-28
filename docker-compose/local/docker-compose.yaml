@@ -42,6 +42,9 @@ services:
       # Better Auth
       BETTER_AUTH_SECRET: qSxs9DxzHDZBbeeTNPEwBuspYwipBqz5Gk5XdBjNhWw=
 
+      # Sandbox Configuration
+      ENABLE_WEAKER_NESTED_SANDBOX: 'true'
+
     depends_on:
       postgres:
         condition: service_healthy

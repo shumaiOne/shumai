@@ -197,7 +197,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
         allowWrite,
         denyWrite: ['.env', '.env.*', '*.pem', '*.key'],
       },
-      enableWeakerNestedSandbox: true,
+      enableWeakerNestedSandbox: process.env.ENABLE_WEAKER_NESTED_SANDBOX === 'true',
     },
     sandboxAskCallback,
   )

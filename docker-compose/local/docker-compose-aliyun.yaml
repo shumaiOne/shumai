@@ -18,6 +18,11 @@ services:
 
   shumai:
     image: crpi-000nkafzu6xvpwsc.cn-hongkong.personal.cr.aliyuncs.com/shumai-one/shumai:latest
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - apparmor=unconfined
+      - seccomp=unconfined
     container_name: shumai_app
     ports:
       - '3000:3000'
@@ -36,6 +41,9 @@ services:
 
       # Better Auth
       BETTER_AUTH_SECRET: qSxs9DxzHDZBbeeTNPEwBuspYwipBqz5Gk5XdBjNhWw=
+
+      # Sandbox Configuration
+      ENABLE_WEAKER_NESTED_SANDBOX: 'true'
 
     depends_on:
       postgres:
