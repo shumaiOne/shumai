@@ -106,11 +106,14 @@ export function createAnalyzeImageTool(
       const bucket = process.env.S3_BUCKET || 'shumai'
       const { buffer, contentType } = await s3Service.getObject(bucket, keyToUse)
 
+      const mimeType =
+        contentType && contentType !== 'application/octet-stream' ? contentType : 'image/webp'
+
       const content: ImageContent[] = [
         {
           type: 'image',
           data: buffer.toString('base64'),
-          mimeType: contentType || 'image/webp',
+          mimeType,
         },
       ]
 

@@ -102,10 +102,12 @@ export function createScreenshotTool(
 
       for (const shot of screenshots) {
         const { buffer, contentType } = await s3Service.getObject(bucket, shot.key)
+        const mimeType =
+          contentType && contentType !== 'application/octet-stream' ? contentType : 'image/webp'
         content.push({
           type: 'image',
           data: buffer.toString('base64'),
-          mimeType: contentType || 'image/webp',
+          mimeType,
         })
         sourceKeys.push(shot.key)
       }

@@ -5,6 +5,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { ulid } from 'ulid'
 import { LruTtlCache } from '../cache/lru-ttl-cache'
+import { detectSupportedMimeType } from '../utils/mime'
 
 export function signLocalUrl(bucket: string, key: string): string {
   const secret = process.env.BETTER_AUTH_SECRET || 'shumai-local-storage-secret'
@@ -99,9 +100,22 @@ export class S3StorageService implements S3Service {
   async getObject(bucket: string, key: string): Promise<S3Object> {
     const file = this.client.file(key, { bucket })
     const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+    let contentType = file.type
+    if (!contentType || contentType === 'application/octet-stream') {
+      const detected = detectSupportedMimeType(buffer)
+      if (detected) {
+        contentType = detected
+      } else {
+        const fileType = Bun.file(key).type
+        if (fileType && fileType !== 'application/octet-stream') {
+          contentType = fileType
+        }
+      }
+    }
     return {
-      buffer: Buffer.from(arrayBuffer),
-      contentType: file.type || 'application/octet-stream',
+      buffer,
+      contentType: contentType || 'application/octet-stream',
     }
   }
 

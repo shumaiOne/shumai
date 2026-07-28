@@ -121,10 +121,12 @@ export function createReadPdfPagesTool(
 
       for (const pageItem of pages) {
         const { buffer, contentType } = await s3Service.getObject(bucket, pageItem.key)
+        const mimeType =
+          contentType && contentType !== 'application/octet-stream' ? contentType : 'image/webp'
         content.push({
           type: 'image',
           data: buffer.toString('base64'),
-          mimeType: contentType || 'image/webp',
+          mimeType,
         })
         sourceKeys.push(pageItem.key)
       }

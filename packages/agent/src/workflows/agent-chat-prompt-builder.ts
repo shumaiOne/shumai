@@ -166,7 +166,7 @@ export class AgentChatPromptBuilder {
     if (effectiveType) {
       const type = getSimpleMediaType(effectiveType)
       if (type === 'image') {
-        instruction += `\n\nIf you need to view the image data, call the 'analyze_image' tool. It does not require any parameters.`
+        instruction += `\n\nIf you need to view the image data, call the 'analyze_image' tool with assetId "${this.assetId}".`
       } else if (type === 'video') {
         instruction += `\n\nIf you need to view visual frames or take screenshots of the video, call the 'screenshot' tool. You must specify the 'start' (seconds), 'end' (seconds), and 'count' (number of screenshots) parameters.`
       } else if (type === 'pdf') {

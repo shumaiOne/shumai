@@ -351,49 +351,49 @@ describe('ChatService', () => {
       },
     })
 
-      // 2. Manually insert a test entry representing a custom context message
-      await prisma.agentSessionEntry.create({
+    // 2. Manually insert a test entry representing a custom context message
+    await prisma.agentSessionEntry.create({
+      data: {
+        id: 'test-entry-2-context',
+        sessionId,
+        type: 'custom_message',
+        parentId: 'test-entry-1-user',
         data: {
-          id: 'test-entry-2-context',
-          sessionId,
-          type: 'custom_message',
-          parentId: 'test-entry-1-user',
-          data: {
-            customType: 'context',
-            content: 'some context',
-            display: 'chat',
-          } as PrismaJson.PiSessionEntryData,
-        },
-      })
+          customType: 'context',
+          content: 'some context',
+          display: 'chat',
+        } as PrismaJson.PiSessionEntryData,
+      },
+    })
 
-      // 3. Manually insert a test entry representing a custom thinking level change
-      await prisma.agentSessionEntry.create({
+    // 3. Manually insert a test entry representing a custom thinking level change
+    await prisma.agentSessionEntry.create({
+      data: {
+        id: 'test-entry-3-thinking',
+        sessionId,
+        type: 'thinking_level_change',
+        parentId: 'test-entry-2-context',
         data: {
-          id: 'test-entry-3-thinking',
-          sessionId,
-          type: 'thinking_level_change',
-          parentId: 'test-entry-2-context',
-          data: {
-            thinkingLevel: 'deep',
-          } as PrismaJson.PiSessionEntryData,
-        },
-      })
+          thinkingLevel: 'deep',
+        } as PrismaJson.PiSessionEntryData,
+      },
+    })
 
-      // 4. Manually insert a test entry representing custom context_display_info entry
-      await prisma.agentSessionEntry.create({
+    // 4. Manually insert a test entry representing custom context_display_info entry
+    await prisma.agentSessionEntry.create({
+      data: {
+        id: 'test-entry-4-display',
+        sessionId,
+        type: 'custom',
+        parentId: 'test-entry-3-thinking',
         data: {
-          id: 'test-entry-4-display',
-          sessionId,
-          type: 'custom',
-          parentId: 'test-entry-3-thinking',
+          customType: 'context_display_info',
           data: {
-            customType: 'context_display_info',
-            data: {
-              assets: [{ id: 'a1', name: 'File A', type: 'file' }],
-            },
-          } as PrismaJson.PiSessionEntryData,
-        },
-      })
+            assets: [{ id: 'a1', name: 'File A', type: 'file' }],
+          },
+        } as PrismaJson.PiSessionEntryData,
+      },
+    })
 
     await prisma.agentSession.update({
       where: { id: sessionId },
