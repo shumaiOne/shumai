@@ -9,9 +9,9 @@ describe('fieldsToTypeBoxSchema', () => {
     ]
     const schema = fieldsToTypeBoxSchema(fields)
     expect(schema.properties.f1.type).toBe('string')
-    expect(schema.properties.f1.description).toBe('Title: The title')
+    expect(schema.properties.f1.description).toBe("The field 'Title' represents The title.")
     expect(schema.properties.f2.type).toBe('string')
-    expect(schema.properties.f2.description).toBe('Desc')
+    expect(schema.properties.f2.description).toBe("The field 'Desc' represents Desc.")
   })
 
   it('converts numeric fields', () => {
@@ -51,7 +51,7 @@ describe('fieldsToTypeBoxSchema', () => {
     expect(schema.properties.f1.type).toBe('string')
     expect(schema.properties.f1.enum).toEqual(['opt1', 'opt2'])
     expect(schema.properties.f1.description).toBe(
-      'Species: Species of animal [Allowed options: "opt1" (Option 1), "opt2" (Option 2)]',
+      "The field 'Species' represents Species of animal.\nSelect one option and return the option ID as the value.\n\nAvailable options:\n- Option 1 => opt1\n- Option 2 => opt2",
     )
   })
 
@@ -75,7 +75,7 @@ describe('fieldsToTypeBoxSchema', () => {
     expect(schema.properties.f1.type).toBe('array')
     expect(schema.properties.f1.items.enum).toEqual(['opt1', 'opt2'])
     expect(schema.properties.f1.description).toBe(
-      'Tags [Allowed options: "opt1" (Tag 1), "opt2" (Tag 2)]',
+      "The field 'Tags' represents Tags.\nSelect applicable options and return the option IDs as the value.\n\nAvailable options:\n- Tag 1 => opt1\n- Tag 2 => opt2",
     )
   })
 

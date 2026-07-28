@@ -321,6 +321,7 @@ export function fieldsToTypeBoxSchema(fields: AutofillField[]) {
   for (const f of fields) {
     let schema: TSchema
     const fieldName = f.config.name
+    const fieldDesc = f.description || fieldName
     switch (f.config.type) {
       case 'text':
       case 'longText':
@@ -339,10 +340,8 @@ export function fieldsToTypeBoxSchema(fields: AutofillField[]) {
           enum: options.map((o) => o.id),
         })
         if (options.length > 0) {
-          const optionMapStr = options.map((o) => `"${o.id}" (${o.displayName})`).join(', ')
-          const optionDesc = `[Allowed options: ${optionMapStr}]`
-          const baseDesc = f.description ? `${fieldName}: ${f.description}` : fieldName
-          schema.description = `${baseDesc} ${optionDesc}`
+          const optionLines = options.map((o) => `- ${o.displayName} => ${o.id}`).join('\n')
+          schema.description = `The field '${fieldName}' represents ${fieldDesc}.\nSelect one option and return the option ID as the value.\n\nAvailable options:\n${optionLines}`
         }
         break
       }
@@ -354,10 +353,8 @@ export function fieldsToTypeBoxSchema(fields: AutofillField[]) {
           }),
         )
         if (options.length > 0) {
-          const optionMapStr = options.map((o) => `"${o.id}" (${o.displayName})`).join(', ')
-          const optionDesc = `[Allowed options: ${optionMapStr}]`
-          const baseDesc = f.description ? `${fieldName}: ${f.description}` : fieldName
-          schema.description = `${baseDesc} ${optionDesc}`
+          const optionLines = options.map((o) => `- ${o.displayName} => ${o.id}`).join('\n')
+          schema.description = `The field '${fieldName}' represents ${fieldDesc}.\nSelect applicable options and return the option IDs as the value.\n\nAvailable options:\n${optionLines}`
         }
         break
       }
@@ -366,7 +363,7 @@ export function fieldsToTypeBoxSchema(fields: AutofillField[]) {
     }
 
     if (!schema.description) {
-      schema.description = f.description ? `${fieldName}: ${f.description}` : fieldName
+      schema.description = `The field '${fieldName}' represents ${fieldDesc}.`
     }
     properties[f.id] = schema
   }
