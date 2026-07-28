@@ -586,7 +586,7 @@ export async function initializeAgentSessionActivity(params: {
           type: 'message',
           parentId: mainPrevId,
           createdAt: c.createdAt,
-          data: { message } as unknown as PrismaJson.PiSessionEntryData,
+          data: { message },
         },
       })
       mainPrevId = entryId
@@ -738,7 +738,7 @@ export async function initializeAgentSessionActivity(params: {
         type: 'message',
         parentId: prevId,
         createdAt: c.createdAt,
-        data: { message } as unknown as PrismaJson.PiSessionEntryData,
+        data: { message },
       },
     })
     prevId = entryId

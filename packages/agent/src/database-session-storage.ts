@@ -155,7 +155,7 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
           type: entry.type,
           parentId: entry.parentId || null,
           createdAt: entry.timestamp ? new Date(entry.timestamp) : new Date(),
-          data: payload as unknown as PrismaJson.PiSessionEntryData,
+          data: payload as PrismaJson.PiSessionEntryData,
         },
       }),
       prisma.agentSession.update({

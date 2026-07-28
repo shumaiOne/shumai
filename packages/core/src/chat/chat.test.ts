@@ -307,7 +307,7 @@ describe('ChatService', () => {
             content: [{ type: 'text', text: 'hello' }],
             timestamp: Date.now(),
           },
-        } as unknown as PrismaJson.PiSessionEntryData,
+        } as PrismaJson.PiSessionEntryData,
       },
     })
 
@@ -347,7 +347,7 @@ describe('ChatService', () => {
             content: [{ type: 'text', text: 'hello' }],
             timestamp: Date.now(),
           },
-        } as unknown as PrismaJson.PiSessionEntryData,
+        } as PrismaJson.PiSessionEntryData,
       },
     })
 
@@ -362,7 +362,7 @@ describe('ChatService', () => {
             customType: 'context',
             content: 'some context',
             display: 'chat',
-          } as unknown as PrismaJson.PiSessionEntryData,
+          } as PrismaJson.PiSessionEntryData,
         },
       })
 
@@ -375,7 +375,7 @@ describe('ChatService', () => {
           parentId: 'test-entry-2-context',
           data: {
             thinkingLevel: 'deep',
-          } as unknown as PrismaJson.PiSessionEntryData,
+          } as PrismaJson.PiSessionEntryData,
         },
       })
 
@@ -391,7 +391,7 @@ describe('ChatService', () => {
             data: {
               assets: [{ id: 'a1', name: 'File A', type: 'file' }],
             },
-          } as unknown as PrismaJson.PiSessionEntryData,
+          } as PrismaJson.PiSessionEntryData,
         },
       })
 
@@ -546,7 +546,7 @@ describe('ChatService', () => {
               role: 'user',
               content: [{ type: 'text', text: 'msg 1' }],
             },
-          } as unknown as PrismaJson.PiSessionEntryData,
+          } as PrismaJson.PiSessionEntryData,
         },
       })
 
@@ -561,7 +561,7 @@ describe('ChatService', () => {
               role: 'assistant',
               content: [{ type: 'text', text: 'msg 2' }],
             },
-          } as unknown as PrismaJson.PiSessionEntryData,
+          } as PrismaJson.PiSessionEntryData,
         },
       })
 

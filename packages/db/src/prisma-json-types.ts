@@ -3,10 +3,10 @@ export {}
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace PrismaJson {
-    // ----------------------------------------------------------------------
-    // Agent Session Entry
-    // ----------------------------------------------------------------------
-    export type PiSessionEntryData = Record<string, unknown>
+    export type PiSessionEntryData = Omit<
+      import('@earendil-works/pi-agent-core').SessionTreeEntry,
+      'id' | 'type' | 'parentId' | 'timestamp'
+    >
 
     // ----------------------------------------------------------------------
     // User Agent Settings
