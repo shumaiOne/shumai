@@ -202,4 +202,3 @@ jobs:
         if: always()
         run: |
           docker compose -f docker-compose/local/docker-compose.yaml down -v
-
