@@ -411,3 +411,78 @@ describe('getModelFromDb', () => {
     expect(model?.api).toBe('google-generative-ai')
   })
 })
+
+describe('createAgentSession sandbox options', () => {
+  setupTestDbHooks()
+
+  it('should set enableWeakerNestedSandbox based on ENABLE_WEAKER_NESTED_SANDBOX env var', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'Test Sandbox Team Env' },
+    })
+
+    await prisma.user.create({
+      data: {
+        id: 'test-agent-env',
+        name: 'Ai Agent Env',
+        email: 'test-agent-env@shumai.ai',
+        type: 'agent',
+      },
+    })
+    await prisma.agent.create({
+      data: {
+        id: 'test-agent-env',
+        teamId: team.id,
+        type: 'chat',
+        config: {
+          provider: 'openai',
+          model: 'gpt-4',
+        },
+      },
+    })
+
+    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
+    vi.spyOn(SandboxManager, 'wrapWithSandbox').mockImplementation(async (cmd) => cmd)
+
+    // Default should be false when env var is unset
+    const oldEnv = process.env.ENABLE_WEAKER_NESTED_SANDBOX
+    delete process.env.ENABLE_WEAKER_NESTED_SANDBOX
+    await createAgentSession({
+      teamId: team.id,
+      agentId: 'test-agent-env',
+      providerName: 'google',
+      modelId: 'gemini',
+      systemPrompt: 'prompt',
+      teamSkills: [],
+      allowedDomains: [],
+      providers: [],
+    })
+    expect(initializeSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ enableWeakerNestedSandbox: false }),
+      expect.any(Function),
+    )
+
+    // Should be true when env var is 'true'
+    process.env.ENABLE_WEAKER_NESTED_SANDBOX = 'true'
+    await createAgentSession({
+      teamId: team.id,
+      agentId: 'test-agent-env',
+      providerName: 'google',
+      modelId: 'gemini',
+      systemPrompt: 'prompt',
+      teamSkills: [],
+      allowedDomains: [],
+      providers: [],
+    })
+    expect(initializeSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ enableWeakerNestedSandbox: true }),
+      expect.any(Function),
+    )
+
+    if (oldEnv !== undefined) {
+      process.env.ENABLE_WEAKER_NESTED_SANDBOX = oldEnv
+    } else {
+      delete process.env.ENABLE_WEAKER_NESTED_SANDBOX
+    }
+    initializeSpy.mockRestore()
+  })
+})

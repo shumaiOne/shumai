@@ -36,6 +36,7 @@ services:
       WORKFLOW_EXECUTOR: temporal
       TEMPORAL_ADDRESS: temporal:7233
       GEMINI_API_KEY: KEY
+      ENABLE_WEAKER_NESTED_SANDBOX: 'true'
     depends_on:
       postgres:
         condition: service_healthy
