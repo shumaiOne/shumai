@@ -547,13 +547,12 @@ export async function initializeAgentSessionActivity(params: {
     })
   }
 
-  // 1. Fetch top-level comments up to rootComment.createdAt excluding userComment itself
+  // 1. Fetch top-level comments up to rootComment.createdAt
   const topLevelComments = await prisma.assetComment.findMany({
     where: {
       assetId: userComment.assetId,
       replyToId: null,
       createdAt: { lte: rootComment.createdAt },
-      id: { not: userComment.id },
     },
     orderBy: { createdAt: 'asc' },
     include: { creator: true },
@@ -675,7 +674,7 @@ export async function initializeAgentSessionActivity(params: {
   }
 
   // 4. Sync thread replies and set Thread Session leafId
-  let threadLeafId: string | null = userComment.replyToId ? rootCommentId : mainPrevId
+  let threadLeafId: string = rootCommentId
 
   if (threadReplies.length > 0) {
     let lastReplyParentId: string = rootCommentId
