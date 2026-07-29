@@ -6,6 +6,7 @@ import { useDraggable } from '@dnd-kit/react'
 import { File, Folder, MoreVertical, AudioLines } from 'lucide-react'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '@/ui/lib/utils'
+import { formatSize } from '@/ui/lib/format'
 import type { DragState } from '../dnd-types'
 import FieldRenderer from '../field-renderer'
 import { Badge } from '@/ui/components/ui/badge'
@@ -135,13 +136,6 @@ export function FileListItem({
     setName(displayItem.name)
   }, [displayItem.name])
 
-  const formatSize = (size?: number) => {
-    if (!size) return '-'
-    if (size < 1024) return `${size} B`
-    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
-    return `${(size / (1024 * 1024)).toFixed(1)} MB`
-  }
-
   const formatDate = (date?: string) => {
     if (!date) return '-'
     return new Date(date).toLocaleDateString('en-US', {
@@ -253,7 +247,11 @@ export function FileListItem({
           minWidth: columnSizing?.['size'] || 100,
         }}
       >
-        {displayItem.type === 'folder' ? '-' : formatSize(displayItem.sizeByte)}
+        {displayItem.type === 'folder'
+          ? '-'
+          : displayItem.sizeByte
+            ? formatSize(displayItem.sizeByte)
+            : '-'}
       </div>
       <div
         className="px-4 py-2 border-r shrink-0 flex items-center"
