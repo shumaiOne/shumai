@@ -53,7 +53,6 @@ export function AgentSessionsDashboard({ teamId }: AgentSessionsDashboardProps) 
 
   const allSessions =
     data?.pages.flatMap((page) => page.data).filter((s) => s.id !== 'pending') || []
-  const totalCount = data?.pages[0]?.pageInfo.total ?? allSessions.length
 
   const getSessionTypeBadge = (type: string) => {
     switch (type) {
@@ -101,7 +100,7 @@ export function AgentSessionsDashboard({ teamId }: AgentSessionsDashboardProps) 
             <div>
               <CardTitle className="text-xl font-bold flex items-center gap-2">
                 <MessagesSquare className="w-5 h-5 text-violet-500" />
-                {m.sessions()} ({totalCount})
+                {m.sessions()}
               </CardTitle>
               <CardDescription className="mt-1 text-sm text-muted-foreground">
                 {m.sessions_description()}
