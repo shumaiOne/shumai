@@ -174,6 +174,8 @@ export class AgentChatPromptBuilder {
       }
     }
 
+    instruction += `\n\nIf you need a local file on disk to run bash commands or scripts (e.g. processing or combining assets), call the 'download_asset' tool with assetId. After finishing the job, remember to delete the temporary downloaded file.`
+
     if (this.userInfo) {
       instruction += `\n\nUser Info:\nName: ${this.userInfo.name}\nRole: ${this.userInfo.role}`
     }
