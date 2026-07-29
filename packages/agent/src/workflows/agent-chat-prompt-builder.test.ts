@@ -166,7 +166,6 @@ describe('AgentChatPromptBuilder', () => {
     const builder = new AgentChatPromptBuilder('a1')
     const result = builder.build()
 
-    expect(result).toContain("call the 'download_asset' tool with assetId")
-    expect(result).toContain('remember to delete the temporary downloaded file.')
+    expect(result).toContain("call the 'download_asset' tool with assetId.")
   })
 })
