@@ -1902,6 +1902,72 @@ describe('AssetService', () => {
       // Verify record is gone
       expect(await prisma.asset.findUnique({ where: { id: complexFile.id } })).toBeNull()
     })
+
+    it('should set AgentSession.assetId to null when asset is purged, preserving session and session entries', async () => {
+      const { project } = await setupBasicAssets()
+
+      const agentUser = await prisma.user.create({
+        data: {
+          name: 'Test Agent',
+          email: `test-agent-${Date.now()}@example.com`,
+          type: 'agent',
+        },
+      })
+      const agent = await prisma.agent.create({
+        data: {
+          id: agentUser.id,
+          teamId: project.teamId,
+          type: 'chat',
+          config: { provider: 'test', model: 'test' },
+        },
+      })
+
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'Asset With Session',
+          type: AssetType.file,
+          status: AssetStatus.pending_purge,
+          isDeleted: true,
+          project: { connect: { id: project.id } },
+        },
+      })
+
+      const session = await prisma.agentSession.create({
+        data: {
+          agentId: agent.id,
+          cwd: '/',
+          assetId: asset.id,
+          type: 'comment',
+        },
+      })
+
+      const entry = await prisma.agentSessionEntry.create({
+        data: {
+          id: `entry-${Date.now()}`,
+          sessionId: session.id,
+          assetId: asset.id,
+          type: 'message',
+          data: { content: 'test message' },
+        },
+      })
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (assetService as any).purgePendingAssets()
+
+      expect(await prisma.asset.findUnique({ where: { id: asset.id } })).toBeNull()
+
+      const updatedSession = await prisma.agentSession.findUnique({
+        where: { id: session.id },
+      })
+      expect(updatedSession).not.toBeNull()
+      expect(updatedSession?.assetId).toBeNull()
+
+      const updatedEntry = await prisma.agentSessionEntry.findUnique({
+        where: { id: entry.id },
+      })
+      expect(updatedEntry).not.toBeNull()
+      expect(updatedEntry?.sessionId).toBe(session.id)
+    })
   })
 })
 

@@ -708,7 +708,7 @@ model AgentSession {
   cwd           String
   leafId        String?  @map("leaf_id")
   assetId       String?  @map("asset_id")
-  asset         Asset?   @relation("AssetToAgentSession", fields: [assetId], references: [id], onDelete: Cascade)
+  asset         Asset?   @relation("AssetToAgentSession", fields: [assetId], references: [id], onDelete: SetNull)
   userCommentId String?  @map("user_comment_id")
   type          AgentSessionType @default(comment)
   name          String?
