@@ -354,6 +354,12 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
     userCommentId?: string
   }): Promise<DatabaseSessionStorage> {
     if (params.sessionId) {
+      if (params.userId) {
+        await prisma.agentSession.updateMany({
+          where: { id: params.sessionId, NOT: { userId: params.userId } },
+          data: { userId: params.userId },
+        })
+      }
       return new DatabaseSessionStorage(params.sessionId)
     } else {
       const session = await prisma.agentSession.create({

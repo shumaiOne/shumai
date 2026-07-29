@@ -659,6 +659,67 @@ describe('Agent Database Activities Integration', () => {
       expect(text).toContain(`[Thread ID: ${msg3.id}]`)
     })
 
+    it('reproduces bug: should assign correct user_id to thread session when user2 asks in the thread', async () => {
+      const user2 = await prisma.user.create({
+        data: {
+          name: 'Test Human 2',
+          email: 'human2@shumai.ai',
+          type: 'human',
+        },
+      })
+
+      // msg1 (top-level comment by user1)
+      const msg1 = await prisma.assetComment.create({
+        data: { assetId: asset.id, message: 'msg1', creatorId: user.id },
+      })
+
+      // msg3 (user1 asks agent in thread)
+      const msg3 = await prisma.assetComment.create({
+        data: {
+          assetId: asset.id,
+          message: 'msg3 ask agent',
+          creatorId: user.id,
+          replyToId: msg1.id,
+        },
+      })
+
+      const session1Id = await initializeAgentSessionActivity({
+        teamId: team.id,
+        agentId: 'test-agent-id',
+        userCommentId: msg3.id,
+        userId: user.id,
+      })
+
+      const session1 = await prisma.agentSession.findUnique({
+        where: { id: session1Id },
+      })
+      expect(session1?.userId).toBe(user.id)
+
+      // msg5 (user2 asks agent in the SAME thread)
+      const msg5 = await prisma.assetComment.create({
+        data: {
+          assetId: asset.id,
+          message: 'msg5 ask agent',
+          creatorId: user2.id,
+          replyToId: msg1.id,
+        },
+      })
+
+      const session2Id = await initializeAgentSessionActivity({
+        teamId: team.id,
+        agentId: 'test-agent-id',
+        userCommentId: msg5.id,
+        userId: user2.id,
+      })
+
+      const session2 = await prisma.agentSession.findUnique({
+        where: { id: session2Id },
+      })
+
+      // The thread session returned for msg5 asked by user2 should have userId set to user2
+      expect(session2?.userId).toBe(user2.id)
+    })
+
     it('should return user name and role for team member', async () => {
       const info = await getUserTeamInfoActivity({
         userId: user.id,

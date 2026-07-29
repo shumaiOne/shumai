@@ -1,7 +1,7 @@
 import {
-    type AgentMessage,
-    type AgentTool,
-    type SessionTreeEntry,
+  type AgentMessage,
+  type AgentTool,
+  type SessionTreeEntry,
 } from '@earendil-works/pi-agent-core'
 import { type ImageContent } from '@earendil-works/pi-ai'
 import { assetService } from '@shumai/core/src/asset/asset'
@@ -19,10 +19,10 @@ import { generateKeyBetween } from 'jittered-fractional-indexing'
 import { ulid } from 'ulid'
 import { DatabaseSessionStorage } from '../database-session-storage'
 import {
-    createAgentSession,
-    fieldsToTypeBoxSchema,
-    type AutofillField,
-    type DbProviderInfo,
+  createAgentSession,
+  fieldsToTypeBoxSchema,
+  type AutofillField,
+  type DbProviderInfo,
 } from '../index'
 
 import { aiUsageService } from '@shumai/core/src/ai-usage/ai-usage'
@@ -498,6 +498,8 @@ export async function initializeAgentSessionActivity(params: {
   const rootCommentId = userComment.replyToId || userComment.id
   const targetUserCommentId = isThread ? rootCommentId : null
 
+  const targetUserId = params.userId || userComment.creatorId || null
+
   let session = await prisma.agentSession.findFirst({
     where: {
       assetId: userComment.assetId,
@@ -510,12 +512,17 @@ export async function initializeAgentSessionActivity(params: {
     session = await prisma.agentSession.create({
       data: {
         agentId,
-        userId: params.userId || null,
+        userId: targetUserId,
         cwd: process.cwd(),
         assetId: userComment.assetId,
         userCommentId: targetUserCommentId,
         type: 'comment',
       },
+    })
+  } else if (targetUserId && session.userId !== targetUserId) {
+    session = await prisma.agentSession.update({
+      where: { id: session.id },
+      data: { userId: targetUserId },
     })
   }
   const sessionId = session.id
