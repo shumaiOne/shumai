@@ -372,6 +372,16 @@ describe('AgentService', () => {
         },
       })
 
+      await db.agentSession.create({
+        data: {
+          agentId: agent.id,
+          userId: humanUser.id,
+          name: 'pending',
+          type: 'chat',
+          cwd: '/tmp',
+        },
+      })
+
       const result = await svc.listTeamSessions(team.id, { first: 10 })
       expect(result.data).toHaveLength(2)
       expect(result.pageInfo.total).toBe(2)
@@ -379,6 +389,7 @@ describe('AgentService', () => {
       const names = result.data.map((s) => s.name)
       expect(names).toContain('Session 1')
       expect(names).toContain('Session 2')
+      expect(names).not.toContain('pending')
       expect(result.data[0].creator?.id).toBe(humanUser.id)
       expect(result.data[0].creator?.name).toBe('Human User')
       expect(result.data[0].agent?.id).toBe(agent.id)
