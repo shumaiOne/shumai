@@ -13,6 +13,7 @@ import {
 } from '@shumai/core/src/pagination'
 import '@shumai/db/src/prisma-json-types'
 import { s3Service } from '@shumai/core/src/s3/s3'
+import { getAvatarUrl } from '@shumai/core/src/user/avatar'
 import AdmZip from 'adm-zip'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -425,21 +426,23 @@ export class AgentService {
           },
         })
 
-        return sessions.map((s) => ({
-          id: s.id,
-          name: s.name,
-          type: s.type,
-          createdAt: s.createdAt.toISOString(),
-          creator: s.user
-            ? {
-                id: s.user.id,
-                name: s.user.name,
-                email: s.user.email,
-                image: s.user.image,
-              }
-            : null,
-          agentId: s.agentId,
-        }))
+        return await Promise.all(
+          sessions.map(async (s) => ({
+            id: s.id,
+            name: s.name,
+            type: s.type,
+            createdAt: s.createdAt.toISOString(),
+            creator: s.user
+              ? {
+                  id: s.user.id,
+                  name: s.user.name,
+                  email: s.user.email,
+                  image: await getAvatarUrl(s.user.image),
+                }
+              : null,
+            agentId: s.agentId,
+          })),
+        )
       },
       async () => {
         return this.prismaClient.agentSession.count({ where })
