@@ -1,12 +1,19 @@
-import { prisma } from '@shumai/db'
+import { prisma, type Prisma } from '@shumai/db'
 import {
   CreateAgentParams,
   DeleteAgentParams,
   ListAgentsParams,
   UpdateAgentParams,
+  AgentSessionInfo,
 } from '@shumai/dtos'
+import {
+  paginateQuery,
+  type PaginatedData,
+  type PaginationParams,
+} from '@shumai/core/src/pagination'
 import '@shumai/db/src/prisma-json-types'
 import { s3Service } from '@shumai/core/src/s3/s3'
+import { getAvatarUrl } from '@shumai/core/src/user/avatar'
 import AdmZip from 'adm-zip'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -387,6 +394,61 @@ export class AgentService {
         entry: entryObj,
       }
     })
+  }
+
+  async listSessions(
+    teamId: string,
+    params: PaginationParams,
+  ): Promise<PaginatedData<AgentSessionInfo[]>> {
+    const where: Prisma.AgentSessionWhereInput = {
+      id: { not: 'pending' },
+      agent: {
+        teamId,
+      },
+    }
+
+    return await paginateQuery(
+      async (skip, take) => {
+        const sessions = await this.prismaClient.agentSession.findMany({
+          where,
+          skip,
+          take,
+          orderBy: { id: 'desc' },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true,
+              },
+            },
+          },
+        })
+
+        return await Promise.all(
+          sessions.map(async (s) => ({
+            id: s.id,
+            name: s.name,
+            type: s.type,
+            createdAt: s.createdAt.toISOString(),
+            creator: s.user
+              ? {
+                  id: s.user.id,
+                  name: s.user.name,
+                  email: s.user.email,
+                  image: await getAvatarUrl(s.user.image),
+                }
+              : null,
+            agentId: s.agentId,
+          })),
+        )
+      },
+      async () => {
+        return this.prismaClient.agentSession.count({ where })
+      },
+      params,
+    )
   }
 }
 

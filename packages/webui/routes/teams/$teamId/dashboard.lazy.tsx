@@ -5,9 +5,10 @@ import { client } from '@/ui/api/client'
 import { cn } from '@/ui/lib/utils'
 import { m } from '@/ui/paraglide/messages.js'
 import { AiUsageDashboard } from '@/ui/components/dashboard/AiUsageDashboard'
-import { BarChart2, Loader2, ShieldAlert } from 'lucide-react'
+import { AgentSessionsDashboard } from '@/ui/components/dashboard/AgentSessionsDashboard'
+import { BarChart2, Loader2, MessagesSquare, ShieldAlert } from 'lucide-react'
 
-type DashboardTab = 'ai-usage'
+type DashboardTab = 'ai-usage' | 'ai-sessions'
 
 function TeamDashboardPage() {
   const { teamId } = Route.useParams()
@@ -72,6 +73,22 @@ function TeamDashboardPage() {
                 <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
               )}
             </button>
+
+            <button
+              onClick={() => setActiveTab('ai-sessions')}
+              className={cn(
+                'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
+                activeTab === 'ai-sessions'
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
+                  : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+              )}
+            >
+              <MessagesSquare className="w-5 h-5" />
+              {m.sessions()}
+              {activeTab === 'ai-sessions' && (
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
+              )}
+            </button>
           </nav>
         </div>
 
@@ -79,6 +96,7 @@ function TeamDashboardPage() {
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className="max-w-6xl mx-auto space-y-8">
             {activeTab === 'ai-usage' && <AiUsageDashboard teamId={teamId} />}
+            {activeTab === 'ai-sessions' && <AgentSessionsDashboard teamId={teamId} />}
           </div>
         </div>
       </div>

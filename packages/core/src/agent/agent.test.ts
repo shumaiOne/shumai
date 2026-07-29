@@ -339,4 +339,64 @@ describe('AgentService', () => {
       expect(entries[1].id).toBe(entry2.id)
     })
   })
+
+  describe('listSessions', () => {
+    test('lists sessions for team and excludes pending id', async () => {
+      const db = prisma
+      const svc = new AgentService()
+      const { team, agent } = await setupTestData(db)
+
+      const user = await db.user.create({
+        data: {
+          name: 'Regular User',
+          email: 'user@shumai.ai',
+        },
+      })
+
+      const session1 = await db.agentSession.create({
+        data: {
+          name: 'Session One',
+          agentId: agent.id,
+          userId: user.id,
+          type: 'chat',
+          cwd: '/tmp',
+        },
+      })
+
+      const session2 = await db.agentSession.create({
+        data: {
+          name: 'Session Two',
+          agentId: agent.id,
+          userId: user.id,
+          type: 'comment',
+          cwd: '/tmp',
+        },
+      })
+
+      // Pending session - should be excluded!
+      await db.agentSession.create({
+        data: {
+          id: 'pending',
+          name: 'Pending Session',
+          agentId: agent.id,
+          userId: user.id,
+          type: 'chat',
+          cwd: '/tmp',
+        },
+      })
+
+      const res = await svc.listSessions(team.id, { first: 10 })
+
+      expect(res.data).toHaveLength(2)
+      expect(res.data.map((s) => s.id)).not.toContain('pending')
+      const sessionIds = res.data.map((s) => s.id)
+      expect(sessionIds).toContain(session1.id)
+      expect(sessionIds).toContain(session2.id)
+
+      const found = res.data.find((s) => s.id === session1.id)
+      expect(found?.name).toBe('Session One')
+      expect(found?.type).toBe('chat')
+      expect(found?.creator?.name).toBe('Regular User')
+    })
+  })
 })
