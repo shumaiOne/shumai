@@ -82,6 +82,7 @@ vi.mock('fs', async (importOriginal) => {
   return {
     ...actual,
     readFileSync: vi.fn().mockReturnValue(Buffer.from('fake data')),
+    statSync: vi.fn().mockReturnValue({ size: 9 }),
     existsSync: vi.fn().mockReturnValue(true),
     mkdirSync: vi.fn(),
     unlinkSync: vi.fn(),
@@ -609,7 +610,7 @@ describe('Transcode Activities', () => {
       expect(s3Service.putObject).toHaveBeenCalledWith(
         'shumai',
         'files/proj-123/a-audio-proxy.mp4',
-        expect.any(Buffer),
+        expect.anything(),
         expect.any(Number),
         'video/mp4',
       )
