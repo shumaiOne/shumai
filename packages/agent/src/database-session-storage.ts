@@ -154,14 +154,18 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
     })
 
     await prisma.$transaction([
-      prisma.agentSessionEntry.create({
-        data: {
+      prisma.agentSessionEntry.upsert({
+        where: { id: entry.id },
+        create: {
           id: entry.id,
           sessionId: this.sessionId,
           assetId: session?.assetId || null,
           type: entry.type,
           parentId: entry.parentId || null,
           createdAt: entry.timestamp ? new Date(entry.timestamp) : new Date(),
+          data: payload as PrismaJson.PiSessionEntryData,
+        },
+        update: {
           data: payload as PrismaJson.PiSessionEntryData,
         },
       }),

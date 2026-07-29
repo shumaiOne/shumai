@@ -844,6 +844,40 @@ describe('Agent Database Activities Integration', () => {
       expect(mainPathIds).toContain(msg3.id)
     })
 
+    it('should safely upsert entry without unique constraint error when appendEntry is called for pre-existing userComment.id', async () => {
+      const msg3 = await prisma.assetComment.create({
+        data: { assetId: asset.id, message: '<@shumai-x1> what did i say', creatorId: user.id },
+      })
+
+      const sessionId = await initializeAgentSessionActivity({
+        teamId: team.id,
+        agentId: 'test-agent-id',
+        userCommentId: msg3.id,
+        userId: user.id,
+      })
+
+      const storage = new DatabaseSessionStorage(sessionId)
+      storage.nextEntryId = msg3.id
+
+      const entryId = await storage.createEntryId()
+      expect(entryId).toBe(msg3.id)
+
+      // appendEntry should upsert msg3.id without throwing unique constraint error
+      await expect(
+        storage.appendEntry({
+          id: entryId,
+          type: 'message',
+          parentId: null,
+          timestamp: new Date().toISOString(),
+          message: {
+            role: 'user',
+            content: [{ type: 'text', text: 'Updated content' }],
+          },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- testing mock entry casting
+        } as any),
+      ).resolves.not.toThrow()
+    })
+
     it('should return user name and role for team member', async () => {
       const info = await getUserTeamInfoActivity({
         userId: user.id,
