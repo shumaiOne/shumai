@@ -539,15 +539,17 @@ describe('Agent Database Activities Integration', () => {
       // Verify agentSession created
       const agentSession = await prisma.agentSession.findUnique({
         where: { id: sessionId },
-        include: { entries: true },
       })
       expect(agentSession).toBeDefined()
       expect(agentSession?.leafId).toBeDefined()
 
-      // Verify historical comment is converted and saved to entries (mentions replaced, prefixes added)
-      expect(agentSession?.entries.length).toBe(1)
+      // Verify historical comment is converted and saved to DAG entries via path traversal
+      const storage = new DatabaseSessionStorage(sessionId)
+      const pathEntries = await storage.getPathToRoot(agentSession!.leafId)
+      expect(pathEntries.length).toBe(2)
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- entry data is stored as Json in DB and needs casting to check properties
-      const parsedEntry = agentSession?.entries[0].data as any
+      const parsedEntry = pathEntries[0] as any
       expect(parsedEntry.message.content[0].text).toContain(
         `[${user.name} (owner)]: Hello <@${user.name}> check this`,
       )
@@ -666,13 +668,13 @@ describe('Agent Database Activities Integration', () => {
       expect(text).toContain(`[Thread ID: ${msg3.id}]`)
     })
 
-    it('should create separate thread sessions when agent is mentioned in top-level comments (msg3 & msg5) and reuse session on thread follow-ups', async () => {
+    it('should create separate thread sessions when agent is mentioned in top-level comments (msg3 & msg5) sharing DAG entries without duplication', async () => {
       // msg1 (top level)
-      await prisma.assetComment.create({
+      const msg1 = await prisma.assetComment.create({
         data: { assetId: asset.id, message: 'msg1', creatorId: user.id },
       })
       // msg2 (top level)
-      await prisma.assetComment.create({
+      const msg2 = await prisma.assetComment.create({
         data: { assetId: asset.id, message: 'msg2', creatorId: user.id },
       })
       // msg3 (top level asking agent)
@@ -689,7 +691,7 @@ describe('Agent Database Activities Integration', () => {
       })
 
       // agent response msg4
-      await prisma.assetComment.create({
+      const msg4 = await prisma.assetComment.create({
         data: {
           assetId: asset.id,
           message: 'msg4',
@@ -741,6 +743,34 @@ describe('Agent Database Activities Integration', () => {
 
       // Reuses session3Id (Thread Session 1)
       expect(session7Id).toBe(session3Id)
+
+      // VERIFY DAG ENTRY SHARING & NO DUPLICATION
+      // Every shared comment must have EXACTLY 1 row in agent_session_entries with id = comment.id
+      const msg1Entries = await prisma.agentSessionEntry.findMany({ where: { id: msg1.id } })
+      const msg2Entries = await prisma.agentSessionEntry.findMany({ where: { id: msg2.id } })
+      const msg3Entries = await prisma.agentSessionEntry.findMany({ where: { id: msg3.id } })
+      expect(msg1Entries.length).toBe(1)
+      expect(msg2Entries.length).toBe(1)
+      expect(msg3Entries.length).toBe(1)
+
+      // Verify DatabaseSessionStorage path traversal for session 3 vs session 5
+      const storage3 = new DatabaseSessionStorage(session3Id)
+      const path3 = await storage3.getPathToRoot(msg4.id)
+      const path3Ids = path3.map((e) => e.id)
+      expect(path3Ids).toContain(msg1.id)
+      expect(path3Ids).toContain(msg2.id)
+      expect(path3Ids).toContain(msg3.id)
+      expect(path3Ids).toContain(msg4.id)
+      expect(path3Ids).not.toContain(msg5.id)
+
+      const storage5 = new DatabaseSessionStorage(session5Id)
+      const path5 = await storage5.getPathToRoot(msg5.id)
+      const path5Ids = path5.map((e) => e.id)
+      expect(path5Ids).toContain(msg1.id)
+      expect(path5Ids).toContain(msg2.id)
+      expect(path5Ids).toContain(msg3.id)
+      expect(path5Ids).toContain(msg5.id)
+      expect(path5Ids).not.toContain(msg4.id)
     })
 
     it('should return user name and role for team member', async () => {
