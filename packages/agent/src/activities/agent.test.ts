@@ -546,7 +546,7 @@ describe('Agent Database Activities Integration', () => {
       // Verify historical comment is converted and saved to DAG entries via path traversal
       const storage = new DatabaseSessionStorage(sessionId)
       const pathEntries = await storage.getPathToRoot(agentSession!.leafId)
-      expect(pathEntries.length).toBe(2)
+      expect(pathEntries.length).toBe(1)
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- entry data is stored as Json in DB and needs casting to check properties
       const parsedEntry = pathEntries[0] as any
@@ -594,16 +594,15 @@ describe('Agent Database Activities Integration', () => {
       expect(mainSession).toBeDefined()
       expect(mainSession?.userCommentId).toBeNull()
 
-      // Retrieve main session entries
+      // Retrieve main session entries (contains top-level comments prior to mainComment2)
       const mainEntries = await prisma.agentSessionEntry.findMany({
         where: { sessionId: mainSession!.id },
         orderBy: { createdAt: 'asc' },
       })
 
-      // Main session contains mainComment1 and mainComment2, but NOT threadReply1
-      expect(mainEntries.length).toBe(2)
+      // Main session contains mainComment1, but NOT threadReply1 or mainComment2 (which is appended by piAgent.prompt)
+      expect(mainEntries.length).toBe(1)
       expect(mainEntries[0].id).toContain(mainComment1.id)
-      expect(mainEntries[1].id).toContain(mainComment2.id)
 
       // 4. Initialize session for mention on threadReply1 (Thread Session for mainComment1)
       const threadSession1Id = await initializeAgentSessionActivity({
@@ -748,10 +747,8 @@ describe('Agent Database Activities Integration', () => {
       // Every shared comment must have EXACTLY 1 row in agent_session_entries with id = comment.id
       const msg1Entries = await prisma.agentSessionEntry.findMany({ where: { id: msg1.id } })
       const msg2Entries = await prisma.agentSessionEntry.findMany({ where: { id: msg2.id } })
-      const msg3Entries = await prisma.agentSessionEntry.findMany({ where: { id: msg3.id } })
       expect(msg1Entries.length).toBe(1)
       expect(msg2Entries.length).toBe(1)
-      expect(msg3Entries.length).toBe(1)
 
       // Verify DatabaseSessionStorage path traversal for session 3 vs session 5
       const storage3 = new DatabaseSessionStorage(session3Id)
@@ -759,18 +756,55 @@ describe('Agent Database Activities Integration', () => {
       const path3Ids = path3.map((e) => e.id)
       expect(path3Ids).toContain(msg1.id)
       expect(path3Ids).toContain(msg2.id)
-      expect(path3Ids).toContain(msg3.id)
       expect(path3Ids).toContain(msg4.id)
       expect(path3Ids).not.toContain(msg5.id)
 
       const storage5 = new DatabaseSessionStorage(session5Id)
-      const path5 = await storage5.getPathToRoot(msg5.id)
+      const path5 = await storage5.getPathToRoot(session5!.leafId!)
       const path5Ids = path5.map((e) => e.id)
       expect(path5Ids).toContain(msg1.id)
       expect(path5Ids).toContain(msg2.id)
-      expect(path5Ids).toContain(msg3.id)
-      expect(path5Ids).toContain(msg5.id)
       expect(path5Ids).not.toContain(msg4.id)
+    })
+
+    it('should set thread session leafId to preceding comment so userComment is not pre-inserted before piAgent.prompt runs', async () => {
+      // msg1 (top level)
+      const msg1 = await prisma.assetComment.create({
+        data: { assetId: asset.id, message: 'msg1', creatorId: user.id },
+      })
+      // msg2 (top level)
+      const msg2 = await prisma.assetComment.create({
+        data: { assetId: asset.id, message: 'msg2', creatorId: user.id },
+      })
+      // msg3 (top level asking agent)
+      const msg3 = await prisma.assetComment.create({
+        data: { assetId: asset.id, message: '<@shumai-x1> what did i say', creatorId: user.id },
+      })
+
+      const sessionId = await initializeAgentSessionActivity({
+        teamId: team.id,
+        agentId: 'test-agent-id',
+        userCommentId: msg3.id,
+        userId: user.id,
+      })
+
+      const threadSession = await prisma.agentSession.findUnique({
+        where: { id: sessionId },
+      })
+
+      // The leafId for the thread session MUST be msg2.id (preceding comment), NOT msg3.id,
+      // because piAgent.prompt(msg3.message) will append msg3 as the active user message prompt.
+      expect(threadSession?.leafId).toBe(msg2.id)
+
+      const storage = new DatabaseSessionStorage(sessionId)
+      const pathEntries = await storage.getPathToRoot(threadSession!.leafId)
+      const pathIds = pathEntries.map((e) => e.id)
+
+      // Context history before prompt runs contains msg1 and msg2
+      expect(pathIds).toContain(msg1.id)
+      expect(pathIds).toContain(msg2.id)
+      // msg3 is not pre-inserted in the session history prior to piAgent.prompt running
+      expect(pathIds).not.toContain(msg3.id)
     })
 
     it('should return user name and role for team member', async () => {
