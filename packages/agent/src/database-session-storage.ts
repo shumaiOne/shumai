@@ -267,23 +267,30 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
           replyToId: { in: entryIds },
           message: { not: '__CHAT__' },
         },
+        _count: {
+          id: true,
+        },
       })
-      const commentIdsWithThreads = new Set<string>()
+      const threadReplyCountMap = new Map<string, number>()
       for (const tc of threadCounts) {
-        if (tc.replyToId) commentIdsWithThreads.add(tc.replyToId)
+        if (tc.replyToId) {
+          threadReplyCountMap.set(tc.replyToId, tc._count.id)
+        }
       }
 
-      if (commentIdsWithThreads.size > 0) {
+      if (threadReplyCountMap.size > 0) {
         for (let i = 0; i < pathEntries.length; i++) {
           const entry = pathEntries[i]
-          if (commentIdsWithThreads.has(entry.id) && entry.type === 'message') {
+          const count = threadReplyCountMap.get(entry.id)
+          if (count !== undefined && count > 0 && entry.type === 'message') {
             const cloned = structuredClone(entry)
             const msg = cloned.message as unknown as {
               content?: Array<{ type: string; text: string }>
             }
             if (Array.isArray(msg.content) && msg.content[0] && msg.content[0].type === 'text') {
-              if (!msg.content[0].text.startsWith(`[Thread ID: ${entry.id}]`)) {
-                msg.content[0].text = `[Thread ID: ${entry.id}] ${msg.content[0].text}`
+              const threadTag = `[Thread ID: ${entry.id}] [Replies: ${count}]`
+              if (!msg.content[0].text.includes(`[Thread ID: ${entry.id}]`)) {
+                msg.content[0].text = `${threadTag} ${msg.content[0].text}`
               }
             }
             pathEntries[i] = cloned

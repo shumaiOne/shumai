@@ -665,7 +665,7 @@ describe('Agent Database Activities Integration', () => {
       expect(msg3Entry).toBeDefined()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const text = (msg3Entry as any).message.content[0].text
-      expect(text).toContain(`[Thread ID: ${msg3.id}]`)
+      expect(text).toContain(`[Thread ID: ${msg3.id}] [Replies: 1]`)
     })
 
     it('should create separate thread sessions when agent is mentioned in top-level comments (msg3 & msg5) sharing DAG entries without duplication', async () => {
