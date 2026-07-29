@@ -248,12 +248,12 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
     }
 
     // Dynamically tag comments that currently have reply threads
-    const entryIds = pathEntries.map((e) => e.id)
-    if (entryIds.length > 0) {
+    const commentIds = Array.from(new Set(pathEntries.map((e) => e.id.split('_')[0])))
+    if (commentIds.length > 0) {
       const threadCounts = await prisma.assetComment.groupBy({
         by: ['replyToId'],
         where: {
-          replyToId: { in: entryIds },
+          replyToId: { in: commentIds },
         },
       })
       const commentIdsWithThreads = new Set<string>()
@@ -264,14 +264,15 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
       if (commentIdsWithThreads.size > 0) {
         for (let i = 0; i < pathEntries.length; i++) {
           const entry = pathEntries[i]
-          if (commentIdsWithThreads.has(entry.id) && entry.type === 'message') {
+          const baseCommentId = entry.id.split('_')[0]
+          if (commentIdsWithThreads.has(baseCommentId) && entry.type === 'message') {
             const cloned = structuredClone(entry)
             const msg = cloned.message as unknown as {
               content?: Array<{ type: string; text: string }>
             }
             if (Array.isArray(msg.content) && msg.content[0] && msg.content[0].type === 'text') {
-              if (!msg.content[0].text.startsWith(`[Thread ID: ${entry.id}]`)) {
-                msg.content[0].text = `[Thread ID: ${entry.id}] ${msg.content[0].text}`
+              if (!msg.content[0].text.startsWith(`[Thread ID: ${baseCommentId}]`)) {
+                msg.content[0].text = `[Thread ID: ${baseCommentId}] ${msg.content[0].text}`
               }
             }
             pathEntries[i] = cloned

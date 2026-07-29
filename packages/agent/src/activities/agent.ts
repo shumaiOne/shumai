@@ -1,7 +1,7 @@
 import {
-    type AgentMessage,
-    type AgentTool,
-    type SessionTreeEntry,
+  type AgentMessage,
+  type AgentTool,
+  type SessionTreeEntry,
 } from '@earendil-works/pi-agent-core'
 import { type ImageContent } from '@earendil-works/pi-ai'
 import { assetService } from '@shumai/core/src/asset/asset'
@@ -19,10 +19,10 @@ import { generateKeyBetween } from 'jittered-fractional-indexing'
 import { ulid } from 'ulid'
 import { DatabaseSessionStorage } from '../database-session-storage'
 import {
-    createAgentSession,
-    fieldsToTypeBoxSchema,
-    type AutofillField,
-    type DbProviderInfo,
+  createAgentSession,
+  fieldsToTypeBoxSchema,
+  type AutofillField,
+  type DbProviderInfo,
 } from '../index'
 
 import { aiUsageService } from '@shumai/core/src/ai-usage/ai-usage'
@@ -494,9 +494,8 @@ export async function initializeAgentSessionActivity(params: {
     throw new Error(`User comment ${params.userCommentId} not found`)
   }
 
-  const isThread = !!userComment.replyToId
   const rootCommentId = userComment.replyToId || userComment.id
-  const targetUserCommentId = isThread ? rootCommentId : null
+  const targetUserCommentId = rootCommentId
 
   let session = await prisma.agentSession.findFirst({
     where: {
@@ -520,126 +519,119 @@ export async function initializeAgentSessionActivity(params: {
   }
   const sessionId = session.id
 
-  // If this is a Thread Session, ensure preceding top-level comments up to rootCommentId are synced in Main Session first
-  if (isThread) {
-    let mainSession = await prisma.agentSession.findFirst({
-      where: {
+  const rootComment = await prisma.assetComment.findUnique({
+    where: { id: rootCommentId },
+    include: { creator: true },
+  })
+  if (!rootComment) {
+    throw new Error(`Root comment ${rootCommentId} not found`)
+  }
+
+  // Ensure preceding top-level comments up to rootCommentId are synced in Main Session first
+  let mainSession = await prisma.agentSession.findFirst({
+    where: {
+      assetId: userComment.assetId,
+      type: 'comment',
+      userCommentId: null,
+    },
+  })
+  if (!mainSession) {
+    mainSession = await prisma.agentSession.create({
+      data: {
+        agentId,
+        userId: params.userId || null,
+        cwd: process.cwd(),
         assetId: userComment.assetId,
-        type: 'comment',
         userCommentId: null,
+        type: 'comment',
       },
     })
-    if (!mainSession) {
-      mainSession = await prisma.agentSession.create({
-        data: {
-          agentId,
-          userId: params.userId || null,
-          cwd: process.cwd(),
-          assetId: userComment.assetId,
-          userCommentId: null,
-          type: 'comment',
-        },
-      })
-    }
-
-    const topLevelComments = await prisma.assetComment.findMany({
-      where: {
-        assetId: userComment.assetId,
-        replyToId: null,
-        createdAt: { lte: userComment.createdAt },
-      },
-      orderBy: { createdAt: 'asc' },
-      include: { creator: true },
-    })
-
-    let mainPrevId: string | null = mainSession.leafId
-    for (const c of topLevelComments) {
-      const existingEntry = await prisma.agentSessionEntry.findUnique({
-        where: { id: c.id },
-        select: { id: true },
-      })
-      if (existingEntry) {
-        mainPrevId = existingEntry.id
-        continue
-      }
-
-      const isAgent = c.creator?.type === 'agent' || c.sessionId !== null
-      let messageContent = c.message || ''
-      if (isAgent) {
-        const agentName = c.creator?.name || 'Ai Agent'
-        messageContent = `[Agent Message][${agentName}]: ${messageContent}`
-      } else if (c.creator?.name) {
-        messageContent = `[${c.creator.name} (user)]: ${messageContent}`
-      }
-
-      const entryId = c.id
-      const message: AgentMessage = {
-        role: 'user',
-        content: [{ type: 'text', text: messageContent }],
-        timestamp: c.createdAt.getTime(),
-      }
-      await prisma.agentSessionEntry.create({
-        data: {
-          id: entryId,
-          sessionId: mainSession.id,
-          assetId: userComment.assetId,
-          type: 'message',
-          parentId: mainPrevId,
-          createdAt: c.createdAt,
-          data: { message },
-        },
-      })
-      mainPrevId = entryId
-    }
-
-    if (mainPrevId && mainPrevId !== mainSession.leafId) {
-      await prisma.agentSession.update({
-        where: { id: mainSession.id },
-        data: { leafId: mainPrevId },
-      })
-    }
   }
 
-  // Fetch existing comments as context for current session
-  let existingComments: Array<{
-    id: string
-    message: string | null
-    createdAt: Date
-    creatorId: string | null
-    creator: { type: string; name: string } | null
-    sessionId: string | null
-    replyToId: string | null
-  }> = []
+  const topLevelComments = await prisma.assetComment.findMany({
+    where: {
+      assetId: userComment.assetId,
+      replyToId: null,
+      createdAt: { lte: rootComment.createdAt },
+    },
+    orderBy: { createdAt: 'asc' },
+    include: { creator: true },
+  })
 
-  if (!isThread) {
-    // Main Session: Only fetch top-level comments (replyToId: null)
-    existingComments = await prisma.assetComment.findMany({
-      where: {
-        assetId: userComment.assetId,
-        replyToId: null,
-        id: { not: userComment.id },
-      },
-      orderBy: { createdAt: 'asc' },
-      include: { creator: true },
+  let mainPrevId: string | null = mainSession.leafId
+  for (const c of topLevelComments) {
+    const entryId = `${c.id}_${mainSession.id}`
+    const existingEntry = await prisma.agentSessionEntry.findUnique({
+      where: { id: entryId },
+      select: { id: true },
     })
-  } else {
-    // Thread Session: Fetch root comment + replies in this specific thread (replyToId: rootCommentId)
-    const rootComment = await prisma.assetComment.findUnique({
-      where: { id: rootCommentId },
-      include: { creator: true },
-    })
-    if (rootComment) {
-      const replies = await prisma.assetComment.findMany({
-        where: {
-          replyToId: rootCommentId,
-          id: { not: userComment.id },
-        },
-        orderBy: { createdAt: 'asc' },
-        include: { creator: true },
-      })
-      existingComments = [rootComment, ...replies]
+    if (existingEntry) {
+      mainPrevId = existingEntry.id
+      continue
     }
+
+    const isAgent = c.creator?.type === 'agent' || c.sessionId !== null
+    let messageContent = c.message || ''
+    if (isAgent) {
+      const agentName = c.creator?.name || 'Ai Agent'
+      messageContent = `[Agent Message][${agentName}]: ${messageContent}`
+    } else if (c.creator?.name) {
+      messageContent = `[${c.creator.name} (user)]: ${messageContent}`
+    }
+
+    const message: AgentMessage = {
+      role: 'user',
+      content: [{ type: 'text', text: messageContent }],
+      timestamp: c.createdAt.getTime(),
+    }
+    await prisma.agentSessionEntry.create({
+      data: {
+        id: entryId,
+        sessionId: mainSession.id,
+        assetId: userComment.assetId,
+        type: 'message',
+        parentId: mainPrevId,
+        createdAt: c.createdAt,
+        data: { message },
+      },
+    })
+    mainPrevId = entryId
   }
+
+  if (mainPrevId && mainPrevId !== mainSession.leafId) {
+    await prisma.agentSession.update({
+      where: { id: mainSession.id },
+      data: { leafId: mainPrevId },
+    })
+  }
+
+  // Fetch existing comments as context for Thread Session
+  const precedingTopLevelComments = await prisma.assetComment.findMany({
+    where: {
+      assetId: userComment.assetId,
+      replyToId: null,
+      createdAt: { lte: rootComment.createdAt },
+      id: { notIn: [userComment.id, rootCommentId] },
+    },
+    orderBy: { createdAt: 'asc' },
+    include: { creator: true },
+  })
+
+  const threadReplies = await prisma.assetComment.findMany({
+    where: {
+      replyToId: rootCommentId,
+      id: { not: userComment.id },
+    },
+    orderBy: { createdAt: 'asc' },
+    include: { creator: true },
+  })
+
+  const existingComments = [
+    ...precedingTopLevelComments,
+    ...(rootCommentId !== userComment.id ? [rootComment] : []),
+    ...threadReplies,
+  ]
+  existingComments.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
 
   // Check which top-level comments have reply threads (for prompt tagging)
   // Resolve user mentions from IDs to names
@@ -696,9 +688,10 @@ export async function initializeAgentSessionActivity(params: {
   // Save context as AgentSessionEntry records (with parent pointers)
   let prevId: string | null = session.leafId
   for (const c of existingComments) {
-    // Check if entry already exists for this comment
+    const entryId = `${c.id}_${sessionId}`
+    // Check if entry already exists for this comment in this session
     const existingEntry = await prisma.agentSessionEntry.findUnique({
-      where: { id: c.id },
+      where: { id: entryId },
       select: { id: true },
     })
     if (existingEntry) {
@@ -723,7 +716,6 @@ export async function initializeAgentSessionActivity(params: {
       messageContent = `[${c.creator.name} (${role})]: ${messageContent}`
     }
 
-    const entryId = c.id
     const message: AgentMessage = {
       role: 'user',
       content: [{ type: 'text', text: messageContent }],
