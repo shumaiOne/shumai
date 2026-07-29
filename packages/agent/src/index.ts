@@ -17,6 +17,7 @@ import { createAnalyzeImageTool } from './tools/analyze-image'
 import { createCreateFileTool } from './tools/create-file'
 import { createCreateFolderTool } from './tools/create-folder'
 import { createCreateVersionTool } from './tools/create-version'
+import { createDownloadAssetTool } from './tools/download-asset'
 import { createListAssetsTool } from './tools/list-assets'
 import { createReadPdfPagesTool } from './tools/read-pdf-pages'
 import { createReadSkillTool } from './tools/read-skill'
@@ -263,6 +264,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
       createCreateFolderTool(userId),
       createCreateFileTool(userId),
       createCreateVersionTool(userId),
+      createDownloadAssetTool(userId),
     )
   }
 
@@ -305,6 +307,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
           '1. **Filesystem Isolation**: You only have read and write permissions to the `.pi` folder in the project root directory.',
           '2. **Read/Write Restrictions**: All reading and writing to directories outside `.pi` (e.g. your home directory `~/`, `/tmp`, `/etc`, or the rest of the workspace) are strictly denied by the sandbox security policy.',
           "3. **Avoid System Temp Directory Writes**: You must strictly avoid any commands or shell constructs that attempt to write to the system temporary directory `/tmp` or `/var/tmp`. For example, do not use Bash here documents (`<<EOF` or `<<'EOF'`) in your commands, as the bash shell internally implements here documents by writing temporary files to `/tmp`. If you need to create a file or write content, write it directly using file creation tools or write to files located inside the `.pi` directory without utilizing here documents.",
+          '4. **Temporary File Cleanup**: If you download workspace assets to `.pi` using the `download_asset` tool for local processing or script execution, you MUST delete the temporary downloaded files from `.pi` after finishing your task.',
         ].join('\n')
 
       if (teamSkills.length > 0) {

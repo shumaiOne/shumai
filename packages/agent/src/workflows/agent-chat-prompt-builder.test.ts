@@ -161,4 +161,11 @@ describe('AgentChatPromptBuilder', () => {
 
     expect(result).toContain('User Info:\nName: Alice\nRole: owner')
   })
+
+  it('should build prompt with download_asset tool instruction', () => {
+    const builder = new AgentChatPromptBuilder('a1')
+    const result = builder.build()
+
+    expect(result).toContain("call the 'download_asset' tool with assetId.")
+  })
 })
