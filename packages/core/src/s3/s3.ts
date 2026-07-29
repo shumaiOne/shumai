@@ -37,7 +37,7 @@ export interface S3Service {
   putObject(
     bucket: string,
     key: string,
-    body: Buffer | Uint8Array | string,
+    body: Buffer | Uint8Array | ArrayBuffer | string | ReadableStream,
     size: number,
     contentType?: string,
   ): Promise<void>
@@ -282,7 +282,7 @@ export class LocalStorageService implements S3Service {
   async putObject(
     bucket: string,
     key: string,
-    body: Buffer | Uint8Array | string,
+    body: Buffer | Uint8Array | ArrayBuffer | string | ReadableStream,
     _size: number, // eslint-disable-line @typescript-eslint/no-unused-vars
     _contentType?: string, // eslint-disable-line @typescript-eslint/no-unused-vars
   ): Promise<void> {
@@ -291,7 +291,23 @@ export class LocalStorageService implements S3Service {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true })
     }
-    await fs.promises.writeFile(filePath, body)
+
+    if (body && typeof body === 'object' && 'getReader' in body) {
+      const file = Bun.file(filePath)
+      const writer = file.writer()
+      const reader = (body as ReadableStream<Uint8Array>).getReader()
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        if (value) {
+          writer.write(value)
+        }
+      }
+      await writer.end()
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await Bun.write(filePath, body as any)
+    }
   }
 
   async getObject(bucket: string, key: string): Promise<S3Object> {

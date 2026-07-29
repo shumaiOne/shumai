@@ -94,11 +94,14 @@ describe('S3 API', () => {
 
     const res = await app.request('/files/b1/test.webp', {
       method: 'PUT',
+      headers: {
+        'content-length': body.byteLength.toString(),
+      },
       body,
     })
 
     expect(res.status).toBe(200)
     expect(await res.text()).toBe('OK')
-    expect(mockPut).toHaveBeenCalledWith('b1', 'test.webp', expect.any(Buffer), body.byteLength)
+    expect(mockPut).toHaveBeenCalledWith('b1', 'test.webp', expect.anything(), body.byteLength)
   })
 })

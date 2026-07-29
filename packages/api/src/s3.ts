@@ -18,10 +18,11 @@ const route = new Hono()
   .put('/:bucket/:key{.+}', async (c) => {
     const bucket = c.req.param('bucket')
     const key = c.req.param('key')
-    const body = await c.req.arrayBuffer()
+    const contentLength = parseInt(c.req.header('content-length') || '0', 10)
 
     try {
-      await s3Service.putObject(bucket, key, Buffer.from(body), body.byteLength)
+      const body = c.req.raw.body ?? (await c.req.arrayBuffer())
+      await s3Service.putObject(bucket, key, body, contentLength)
       return c.text('OK')
     } catch (e: unknown) {
       const error = e as Error
