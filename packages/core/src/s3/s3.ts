@@ -305,8 +305,7 @@ export class LocalStorageService implements S3Service {
       }
       await writer.end()
     } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await Bun.write(filePath, body as any)
+      await Bun.write(filePath, body)
     }
   }
 
