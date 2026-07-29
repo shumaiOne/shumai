@@ -885,5 +885,16 @@
   "members_view": "成员",
   "access_denied": "访问被拒绝",
   "only_owner_dashboard": "只有团队所有者才能访问仪表盘。",
-  "role": "角色"
+  "role": "角色",
+  "sessions": "会话列表",
+  "sessions_description": "查看并检查团队内创建的所有 Agent 会话。",
+  "session_name": "会话名称",
+  "creator": "创建者",
+  "create_time": "创建时间",
+  "session_type": "会话类型",
+  "no_sessions_found": "未找到会话",
+  "session_type_comment": "评论",
+  "session_type_chat": "对话",
+  "session_type_naming": "命名",
+  "untitled_session": "未命名会话"
 }

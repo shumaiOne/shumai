@@ -193,4 +193,40 @@ describe('Agent API', () => {
       expect(res.status).toBe(500)
     })
   })
+
+  describe('GET /teams/:teamId/agent-sessions', () => {
+    it('returns paginated agent sessions for team', async () => {
+      const mockSessionsData = {
+        data: [
+          {
+            id: 'session1',
+            name: 'Session 1',
+            type: 'chat',
+            createdAt: new Date().toISOString(),
+            creator: { id: 'u1', name: 'User 1', email: 'u1@shumai.ai', image: null },
+            agentId: 'agent1',
+          },
+        ],
+        pageInfo: { total: 1 },
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.mocked(agentService.listSessions).mockResolvedValue(mockSessionsData as any)
+
+      const res = await app.request('/teams/team1/agent-sessions?first=20', {
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      expect(res.status).toBe(200)
+      const data = (await res.json()) as typeof mockSessionsData
+      expect(data.data).toHaveLength(1)
+      expect(data.data[0].id).toBe('session1')
+      expect(data.pageInfo.total).toBe(1)
+      expect(authzService.hasPermission).toHaveBeenCalledWith({
+        user: undefined,
+        permission: 'Admin',
+        type: 'team',
+        id: 'team1',
+      })
+    })
+  })
 })

@@ -885,5 +885,16 @@
   "members_view": "Members",
   "access_denied": "Access Denied",
   "only_owner_dashboard": "Only team owners can access the dashboard.",
-  "role": "Role"
+  "role": "Role",
+  "sessions": "Sessions",
+  "sessions_description": "View and inspect all agent sessions created within the team.",
+  "session_name": "Session Name",
+  "creator": "Creator",
+  "create_time": "Create Time",
+  "session_type": "Session Type",
+  "no_sessions_found": "No sessions found",
+  "session_type_comment": "Comment",
+  "session_type_chat": "Chat",
+  "session_type_naming": "Naming",
+  "untitled_session": "Untitled Session"
 }
