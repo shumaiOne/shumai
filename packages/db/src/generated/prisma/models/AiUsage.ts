@@ -37,10 +37,10 @@ export type AiUsageAvgAggregateOutputType = {
 }
 
 export type AiUsageSumAggregateOutputType = {
-  inputTokens: number | null
-  outputTokens: number | null
-  cacheReadTokens: number | null
-  totalTokens: number | null
+  inputTokens: bigint | null
+  outputTokens: bigint | null
+  cacheReadTokens: bigint | null
+  totalTokens: bigint | null
   cost: number | null
 }
 
@@ -49,10 +49,10 @@ export type AiUsageMinAggregateOutputType = {
   teamId: string | null
   userId: string | null
   periodStart: Date | null
-  inputTokens: number | null
-  outputTokens: number | null
-  cacheReadTokens: number | null
-  totalTokens: number | null
+  inputTokens: bigint | null
+  outputTokens: bigint | null
+  cacheReadTokens: bigint | null
+  totalTokens: bigint | null
   cost: number | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -63,10 +63,10 @@ export type AiUsageMaxAggregateOutputType = {
   teamId: string | null
   userId: string | null
   periodStart: Date | null
-  inputTokens: number | null
-  outputTokens: number | null
-  cacheReadTokens: number | null
-  totalTokens: number | null
+  inputTokens: bigint | null
+  outputTokens: bigint | null
+  cacheReadTokens: bigint | null
+  totalTokens: bigint | null
   cost: number | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -238,10 +238,10 @@ export type AiUsageGroupByOutputType = {
   teamId: string
   userId: string | null
   periodStart: Date
-  inputTokens: number
-  outputTokens: number
-  cacheReadTokens: number
-  totalTokens: number
+  inputTokens: bigint
+  outputTokens: bigint
+  cacheReadTokens: bigint
+  totalTokens: bigint
   cost: number
   createdAt: Date
   updatedAt: Date
@@ -275,10 +275,10 @@ export type AiUsageWhereInput = {
   teamId?: Prisma.StringFilter<"AiUsage"> | string
   userId?: Prisma.StringNullableFilter<"AiUsage"> | string | null
   periodStart?: Prisma.DateTimeFilter<"AiUsage"> | Date | string
-  inputTokens?: Prisma.IntFilter<"AiUsage"> | number
-  outputTokens?: Prisma.IntFilter<"AiUsage"> | number
-  cacheReadTokens?: Prisma.IntFilter<"AiUsage"> | number
-  totalTokens?: Prisma.IntFilter<"AiUsage"> | number
+  inputTokens?: Prisma.BigIntFilter<"AiUsage"> | bigint | number
+  outputTokens?: Prisma.BigIntFilter<"AiUsage"> | bigint | number
+  cacheReadTokens?: Prisma.BigIntFilter<"AiUsage"> | bigint | number
+  totalTokens?: Prisma.BigIntFilter<"AiUsage"> | bigint | number
   cost?: Prisma.FloatFilter<"AiUsage"> | number
   createdAt?: Prisma.DateTimeFilter<"AiUsage"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AiUsage"> | Date | string
@@ -311,10 +311,10 @@ export type AiUsageWhereUniqueInput = Prisma.AtLeast<{
   teamId?: Prisma.StringFilter<"AiUsage"> | string
   userId?: Prisma.StringNullableFilter<"AiUsage"> | string | null
   periodStart?: Prisma.DateTimeFilter<"AiUsage"> | Date | string
-  inputTokens?: Prisma.IntFilter<"AiUsage"> | number
-  outputTokens?: Prisma.IntFilter<"AiUsage"> | number
-  cacheReadTokens?: Prisma.IntFilter<"AiUsage"> | number
-  totalTokens?: Prisma.IntFilter<"AiUsage"> | number
+  inputTokens?: Prisma.BigIntFilter<"AiUsage"> | bigint | number
+  outputTokens?: Prisma.BigIntFilter<"AiUsage"> | bigint | number
+  cacheReadTokens?: Prisma.BigIntFilter<"AiUsage"> | bigint | number
+  totalTokens?: Prisma.BigIntFilter<"AiUsage"> | bigint | number
   cost?: Prisma.FloatFilter<"AiUsage"> | number
   createdAt?: Prisma.DateTimeFilter<"AiUsage"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AiUsage"> | Date | string
@@ -349,10 +349,10 @@ export type AiUsageScalarWhereWithAggregatesInput = {
   teamId?: Prisma.StringWithAggregatesFilter<"AiUsage"> | string
   userId?: Prisma.StringNullableWithAggregatesFilter<"AiUsage"> | string | null
   periodStart?: Prisma.DateTimeWithAggregatesFilter<"AiUsage"> | Date | string
-  inputTokens?: Prisma.IntWithAggregatesFilter<"AiUsage"> | number
-  outputTokens?: Prisma.IntWithAggregatesFilter<"AiUsage"> | number
-  cacheReadTokens?: Prisma.IntWithAggregatesFilter<"AiUsage"> | number
-  totalTokens?: Prisma.IntWithAggregatesFilter<"AiUsage"> | number
+  inputTokens?: Prisma.BigIntWithAggregatesFilter<"AiUsage"> | bigint | number
+  outputTokens?: Prisma.BigIntWithAggregatesFilter<"AiUsage"> | bigint | number
+  cacheReadTokens?: Prisma.BigIntWithAggregatesFilter<"AiUsage"> | bigint | number
+  totalTokens?: Prisma.BigIntWithAggregatesFilter<"AiUsage"> | bigint | number
   cost?: Prisma.FloatWithAggregatesFilter<"AiUsage"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"AiUsage"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"AiUsage"> | Date | string
@@ -361,10 +361,10 @@ export type AiUsageScalarWhereWithAggregatesInput = {
 export type AiUsageCreateInput = {
   id?: string
   periodStart: Date | string
-  inputTokens?: number
-  outputTokens?: number
-  cacheReadTokens?: number
-  totalTokens?: number
+  inputTokens?: bigint | number
+  outputTokens?: bigint | number
+  cacheReadTokens?: bigint | number
+  totalTokens?: bigint | number
   cost?: number
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -377,10 +377,10 @@ export type AiUsageUncheckedCreateInput = {
   teamId: string
   userId?: string | null
   periodStart: Date | string
-  inputTokens?: number
-  outputTokens?: number
-  cacheReadTokens?: number
-  totalTokens?: number
+  inputTokens?: bigint | number
+  outputTokens?: bigint | number
+  cacheReadTokens?: bigint | number
+  totalTokens?: bigint | number
   cost?: number
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -389,10 +389,10 @@ export type AiUsageUncheckedCreateInput = {
 export type AiUsageUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  inputTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  outputTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  cacheReadTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  totalTokens?: Prisma.IntFieldUpdateOperationsInput | number
+  inputTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  outputTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  cacheReadTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  totalTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   cost?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -405,10 +405,10 @@ export type AiUsageUncheckedUpdateInput = {
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  inputTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  outputTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  cacheReadTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  totalTokens?: Prisma.IntFieldUpdateOperationsInput | number
+  inputTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  outputTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  cacheReadTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  totalTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   cost?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -419,10 +419,10 @@ export type AiUsageCreateManyInput = {
   teamId: string
   userId?: string | null
   periodStart: Date | string
-  inputTokens?: number
-  outputTokens?: number
-  cacheReadTokens?: number
-  totalTokens?: number
+  inputTokens?: bigint | number
+  outputTokens?: bigint | number
+  cacheReadTokens?: bigint | number
+  totalTokens?: bigint | number
   cost?: number
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -431,10 +431,10 @@ export type AiUsageCreateManyInput = {
 export type AiUsageUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  inputTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  outputTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  cacheReadTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  totalTokens?: Prisma.IntFieldUpdateOperationsInput | number
+  inputTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  outputTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  cacheReadTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  totalTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   cost?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -445,10 +445,10 @@ export type AiUsageUncheckedUpdateManyInput = {
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  inputTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  outputTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  cacheReadTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  totalTokens?: Prisma.IntFieldUpdateOperationsInput | number
+  inputTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  outputTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  cacheReadTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  totalTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   cost?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -623,10 +623,10 @@ export type FloatFieldUpdateOperationsInput = {
 export type AiUsageCreateWithoutUserInput = {
   id?: string
   periodStart: Date | string
-  inputTokens?: number
-  outputTokens?: number
-  cacheReadTokens?: number
-  totalTokens?: number
+  inputTokens?: bigint | number
+  outputTokens?: bigint | number
+  cacheReadTokens?: bigint | number
+  totalTokens?: bigint | number
   cost?: number
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -637,10 +637,10 @@ export type AiUsageUncheckedCreateWithoutUserInput = {
   id?: string
   teamId: string
   periodStart: Date | string
-  inputTokens?: number
-  outputTokens?: number
-  cacheReadTokens?: number
-  totalTokens?: number
+  inputTokens?: bigint | number
+  outputTokens?: bigint | number
+  cacheReadTokens?: bigint | number
+  totalTokens?: bigint | number
   cost?: number
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -680,10 +680,10 @@ export type AiUsageScalarWhereInput = {
   teamId?: Prisma.StringFilter<"AiUsage"> | string
   userId?: Prisma.StringNullableFilter<"AiUsage"> | string | null
   periodStart?: Prisma.DateTimeFilter<"AiUsage"> | Date | string
-  inputTokens?: Prisma.IntFilter<"AiUsage"> | number
-  outputTokens?: Prisma.IntFilter<"AiUsage"> | number
-  cacheReadTokens?: Prisma.IntFilter<"AiUsage"> | number
-  totalTokens?: Prisma.IntFilter<"AiUsage"> | number
+  inputTokens?: Prisma.BigIntFilter<"AiUsage"> | bigint | number
+  outputTokens?: Prisma.BigIntFilter<"AiUsage"> | bigint | number
+  cacheReadTokens?: Prisma.BigIntFilter<"AiUsage"> | bigint | number
+  totalTokens?: Prisma.BigIntFilter<"AiUsage"> | bigint | number
   cost?: Prisma.FloatFilter<"AiUsage"> | number
   createdAt?: Prisma.DateTimeFilter<"AiUsage"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AiUsage"> | Date | string
@@ -692,10 +692,10 @@ export type AiUsageScalarWhereInput = {
 export type AiUsageCreateWithoutTeamInput = {
   id?: string
   periodStart: Date | string
-  inputTokens?: number
-  outputTokens?: number
-  cacheReadTokens?: number
-  totalTokens?: number
+  inputTokens?: bigint | number
+  outputTokens?: bigint | number
+  cacheReadTokens?: bigint | number
+  totalTokens?: bigint | number
   cost?: number
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -706,10 +706,10 @@ export type AiUsageUncheckedCreateWithoutTeamInput = {
   id?: string
   userId?: string | null
   periodStart: Date | string
-  inputTokens?: number
-  outputTokens?: number
-  cacheReadTokens?: number
-  totalTokens?: number
+  inputTokens?: bigint | number
+  outputTokens?: bigint | number
+  cacheReadTokens?: bigint | number
+  totalTokens?: bigint | number
   cost?: number
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -745,10 +745,10 @@ export type AiUsageCreateManyUserInput = {
   id?: string
   teamId: string
   periodStart: Date | string
-  inputTokens?: number
-  outputTokens?: number
-  cacheReadTokens?: number
-  totalTokens?: number
+  inputTokens?: bigint | number
+  outputTokens?: bigint | number
+  cacheReadTokens?: bigint | number
+  totalTokens?: bigint | number
   cost?: number
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -757,10 +757,10 @@ export type AiUsageCreateManyUserInput = {
 export type AiUsageUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  inputTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  outputTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  cacheReadTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  totalTokens?: Prisma.IntFieldUpdateOperationsInput | number
+  inputTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  outputTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  cacheReadTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  totalTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   cost?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -771,10 +771,10 @@ export type AiUsageUncheckedUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  inputTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  outputTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  cacheReadTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  totalTokens?: Prisma.IntFieldUpdateOperationsInput | number
+  inputTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  outputTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  cacheReadTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  totalTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   cost?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -784,10 +784,10 @@ export type AiUsageUncheckedUpdateManyWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  inputTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  outputTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  cacheReadTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  totalTokens?: Prisma.IntFieldUpdateOperationsInput | number
+  inputTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  outputTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  cacheReadTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  totalTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   cost?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -797,10 +797,10 @@ export type AiUsageCreateManyTeamInput = {
   id?: string
   userId?: string | null
   periodStart: Date | string
-  inputTokens?: number
-  outputTokens?: number
-  cacheReadTokens?: number
-  totalTokens?: number
+  inputTokens?: bigint | number
+  outputTokens?: bigint | number
+  cacheReadTokens?: bigint | number
+  totalTokens?: bigint | number
   cost?: number
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -809,10 +809,10 @@ export type AiUsageCreateManyTeamInput = {
 export type AiUsageUpdateWithoutTeamInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  inputTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  outputTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  cacheReadTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  totalTokens?: Prisma.IntFieldUpdateOperationsInput | number
+  inputTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  outputTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  cacheReadTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  totalTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   cost?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -823,10 +823,10 @@ export type AiUsageUncheckedUpdateWithoutTeamInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  inputTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  outputTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  cacheReadTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  totalTokens?: Prisma.IntFieldUpdateOperationsInput | number
+  inputTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  outputTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  cacheReadTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  totalTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   cost?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -836,10 +836,10 @@ export type AiUsageUncheckedUpdateManyWithoutTeamInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  inputTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  outputTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  cacheReadTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  totalTokens?: Prisma.IntFieldUpdateOperationsInput | number
+  inputTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  outputTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  cacheReadTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
+  totalTokens?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   cost?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -934,10 +934,10 @@ export type $AiUsagePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     teamId: string
     userId: string | null
     periodStart: Date
-    inputTokens: number
-    outputTokens: number
-    cacheReadTokens: number
-    totalTokens: number
+    inputTokens: bigint
+    outputTokens: bigint
+    cacheReadTokens: bigint
+    totalTokens: bigint
     cost: number
     createdAt: Date
     updatedAt: Date
@@ -1370,10 +1370,10 @@ export interface AiUsageFieldRefs {
   readonly teamId: Prisma.FieldRef<"AiUsage", 'String'>
   readonly userId: Prisma.FieldRef<"AiUsage", 'String'>
   readonly periodStart: Prisma.FieldRef<"AiUsage", 'DateTime'>
-  readonly inputTokens: Prisma.FieldRef<"AiUsage", 'Int'>
-  readonly outputTokens: Prisma.FieldRef<"AiUsage", 'Int'>
-  readonly cacheReadTokens: Prisma.FieldRef<"AiUsage", 'Int'>
-  readonly totalTokens: Prisma.FieldRef<"AiUsage", 'Int'>
+  readonly inputTokens: Prisma.FieldRef<"AiUsage", 'BigInt'>
+  readonly outputTokens: Prisma.FieldRef<"AiUsage", 'BigInt'>
+  readonly cacheReadTokens: Prisma.FieldRef<"AiUsage", 'BigInt'>
+  readonly totalTokens: Prisma.FieldRef<"AiUsage", 'BigInt'>
   readonly cost: Prisma.FieldRef<"AiUsage", 'Float'>
   readonly createdAt: Prisma.FieldRef<"AiUsage", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"AiUsage", 'DateTime'>

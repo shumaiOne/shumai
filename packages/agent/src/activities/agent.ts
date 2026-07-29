@@ -1122,7 +1122,7 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
         id: a.id,
         name: a.name,
         type: a.type,
-        size: a.sizeByte,
+        size: Number(a.sizeByte),
       }))
 
       return {
@@ -1160,7 +1160,7 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
         id: newFolder.id,
         name: newFolder.name,
         type: newFolder.type,
-        size: newFolder.sizeByte,
+        size: Number(newFolder.sizeByte),
       }
     }
 
@@ -1232,7 +1232,7 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
         id: newFile.id,
         name: newFile.name,
         type: newFile.type,
-        size: newFile.sizeByte,
+        size: Number(newFile.sizeByte),
       }
     }
 
@@ -1332,7 +1332,7 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
           id: newFile.id,
           name: newFile.name,
           type: newFile.type,
-          size: newFile.sizeByte,
+          size: Number(newFile.sizeByte),
         }
       } else {
         // Parent is a regular file. We must create a new version stack.
@@ -1381,7 +1381,7 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
           id: newFile.id,
           name: newFile.name,
           type: newFile.type,
-          size: newFile.sizeByte,
+          size: Number(newFile.sizeByte),
         }
       }
     }

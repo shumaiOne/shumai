@@ -127,8 +127,12 @@ export class AssetService {
     return orderedInfos
   }
 
-  async updateAncestorsSize(tx: Prisma.TransactionClient, startNodeId: string, sizeDelta: number) {
-    if (sizeDelta === 0) return
+  async updateAncestorsSize(
+    tx: Prisma.TransactionClient,
+    startNodeId: string,
+    sizeDelta: number | bigint,
+  ) {
+    if (sizeDelta === 0 || sizeDelta === 0n) return
 
     const rows = await tx.$queryRaw<{ id: string }[]>`
       WITH RECURSIVE ancestor AS (
@@ -220,7 +224,7 @@ export class AssetService {
         if (a.parentId !== oldParentId) {
           throw new Error('All assets must be moved from the same parent folder')
         }
-        totalSize += a.sizeByte
+        totalSize += Number(a.sizeByte)
       }
 
       const totalCount = assetsToMove.length
@@ -347,7 +351,7 @@ export class AssetService {
           req.creatorId,
           req.withComments,
         )
-        totalSize += copiedAsset.sizeByte
+        totalSize += Number(copiedAsset.sizeByte)
         firstSortIndex = newSortIndex
       }
 
@@ -549,8 +553,8 @@ export class AssetService {
         where: { id: oldParentId },
         data: { fileCount: { decrement: 1 } },
       })
-      await this.updateAncestorsSize(tx, oldParentId, -sourceAsset.sizeByte)
-      await this.updateAncestorsSize(tx, stackParentId, sourceAsset.sizeByte)
+      await this.updateAncestorsSize(tx, oldParentId, -Number(sourceAsset.sizeByte))
+      await this.updateAncestorsSize(tx, stackParentId, Number(sourceAsset.sizeByte))
     }
 
     const firstIndex = generateKeyBetween(null, null)
@@ -1049,7 +1053,7 @@ export class AssetService {
           },
         })
 
-        await this.updateAncestorsSize(tx, a.parentId, -a.sizeByte)
+        await this.updateAncestorsSize(tx, a.parentId, -Number(a.sizeByte))
       })
     }
   }
@@ -1259,7 +1263,7 @@ export class AssetService {
           },
         })
 
-        await this.updateAncestorsSize(tx, a.parentId, a.sizeByte)
+        await this.updateAncestorsSize(tx, a.parentId, Number(a.sizeByte))
       })
     }
   }
@@ -1725,7 +1729,7 @@ export class AssetService {
         media.original = {
           key,
           downloadUrl: await s3Service.presign(process.env.S3_BUCKET || 'shumai', key, 'GET'),
-          filesizeInBytes: latestVersion.sizeByte,
+          filesizeInBytes: Number(latestVersion.sizeByte),
           codec: '',
         }
       }
@@ -1738,7 +1742,7 @@ export class AssetService {
           a.type === AssetType.version_stack && (a.name === '' || !a.name)
             ? latestVersion.name
             : a.name,
-        sizeByte: latestVersion.sizeByte,
+        sizeByte: Number(latestVersion.sizeByte),
         fileCount: latestVersion.fileCount,
         type: a.type,
         targetType: a.type === AssetType.symlink ? a.target?.type : null,

@@ -84,7 +84,7 @@ describe('VersionStackService', () => {
       expect(stack.name).toBe('')
       expect(stack.type).toBe(AssetType.version_stack)
       expect(stack.fileCount).toBe(2)
-      expect(stack.sizeByte).toBe(300)
+      expect(Number(stack.sizeByte)).toBe(300)
       expect(stack.parentId).toBe(parent.id)
       expect(stack.sortIndex).toBe('abc')
 

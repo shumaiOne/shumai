@@ -1263,7 +1263,7 @@ describe('Agent Database Activities Integration', () => {
 
         const parentFolder = await prisma.asset.findUnique({ where: { id: folder.id } })
         expect(parentFolder?.fileCount).toBe(1)
-        expect(parentFolder?.sizeByte).toBe(500)
+        expect(Number(parentFolder?.sizeByte)).toBe(500)
         expect(uploadService.triggerPostUploadWorkflows).toHaveBeenCalled()
       })
     })
@@ -1372,7 +1372,7 @@ describe('Agent Database Activities Integration', () => {
         })
 
         expect(updatedStack?.fileCount).toBe(2)
-        expect(updatedStack?.sizeByte).toBe(350)
+        expect(Number(updatedStack?.sizeByte)).toBe(350)
       })
     })
   })

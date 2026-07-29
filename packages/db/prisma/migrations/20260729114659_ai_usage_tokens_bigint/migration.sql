@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "ai_usages" ALTER COLUMN "input_tokens" SET DATA TYPE BIGINT,
+ALTER COLUMN "output_tokens" SET DATA TYPE BIGINT,
+ALTER COLUMN "cache_read_tokens" SET DATA TYPE BIGINT,
+ALTER COLUMN "total_tokens" SET DATA TYPE BIGINT;

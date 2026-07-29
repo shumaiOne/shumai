@@ -188,10 +188,10 @@ export class AiUsageService {
       let cost = 0
 
       for (const r of teamRecords) {
-        inputTokens += r.inputTokens
-        outputTokens += r.outputTokens
-        cacheReadTokens += r.cacheReadTokens
-        totalTokens += r.totalTokens
+        inputTokens += Number(r.inputTokens)
+        outputTokens += Number(r.outputTokens)
+        cacheReadTokens += Number(r.cacheReadTokens)
+        totalTokens += Number(r.totalTokens)
         cost += r.cost
       }
 
@@ -234,10 +234,10 @@ export class AiUsageService {
       let cost = 0
 
       for (const r of memberRecords) {
-        inputTokens += r.inputTokens
-        outputTokens += r.outputTokens
-        cacheReadTokens += r.cacheReadTokens
-        totalTokens += r.totalTokens
+        inputTokens += Number(r.inputTokens)
+        outputTokens += Number(r.outputTokens)
+        cacheReadTokens += Number(r.cacheReadTokens)
+        totalTokens += Number(r.totalTokens)
         cost += r.cost
       }
 

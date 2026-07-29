@@ -374,7 +374,7 @@ model Asset {
   type              AssetType
   mediaType         String?      @map("media_type")
   fileCount         Int          @default(0) @map("file_count")
-  sizeByte          Int          @default(0) @map("size_byte")
+  sizeByte          BigInt       @default(0) @map("size_byte")
   status            AssetStatus
   transcodeTaskId   String?      @map("transcode_task_id")
   /// [MediaInfo]
@@ -828,10 +828,10 @@ model AiUsage {
   teamId          String   @map("team_id")
   userId          String?  @map("user_id")
   periodStart     DateTime @map("period_start")
-  inputTokens     Int      @default(0) @map("input_tokens")
-  outputTokens    Int      @default(0) @map("output_tokens")
-  cacheReadTokens Int      @default(0) @map("cache_read_tokens")
-  totalTokens     Int      @default(0) @map("total_tokens")
+  inputTokens     BigInt   @default(0) @map("input_tokens")
+  outputTokens    BigInt   @default(0) @map("output_tokens")
+  cacheReadTokens BigInt   @default(0) @map("cache_read_tokens")
+  totalTokens     BigInt   @default(0) @map("total_tokens")
   cost            Float    @default(0) @map("cost")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
