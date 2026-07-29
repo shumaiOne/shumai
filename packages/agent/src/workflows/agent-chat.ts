@@ -210,18 +210,6 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       attachedAssets,
     })
 
-    if (isNewChat) {
-      await executeActivity(agentWorkerQueue, generateSessionNameActivity, {
-        teamId,
-        agentId,
-        prompt,
-        sessionId,
-        context,
-      }).catch((err) => {
-        console.error('Failed to run generateSessionNameActivity:', err)
-      })
-    }
-
     // 7. Update Placeholder Comment
     if (placeholderCommentId) {
       await executeActivity(agentWorkerQueue, updateCommentActivity, {
@@ -238,6 +226,19 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
         inputTokens: aiResult.usage.inputTokens,
         outputTokens: aiResult.usage.outputTokens,
         model: aiResult.usage.model,
+      })
+    }
+
+    // 9. Generate Session Name for new chats
+    if (isNewChat) {
+      await executeActivity(agentWorkerQueue, generateSessionNameActivity, {
+        teamId,
+        agentId,
+        prompt,
+        sessionId,
+        context,
+      }).catch((err) => {
+        console.error('Failed to run generateSessionNameActivity:', err)
       })
     }
 

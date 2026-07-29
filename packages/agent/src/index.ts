@@ -110,6 +110,7 @@ export interface CreateAgentSessionParams {
   userCommentId?: string | null
   customTools?: AgentTool[]
   thinkingLevel?: string
+  disableTools?: boolean
   providers: DbProviderInfo[]
 }
 
@@ -127,6 +128,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     userCommentId: passedUserCommentId,
     customTools = [],
     thinkingLevel,
+    disableTools = false,
   } = params
 
   const storage = await DatabaseSessionStorage.create({
@@ -278,7 +280,9 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     ...systemTools,
     ...customTools,
   ]
-  const enabledTools = allTools.filter((tool) => !deniedTools.includes(tool.name))
+  const enabledTools = disableTools
+    ? []
+    : allTools.filter((tool) => !deniedTools.includes(tool.name))
 
   const harness = new AgentHarness({
     env: new NodeExecutionEnv({ cwd: process.cwd() }),
@@ -287,6 +291,10 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     thinkingLevel: (thinkingLevel || 'off') as ThinkingLevel,
     systemPrompt: async () => {
       let prompt = systemPrompt
+
+      if (disableTools) {
+        return prompt
+      }
 
       // Sandbox environment restrictions
       prompt +=
