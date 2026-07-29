@@ -11,6 +11,9 @@ vi.mock('@shumai/db', async (importOriginal) => {
         findUnique: vi.fn(),
         findMany: vi.fn(),
       },
+      asset: {
+        findUnique: vi.fn(),
+      },
     },
   }
 })
@@ -22,12 +25,25 @@ describe('createReadThreadTool', () => {
 
   it('should return error text when thread root comment is not found', async () => {
     vi.mocked(prisma.assetComment.findUnique).mockResolvedValue(null)
+    vi.mocked(prisma.asset.findUnique).mockResolvedValue(null)
 
     const tool = createReadThreadTool()
     const result = await tool.execute('call-1', { threadId: 'non-existent' })
     const textContent = (result.content[0] as { text: string }).text
 
     expect(textContent).toContain('Comment thread with ID "non-existent" not found.')
+  })
+
+  it('should return specific error text when threadId is an asset ID', async () => {
+    vi.mocked(prisma.assetComment.findUnique).mockResolvedValue(null)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mock return
+    vi.mocked(prisma.asset.findUnique).mockResolvedValue({ id: 'asset-1' } as any)
+
+    const tool = createReadThreadTool()
+    const result = await tool.execute('call-asset', { threadId: 'asset-1' })
+    const textContent = (result.content[0] as { text: string }).text
+
+    expect(textContent).toContain('ID "asset-1" is an Asset ID, not a Comment Thread ID')
   })
 
   it('should return thread root message and notice when there are no replies', async () => {
