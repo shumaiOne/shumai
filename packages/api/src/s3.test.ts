@@ -102,6 +102,11 @@ describe('S3 API', () => {
 
     expect(res.status).toBe(200)
     expect(await res.text()).toBe('OK')
-    expect(mockPut).toHaveBeenCalledWith('b1', 'test.webp', expect.any(ReadableStream), body.byteLength)
+    expect(mockPut).toHaveBeenCalledWith(
+      'b1',
+      'test.webp',
+      expect.any(ReadableStream),
+      body.byteLength,
+    )
   })
 })
