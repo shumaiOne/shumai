@@ -296,12 +296,20 @@ export function AgentSessionLogsDialog({
 
                         <div className="flex flex-col gap-1.5 bg-muted/30 dark:bg-muted/10 p-3 rounded-lg border border-foreground/5 backdrop-blur-xs w-full">
                           <div className="flex items-center justify-between gap-2">
-                            <span
-                              className={`text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider ${badgeColor}`}
-                            >
-                              {roleName}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground/60">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span
+                                className={`text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider ${badgeColor}`}
+                              >
+                                {roleName}
+                              </span>
+                              <span
+                                className="text-[10px] font-mono text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded border border-foreground/10 select-all"
+                                title="Entry ID"
+                              >
+                                ID: {entry.id}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-muted-foreground/60 shrink-0">
                               {timestamp}
                             </span>
                           </div>
@@ -319,7 +327,15 @@ export function AgentSessionLogsDialog({
                     <div className="absolute left-[9px] top-2 bottom-0 w-0.5 bg-foreground/10 last:hidden" />
                     <div className="absolute left-0 top-1.5 h-5 w-5 rounded-full border-4 border-background bg-gray-400" />
                     <div className="bg-muted/30 p-3 rounded-lg border border-foreground/5">
-                      <div className="text-[10px] text-muted-foreground/60">{timestamp}</div>
+                      <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
+                        <span
+                          className="text-[10px] font-mono text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded border border-foreground/10 select-all"
+                          title="Entry ID"
+                        >
+                          ID: {entry.id}
+                        </span>
+                        <div className="text-[10px] text-muted-foreground/60">{timestamp}</div>
+                      </div>
                       <pre className="text-xs text-foreground/80 font-mono whitespace-pre-wrap break-words">
                         {JSON.stringify(entry.entry, null, 2)}
                       </pre>
