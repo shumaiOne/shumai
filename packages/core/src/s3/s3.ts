@@ -300,7 +300,7 @@ export class LocalStorageService implements S3Service {
         const { done, value } = await reader.read()
         if (done) break
         if (value) {
-          writer.write(value)
+          await writer.write(value)
         }
       }
       await writer.end()
