@@ -53,7 +53,10 @@ export function AgentSessionsDashboard({ teamId }: AgentSessionsDashboardProps) 
     }
   }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage])
 
-  const sessions = data?.pages.flatMap((page) => page.data) ?? []
+  const rawSessions = data?.pages.flatMap((page) => page.data) ?? []
+  const sessions = rawSessions.filter(
+    (s) => s.name?.trim().toLowerCase() !== 'pending',
+  )
   const totalSessions = data?.pages[0]?.pageInfo?.total ?? sessions.length
 
   const handleRowClick = (sessionId: string, sessionName?: string | null) => {

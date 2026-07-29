@@ -401,12 +401,6 @@ export class AgentService {
       agent: {
         teamId,
       },
-      OR: [
-        { name: null },
-        {
-          NOT: [{ name: { equals: 'pending', mode: 'insensitive' } }],
-        },
-      ],
     }
 
     return await paginateQuery(

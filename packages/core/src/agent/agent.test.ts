@@ -393,14 +393,14 @@ describe('AgentService', () => {
       })
 
       const result = await svc.listTeamSessions(team.id, { first: 10 })
-      expect(result.data).toHaveLength(3)
-      expect(result.pageInfo.total).toBe(3)
+      expect(result.data).toHaveLength(4)
+      expect(result.pageInfo.total).toBe(4)
 
       const names = result.data.map((s) => s.name)
       expect(names).toContain('Session 1')
       expect(names).toContain('Session 2')
       expect(names).toContain(null)
-      expect(names).not.toContain('pending')
+      expect(names).toContain('pending')
       expect(result.data[0].creator?.id).toBe(humanUser.id)
       expect(result.data[0].creator?.name).toBe('Human User')
       expect(result.data[0].agent?.id).toBe(agent.id)
