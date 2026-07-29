@@ -885,5 +885,15 @@
   "members_view": "成员",
   "access_denied": "访问被拒绝",
   "only_owner_dashboard": "只有团队所有者才能访问仪表盘。",
-  "role": "角色"
+  "role": "角色",
+  "agent_sessions": "会话记录",
+  "agent_sessions_description": "查看全团队所有 AI Agent 会话的执行历史与日志。",
+  "session_name": "会话名称",
+  "creator": "创建者",
+  "create_time": "创建时间",
+  "session_type": "会话类型",
+  "no_sessions_found": "未找到任何会话。",
+  "session_entries": "会话条目",
+  "unnamed_session": "未命名会话",
+  "failed_to_load": "加载会话失败"
 }

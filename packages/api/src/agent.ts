@@ -6,6 +6,7 @@ import { getAvatarUrl } from '@shumai/core/src/user/avatar'
 import {
   createAgentRequestSchema,
   updateAgentRequestSchema,
+  paginationParamsSchema,
   AgentInfo,
   AgentType,
 } from '@shumai/dtos'
@@ -170,6 +171,21 @@ const route = new Hono<{ Variables: { user: User } }>()
     }))
 
     return c.json(infos, 200)
+  })
+  .get('/teams/:teamId/agent-sessions', zValidator('query', paginationParamsSchema), async (c) => {
+    const teamId = c.req.param('teamId')
+    const userReq = c.get('user')
+    const query = c.req.valid('query')
+
+    await authzService.hasPermission({
+      user: userReq,
+      permission: Permission.Admin,
+      type: ResourceType.Team,
+      id: teamId,
+    })
+
+    const result = await agentService.listTeamSessions(teamId, query)
+    return c.json(result, 200)
   })
 
 export default route

@@ -338,5 +338,50 @@ describe('AgentService', () => {
       expect(entries[0].id).toBe(entry1.id)
       expect(entries[1].id).toBe(entry2.id)
     })
+
+    test('listTeamSessions lists all agent sessions for a team with pagination', async () => {
+      const db = prisma
+      const svc = new AgentService()
+      const { team, agent } = await setupTestData(db)
+
+      const humanUser = await db.user.create({
+        data: {
+          name: 'Human User',
+          email: 'human@shumai.ai',
+          type: 'human',
+        },
+      })
+
+      await db.agentSession.create({
+        data: {
+          agentId: agent.id,
+          userId: humanUser.id,
+          name: 'Session 1',
+          type: 'chat',
+          cwd: '/tmp',
+        },
+      })
+
+      await db.agentSession.create({
+        data: {
+          agentId: agent.id,
+          userId: humanUser.id,
+          name: 'Session 2',
+          type: 'comment',
+          cwd: '/tmp',
+        },
+      })
+
+      const result = await svc.listTeamSessions(team.id, { first: 10 })
+      expect(result.data).toHaveLength(2)
+      expect(result.pageInfo.total).toBe(2)
+
+      const names = result.data.map((s) => s.name)
+      expect(names).toContain('Session 1')
+      expect(names).toContain('Session 2')
+      expect(result.data[0].creator?.id).toBe(humanUser.id)
+      expect(result.data[0].creator?.name).toBe('Human User')
+      expect(result.data[0].agent?.id).toBe(agent.id)
+    })
   })
 })

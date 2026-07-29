@@ -110,3 +110,27 @@ export const agentSessionEntrySchema = z.object({
   entry: z.unknown(),
 })
 export type AgentSessionEntryInfo = z.infer<typeof agentSessionEntrySchema>
+
+export const agentSessionInfoSchema = z.object({
+  id: z.string(),
+  name: z.string().nullable().optional(),
+  type: z.string(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  creator: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+      avatar: z.string().optional(),
+    })
+    .nullable()
+    .optional(),
+  agent: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+    })
+    .nullable()
+    .optional(),
+})
+export type AgentSessionInfo = z.infer<typeof agentSessionInfoSchema>

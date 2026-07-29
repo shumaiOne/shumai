@@ -885,5 +885,15 @@
   "members_view": "Members",
   "access_denied": "Access Denied",
   "only_owner_dashboard": "Only team owners can access the dashboard.",
-  "role": "Role"
+  "role": "Role",
+  "agent_sessions": "Sessions",
+  "agent_sessions_description": "View step-by-step execution history and logs for all agent sessions across your team.",
+  "session_name": "Session Name",
+  "creator": "Creator",
+  "create_time": "Create Time",
+  "session_type": "Session Type",
+  "no_sessions_found": "No sessions found.",
+  "session_entries": "Session Entries",
+  "unnamed_session": "Unnamed Session",
+  "failed_to_load": "Failed to load sessions"
 }

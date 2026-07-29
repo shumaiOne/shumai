@@ -193,4 +193,40 @@ describe('Agent API', () => {
       expect(res.status).toBe(500)
     })
   })
+
+  describe('GET /teams/:teamId/agent-sessions', () => {
+    it('returns team agent sessions when authorized', async () => {
+      const mockResult = {
+        data: [
+          {
+            id: 'session1',
+            name: 'Test Session',
+            type: 'chat',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+            creator: { id: 'user1', name: 'User 1' },
+            agent: { id: 'agent1', name: 'Agent 1' },
+          },
+        ],
+        pageInfo: { total: 1 },
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.mocked(agentService.listTeamSessions).mockResolvedValue(mockResult as any)
+
+      const res = await app.request('/teams/team1/agent-sessions?first=10', {
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.data).toHaveLength(1)
+      expect(data.data[0].id).toBe('session1')
+      expect(authzService.hasPermission).toHaveBeenCalledWith({
+        user: undefined,
+        permission: 'Admin',
+        type: 'team',
+        id: 'team1',
+      })
+    })
+  })
 })
