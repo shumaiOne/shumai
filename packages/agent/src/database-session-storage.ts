@@ -265,6 +265,7 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
         by: ['replyToId'],
         where: {
           replyToId: { in: entryIds },
+          message: { not: '__CHAT__' },
         },
       })
       const commentIdsWithThreads = new Set<string>()

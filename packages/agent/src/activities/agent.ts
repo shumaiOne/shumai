@@ -547,14 +547,14 @@ export async function initializeAgentSessionActivity(params: {
     })
   }
 
-  // 1. Fetch top-level comments up to rootComment.createdAt
+  // 1. Fetch top-level comments up to rootComment.createdAt sorted by id
   const topLevelComments = await prisma.assetComment.findMany({
     where: {
       assetId: userComment.assetId,
       replyToId: null,
       createdAt: { lte: rootComment.createdAt },
     },
-    orderBy: { createdAt: 'asc' },
+    orderBy: { id: 'asc' },
     include: { creator: true },
   })
 
@@ -566,7 +566,7 @@ export async function initializeAgentSessionActivity(params: {
           createdAt: { lte: userComment.createdAt },
           id: { not: userComment.id },
         },
-        orderBy: { createdAt: 'asc' },
+        orderBy: { id: 'asc' },
         include: { creator: true },
       })
     : []

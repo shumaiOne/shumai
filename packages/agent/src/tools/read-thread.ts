@@ -28,8 +28,11 @@ export const createReadThreadTool = (): AgentTool<
     }
 
     const replies = await prisma.assetComment.findMany({
-      where: { replyToId: rootComment.id },
-      orderBy: { createdAt: 'asc' },
+      where: {
+        replyToId: rootComment.id,
+        message: { not: '__CHAT__' },
+      },
+      orderBy: { id: 'asc' },
       include: { creator: true },
     })
 

@@ -597,7 +597,7 @@ describe('Agent Database Activities Integration', () => {
       // Retrieve main session entries (contains top-level comments mainComment1 and mainComment2)
       const mainEntries = await prisma.agentSessionEntry.findMany({
         where: { sessionId: mainSession!.id },
-        orderBy: { createdAt: 'asc' },
+        orderBy: { id: 'asc' },
       })
 
       // Main session contains mainComment1 and mainComment2, but NOT threadReply1
@@ -876,6 +876,37 @@ describe('Agent Database Activities Integration', () => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any -- testing mock entry casting
         } as any),
       ).resolves.not.toThrow()
+    })
+
+    it('should not tag Thread ID when only __CHAT__ placeholder comment exists under root comment', async () => {
+      const rootComment = await prisma.assetComment.create({
+        data: { assetId: asset.id, message: 'Root comment asking agent', creatorId: user.id },
+      })
+      // Create placeholder comment under rootComment
+      await prisma.assetComment.create({
+        data: {
+          assetId: asset.id,
+          message: '__CHAT__',
+          creatorId: user.id,
+          replyToId: rootComment.id,
+        },
+      })
+
+      const sessionId = await initializeAgentSessionActivity({
+        teamId: team.id,
+        agentId: 'test-agent-id',
+        userCommentId: rootComment.id,
+        userId: user.id,
+      })
+
+      const storage = new DatabaseSessionStorage(sessionId)
+      const pathEntries = await storage.getPathToRoot(rootComment.id)
+      const rootEntry = pathEntries.find((e) => e.id === rootComment.id)
+
+      expect(rootEntry).toBeDefined()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- entry data structure parsing
+      const content = (rootEntry as any)?.message?.content?.[0]?.text || ''
+      expect(content).not.toContain(`[Thread ID: ${rootComment.id}]`)
     })
 
     it('should return user name and role for team member', async () => {
