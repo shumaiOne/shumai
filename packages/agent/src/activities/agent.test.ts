@@ -1464,12 +1464,19 @@ describe('Agent Database Activities Integration', () => {
         },
       })
 
+      expect(piAgent.createAgentSession).toHaveBeenCalledWith(
+        expect.objectContaining({
+          disableTools: true,
+        }),
+      )
       const updatedSession = await prisma.agentSession.findUnique({
         where: { id: 'session-123' },
       })
 
       expect(updatedSession?.name).toBe('Summarized Chat Title')
-      expect(mockHarness.prompt).toHaveBeenCalledWith('hello world prompt')
+      expect(mockHarness.prompt).toHaveBeenCalledWith(
+        'Generate a short 2 to 4 word title for a session starting with this message:\n\n<user_message>\nhello world prompt\n</user_message>',
+      )
 
       // Verify that transient naming session was cleaned up (deleted)
       const namingSessions = await prisma.agentSession.findMany({
