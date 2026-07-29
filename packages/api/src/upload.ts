@@ -26,9 +26,8 @@ export const localUploadRoute = new Hono().put(
     }
 
     const contentType = c.req.header('Content-Type')
-    let buffer: Buffer
-    let size: number
     let finalContentType = contentType
+    const contentLength = parseInt(c.req.header('Content-Length') || '0', 10)
 
     if (contentType?.includes('multipart/form-data')) {
       const body = await c.req.parseBody()
@@ -36,16 +35,14 @@ export const localUploadRoute = new Hono().put(
       if (!file) {
         return c.text('No file uploaded', 400)
       }
-      buffer = Buffer.from(await file.arrayBuffer())
-      size = file.size
+      const buffer = Buffer.from(await file.arrayBuffer())
+      const size = file.size
       finalContentType = file.type || 'application/octet-stream'
+      await s3Service.putObject(bucket, key, buffer, size, finalContentType)
     } else {
-      const arrayBuffer = await c.req.arrayBuffer()
-      buffer = Buffer.from(arrayBuffer)
-      size = arrayBuffer.byteLength
+      const body = c.req.raw.body ?? (await c.req.arrayBuffer())
+      await s3Service.putObject(bucket, key, body, contentLength, finalContentType)
     }
-
-    await s3Service.putObject(bucket, key, buffer, size, finalContentType)
 
     return c.json({ success: true })
   },

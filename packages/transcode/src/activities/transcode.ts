@@ -257,8 +257,9 @@ export async function transcodeVideoActivity(
       disableAudio,
     })
 
-    const buffer = fs.readFileSync(outputFile)
-    await s3Service.putObject(bucket, key, buffer, buffer.length, 'video/mp4')
+    const stat = fs.statSync(outputFile)
+    const stream = Bun.file(outputFile).stream()
+    await s3Service.putObject(bucket, key, stream, stat.size, 'video/mp4')
 
     return { ...params.videoSpec, key }
   } catch (err) {
@@ -315,8 +316,9 @@ export async function transcodeAudioActivity(
       bitrate: '128k',
     })
 
-    const buffer = fs.readFileSync(outputFile)
-    await s3Service.putObject(bucket, key, buffer, buffer.length, 'video/mp4')
+    const stat = fs.statSync(outputFile)
+    const stream = Bun.file(outputFile).stream()
+    await s3Service.putObject(bucket, key, stream, stat.size, 'video/mp4')
 
     return { width: 0, height: 0, key }
   } catch (err) {
@@ -531,8 +533,9 @@ export async function generatePdfProxyActivity(
       await transcodeService.generatePdfFromText(params.filePath, pdfFilePath)
     }
 
-    const buffer = fs.readFileSync(pdfFilePath)
-    await s3Service.putObject(bucket, pdfProxyKey, buffer, buffer.length, 'application/pdf')
+    const stat = fs.statSync(pdfFilePath)
+    const stream = Bun.file(pdfFilePath).stream()
+    await s3Service.putObject(bucket, pdfProxyKey, stream, stat.size, 'application/pdf')
 
     return { pdfProxyKey, pdfFilePath }
   } catch (err) {

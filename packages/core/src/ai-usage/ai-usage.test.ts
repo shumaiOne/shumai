@@ -56,18 +56,18 @@ describe('AiUsageService', () => {
 
     const teamRecord = records.find((r) => r.userId === null)
     expect(teamRecord).toBeDefined()
-    expect(teamRecord?.inputTokens).toBe(100)
-    expect(teamRecord?.outputTokens).toBe(50)
-    expect(teamRecord?.cacheReadTokens).toBe(20)
-    expect(teamRecord?.totalTokens).toBe(150)
+    expect(Number(teamRecord?.inputTokens)).toBe(100)
+    expect(Number(teamRecord?.outputTokens)).toBe(50)
+    expect(Number(teamRecord?.cacheReadTokens)).toBe(20)
+    expect(Number(teamRecord?.totalTokens)).toBe(150)
     expect(teamRecord?.cost).toBeCloseTo(0.001)
 
     const memberRecord = records.find((r) => r.userId === user.id)
     expect(memberRecord).toBeDefined()
-    expect(memberRecord?.inputTokens).toBe(100)
-    expect(memberRecord?.outputTokens).toBe(50)
-    expect(memberRecord?.cacheReadTokens).toBe(20)
-    expect(memberRecord?.totalTokens).toBe(150)
+    expect(Number(memberRecord?.inputTokens)).toBe(100)
+    expect(Number(memberRecord?.outputTokens)).toBe(50)
+    expect(Number(memberRecord?.cacheReadTokens)).toBe(20)
+    expect(Number(memberRecord?.totalTokens)).toBe(150)
     expect(memberRecord?.cost).toBeCloseTo(0.001)
   })
 
@@ -143,7 +143,7 @@ describe('AiUsageService', () => {
 
     expect(records).toHaveLength(1)
     expect(records[0].userId).toBeNull()
-    expect(records[0].inputTokens).toBe(50)
+    expect(Number(records[0].inputTokens)).toBe(50)
   })
 
   it('filters statistics correctly by timeframe', async () => {

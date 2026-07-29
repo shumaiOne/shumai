@@ -227,7 +227,7 @@ describe('AssetService', () => {
     if (expected.name !== undefined) expect(a.name).toBe(expected.name)
     expect(a.type).toBe(expected.type)
     expect(a.fileCount).toBe(expected.fileCount)
-    expect(a.sizeByte).toBe(expected.size)
+    expect(Number(a.sizeByte)).toBe(expected.size)
   }
 
   it('can create a folder and list children', async () => {
@@ -2671,6 +2671,54 @@ describe('AssetService — natural sort by name', () => {
       // Assert: should resolve to the latest version (fileB)
       expect(resolvedId).toBe(fileB.id)
       expect(resolvedId).not.toBe(fileA.id)
+    })
+
+    it('supports file and folder sizes > 2.14 GB (BigInt int8)', async () => {
+      const team = await prisma.team.create({ data: { name: 'Test Team BigInt' } })
+      const project = await prisma.project.create({
+        data: { name: 'Test Project BigInt', teamId: team.id },
+      })
+      const user = await prisma.user.create({
+        data: { name: 'Test User BigInt', email: `test-bigint-${Date.now()}@example.com` },
+      })
+
+      // 3.5 GB = 3,500,000,000 bytes (exceeds int4 max 2,147,483,647)
+      const largeSize = 3_500_000_000
+
+      const largeFolder = await prisma.asset.create({
+        data: {
+          name: 'LargeStorageFolder',
+          type: AssetType.folder,
+          projectId: project.id,
+          creatorId: user.id,
+          status: AssetStatus.uploaded,
+          sizeByte: 0,
+        },
+      })
+
+      const largeFile = await assetService.createAsset({
+        name: 'huge_video_4k.mp4',
+        type: 'file',
+        projectId: project.id,
+        parentId: largeFolder.id,
+        sizeByte: largeSize,
+        creatorId: user.id,
+      })
+
+      expect(Number(largeFile.sizeByte)).toBe(largeSize)
+
+      // Test updating ancestor size with > 2.14 GB
+      await assetService.updateAncestorsSize(prisma, largeFolder.id, largeSize)
+
+      const updatedFolder = await prisma.asset.findUnique({
+        where: { id: largeFolder.id },
+      })
+
+      expect(Number(updatedFolder?.sizeByte)).toBe(largeSize)
+
+      // Test getAsset returns number format correctly
+      const info = await assetService.getAsset({ assetId: largeFile.id })
+      expect(info.sizeByte).toBe(largeSize)
     })
   })
 })

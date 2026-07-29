@@ -44,7 +44,7 @@ export class VersionStackService {
         } else if (f.parentId !== parentId) {
           throw new Error('files do not have the same parent')
         }
-        totalSize += f.sizeByte
+        totalSize += Number(f.sizeByte)
       }
 
       if (!parentId) {

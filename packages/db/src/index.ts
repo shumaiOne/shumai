@@ -4,6 +4,12 @@ import { PrismaClient, WorkflowTask } from './generated/prisma/client'
 import { PrismaTestingHelper } from './prisma-testing-helper'
 import { generateNgrams } from './utils/ngram'
 
+// Ensure BigInt serializes to JSON number gracefully for Temporal/HTTP payloads
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+;(BigInt.prototype as any).toJSON = function () {
+  return Number(this)
+}
+
 // Global callback for workflow task creation (decouples db package from workflow engine)
 type WorkflowTriggerCallback = (task: WorkflowTask) => Promise<void>
 let onWorkflowTaskCreated: WorkflowTriggerCallback | null = null

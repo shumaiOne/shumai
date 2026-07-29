@@ -49,12 +49,18 @@ export async function getAssetActivity(assetId: string) {
     if (latestVersion) {
       return {
         ...latestVersion,
+        sizeByte: Number(latestVersion.sizeByte),
         project: latestVersion.project ?? asset.project,
       }
     }
   }
 
-  return asset
+  if (!asset) return null
+
+  return {
+    ...asset,
+    sizeByte: Number(asset.sizeByte),
+  }
 }
 
 export interface UpdateTaskStatusParams {

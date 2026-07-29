@@ -364,7 +364,7 @@ describe('UploadService', () => {
     })
     expect(stack).toBeDefined()
     expect(stack?.fileCount).toBe(1) // Only fileA is "uploaded", the new one is still "uploading"
-    expect(stack?.sizeByte).toBe(1000)
+    expect(Number(stack?.sizeByte)).toBe(1000)
 
     // The new asset should be inside the stack
     const newAsset = await prisma.asset.findFirst({
@@ -431,11 +431,11 @@ describe('UploadService', () => {
 
     const updatedStack = await prisma.asset.findUnique({ where: { id: stack.id } })
     expect(updatedStack?.fileCount).toBe(2)
-    expect(updatedStack?.sizeByte).toBe(3000)
+    expect(Number(updatedStack?.sizeByte)).toBe(3000)
 
     // Verify parent folder size (initially 1000 from stack)
     const parentFolder = await prisma.asset.findUnique({ where: { id: parentId } })
-    expect(parentFolder?.sizeByte).toBe(3000)
+    expect(Number(parentFolder?.sizeByte)).toBe(3000)
   })
 
   it('should list upload tasks', async () => {

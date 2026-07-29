@@ -139,7 +139,7 @@ async function run() {
     idleTimeout: 120,
     maxRequestBodySize: process.env.MAX_REQUEST_BODY_SIZE
       ? parseInt(process.env.MAX_REQUEST_BODY_SIZE)
-      : 1024 * 1024 * 1024 * 10, // Default 10GB
+      : 1024 * 1024 * 1024 * 20, // Default 20GB
     development: !isProd,
     fetch: app.fetch,
     routes,
