@@ -610,7 +610,7 @@ describe('Transcode Activities', () => {
       expect(s3Service.putObject).toHaveBeenCalledWith(
         'shumai',
         'files/proj-123/a-audio-proxy.mp4',
-        expect.anything(),
+        expect.any(ReadableStream),
         expect.any(Number),
         'video/mp4',
       )
