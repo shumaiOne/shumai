@@ -14,7 +14,7 @@ import { Loader2, Terminal } from 'lucide-react'
 import Markdown from 'react-markdown'
 import { m } from '@/ui/paraglide/messages.js'
 
-interface SessionEntriesDialogProps {
+export interface AgentSessionLogsDialogProps {
   sessionId: string | null
   sessionName?: string | null
   open: boolean
@@ -25,12 +25,12 @@ const preprocessMarkdown = (text: string): string => {
   return text.replace(/<@([a-zA-Z0-9_-]+)>/g, '@$1').replace(/^\[([^\]]+)\]:/gm, '\\[$1\\]:')
 }
 
-export function SessionEntriesDialog({
+export function AgentSessionLogsDialog({
   sessionId,
   sessionName,
   open,
   onOpenChange,
-}: SessionEntriesDialogProps) {
+}: AgentSessionLogsDialogProps) {
   const { data: logs, isLoading } = useQuery({
     queryKey: ['agent-sessions', sessionId, 'entries'],
     queryFn: async () => {

@@ -14,7 +14,7 @@ import { m } from '@/ui/paraglide/messages.js'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Bot, Calendar, Loader2, MessageSquareCode } from 'lucide-react'
 import { useInView } from 'react-intersection-observer'
-import { SessionEntriesDialog } from './SessionEntriesDialog'
+import { AgentSessionLogsDialog } from '../chat/AgentSessionLogsDialog'
 
 interface AgentSessionsDashboardProps {
   teamId: string
@@ -54,9 +54,7 @@ export function AgentSessionsDashboard({ teamId }: AgentSessionsDashboardProps) 
   }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage])
 
   const rawSessions = data?.pages.flatMap((page) => page.data) ?? []
-  const sessions = rawSessions.filter(
-    (s) => s.name?.trim().toLowerCase() !== 'pending',
-  )
+  const sessions = rawSessions.filter((s) => s.name?.trim().toLowerCase() !== 'pending')
   const totalSessions = data?.pages[0]?.pageInfo?.total ?? sessions.length
 
   const handleRowClick = (sessionId: string, sessionName?: string | null) => {
@@ -215,7 +213,7 @@ export function AgentSessionsDashboard({ teamId }: AgentSessionsDashboardProps) 
       )}
 
       {/* Session Entries Modal Dialog */}
-      <SessionEntriesDialog
+      <AgentSessionLogsDialog
         sessionId={selectedSessionId}
         sessionName={selectedSessionName}
         open={isDialogOpen}
