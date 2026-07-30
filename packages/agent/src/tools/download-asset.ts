@@ -65,10 +65,6 @@ export function createDownloadAssetTool(userId: string): AgentTool<typeof downlo
           } else if (mediaInfo.videoPreview?.key) {
             mediaKey = mediaInfo.videoPreview.key
           }
-        } else if (mediaInfo.proxyType === 'pdf' || mediaInfo.pdfTranscode?.key) {
-          if (mediaInfo.pdfTranscode?.key) {
-            mediaKey = mediaInfo.pdfTranscode.key
-          }
         } else if (mediaInfo.original?.key) {
           mediaKey = mediaInfo.original.key || mediaKey
         }
