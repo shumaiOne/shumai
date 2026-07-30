@@ -3,6 +3,7 @@ import { createSandboxedBashTool } from './sandboxed-bash'
 import { SandboxManager } from '@anthropic-ai/sandbox-runtime'
 import { spawn } from 'node:child_process'
 import { EventEmitter } from 'node:events'
+import { readFile } from 'node:fs/promises'
 
 vi.mock('@anthropic-ai/sandbox-runtime')
 vi.mock('node:child_process')
@@ -176,6 +177,107 @@ describe('createSandboxedBashTool', () => {
     mockChild.emit('close', null)
 
     await expect(executePromise).rejects.toThrow(/aborted/)
+    killSpy.mockRestore()
+  })
+
+  it('should truncate output exceeding max lines (2000 lines) and persist full output to temp file', async () => {
+    const tool = createSandboxedBashTool(mockCwd, mockSessionManager.getSkillEnvs())
+    const mockStdout = new EventEmitter()
+    const mockStderr = new EventEmitter()
+    const mockChild = Object.assign(new EventEmitter(), {
+      stdout: mockStdout,
+      stderr: mockStderr,
+      pid: 101,
+      kill: vi.fn(),
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- spawn returns mocked ChildProcess
+    ;(spawn as any).mockReturnValue(mockChild)
+
+    const signal = createMockSignal()
+    const executePromise = tool.execute('1', { command: 'generate lines' }, signal)
+
+    await vi.waitFor(() => expect(spawn).toHaveBeenCalled())
+
+    const lines: string[] = []
+    for (let i = 1; i <= 3000; i++) {
+      lines.push(`line-${i}`)
+    }
+    mockStdout.emit('data', Buffer.from(lines.join('\n') + '\n'))
+    mockChild.emit('close', 0)
+
+    const result = await executePromise
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- content block array
+    const text = (result as any).content[0].text
+    expect(text).toContain('line-3000')
+    expect(text).toContain('[Showing lines 1001-3000 of 3000. Full output:')
+    expect(result.details?.truncation).toMatchObject({
+      truncated: true,
+      truncatedBy: 'lines',
+      totalLines: 3000,
+      outputLines: 2000,
+    })
+
+    expect(result.details?.fullOutputPath).toBeDefined()
+    const fileContent = await readFile(result.details!.fullOutputPath!, 'utf-8')
+    expect(fileContent).toContain('line-1\nline-2')
+    expect(fileContent).toContain('line-2999\nline-3000')
+  })
+
+  it('should truncate output exceeding max bytes (50KB) and report partial line size', async () => {
+    const tool = createSandboxedBashTool(mockCwd, mockSessionManager.getSkillEnvs())
+    const mockStdout = new EventEmitter()
+    const mockChild = Object.assign(new EventEmitter(), {
+      stdout: mockStdout,
+      stderr: new EventEmitter(),
+      pid: 102,
+      kill: vi.fn(),
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- spawn returns mocked ChildProcess
+    ;(spawn as any).mockReturnValue(mockChild)
+
+    const signal = createMockSignal()
+    const executePromise = tool.execute('1', { command: 'long single line' }, signal)
+
+    await vi.waitFor(() => expect(spawn).toHaveBeenCalled())
+
+    const longLine = 'a'.repeat(60000)
+    mockStdout.emit('data', Buffer.from(longLine))
+    mockChild.emit('close', 0)
+
+    const result = await executePromise
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- content block array
+    const text = (result as any).content[0].text
+    expect(text).toMatch(/Showing last 50\.0KB of line 1 \(line is 58\.6KB\)\. Full output:/)
+  })
+
+  it('should preserve truncated output when a command times out', async () => {
+    vi.useFakeTimers()
+    const tool = createSandboxedBashTool(mockCwd, mockSessionManager.getSkillEnvs())
+    const mockStdout = new EventEmitter()
+    const mockChild = Object.assign(new EventEmitter(), {
+      stdout: mockStdout,
+      stderr: new EventEmitter(),
+      pid: 103,
+      kill: vi.fn(),
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- spawn returns mocked ChildProcess
+    ;(spawn as any).mockReturnValue(mockChild)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- process.kill return type boolean
+    const killSpy = vi.spyOn(process, 'kill').mockImplementation(() => true as any)
+
+    const signal = createMockSignal()
+    const executePromise = tool.execute('1', { command: 'slow', timeout: 1 }, signal)
+
+    await vi.waitFor(() => expect(spawn).toHaveBeenCalled())
+
+    mockStdout.emit('data', Buffer.from('output before timeout\n'))
+    await vi.advanceTimersByTimeAsync(1100)
+    mockChild.emit('close', null)
+
+    await expect(executePromise).rejects.toThrow(/output before timeout/)
+    await expect(executePromise).rejects.toThrow(/timed out after 1 seconds/)
+
+    vi.useRealTimers()
     killSpy.mockRestore()
   })
 })
