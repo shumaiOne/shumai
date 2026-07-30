@@ -39,7 +39,24 @@ describe('useChatbotStore', () => {
       historySessions: [],
       isStreaming: false,
       selectedAgentId: 'agent-1',
+      inputText: '',
     })
+  })
+
+  it('should persist and reset inputText', () => {
+    expect(useChatbotStore.getState().inputText).toBe('')
+    useChatbotStore.getState().setInputText('Draft text in progress')
+    expect(useChatbotStore.getState().inputText).toBe('Draft text in progress')
+
+    useChatbotStore.setState({
+      currentSessionId: 'sess-abc',
+      messages: [{ id: 'msg-1', role: 'user', content: 'test' } as unknown as ChatMessage],
+    })
+    // Navigating or changing other state does not wipe inputText
+    expect(useChatbotStore.getState().inputText).toBe('Draft text in progress')
+
+    useChatbotStore.getState().startNewSession()
+    expect(useChatbotStore.getState().inputText).toBe('')
   })
 
   it('should add, remove and clear assets in context', () => {
