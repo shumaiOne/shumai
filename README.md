@@ -38,7 +38,7 @@ Here is a short demo video showing what the Shumai agent can do:
 
 
 
-https://github.com/user-attachments/assets/2ebe5456-342e-47f7-9a93-a963fcf12097
+https://github.com/user-attachments/assets/1186067a-72c0-41b9-836f-987438f2332a
 
 
 
