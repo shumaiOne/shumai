@@ -11,6 +11,7 @@ import { agentService } from '@shumai/core/src/agent/agent'
 import { prisma } from '@shumai/db'
 import { Type, type TSchema } from '@sinclair/typebox'
 import * as fs from 'fs'
+import * as os from 'os'
 import * as path from 'path'
 import { DatabaseSessionStorage } from './database-session-storage'
 import { createAnalyzeImageTool } from './tools/analyze-image'
@@ -153,7 +154,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
   const piDir = path.join(process.cwd(), '.pi')
   if (!fs.existsSync(piDir)) fs.mkdirSync(piDir, { recursive: true })
 
-  const allowWrite = [piDir]
+  const allowWrite = [piDir, os.tmpdir()]
 
   const sandboxState = {
     blockedHost: '',
