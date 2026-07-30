@@ -95,7 +95,7 @@ export class S3StorageService implements S3Service {
       body && typeof body === 'object' && 'getReader' in body
         ? new Response(body as ReadableStream)
         : body
-    await this.client.write(key, payload as string | Buffer | ArrayBuffer | Uint8Array | Response, {
+    await this.client.write(key, payload, {
       bucket,
       type: contentType,
     })
