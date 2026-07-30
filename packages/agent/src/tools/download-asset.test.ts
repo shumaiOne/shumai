@@ -137,32 +137,33 @@ describe('downloadAssetTool', () => {
     expect(result.details.size).toBe(Buffer.from('fake-video-bytes').length)
   })
 
-  it('should download proxy pdf to .pi directory when pdfTranscode is present', async () => {
+  it('should download original file to .pi directory even when pdfTranscode is present', async () => {
     vi.mocked(authzService.hasPermission).mockResolvedValue()
     vi.mocked(prisma.asset.findUnique).mockResolvedValue({
-      id: 'asset-pdf-1',
-      name: 'doc.pdf',
-      storageKey: { key: 'raw/doc.pdf' },
+      id: 'asset-md-1',
+      name: 'doc.md',
+      storageKey: { key: 'raw/doc.md' },
       media: {
         proxyType: 'pdf',
         pdfTranscode: { key: 'proxy/doc.pdf' },
+        original: { key: 'raw/doc.md' },
       },
     } as unknown as Asset)
 
     vi.mocked(s3Service.getObject).mockResolvedValue({
-      buffer: Buffer.from('fake-pdf-bytes'),
-      contentType: 'application/pdf',
+      buffer: Buffer.from('# fake markdown bytes'),
+      contentType: 'text/markdown',
     } as unknown as { buffer: Buffer; contentType: string })
 
     const tool = createDownloadAssetTool('user-1')
-    const result = await tool.execute('call-1', { assetId: 'asset-pdf-1' })
+    const result = await tool.execute('call-1', { assetId: 'asset-md-1' })
 
-    expect(s3Service.getObject).toHaveBeenCalledWith('shumai', 'proxy/doc.pdf')
+    expect(s3Service.getObject).toHaveBeenCalledWith('shumai', 'raw/doc.md')
 
-    const expectedPath = path.join(piDir, 'asset-pdf-1_doc.pdf')
+    const expectedPath = path.join(piDir, 'asset-md-1_doc.md')
     createdFiles.push(expectedPath)
 
     expect(fs.existsSync(expectedPath)).toBe(true)
-    expect(result.details.contentType).toBe('application/pdf')
+    expect(result.details.contentType).toBe('text/markdown')
   })
 })
