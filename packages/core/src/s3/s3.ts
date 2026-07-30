@@ -33,29 +33,29 @@ export interface S3Object {
 }
 
 export interface S3Service {
-  getObjectSize(bucket: string, key: string): Promise<number>
-  putObject(
+  getObjectSize: (bucket: string, key: string) => Promise<number>
+  putObject: (
     bucket: string,
     key: string,
     body: Buffer | Uint8Array | ArrayBuffer | string | ReadableStream,
     size: number,
     contentType?: string,
-  ): Promise<void>
-  getObject(bucket: string, key: string): Promise<S3Object>
-  copyObject(
+  ) => Promise<void>
+  getObject: (bucket: string, key: string) => Promise<S3Object>
+  copyObject: (
     sourceBucket: string,
     sourceKey: string,
     destBucket: string,
     destKey: string,
-  ): Promise<void>
-  downloadToFile(bucket: string, key: string, filePath: string): Promise<void>
-  deleteObject(bucket: string, key: string): Promise<number>
-  deletePrefix(bucket: string, prefix: string): Promise<number>
-  headObject(bucket: string, key: string): Promise<ObjectInfo>
-  listObjects(bucket: string, prefix: string): Promise<string[]>
-  uploadFile(filePath: string, contentType: string): Promise<string>
-  uploadFileToKey(filePath: string, key: string, contentType: string): Promise<void>
-  presign(bucket: string, key: string, method: string, download?: boolean): Promise<string>
+  ) => Promise<void>
+  downloadToFile: (bucket: string, key: string, filePath: string) => Promise<void>
+  deleteObject: (bucket: string, key: string) => Promise<number>
+  deletePrefix: (bucket: string, prefix: string) => Promise<number>
+  headObject: (bucket: string, key: string) => Promise<ObjectInfo>
+  listObjects: (bucket: string, prefix: string) => Promise<string[]>
+  uploadFile: (filePath: string, contentType: string) => Promise<string>
+  uploadFileToKey: (filePath: string, key: string, contentType: string) => Promise<void>
+  presign: (bucket: string, key: string, method: string, download?: boolean) => Promise<string>
 }
 
 export class S3StorageService implements S3Service {
@@ -87,11 +87,15 @@ export class S3StorageService implements S3Service {
   async putObject(
     bucket: string,
     key: string,
-    body: Buffer | Uint8Array | string,
+    body: Buffer | Uint8Array | ArrayBuffer | string | ReadableStream,
     _size: number,
     contentType?: string,
   ): Promise<void> {
-    await this.client.write(key, body, {
+    const payload =
+      body && typeof body === 'object' && 'getReader' in body
+        ? new Response(body as ReadableStream)
+        : body
+    await this.client.write(key, payload as string | Buffer | ArrayBuffer | Uint8Array | Response, {
       bucket,
       type: contentType,
     })

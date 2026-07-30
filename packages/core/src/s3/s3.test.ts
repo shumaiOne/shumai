@@ -154,6 +154,41 @@ describe('S3Service implementations', () => {
       expect(url2).toBe('http://download-url-2')
       expect(s3PresignSpy).toHaveBeenCalledTimes(2)
     })
+
+    it('should handle ReadableStream in putObject by wrapping in Response', async () => {
+      const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
+      s3WriteSpy.mockClear()
+
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('stream content'))
+          controller.close()
+        },
+      })
+
+      await s3.putObject('test-bucket', 'file.txt', stream, 14, 'text/plain')
+
+      expect(s3WriteSpy).toHaveBeenCalledWith(
+        'file.txt',
+        expect.any(Response),
+        expect.objectContaining({ bucket: 'test-bucket', type: 'text/plain' }),
+      )
+    })
+
+    it('should handle ArrayBuffer in putObject', async () => {
+      const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
+      s3WriteSpy.mockClear()
+
+      const arrayBuffer = new TextEncoder().encode('array buffer content').buffer
+
+      await s3.putObject('test-bucket', 'file.txt', arrayBuffer, 20, 'text/plain')
+
+      expect(s3WriteSpy).toHaveBeenCalledWith(
+        'file.txt',
+        arrayBuffer,
+        expect.objectContaining({ bucket: 'test-bucket', type: 'text/plain' }),
+      )
+    })
   })
 
   describe('LocalStorageService', () => {
