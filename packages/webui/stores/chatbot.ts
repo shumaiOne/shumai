@@ -28,6 +28,8 @@ interface ChatbotState {
   setIsStreaming: (streaming: boolean) => void
   selectedAgentId: string | null
   setSelectedAgentId: (id: string | null) => void
+  inputText: string
+  setInputText: (text: string) => void
 
   scrollTop: number
   isAtBottom: boolean
@@ -74,6 +76,8 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
   setIsStreaming: (streaming) => set({ isStreaming: streaming }),
   selectedAgentId: null,
   setSelectedAgentId: (id) => set({ selectedAgentId: id }),
+  inputText: '',
+  setInputText: (text) => set({ inputText: text }),
   scrollTop: 0,
   isAtBottom: true,
   setScrollState: (scrollTop, isAtBottom) => set({ scrollTop, isAtBottom }),
@@ -147,6 +151,7 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
       currentSessionId: null,
       messages: [],
       chatAssets: [],
+      inputText: '',
       scrollTop: 0,
       isAtBottom: true,
     })

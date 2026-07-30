@@ -26,7 +26,7 @@ import {
   Trash2,
   Wrench,
 } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import Markdown from 'react-markdown'
 import { formatTimeAgo } from '../lib/time'
 
@@ -53,6 +53,8 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
     abortActiveSession,
     selectedAgentId,
     setSelectedAgentId,
+    inputText,
+    setInputText,
   } = useChatbotStore()
 
   const { teamId, ensureTeamIdForProject } = useTeamContextStore()
@@ -87,7 +89,6 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
     }
   }, [chatAgents, selectedAgentId, setSelectedAgentId])
 
-  const [inputText, setInputText] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const isFirstScrollRef = useRef(true)
