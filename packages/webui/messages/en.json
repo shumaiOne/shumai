@@ -896,5 +896,20 @@
   "session_type_comment": "Comment",
   "session_type_chat": "Chat",
   "session_type_naming": "Naming",
-  "untitled_session": "Untitled Session"
+  "untitled_session": "Untitled Session",
+  "team_category": "Team",
+  "audit_logs": "Audit Logs",
+  "audit_logs_description": "View and monitor all audit logs of team actions.",
+  "filter_by_action": "Filter by Action",
+  "filter_by_user": "Filter by User",
+  "filter_by_item_id": "Filter by Item ID",
+  "action": "Action",
+  "user": "User",
+  "item_id": "Item ID",
+  "project_id": "Project ID",
+  "timestamp": "Timestamp",
+  "no_audit_logs": "No audit logs found",
+  "search_item_id": "Search Item ID...",
+  "select_actions": "Select Actions",
+  "select_users": "Select Users"
 }

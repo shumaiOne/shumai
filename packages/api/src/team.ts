@@ -4,7 +4,6 @@ import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/a
 import { teamService } from '@shumai/core/src/team/team'
 import { userMetadataService } from '@shumai/core/src/user-metadata/user-metadata'
 import { notificationService } from '@shumai/core/src/notification/notification'
-import { NotificationType } from '@shumai/db'
 import {
   createTeamRequestSchema,
   getUserTeamsRequestSchema,
@@ -14,10 +13,13 @@ import {
   updateMeRequestSchema,
   updateTeamMemberRoleRequestSchema,
   createApiTokenRequestSchema,
+  listAuditLogsQuerySchema,
 } from '@shumai/dtos'
 import { updateUserMetadataRequestSchema, getTeamAiUsageQuerySchema } from '@shumai/dtos'
 import { apiTokenService } from '@shumai/core/src/user/api-token'
 import { aiUsageService } from '@shumai/core/src/ai-usage/ai-usage'
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
+import { NotificationType, AuditAction } from '@shumai/db'
 import type { Prisma } from '@shumai/db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
@@ -28,6 +30,12 @@ const route = new Hono<{ Variables: { user: User } }>()
     const req = c.req.valid('json')
 
     const newTeam = await teamService.createTeam(user, req)
+    await auditLogService.logAction({
+      action: AuditAction.team_create,
+      teamId: newTeam.id,
+      userId: user.id,
+      itemId: newTeam.id,
+    })
     return c.json(newTeam)
   })
   .get('/teams', zValidator('query', getUserTeamsRequestSchema), async (c) => {
@@ -60,6 +68,13 @@ const route = new Hono<{ Variables: { user: User } }>()
       type: NotificationType.new_user_join_team,
       teamId,
       userId: user.id,
+    })
+
+    await auditLogService.logAction({
+      action: AuditAction.team_member_add,
+      teamId,
+      userId: user.id,
+      itemId: user.id,
     })
 
     return new Response(null, { status: 204 })
@@ -139,6 +154,13 @@ const route = new Hono<{ Variables: { user: User } }>()
         role: req.role,
       })
 
+      await auditLogService.logAction({
+        action: AuditAction.team_member_update,
+        teamId,
+        userId: user.id,
+        itemId: userId,
+      })
+
       return c.json({ success: true })
     },
   )
@@ -155,6 +177,13 @@ const route = new Hono<{ Variables: { user: User } }>()
     })
 
     await teamService.removeMember(teamId, userId)
+
+    await auditLogService.logAction({
+      action: AuditAction.team_member_remove,
+      teamId,
+      userId: user.id,
+      itemId: userId,
+    })
 
     return c.json({ success: true })
   })
@@ -188,6 +217,14 @@ const route = new Hono<{ Variables: { user: User } }>()
       })
 
       const settings = await teamService.updateSettings(teamId, req.key, req.value)
+
+      await auditLogService.logAction({
+        action: AuditAction.team_update,
+        teamId,
+        userId: user.id,
+        itemId: teamId,
+      })
+
       return c.json(settings)
     },
   )
@@ -333,6 +370,29 @@ const route = new Hono<{ Variables: { user: User } }>()
     })
 
     return c.json(stats)
+  })
+  .get('/teams/:teamId/audit-logs', zValidator('query', listAuditLogsQuerySchema), async (c) => {
+    const user = c.get('user')
+    const teamId = c.req.param('teamId')
+    const query = c.req.valid('query')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Admin,
+      type: ResourceType.Team,
+      id: teamId,
+    })
+
+    const logs = await auditLogService.listAuditLogs({
+      teamId,
+      actions: query.actions,
+      userIds: query.userIds,
+      itemId: query.itemId,
+      first: query.first,
+      after: query.after,
+    })
+
+    return c.json(logs)
   })
 
 export default route

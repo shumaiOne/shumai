@@ -14,7 +14,8 @@ import {
 } from '@shumai/dtos'
 import { listMembersQuerySchema, paginationParamsSchema } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
-import { prisma } from '@shumai/db'
+import { prisma, AuditAction } from '@shumai/db'
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -79,6 +80,14 @@ const route = new Hono<{ Variables: { user: User } }>()
       ...req,
     })
 
+    await auditLogService.logAction({
+      action: AuditAction.project_create,
+      teamId,
+      userId: user.id,
+      projectId: newProject.id,
+      itemId: newProject.id,
+    })
+
     return c.json(newProject)
   })
   .put('/projects/:projectId', zValidator('json', updateProjectRequestSchema), async (c) => {
@@ -97,6 +106,20 @@ const route = new Hono<{ Variables: { user: User } }>()
       projectId,
       ...req,
     })
+
+    const proj = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { teamId: true },
+    })
+    if (proj) {
+      await auditLogService.logAction({
+        action: AuditAction.project_update,
+        teamId: proj.teamId,
+        userId: user.id,
+        projectId,
+        itemId: projectId,
+      })
+    }
 
     return c.json(updatedProject)
   })
@@ -137,6 +160,20 @@ const route = new Hono<{ Variables: { user: User } }>()
     })
 
     await assetService.emptyTrash(projectId)
+
+    const proj = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { teamId: true },
+    })
+    if (proj) {
+      await auditLogService.logAction({
+        action: AuditAction.project_empty_trash,
+        teamId: proj.teamId,
+        userId: user.id,
+        projectId,
+        itemId: projectId,
+      })
+    }
 
     return c.json({ success: true })
   })
@@ -193,7 +230,22 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: projectId,
     })
 
+    const proj = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { teamId: true },
+    })
     await projectService.deleteProject(projectId)
+
+    if (proj) {
+      await auditLogService.logAction({
+        action: AuditAction.project_delete,
+        teamId: proj.teamId,
+        userId: user.id,
+        projectId,
+        itemId: projectId,
+      })
+    }
+
     return c.json({ success: true })
   })
   .get('/projects/:projectId/team', async (c) => {
@@ -327,6 +379,20 @@ const route = new Hono<{ Variables: { user: User } }>()
         role: req.role,
       })
 
+      const proj = await prisma.project.findUnique({
+        where: { id: projectId },
+        select: { teamId: true },
+      })
+      if (proj) {
+        await auditLogService.logAction({
+          action: AuditAction.project_member_update,
+          teamId: proj.teamId,
+          userId: user.id,
+          projectId,
+          itemId: userId,
+        })
+      }
+
       return c.json({ success: true })
     },
   )
@@ -342,7 +408,21 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: projectId,
     })
 
+    const proj = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { teamId: true },
+    })
     await projectService.removeMember(projectId, userId)
+
+    if (proj) {
+      await auditLogService.logAction({
+        action: AuditAction.project_member_remove,
+        teamId: proj.teamId,
+        userId: user.id,
+        projectId,
+        itemId: userId,
+      })
+    }
 
     return c.json({ success: true })
   })
@@ -366,6 +446,20 @@ const route = new Hono<{ Variables: { user: User } }>()
         userId: req.userId,
         role: req.role,
       })
+
+      const proj = await prisma.project.findUnique({
+        where: { id: projectId },
+        select: { teamId: true },
+      })
+      if (proj) {
+        await auditLogService.logAction({
+          action: AuditAction.project_member_add,
+          teamId: proj.teamId,
+          userId: user.id,
+          projectId,
+          itemId: req.userId,
+        })
+      }
 
       return c.json({ success: true })
     },

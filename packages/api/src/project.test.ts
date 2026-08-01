@@ -18,16 +18,27 @@ vi.mock('./middleware/auth', () => ({
 vi.mock('@shumai/core/src/authz/authz')
 vi.mock('@shumai/core/src/project/project')
 vi.mock('@shumai/core/src/asset/asset')
-vi.mock('@shumai/db', () => ({
-  prisma: {
-    teamMember: {
-      findMany: vi.fn(),
-    },
-    project: {
-      findMany: vi.fn(),
-    },
+vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
+  auditLogService: {
+    logAction: vi.fn().mockResolvedValue({}),
+    listAuditLogs: vi.fn().mockResolvedValue({ nodes: [], pageInfo: {}, total: 0 }),
   },
 }))
+vi.mock('@shumai/db', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@shumai/db')>()
+  return {
+    ...actual,
+    prisma: {
+      teamMember: {
+        findMany: vi.fn(),
+      },
+      project: {
+        findMany: vi.fn(),
+        findUnique: vi.fn(),
+      },
+    },
+  }
+})
 
 describe('project api', () => {
   const app = new Hono<{ Variables: { user: { id: string; name: string } } }>()
