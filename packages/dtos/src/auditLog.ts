@@ -1,46 +1,7 @@
 import { z } from 'zod'
+import { AuditAction } from '@shumai/db/enums'
 
-export enum AuditAction {
-  team_create = 'team_create',
-  team_update = 'team_update',
-  team_delete = 'team_delete',
-  team_member_add = 'team_member_add',
-  team_member_update = 'team_member_update',
-  team_member_remove = 'team_member_remove',
-  project_create = 'project_create',
-  project_update = 'project_update',
-  project_delete = 'project_delete',
-  project_empty_trash = 'project_empty_trash',
-  project_member_add = 'project_member_add',
-  project_member_update = 'project_member_update',
-  project_member_remove = 'project_member_remove',
-  asset_create = 'asset_create',
-  asset_update = 'asset_update',
-  asset_delete = 'asset_delete',
-  asset_reparent = 'asset_reparent',
-  asset_copy = 'asset_copy',
-  share_create = 'share_create',
-  share_update = 'share_update',
-  share_delete = 'share_delete',
-  agent_create = 'agent_create',
-  agent_update = 'agent_update',
-  agent_delete = 'agent_delete',
-  skill_create = 'skill_create',
-  skill_update = 'skill_update',
-  skill_delete = 'skill_delete',
-  provider_create = 'provider_create',
-  provider_update = 'provider_update',
-  provider_delete = 'provider_delete',
-  invite_create = 'invite_create',
-  invite_revoke = 'invite_revoke',
-  metadata_field_create = 'metadata_field_create',
-  metadata_field_update = 'metadata_field_update',
-  metadata_field_delete = 'metadata_field_delete',
-  comment_create = 'comment_create',
-  comment_update = 'comment_update',
-  comment_delete = 'comment_delete',
-  comment_complete = 'comment_complete',
-}
+export { AuditAction }
 
 export const auditLogSchema = z.object({
   id: z.string(),
