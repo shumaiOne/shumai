@@ -1,4 +1,7 @@
 import { z } from 'zod'
+import { MetadataFieldScope } from '@shumai/db/enums'
+
+export { MetadataFieldScope }
 
 export const FieldType = {
   text: 'text',

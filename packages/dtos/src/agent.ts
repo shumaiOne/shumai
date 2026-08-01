@@ -1,7 +1,8 @@
 import { z } from 'zod'
+import { AgentType } from '@shumai/db/enums'
 
-export const agentTypeSchema = z.enum(['chat', 'autofill', 'embedding'])
-export type AgentType = z.infer<typeof agentTypeSchema>
+export { AgentType }
+export const agentTypeSchema = z.nativeEnum(AgentType)
 
 export const thinkingLevelSchema = z.enum(['off', 'minimal', 'low', 'medium', 'high', 'xhigh'])
 export type ThinkingLevel = z.infer<typeof thinkingLevelSchema>
