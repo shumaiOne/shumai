@@ -78,7 +78,7 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     const context = await assetService.getAssetContext(fileId)
     await auditLogService.logAction({
-      action: AuditAction.asset_update,
+      action: AuditAction.file_update,
       teamId: context.teamId,
       userId: user.id,
       projectId: context.projectId,
@@ -107,7 +107,7 @@ const route = new Hono<{ Variables: { user: User } }>()
     for (let i = 0; i < req.ids.length; i++) {
       const ctx = contexts[i]
       await auditLogService.logAction({
-        action: AuditAction.asset_delete,
+        action: AuditAction.file_delete,
         teamId: ctx.teamId,
         userId: user.id,
         projectId: ctx.projectId,

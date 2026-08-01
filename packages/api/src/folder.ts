@@ -37,7 +37,7 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     const parentCtx = await assetService.getAssetContext(req.parentId)
     await auditLogService.logAction({
-      action: AuditAction.asset_create,
+      action: AuditAction.folder_create,
       teamId: parentCtx.teamId,
       userId: user.id,
       projectId: parentCtx.projectId,
@@ -84,7 +84,7 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     const ctx = await assetService.getAssetContext(folderId)
     await auditLogService.logAction({
-      action: AuditAction.asset_update,
+      action: AuditAction.folder_update,
       teamId: ctx.teamId,
       userId: user.id,
       projectId: ctx.projectId,
@@ -149,7 +149,7 @@ const route = new Hono<{ Variables: { user: User } }>()
     for (let i = 0; i < req.ids.length; i++) {
       const ctx = contexts[i]
       await auditLogService.logAction({
-        action: AuditAction.asset_delete,
+        action: AuditAction.folder_delete,
         teamId: ctx.teamId,
         userId: user.id,
         projectId: ctx.projectId,

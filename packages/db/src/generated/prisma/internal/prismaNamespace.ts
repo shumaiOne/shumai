@@ -3944,20 +3944,6 @@ export type EnumAgentSessionTypeFieldRefInput<$PrismaModel> = FieldRefInputType<
 export type ListEnumAgentSessionTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AgentSessionType[]'>
     
 
-
-/**
- * Reference to a field of type 'AuditAction'
- */
-export type EnumAuditActionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AuditAction'>
-    
-
-
-/**
- * Reference to a field of type 'AuditAction[]'
- */
-export type ListEnumAuditActionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AuditAction[]'>
-    
-
 /**
  * Batch Payload for updateMany & deleteMany & createMany
  */

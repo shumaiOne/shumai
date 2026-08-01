@@ -111,7 +111,7 @@ describe('folder api', () => {
       id: 'test-id',
     })
     expect(auditLogService.logAction).toHaveBeenCalledWith({
-      action: 'asset_update',
+      action: 'folder_update',
       teamId: 'test-team',
       userId: 'user1',
       projectId: undefined,
@@ -149,7 +149,7 @@ describe('folder api', () => {
       id: 'parent-id',
     })
     expect(auditLogService.logAction).toHaveBeenCalledWith({
-      action: 'asset_create',
+      action: 'folder_create',
       teamId: 'test-team',
       userId: 'user1',
       projectId: undefined,
@@ -210,7 +210,7 @@ describe('folder api', () => {
     })
     expect(assetService.deleteAssets).toHaveBeenCalledWith(['test-id'])
     expect(auditLogService.logAction).toHaveBeenCalledWith({
-      action: 'asset_delete',
+      action: 'folder_delete',
       teamId: 'test-team',
       userId: 'user1',
       projectId: undefined,

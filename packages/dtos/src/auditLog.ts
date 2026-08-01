@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { AuditAction } from '@shumai/db/enums'
+import { AuditAction } from '@shumai/db'
 
 export { AuditAction }
 

@@ -3,7 +3,8 @@ import { zValidator } from '@hono/zod-validator'
 import { postAttachmentRequestSchema } from '@shumai/dtos'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import { AssetType } from '@shumai/db'
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
+import { AssetType, AuditAction, prisma } from '@shumai/db'
 import { ulid } from 'ulid'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import type { Prisma } from '@shumai/db'
@@ -36,6 +37,20 @@ const route = new Hono<{ Variables: { user: User } }>().post(
       contentType: req.contentType,
       creatorId: user.id,
     })
+
+    const proj = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { teamId: true },
+    })
+    if (proj) {
+      await auditLogService.logAction({
+        action: AuditAction.file_create,
+        teamId: proj.teamId,
+        userId: user.id,
+        projectId,
+        itemId: assetInfo.id,
+      })
+    }
 
     const uploadUrl = await s3Service.presign(process.env.S3_BUCKET || 'shumai', key, 'PUT')
 

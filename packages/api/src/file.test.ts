@@ -138,7 +138,7 @@ describe('file api', () => {
       id: 'test-id',
     })
     expect(auditLogService.logAction).toHaveBeenCalledWith({
-      action: 'asset_update',
+      action: 'file_update',
       teamId: 'test-team',
       userId: 'user1',
       projectId: undefined,
@@ -166,7 +166,7 @@ describe('file api', () => {
     })
     expect(assetService.deleteAssets).toHaveBeenCalledWith(['test-id'])
     expect(auditLogService.logAction).toHaveBeenCalledWith({
-      action: 'asset_delete',
+      action: 'file_delete',
       teamId: 'test-team',
       userId: 'user1',
       projectId: undefined,

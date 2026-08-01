@@ -111,3 +111,4 @@ export function getPrismaTestingHelper() {
 
 export * from './generated/prisma/client'
 export * from './utils/ngram'
+export * from './audit'
