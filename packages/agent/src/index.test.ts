@@ -336,6 +336,49 @@ describe('Sandbox Network isolation integration', () => {
     }
   })
 
+  it('should pass retry configuration to AgentHarness', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'Test Team Retry' },
+    })
+    await prisma.user.create({
+      data: {
+        id: 'test-agent-retry',
+        name: 'Agent Retry',
+        email: 'agent-retry@test.com',
+        type: 'agent',
+      },
+    })
+    await prisma.agent.create({
+      data: {
+        id: 'test-agent-retry',
+        teamId: team.id,
+        type: 'chat',
+        config: { provider: 'google', model: 'gemini' },
+      },
+    })
+
+    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
+    try {
+      const { harness } = await createAgentSession({
+        teamId: team.id,
+        agentId: 'test-agent-retry',
+        providerName: 'google',
+        modelId: 'gemini',
+        systemPrompt: 'prompt',
+        teamSkills: [],
+        allowedDomains: [],
+        providers: [],
+        maxRetries: 5,
+        baseDelayMs: 1500,
+      })
+
+      // @ts-expect-error accessing private property for verification
+      expect(harness.streamOptions?.maxRetries).toBe(5)
+    } finally {
+      initializeSpy.mockRestore()
+    }
+  })
+
   it('should filter out denied tools from AgentHarness', async () => {
     const team = await prisma.team.create({
       data: { name: 'Test Team 3' },
