@@ -379,4 +379,98 @@ describe('ProjectService', () => {
       expect(s3Service.deleteObject).toHaveBeenCalledWith(expect.any(String), 'file-c-key')
     })
   })
+
+  describe('getUserProjects', () => {
+    it('team-scoped member sees all projects in team', async () => {
+      const team = await prisma.team.create({ data: { name: 'GUP Team A' } })
+      await prisma.project.create({ data: { name: 'P1', teamId: team.id } })
+      await prisma.project.create({ data: { name: 'P2', teamId: team.id } })
+      await prisma.project.create({ data: { name: 'P3', teamId: team.id } })
+
+      const user = await prisma.user.create({
+        data: { name: 'gup-u1', email: 'gup-u1@example.com' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: user.id, role: 'editor', scope: 'team' },
+      })
+
+      const result = await projectService.getUserProjects(user.id)
+      expect(result).toHaveLength(3)
+      const names = result.map((p) => p.name).sort()
+      expect(names).toEqual(['P1', 'P2', 'P3'])
+    })
+
+    it('project-scoped member sees only assigned projects', async () => {
+      const team = await prisma.team.create({ data: { name: 'GUP Team B' } })
+      const p1 = await prisma.project.create({ data: { name: 'P1', teamId: team.id } })
+      const p2 = await prisma.project.create({ data: { name: 'P2', teamId: team.id } })
+      await prisma.project.create({ data: { name: 'P3', teamId: team.id } })
+
+      const user = await prisma.user.create({
+        data: { name: 'gup-u2', email: 'gup-u2@example.com' },
+      })
+      const tm = await prisma.teamMember.create({
+        data: { teamId: team.id, userId: user.id, role: 'reviewer', scope: 'project' },
+      })
+      await prisma.projectMember.create({
+        data: { projectId: p1.id, teamMemberId: tm.id, role: 'reviewer' },
+      })
+      await prisma.projectMember.create({
+        data: { projectId: p2.id, teamMemberId: tm.id, role: 'reviewer' },
+      })
+
+      const result = await projectService.getUserProjects(user.id)
+      expect(result).toHaveLength(2)
+      const names = result.map((p) => p.name).sort()
+      expect(names).toEqual(['P1', 'P2'])
+    })
+
+    it('aggregates across multiple teams', async () => {
+      const teamA = await prisma.team.create({ data: { name: 'GUP Multi A' } })
+      const teamB = await prisma.team.create({ data: { name: 'GUP Multi B' } })
+      await prisma.project.create({ data: { name: 'PA1', teamId: teamA.id } })
+      await prisma.project.create({ data: { name: 'PB1', teamId: teamB.id } })
+
+      const user = await prisma.user.create({
+        data: { name: 'gup-u3', email: 'gup-u3@example.com' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: teamA.id, userId: user.id, role: 'editor', scope: 'team' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: teamB.id, userId: user.id, role: 'editor', scope: 'team' },
+      })
+
+      const result = await projectService.getUserProjects(user.id)
+      expect(result).toHaveLength(2)
+      const names = result.map((p) => p.name).sort()
+      expect(names).toEqual(['PA1', 'PB1'])
+    })
+
+    it('respects limit parameter', async () => {
+      const team = await prisma.team.create({ data: { name: 'GUP Limit' } })
+      for (let i = 0; i < 5; i++) {
+        await prisma.project.create({ data: { name: `PLim${i}`, teamId: team.id } })
+      }
+
+      const user = await prisma.user.create({
+        data: { name: 'gup-u4', email: 'gup-u4@example.com' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: user.id, role: 'editor', scope: 'team' },
+      })
+
+      const result = await projectService.getUserProjects(user.id, 2)
+      expect(result).toHaveLength(2)
+    })
+
+    it('returns empty array for user with no teams', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'gup-u5', email: 'gup-u5@example.com' },
+      })
+
+      const result = await projectService.getUserProjects(user.id)
+      expect(result).toEqual([])
+    })
+  })
 })

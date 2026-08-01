@@ -223,4 +223,36 @@ describe('SkillService', () => {
     })
     expect(dbSkill?.config).toEqual(newConfig)
   })
+
+  describe('getSkill', () => {
+    it('returns skill info with teamId when it exists', async () => {
+      const team = await prisma.team.create({ data: { name: 'Test Team' } })
+      const skill = await prisma.skill.create({
+        data: {
+          name: 'My Skill',
+          description: 'A description',
+          assetId: 'asset-1',
+          hash: 'hash-1',
+          teamId: team.id,
+        },
+      })
+
+      const result = await skillService.getSkill(skill.id)
+      expect(result).not.toBeNull()
+      expect(result?.id).toBe(skill.id)
+      expect(result?.name).toBe('My Skill')
+      expect(result?.description).toBe('A description')
+      expect(result?.teamId).toBe(team.id)
+      expect(result?.assetId).toBe('asset-1')
+      expect(result?.hash).toBe('hash-1')
+      expect(result?.permission).toBe('reviewer')
+      expect(typeof result?.createdAt).toBe('string')
+      expect(typeof result?.updatedAt).toBe('string')
+    })
+
+    it('returns null for non-existent ID', async () => {
+      const result = await skillService.getSkill('nonexistent-id')
+      expect(result).toBeNull()
+    })
+  })
 })

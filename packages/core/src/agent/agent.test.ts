@@ -399,4 +399,26 @@ describe('AgentService', () => {
       expect(found?.creator?.name).toBe('Regular User')
     })
   })
+
+  describe('getAgent', () => {
+    test('returns agent when it exists', async () => {
+      const db = prisma
+      const svc = new AgentService()
+      const { agent } = await setupTestData(db)
+
+      const result = await svc.getAgent({ agentId: agent.id })
+
+      expect(result).not.toBeNull()
+      expect(result?.id).toBe(agent.id)
+      expect(result?.type).toBe('chat')
+    })
+
+    test('returns null for non-existent ID', async () => {
+      const svc = new AgentService()
+
+      const result = await svc.getAgent({ agentId: 'nonexistent-id' })
+
+      expect(result).toBeNull()
+    })
+  })
 })
