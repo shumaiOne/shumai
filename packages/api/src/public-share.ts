@@ -8,8 +8,9 @@ import { z } from 'zod'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { FieldInfo } from '@shumai/dtos'
 import type { Prisma as PrismaType } from '@shumai/db'
+import { projectService } from '@shumai/core/src/project/project'
+import { userService } from '@shumai/core/src/user/user'
 import { auth } from '@shumai/core/src/auth/auth'
-import { prisma } from '@shumai/db'
 import { createCommentRequestSchema } from '@shumai/dtos'
 import { notificationService } from '@shumai/core/src/notification/notification'
 import {
@@ -204,14 +205,7 @@ const route = app
 
         const targetFileId = await assetService.resolveTargetAssetId(fileId)
 
-        const project = await prisma.project.findUnique({
-          where: { id: shareLink.projectId },
-          select: { teamId: true },
-        })
-
-        if (!project) {
-          throw new Error('Project not found')
-        }
+        const teamId = await projectService.getProjectTeam(shareLink.projectId)
 
         // Identify user
         let userId: string | null = null
@@ -222,9 +216,7 @@ const route = app
         if (session?.user) {
           userId = session.user.id
         } else if (guestUserId) {
-          const guestUser = await prisma.user.findUnique({
-            where: { id: guestUserId },
-          })
+          const guestUser = await userService.getUserById(guestUserId)
           if (guestUser) {
             userId = guestUser.id
           }
@@ -248,7 +240,7 @@ const route = app
 
         notificationService.create({
           type: notifType,
-          teamId: project.teamId,
+          teamId: teamId,
           creatorId: userId,
           assetId: targetFileId,
           commentMessage: req.message,

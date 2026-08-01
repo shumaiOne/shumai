@@ -187,3 +187,8 @@ export type ApiToken = Prisma.ApiTokenModel
  * 
  */
 export type AiUsage = Prisma.AiUsageModel
+/**
+ * Model AuditLog
+ * 
+ */
+export type AuditLog = Prisma.AuditLogModel

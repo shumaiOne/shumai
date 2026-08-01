@@ -160,6 +160,38 @@ export class ProjectService {
     return res
   }
 
+  async getUserProjects(userId: string, limit = 200): Promise<ProjectInfo[]> {
+    const teamMembers = await prisma.teamMember.findMany({
+      where: { userId },
+    })
+
+    const allProjects: ProjectInfo[] = []
+
+    for (const member of teamMembers) {
+      const where: Prisma.ProjectWhereInput = {
+        teamId: member.teamId,
+      }
+      if (member.scope === 'project') {
+        where.members = {
+          some: { teamMemberId: member.id },
+        }
+      }
+      const teamProjects = await prisma.project.findMany({
+        where,
+        orderBy: { id: 'desc' },
+        take: limit - allProjects.length,
+        include: { rootFolder: true },
+      })
+      const infos = await Promise.all(teamProjects.map((p) => this.toProjectInfo(p)))
+      allProjects.push(...infos)
+      if (allProjects.length >= limit) {
+        break
+      }
+    }
+
+    return allProjects
+  }
+
   async addProjectMember(req: ServiceAddProjectMemberRequest): Promise<void> {
     const user = await prisma.user.findUnique({ where: { id: req.userId } })
     if (!user) throw new Error('User not found')

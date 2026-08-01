@@ -6,9 +6,11 @@ import {
   createUploadTaskRequestSchema,
   localUploadQuerySchema,
 } from '@shumai/dtos'
-import { paginationParamsSchema } from '@shumai/dtos'
+import { paginationParamsSchema, AuditAction } from '@shumai/dtos'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { notificationService } from '@shumai/core/src/notification/notification'
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
+import { assetService } from '@shumai/core/src/asset/asset'
 import { NotificationType } from '@shumai/db'
 import { s3Service, verifyLocalUrlSignature } from '@shumai/core/src/s3/s3'
 import type { Prisma } from '@shumai/db'
@@ -107,6 +109,15 @@ const route = new Hono<{ Variables: { user: User } }>()
           creatorId: user.id,
           assetId: req.fileId,
           taskId: taskId,
+        })
+
+        const context = await assetService.getAssetContext(req.fileId)
+        await auditLogService.logAction({
+          action: AuditAction.file_create,
+          teamId: teamId,
+          userId: user.id,
+          projectId: context.projectId,
+          itemId: req.fileId,
         })
       }
 

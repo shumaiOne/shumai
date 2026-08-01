@@ -2,8 +2,9 @@ import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { providerService } from '@shumai/core/src/provider/provider'
-import { createProviderRequestSchema, updateProviderRequestSchema } from '@shumai/dtos'
+import { createProviderRequestSchema, updateProviderRequestSchema, AuditAction } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -54,6 +55,12 @@ const route = new Hono<{ Variables: { user: User } }>()
     })
 
     const provider = await providerService.create(teamId, name, config, models)
+    await auditLogService.logAction({
+      action: AuditAction.provider_create,
+      teamId,
+      userId: user?.id,
+      itemId: provider.id,
+    })
     return c.json(provider)
   })
 
@@ -73,6 +80,12 @@ const route = new Hono<{ Variables: { user: User } }>()
     if (!providerBefore) throw new Error('Provider not found')
 
     const provider = await providerService.update(providerBefore.teamId, id, config, models)
+    await auditLogService.logAction({
+      action: AuditAction.provider_update,
+      teamId: providerBefore.teamId,
+      userId: user?.id,
+      itemId: id,
+    })
     return c.json(provider)
   })
 
@@ -91,6 +104,12 @@ const route = new Hono<{ Variables: { user: User } }>()
     if (!providerBefore) throw new Error('Provider not found')
 
     await providerService.delete(providerBefore.teamId, id)
+    await auditLogService.logAction({
+      action: AuditAction.provider_delete,
+      teamId: providerBefore.teamId,
+      userId: user?.id,
+      itemId: id,
+    })
     return c.json({ success: true })
   })
 

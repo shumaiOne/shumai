@@ -275,6 +275,17 @@ export class SkillService {
     return { name, description }
   }
 
+  async getSkill(id: string) {
+    const s = await this.prismaClient.skill.findUnique({
+      where: { id },
+    })
+    if (!s) return null
+    return {
+      ...this.toSkillInfo(s),
+      teamId: s.teamId,
+    }
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private toSkillInfo(s: any): SkillInfo {
     return {

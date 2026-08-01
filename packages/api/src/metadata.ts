@@ -1,14 +1,17 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
+import { projectService } from '@shumai/core/src/project/project'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import {
   createFieldRequestSchema,
   updateFieldRequestSchema,
   updateProjectFieldsOrderRequestSchema,
   FieldInfo,
+  AuditAction,
 } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -42,6 +45,14 @@ const route = new Hono<{ Variables: { user: User } }>()
     })
 
     const field = await metadataService.createTeamField(teamId, req)
+
+    await auditLogService.logAction({
+      action: AuditAction.metadata_field_create,
+      teamId,
+      userId: user.id,
+      itemId: field.key,
+    })
+
     return c.json(toFieldInfo(field))
   })
   .get('/teams/:teamId/fields', async (c) => {
@@ -85,6 +96,21 @@ const route = new Hono<{ Variables: { user: User } }>()
       throw new Error('Field has no context')
     }
 
+    let teamId = field.teamId
+    if (field.projectId && !teamId) {
+      teamId = await projectService.getProjectTeam(field.projectId).catch(() => null)
+    }
+
+    if (teamId) {
+      await auditLogService.logAction({
+        action: AuditAction.metadata_field_update,
+        teamId,
+        userId: user.id,
+        projectId: field.projectId || undefined,
+        itemId: fieldId,
+      })
+    }
+
     return c.json(toFieldInfo(updated))
   })
   .delete('/fields/:fieldId', async (c) => {
@@ -109,6 +135,21 @@ const route = new Hono<{ Variables: { user: User } }>()
       throw new Error('Field has no context')
     }
 
+    let teamId = field.teamId
+    if (field.projectId && !teamId) {
+      teamId = await projectService.getProjectTeam(field.projectId).catch(() => null)
+    }
+
+    if (teamId) {
+      await auditLogService.logAction({
+        action: AuditAction.metadata_field_delete,
+        teamId,
+        userId: user.id,
+        projectId: field.projectId || undefined,
+        itemId: fieldId,
+      })
+    }
+
     return new Response(null, { status: 204 })
   })
   .post('/projects/:projectId/fields', zValidator('json', createFieldRequestSchema), async (c) => {
@@ -124,6 +165,19 @@ const route = new Hono<{ Variables: { user: User } }>()
     })
 
     const field = await metadataService.createProjectField(projectId, req)
+
+    const teamId = await projectService.getProjectTeam(projectId).catch(() => null)
+
+    if (teamId) {
+      await auditLogService.logAction({
+        action: AuditAction.metadata_field_create,
+        teamId,
+        userId: user.id,
+        projectId,
+        itemId: field.key,
+      })
+    }
+
     return c.json(toFieldInfo(field))
   })
   .get('/projects/:projectId/fields', async (c) => {

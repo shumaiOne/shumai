@@ -1,6 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { Hono, type Context, type Next } from 'hono'
-import { prisma } from '@shumai/db'
 import fileRoute from './file'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
@@ -40,6 +39,14 @@ vi.mock('@shumai/core/src/authz/authz', () => ({
   },
 }))
 
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
+
+vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
+  auditLogService: {
+    logAction: vi.fn().mockResolvedValue({}),
+  },
+}))
+
 vi.mock('./middleware/auth', () => ({
   authMiddleware: async (c: Context, next: Next) => {
     c.set('user', { id: 'user1', name: 'Test User' })
@@ -58,6 +65,10 @@ describe('file api', () => {
     vi.spyOn(assetService, 'createComment').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'completeComment').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'deleteComment').mockImplementation(vi.fn())
+    vi.spyOn(assetService, 'getComment').mockResolvedValue({
+      id: 'comment1',
+      assetId: 'file1',
+    } as unknown as Awaited<ReturnType<typeof assetService.getComment>>)
     vi.spyOn(assetService, 'listComments').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'restoreAssets').mockImplementation(vi.fn())
     vi.spyOn(metadataService, 'updateAssetMetadata').mockImplementation(vi.fn())
@@ -129,6 +140,13 @@ describe('file api', () => {
       type: ResourceType.Asset,
       id: 'test-id',
     })
+    expect(auditLogService.logAction).toHaveBeenCalledWith({
+      action: 'file_update',
+      teamId: 'test-team',
+      userId: 'user1',
+      projectId: undefined,
+      itemId: 'test-id',
+    })
   })
 
   it('DELETE /files', async () => {
@@ -150,6 +168,13 @@ describe('file api', () => {
       id: 'test-id',
     })
     expect(assetService.deleteAssets).toHaveBeenCalledWith(['test-id'])
+    expect(auditLogService.logAction).toHaveBeenCalledWith({
+      action: 'file_delete',
+      teamId: 'test-team',
+      userId: 'user1',
+      projectId: undefined,
+      itemId: 'test-id',
+    })
   })
 
   it('POST /files/restore', async () => {
@@ -208,6 +233,14 @@ describe('file api', () => {
     const json = await res.json()
     expect(json.message).toBe('hello')
 
+    expect(auditLogService.logAction).toHaveBeenCalledWith({
+      action: 'comment_create',
+      teamId: 'test-team',
+      userId: 'user1',
+      projectId: undefined,
+      itemId: 'comment-id',
+    })
+
     expect(authzService.hasPermission).toHaveBeenCalledWith({
       user: { id: 'user1', name: 'Test User' },
       permission: Permission.Read,
@@ -248,9 +281,9 @@ describe('file api', () => {
       project: { teamId: 'test-team' },
     } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
-    const mockFindUnique = vi.spyOn(prisma.assetComment, 'findUnique').mockResolvedValue({
+    vi.mocked(assetService.getComment).mockResolvedValue({
       id: 'parent-comment-id',
-      creatorId: 'parent-comment-creator-id',
+      creator: { id: 'parent-comment-creator-id' },
     } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
@@ -276,8 +309,6 @@ describe('file api', () => {
       userId: 'parent-comment-creator-id',
       commentMessage: 'hello reply',
     })
-
-    mockFindUnique.mockRestore()
   })
 
   it('GET /files/:fileId/comments', async () => {

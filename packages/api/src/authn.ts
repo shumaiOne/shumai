@@ -1,9 +1,9 @@
 import { Hono } from 'hono'
 import { teamService } from '@shumai/core/src/team/team'
+import { userService } from '@shumai/core/src/user/user'
 import { auth } from '@shumai/core/src/auth/auth'
 import { z } from 'zod'
 import { zValidator } from '@hono/zod-validator'
-import { prisma } from '@shumai/db'
 import { ulid } from 'ulid'
 
 const app = new Hono()
@@ -31,13 +31,10 @@ const route = app
     const { username, email } = c.req.valid('json')
 
     const dummyEmail = `guest_${ulid()}@guest.local`
-    const user = await prisma.user.create({
-      data: {
-        name: username,
-        email: dummyEmail,
-        guestEmail: email,
-        type: 'human',
-      },
+    const user = await userService.createGuestUser({
+      name: username,
+      email: dummyEmail,
+      guestEmail: email,
     })
 
     return c.json({ id: user.id })

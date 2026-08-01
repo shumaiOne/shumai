@@ -5,6 +5,7 @@ import { assetService } from '@shumai/core/src/asset/asset'
 import { AssetType } from '@shumai/db'
 import { authMiddleware } from './middleware/auth'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 
 vi.mock('./middleware/auth', () => ({
   // any is used here because Hono's Context and Next types are complex to mock in vitest.mock
@@ -18,6 +19,16 @@ vi.mock('./middleware/auth', () => ({
 
 vi.mock('@shumai/core/src/authz/authz')
 vi.mock('@shumai/core/src/asset/asset')
+vi.mock('@shumai/core/src/project/project', () => ({
+  projectService: {
+    getProjectTeam: vi.fn().mockResolvedValue('t1'),
+  },
+}))
+vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
+  auditLogService: {
+    logAction: vi.fn().mockResolvedValue({}),
+  },
+}))
 
 vi.mock('@shumai/core/src/s3/s3', () => ({
   s3Service: {
@@ -65,5 +76,12 @@ describe('Attachment API', () => {
         projectId: 'project1',
       }),
     )
+    expect(auditLogService.logAction).toHaveBeenCalledWith({
+      action: 'file_create',
+      teamId: 't1',
+      userId: 'user1',
+      projectId: 'project1',
+      itemId: 'asset1',
+    })
   })
 })

@@ -84,7 +84,8 @@ export const ModelName = {
   Provider: 'Provider',
   Collection: 'Collection',
   ApiToken: 'ApiToken',
-  AiUsage: 'AiUsage'
+  AiUsage: 'AiUsage',
+  AuditLog: 'AuditLog'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -597,6 +598,19 @@ export const AiUsageScalarFieldEnum = {
 } as const
 
 export type AiUsageScalarFieldEnum = (typeof AiUsageScalarFieldEnum)[keyof typeof AiUsageScalarFieldEnum]
+
+
+export const AuditLogScalarFieldEnum = {
+  id: 'id',
+  action: 'action',
+  teamId: 'teamId',
+  userId: 'userId',
+  projectId: 'projectId',
+  itemId: 'itemId',
+  createdAt: 'createdAt'
+} as const
+
+export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
 
 
 export const SortOrder = {

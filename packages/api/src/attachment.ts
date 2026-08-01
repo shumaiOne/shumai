@@ -1,8 +1,10 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
-import { postAttachmentRequestSchema } from '@shumai/dtos'
+import { postAttachmentRequestSchema, AuditAction } from '@shumai/dtos'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { s3Service } from '@shumai/core/src/s3/s3'
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
+import { projectService } from '@shumai/core/src/project/project'
 import { AssetType } from '@shumai/db'
 import { ulid } from 'ulid'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
@@ -36,6 +38,17 @@ const route = new Hono<{ Variables: { user: User } }>().post(
       contentType: req.contentType,
       creatorId: user.id,
     })
+
+    const teamId = await projectService.getProjectTeam(projectId).catch(() => null)
+    if (teamId) {
+      await auditLogService.logAction({
+        action: AuditAction.file_create,
+        teamId,
+        userId: user.id,
+        projectId,
+        itemId: assetInfo.id,
+      })
+    }
 
     const uploadUrl = await s3Service.presign(process.env.S3_BUCKET || 'shumai', key, 'PUT')
 

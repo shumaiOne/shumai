@@ -864,7 +864,7 @@ export class AssetService {
     return info
   }
 
-  async getAssetContext(assetId: string): Promise<{ teamId: string; projectId?: string } | null> {
+  async getAssetContext(assetId: string): Promise<{ teamId: string; projectId?: string }> {
     const asset = await this.prismaClient.asset.findUnique({
       where: { id: assetId },
       select: {
@@ -874,7 +874,9 @@ export class AssetService {
       },
     })
 
-    if (!asset) return null
+    if (!asset) {
+      throw new Error(`Asset not found: ${assetId}`)
+    }
 
     if (asset.project) {
       return { teamId: asset.project.teamId, projectId: asset.projectId ?? undefined }
@@ -884,7 +886,7 @@ export class AssetService {
       return { teamId: asset.teamRootFolder.id }
     }
 
-    return null
+    throw new Error(`Asset has no team context: ${assetId}`)
   }
 
   async resolveTargetAssetId(assetId: string): Promise<string> {

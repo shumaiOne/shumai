@@ -1,8 +1,11 @@
 import { z } from 'zod'
+import { InviteRole } from '@shumai/db/enums'
+
+export { InviteRole }
 
 export const inviteInfoSchema = z.object({
   code: z.string(),
-  role: z.enum(['editor', 'reviewer', 'owner']),
+  role: z.string(),
   teamId: z.string(),
   teamName: z.string(),
   projectId: z.string().optional(),
@@ -14,13 +17,13 @@ export const inviteInfoSchema = z.object({
 export type InviteInfo = z.infer<typeof inviteInfoSchema>
 
 export const createTeamInviteRequestSchema = z.object({
-  role: z.enum(['editor', 'reviewer']),
+  role: z.nativeEnum(InviteRole),
 })
 
 export type CreateTeamInviteRequest = z.infer<typeof createTeamInviteRequestSchema>
 
 export const createProjectInviteRequestSchema = z.object({
-  role: z.enum(['editor', 'reviewer']),
+  role: z.nativeEnum(InviteRole),
 })
 
 export type CreateProjectInviteRequest = z.infer<typeof createProjectInviteRequestSchema>

@@ -896,5 +896,20 @@
   "session_type_comment": "评论",
   "session_type_chat": "对话",
   "session_type_naming": "命名",
-  "untitled_session": "未命名会话"
+  "untitled_session": "未命名会话",
+  "team_category": "团队",
+  "audit_logs": "审计日志",
+  "audit_logs_description": "查看并监控团队操作的所有审计日志。",
+  "filter_by_action": "按操作筛选",
+  "filter_by_user": "按用户筛选",
+  "filter_by_item_id": "按项目/条目 ID 筛选",
+  "action": "操作",
+  "user": "用户",
+  "item_id": "条目 ID",
+  "project_id": "项目 ID",
+  "timestamp": "时间戳",
+  "no_audit_logs": "未找到审计日志",
+  "search_item_id": "搜索条目 ID...",
+  "select_actions": "选择操作",
+  "select_users": "选择用户"
 }

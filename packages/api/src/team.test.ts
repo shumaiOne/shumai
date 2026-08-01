@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { Hono } from 'hono'
+import { AuditAction } from '@shumai/dtos'
 import teamRoute from './team'
 import { authMiddleware } from './middleware/auth'
 import { teamService } from '@shumai/core/src/team/team'
@@ -41,6 +42,13 @@ vi.mock('@shumai/core/src/ai-usage/ai-usage', () => ({
   aiUsageService: {
     recordUsage: vi.fn(),
     getTeamUsageStats: vi.fn(),
+  },
+}))
+
+vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
+  auditLogService: {
+    logAction: vi.fn(),
+    listAuditLogs: vi.fn(),
   },
 }))
 
@@ -470,6 +478,42 @@ describe('team api', () => {
         timeframe: '7d',
         userId: 'user1',
       })
+    })
+
+    it('GET /teams/:teamId/audit-logs returns list of audit logs for team owner', async () => {
+      const { auditLogService } = await import('@shumai/core/src/auditLog/auditLog')
+      vi.mocked(auditLogService.listAuditLogs).mockResolvedValue({
+        nodes: [
+          {
+            id: 'log1',
+            action: AuditAction.project_create,
+            teamId: 't1',
+            userId: 'user1',
+            projectId: 'p1',
+            itemId: 'p1',
+            createdAt: new Date().toISOString(),
+          },
+        ],
+        pageInfo: {
+          hasNextPage: false,
+          endCursor: null,
+        },
+        total: 1,
+      })
+
+      const res = await app.request('/teams/t1/audit-logs')
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.nodes).toHaveLength(1)
+      expect(data.nodes[0].id).toBe('log1')
+      expect(authzService.hasPermission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          permission: Permission.Admin,
+          type: ResourceType.Team,
+          id: 't1',
+        }),
+      )
     })
   })
 })

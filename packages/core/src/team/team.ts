@@ -364,6 +364,16 @@ export class TeamService {
     }
   }
 
+  async hasWritableRoleInAnyTeam(userId: string): Promise<boolean> {
+    const member = await prisma.teamMember.findFirst({
+      where: {
+        userId,
+        role: { in: ['owner', 'editor'] },
+      },
+    })
+    return !!member
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private toTeamInfo(team: any): TeamInfo {
     return {

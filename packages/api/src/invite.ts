@@ -5,12 +5,14 @@ import {
   createTeamInviteRequestSchema,
   joinRequestSchema,
   InviteInfo,
+  AuditAction,
 } from '@shumai/dtos'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { inviteService } from '@shumai/core/src/invite/invite'
 import { notificationService } from '@shumai/core/src/notification/notification'
 import { NotificationType } from '@shumai/db'
 import type { Prisma } from '@shumai/db'
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -53,6 +55,13 @@ const route = new Hono<{ Variables: { user: User } }>()
       inviterId: user.id,
     })
 
+    await auditLogService.logAction({
+      action: AuditAction.invite_create,
+      teamId,
+      userId: user.id,
+      itemId: inv.id,
+    })
+
     return c.json(mapToInviteInfo(inv))
   })
   .post(
@@ -75,6 +84,14 @@ const route = new Hono<{ Variables: { user: User } }>()
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         role: req.role as any,
         inviterId: user.id,
+      })
+
+      await auditLogService.logAction({
+        action: AuditAction.invite_create,
+        teamId: inv.teamId,
+        userId: user.id,
+        projectId,
+        itemId: inv.id,
       })
 
       return c.json(mapToInviteInfo(inv))

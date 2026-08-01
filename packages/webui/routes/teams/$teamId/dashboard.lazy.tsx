@@ -6,13 +6,14 @@ import { cn } from '@/ui/lib/utils'
 import { m } from '@/ui/paraglide/messages.js'
 import { AiUsageDashboard } from '@/ui/components/dashboard/AiUsageDashboard'
 import { AgentSessionsDashboard } from '@/ui/components/dashboard/AgentSessionsDashboard'
-import { BarChart2, Loader2, MessagesSquare, ShieldAlert } from 'lucide-react'
+import { AuditLogsDashboard } from '@/ui/components/dashboard/AuditLogsDashboard'
+import { Activity, BarChart2, Loader2, MessagesSquare, ShieldAlert } from 'lucide-react'
 
-type DashboardTab = 'ai-usage' | 'ai-sessions'
+type DashboardTab = 'audit-logs' | 'ai-usage' | 'ai-sessions'
 
 function TeamDashboardPage() {
   const { teamId } = Route.useParams()
-  const [activeTab, setActiveTab] = useState<DashboardTab>('ai-usage')
+  const [activeTab, setActiveTab] = useState<DashboardTab>('audit-logs')
 
   const { data: me, isLoading: isMeLoading } = useQuery({
     queryKey: ['teams', teamId, 'me'],
@@ -54,6 +55,28 @@ function TeamDashboardPage() {
               {m.dashboard()}
             </div>
 
+            {/* Team Category (Above AI Category) */}
+            <div className="mt-4 mb-2 px-4 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider pt-4 border-t border-sidebar-border">
+              {m.team_category()}
+            </div>
+
+            <button
+              onClick={() => setActiveTab('audit-logs')}
+              className={cn(
+                'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
+                activeTab === 'audit-logs'
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
+                  : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+              )}
+            >
+              <Activity className="w-5 h-5" />
+              {m.audit_logs()}
+              {activeTab === 'audit-logs' && (
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
+              )}
+            </button>
+
+            {/* AI Category */}
             <div className="mt-4 mb-2 px-4 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider pt-4 border-t border-sidebar-border">
               {m.ai()}
             </div>
@@ -95,6 +118,7 @@ function TeamDashboardPage() {
         {/* Main Content Area */}
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className="max-w-6xl mx-auto space-y-8">
+            {activeTab === 'audit-logs' && <AuditLogsDashboard teamId={teamId} />}
             {activeTab === 'ai-usage' && <AiUsageDashboard teamId={teamId} />}
             {activeTab === 'ai-sessions' && <AgentSessionsDashboard teamId={teamId} />}
           </div>

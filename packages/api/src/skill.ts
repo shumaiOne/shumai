@@ -6,8 +6,10 @@ import {
   upsertSkillRequestSchema,
   updateSkillConfigRequestSchema,
   updateSkillPermissionRequestSchema,
+  AuditAction,
 } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -40,6 +42,12 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     try {
       const skill = await skillService.upsertSkill(teamId, req)
+      await auditLogService.logAction({
+        action: AuditAction.skill_create,
+        teamId,
+        userId: user?.id,
+        itemId: skill.id,
+      })
       return c.json(skill)
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'ConflictError') {
@@ -59,7 +67,19 @@ const route = new Hono<{ Variables: { user: User } }>()
       id,
     })
 
+    const existingSkill = await skillService.getSkill(id)
+
     await skillService.deleteSkill(id)
+
+    if (existingSkill) {
+      await auditLogService.logAction({
+        action: AuditAction.skill_delete,
+        teamId: existingSkill.teamId,
+        userId: user?.id,
+        itemId: id,
+      })
+    }
+
     return new Response(null, { status: 204 })
   })
   .patch('/skills/:id/config', zValidator('json', updateSkillConfigRequestSchema), async (c) => {
@@ -74,7 +94,19 @@ const route = new Hono<{ Variables: { user: User } }>()
       id,
     })
 
+    const existingSkill = await skillService.getSkill(id)
+
     const skill = await skillService.updateSkillConfig(id, req.config)
+
+    if (existingSkill) {
+      await auditLogService.logAction({
+        action: AuditAction.skill_update,
+        teamId: existingSkill.teamId,
+        userId: user?.id,
+        itemId: id,
+      })
+    }
+
     return c.json(skill)
   })
   .patch(
@@ -92,7 +124,19 @@ const route = new Hono<{ Variables: { user: User } }>()
         id,
       })
 
+      const existingSkill = await skillService.getSkill(id)
+
       const skill = await skillService.updateSkillPermission(id, req.permission)
+
+      if (existingSkill) {
+        await auditLogService.logAction({
+          action: AuditAction.skill_update,
+          teamId: existingSkill.teamId,
+          userId: user?.id,
+          itemId: id,
+        })
+      }
+
       return c.json(skill)
     },
   )

@@ -7,6 +7,15 @@ import type { CreateUploadTaskResponse, TaskInfo } from '@shumai/dtos'
 import type { PaginatedData } from '@shumai/core/src/pagination'
 import { authzService, ResourceType, Permission } from '@shumai/core/src/authz/authz'
 
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
+import { assetService } from '@shumai/core/src/asset/asset'
+
+vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
+  auditLogService: {
+    logAction: vi.fn().mockResolvedValue({}),
+  },
+}))
+
 vi.mock('./middleware/auth', () => ({
   // We use any here because mocking Hono context and middleware
   // with full type safety is overly complex for these unit tests.
@@ -98,6 +107,10 @@ describe('Upload API', () => {
 
   it('PATCH /teams/:teamId/upload/tasks/:taskId', async () => {
     vi.spyOn(uploadService, 'confirmFileUpload').mockResolvedValue(undefined)
+    vi.spyOn(assetService, 'getAssetContext').mockResolvedValue({
+      teamId: 'team1',
+      projectId: 'p1',
+    })
 
     const res = await app.request('/teams/team1/upload/tasks/task1', {
       method: 'PATCH',
@@ -117,6 +130,13 @@ describe('Upload API', () => {
     )
     expect(uploadService.confirmFileUpload).toHaveBeenCalledWith('user1', 'task1', {
       fileId: 'file1',
+    })
+    expect(auditLogService.logAction).toHaveBeenCalledWith({
+      action: 'file_create',
+      teamId: 'team1',
+      userId: 'user1',
+      projectId: 'p1',
+      itemId: 'file1',
     })
   })
 })
