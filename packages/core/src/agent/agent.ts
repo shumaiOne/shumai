@@ -300,6 +300,12 @@ export class AgentService {
     })
   }
 
+  async getAgent(params: { agentId: string }) {
+    return this.prismaClient.agent.findUnique({
+      where: { id: params.agentId },
+    })
+  }
+
   async deleteAgent(params: DeleteAgentParams) {
     const { agentId } = params
 

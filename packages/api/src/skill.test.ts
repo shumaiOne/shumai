@@ -13,17 +13,16 @@ vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
   },
 }))
 
-vi.mock('@shumai/db', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@shumai/db')>()
-  return {
-    ...actual,
-    prisma: {
-      skill: {
-        findUnique: vi.fn().mockResolvedValue({ teamId: 'team1' }),
-      },
-    },
-  }
-})
+vi.mock('@shumai/core/src/skill/skill', () => ({
+  skillService: {
+    listSkills: vi.fn(),
+    upsertSkill: vi.fn(),
+    deleteSkill: vi.fn(),
+    updateSkillConfig: vi.fn(),
+    updateSkillPermission: vi.fn(),
+    getSkill: vi.fn().mockResolvedValue({ id: 'skill1', teamId: 'team1' }),
+  },
+}))
 
 vi.mock('./middleware/auth', () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -55,6 +54,10 @@ describe('Skill API', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     vi.mocked(authzService.hasPermission).mockResolvedValue(undefined)
+    vi.mocked(skillService.getSkill).mockResolvedValue({
+      id: 'skill1',
+      teamId: 'team1',
+    } as unknown as Awaited<ReturnType<typeof skillService.getSkill>>)
   })
 
   describe('GET /teams/:teamId/skills', () => {

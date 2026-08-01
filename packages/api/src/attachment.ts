@@ -4,7 +4,8 @@ import { postAttachmentRequestSchema, AuditAction } from '@shumai/dtos'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
-import { AssetType, prisma } from '@shumai/db'
+import { projectService } from '@shumai/core/src/project/project'
+import { AssetType } from '@shumai/db'
 import { ulid } from 'ulid'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import type { Prisma } from '@shumai/db'
@@ -38,14 +39,11 @@ const route = new Hono<{ Variables: { user: User } }>().post(
       creatorId: user.id,
     })
 
-    const proj = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: { teamId: true },
-    })
-    if (proj) {
+    const teamId = await projectService.getProjectTeam(projectId).catch(() => null)
+    if (teamId) {
       await auditLogService.logAction({
         action: AuditAction.file_create,
-        teamId: proj.teamId,
+        teamId,
         userId: user.id,
         projectId,
         itemId: assetInfo.id,

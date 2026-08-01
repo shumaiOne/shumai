@@ -41,17 +41,11 @@ vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
   },
 }))
 
-vi.mock('@shumai/db', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@shumai/db')>()
-  return {
-    ...actual,
-    prisma: {
-      project: {
-        findUnique: vi.fn().mockResolvedValue({ teamId: 't1' }),
-      },
-    },
-  }
-})
+vi.mock('@shumai/core/src/project/project', () => ({
+  projectService: {
+    getProjectTeam: vi.fn().mockResolvedValue('t1'),
+  },
+}))
 
 describe('Share API', () => {
   const app = new Hono()

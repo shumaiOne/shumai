@@ -1,13 +1,12 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { Hono } from 'hono'
 import { tokenAuthMiddleware } from './tokenAuth'
-import { prisma } from '@shumai/db'
+import { apiTokenService } from '@shumai/core/src/user/api-token'
+import type { Prisma } from '@shumai/db'
 
-vi.mock('@shumai/db', () => ({
-  prisma: {
-    apiToken: {
-      findUnique: vi.fn(),
-    },
+vi.mock('@shumai/core/src/user/api-token', () => ({
+  apiTokenService: {
+    validateToken: vi.fn(),
   },
 }))
 
@@ -31,21 +30,11 @@ describe('tokenAuthMiddleware', () => {
   })
 
   it('sets user when valid Authorization Bearer token is provided', async () => {
-    vi.mocked(prisma.apiToken.findUnique).mockResolvedValue({
-      id: 'token1',
-      token: 'ulid_token_123',
-      name: 'cli-key',
-      userId: 'user123',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      user: {
-        id: 'user123',
-        name: 'John Doe',
-        email: 'john@example.com',
-      },
-      // Mocking the complex PrismaPromise return type of findUnique is not feasible without any here.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any)
+    vi.mocked(apiTokenService.validateToken).mockResolvedValue({
+      id: 'user123',
+      name: 'John Doe',
+      email: 'john@example.com',
+    } as unknown as Prisma.UserGetPayload<Record<string, never>>)
 
     const res = await app.request('/test', {
       headers: {
@@ -54,28 +43,15 @@ describe('tokenAuthMiddleware', () => {
     })
     expect(res.status).toBe(200)
     expect(await res.text()).toBe('user:user123')
-    expect(prisma.apiToken.findUnique).toHaveBeenCalledWith({
-      where: { token: 'ulid_token_123' },
-      include: { user: true },
-    })
+    expect(apiTokenService.validateToken).toHaveBeenCalledWith('ulid_token_123')
   })
 
   it('sets user when valid x-api-key header is provided', async () => {
-    vi.mocked(prisma.apiToken.findUnique).mockResolvedValue({
-      id: 'token1',
-      token: 'ulid_token_123',
-      name: 'cli-key',
-      userId: 'user123',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      user: {
-        id: 'user123',
-        name: 'John Doe',
-        email: 'john@example.com',
-      },
-      // Mocking the complex PrismaPromise return type of findUnique is not feasible without any here.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any)
+    vi.mocked(apiTokenService.validateToken).mockResolvedValue({
+      id: 'user123',
+      name: 'John Doe',
+      email: 'john@example.com',
+    } as unknown as Prisma.UserGetPayload<Record<string, never>>)
 
     const res = await app.request('/test', {
       headers: {
@@ -87,7 +63,7 @@ describe('tokenAuthMiddleware', () => {
   })
 
   it('returns 401 when invalid token is provided', async () => {
-    vi.mocked(prisma.apiToken.findUnique).mockResolvedValue(null)
+    vi.mocked(apiTokenService.validateToken).mockResolvedValue(null)
 
     const res = await app.request('/test', {
       headers: {

@@ -1,5 +1,5 @@
 import type { Prisma } from '@shumai/db'
-import { prisma } from '@shumai/db'
+import { apiTokenService } from '@shumai/core/src/user/api-token'
 import { createMiddleware } from 'hono/factory'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
@@ -16,16 +16,13 @@ export const tokenAuthMiddleware = createMiddleware<{
       : c.req.header('x-api-key') || null
 
   if (token) {
-    const apiToken = await prisma.apiToken.findUnique({
-      where: { token },
-      include: { user: true },
-    })
+    const user = await apiTokenService.validateToken(token)
 
-    if (!apiToken) {
+    if (!user) {
       return c.json({ error: 'Unauthorized: Invalid API Key' }, 401)
     }
 
-    c.set('user', apiToken.user)
+    c.set('user', user)
   }
 
   await next()

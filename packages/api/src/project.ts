@@ -14,7 +14,6 @@ import {
 } from '@shumai/dtos'
 import { listMembersQuerySchema, paginationParamsSchema, AuditAction } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
-import { prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
@@ -25,41 +24,16 @@ const route = new Hono<{ Variables: { user: User } }>()
     const req = c.req.valid('query')
     const limit = req.first ? Math.min(req.first, 200) : 200
 
-    const teamMembers = await prisma.teamMember.findMany({
-      where: { userId: user.id },
-    })
-
-    type ProjectType = Prisma.ProjectGetPayload<Record<string, never>>
-    const allProjects: ProjectType[] = []
-
-    for (const member of teamMembers) {
-      const where: Prisma.ProjectWhereInput = {
-        teamId: member.teamId,
-      }
-      if (member.scope === 'project') {
-        where.members = {
-          some: { teamMemberId: member.id },
-        }
-      }
-      const teamProjects = await prisma.project.findMany({
-        where,
-        orderBy: { id: 'desc' },
-        take: limit - allProjects.length,
-      })
-      allProjects.push(...teamProjects)
-      if (allProjects.length >= limit) {
-        break
-      }
-    }
+    const allProjects = await projectService.getUserProjects(user.id, limit)
 
     return c.json({
       data: allProjects.map((p) => ({
         id: p.id,
         name: p.name,
         teamId: p.teamId,
-        rootFolder: p.rootFolderId || undefined,
+        rootFolder: p.rootFolder,
         enableNotification: p.enableNotification,
-        updatedAt: p.updatedAt.toISOString(),
+        updatedAt: p.updatedAt,
       })),
     })
   })
@@ -107,14 +81,10 @@ const route = new Hono<{ Variables: { user: User } }>()
       ...req,
     })
 
-    const proj = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: { teamId: true },
-    })
-    if (proj) {
+    if (updatedProject) {
       await auditLogService.logAction({
         action: AuditAction.project_update,
-        teamId: proj.teamId,
+        teamId: updatedProject.teamId,
         userId: user.id,
         projectId,
         itemId: projectId,
@@ -161,14 +131,11 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     await assetService.emptyTrash(projectId)
 
-    const proj = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: { teamId: true },
-    })
-    if (proj) {
+    const teamId = await projectService.getProjectTeam(projectId).catch(() => null)
+    if (teamId) {
       await auditLogService.logAction({
         action: AuditAction.project_empty_trash,
-        teamId: proj.teamId,
+        teamId,
         userId: user.id,
         projectId,
         itemId: projectId,
@@ -230,16 +197,13 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: projectId,
     })
 
-    const proj = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: { teamId: true },
-    })
+    const teamId = await projectService.getProjectTeam(projectId).catch(() => null)
     await projectService.deleteProject(projectId)
 
-    if (proj) {
+    if (teamId) {
       await auditLogService.logAction({
         action: AuditAction.project_delete,
-        teamId: proj.teamId,
+        teamId,
         userId: user.id,
         projectId,
         itemId: projectId,
@@ -326,15 +290,12 @@ const route = new Hono<{ Variables: { user: User } }>()
         creatorId: user.id,
       })
 
-      const proj = await prisma.project.findUnique({
-        where: { id: projectId },
-        select: { teamId: true },
-      })
-      if (proj) {
+      const teamId = await projectService.getProjectTeam(projectId).catch(() => null)
+      if (teamId) {
         for (const assetId of req.assetIds) {
           await auditLogService.logAction({
             action: AuditAction.asset_reparent,
-            teamId: proj.teamId,
+            teamId,
             userId: user.id,
             projectId,
             itemId: assetId,
@@ -373,15 +334,12 @@ const route = new Hono<{ Variables: { user: User } }>()
       creatorId: user.id,
     })
 
-    const proj = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: { teamId: true },
-    })
-    if (proj) {
+    const teamId = await projectService.getProjectTeam(projectId).catch(() => null)
+    if (teamId) {
       for (const assetId of req.assetIds) {
         await auditLogService.logAction({
           action: AuditAction.asset_copy,
-          teamId: proj.teamId,
+          teamId,
           userId: user.id,
           projectId,
           itemId: assetId,
@@ -413,14 +371,11 @@ const route = new Hono<{ Variables: { user: User } }>()
         role: req.role,
       })
 
-      const proj = await prisma.project.findUnique({
-        where: { id: projectId },
-        select: { teamId: true },
-      })
-      if (proj) {
+      const teamId = await projectService.getProjectTeam(projectId).catch(() => null)
+      if (teamId) {
         await auditLogService.logAction({
           action: AuditAction.project_member_update,
-          teamId: proj.teamId,
+          teamId,
           userId: user.id,
           projectId,
           itemId: userId,
@@ -442,16 +397,13 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: projectId,
     })
 
-    const proj = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: { teamId: true },
-    })
+    const teamId = await projectService.getProjectTeam(projectId).catch(() => null)
     await projectService.removeMember(projectId, userId)
 
-    if (proj) {
+    if (teamId) {
       await auditLogService.logAction({
         action: AuditAction.project_member_remove,
-        teamId: proj.teamId,
+        teamId,
         userId: user.id,
         projectId,
         itemId: userId,
@@ -481,14 +433,11 @@ const route = new Hono<{ Variables: { user: User } }>()
         role: req.role,
       })
 
-      const proj = await prisma.project.findUnique({
-        where: { id: projectId },
-        select: { teamId: true },
-      })
-      if (proj) {
+      const teamId = await projectService.getProjectTeam(projectId).catch(() => null)
+      if (teamId) {
         await auditLogService.logAction({
           action: AuditAction.project_member_add,
-          teamId: proj.teamId,
+          teamId,
           userId: user.id,
           projectId,
           itemId: req.userId,

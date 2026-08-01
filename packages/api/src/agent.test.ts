@@ -11,22 +11,15 @@ vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
     logAction: vi.fn().mockResolvedValue({}),
   },
 }))
-vi.mock('@shumai/db', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@shumai/db')>()
-  return {
-    ...actual,
-    prisma: {
-      agent: {
-        findUnique: vi.fn().mockResolvedValue({ teamId: 'team1' }),
-      },
-    },
-  }
-})
 
 describe('Agent API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(authzService.hasPermission).mockResolvedValue(undefined)
+    vi.mocked(agentService.getAgent).mockResolvedValue({
+      id: 'agent1',
+      teamId: 'team1',
+    } as unknown as Awaited<ReturnType<typeof agentService.getAgent>>)
   })
 
   describe('GET /teams/:teamId/agents', () => {

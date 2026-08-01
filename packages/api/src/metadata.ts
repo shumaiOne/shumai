@@ -1,6 +1,7 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
+import { projectService } from '@shumai/core/src/project/project'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import {
   createFieldRequestSchema,
@@ -10,7 +11,6 @@ import {
   AuditAction,
 } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
-import { prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
@@ -98,11 +98,7 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     let teamId = field.teamId
     if (field.projectId && !teamId) {
-      const proj = await prisma.project.findUnique({
-        where: { id: field.projectId },
-        select: { teamId: true },
-      })
-      teamId = proj?.teamId || null
+      teamId = await projectService.getProjectTeam(field.projectId).catch(() => null)
     }
 
     if (teamId) {
@@ -141,11 +137,7 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     let teamId = field.teamId
     if (field.projectId && !teamId) {
-      const proj = await prisma.project.findUnique({
-        where: { id: field.projectId },
-        select: { teamId: true },
-      })
-      teamId = proj?.teamId || null
+      teamId = await projectService.getProjectTeam(field.projectId).catch(() => null)
     }
 
     if (teamId) {
@@ -174,15 +166,12 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     const field = await metadataService.createProjectField(projectId, req)
 
-    const proj = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: { teamId: true },
-    })
+    const teamId = await projectService.getProjectTeam(projectId).catch(() => null)
 
-    if (proj) {
+    if (teamId) {
       await auditLogService.logAction({
         action: AuditAction.metadata_field_create,
-        teamId: proj.teamId,
+        teamId,
         userId: user.id,
         projectId,
         itemId: field.key,

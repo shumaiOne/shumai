@@ -13,7 +13,6 @@ import {
 } from '@shumai/dtos'
 
 import type { Prisma } from '@shumai/db'
-import { prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
@@ -163,10 +162,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: agentId,
     })
 
-    const existingAgent = await prisma.agent.findUnique({
-      where: { id: agentId },
-      select: { teamId: true },
-    })
+    const existingAgent = await agentService.getAgent({ agentId })
 
     await agentService.deleteAgent({
       agentId,

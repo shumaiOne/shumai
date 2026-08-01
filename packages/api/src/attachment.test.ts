@@ -19,23 +19,16 @@ vi.mock('./middleware/auth', () => ({
 
 vi.mock('@shumai/core/src/authz/authz')
 vi.mock('@shumai/core/src/asset/asset')
+vi.mock('@shumai/core/src/project/project', () => ({
+  projectService: {
+    getProjectTeam: vi.fn().mockResolvedValue('t1'),
+  },
+}))
 vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
   auditLogService: {
     logAction: vi.fn().mockResolvedValue({}),
   },
 }))
-
-vi.mock('@shumai/db', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@shumai/db')>()
-  return {
-    ...actual,
-    prisma: {
-      project: {
-        findUnique: vi.fn().mockResolvedValue({ teamId: 't1' }),
-      },
-    },
-  }
-})
 
 vi.mock('@shumai/core/src/s3/s3', () => ({
   s3Service: {

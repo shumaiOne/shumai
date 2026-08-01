@@ -2,7 +2,8 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { Hono } from 'hono'
 import { authMiddleware } from './auth'
 import { auth } from '@shumai/core/src/auth/auth'
-import { prisma } from '@shumai/db'
+import { userService } from '@shumai/core/src/user/user'
+import { teamService } from '@shumai/core/src/team/team'
 
 vi.mock('@shumai/core/src/auth/auth', () => ({
   auth: {
@@ -12,14 +13,15 @@ vi.mock('@shumai/core/src/auth/auth', () => ({
   },
 }))
 
-vi.mock('@shumai/db', () => ({
-  prisma: {
-    user: {
-      findUnique: vi.fn(),
-    },
-    teamMember: {
-      findFirst: vi.fn(),
-    },
+vi.mock('@shumai/core/src/user/user', () => ({
+  userService: {
+    getUserById: vi.fn(),
+  },
+}))
+
+vi.mock('@shumai/core/src/team/team', () => ({
+  teamService: {
+    hasWritableRoleInAnyTeam: vi.fn(),
   },
 }))
 
@@ -39,7 +41,7 @@ describe('authMiddleware', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.mocked(auth.api.getSession).mockResolvedValue({ user: { id: 'user1' } } as any)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user1' } as any)
+    vi.mocked(userService.getUserById).mockResolvedValue({ id: 'user1' } as any)
 
     const res = await app.request('/test')
     expect(res.status).toBe(200)
@@ -61,7 +63,7 @@ describe('authMiddleware', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(auth.api.getSession).mockResolvedValue({ user: { id: 'user1' } } as any)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user1' } as any)
+      vi.mocked(userService.getUserById).mockResolvedValue({ id: 'user1' } as any)
 
       const res = await app.request('/test')
       expect(res.status).toBe(200)
@@ -71,8 +73,8 @@ describe('authMiddleware', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(auth.api.getSession).mockResolvedValue({ user: { id: 'user1' } } as any)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user1' } as any)
-      vi.mocked(prisma.teamMember.findFirst).mockResolvedValue(null) // No owner/editor role
+      vi.mocked(userService.getUserById).mockResolvedValue({ id: 'user1' } as any)
+      vi.mocked(teamService.hasWritableRoleInAnyTeam).mockResolvedValue(false) // No owner/editor role
 
       const res = await app.request('/test', { method: 'POST' })
       expect(res.status).toBe(403)
@@ -83,7 +85,7 @@ describe('authMiddleware', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(auth.api.getSession).mockResolvedValue({ user: { id: 'user1' } } as any)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user1' } as any)
+      vi.mocked(userService.getUserById).mockResolvedValue({ id: 'user1' } as any)
 
       const res = await app.request('/test/search', { method: 'POST' })
       expect(res.status).toBe(200)
@@ -93,12 +95,8 @@ describe('authMiddleware', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(auth.api.getSession).mockResolvedValue({ user: { id: 'user1' } } as any)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user1' } as any)
-      vi.mocked(prisma.teamMember.findFirst).mockResolvedValue({
-        id: 'member1',
-        role: 'owner',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any)
+      vi.mocked(userService.getUserById).mockResolvedValue({ id: 'user1' } as any)
+      vi.mocked(teamService.hasWritableRoleInAnyTeam).mockResolvedValue(true)
 
       const res = await app.request('/test', { method: 'POST' })
       expect(res.status).toBe(200)
@@ -108,12 +106,8 @@ describe('authMiddleware', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(auth.api.getSession).mockResolvedValue({ user: { id: 'user1' } } as any)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user1' } as any)
-      vi.mocked(prisma.teamMember.findFirst).mockResolvedValue({
-        id: 'member1',
-        role: 'editor',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any)
+      vi.mocked(userService.getUserById).mockResolvedValue({ id: 'user1' } as any)
+      vi.mocked(teamService.hasWritableRoleInAnyTeam).mockResolvedValue(true)
 
       const res = await app.request('/test', { method: 'POST' })
       expect(res.status).toBe(200)

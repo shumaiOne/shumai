@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { shareService } from '@shumai/core/src/share/share'
+import { projectService } from '@shumai/core/src/project/project'
 import {
   createShareLinkRequestSchema,
   updateShareLinkRequestSchema,
@@ -10,7 +11,6 @@ import {
   AuditAction,
 } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
-import { prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
@@ -33,14 +33,11 @@ const route = new Hono<{ Variables: { user: User } }>()
 
       const shareLink = await shareService.createShareLink(projectId, req, user.id)
 
-      const proj = await prisma.project.findUnique({
-        where: { id: projectId },
-        select: { teamId: true },
-      })
-      if (proj) {
+      const teamId = await projectService.getProjectTeam(projectId).catch(() => null)
+      if (teamId) {
         await auditLogService.logAction({
           action: AuditAction.share_create,
-          teamId: proj.teamId,
+          teamId,
           userId: user.id,
           projectId,
           itemId: shareLink.id,
@@ -103,14 +100,11 @@ const route = new Hono<{ Variables: { user: User } }>()
     const updated = await shareService.updateShareLink(shareId, req)
 
     if (existingShare) {
-      const proj = await prisma.project.findUnique({
-        where: { id: existingShare.projectId },
-        select: { teamId: true },
-      })
-      if (proj) {
+      const teamId = await projectService.getProjectTeam(existingShare.projectId).catch(() => null)
+      if (teamId) {
         await auditLogService.logAction({
           action: AuditAction.share_update,
-          teamId: proj.teamId,
+          teamId,
           userId: user.id,
           projectId: existingShare.projectId,
           itemId: shareId,
@@ -135,14 +129,11 @@ const route = new Hono<{ Variables: { user: User } }>()
     await shareService.deleteShareLink(shareId)
 
     if (existingShare) {
-      const proj = await prisma.project.findUnique({
-        where: { id: existingShare.projectId },
-        select: { teamId: true },
-      })
-      if (proj) {
+      const teamId = await projectService.getProjectTeam(existingShare.projectId).catch(() => null)
+      if (teamId) {
         await auditLogService.logAction({
           action: AuditAction.share_delete,
-          teamId: proj.teamId,
+          teamId,
           userId: user.id,
           projectId: existingShare.projectId,
           itemId: shareId,

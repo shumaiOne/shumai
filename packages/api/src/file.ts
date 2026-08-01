@@ -5,7 +5,6 @@ import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { notificationService } from '@shumai/core/src/notification/notification'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import type { Prisma } from '@shumai/db'
-import { prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 import {
   createCommentRequestSchema,
@@ -187,11 +186,9 @@ const route = new Hono<{ Variables: { user: User } }>()
 
       let targetUserId: string | undefined
       if (req.replyToId) {
-        const parentComment = await prisma.assetComment.findUnique({
-          where: { id: req.replyToId },
-        })
-        if (parentComment?.creatorId) {
-          targetUserId = parentComment.creatorId
+        const parentComment = await assetService.getComment(req.replyToId).catch(() => null)
+        if (parentComment?.creator?.id) {
+          targetUserId = parentComment.creator.id
         }
       }
 
@@ -245,10 +242,7 @@ const route = new Hono<{ Variables: { user: User } }>()
         id: commentId,
       })
 
-      const commentData = await prisma.assetComment.findUnique({
-        where: { id: commentId },
-        select: { assetId: true },
-      })
+      const commentData = await assetService.getComment(commentId).catch(() => null)
 
       const updated = await assetService.completeComment(commentId, req.isCompleted, user.id)
 
@@ -277,10 +271,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: commentId,
     })
 
-    const commentData = await prisma.assetComment.findUnique({
-      where: { id: commentId },
-      select: { assetId: true },
-    })
+    const commentData = await assetService.getComment(commentId).catch(() => null)
 
     await assetService.deleteComment({ commentId, userId: user.id })
 

@@ -5,6 +5,7 @@ import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/a
 import { projectService } from '@shumai/core/src/project/project'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
+import type { ProjectInfo } from '@shumai/dtos'
 
 vi.mock('./middleware/auth', () => ({
   authMiddleware: async (
@@ -17,7 +18,22 @@ vi.mock('./middleware/auth', () => ({
 }))
 
 vi.mock('@shumai/core/src/authz/authz')
-vi.mock('@shumai/core/src/project/project')
+vi.mock('@shumai/core/src/project/project', () => ({
+  projectService: {
+    createProject: vi.fn(),
+    updateProject: vi.fn(),
+    getProject: vi.fn(),
+    getProjectTeam: vi.fn().mockResolvedValue('t1'),
+    deleteProject: vi.fn(),
+    listProjects: vi.fn(),
+    getUserProjects: vi.fn(),
+    listProjectMembers: vi.fn(),
+    addProjectMember: vi.fn(),
+    updateMemberRole: vi.fn(),
+    removeMember: vi.fn(),
+    getProjectMe: vi.fn(),
+  },
+}))
 vi.mock('@shumai/core/src/asset/asset')
 vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
   auditLogService: {
@@ -25,21 +41,6 @@ vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
     listAuditLogs: vi.fn().mockResolvedValue({ nodes: [], pageInfo: {}, total: 0 }),
   },
 }))
-vi.mock('@shumai/db', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@shumai/db')>()
-  return {
-    ...actual,
-    prisma: {
-      teamMember: {
-        findMany: vi.fn(),
-      },
-      project: {
-        findMany: vi.fn(),
-        findUnique: vi.fn(),
-      },
-    },
-  }
-})
 
 describe('project api', () => {
   const app = new Hono<{ Variables: { user: { id: string; name: string } } }>()
@@ -163,10 +164,7 @@ describe('project api', () => {
   })
 
   it('POST /projects/:projectId/reparent', async () => {
-    const { prisma } = await import('@shumai/db')
-    // Mocking partial Prisma project model in test
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.mocked(prisma.project.findUnique).mockResolvedValue({ id: 'p', teamId: 't1' } as any)
+    vi.mocked(projectService.getProjectTeam).mockResolvedValue('t1')
     vi.mocked(assetService.reparentAssets).mockResolvedValue(undefined)
 
     const res = await app.request('/projects/p/reparent', {
@@ -219,10 +217,7 @@ describe('project api', () => {
   })
 
   it('POST /projects/:projectId/copy', async () => {
-    const { prisma } = await import('@shumai/db')
-    // Mocking partial Prisma project model in test
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.mocked(prisma.project.findUnique).mockResolvedValue({ id: 'p', teamId: 't1' } as any)
+    vi.mocked(projectService.getProjectTeam).mockResolvedValue('t1')
     vi.mocked(assetService.copyAssets).mockResolvedValue(undefined)
 
     const res = await app.request('/projects/p/copy', {
@@ -320,24 +315,16 @@ describe('project api', () => {
   })
 
   it('GET /projects', async () => {
-    const { prisma } = await import('@shumai/db')
-    vi.mocked(prisma.teamMember.findMany).mockResolvedValue([
-      { id: 'tm1', teamId: 'team1', userId: 'user1', scope: 'team' },
-      // Mocking complex Prisma client returns requires any here
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ] as any)
-    vi.mocked(prisma.project.findMany).mockResolvedValue([
+    vi.mocked(projectService.getUserProjects).mockResolvedValue([
       {
         id: 'proj1',
         name: 'My Project',
         teamId: 'team1',
-        rootFolderId: 'folder1',
+        rootFolder: 'folder1',
         enableNotification: true,
-        updatedAt: new Date('2026-06-21T00:00:00.000Z'),
+        updatedAt: '2026-06-21T00:00:00.000Z',
       },
-      // Mocking complex Prisma client returns requires any here
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ] as any)
+    ] as unknown as ProjectInfo[])
 
     const res = await app.request('/projects?first=10')
 
@@ -352,13 +339,6 @@ describe('project api', () => {
       enableNotification: true,
       updatedAt: '2026-06-21T00:00:00.000Z',
     })
-    expect(prisma.teamMember.findMany).toHaveBeenCalledWith({
-      where: { userId: 'user1' },
-    })
-    expect(prisma.project.findMany).toHaveBeenCalledWith({
-      where: { teamId: 'team1' },
-      orderBy: { id: 'desc' },
-      take: 10,
-    })
+    expect(projectService.getUserProjects).toHaveBeenCalledWith('user1', 10)
   })
 })

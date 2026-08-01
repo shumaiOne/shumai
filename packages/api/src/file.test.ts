@@ -1,6 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { Hono, type Context, type Next } from 'hono'
-import { prisma } from '@shumai/db'
 import fileRoute from './file'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
@@ -66,6 +65,7 @@ describe('file api', () => {
     vi.spyOn(assetService, 'createComment').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'completeComment').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'deleteComment').mockImplementation(vi.fn())
+    vi.spyOn(assetService, 'getComment').mockResolvedValue({ id: 'comment1', assetId: 'file1' } as any)
     vi.spyOn(assetService, 'listComments').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'restoreAssets').mockImplementation(vi.fn())
     vi.spyOn(metadataService, 'updateAssetMetadata').mockImplementation(vi.fn())
@@ -278,9 +278,9 @@ describe('file api', () => {
       project: { teamId: 'test-team' },
     } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
-    const mockFindUnique = vi.spyOn(prisma.assetComment, 'findUnique').mockResolvedValue({
+    vi.mocked(assetService.getComment).mockResolvedValue({
       id: 'parent-comment-id',
-      creatorId: 'parent-comment-creator-id',
+      creator: { id: 'parent-comment-creator-id' },
     } as any) // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const app = new Hono().use('*', authMiddleware).route('/', fileRoute)
@@ -306,8 +306,6 @@ describe('file api', () => {
       userId: 'parent-comment-creator-id',
       commentMessage: 'hello reply',
     })
-
-    mockFindUnique.mockRestore()
   })
 
   it('GET /files/:fileId/comments', async () => {

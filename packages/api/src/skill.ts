@@ -9,7 +9,6 @@ import {
   AuditAction,
 } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
-import { prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
@@ -68,10 +67,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       id,
     })
 
-    const existingSkill = await prisma.skill.findUnique({
-      where: { id },
-      select: { teamId: true },
-    })
+    const existingSkill = await skillService.getSkill(id)
 
     await skillService.deleteSkill(id)
 
@@ -98,10 +94,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       id,
     })
 
-    const existingSkill = await prisma.skill.findUnique({
-      where: { id },
-      select: { teamId: true },
-    })
+    const existingSkill = await skillService.getSkill(id)
 
     const skill = await skillService.updateSkillConfig(id, req.config)
 
@@ -131,10 +124,7 @@ const route = new Hono<{ Variables: { user: User } }>()
         id,
       })
 
-      const existingSkill = await prisma.skill.findUnique({
-        where: { id },
-        select: { teamId: true },
-      })
+      const existingSkill = await skillService.getSkill(id)
 
       const skill = await skillService.updateSkillPermission(id, req.permission)
 
