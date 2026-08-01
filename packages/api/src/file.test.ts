@@ -65,7 +65,10 @@ describe('file api', () => {
     vi.spyOn(assetService, 'createComment').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'completeComment').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'deleteComment').mockImplementation(vi.fn())
-    vi.spyOn(assetService, 'getComment').mockResolvedValue({ id: 'comment1', assetId: 'file1' } as any)
+    vi.spyOn(assetService, 'getComment').mockResolvedValue({
+      id: 'comment1',
+      assetId: 'file1',
+    } as unknown as Awaited<ReturnType<typeof assetService.getComment>>)
     vi.spyOn(assetService, 'listComments').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'restoreAssets').mockImplementation(vi.fn())
     vi.spyOn(metadataService, 'updateAssetMetadata').mockImplementation(vi.fn())
