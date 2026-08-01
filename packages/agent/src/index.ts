@@ -114,6 +114,8 @@ export interface CreateAgentSessionParams {
   thinkingLevel?: string
   disableTools?: boolean
   providers: DbProviderInfo[]
+  maxRetries?: number
+  baseDelayMs?: number
 }
 
 export async function createAgentSession(params: CreateAgentSessionParams) {
@@ -131,6 +133,8 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     customTools = [],
     thinkingLevel,
     disableTools = false,
+    maxRetries = 3,
+    baseDelayMs = 2000,
   } = params
 
   const storage = await DatabaseSessionStorage.create({
@@ -292,6 +296,10 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     session,
     model,
     thinkingLevel: (thinkingLevel || 'off') as ThinkingLevel,
+    streamOptions: {
+      maxRetries,
+      maxRetryDelayMs: baseDelayMs,
+    },
     systemPrompt: async () => {
       let prompt = systemPrompt
 
