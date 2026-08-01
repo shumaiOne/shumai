@@ -324,4 +324,60 @@ describe('TeamService', () => {
     expect(settings.allowedDomains).toEqual([])
     expect(settings.pendingDomains).toEqual([])
   })
+
+  describe('hasWritableRoleInAnyTeam', () => {
+    it('should return true for user with owner role', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'Owner User', email: 'hwt-owner@example.com', password: 'pw' },
+      })
+      const team = await prisma.team.create({
+        data: { name: 'Owner Team' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: user.id, role: 'owner' },
+      })
+
+      const result = await teamService.hasWritableRoleInAnyTeam(user.id)
+      expect(result).toBe(true)
+    })
+
+    it('should return true for user with editor role', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'Editor User', email: 'hwt-editor@example.com', password: 'pw' },
+      })
+      const team = await prisma.team.create({
+        data: { name: 'Editor Team' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: user.id, role: 'editor' },
+      })
+
+      const result = await teamService.hasWritableRoleInAnyTeam(user.id)
+      expect(result).toBe(true)
+    })
+
+    it('should return false for user with only reviewer role', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'Reviewer User', email: 'hwt-reviewer@example.com', password: 'pw' },
+      })
+      const team = await prisma.team.create({
+        data: { name: 'Reviewer Team' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: user.id, role: 'reviewer' },
+      })
+
+      const result = await teamService.hasWritableRoleInAnyTeam(user.id)
+      expect(result).toBe(false)
+    })
+
+    it('should return false for user with no team membership', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'No Team User', email: 'hwt-noteam@example.com', password: 'pw' },
+      })
+
+      const result = await teamService.hasWritableRoleInAnyTeam(user.id)
+      expect(result).toBe(false)
+    })
+  })
 })
