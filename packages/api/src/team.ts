@@ -15,11 +15,15 @@ import {
   createApiTokenRequestSchema,
   listAuditLogsQuerySchema,
 } from '@shumai/dtos'
-import { updateUserMetadataRequestSchema, getTeamAiUsageQuerySchema } from '@shumai/dtos'
+import {
+  updateUserMetadataRequestSchema,
+  getTeamAiUsageQuerySchema,
+  AuditAction,
+} from '@shumai/dtos'
 import { apiTokenService } from '@shumai/core/src/user/api-token'
 import { aiUsageService } from '@shumai/core/src/ai-usage/ai-usage'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
-import { NotificationType, AuditAction } from '@shumai/db'
+import { NotificationType } from '@shumai/db'
 import type { Prisma } from '@shumai/db'
 
 type User = Prisma.UserGetPayload<Record<string, never>>

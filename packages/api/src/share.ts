@@ -7,9 +7,10 @@ import {
   updateShareLinkRequestSchema,
   listShareLinksRequestSchema,
   addAssetToShareRequestSchema,
+  AuditAction,
 } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
-import { prisma, AuditAction } from '@shumai/db'
+import { prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 
 type User = Prisma.UserGetPayload<Record<string, never>>

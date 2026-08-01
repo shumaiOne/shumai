@@ -5,7 +5,7 @@ import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { notificationService } from '@shumai/core/src/notification/notification'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import type { Prisma } from '@shumai/db'
-import { prisma, AuditAction } from '@shumai/db'
+import { prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 import {
   createCommentRequestSchema,
@@ -18,6 +18,7 @@ import {
   uploadFileRequestSchema,
   getDownloadLinksRequestSchema,
   completeCommentRequestSchema,
+  AuditAction,
 } from '@shumai/dtos'
 import { transcodeService } from '@shumai/core'
 import fs from 'fs'

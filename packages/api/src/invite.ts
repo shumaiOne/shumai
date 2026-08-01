@@ -5,11 +5,12 @@ import {
   createTeamInviteRequestSchema,
   joinRequestSchema,
   InviteInfo,
+  AuditAction,
 } from '@shumai/dtos'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { inviteService } from '@shumai/core/src/invite/invite'
 import { notificationService } from '@shumai/core/src/notification/notification'
-import { NotificationType, AuditAction } from '@shumai/db'
+import { NotificationType } from '@shumai/db'
 import type { Prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { prisma, AuditAction } from '@shumai/db'
+import { prisma } from '@shumai/db'
+import { AuditAction } from '@shumai/dtos'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { auditLogService } from './auditLog'
 

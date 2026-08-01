@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { Hono } from 'hono'
-import { AuditAction } from '@shumai/db'
+import { AuditAction } from '@shumai/dtos'
 import teamRoute from './team'
 import { authMiddleware } from './middleware/auth'
 import { teamService } from '@shumai/core/src/team/team'

@@ -6,12 +6,12 @@ import {
   createUploadTaskRequestSchema,
   localUploadQuerySchema,
 } from '@shumai/dtos'
-import { paginationParamsSchema } from '@shumai/dtos'
+import { paginationParamsSchema, AuditAction } from '@shumai/dtos'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { notificationService } from '@shumai/core/src/notification/notification'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 import { assetService } from '@shumai/core/src/asset/asset'
-import { NotificationType, AuditAction } from '@shumai/db'
+import { NotificationType } from '@shumai/db'
 import { s3Service, verifyLocalUrlSignature } from '@shumai/core/src/s3/s3'
 import type { Prisma } from '@shumai/db'
 

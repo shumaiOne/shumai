@@ -9,10 +9,9 @@ import {
   deleteFoldersRequestSchema,
   restoreFoldersRequestSchema,
 } from '@shumai/dtos'
-import { listChildrenRequestSchema, updateAssetOrderRequestSchema } from '@shumai/dtos'
+import { listChildrenRequestSchema, updateAssetOrderRequestSchema, AuditAction } from '@shumai/dtos'
 import { searchRequestSchema } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
-import { AuditAction } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 
 type User = Prisma.UserGetPayload<Record<string, never>>

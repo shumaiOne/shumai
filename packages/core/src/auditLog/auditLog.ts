@@ -1,5 +1,6 @@
 import { prisma } from '@shumai/db'
-import type { Prisma, AuditAction } from '@shumai/db'
+import type { Prisma } from '@shumai/db'
+import type { AuditAction } from '@shumai/dtos'
 import { paginateQuery } from '@shumai/core/src/pagination'
 
 export interface LogActionParams {

@@ -12,9 +12,9 @@ import {
   updateProjectMemberRoleRequestSchema,
   addProjectMemberRequestSchema,
 } from '@shumai/dtos'
-import { listMembersQuerySchema, paginationParamsSchema } from '@shumai/dtos'
+import { listMembersQuerySchema, paginationParamsSchema, AuditAction } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
-import { prisma, AuditAction } from '@shumai/db'
+import { prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
