@@ -2,6 +2,7 @@ import { prisma } from '@shumai/db'
 import type { Prisma } from '@shumai/db'
 import type { AuditAction } from '@shumai/dtos'
 import { paginateQuery } from '@shumai/core/src/pagination'
+import { logger } from '@shumai/core/src/logger'
 
 export interface LogActionParams {
   action: AuditAction
@@ -22,15 +23,20 @@ export interface ListAuditLogsParams {
 
 export class AuditLogService {
   async logAction(params: LogActionParams) {
-    return await prisma.auditLog.create({
-      data: {
-        action: params.action,
-        teamId: params.teamId,
-        userId: params.userId,
-        projectId: params.projectId,
-        itemId: params.itemId,
-      },
-    })
+    try {
+      return await prisma.auditLog.create({
+        data: {
+          action: params.action,
+          teamId: params.teamId,
+          userId: params.userId,
+          projectId: params.projectId,
+          itemId: params.itemId,
+        },
+      })
+    } catch (err) {
+      logger.error({ err, params }, 'Failed to create audit log')
+      return null
+    }
   }
 
   async listAuditLogs(params: ListAuditLogsParams) {

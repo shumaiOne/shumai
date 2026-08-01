@@ -75,4 +75,13 @@ describe('AuditLogService', () => {
 
     expect(resultItem.total).toBe(2)
   })
+
+  it('handles database errors gracefully and logs error without throwing', async () => {
+    const result = await auditLogService.logAction({
+      action: AuditAction.project_create,
+      teamId: 'invalid-non-existent-team-id',
+    })
+
+    expect(result).toBeNull()
+  })
 })
