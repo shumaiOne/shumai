@@ -12,6 +12,8 @@ import {
 } from '@shumai/dtos'
 
 import type { Prisma } from '@shumai/db'
+import { prisma, AuditAction } from '@shumai/db'
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -94,6 +96,13 @@ const route = new Hono<{ Variables: { user: User } }>()
       deniedTools: config.deniedTools || [],
     }
 
+    await auditLogService.logAction({
+      action: AuditAction.agent_create,
+      teamId,
+      userId: userReq?.id,
+      itemId: agent.id,
+    })
+
     return c.json(info, 200)
   })
   .put('/agents/:agentId', zValidator('json', updateAgentRequestSchema), async (c) => {
@@ -111,6 +120,13 @@ const route = new Hono<{ Variables: { user: User } }>()
     const agent = await agentService.updateAgent({
       agentId,
       ...req,
+    })
+
+    await auditLogService.logAction({
+      action: AuditAction.agent_update,
+      teamId: agent.teamId,
+      userId: userReq?.id,
+      itemId: agent.id,
     })
 
     const config = agent.config as unknown as PrismaJson.AgentConfig
@@ -146,9 +162,23 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: agentId,
     })
 
+    const existingAgent = await prisma.agent.findUnique({
+      where: { id: agentId },
+      select: { teamId: true },
+    })
+
     await agentService.deleteAgent({
       agentId,
     })
+
+    if (existingAgent) {
+      await auditLogService.logAction({
+        action: AuditAction.agent_delete,
+        teamId: existingAgent.teamId,
+        userId: userReq?.id,
+        itemId: agentId,
+      })
+    }
 
     return new Response(null, { status: 204 })
   })

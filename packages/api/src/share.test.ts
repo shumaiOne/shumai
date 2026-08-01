@@ -8,6 +8,8 @@ import { assetService } from '@shumai/core/src/asset/asset'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { ShareLinkPasswordInvalidError, ShareLinkExpiredError } from '@shumai/core/src/share/errors'
 
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
+
 vi.mock('./middleware/auth', () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   authMiddleware: async (c: any, next: any) => {
@@ -32,6 +34,24 @@ vi.mock('@shumai/core/src/authz/authz', () => ({
     Asset: 'asset',
   },
 }))
+
+vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
+  auditLogService: {
+    logAction: vi.fn().mockResolvedValue({}),
+  },
+}))
+
+vi.mock('@shumai/db', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@shumai/db')>()
+  return {
+    ...actual,
+    prisma: {
+      project: {
+        findUnique: vi.fn().mockResolvedValue({ teamId: 't1' }),
+      },
+    },
+  }
+})
 
 describe('Share API', () => {
   const app = new Hono()
@@ -204,6 +224,13 @@ describe('Share API', () => {
         { name: 'My Share' },
         'user1',
       )
+      expect(auditLogService.logAction).toHaveBeenCalledWith({
+        action: 'share_create',
+        teamId: 't1',
+        userId: 'user1',
+        projectId: 'project1',
+        itemId: 'share1',
+      })
     })
   })
 

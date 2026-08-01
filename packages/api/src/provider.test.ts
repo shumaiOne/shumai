@@ -4,6 +4,8 @@ import providerRoute from './provider'
 import { providerService } from '@shumai/core/src/provider/provider'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
+
 vi.mock('./middleware/auth', () => ({
   authMiddleware: async (
     c: Context<{ Variables: { user: { id: string; name: string } } }>,
@@ -16,6 +18,11 @@ vi.mock('./middleware/auth', () => ({
 
 vi.mock('@shumai/core/src/authz/authz')
 vi.mock('@shumai/core/src/provider/provider')
+vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
+  auditLogService: {
+    logAction: vi.fn().mockResolvedValue({}),
+  },
+}))
 
 describe('provider api', () => {
   const app = new Hono<{ Variables: { user: { id: string; name: string } } }>()
@@ -115,6 +122,12 @@ describe('provider api', () => {
       type: ResourceType.Team,
       id: 't1',
     })
+    expect(auditLogService.logAction).toHaveBeenCalledWith({
+      action: 'provider_create',
+      teamId: 't1',
+      userId: 'user1',
+      itemId: 'p1',
+    })
   })
 
   it('PUT /providers/:id updates provider', async () => {
@@ -163,6 +176,12 @@ describe('provider api', () => {
       type: ResourceType.Provider,
       id: 'p1',
     })
+    expect(auditLogService.logAction).toHaveBeenCalledWith({
+      action: 'provider_update',
+      teamId: 't1',
+      userId: 'user1',
+      itemId: 'p1',
+    })
   })
 
   it('DELETE /providers/:id deletes provider', async () => {
@@ -187,6 +206,12 @@ describe('provider api', () => {
       permission: Permission.Admin,
       type: ResourceType.Provider,
       id: 'p1',
+    })
+    expect(auditLogService.logAction).toHaveBeenCalledWith({
+      action: 'provider_delete',
+      teamId: 't1',
+      userId: 'user1',
+      itemId: 'p1',
     })
   })
 })

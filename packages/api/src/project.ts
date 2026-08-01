@@ -299,6 +299,7 @@ const route = new Hono<{ Variables: { user: User } }>()
     '/projects/:projectId/reparent',
     zValidator('json', reparentAssetsRequestSchema),
     async (c) => {
+      const projectId = c.req.param('projectId')
       const user = c.get('user')
       const req = c.req.valid('json')
 
@@ -325,10 +326,27 @@ const route = new Hono<{ Variables: { user: User } }>()
         creatorId: user.id,
       })
 
+      const proj = await prisma.project.findUnique({
+        where: { id: projectId },
+        select: { teamId: true },
+      })
+      if (proj) {
+        for (const assetId of req.assetIds) {
+          await auditLogService.logAction({
+            action: AuditAction.asset_reparent,
+            teamId: proj.teamId,
+            userId: user.id,
+            projectId,
+            itemId: assetId,
+          })
+        }
+      }
+
       return c.body(null, 204)
     },
   )
   .post('/projects/:projectId/copy', zValidator('json', copyAssetsRequestSchema), async (c) => {
+    const projectId = c.req.param('projectId')
     const user = c.get('user')
     const req = c.req.valid('json')
 
@@ -354,6 +372,22 @@ const route = new Hono<{ Variables: { user: User } }>()
       ...req,
       creatorId: user.id,
     })
+
+    const proj = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { teamId: true },
+    })
+    if (proj) {
+      for (const assetId of req.assetIds) {
+        await auditLogService.logAction({
+          action: AuditAction.asset_copy,
+          teamId: proj.teamId,
+          userId: user.id,
+          projectId,
+          itemId: assetId,
+        })
+      }
+    }
 
     return c.body(null, 204)
   })

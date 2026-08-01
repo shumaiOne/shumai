@@ -5,6 +5,26 @@ import { skillService } from '@shumai/core/src/skill/skill'
 import { authMiddleware } from './middleware/auth'
 import { authzService, ResourceType, Permission } from '@shumai/core/src/authz/authz'
 
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
+
+vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
+  auditLogService: {
+    logAction: vi.fn().mockResolvedValue({}),
+  },
+}))
+
+vi.mock('@shumai/db', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@shumai/db')>()
+  return {
+    ...actual,
+    prisma: {
+      skill: {
+        findUnique: vi.fn().mockResolvedValue({ teamId: 'team1' }),
+      },
+    },
+  }
+})
+
 vi.mock('./middleware/auth', () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   authMiddleware: async (c: any, next: any) => {
@@ -102,6 +122,12 @@ describe('Skill API', () => {
         }),
       )
       expect(skillService.upsertSkill).toHaveBeenCalledWith('team1', { assetId: 'asset1' })
+      expect(auditLogService.logAction).toHaveBeenCalledWith({
+        action: 'skill_create',
+        teamId: 'team1',
+        userId: 'user1',
+        itemId: 'skill1',
+      })
     })
 
     test('Success with githubUrl', async () => {
@@ -128,6 +154,12 @@ describe('Skill API', () => {
       expect(await res.json()).toEqual(mockSkill)
       expect(skillService.upsertSkill).toHaveBeenCalledWith('team1', {
         githubUrl: 'https://github.com/test/repo',
+      })
+      expect(auditLogService.logAction).toHaveBeenCalledWith({
+        action: 'skill_create',
+        teamId: 'team1',
+        userId: 'user1',
+        itemId: 'skill1',
       })
     })
 
@@ -162,6 +194,12 @@ describe('Skill API', () => {
         }),
       )
       expect(skillService.deleteSkill).toHaveBeenCalledWith('skill1')
+      expect(auditLogService.logAction).toHaveBeenCalledWith({
+        action: 'skill_delete',
+        teamId: 'team1',
+        userId: 'user1',
+        itemId: 'skill1',
+      })
     })
   })
 
@@ -199,6 +237,12 @@ describe('Skill API', () => {
         }),
       )
       expect(skillService.updateSkillConfig).toHaveBeenCalledWith('skill1', mockConfig)
+      expect(auditLogService.logAction).toHaveBeenCalledWith({
+        action: 'skill_update',
+        teamId: 'team1',
+        userId: 'user1',
+        itemId: 'skill1',
+      })
     })
   })
 
@@ -233,6 +277,12 @@ describe('Skill API', () => {
         }),
       )
       expect(skillService.updateSkillPermission).toHaveBeenCalledWith('skill1', 'owner')
+      expect(auditLogService.logAction).toHaveBeenCalledWith({
+        action: 'skill_update',
+        teamId: 'team1',
+        userId: 'user1',
+        itemId: 'skill1',
+      })
     })
   })
 })

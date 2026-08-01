@@ -40,6 +40,14 @@ vi.mock('@shumai/core/src/authz/authz', () => ({
   },
 }))
 
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
+
+vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
+  auditLogService: {
+    logAction: vi.fn().mockResolvedValue({}),
+  },
+}))
+
 vi.mock('./middleware/auth', () => ({
   authMiddleware: async (c: Context, next: Next) => {
     c.set('user', { id: 'user1', name: 'Test User' })
@@ -129,6 +137,13 @@ describe('file api', () => {
       type: ResourceType.Asset,
       id: 'test-id',
     })
+    expect(auditLogService.logAction).toHaveBeenCalledWith({
+      action: 'asset_update',
+      teamId: 'test-team',
+      userId: 'user1',
+      projectId: undefined,
+      itemId: 'test-id',
+    })
   })
 
   it('DELETE /files', async () => {
@@ -150,6 +165,13 @@ describe('file api', () => {
       id: 'test-id',
     })
     expect(assetService.deleteAssets).toHaveBeenCalledWith(['test-id'])
+    expect(auditLogService.logAction).toHaveBeenCalledWith({
+      action: 'asset_delete',
+      teamId: 'test-team',
+      userId: 'user1',
+      projectId: undefined,
+      itemId: 'test-id',
+    })
   })
 
   it('POST /files/restore', async () => {
@@ -207,6 +229,14 @@ describe('file api', () => {
     expect(res.status).toBe(201)
     const json = await res.json()
     expect(json.message).toBe('hello')
+
+    expect(auditLogService.logAction).toHaveBeenCalledWith({
+      action: 'comment_create',
+      teamId: 'test-team',
+      userId: 'user1',
+      projectId: undefined,
+      itemId: 'comment-id',
+    })
 
     expect(authzService.hasPermission).toHaveBeenCalledWith({
       user: { id: 'user1', name: 'Test User' },

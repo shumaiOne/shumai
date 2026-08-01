@@ -9,6 +9,8 @@ import {
   FieldInfo,
 } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
+import { prisma, AuditAction } from '@shumai/db'
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -42,6 +44,14 @@ const route = new Hono<{ Variables: { user: User } }>()
     })
 
     const field = await metadataService.createTeamField(teamId, req)
+
+    await auditLogService.logAction({
+      action: AuditAction.metadata_field_create,
+      teamId,
+      userId: user.id,
+      itemId: field.key,
+    })
+
     return c.json(toFieldInfo(field))
   })
   .get('/teams/:teamId/fields', async (c) => {
@@ -85,6 +95,25 @@ const route = new Hono<{ Variables: { user: User } }>()
       throw new Error('Field has no context')
     }
 
+    let teamId = field.teamId
+    if (field.projectId && !teamId) {
+      const proj = await prisma.project.findUnique({
+        where: { id: field.projectId },
+        select: { teamId: true },
+      })
+      teamId = proj?.teamId || null
+    }
+
+    if (teamId) {
+      await auditLogService.logAction({
+        action: AuditAction.metadata_field_update,
+        teamId,
+        userId: user.id,
+        projectId: field.projectId || undefined,
+        itemId: fieldId,
+      })
+    }
+
     return c.json(toFieldInfo(updated))
   })
   .delete('/fields/:fieldId', async (c) => {
@@ -109,6 +138,25 @@ const route = new Hono<{ Variables: { user: User } }>()
       throw new Error('Field has no context')
     }
 
+    let teamId = field.teamId
+    if (field.projectId && !teamId) {
+      const proj = await prisma.project.findUnique({
+        where: { id: field.projectId },
+        select: { teamId: true },
+      })
+      teamId = proj?.teamId || null
+    }
+
+    if (teamId) {
+      await auditLogService.logAction({
+        action: AuditAction.metadata_field_delete,
+        teamId,
+        userId: user.id,
+        projectId: field.projectId || undefined,
+        itemId: fieldId,
+      })
+    }
+
     return new Response(null, { status: 204 })
   })
   .post('/projects/:projectId/fields', zValidator('json', createFieldRequestSchema), async (c) => {
@@ -124,6 +172,22 @@ const route = new Hono<{ Variables: { user: User } }>()
     })
 
     const field = await metadataService.createProjectField(projectId, req)
+
+    const proj = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { teamId: true },
+    })
+
+    if (proj) {
+      await auditLogService.logAction({
+        action: AuditAction.metadata_field_create,
+        teamId: proj.teamId,
+        userId: user.id,
+        projectId,
+        itemId: field.key,
+      })
+    }
+
     return c.json(toFieldInfo(field))
   })
   .get('/projects/:projectId/fields', async (c) => {

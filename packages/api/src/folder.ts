@@ -12,6 +12,8 @@ import {
 import { listChildrenRequestSchema, updateAssetOrderRequestSchema } from '@shumai/dtos'
 import { searchRequestSchema } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
+import { AuditAction } from '@shumai/db'
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -32,6 +34,17 @@ const route = new Hono<{ Variables: { user: User } }>()
       parentId: req.parentId,
       type: 'folder',
     })
+
+    const parentCtx = await assetService.getAssetContext(req.parentId)
+    if (parentCtx?.teamId) {
+      await auditLogService.logAction({
+        action: AuditAction.asset_create,
+        teamId: parentCtx.teamId,
+        userId: user.id,
+        projectId: parentCtx.projectId,
+        itemId: newAsset.id,
+      })
+    }
 
     return c.json(newAsset)
   })
@@ -70,6 +83,17 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: folderId,
       name: req.name,
     })
+
+    const ctx = await assetService.getAssetContext(folderId)
+    if (ctx?.teamId) {
+      await auditLogService.logAction({
+        action: AuditAction.asset_update,
+        teamId: ctx.teamId,
+        userId: user.id,
+        projectId: ctx.projectId,
+        itemId: folderId,
+      })
+    }
 
     return c.json(updatedAsset)
   })
@@ -122,7 +146,23 @@ const route = new Hono<{ Variables: { user: User } }>()
       })
     }
 
+    const contexts = await Promise.all(req.ids.map((id) => assetService.getAssetContext(id)))
+
     await assetService.deleteAssets(req.ids)
+
+    for (let i = 0; i < req.ids.length; i++) {
+      const ctx = contexts[i]
+      if (ctx?.teamId) {
+        await auditLogService.logAction({
+          action: AuditAction.asset_delete,
+          teamId: ctx.teamId,
+          userId: user.id,
+          projectId: ctx.projectId,
+          itemId: req.ids[i],
+        })
+      }
+    }
+
     return c.body(null, 204)
   })
   .post('/folders/restore', zValidator('json', restoreFoldersRequestSchema), async (c) => {

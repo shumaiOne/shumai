@@ -1,10 +1,27 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { agentService } from '@shumai/core/src/agent/agent'
 import { authzService } from '@shumai/core/src/authz/authz'
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 import app from './agent'
 
 vi.mock('@shumai/core/src/agent/agent')
 vi.mock('@shumai/core/src/authz/authz')
+vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
+  auditLogService: {
+    logAction: vi.fn().mockResolvedValue({}),
+  },
+}))
+vi.mock('@shumai/db', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@shumai/db')>()
+  return {
+    ...actual,
+    prisma: {
+      agent: {
+        findUnique: vi.fn().mockResolvedValue({ teamId: 'team1' }),
+      },
+    },
+  }
+})
 
 describe('Agent API', () => {
   beforeEach(() => {
@@ -90,6 +107,12 @@ describe('Agent API', () => {
       expect(data.name).toBe('New Agent')
       expect(data.soul).toBe('New Soul')
       expect(data.deniedTools).toEqual(['bash'])
+      expect(auditLogService.logAction).toHaveBeenCalledWith({
+        action: 'agent_create',
+        teamId: 'team1',
+        userId: undefined,
+        itemId: 'agent2',
+      })
     })
 
     it('validates request', async () => {
@@ -110,6 +133,7 @@ describe('Agent API', () => {
     it('updates an agent', async () => {
       const mockAgent = {
         id: 'agent1',
+        teamId: 'team1',
         user: { name: 'Updated Agent', image: 'avatar1' },
         type: 'autofill',
         providerId: 'prov1',
@@ -140,6 +164,12 @@ describe('Agent API', () => {
       expect(data.name).toBe('Updated Agent')
       expect(data.soul).toBe('Updated Soul')
       expect(data.deniedTools).toEqual(['bash'])
+      expect(auditLogService.logAction).toHaveBeenCalledWith({
+        action: 'agent_update',
+        teamId: 'team1',
+        userId: undefined,
+        itemId: 'agent1',
+      })
     })
   })
 
@@ -151,6 +181,12 @@ describe('Agent API', () => {
 
       expect(res.status).toBe(204)
       expect(agentService.deleteAgent).toHaveBeenCalledWith({ agentId: 'agent1' })
+      expect(auditLogService.logAction).toHaveBeenCalledWith({
+        action: 'agent_delete',
+        teamId: 'team1',
+        userId: undefined,
+        itemId: 'agent1',
+      })
     })
   })
 

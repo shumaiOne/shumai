@@ -5,7 +5,8 @@ import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { notificationService } from '@shumai/core/src/notification/notification'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import type { Prisma } from '@shumai/db'
-import { prisma } from '@shumai/db'
+import { prisma, AuditAction } from '@shumai/db'
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 import {
   createCommentRequestSchema,
   deleteFilesRequestSchema,
@@ -75,6 +76,17 @@ const route = new Hono<{ Variables: { user: User } }>()
       name: req.name,
     })
 
+    const context = await assetService.getAssetContext(fileId)
+    if (context?.teamId) {
+      await auditLogService.logAction({
+        action: AuditAction.asset_update,
+        teamId: context.teamId,
+        userId: user.id,
+        projectId: context.projectId,
+        itemId: fileId,
+      })
+    }
+
     return c.json(updatedAsset)
   })
   .delete('/files', zValidator('json', deleteFilesRequestSchema), async (c) => {
@@ -90,7 +102,23 @@ const route = new Hono<{ Variables: { user: User } }>()
       })
     }
 
+    const contexts = await Promise.all(req.ids.map((id) => assetService.getAssetContext(id)))
+
     await assetService.deleteAssets(req.ids)
+
+    for (let i = 0; i < req.ids.length; i++) {
+      const ctx = contexts[i]
+      if (ctx?.teamId) {
+        await auditLogService.logAction({
+          action: AuditAction.asset_delete,
+          teamId: ctx.teamId,
+          userId: user.id,
+          projectId: ctx.projectId,
+          itemId: req.ids[i],
+        })
+      }
+    }
+
     return c.body(null, 204)
   })
   .patch(
@@ -181,6 +209,14 @@ const route = new Hono<{ Variables: { user: User } }>()
           userId: targetUserId,
           commentMessage: req.message,
         })
+
+        await auditLogService.logAction({
+          action: AuditAction.comment_create,
+          teamId: context.teamId,
+          userId: user.id,
+          projectId: context.projectId,
+          itemId: comment.id,
+        })
       }
 
       return c.json(comment, 201)
@@ -216,7 +252,26 @@ const route = new Hono<{ Variables: { user: User } }>()
         id: commentId,
       })
 
+      const commentData = await prisma.assetComment.findUnique({
+        where: { id: commentId },
+        select: { assetId: true },
+      })
+
       const updated = await assetService.completeComment(commentId, req.isCompleted, user.id)
+
+      if (commentData?.assetId) {
+        const context = await assetService.getAssetContext(commentData.assetId)
+        if (context?.teamId) {
+          await auditLogService.logAction({
+            action: AuditAction.comment_complete,
+            teamId: context.teamId,
+            userId: user.id,
+            projectId: context.projectId,
+            itemId: commentId,
+          })
+        }
+      }
+
       return c.json(updated)
     },
   )
@@ -231,7 +286,26 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: commentId,
     })
 
+    const commentData = await prisma.assetComment.findUnique({
+      where: { id: commentId },
+      select: { assetId: true },
+    })
+
     await assetService.deleteComment({ commentId, userId: user.id })
+
+    if (commentData?.assetId) {
+      const context = await assetService.getAssetContext(commentData.assetId)
+      if (context?.teamId) {
+        await auditLogService.logAction({
+          action: AuditAction.comment_delete,
+          teamId: context.teamId,
+          userId: user.id,
+          projectId: context.projectId,
+          itemId: commentId,
+        })
+      }
+    }
+
     return c.json({ success: true })
   })
   .post('/files/restore', zValidator('json', restoreFilesRequestSchema), async (c) => {

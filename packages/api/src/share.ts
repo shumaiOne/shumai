@@ -9,6 +9,8 @@ import {
   addAssetToShareRequestSchema,
 } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
+import { prisma, AuditAction } from '@shumai/db'
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -29,6 +31,21 @@ const route = new Hono<{ Variables: { user: User } }>()
       })
 
       const shareLink = await shareService.createShareLink(projectId, req, user.id)
+
+      const proj = await prisma.project.findUnique({
+        where: { id: projectId },
+        select: { teamId: true },
+      })
+      if (proj) {
+        await auditLogService.logAction({
+          action: AuditAction.share_create,
+          teamId: proj.teamId,
+          userId: user.id,
+          projectId,
+          itemId: shareLink.id,
+        })
+      }
+
       return c.json(shareLink)
     },
   )
@@ -81,7 +98,25 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: shareId,
     })
 
+    const existingShare = await shareService.getShareLink(shareId)
     const updated = await shareService.updateShareLink(shareId, req)
+
+    if (existingShare) {
+      const proj = await prisma.project.findUnique({
+        where: { id: existingShare.projectId },
+        select: { teamId: true },
+      })
+      if (proj) {
+        await auditLogService.logAction({
+          action: AuditAction.share_update,
+          teamId: proj.teamId,
+          userId: user.id,
+          projectId: existingShare.projectId,
+          itemId: shareId,
+        })
+      }
+    }
+
     return c.json(updated)
   })
   .delete('/shares/:shareId', async (c) => {
@@ -95,7 +130,25 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: shareId,
     })
 
+    const existingShare = await shareService.getShareLink(shareId)
     await shareService.deleteShareLink(shareId)
+
+    if (existingShare) {
+      const proj = await prisma.project.findUnique({
+        where: { id: existingShare.projectId },
+        select: { teamId: true },
+      })
+      if (proj) {
+        await auditLogService.logAction({
+          action: AuditAction.share_delete,
+          teamId: proj.teamId,
+          userId: user.id,
+          projectId: existingShare.projectId,
+          itemId: shareId,
+        })
+      }
+    }
+
     return c.body(null, 204)
   })
   .post('/shares/:shareId/assets', zValidator('json', addAssetToShareRequestSchema), async (c) => {

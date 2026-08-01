@@ -6,6 +6,14 @@ import { searchService } from '@shumai/core/src/search/search'
 import { authzService, ResourceType, Permission } from '@shumai/core/src/authz/authz'
 import { authMiddleware } from './middleware/auth'
 
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
+
+vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
+  auditLogService: {
+    logAction: vi.fn().mockResolvedValue({}),
+  },
+}))
+
 vi.mock('@shumai/core/src/authz/authz', () => ({
   authzService: {
     hasPermission: vi.fn().mockResolvedValue(undefined),
@@ -33,6 +41,7 @@ describe('folder api', () => {
     vi.mocked(authzService.hasPermission).mockClear()
 
     vi.spyOn(assetService, 'getAsset').mockImplementation(vi.fn())
+    vi.spyOn(assetService, 'getAssetContext').mockResolvedValue({ teamId: 'test-team' })
     vi.spyOn(assetService, 'createAsset').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'updateAssetName').mockImplementation(vi.fn())
     vi.spyOn(assetService, 'deleteAssets').mockImplementation(vi.fn())
@@ -101,6 +110,13 @@ describe('folder api', () => {
       type: ResourceType.Asset,
       id: 'test-id',
     })
+    expect(auditLogService.logAction).toHaveBeenCalledWith({
+      action: 'asset_update',
+      teamId: 'test-team',
+      userId: 'user1',
+      projectId: undefined,
+      itemId: 'test-id',
+    })
   })
 
   it('POST /folders', async () => {
@@ -131,6 +147,13 @@ describe('folder api', () => {
       permission: Permission.Edit,
       type: ResourceType.Asset,
       id: 'parent-id',
+    })
+    expect(auditLogService.logAction).toHaveBeenCalledWith({
+      action: 'asset_create',
+      teamId: 'test-team',
+      userId: 'user1',
+      projectId: undefined,
+      itemId: 'new-id',
     })
   })
 
@@ -186,6 +209,13 @@ describe('folder api', () => {
       id: 'test-id',
     })
     expect(assetService.deleteAssets).toHaveBeenCalledWith(['test-id'])
+    expect(auditLogService.logAction).toHaveBeenCalledWith({
+      action: 'asset_delete',
+      teamId: 'test-team',
+      userId: 'user1',
+      projectId: undefined,
+      itemId: 'test-id',
+    })
   })
 
   it('POST /folders/restore', async () => {

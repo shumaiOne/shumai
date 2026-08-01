@@ -6,9 +6,16 @@ import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/a
 import { inviteService } from '@shumai/core/src/invite/invite'
 import { notificationService } from '@shumai/core/src/notification/notification'
 
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
+
 vi.mock('@shumai/core/src/invite/invite')
 vi.mock('@shumai/core/src/notification/notification')
 vi.mock('@shumai/core/src/authz/authz')
+vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
+  auditLogService: {
+    logAction: vi.fn().mockResolvedValue({}),
+  },
+}))
 
 vi.mock('./middleware/auth', () => ({
   authMiddleware: async (
@@ -67,6 +74,7 @@ describe('Invite API', () => {
 
     // Using any here because mocking complex service return types or Hono context is overly verbose for this test.
     vi.mocked(inviteService.createTeamInvite).mockResolvedValue({
+      id: 'inv1',
       code: 'test-code',
       role: 'editor',
       teamId: 't1',
@@ -104,6 +112,12 @@ describe('Invite API', () => {
       role: 'editor',
       inviterId: 'u1',
     })
+    expect(auditLogService.logAction).toHaveBeenCalledWith({
+      action: 'invite_create',
+      teamId: 't1',
+      userId: 'u1',
+      itemId: 'inv1',
+    })
   })
 
   it('POST /projects/:projectId/invite', async () => {
@@ -111,6 +125,7 @@ describe('Invite API', () => {
 
     // Using any here because mocking complex service return types or Hono context is overly verbose for this test.
     vi.mocked(inviteService.createProjectInvite).mockResolvedValue({
+      id: 'inv2',
       code: 'proj-code',
       role: 'reviewer',
       teamId: 't1',
@@ -150,6 +165,13 @@ describe('Invite API', () => {
       projectId: 'p1',
       role: 'reviewer',
       inviterId: 'u1',
+    })
+    expect(auditLogService.logAction).toHaveBeenCalledWith({
+      action: 'invite_create',
+      teamId: 't1',
+      userId: 'u1',
+      projectId: 'p1',
+      itemId: 'inv2',
     })
   })
 

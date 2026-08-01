@@ -4,6 +4,7 @@ import projectRoute from './project'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { projectService } from '@shumai/core/src/project/project'
 import { assetService } from '@shumai/core/src/asset/asset'
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 
 vi.mock('./middleware/auth', () => ({
   authMiddleware: async (
@@ -162,6 +163,10 @@ describe('project api', () => {
   })
 
   it('POST /projects/:projectId/reparent', async () => {
+    const { prisma } = await import('@shumai/db')
+    // Mocking partial Prisma project model in test
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(prisma.project.findUnique).mockResolvedValue({ id: 'p', teamId: 't1' } as any)
     vi.mocked(assetService.reparentAssets).mockResolvedValue(undefined)
 
     const res = await app.request('/projects/p/reparent', {
@@ -196,6 +201,52 @@ describe('project api', () => {
       newParentId: 'new_parent_id',
       assetIds: ['asset_1', 'asset_2'],
       creatorId: 'user1',
+    })
+    expect(auditLogService.logAction).toHaveBeenCalledWith({
+      action: 'asset_reparent',
+      teamId: 't1',
+      userId: 'user1',
+      projectId: 'p',
+      itemId: 'asset_1',
+    })
+    expect(auditLogService.logAction).toHaveBeenCalledWith({
+      action: 'asset_reparent',
+      teamId: 't1',
+      userId: 'user1',
+      projectId: 'p',
+      itemId: 'asset_2',
+    })
+  })
+
+  it('POST /projects/:projectId/copy', async () => {
+    const { prisma } = await import('@shumai/db')
+    // Mocking partial Prisma project model in test
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(prisma.project.findUnique).mockResolvedValue({ id: 'p', teamId: 't1' } as any)
+    vi.mocked(assetService.copyAssets).mockResolvedValue(undefined)
+
+    const res = await app.request('/projects/p/copy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        newParentId: 'new_parent_id',
+        assetIds: ['asset_1'],
+      }),
+    })
+
+    expect(res.status).toBe(204)
+    expect(assetService.copyAssets).toHaveBeenCalledWith({
+      newParentId: 'new_parent_id',
+      assetIds: ['asset_1'],
+      withComments: false,
+      creatorId: 'user1',
+    })
+    expect(auditLogService.logAction).toHaveBeenCalledWith({
+      action: 'asset_copy',
+      teamId: 't1',
+      userId: 'user1',
+      projectId: 'p',
+      itemId: 'asset_1',
     })
   })
 

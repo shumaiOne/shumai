@@ -4,6 +4,8 @@ import metadataRoute from './metadata'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
+
 vi.mock('./middleware/auth', () => ({
   authMiddleware: async (
     c: Context<{ Variables: { user: { id: string; name: string } } }>,
@@ -16,6 +18,22 @@ vi.mock('./middleware/auth', () => ({
 
 vi.mock('@shumai/core/src/authz/authz')
 vi.mock('@shumai/core/src/metadata/metadata')
+vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
+  auditLogService: {
+    logAction: vi.fn().mockResolvedValue({}),
+  },
+}))
+vi.mock('@shumai/db', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@shumai/db')>()
+  return {
+    ...actual,
+    prisma: {
+      project: {
+        findUnique: vi.fn().mockResolvedValue({ teamId: 't1' }),
+      },
+    },
+  }
+})
 
 describe('metadata api', () => {
   const app = new Hono<{ Variables: { user: { id: string; name: string } } }>()
@@ -90,6 +108,12 @@ describe('metadata api', () => {
       permission: Permission.Admin,
       type: ResourceType.Team,
       id: 't1',
+    })
+    expect(auditLogService.logAction).toHaveBeenCalledWith({
+      action: 'metadata_field_create',
+      teamId: 't1',
+      userId: 'user1',
+      itemId: 'newfield',
     })
   })
 
@@ -167,6 +191,13 @@ describe('metadata api', () => {
       type: ResourceType.MetadataField,
       id: 'f1',
     })
+    expect(auditLogService.logAction).toHaveBeenCalledWith({
+      action: 'metadata_field_delete',
+      teamId: 't1',
+      userId: 'user1',
+      projectId: undefined,
+      itemId: 'f1',
+    })
   })
 
   it('PUT /fields/:fieldId', async () => {
@@ -203,6 +234,13 @@ describe('metadata api', () => {
       permission: Permission.Admin,
       type: ResourceType.MetadataField,
       id: 'f1',
+    })
+    expect(auditLogService.logAction).toHaveBeenCalledWith({
+      action: 'metadata_field_update',
+      teamId: 't1',
+      userId: 'user1',
+      projectId: undefined,
+      itemId: 'f1',
     })
   })
 })
