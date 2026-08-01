@@ -36,15 +36,13 @@ const route = new Hono<{ Variables: { user: User } }>()
     })
 
     const parentCtx = await assetService.getAssetContext(req.parentId)
-    if (parentCtx?.teamId) {
-      await auditLogService.logAction({
-        action: AuditAction.asset_create,
-        teamId: parentCtx.teamId,
-        userId: user.id,
-        projectId: parentCtx.projectId,
-        itemId: newAsset.id,
-      })
-    }
+    await auditLogService.logAction({
+      action: AuditAction.asset_create,
+      teamId: parentCtx.teamId,
+      userId: user.id,
+      projectId: parentCtx.projectId,
+      itemId: newAsset.id,
+    })
 
     return c.json(newAsset)
   })
@@ -85,15 +83,13 @@ const route = new Hono<{ Variables: { user: User } }>()
     })
 
     const ctx = await assetService.getAssetContext(folderId)
-    if (ctx?.teamId) {
-      await auditLogService.logAction({
-        action: AuditAction.asset_update,
-        teamId: ctx.teamId,
-        userId: user.id,
-        projectId: ctx.projectId,
-        itemId: folderId,
-      })
-    }
+    await auditLogService.logAction({
+      action: AuditAction.asset_update,
+      teamId: ctx.teamId,
+      userId: user.id,
+      projectId: ctx.projectId,
+      itemId: folderId,
+    })
 
     return c.json(updatedAsset)
   })
@@ -152,15 +148,13 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     for (let i = 0; i < req.ids.length; i++) {
       const ctx = contexts[i]
-      if (ctx?.teamId) {
-        await auditLogService.logAction({
-          action: AuditAction.asset_delete,
-          teamId: ctx.teamId,
-          userId: user.id,
-          projectId: ctx.projectId,
-          itemId: req.ids[i],
-        })
-      }
+      await auditLogService.logAction({
+        action: AuditAction.asset_delete,
+        teamId: ctx.teamId,
+        userId: user.id,
+        projectId: ctx.projectId,
+        itemId: req.ids[i],
+      })
     }
 
     return c.body(null, 204)

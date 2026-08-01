@@ -2721,4 +2721,37 @@ describe('AssetService — natural sort by name', () => {
       expect(info.sizeByte).toBe(largeSize)
     })
   })
+
+  describe('getAssetContext', () => {
+    it('returns context for project asset', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'User_Ctx_' + Date.now(), email: `test-ctx-${Date.now()}@example.com` },
+      })
+      const team = await prisma.team.create({
+        data: { name: 'Team_Ctx_' + Date.now() },
+      })
+      const project = await prisma.project.create({
+        data: { name: 'Project_Ctx', teamId: team.id },
+      })
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'Asset_Ctx',
+          type: AssetType.folder,
+          projectId: project.id,
+          creatorId: user.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      const context = await assetService.getAssetContext(asset.id)
+      expect(context.projectId).toBe(project.id)
+      expect(context.teamId).toBe(team.id)
+    })
+
+    it('throws error when asset is not found', async () => {
+      await expect(assetService.getAssetContext('non-existent-id')).rejects.toThrow(
+        'Asset not found: non-existent-id',
+      )
+    })
+  })
 })

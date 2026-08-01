@@ -77,15 +77,13 @@ const route = new Hono<{ Variables: { user: User } }>()
     })
 
     const context = await assetService.getAssetContext(fileId)
-    if (context?.teamId) {
-      await auditLogService.logAction({
-        action: AuditAction.asset_update,
-        teamId: context.teamId,
-        userId: user.id,
-        projectId: context.projectId,
-        itemId: fileId,
-      })
-    }
+    await auditLogService.logAction({
+      action: AuditAction.asset_update,
+      teamId: context.teamId,
+      userId: user.id,
+      projectId: context.projectId,
+      itemId: fileId,
+    })
 
     return c.json(updatedAsset)
   })
@@ -108,15 +106,13 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     for (let i = 0; i < req.ids.length; i++) {
       const ctx = contexts[i]
-      if (ctx?.teamId) {
-        await auditLogService.logAction({
-          action: AuditAction.asset_delete,
-          teamId: ctx.teamId,
-          userId: user.id,
-          projectId: ctx.projectId,
-          itemId: req.ids[i],
-        })
-      }
+      await auditLogService.logAction({
+        action: AuditAction.asset_delete,
+        teamId: ctx.teamId,
+        userId: user.id,
+        projectId: ctx.projectId,
+        itemId: req.ids[i],
+      })
     }
 
     return c.body(null, 204)
@@ -148,14 +144,12 @@ const route = new Hono<{ Variables: { user: User } }>()
       const hasStatus = req.some((m) => m.key === 'status')
       if (hasStatus) {
         const context = await assetService.getAssetContext(fileId)
-        if (context?.teamId) {
-          notificationService.create({
-            type: 'metadata_field_updated_status',
-            teamId: context.teamId,
-            creatorId: user.id,
-            assetId: fileId,
-          })
-        }
+        notificationService.create({
+          type: 'metadata_field_updated_status',
+          teamId: context.teamId,
+          creatorId: user.id,
+          assetId: fileId,
+        })
       }
 
       return c.json('')
@@ -190,34 +184,32 @@ const route = new Hono<{ Variables: { user: User } }>()
 
       const context = await assetService.getAssetContext(fileId)
 
-      if (context?.teamId) {
-        let targetUserId: string | undefined
-        if (req.replyToId) {
-          const parentComment = await prisma.assetComment.findUnique({
-            where: { id: req.replyToId },
-          })
-          if (parentComment?.creatorId) {
-            targetUserId = parentComment.creatorId
-          }
+      let targetUserId: string | undefined
+      if (req.replyToId) {
+        const parentComment = await prisma.assetComment.findUnique({
+          where: { id: req.replyToId },
+        })
+        if (parentComment?.creatorId) {
+          targetUserId = parentComment.creatorId
         }
-
-        notificationService.create({
-          type: notifType,
-          teamId: context.teamId,
-          creatorId: user.id,
-          assetId: fileId,
-          userId: targetUserId,
-          commentMessage: req.message,
-        })
-
-        await auditLogService.logAction({
-          action: AuditAction.comment_create,
-          teamId: context.teamId,
-          userId: user.id,
-          projectId: context.projectId,
-          itemId: comment.id,
-        })
       }
+
+      notificationService.create({
+        type: notifType,
+        teamId: context.teamId,
+        creatorId: user.id,
+        assetId: fileId,
+        userId: targetUserId,
+        commentMessage: req.message,
+      })
+
+      await auditLogService.logAction({
+        action: AuditAction.comment_create,
+        teamId: context.teamId,
+        userId: user.id,
+        projectId: context.projectId,
+        itemId: comment.id,
+      })
 
       return c.json(comment, 201)
     },
@@ -261,15 +253,13 @@ const route = new Hono<{ Variables: { user: User } }>()
 
       if (commentData?.assetId) {
         const context = await assetService.getAssetContext(commentData.assetId)
-        if (context?.teamId) {
-          await auditLogService.logAction({
-            action: AuditAction.comment_complete,
-            teamId: context.teamId,
-            userId: user.id,
-            projectId: context.projectId,
-            itemId: commentId,
-          })
-        }
+        await auditLogService.logAction({
+          action: AuditAction.comment_complete,
+          teamId: context.teamId,
+          userId: user.id,
+          projectId: context.projectId,
+          itemId: commentId,
+        })
       }
 
       return c.json(updated)
@@ -295,15 +285,13 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     if (commentData?.assetId) {
       const context = await assetService.getAssetContext(commentData.assetId)
-      if (context?.teamId) {
-        await auditLogService.logAction({
-          action: AuditAction.comment_delete,
-          teamId: context.teamId,
-          userId: user.id,
-          projectId: context.projectId,
-          itemId: commentId,
-        })
-      }
+      await auditLogService.logAction({
+        action: AuditAction.comment_delete,
+        teamId: context.teamId,
+        userId: user.id,
+        projectId: context.projectId,
+        itemId: commentId,
+      })
     }
 
     return c.json({ success: true })
