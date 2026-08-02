@@ -5,7 +5,7 @@ import { type SessionTreeEntry } from '@earendil-works/pi-agent-core'
 import { describe, expect, it, vi, afterEach } from 'vitest'
 import { DatabaseSessionStorage } from './database-session-storage'
 import { agentService } from '@shumai/core/src/agent/agent'
-import { createAgentSession } from './index'
+import { createAgentSession, type DbProviderInfo } from './index'
 import * as sandboxedBashModule from './tools/sandboxed-bash'
 import * as analyzeImageModule from './tools/analyze-image'
 import * as screenshotModule from './tools/screenshot'
@@ -25,10 +25,10 @@ describe('DatabaseSessionStorage', () => {
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
   }
 
-  const mockProviders = [
+  const mockProviders: DbProviderInfo[] = [
     {
       name: 'test-provider',
-      config: { apiKey: 'TEST_KEY' },
+      config: { api: 'openai-responses', apiKey: 'TEST_KEY' },
       models: [
         {
           modelId: 'test-model',
