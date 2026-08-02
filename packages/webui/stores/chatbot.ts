@@ -3,6 +3,15 @@ import { client } from '@/ui/api/client'
 import type { ChatMessage, ChatSessionInfo } from '@shumai/dtos'
 import { toast } from 'sonner'
 
+export const AGENT_PREFERENCE_STORAGE_KEY = 'shumai_selected_agent_id'
+
+const getInitialAgentId = (): string | null => {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    return localStorage.getItem(AGENT_PREFERENCE_STORAGE_KEY)
+  }
+  return null
+}
+
 export interface ChatAsset {
   id: string
   name: string
@@ -74,8 +83,17 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
   setHistorySessions: (sessions) => set({ historySessions: sessions }),
   isStreaming: false,
   setIsStreaming: (streaming) => set({ isStreaming: streaming }),
-  selectedAgentId: null,
-  setSelectedAgentId: (id) => set({ selectedAgentId: id }),
+  selectedAgentId: getInitialAgentId(),
+  setSelectedAgentId: (id) => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      if (id) {
+        localStorage.setItem(AGENT_PREFERENCE_STORAGE_KEY, id)
+      } else {
+        localStorage.removeItem(AGENT_PREFERENCE_STORAGE_KEY)
+      }
+    }
+    set({ selectedAgentId: id })
+  },
   inputText: '',
   setInputText: (text) => set({ inputText: text }),
   scrollTop: 0,
@@ -147,6 +165,7 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
   },
 
   startNewSession: () => {
+    const savedAgentId = getInitialAgentId()
     set({
       currentSessionId: null,
       messages: [],
@@ -154,6 +173,7 @@ export const useChatbotStore = create<ChatbotState>((set) => ({
       inputText: '',
       scrollTop: 0,
       isAtBottom: true,
+      ...(savedAgentId ? { selectedAgentId: savedAgentId } : {}),
     })
   },
 

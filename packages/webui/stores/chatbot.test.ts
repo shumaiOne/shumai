@@ -1,7 +1,34 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { useChatbotStore } from './chatbot'
+import { useChatbotStore, AGENT_PREFERENCE_STORAGE_KEY } from './chatbot'
 import { client } from '@/ui/api/client'
 import type { ChatMessage } from '@shumai/dtos'
+
+const localStorageMock = (() => {
+  let store: Record<string, string> = {}
+  return {
+    getItem: (key: string) => store[key] || null,
+    setItem: (key: string, value: string) => {
+      store[key] = value.toString()
+    },
+    removeItem: (key: string) => {
+      delete store[key]
+    },
+    clear: () => {
+      store = {}
+    },
+  }
+})()
+
+if (typeof globalThis.localStorage === 'undefined') {
+  Object.defineProperty(globalThis, 'localStorage', {
+    value: localStorageMock,
+  })
+}
+if (typeof globalThis.window === 'undefined') {
+  Object.defineProperty(globalThis, 'window', {
+    value: globalThis,
+  })
+}
 
 vi.mock('@/ui/api/client', () => {
   const chatMock = {
@@ -30,6 +57,7 @@ vi.mock('@/ui/api/client', () => {
 describe('useChatbotStore', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    localStorage.clear()
     useChatbotStore.setState({
       isHistoryMode: false,
       isChatbotOpen: false,
@@ -41,6 +69,30 @@ describe('useChatbotStore', () => {
       selectedAgentId: 'agent-1',
       inputText: '',
     })
+  })
+
+  it('should persist selectedAgentId to localStorage when setSelectedAgentId is called', () => {
+    useChatbotStore.getState().setSelectedAgentId('agent-pref-123')
+    expect(useChatbotStore.getState().selectedAgentId).toBe('agent-pref-123')
+    expect(localStorage.getItem(AGENT_PREFERENCE_STORAGE_KEY)).toBe('agent-pref-123')
+
+    useChatbotStore.getState().setSelectedAgentId(null)
+    expect(useChatbotStore.getState().selectedAgentId).toBeNull()
+    expect(localStorage.getItem(AGENT_PREFERENCE_STORAGE_KEY)).toBeNull()
+  })
+
+  it('should restore preferred agent from localStorage on startNewSession', () => {
+    localStorage.setItem(AGENT_PREFERENCE_STORAGE_KEY, 'agent-pref-saved')
+    useChatbotStore.setState({
+      selectedAgentId: 'agent-temporary-historical',
+      currentSessionId: 'sess-historical',
+      messages: [{ id: 'msg-1', role: 'user', content: 'test' } as unknown as ChatMessage],
+    })
+
+    useChatbotStore.getState().startNewSession()
+    const state = useChatbotStore.getState()
+    expect(state.currentSessionId).toBeNull()
+    expect(state.selectedAgentId).toBe('agent-pref-saved')
   })
 
   it('should persist and reset inputText', () => {
