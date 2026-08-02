@@ -6,7 +6,7 @@ import {
   type ThinkingLevel,
 } from '@earendil-works/pi-agent-core'
 import { NodeExecutionEnv } from '@earendil-works/pi-agent-core/node'
-import { getModel } from '@earendil-works/pi-ai/compat'
+import type { Api, Model } from '@earendil-works/pi-ai'
 import { agentService } from '@shumai/core/src/agent/agent'
 import { prisma } from '@shumai/db'
 import { Type, type TSchema } from '@sinclair/typebox'
@@ -42,33 +42,23 @@ export function getModelFromDb(providers: DbProviderInfo[], providerName: string
   const dbProvider = providers.find((p) => p.name === providerName)
   const dbModel = dbProvider?.models.find((m) => m.modelId === modelId)
 
-  if (!dbProvider || !dbModel) return undefined
+  if (!dbProvider || !dbModel) {
+    throw new Error(
+      `Provider "${providerName}" or model "${modelId}" not found in database configuration`,
+    )
+  }
 
-  // Model contains complex internal types from pi-ai
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let m: any
-  try {
-    // Try to get built-in model as template
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const builtIn = (getModel as any)(providerName, modelId)
-    if (!builtIn) {
-      throw new Error(`Model ${modelId} is not a built-in model`)
-    }
-    m = { ...builtIn }
-  } catch {
-    // Not a built-in model
-    m = {
-      id: modelId,
-      name: dbModel.name || modelId,
-      provider: providerName,
-      api: 'openai-responses',
-      baseUrl: '',
-      reasoning: false,
-      input: ['text'],
-      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-      contextWindow: 4096,
-      maxTokens: 4096,
-    }
+  const m = {
+    id: modelId,
+    name: dbModel.name || modelId,
+    provider: providerName,
+    api: 'openai-responses',
+    baseUrl: '',
+    reasoning: false,
+    input: ['text'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: 4096,
+    maxTokens: 4096,
   }
 
   // Override with database config
@@ -82,7 +72,7 @@ export function getModelFromDb(providers: DbProviderInfo[], providerName: string
   if (dbModel.name) {
     m.name = dbModel.name
   }
-  return m
+  return m as Model<Api>
 }
 
 export function getApiKeyAndHeadersFromDb(providers: DbProviderInfo[], providerName: string) {
@@ -151,9 +141,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
   const agentDir = path.join(process.cwd(), '.pi', 'agents', agentId)
   if (!fs.existsSync(agentDir)) fs.mkdirSync(agentDir, { recursive: true })
 
-  const model =
-    getModelFromDb(params.providers, providerName, modelId) ||
-    (getModel as unknown as (p: string, m: string) => unknown)(providerName, modelId)
+  const model = getModelFromDb(params.providers, providerName, modelId)
 
   const piDir = path.join(process.cwd(), '.pi')
   if (!fs.existsSync(piDir)) fs.mkdirSync(piDir, { recursive: true })

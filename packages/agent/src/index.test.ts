@@ -28,6 +28,27 @@ vi.mock('node:child_process', async () => {
   }
 })
 
+const mockProviders: DbProviderInfo[] = [
+  {
+    name: 'google',
+    config: { api: 'google-generative-ai', apiKey: 'GOOGLE_API_KEY' },
+    models: [
+      {
+        modelId: 'gemini',
+        name: 'Gemini',
+        config: {
+          api: 'google-generative-ai',
+          reasoning: false,
+          input: ['text'],
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          contextWindow: 8192,
+          maxTokens: 4096,
+        },
+      },
+    ],
+  },
+]
+
 describe('formatSkillsForPrompt', () => {
   it('should return empty string if skills array is empty', () => {
     expect(formatSkillsForPrompt([])).toBe('')
@@ -104,7 +125,7 @@ describe('Sandbox Network isolation integration', () => {
       systemPrompt: 'prompt',
       teamSkills: [],
       allowedDomains: [],
-      providers: [],
+      providers: mockProviders,
     })
 
     // 4. Verify SandboxManager.initialize was called and extract the callback
@@ -232,7 +253,7 @@ describe('Sandbox Network isolation integration', () => {
         systemPrompt: 'prompt',
         teamSkills: [],
         allowedDomains: [],
-        providers: [],
+        providers: mockProviders,
       })
 
       // 3. Call createAgentSession for Session 2
@@ -244,7 +265,7 @@ describe('Sandbox Network isolation integration', () => {
         systemPrompt: 'prompt',
         teamSkills: [],
         allowedDomains: [],
-        providers: [],
+        providers: mockProviders,
       })
 
       expect(registeredCallback).toBeDefined()
@@ -314,7 +335,7 @@ describe('Sandbox Network isolation integration', () => {
         systemPrompt: 'prompt',
         teamSkills: [],
         allowedDomains: [],
-        providers: [],
+        providers: mockProviders,
         thinkingLevel: 'high',
       })
       expect(harnessHigh.getThinkingLevel()).toBe('high')
@@ -328,7 +349,7 @@ describe('Sandbox Network isolation integration', () => {
         systemPrompt: 'prompt',
         teamSkills: [],
         allowedDomains: [],
-        providers: [],
+        providers: mockProviders,
       })
       expect(harnessDefault.getThinkingLevel()).toBe('off')
     } finally {
@@ -367,7 +388,7 @@ describe('Sandbox Network isolation integration', () => {
         systemPrompt: 'prompt',
         teamSkills: [],
         allowedDomains: [],
-        providers: [],
+        providers: mockProviders,
         maxRetries: 5,
         baseDelayMs: 1500,
       })
@@ -410,7 +431,7 @@ describe('Sandbox Network isolation integration', () => {
         systemPrompt: 'prompt',
         teamSkills: [],
         allowedDomains: [],
-        providers: [],
+        providers: mockProviders,
       })
       const tools = harness.getTools()
       const bashTool = tools.find((t) => t.name === 'bash')
@@ -452,6 +473,12 @@ describe('getModelFromDb', () => {
     expect(model?.id).toBe('non-existent-or-future-model')
     expect(model?.provider).toBe('google')
     expect(model?.api).toBe('google-generative-ai')
+  })
+
+  it('should throw an error when provider or model is not found in database configuration', () => {
+    expect(() => getModelFromDb([], 'google', 'non-existent')).toThrow(
+      'Provider "google" or model "non-existent" not found in database configuration',
+    )
   })
 })
 
@@ -497,7 +524,7 @@ describe('createAgentSession sandbox options', () => {
       systemPrompt: 'prompt',
       teamSkills: [],
       allowedDomains: [],
-      providers: [],
+      providers: mockProviders,
     })
     expect(initializeSpy).toHaveBeenCalledWith(
       expect.objectContaining({ enableWeakerNestedSandbox: false }),
@@ -514,7 +541,7 @@ describe('createAgentSession sandbox options', () => {
       systemPrompt: 'prompt',
       teamSkills: [],
       allowedDomains: [],
-      providers: [],
+      providers: mockProviders,
     })
     expect(initializeSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({ enableWeakerNestedSandbox: true }),
