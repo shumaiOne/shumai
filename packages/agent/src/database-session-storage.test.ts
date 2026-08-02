@@ -25,6 +25,20 @@ describe('DatabaseSessionStorage', () => {
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
   }
 
+  const mockProviders = [
+    {
+      name: 'test-provider',
+      config: { apiKey: 'TEST_KEY' },
+      models: [
+        {
+          modelId: 'test-model',
+          name: 'Test Model',
+          config: mockModelConfig,
+        },
+      ],
+    },
+  ]
+
   const setupTestData = async () => {
     const team = await prisma.team.create({ data: { name: 'Test Team' } })
     const provider = await prisma.provider.create({
@@ -340,7 +354,7 @@ describe('DatabaseSessionStorage', () => {
       allowedDomains: [],
       sessionId: sessionId,
       userId: user.id,
-      providers: [],
+      providers: mockProviders,
     })
 
     // 7. Verify skill environment variables are restored.
@@ -453,7 +467,7 @@ describe('DatabaseSessionStorage', () => {
       sessionId: sessionId,
       userId: user.id,
       userCommentId: 'new-comment-456',
-      providers: [],
+      providers: mockProviders,
     })
 
     // 4. Assert that the tools were instantiated using the new comment ID and user ID
@@ -507,7 +521,7 @@ describe('DatabaseSessionStorage', () => {
       sessionId: sessionId,
       userId: user.id,
       userCommentId: 'new-comment-456',
-      providers: [],
+      providers: mockProviders,
     })
 
     // 4. Assert that the tools were instantiated using the new comment ID and user ID
