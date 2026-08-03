@@ -16,7 +16,7 @@
     "@prisma/adapter-pg": "7.8.0",
     "@prisma/client": "7.8.0",
     "pg": "8.21.0",
-    "@earendil-works/pi-agent-core": "0.78.0",
+    "@earendil-works/pi-agent-core": "0.82.1",
     "zod": "4.4.3"
   },
   "devDependencies": {

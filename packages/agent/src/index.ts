@@ -5,8 +5,9 @@ import {
   type AgentTool,
   type ThinkingLevel,
 } from '@earendil-works/pi-agent-core'
-import { NodeExecutionEnv } from '@earendil-works/pi-agent-core/node'
 import type { Api, Model } from '@earendil-works/pi-ai'
+import { createModels, InMemoryCredentialStore } from '@earendil-works/pi-ai'
+import { builtinProviders } from '@earendil-works/pi-ai/providers/all'
 import { agentService } from '@shumai/core/src/agent/agent'
 import { prisma } from '@shumai/db'
 import { Type, type TSchema } from '@sinclair/typebox'
@@ -279,9 +280,22 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     ? []
     : allTools.filter((tool) => !deniedTools.includes(tool.name))
 
+  const credentials = new InMemoryCredentialStore()
+  const resolveKey = (key: string | undefined) => (key ? process.env[key] || key : undefined)
+  for (const p of params.providers) {
+    const apiKey = resolveKey(p.config?.apiKey)
+    if (apiKey) {
+      await credentials.modify(p.name, async () => ({ type: 'api_key' as const, key: apiKey }))
+    }
+  }
+  const modelsStore = createModels({ credentials })
+  for (const provider of builtinProviders()) {
+    modelsStore.setProvider(provider)
+  }
+
   const harness = new AgentHarness({
-    env: new NodeExecutionEnv({ cwd: process.cwd() }),
     session,
+    models: modelsStore,
     model,
     thinkingLevel: (thinkingLevel || 'off') as ThinkingLevel,
     streamOptions: {
@@ -311,9 +325,6 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
         prompt += formatSkillsForPrompt(teamSkills)
       }
       return prompt
-    },
-    getApiKeyAndHeaders: async (targetModel) => {
-      return getApiKeyAndHeadersFromDb(params.providers, targetModel.provider)
     },
     tools: enabledTools,
   })

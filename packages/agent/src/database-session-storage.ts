@@ -212,6 +212,30 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
     return (entry as { label?: string } | undefined)?.label
   }
 
+  async getSessionName(): Promise<string | undefined> {
+    return undefined
+  }
+
+  async getSessionStats(): Promise<{
+    messageCount: number
+    cachedTokens: number
+    uncachedTokens: number
+    totalTokens: number
+    costTotal: number
+  }> {
+    return {
+      messageCount: 0,
+      cachedTokens: 0,
+      uncachedTokens: 0,
+      totalTokens: 0,
+      costTotal: 0,
+    }
+  }
+
+  async getPathToRootOrCompaction(leafId: string | null): Promise<SessionTreeEntry[]> {
+    return this.getPathToRoot(leafId)
+  }
+
   async getPathToRoot(leafId: string | null): Promise<SessionTreeEntry[]> {
     if (!leafId) return []
 

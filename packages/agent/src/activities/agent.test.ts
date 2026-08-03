@@ -70,7 +70,12 @@ describe('Agent Activities', () => {
 
     vi.mocked(piAgent.createAgentSession).mockResolvedValue({
       session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-      harness: mockHarness as unknown as AgentHarness,
+      harness: mockHarness as unknown as AgentHarness<
+        undefined,
+        Skill,
+        PromptTemplate,
+        AgentHarnessTool<undefined>
+      >,
     })
 
     const context = {
@@ -137,7 +142,12 @@ describe('Agent Activities', () => {
 
     vi.mocked(piAgent.createAgentSession).mockResolvedValue({
       session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-      harness: mockHarness as unknown as AgentHarness,
+      harness: mockHarness as unknown as AgentHarness<
+        undefined,
+        Skill,
+        PromptTemplate,
+        AgentHarnessTool<undefined>
+      >,
     })
 
     const context = {
@@ -198,7 +208,12 @@ describe('Agent Activities', () => {
 
     vi.mocked(piAgent.createAgentSession).mockResolvedValue({
       session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-      harness: mockHarness as unknown as AgentHarness,
+      harness: mockHarness as unknown as AgentHarness<
+        undefined,
+        Skill,
+        PromptTemplate,
+        AgentHarnessTool<undefined>
+      >,
     })
 
     const context = {
@@ -266,7 +281,12 @@ describe('Agent Activities', () => {
 
     vi.mocked(piAgent.createAgentSession).mockResolvedValue({
       session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-      harness: mockHarness as unknown as AgentHarness,
+      harness: mockHarness as unknown as AgentHarness<
+        undefined,
+        Skill,
+        PromptTemplate,
+        AgentHarnessTool<undefined>
+      >,
     })
 
     const context = {
@@ -331,7 +351,12 @@ describe('Agent Activities', () => {
 
     vi.mocked(piAgent.createAgentSession).mockResolvedValue({
       session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-      harness: mockHarness as unknown as AgentHarness,
+      harness: mockHarness as unknown as AgentHarness<
+        undefined,
+        Skill,
+        PromptTemplate,
+        AgentHarnessTool<undefined>
+      >,
     })
 
     const context = {
@@ -371,7 +396,12 @@ describe('Agent Activities', () => {
 
     vi.mocked(piAgent.createAgentSession).mockResolvedValue({
       session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-      harness: mockHarness as unknown as AgentHarness,
+      harness: mockHarness as unknown as AgentHarness<
+        undefined,
+        Skill,
+        PromptTemplate,
+        AgentHarnessTool<undefined>
+      >,
     })
 
     const context = {
@@ -430,7 +460,12 @@ describe('Agent Activities', () => {
       }
       return {
         session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-        harness: mockHarness as unknown as AgentHarness,
+        harness: mockHarness as unknown as AgentHarness<
+          undefined,
+          Skill,
+          PromptTemplate,
+          AgentHarnessTool<undefined>
+        >,
       }
     })
 
@@ -1420,7 +1455,12 @@ describe('Agent Database Activities Integration', () => {
       }
       vi.mocked(piAgent.createAgentSession).mockResolvedValue({
         session: {} as unknown as Session<DatabaseSessionMetadata>,
-        harness: mockHarness as unknown as AgentHarness,
+        harness: mockHarness as unknown as AgentHarness<
+          undefined,
+          Skill,
+          PromptTemplate,
+          AgentHarnessTool<undefined>
+        >,
       })
 
       await generateSessionNameActivity({

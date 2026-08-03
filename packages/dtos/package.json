@@ -6,7 +6,7 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
-    "@earendil-works/pi-agent-core": "0.78.0",
+    "@earendil-works/pi-agent-core": "0.82.1",
     "zod": "4.4.3"
   }
 }
