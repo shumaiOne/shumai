@@ -6,7 +6,10 @@ test('owner uploads a file via the "Upload File" context menu action', async ({
   prisma,
 }) => {
   const { page, projectId } = project
-  const fileName = `e2e-upload-${Date.now()}.txt`
+  const fileName = `e2e-upload-${Date.now()}.png`
+  // 5x5 PNG (uploading an image avoids the slow txt->pdf transcode path)
+  const pngBase64 =
+    'iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAIAAAACDbGyAAAAEElEQVR4nGNgmHkGBVHIBwBfNyLesMZaCgAAAABJRU5ErkJggg=='
 
   await page.goto(`/projects/${projectId}`)
   await expect(page.getByText('This folder is empty')).toBeVisible()
@@ -19,8 +22,8 @@ test('owner uploads a file via the "Upload File" context menu action', async ({
   ])
   await fileChooser.setFiles({
     name: fileName,
-    mimeType: 'text/plain',
-    buffer: Buffer.from('hello from shumai e2e'),
+    mimeType: 'image/png',
+    buffer: Buffer.from(pngBase64, 'base64'),
   })
 
   // The file card appears immediately (optimistic) and then gets processed
