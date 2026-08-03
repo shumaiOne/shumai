@@ -1,6 +1,6 @@
 import { prisma } from '@shumai/db'
 import { ProviderConfigSerializable, providerModelSchema } from '@shumai/dtos'
-import { builtinProviders } from '@shumai/core/src/generated/providers.generated'
+import { getBuiltinProvidersMap } from '@shumai/core/src/provider/builtin'
 import { z } from 'zod'
 
 type ProviderModel = z.infer<typeof providerModelSchema>
@@ -19,23 +19,20 @@ export class ProviderService {
     })
 
     if (team && team._count.providers === 0) {
+      const builtinProviders = getBuiltinProvidersMap()
       // We insert them one by one in reverse order to ensure that the
       // popular providers (first in builtinProviders) get the highest ULIDs
       // and appear first when sorted by id DESC.
       const entries = Object.entries(builtinProviders).reverse()
       for (const [name, data] of entries) {
-        const typedData = data as unknown as {
-          config: ProviderConfigSerializable
-          models: ProviderModel[]
-        }
         await this.prismaClient.provider.create({
           data: {
             teamId: team.id,
             name,
-            config: typedData.config,
+            config: data.config,
             isBuiltin: true,
             models: {
-              create: typedData.models.map((m) => ({
+              create: data.models.map((m) => ({
                 modelId: m.modelId,
                 name: m.name,
                 config: m.config,

@@ -70,7 +70,8 @@ describe('Agent Activities', () => {
 
     vi.mocked(piAgent.createAgentSession).mockResolvedValue({
       session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-      harness: mockHarness as unknown as AgentHarness,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
+      harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
     })
 
     const context = {
@@ -137,7 +138,8 @@ describe('Agent Activities', () => {
 
     vi.mocked(piAgent.createAgentSession).mockResolvedValue({
       session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-      harness: mockHarness as unknown as AgentHarness,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
+      harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
     })
 
     const context = {
@@ -198,7 +200,8 @@ describe('Agent Activities', () => {
 
     vi.mocked(piAgent.createAgentSession).mockResolvedValue({
       session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-      harness: mockHarness as unknown as AgentHarness,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
+      harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
     })
 
     const context = {
@@ -266,7 +269,8 @@ describe('Agent Activities', () => {
 
     vi.mocked(piAgent.createAgentSession).mockResolvedValue({
       session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-      harness: mockHarness as unknown as AgentHarness,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
+      harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
     })
 
     const context = {
@@ -331,7 +335,8 @@ describe('Agent Activities', () => {
 
     vi.mocked(piAgent.createAgentSession).mockResolvedValue({
       session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-      harness: mockHarness as unknown as AgentHarness,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
+      harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
     })
 
     const context = {
@@ -371,7 +376,8 @@ describe('Agent Activities', () => {
 
     vi.mocked(piAgent.createAgentSession).mockResolvedValue({
       session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-      harness: mockHarness as unknown as AgentHarness,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
+      harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
     })
 
     const context = {
@@ -430,7 +436,8 @@ describe('Agent Activities', () => {
       }
       return {
         session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-        harness: mockHarness as unknown as AgentHarness,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
+        harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
       }
     })
 
@@ -1420,7 +1427,8 @@ describe('Agent Database Activities Integration', () => {
       }
       vi.mocked(piAgent.createAgentSession).mockResolvedValue({
         session: {} as unknown as Session<DatabaseSessionMetadata>,
-        harness: mockHarness as unknown as AgentHarness,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
+        harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
       })
 
       await generateSessionNameActivity({

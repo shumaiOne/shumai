@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@earendil-works/pi-agent-core": "0.78.0",
+    "@earendil-works/pi-agent-core": "0.82.1",
     "@google/genai": "1.52.0",
     "@shumai/agent": "workspace:*",
     "@shumai/core": "workspace:*",

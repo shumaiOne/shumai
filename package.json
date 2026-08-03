@@ -28,7 +28,6 @@
     "db:migrate": "bun run prisma migrate dev",
     "db:deploy": "bun run prisma migrate deploy",
     "db:generate": "cd packages/db && bunx prisma generate",
-    "generate-providers": "bun run scripts/generate-builtin-providers.ts",
     "worker:agent": "bun apps/agent/src/index.ts",
     "worker:transcode": "bun apps/transcode/src/index.ts",
     "build": "bun run build.ts",

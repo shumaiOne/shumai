@@ -212,6 +212,72 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
     return (entry as { label?: string } | undefined)?.label
   }
 
+  async getSessionName(): Promise<string | undefined> {
+    const session = await prisma.agentSession.findUnique({
+      where: { id: this.sessionId },
+      select: { name: true },
+    })
+    return session?.name || undefined
+  }
+
+  async getSessionStats(): Promise<{
+    messageCount: number
+    cachedTokens: number
+    uncachedTokens: number
+    totalTokens: number
+    costTotal: number
+  }> {
+    const entries = await this.getEntries()
+
+    let messageCount = 0
+    let cachedTokens = 0
+    let uncachedTokens = 0
+    let totalTokens = 0
+    let costTotal = 0
+
+    for (const entry of entries) {
+      if (entry.type === 'message') {
+        const msg = entry.message
+        if (msg.role === 'user' || msg.role === 'assistant') {
+          messageCount++
+        }
+        if (msg.role === 'assistant' && msg.usage) {
+          cachedTokens += msg.usage.cacheRead || 0
+          uncachedTokens += (msg.usage.input || 0) + (msg.usage.output || 0)
+          totalTokens +=
+            msg.usage.totalTokens ||
+            (msg.usage.input || 0) + (msg.usage.output || 0) + (msg.usage.cacheRead || 0)
+          if (msg.usage.cost) {
+            costTotal += msg.usage.cost.total || 0
+          }
+        }
+      } else if (entry.type === 'compaction' || entry.type === 'branch_summary') {
+        const usage = entry.usage
+        if (usage) {
+          cachedTokens += usage.cacheRead || 0
+          uncachedTokens += (usage.input || 0) + (usage.output || 0)
+          totalTokens +=
+            usage.totalTokens || (usage.input || 0) + (usage.output || 0) + (usage.cacheRead || 0)
+          if (usage.cost) {
+            costTotal += usage.cost.total || 0
+          }
+        }
+      }
+    }
+
+    return {
+      messageCount,
+      cachedTokens,
+      uncachedTokens,
+      totalTokens,
+      costTotal,
+    }
+  }
+
+  async getPathToRootOrCompaction(leafId: string | null): Promise<SessionTreeEntry[]> {
+    return this.getPathToRoot(leafId)
+  }
+
   async getPathToRoot(leafId: string | null): Promise<SessionTreeEntry[]> {
     if (!leafId) return []
 

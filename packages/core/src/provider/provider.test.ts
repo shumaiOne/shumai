@@ -4,7 +4,7 @@ import { agentService } from '@shumai/core/src/agent/agent'
 import { providerService } from './provider'
 import { describe, expect, it } from 'vitest'
 import { ProviderConfigSerializable, providerModelSchema } from '@shumai/dtos'
-import { builtinProviders } from '@shumai/core/src/generated/providers.generated'
+import { getBuiltinProvidersMap } from '@shumai/core/src/provider/builtin'
 import { z } from 'zod'
 
 type ProviderModel = z.infer<typeof providerModelSchema>
@@ -35,6 +35,7 @@ describe('ProviderService', () => {
 
     // The first provider in generated file is 'openai'
     // Since we use id: 'desc', 'openai' should be first in the list
+    const builtinProviders = getBuiltinProvidersMap()
     const firstInGenerated = Object.keys(builtinProviders)[0]
     expect(providers[0].name).toBe(firstInGenerated)
   })

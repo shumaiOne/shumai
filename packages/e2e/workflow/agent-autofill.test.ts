@@ -5,7 +5,7 @@ import { workflowService, TaskQueueAgent, TaskQueueTranscode } from '@shumai/wor
 import { initAgentWorkflows } from '@shumai/agent'
 import { initTranscodeWorkflows } from '@shumai/transcode'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import { AgentHarness, type AgentTool } from '@earendil-works/pi-agent-core'
+import { AgentHarness } from '@earendil-works/pi-agent-core'
 import { fileURLToPath } from 'url'
 import * as path from 'path'
 
@@ -38,15 +38,22 @@ describe.each(['local', 'temporal'] as const)(
       ) {
         // Find the real autofill_metadata tool configured on the harness
         const tools = this.getTools()
-        const autofillTool = tools.find((t: AgentTool) => t.name === 'autofill_metadata')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Tool execution mock for E2E harness test
+        const autofillTool = tools.find((t) => t.name === 'autofill_metadata') as any
 
         if (autofillTool) {
           // Execute the real tool callback to perform the actual DB updates
-          await autofillTool.execute('call-123', {
-            title: 'E2E Title Extracted',
-            confidence: 0.95,
-            completed: true,
-          })
+          await autofillTool.execute(
+            'call-123',
+            {
+              title: 'E2E Title Extracted',
+              confidence: 0.95,
+              completed: true,
+            },
+            undefined,
+            undefined,
+            undefined,
+          )
         }
 
         // Return a successful assistant response mock
