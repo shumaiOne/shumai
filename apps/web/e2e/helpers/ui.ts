@@ -34,6 +34,14 @@ export async function openMembersDialog(page: Page): Promise<Locator> {
   return dialog
 }
 
+/** Opens the project members dialog from the project file-browser toolbar. */
+export async function openProjectMembersDialog(page: Page): Promise<Locator> {
+  await page.getByTestId('project-members-trigger').click()
+  const dialog = page.locator('[role="dialog"]')
+  await expect(dialog).toBeVisible()
+  return dialog
+}
+
 /** Clicks "Generate Link" in the members dialog and returns the invite link. */
 export async function generateInviteLink(dialog: Locator): Promise<string> {
   await dialog.getByRole('button', { name: 'Generate Link' }).click()

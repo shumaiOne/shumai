@@ -71,6 +71,10 @@ apps/web/e2e/
 | Owner creates a share link from a file context menu and lands on the share page | `tests/project/create-share-link.spec.ts` |
 | Owner protects a share with a password; guests must enter it to view | `tests/project/share-password.spec.ts` |
 | Owner creates a collection from the sidebar; the collection shows project files | `tests/project/create-collection.spec.ts` |
+| Owner invites a member to a project; the member only sees the invited project | `tests/project/invite-member.spec.ts` |
+| Owner drags a file into a folder and a folder into another folder | `tests/project/move-folder-file.spec.ts` |
+| Owner drags a file onto a file to create a version stack | `tests/project/version-stack-create.spec.ts` |
+| Owner drags a file onto a version stack to add a new version | `tests/project/version-stack-add-version.spec.ts` |
 
 ## Conventions
 
