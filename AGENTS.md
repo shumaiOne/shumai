@@ -282,6 +282,13 @@ describe('Team API', () => {
 - **Mocking**: Mock ONLY AI API calls. Do not mock S3, databases, or media/transcode extraction services.
 - Mock the AI response by spying on `AgentHarness.prototype.prompt`:
 
+### Web App E2E Tests
+
+- Located in `apps/web/e2e/**/*.spec.ts`, organized by domain under `tests/<domain>/` (e.g. `auth`, `project`).
+- Run via `bun run test:e2e`.
+- **Fixtures**: Use the `owner` and `project` fixtures for setup — they seed data through API calls (no slow UI setup). UI interactions are only allowed in the flow under test.
+- **DB isolation**: Each test truncates all tables via the auto `prisma` fixture, so fixtures must create their data per-test. App projects run with `workers: 1` because all tests share a single database.
+
 ## Prisma Configuration & Migrations
 
 - Schema: `packages/db/prisma/schema.prisma`

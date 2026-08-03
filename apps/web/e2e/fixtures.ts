@@ -1,10 +1,20 @@
 import { test as base } from '@playwright/test'
+import type { BrowserContext, Page } from '@playwright/test'
 import { PrismaClient } from '../../../packages/db/src/generated/prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { Pool } from 'pg'
 import * as fs from 'fs'
 import * as path from 'path'
 import { fileURLToPath } from 'url'
+import {
+  E2E_APP_URL,
+  E2E_PASSWORD,
+  apiSignup,
+  injectAuthState,
+  resolveTeamId,
+  uniqueEmail,
+} from './helpers/auth'
+import { apiCreateProject, uniqueProjectName } from './helpers/project'
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url))
 const envPath = path.resolve(currentDir, '.env.e2e')
@@ -22,7 +32,25 @@ if (fs.existsSync(envPath)) {
   })
 }
 
-export const test = base.extend<{ prisma: PrismaClient }>({
+export interface OwnerFixture {
+  /** Page opened in a browser context logged in as the team owner. */
+  page: Page
+  context: BrowserContext
+  teamId: string
+  email: string
+  password: string
+}
+
+export interface ProjectFixture extends OwnerFixture {
+  projectId: string
+  projectName: string
+}
+
+export const test = base.extend<{
+  prisma: PrismaClient
+  owner: OwnerFixture
+  project: ProjectFixture
+}>({
   prisma: [
     // eslint-disable-next-line no-empty-pattern
     async ({}, use) => {
@@ -51,6 +79,39 @@ export const test = base.extend<{ prisma: PrismaClient }>({
     },
     { auto: true },
   ],
+  /**
+   * Sets up an authenticated team owner through the API (fast, no UI): creates
+   * the user, stores the session cookie in the browser context, injects the
+   * persisted auth state, and opens the team page.
+   */
+  owner: async ({ browser }, use) => {
+    const context = await browser.newContext({
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      baseURL: E2E_APP_URL,
+    })
+    const email = uniqueEmail('owner')
+    const password = E2E_PASSWORD
+    try {
+      // Create the owner via the API so the session cookie lands in the context
+      const user = await apiSignup(context.request, email, password)
+      await injectAuthState(context, user)
+      const teamId = await resolveTeamId(context.request)
+
+      // Open the app already logged in on the team page
+      const page = await context.newPage()
+      await page.goto(`/teams/${teamId}`)
+
+      await use({ page, context, teamId, email, password })
+    } finally {
+      await context.close()
+    }
+  },
+  /** Sets up an authenticated team owner plus a project created via the API. */
+  project: async ({ owner }, use) => {
+    const name = uniqueProjectName()
+    const project = await apiCreateProject(owner.context.request, owner.teamId, name)
+    await use({ ...owner, projectId: project.id, projectName: name })
+  },
 })
 
 export { expect } from '@playwright/test'

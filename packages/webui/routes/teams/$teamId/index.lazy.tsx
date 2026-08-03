@@ -261,6 +261,7 @@ function TeamPage() {
           <div
             className="flex items-center -space-x-2 cursor-pointer hover:opacity-90"
             onClick={() => setIsMembersDialogOpen(true)}
+            data-testid="team-members-trigger"
           >
             {safeMembers.slice(0, 3).map((member) => (
               <Avatar key={member.id} className="border-2 border-background w-8 h-8">
