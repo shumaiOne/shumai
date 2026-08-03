@@ -354,6 +354,7 @@ export function FileBrowserToolbar({
         {!isRecentlyDeleted && (
           <div
             className="flex items-center -space-x-2 cursor-pointer hover:opacity-90"
+            data-testid="project-members-trigger"
             onClick={() => handleOpenMembersDialog(true)}
           >
             {members?.slice(0, 3).map((member) => (

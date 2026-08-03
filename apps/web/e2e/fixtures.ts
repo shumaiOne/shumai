@@ -44,6 +44,8 @@ export interface OwnerFixture {
 export interface ProjectFixture extends OwnerFixture {
   projectId: string
   projectName: string
+  /** The project's root folder asset id. */
+  rootFolderId: string
 }
 
 /** The media kind of a seeded test file. */
@@ -132,10 +134,13 @@ export const test = base.extend<{
     }
   },
   /** Sets up an authenticated team owner plus a project created via the API. */
-  project: async ({ owner }, use) => {
+  project: async ({ owner, prisma }, use) => {
     const name = uniqueProjectName()
     const project = await apiCreateProject(owner.context.request, owner.teamId, name)
-    await use({ ...owner, projectId: project.id, projectName: name })
+    const projectRow = await prisma.project.findUnique({ where: { id: project.id } })
+    const rootFolderId = projectRow?.rootFolderId
+    if (!rootFolderId) throw new Error('Project has no root folder')
+    await use({ ...owner, projectId: project.id, projectName: name, rootFolderId })
   },
   /**
    * Sets up an owner + project with a seeded processed file asset under the
