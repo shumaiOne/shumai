@@ -55,11 +55,11 @@ apps/web/e2e/
 |---|---|
 | Sign up as the first user and become the team owner | `tests/auth/signup.spec.ts` |
 | Log in with existing credentials | `tests/auth/login.spec.ts` |
-| Owner invites a member via invite link and the invitee joins | `tests/auth/invite-member.spec.ts` |
 
 ### team
 | Test | File |
 |---|---|
+| Owner invites a member via invite link and the invitee joins | `tests/team/invite-member.spec.ts` |
 | Owner removes a member via the members dialog; the membership is deleted from the DB | `tests/team/remove-member.spec.ts` |
 
 ### project
