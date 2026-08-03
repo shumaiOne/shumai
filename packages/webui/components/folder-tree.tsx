@@ -560,6 +560,7 @@ export function FolderTree({
             </div>
             {canEdit && (
               <button
+                data-testid="create-collection"
                 onClick={() => createCollection()}
                 className="text-muted-foreground hover:text-foreground flex-none"
               >

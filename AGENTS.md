@@ -286,8 +286,9 @@ describe('Team API', () => {
 
 - Located in `apps/web/e2e/**/*.spec.ts`, organized by domain under `tests/<domain>/` (e.g. `auth`, `project`).
 - Run via `bun run test:e2e`.
-- **Fixtures**: Use the `owner` and `project` fixtures for setup — they seed data through API calls (no slow UI setup). UI interactions are only allowed in the flow under test.
+- **Fixtures**: Use the `owner`, `project`, and `file` fixtures for setup — they seed data through API calls/DB (no slow UI setup). UI interactions are only allowed in the flow under test.
 - **DB isolation**: Each test truncates all tables via the auto `prisma` fixture, so fixtures must create their data per-test. App projects run with `workers: 1` because all tests share a single database.
+- **Documentation**: Every test case MUST be documented in [`apps/web/e2e/README.md`](apps/web/e2e/README.md). Add or update the corresponding entry in the README whenever you add, rename, or remove a spec.
 
 ## Prisma Configuration & Migrations
 
