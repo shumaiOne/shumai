@@ -6,6 +6,7 @@ import { client } from '@/ui/api/client'
 import { useAnnotationStore } from '@/ui/stores/annotation-store'
 import type { Annotation } from '@/ui/types'
 import { useMutation } from '@tanstack/react-query'
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { Skeleton } from '../ui/skeleton'
 import { useMemberStore } from '@/ui/stores/members'
 import { useTeamContextStore } from '@/ui/stores/team-context'
@@ -158,6 +159,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
     const editorRef = useRef<HTMLDivElement>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
     const mentionRangeRef = useRef<Range | null>(null)
+    const mentionListRef = useRef<HTMLDivElement>(null)
 
     const { mutateAsync: uploadAttachment } = useMutation({
       mutationFn: async ({
@@ -237,6 +239,22 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
     useEffect(() => {
       setHighlightedIndex(0)
     }, [mentionQuery, showMentionList, collapsedSections])
+
+    // Keep the highlighted mention item visible when navigating with arrow keys
+    useEffect(() => {
+      mentionListRef.current
+        ?.querySelector<HTMLElement>(`[data-index="${highlightedIndex}"]`)
+        ?.scrollIntoView({ block: 'nearest' })
+    }, [highlightedIndex])
+
+    const getInitials = (name: string) => {
+      return name
+        .split(' ')
+        .map((n) => n[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase()
+    }
 
     const handleInput = () => {
       if (!editorRef.current) return
@@ -492,7 +510,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
         {showMentionList &&
           (membersLoading || filteredAgents.length > 0 || filteredHumans.length > 0) && (
             <div className="absolute bottom-full left-4 mb-2 w-64 rounded-xl shadow-lg border border-border overflow-hidden z-20 bg-popover text-popover-foreground animate-in fade-in slide-in-from-bottom-2 duration-200">
-              <div className="h-64 overflow-y-auto">
+              <div ref={mentionListRef} className="h-64 overflow-y-auto">
                 {membersLoading ? (
                   <div className="p-2 space-y-4 animate-pulse">
                     {/* Agents Skeleton */}
@@ -547,6 +565,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
                             return (
                               <button
                                 key={item.data.id}
+                                data-index={actualIndex}
                                 onClick={() => handleSelectEntity(item)}
                                 onMouseEnter={() => setHighlightedIndex(actualIndex)}
                                 className={`w-full flex items-center gap-2 px-3 py-2 transition-colors text-left ${
@@ -555,9 +574,18 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
                                     : 'hover:bg-accent/50'
                                 }`}
                               >
-                                <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-xs font-bold text-purple-600 dark:text-purple-300">
-                                  {item.data.name?.[0]}
-                                </div>
+                                <Avatar className="w-6 h-6">
+                                  {item.type === 'user' && item.data.image && (
+                                    <AvatarImage
+                                      src={item.data.image}
+                                      alt={item.data.name}
+                                      className="object-cover"
+                                    />
+                                  )}
+                                  <AvatarFallback className="text-[10px] bg-purple-400 text-black font-semibold">
+                                    {getInitials(item.data.name)}
+                                  </AvatarFallback>
+                                </Avatar>
                                 <span className="text-sm">{item.data.name}</span>
                               </button>
                             )
@@ -587,6 +615,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
                             return (
                               <button
                                 key={item.data.id}
+                                data-index={actualIndex}
                                 onClick={() => handleSelectEntity(item)}
                                 onMouseEnter={() => setHighlightedIndex(actualIndex)}
                                 className={`w-full flex items-center gap-2 px-3 py-2 transition-colors text-left ${
@@ -595,9 +624,18 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
                                     : 'hover:bg-accent/50'
                                 }`}
                               >
-                                <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-xs font-bold text-blue-600 dark:text-blue-300">
-                                  {item.data.name?.[0]}
-                                </div>
+                                <Avatar className="w-6 h-6">
+                                  {item.type === 'user' && item.data.image && (
+                                    <AvatarImage
+                                      src={item.data.image}
+                                      alt={item.data.name}
+                                      className="object-cover"
+                                    />
+                                  )}
+                                  <AvatarFallback className="text-[10px] bg-blue-400 text-black font-semibold">
+                                    {getInitials(item.data.name)}
+                                  </AvatarFallback>
+                                </Avatar>
                                 <span className="text-sm">{item.data.name}</span>
                               </button>
                             )
