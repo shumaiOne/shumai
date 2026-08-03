@@ -213,7 +213,11 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
   }
 
   async getSessionName(): Promise<string | undefined> {
-    return undefined
+    const session = await prisma.agentSession.findUnique({
+      where: { id: this.sessionId },
+      select: { name: true },
+    })
+    return session?.name || undefined
   }
 
   async getSessionStats(): Promise<{
@@ -223,12 +227,50 @@ export class DatabaseSessionStorage implements SessionStorage<DatabaseSessionMet
     totalTokens: number
     costTotal: number
   }> {
+    const entries = await this.getEntries()
+
+    let messageCount = 0
+    let cachedTokens = 0
+    let uncachedTokens = 0
+    let totalTokens = 0
+    let costTotal = 0
+
+    for (const entry of entries) {
+      if (entry.type === 'message') {
+        const msg = entry.message
+        if (msg.role === 'user' || msg.role === 'assistant') {
+          messageCount++
+        }
+        if (msg.role === 'assistant' && msg.usage) {
+          cachedTokens += msg.usage.cacheRead || 0
+          uncachedTokens += (msg.usage.input || 0) + (msg.usage.output || 0)
+          totalTokens +=
+            msg.usage.totalTokens ||
+            (msg.usage.input || 0) + (msg.usage.output || 0) + (msg.usage.cacheRead || 0)
+          if (msg.usage.cost) {
+            costTotal += msg.usage.cost.total || 0
+          }
+        }
+      } else if (entry.type === 'compaction' || entry.type === 'branch_summary') {
+        const usage = entry.usage
+        if (usage) {
+          cachedTokens += usage.cacheRead || 0
+          uncachedTokens += (usage.input || 0) + (usage.output || 0)
+          totalTokens +=
+            usage.totalTokens || (usage.input || 0) + (usage.output || 0) + (usage.cacheRead || 0)
+          if (usage.cost) {
+            costTotal += usage.cost.total || 0
+          }
+        }
+      }
+    }
+
     return {
-      messageCount: 0,
-      cachedTokens: 0,
-      uncachedTokens: 0,
-      totalTokens: 0,
-      costTotal: 0,
+      messageCount,
+      cachedTokens,
+      uncachedTokens,
+      totalTokens,
+      costTotal,
     }
   }
 

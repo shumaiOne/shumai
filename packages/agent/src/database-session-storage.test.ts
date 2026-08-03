@@ -597,5 +597,70 @@ describe('DatabaseSessionStorage', () => {
 
       updateSpy.mockRestore()
     })
+
+    it('should return session name from agentSession record', async () => {
+      const { agent } = await setupTestData()
+      const storage = await DatabaseSessionStorage.create({ agentId: agent.id })
+
+      expect(await storage.getSessionName()).toBeUndefined()
+
+      await prisma.agentSession.update({
+        where: { id: storage.sessionId },
+        data: { name: 'My Chat Session' },
+      })
+
+      expect(await storage.getSessionName()).toBe('My Chat Session')
+    })
+
+    it('should aggregate session stats correctly', async () => {
+      const { agent } = await setupTestData()
+      const storage = await DatabaseSessionStorage.create({ agentId: agent.id })
+
+      const msg1: SessionTreeEntry = {
+        type: 'message',
+        id: 'stats-msg-1',
+        parentId: null,
+        timestamp: new Date().toISOString(),
+        message: {
+          role: 'user',
+          content: [{ type: 'text', text: 'Hello' }],
+          timestamp: Date.now(),
+        },
+      }
+
+      const msg2: SessionTreeEntry = {
+        type: 'message',
+        id: 'stats-msg-2',
+        parentId: 'stats-msg-1',
+        timestamp: new Date().toISOString(),
+        message: {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'Hi there!' }],
+          api: 'openai-responses',
+          provider: 'test-provider',
+          model: 'test-model',
+          stopReason: 'stop',
+          timestamp: Date.now(),
+          usage: {
+            input: 100,
+            output: 50,
+            cacheRead: 20,
+            cacheWrite: 0,
+            totalTokens: 170,
+            cost: { input: 0.01, output: 0.02, cacheRead: 0.002, cacheWrite: 0, total: 0.032 },
+          },
+        },
+      }
+
+      await storage.appendEntry(msg1)
+      await storage.appendEntry(msg2)
+
+      const stats = await storage.getSessionStats()
+      expect(stats.messageCount).toBe(2)
+      expect(stats.cachedTokens).toBe(20)
+      expect(stats.uncachedTokens).toBe(150)
+      expect(stats.totalTokens).toBe(170)
+      expect(stats.costTotal).toBeCloseTo(0.032)
+    })
   })
 })
