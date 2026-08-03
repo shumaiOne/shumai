@@ -552,7 +552,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
                             e.stopPropagation()
                             setCollapsedSections((prev) => ({ ...prev, bots: !prev.bots }))
                           }}
-                          className="w-full text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/50 border-b border-border sticky top-0 flex items-center justify-between hover:bg-muted transition-colors"
+                          className="w-full text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/50 border-b border-border flex items-center justify-between hover:bg-muted transition-colors"
                         >
                           <span>Agents</span>
                           <ChevronDown
@@ -601,7 +601,7 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
                             e.stopPropagation()
                             setCollapsedSections((prev) => ({ ...prev, users: !prev.users }))
                           }}
-                          className="w-full text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/50 border-b border-border sticky top-0 flex items-center justify-between hover:bg-muted transition-colors"
+                          className="w-full text-xs font-semibold text-muted-foreground px-3 py-2 bg-muted/50 border-b border-border flex items-center justify-between hover:bg-muted transition-colors"
                         >
                           <span>Members</span>
                           <ChevronDown
