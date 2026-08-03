@@ -58,6 +58,7 @@ export default defineConfig({
     {
       name: 'app-chromium',
       testDir: './apps/web/e2e',
+      workers: 1, // single worker so tests sharing the e2e database run serially
       fullyParallel: false, // run sequentially to avoid DB and storage conflicts
       use: {
         ...devices['Desktop Chrome'],
@@ -69,6 +70,7 @@ export default defineConfig({
       name: 'app-firefox',
       testDir: './apps/web/e2e',
       dependencies: ['app-chromium'],
+      workers: 1, // single worker so tests sharing the e2e database run serially
       fullyParallel: false,
       use: {
         ...devices['Desktop Firefox'],
@@ -80,6 +82,7 @@ export default defineConfig({
       name: 'app-webkit',
       testDir: './apps/web/e2e',
       dependencies: ['app-firefox'],
+      workers: 1, // single worker so tests sharing the e2e database run serially
       fullyParallel: false,
       use: {
         ...devices['Desktop Safari'],
