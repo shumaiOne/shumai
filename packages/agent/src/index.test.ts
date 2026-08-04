@@ -766,10 +766,14 @@ describe('createAgentSession bash restriction for non-owner users', () => {
     const readSkillTool = harness.getTools().find((t) => t.name === 'read_skill')
     expect(readSkillTool).toBeDefined()
     expect(harness.getTools().some((t) => t.name === 'bash')).toBe(false)
+    expect(harness.getActiveTools().some((t) => t.name === 'bash')).toBe(false)
 
     await readSkillTool!.execute('1', { skillId: skill.id }, undefined, undefined, undefined)
 
     expect(harness.getTools().some((t) => t.name === 'bash')).toBe(true)
+    // bash must be part of the ACTIVE tool set, not just the registry, or the model
+    // would never receive it on the next turn
+    expect(harness.getActiveTools().some((t) => t.name === 'bash')).toBe(true)
   })
 
   it('should not inject the bash tool for restricted users when bash is in deniedTools', async () => {

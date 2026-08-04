@@ -304,7 +304,13 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     if (!harness || bashInjected || deniedTools.includes('bash')) return
     if (harness.getTools().some((t) => t.name === 'bash')) return
     bashInjected = true
-    await harness.setTools([...harness.getTools(), sandboxedBash])
+    // Pass the full post-update tool list as activeToolNames: setTools only updates the
+    // registry otherwise, and the model would never see the bash tool on the next turn.
+    const next = [...harness.getTools(), sandboxedBash]
+    await harness.setTools(
+      next,
+      next.map((t) => t.name),
+    )
   }
   const readSkill = createReadSkillTool(userId, onEnvsAdded, restricted ? onSkillLoaded : undefined)
 

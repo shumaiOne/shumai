@@ -64,6 +64,15 @@ export function buildSessionMessages(pathEntries: PathEntry[]): ChatMessage[] {
         content: `Thinking level changed to ${entry.thinkingLevel}`,
         timestamp: timestampMs,
       } as unknown as ChatMessage)
+    } else if (entry.type === 'active_tools_change') {
+      messages.push({
+        id: entry.id,
+        role: 'custom',
+        customType: 'active-tools-change',
+        content: `Active tools: ${entry.activeToolNames.join(', ')}`,
+        details: { activeToolNames: entry.activeToolNames },
+        timestamp: timestampMs,
+      } as unknown as ChatMessage)
     }
   }
 
@@ -121,12 +130,9 @@ export function mapEntryToMessage(
   if (messages.length > 0) {
     return messages[0]
   }
-  return {
-    id: entryRecord.id,
-    role: 'user',
-    content: '',
-    timestamp: entryRecord.createdAt.getTime(),
-  } as unknown as ChatMessage
+  // Entry types that have no chat representation (e.g. leaf, label, model_change,
+  // or any unknown/unsupported type) are skipped rather than rendered as an empty message.
+  return null
 }
 
 export class ChatService {
