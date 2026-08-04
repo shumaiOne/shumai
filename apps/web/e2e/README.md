@@ -47,6 +47,7 @@ apps/web/e2e/
   | `image` | `test-file-<ts>.png` | |
   | `video` | `test-file-<ts>.mp4` | |
   | `pdf` | `test-file-<ts>.pdf` | |
+  | `audio` | `test-file-<ts>.wav` | |
 
 ## Test Cases
 
@@ -76,7 +77,17 @@ apps/web/e2e/
 | Owner drags a file onto a file to create a version stack | `tests/project/version-stack-create.spec.ts` |
 | Owner drags a file onto a version stack to add a new version | `tests/project/version-stack-add-version.spec.ts` |
 
+### file
+| Test | File |
+|---|---|
+| Create a comment on a binary file | `tests/file/binary-comment.spec.ts` |
+| Upload a txt file, wait for transcode, and create a comment with draw | `tests/file/txt-draw-comment.spec.ts` |
+| Upload an image file, wait for transcode, and create a comment with draw | `tests/file/image-draw-comment.spec.ts` |
+| Upload a video file, wait for transcode, and create a comment with draw at a non-zero timestamp | `tests/file/video-draw-comment.spec.ts` |
+| Upload an audio file, wait for transcode, and create a comment at a non-zero timestamp | `tests/file/audio-timestamp-comment.spec.ts` |
+
 ## Conventions
+
 
 - Seed data via fixtures/API/DB; use the UI only for the flow under test.
 - Each test truncates all tables via the auto `prisma` fixture, so fixtures must
