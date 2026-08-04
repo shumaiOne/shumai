@@ -585,7 +585,7 @@ describe('createAgentSession bash restriction for non-owner users', () => {
   type TestHarness = Awaited<ReturnType<typeof createAgentSession>>['harness']
 
   async function setupSession(opts: {
-    role: 'owner' | 'editor' | 'reviewer' | 'none'
+    role: 'owner' | 'editor' | 'reviewer' | 'none' | 'non-member'
     deniedTools?: string[]
     sessionId?: string
   }): Promise<{ team: { id: string }; userId?: string; harness: TestHarness }> {
@@ -613,7 +613,12 @@ describe('createAgentSession bash restriction for non-owner users', () => {
     })
 
     let userId: string | undefined
-    if (opts.role !== 'none') {
+    if (opts.role === 'non-member') {
+      const user = await prisma.user.create({
+        data: { name: 'Non Member', email: 'non-member@shumai.ai' },
+      })
+      userId = user.id // no teamMember record created
+    } else if (opts.role !== 'none') {
       const user = await prisma.user.create({
         data: { name: 'Bash User', email: 'bash-user@shumai.ai' },
       })
@@ -651,6 +656,16 @@ describe('createAgentSession bash restriction for non-owner users', () => {
   it('should include the bash tool from the start when there is no user context', async () => {
     const { harness } = await setupSession({ role: 'none' })
     expect(harness.getTools().some((t) => t.name === 'bash')).toBe(true)
+  })
+
+  it('should treat a user who is not a team member as restricted (fail-closed)', async () => {
+    const { harness } = await setupSession({ role: 'non-member' })
+    const tools = harness.getTools()
+    expect(tools.some((t) => t.name === 'bash')).toBe(false)
+    expect(tools.some((t) => t.name === 'read_skill')).toBe(true)
+    // @ts-expect-error accessing private property for verification
+    const prompt = await harness.systemPrompt()
+    expect(prompt).toContain('# Restricted User Context')
   })
 
   it.each(['editor', 'reviewer'] as const)(

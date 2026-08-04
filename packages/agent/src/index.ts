@@ -234,9 +234,11 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     Object.assign(skillEnvs, envs)
   }
 
-  // Resolve the requesting user's team role to enforce owner-only bash privileges
+  // Resolve the requesting user's team role to enforce owner-only bash privileges.
+  // A user who is not a member of the team is treated as restricted (fail-closed),
+  // while flows without a user context (e.g. autofill) remain unrestricted.
   const role = await resolveTeamMemberRole(teamId, userId)
-  const isOwner = role === undefined || role === 'owner'
+  const isOwner = !userId || role === 'owner'
   const restricted = !isOwner
 
   // Restore env variables from previously loaded skills in this session
