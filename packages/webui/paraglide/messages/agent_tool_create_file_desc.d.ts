@@ -1,7 +1,7 @@
 /**
 * | output |
 * | --- |
-* | "Allows the agent to create and upload new files to Shumai." |
+* | "Allows the agent to create files in Shumai, either by uploading a local file or by providing the file name and content directly." |
 *
 * @param {Agent_Tool_Create_File_DescInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options
