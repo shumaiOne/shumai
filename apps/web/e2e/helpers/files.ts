@@ -50,3 +50,72 @@ export async function apiAddAssetsToShare(
     throw new Error(`Add assets to share API failed (${res.status()}): ${await res.text()}`)
   }
 }
+
+/** Uploads a file asset through the official API upload task endpoints. */
+export async function apiUploadFile(
+  request: APIRequestContext,
+  teamId: string,
+  parentId: string,
+  fileName: string,
+  mimeType: string,
+  buffer: Buffer,
+): Promise<{ fileId: string; fileName: string }> {
+  const tempId = `temp-${Date.now()}`
+  const createRes = await request.post(`/api/teams/${teamId}/upload/tasks`, {
+    data: {
+      parentId,
+      files: [
+        {
+          id: tempId,
+          name: fileName,
+          type: 'file',
+          size: buffer.length,
+          mediaType: mimeType,
+          children: [],
+        },
+      ],
+    },
+  })
+  if (!createRes.ok()) {
+    throw new Error(`Create upload task failed (${createRes.status()}): ${await createRes.text()}`)
+  }
+  const taskData = (await createRes.json()) as {
+    taskId: string
+    presignedUrls: Array<{ id: string; fileId: string; url: string }>
+    createdAssets?: Array<{ tempId: string; assetId: string }>
+  }
+  const presigned = taskData.presignedUrls.find((p) => p.id === tempId)
+  const createdAssetId =
+    taskData.createdAssets?.find((c) => c.tempId === tempId)?.assetId || presigned?.fileId
+  if (!presigned || !createdAssetId) {
+    throw new Error('Create upload task did not return presigned URL or asset ID')
+  }
+
+  // Upload file buffer to presigned URL
+  const uploadRes = await request.put(presigned.url, {
+    headers: {
+      'Content-Type': mimeType,
+    },
+    data: buffer,
+  })
+  if (!uploadRes.ok()) {
+    throw new Error(
+      `Upload to S3 presigned URL failed (${uploadRes.status()}): ${await uploadRes.text()}`,
+    )
+  }
+
+  // Confirm upload task
+  const confirmRes = await request.patch(`/api/teams/${teamId}/upload/tasks/${taskData.taskId}`, {
+    data: {
+      fileId: createdAssetId,
+      status: 'success',
+    },
+  })
+  if (!confirmRes.ok()) {
+    throw new Error(
+      `Confirm upload task failed (${confirmRes.status()}): ${await confirmRes.text()}`,
+    )
+  }
+
+  return { fileId: createdAssetId, fileName }
+}

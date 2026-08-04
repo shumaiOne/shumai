@@ -15,9 +15,11 @@ import {
   uniqueEmail,
 } from './helpers/auth'
 import { apiCreateProject, uniqueProjectName } from './helpers/project'
+import { apiUploadFile } from './helpers/files'
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url))
 const envPath = path.resolve(currentDir, '.env.e2e')
+const fixturesDir = path.resolve(currentDir, '../../../packages/e2e/fixtures')
 
 // Load E2E environment variables if present
 if (fs.existsSync(envPath)) {
@@ -49,7 +51,7 @@ export interface ProjectFixture extends OwnerFixture {
 }
 
 /** The media kind of a seeded test file. */
-export type FileMediaType = 'text' | 'binary' | 'image' | 'video' | 'pdf'
+export type FileMediaType = 'text' | 'binary' | 'image' | 'video' | 'pdf' | 'audio'
 
 export interface FileFixtureOptions {
   /** Defaults to `binary` (no extension, never transcoded, no proxy). */
@@ -68,6 +70,27 @@ const FILE_TYPE_MAP: Record<FileMediaType, { ext: string; mime: string }> = {
   image: { ext: 'png', mime: 'image/png' },
   video: { ext: 'mp4', mime: 'video/mp4' },
   pdf: { ext: 'pdf', mime: 'application/pdf' },
+  audio: { ext: 'wav', mime: 'audio/wav' },
+}
+
+function getFileBuffer(mediaType: FileMediaType): Buffer {
+  switch (mediaType) {
+    case 'image':
+      return fs.readFileSync(path.join(fixturesDir, 'small.png'))
+    case 'video':
+      return fs.readFileSync(path.join(fixturesDir, 'small.mp4'))
+    case 'audio':
+      return fs.readFileSync(path.join(fixturesDir, 'small.wav'))
+    case 'pdf':
+      return fs.readFileSync(path.join(fixturesDir, 'test.pdf'))
+    case 'text':
+      return Buffer.from(
+        'Sample text content for PDF proxy transcode test.\nSecond line of text content.',
+      )
+    case 'binary':
+    default:
+      return Buffer.from('binary-file-content-sample')
+  }
 }
 
 export const test = base.extend<{
@@ -143,32 +166,26 @@ export const test = base.extend<{
     await use({ ...owner, projectId: project.id, projectName: name, rootFolderId })
   },
   /**
-   * Sets up an owner + project with a seeded processed file asset under the
-   * project root folder. The media type is configurable per test via
+   * Sets up an owner + project with an uploaded file asset under the
+   * project root folder via the API upload task endpoints. The media type is configurable per test via
    * `fileOptions` (defaults to `binary`).
    */
-  file: async ({ project, prisma, fileOptions }, use) => {
+  file: async ({ project, fileOptions }, use) => {
     const mediaType: FileMediaType = fileOptions.mediaType ?? 'binary'
     const { ext, mime } = FILE_TYPE_MAP[mediaType]
     const fileName = `test-file-${Date.now()}${ext ? `.${ext}` : ''}`
+    const buffer = getFileBuffer(mediaType)
 
-    const projectRow = await prisma.project.findUnique({ where: { id: project.projectId } })
-    const rootFolderId = projectRow?.rootFolderId
-    if (!rootFolderId) throw new Error('Project has no root folder')
+    const uploaded = await apiUploadFile(
+      project.context.request,
+      project.teamId,
+      project.rootFolderId,
+      fileName,
+      mime,
+      buffer,
+    )
 
-    const file = await prisma.asset.create({
-      data: {
-        name: fileName,
-        type: 'file',
-        status: 'processed',
-        sizeByte: 10,
-        mediaType: mime,
-        projectId: project.projectId,
-        parentId: rootFolderId,
-      },
-    })
-
-    await use({ ...project, fileId: file.id, fileName, fileMediaType: mediaType })
+    await use({ ...project, fileId: uploaded.fileId, fileName, fileMediaType: mediaType })
   },
 })
 
