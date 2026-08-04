@@ -16,6 +16,7 @@ const ROLE_HIERARCHY: Record<string, number> = {
 export const createReadSkillTool = (
   userId: string | undefined,
   onEnvsAdded: (envs: Record<string, string>) => void,
+  onSkillLoaded?: () => Promise<void> | void,
 ): AgentTool<typeof readSkillSchema, { skillId: string }> => ({
   name: 'read_skill',
   label: 'Read Agent Skill',
@@ -59,6 +60,9 @@ export const createReadSkillTool = (
 
     // Retrieve skill content using agentService
     const skillMdContent = await agentService.getSkillContent(params.skillId)
+
+    // Notify that a skill was successfully loaded (e.g. to enable restricted tools)
+    await onSkillLoaded?.()
 
     return {
       content: [{ type: 'text', text: skillMdContent }],

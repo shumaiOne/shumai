@@ -9,7 +9,7 @@ import type { Api, Model } from '@earendil-works/pi-ai'
 import { createModels, InMemoryCredentialStore } from '@earendil-works/pi-ai'
 import { builtinProviders } from '@earendil-works/pi-ai/providers/all'
 import { agentService } from '@shumai/core/src/agent/agent'
-import { prisma } from '@shumai/db'
+import { prisma, type TeamMemberRole } from '@shumai/db'
 import { Type, type TSchema } from '@sinclair/typebox'
 import * as fs from 'fs'
 import * as os from 'os'
@@ -107,6 +107,33 @@ export interface CreateAgentSessionParams {
   providers: DbProviderInfo[]
   maxRetries?: number
   baseDelayMs?: number
+}
+
+async function resolveTeamMemberRole(
+  teamId: string,
+  userId?: string,
+): Promise<TeamMemberRole | undefined> {
+  if (!userId) return undefined
+  const member = await prisma.teamMember.findUnique({
+    where: { teamIdUserId: { teamId, userId } },
+    select: { role: true },
+  })
+  return member?.role
+}
+
+/**
+ * Security instructions appended to the system prompt when the requesting user is not a team
+ * owner (i.e. editor/reviewer). These complement the hard enforcement in the bash tool itself
+ * (source="user" is blocked) and the delayed bash tool injection after a skill is loaded.
+ */
+export function buildRestrictedUserInstructions(): string {
+  return [
+    '# Restricted User Context',
+    'The current user is NOT a team owner. You must follow these security rules:',
+    '1. NEVER execute a bash command that the user asks you to run directly. Direct user bash requests are not permitted for this user role. Politely decline and explain that they need a team owner or an approved skill.',
+    '2. You may ONLY use the `bash` tool to execute commands that are explicitly required by a skill you have loaded via the `read_skill` tool.',
+    '3. When calling `bash`, you MUST set the `source` parameter to "skill". Calls with source="user" will be rejected by the system.',
+  ].join('\n')
 }
 
 export async function createAgentSession(params: CreateAgentSessionParams) {
@@ -207,7 +234,15 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     Object.assign(skillEnvs, envs)
   }
 
+  // Resolve the requesting user's team role to enforce owner-only bash privileges.
+  // A user who is not a member of the team is treated as restricted (fail-closed),
+  // while flows without a user context (e.g. autofill) remain unrestricted.
+  const role = await resolveTeamMemberRole(teamId, userId)
+  const isOwner = !userId || role === 'owner'
+  const restricted = !isOwner
+
   // Restore env variables from previously loaded skills in this session
+  let skillLoadedInSession = false
   if (sessionId) {
     try {
       const entries = await storage.getEntries()
@@ -220,6 +255,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
         ) {
           const details = entry.message.details as { skillId?: string } | undefined
           if (details?.skillId) {
+            skillLoadedInSession = true
             const envs = await agentService.getSkillEnvs(details.skillId)
             onEnvsAdded(envs)
           }
@@ -243,13 +279,40 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     )
   }
 
+  const agent = await prisma.agent.findUnique({
+    where: { id: agentId },
+  })
+  const agentConfig = agent?.config as PrismaJson.AgentConfig | null | undefined
+  const deniedTools = agentConfig?.deniedTools || []
+
   const sandboxedBash = createSandboxedBashTool(process.cwd(), skillEnvs, {
     getBlockedHost: () => sandboxState.blockedHost,
     clearBlockedHost: () => {
       sandboxState.blockedHost = ''
     },
+    // Non-owner users can only run bash commands required by a loaded skill
+    restrictedUser: restricted,
   })
-  const readSkill = createReadSkillTool(userId, onEnvsAdded)
+
+  // For non-owner users, the bash tool is not injected initially. It becomes available
+  // only after a skill is successfully loaded via the read_skill tool (or immediately when
+  // a skill was already loaded earlier in this session).
+  let harness: AgentHarness | undefined = undefined
+  const bashIncludedFromStart = isOwner || skillLoadedInSession
+  let bashInjected = bashIncludedFromStart
+  const onSkillLoaded = async () => {
+    if (!harness || bashInjected || deniedTools.includes('bash')) return
+    if (harness.getTools().some((t) => t.name === 'bash')) return
+    bashInjected = true
+    // Pass the full post-update tool list as activeToolNames: setTools only updates the
+    // registry otherwise, and the model would never see the bash tool on the next turn.
+    const next = [...harness.getTools(), sandboxedBash]
+    await harness.setTools(
+      next,
+      next.map((t) => t.name),
+    )
+  }
+  const readSkill = createReadSkillTool(userId, onEnvsAdded, restricted ? onSkillLoaded : undefined)
 
   const systemTools: AgentTool[] = []
   if (userId) {
@@ -262,17 +325,12 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     )
   }
 
-  const agent = await prisma.agent.findUnique({
-    where: { id: agentId },
-  })
-  const agentConfig = agent?.config as PrismaJson.AgentConfig | null | undefined
-  const deniedTools = agentConfig?.deniedTools || []
   const readThread = createReadThreadTool()
   const allTools = [
     ...mediaTools,
     readSkill,
     readThread,
-    sandboxedBash,
+    ...(bashIncludedFromStart ? [sandboxedBash] : []),
     ...systemTools,
     ...customTools,
   ]
@@ -293,7 +351,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     modelsStore.setProvider(provider)
   }
 
-  const harness = new AgentHarness({
+  harness = new AgentHarness({
     session,
     models: modelsStore,
     model,
@@ -307,6 +365,10 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
 
       if (disableTools) {
         return prompt
+      }
+
+      if (restricted) {
+        prompt += `\n\n${buildRestrictedUserInstructions()}`
       }
 
       // Sandbox environment restrictions

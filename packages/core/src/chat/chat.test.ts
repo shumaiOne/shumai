@@ -525,6 +525,39 @@ describe('ChatService', () => {
     expect((msg3.details as Record<string, unknown>).fromId).toBe('entry-old')
   })
 
+  it('should render active_tools_change entries as custom messages', () => {
+    const pathEntries = [
+      {
+        id: 'entry-tools',
+        type: 'active_tools_change',
+        timestamp: '2026-07-07T00:05:00.000Z',
+        activeToolNames: ['read_skill', 'bash'],
+      },
+    ]
+
+    const messages = buildSessionMessages(pathEntries as unknown as PathEntry[])
+    expect(messages).toHaveLength(1)
+    // Casting to any to access properties of union in test assertions
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const msg = messages[0] as any
+    expect(msg.role).toBe('custom')
+    expect(msg.customType).toBe('active-tools-change')
+    expect(msg.content).toBe('Active tools: read_skill, bash')
+    expect(msg.details).toEqual({ activeToolNames: ['read_skill', 'bash'] })
+  })
+
+  it('should return null for entry types without a chat representation instead of an empty message', () => {
+    const leafRecord = {
+      id: 'entry-leaf',
+      type: 'leaf',
+      parentId: null,
+      createdAt: new Date('2026-07-07T00:05:00.000Z'),
+      data: { targetId: 'some-entry' },
+    } as unknown as Parameters<typeof mapEntryToMessage>[0]
+
+    expect(mapEntryToMessage(leafRecord)).toBeNull()
+  })
+
   describe('getNewSessionMessages', () => {
     it('returns new messages and lastEntryId', async () => {
       const { user, team, project } = await setupBasicData()
