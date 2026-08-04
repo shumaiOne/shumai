@@ -57,7 +57,12 @@ describe('createSandboxedBashTool', () => {
     const signal = createMockSignal()
 
     // pi-coding-agent AgentTool.execute signature: (toolCallId, params, signal?, onUpdate?)
-    const executePromise = tool.execute('1', { command: 'echo hello' }, signal, onUpdate)
+    const executePromise = tool.execute(
+      '1',
+      { command: 'echo hello', source: 'user' },
+      signal,
+      onUpdate,
+    )
 
     await vi.waitFor(() => expect(spawn).toHaveBeenCalled())
 
@@ -81,6 +86,46 @@ describe('createSandboxedBashTool', () => {
     expect((result as any).content[0].text).toContain('hello output')
   })
 
+  it('should block user-requested commands when restrictedUser is enabled', async () => {
+    const tool = createSandboxedBashTool(mockCwd, {}, { restrictedUser: true })
+
+    const signal = createMockSignal()
+    await expect(
+      tool.execute('1', { command: 'echo hack', source: 'user' }, signal, createMockOnUpdate()),
+    ).rejects.toThrow(/not permitted for your role/)
+
+    expect(spawn).not.toHaveBeenCalled()
+    expect(SandboxManager.wrapWithSandbox).not.toHaveBeenCalled()
+  })
+
+  it('should allow skill-requested commands when restrictedUser is enabled', async () => {
+    const tool = createSandboxedBashTool(mockCwd, {}, { restrictedUser: true })
+
+    const mockStdout = new EventEmitter()
+    const mockStderr = new EventEmitter()
+    const mockChild = Object.assign(new EventEmitter(), {
+      stdout: mockStdout,
+      stderr: mockStderr,
+      pid: 124,
+      kill: vi.fn(),
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- spawn is mocked to return a partial ChildProcess
+    ;(spawn as any).mockReturnValue(mockChild)
+
+    const signal = createMockSignal()
+    const executePromise = tool.execute('1', { command: 'echo skill', source: 'skill' }, signal)
+
+    await vi.waitFor(() => expect(spawn).toHaveBeenCalled())
+    expect(SandboxManager.wrapWithSandbox).toHaveBeenCalledWith('echo skill')
+
+    mockStdout.emit('data', Buffer.from('skill output'))
+    mockChild.emit('close', 0)
+
+    const result = await executePromise
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ToolResponse content is an array of content blocks
+    expect((result as any).content[0].text).toContain('skill output')
+  })
+
   it('should handle process errors', async () => {
     const tool = createSandboxedBashTool(mockCwd, mockSessionManager.getSkillEnvs())
     const mockChild = new EventEmitter()
@@ -88,7 +133,12 @@ describe('createSandboxedBashTool', () => {
     ;(spawn as any).mockReturnValue(mockChild)
 
     const signal = createMockSignal()
-    const executePromise = tool.execute('1', { command: 'fail' }, signal, createMockOnUpdate())
+    const executePromise = tool.execute(
+      '1',
+      { command: 'fail', source: 'user' },
+      signal,
+      createMockOnUpdate(),
+    )
 
     await vi.waitFor(() => expect(spawn).toHaveBeenCalled())
     mockChild.emit('error', new Error('spawn failed'))
@@ -107,7 +157,12 @@ describe('createSandboxedBashTool', () => {
     ;(spawn as any).mockReturnValue(mockChild)
 
     const signal = createMockSignal()
-    const executePromise = tool.execute('1', { command: 'exit 1' }, signal, createMockOnUpdate())
+    const executePromise = tool.execute(
+      '1',
+      { command: 'exit 1', source: 'user' },
+      signal,
+      createMockOnUpdate(),
+    )
 
     await vi.waitFor(() => expect(spawn).toHaveBeenCalled())
     mockChild.emit('close', 1)
@@ -133,7 +188,7 @@ describe('createSandboxedBashTool', () => {
     const signal = createMockSignal()
     const executePromise = tool.execute(
       '1',
-      { command: 'sleep 10', timeout: 2 },
+      { command: 'sleep 10', timeout: 2, source: 'user' },
       signal,
       createMockOnUpdate(),
     )
@@ -165,7 +220,12 @@ describe('createSandboxedBashTool', () => {
     const killSpy = vi.spyOn(process, 'kill').mockImplementation(() => true as any)
 
     const signal = createMockSignal()
-    const executePromise = tool.execute('1', { command: 'long-run' }, signal, createMockOnUpdate())
+    const executePromise = tool.execute(
+      '1',
+      { command: 'long-run', source: 'user' },
+      signal,
+      createMockOnUpdate(),
+    )
 
     await vi.waitFor(() => expect(spawn).toHaveBeenCalled())
 
@@ -194,7 +254,7 @@ describe('createSandboxedBashTool', () => {
     ;(spawn as any).mockReturnValue(mockChild)
 
     const signal = createMockSignal()
-    const executePromise = tool.execute('1', { command: 'generate lines' }, signal)
+    const executePromise = tool.execute('1', { command: 'generate lines', source: 'user' }, signal)
 
     await vi.waitFor(() => expect(spawn).toHaveBeenCalled())
 
@@ -236,7 +296,11 @@ describe('createSandboxedBashTool', () => {
     ;(spawn as any).mockReturnValue(mockChild)
 
     const signal = createMockSignal()
-    const executePromise = tool.execute('1', { command: 'long single line' }, signal)
+    const executePromise = tool.execute(
+      '1',
+      { command: 'long single line', source: 'user' },
+      signal,
+    )
 
     await vi.waitFor(() => expect(spawn).toHaveBeenCalled())
 
@@ -266,7 +330,11 @@ describe('createSandboxedBashTool', () => {
     const killSpy = vi.spyOn(process, 'kill').mockImplementation(() => true as any)
 
     const signal = createMockSignal()
-    const executePromise = tool.execute('1', { command: 'slow', timeout: 1 }, signal)
+    const executePromise = tool.execute(
+      '1',
+      { command: 'slow', timeout: 1, source: 'user' },
+      signal,
+    )
 
     await vi.waitFor(() => expect(spawn).toHaveBeenCalled())
 

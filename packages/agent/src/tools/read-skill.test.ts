@@ -308,4 +308,59 @@ describe('readSkillTool', () => {
       ).rejects.toThrow('Permission denied')
     })
   })
+
+  describe('onSkillLoaded callback', () => {
+    it('should invoke onSkillLoaded after a successful skill load', async () => {
+      const team = await prisma.team.create({ data: { name: 'Callback Team' } })
+      const skill = await prisma.skill.create({
+        data: {
+          name: 'Callback Skill',
+          assetId: 'asset1',
+          hash: 'cb-hash',
+          teamId: team.id,
+        },
+      })
+
+      vi.spyOn(fs, 'existsSync').mockReturnValue(true)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking node fs readFileSync which has complex overloaded signatures
+      vi.spyOn(fs, 'readFileSync').mockImplementation((path: any) => {
+        if (path.toString().endsWith('.hash')) return 'cb-hash'
+        if (path.toString().endsWith('SKILL.md')) return '# Callback Skill'
+        return ''
+      })
+
+      const onSkillLoaded = vi.fn()
+      const readSkillTool = createReadSkillTool(undefined, () => {}, onSkillLoaded)
+      await readSkillTool.execute('1', { skillId: skill.id }, undefined, undefined)
+
+      expect(onSkillLoaded).toHaveBeenCalledTimes(1)
+    })
+
+    it('should not invoke onSkillLoaded when loading is denied', async () => {
+      const team = await prisma.team.create({ data: { name: 'Callback Deny Team' } })
+      const reviewerUser = await prisma.user.create({
+        data: { name: 'Reviewer Callback', email: 'callback-reviewer@test.com' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: reviewerUser.id, role: 'reviewer' },
+      })
+      const ownerSkill = await prisma.skill.create({
+        data: {
+          name: 'Owner Callback Skill',
+          assetId: 'asset1',
+          hash: 'cb-owner-hash',
+          teamId: team.id,
+          permission: 'owner',
+        },
+      })
+
+      const onSkillLoaded = vi.fn()
+      const reviewerTool = createReadSkillTool(reviewerUser.id, () => {}, onSkillLoaded)
+      await expect(
+        reviewerTool.execute('1', { skillId: ownerSkill.id }, undefined, undefined),
+      ).rejects.toThrow('Permission denied')
+
+      expect(onSkillLoaded).not.toHaveBeenCalled()
+    })
+  })
 })

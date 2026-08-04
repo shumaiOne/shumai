@@ -1,8 +1,9 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import {
   formatSkillsForPrompt,
   createAgentSession,
   getModelFromDb,
+  buildRestrictedUserInstructions,
   type DbProviderInfo,
 } from './index'
 import { createSandboxedBashTool } from './tools/sandboxed-bash'
@@ -11,6 +12,7 @@ import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import * as path from 'path'
 import * as childProcess from 'node:child_process'
+import * as fs from 'fs'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockSpawn: any = null
@@ -27,6 +29,9 @@ vi.mock('node:child_process', async () => {
     },
   }
 })
+
+// Mock fs so tests can stub skill content loading (matching read-skill.test.ts)
+vi.mock('fs')
 
 const mockProviders: DbProviderInfo[] = [
   {
@@ -172,7 +177,7 @@ describe('Sandbox Network isolation integration', () => {
       return mockChild
     }
 
-    const bashPromise = bashTool.execute('1', { command: 'curl blocked-api.com' })
+    const bashPromise = bashTool.execute('1', { command: 'curl blocked-api.com', source: 'user' })
 
     try {
       await expect(bashPromise).rejects.toThrow(
@@ -554,5 +559,238 @@ describe('createAgentSession sandbox options', () => {
       delete process.env.ENABLE_WEAKER_NESTED_SANDBOX
     }
     initializeSpy.mockRestore()
+  })
+})
+
+describe('buildRestrictedUserInstructions', () => {
+  it('should describe the restricted user bash rules', () => {
+    const instructions = buildRestrictedUserInstructions()
+    expect(instructions).toContain('# Restricted User Context')
+    expect(instructions).toContain(
+      'NEVER execute a bash command that the user asks you to run directly',
+    )
+    expect(instructions).toContain('loaded via the `read_skill` tool')
+    expect(instructions).toContain('parameter to "skill"')
+    expect(instructions).toContain('source="user" will be rejected')
+  })
+})
+
+describe('createAgentSession bash restriction for non-owner users', () => {
+  setupTestDbHooks()
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  type TestHarness = Awaited<ReturnType<typeof createAgentSession>>['harness']
+
+  async function setupSession(opts: {
+    role: 'owner' | 'editor' | 'reviewer' | 'none'
+    deniedTools?: string[]
+    sessionId?: string
+  }): Promise<{ team: { id: string }; userId?: string; harness: TestHarness }> {
+    const team = await prisma.team.create({ data: { name: 'Bash Restriction Team' } })
+
+    await prisma.user.create({
+      data: {
+        id: 'bash-agent',
+        name: 'Ai Agent Bash',
+        email: 'bash-agent@shumai.ai',
+        type: 'agent',
+      },
+    })
+    await prisma.agent.create({
+      data: {
+        id: 'bash-agent',
+        teamId: team.id,
+        type: 'chat',
+        config: {
+          provider: 'google',
+          model: 'gemini',
+          ...(opts.deniedTools ? { deniedTools: opts.deniedTools } : {}),
+        },
+      },
+    })
+
+    let userId: string | undefined
+    if (opts.role !== 'none') {
+      const user = await prisma.user.create({
+        data: { name: 'Bash User', email: 'bash-user@shumai.ai' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: user.id, role: opts.role },
+      })
+      userId = user.id
+    }
+
+    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
+    try {
+      const { harness } = await createAgentSession({
+        teamId: team.id,
+        agentId: 'bash-agent',
+        providerName: 'google',
+        modelId: 'gemini',
+        systemPrompt: 'prompt',
+        teamSkills: [],
+        allowedDomains: [],
+        providers: mockProviders,
+        userId,
+        sessionId: opts.sessionId,
+      })
+      return { team, userId, harness }
+    } finally {
+      initializeSpy.mockRestore()
+    }
+  }
+
+  it('should include the bash tool from the start for team owners', async () => {
+    const { harness } = await setupSession({ role: 'owner' })
+    expect(harness.getTools().some((t) => t.name === 'bash')).toBe(true)
+  })
+
+  it('should include the bash tool from the start when there is no user context', async () => {
+    const { harness } = await setupSession({ role: 'none' })
+    expect(harness.getTools().some((t) => t.name === 'bash')).toBe(true)
+  })
+
+  it.each(['editor', 'reviewer'] as const)(
+    'should exclude the bash tool initially for %s users',
+    async (role) => {
+      const { harness } = await setupSession({ role })
+      const tools = harness.getTools()
+      expect(tools.some((t) => t.name === 'bash')).toBe(false)
+      expect(tools.some((t) => t.name === 'read_skill')).toBe(true)
+    },
+  )
+
+  it('should include the bash tool from the start when a skill was already loaded earlier in the session', async () => {
+    const team = await prisma.team.create({ data: { name: 'Restore Team' } })
+    const user = await prisma.user.create({
+      data: { name: 'Restore User', email: 'restore@shumai.ai' },
+    })
+    await prisma.teamMember.create({
+      data: { teamId: team.id, userId: user.id, role: 'reviewer' },
+    })
+    await prisma.user.create({
+      data: {
+        id: 'bash-agent-restore',
+        name: 'Ai Agent Restore',
+        email: 'bash-agent-restore@shumai.ai',
+        type: 'agent',
+      },
+    })
+    await prisma.agent.create({
+      data: {
+        id: 'bash-agent-restore',
+        teamId: team.id,
+        type: 'chat',
+        config: { provider: 'google', model: 'gemini' },
+      },
+    })
+
+    const session = await prisma.agentSession.create({
+      data: {
+        agentId: 'bash-agent-restore',
+        userId: user.id,
+        cwd: process.cwd(),
+        type: 'chat',
+      },
+    })
+    await prisma.agentSessionEntry.create({
+      data: {
+        id: 'restore-entry-1',
+        sessionId: session.id,
+        type: 'message',
+        data: {
+          message: {
+            role: 'toolResult',
+            content: [{ type: 'text', text: 'skill content restored' }],
+            toolName: 'read_skill',
+            isError: false,
+            details: { skillId: 'previously-loaded-skill' },
+            timestamp: Date.now(),
+          },
+        },
+      },
+    })
+
+    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
+    try {
+      const { harness } = await createAgentSession({
+        teamId: team.id,
+        agentId: 'bash-agent-restore',
+        providerName: 'google',
+        modelId: 'gemini',
+        systemPrompt: 'prompt',
+        teamSkills: [],
+        allowedDomains: [],
+        providers: mockProviders,
+        userId: user.id,
+        sessionId: session.id,
+      })
+      expect(harness.getTools().some((t) => t.name === 'bash')).toBe(true)
+    } finally {
+      initializeSpy.mockRestore()
+    }
+  })
+
+  it('should inject the bash tool after a skill is loaded via read_skill for restricted users', async () => {
+    const { team, harness } = await setupSession({ role: 'reviewer' })
+    const skill = await prisma.skill.create({
+      data: { name: 'Inject Skill', assetId: 'asset1', hash: 'inject-hash', teamId: team.id },
+    })
+
+    vi.spyOn(fs, 'existsSync').mockReturnValue(true)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking node fs readFileSync which has complex overloaded signatures
+    vi.spyOn(fs, 'readFileSync').mockImplementation((p: any) => {
+      if (p.toString().endsWith('.hash')) return 'inject-hash'
+      if (p.toString().endsWith('SKILL.md')) return '# Inject Skill'
+      return ''
+    })
+
+    const readSkillTool = harness.getTools().find((t) => t.name === 'read_skill')
+    expect(readSkillTool).toBeDefined()
+    expect(harness.getTools().some((t) => t.name === 'bash')).toBe(false)
+
+    await readSkillTool!.execute('1', { skillId: skill.id }, undefined, undefined, undefined)
+
+    expect(harness.getTools().some((t) => t.name === 'bash')).toBe(true)
+  })
+
+  it('should not inject the bash tool for restricted users when bash is in deniedTools', async () => {
+    const { team, harness } = await setupSession({ role: 'editor', deniedTools: ['bash'] })
+    const skill = await prisma.skill.create({
+      data: { name: 'Denied Skill', assetId: 'asset1', hash: 'denied-hash', teamId: team.id },
+    })
+
+    vi.spyOn(fs, 'existsSync').mockReturnValue(true)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking node fs readFileSync which has complex overloaded signatures
+    vi.spyOn(fs, 'readFileSync').mockImplementation((p: any) => {
+      if (p.toString().endsWith('.hash')) return 'denied-hash'
+      if (p.toString().endsWith('SKILL.md')) return '# Denied Skill'
+      return ''
+    })
+
+    const readSkillTool = harness.getTools().find((t) => t.name === 'read_skill')
+    expect(readSkillTool).toBeDefined()
+
+    await readSkillTool!.execute('1', { skillId: skill.id }, undefined, undefined, undefined)
+
+    expect(harness.getTools().some((t) => t.name === 'bash')).toBe(false)
+  })
+
+  it('should include restricted user instructions in the system prompt for non-owners', async () => {
+    const { harness } = await setupSession({ role: 'editor' })
+    // @ts-expect-error accessing private property for verification
+    const prompt = await harness.systemPrompt()
+    expect(prompt).toContain('# Restricted User Context')
+    expect(prompt).toContain('source="user" will be rejected')
+  })
+
+  it('should not include restricted user instructions in the system prompt for owners', async () => {
+    const { harness } = await setupSession({ role: 'owner' })
+    // @ts-expect-error accessing private property for verification
+    const prompt = await harness.systemPrompt()
+    expect(prompt).not.toContain('# Restricted User Context')
   })
 })

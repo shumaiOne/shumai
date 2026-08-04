@@ -11,9 +11,19 @@ import {
   type TruncationResult,
 } from '../utils/truncate'
 
+const BashSource = Type.String({
+  enum: ['user', 'skill'],
+  description:
+    'Indicates who requested this bash command. Set to "user" when the end user directly ' +
+    'requested the command. Set to "skill" when the command is required by a skill you loaded ' +
+    'via the read_skill tool. Users without the owner role can only execute commands with ' +
+    'source="skill"; source="user" will be blocked.',
+})
+
 const BashParameters = Type.Object({
   command: Type.String({ description: 'The bash command to execute.' }),
   timeout: Type.Optional(Type.Number({ description: 'Maximum execution time in seconds.' })),
+  source: BashSource,
 })
 
 export interface BashDetails {
@@ -25,6 +35,11 @@ export interface BashDetails {
 export interface SandboxedBashOptions {
   getBlockedHost?: () => string
   clearBlockedHost?: () => void
+  /**
+   * When true, the tool only allows commands requested by a loaded skill (source="skill").
+   * Commands requested directly by the end user (source="user") are blocked.
+   */
+  restrictedUser?: boolean
 }
 
 const BASH_UPDATE_THROTTLE_MS = 100
@@ -36,15 +51,21 @@ export const createSandboxedBashTool = (
 ): AgentTool<typeof BashParameters, BashDetails> => {
   return {
     name: 'bash',
-    description: `Execute a bash command in a sandboxed environment. Returns stdout and stderr. Output is truncated to last ${DEFAULT_MAX_LINES} lines or ${DEFAULT_MAX_BYTES / 1024}KB (whichever is hit first). If truncated, full output is saved to a temp file. Optionally provide a timeout in seconds.`,
+    description: `Execute a bash command in a sandboxed environment. Returns stdout and stderr. Output is truncated to last ${DEFAULT_MAX_LINES} lines or ${DEFAULT_MAX_BYTES / 1024}KB (whichever is hit first). If truncated, full output is saved to a temp file. Optionally provide a timeout in seconds. When in a restricted (non-owner) user context, only commands required by a skill loaded via the read_skill tool are allowed, and you must set source="skill".`,
     label: 'Executing bash command',
     parameters: BashParameters,
     execute: async (
       toolCallId,
-      { command, timeout },
+      { command, timeout, source },
       signal,
       onUpdate,
     ): Promise<AgentToolResult<BashDetails>> => {
+      if (options?.restrictedUser && source !== 'skill') {
+        throw new Error(
+          'Bash commands requested directly by the user (source="user") are not permitted for your role. ' +
+            'Only commands required by a loaded skill (source="skill") can be executed.',
+        )
+      }
       options?.clearBlockedHost?.()
       const wrappedCommand = await SandboxManager.wrapWithSandbox(command)
 
