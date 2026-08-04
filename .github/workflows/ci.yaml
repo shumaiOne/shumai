@@ -125,6 +125,11 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ripgrep bubblewrap socat ffmpeg poppler-utils imagemagick
+
       - name: Install Playwright browser (${{ matrix.project }})
         run: bunx playwright install --with-deps ${{ matrix.project }}
 
