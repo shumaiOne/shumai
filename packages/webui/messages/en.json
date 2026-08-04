@@ -403,7 +403,7 @@
   "agent_tool_create_folder_name": "Create Folder",
   "agent_tool_create_folder_desc": "Allows the agent to create new folders in Shumai.",
   "agent_tool_create_file_name": "Create File",
-  "agent_tool_create_file_desc": "Allows the agent to create and upload new files to Shumai.",
+  "agent_tool_create_file_desc": "Allows the agent to create files in Shumai, either by uploading a local file or by providing the file name and content directly.",
   "agent_tool_create_version_name": "Create Version",
   "agent_tool_create_version_desc": "Allows the agent to upload and stack a new version of an existing file in Shumai.",
   "enabled": "Enabled",

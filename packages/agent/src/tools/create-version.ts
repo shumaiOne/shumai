@@ -4,42 +4,9 @@ import { executeAgentToolWorkflow } from './utils'
 import * as fs from 'fs'
 import * as path from 'path'
 import { s3Service } from '@shumai/core/src/s3/s3'
-import { detectSupportedMimeType } from '@shumai/core/src/utils/mime'
+import { readFileMimeType } from '@shumai/core/src/utils/file-mime'
 import { ulid } from 'ulid'
 import { sanitizeFilename } from '@shumai/core/src/utils/filename'
-
-function getMimeType(filePath: string): string {
-  try {
-    const fd = fs.openSync(filePath, 'r')
-    try {
-      const buffer = Buffer.alloc(4100)
-      const bytesRead = fs.readSync(fd, buffer, 0, 4100, 0)
-      const detected = detectSupportedMimeType(new Uint8Array(buffer.subarray(0, bytesRead)))
-      if (detected) return detected
-    } finally {
-      fs.closeSync(fd)
-    }
-  } catch {
-    /* Ignore detection errors and fallback to extension mapping */
-  }
-
-  const ext = path.extname(filePath).toLowerCase()
-  const mimeTypes: Record<string, string> = {
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.gif': 'image/gif',
-    '.webp': 'image/webp',
-    '.svg': 'image/svg+xml',
-    '.mp4': 'video/mp4',
-    '.mov': 'video/quicktime',
-    '.pdf': 'application/pdf',
-    '.txt': 'text/plain',
-    '.md': 'text/markdown',
-    '.markdown': 'text/markdown',
-  }
-  return mimeTypes[ext] || 'application/octet-stream'
-}
 
 const createVersionSchema = Type.Object({
   parent: Type.String({
@@ -65,7 +32,7 @@ export function createCreateVersionTool(userId: string): AgentTool<typeof create
       }
 
       const fileSize = fs.statSync(absolutePath).size
-      const mimeType = getMimeType(absolutePath)
+      const mimeType = readFileMimeType(absolutePath)
 
       // Generate compliant S3 key matching normal file upload format
       const s3Key = `files/${ulid()}/${sanitizeFilename(path.basename(absolutePath))}`
