@@ -30,6 +30,7 @@ export async function seedTeamMember(
     }
     const inviteBody = (await inviteRes.json()) as { code: string }
 
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     const context = await browser.newContext({ baseURL: E2E_APP_URL })
     const email = uniqueEmail(`member-${role}`)
     const user = await apiSignup(context.request, email, E2E_PASSWORD, {
@@ -82,6 +83,7 @@ export async function seedProjectMember(
     }
     const inviteBody = (await inviteRes.json()) as { code: string }
 
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     const context = await browser.newContext({ baseURL: E2E_APP_URL })
     const email = uniqueEmail(`proj-member-${role}`)
     const user = await apiSignup(context.request, email, E2E_PASSWORD, {
