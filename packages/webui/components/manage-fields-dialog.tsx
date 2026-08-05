@@ -1,18 +1,19 @@
+import { client } from '@/ui/api/client'
+import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/ui/popover'
+import { reorderFieldSubset } from '@/ui/lib/dnd-utils'
+import { m } from '@/ui/paraglide/messages.js'
+import { useFieldStore } from '@/ui/stores/fields'
+import { PointerActivationConstraints } from '@dnd-kit/dom'
+import { DragDropProvider, KeyboardSensor, PointerSensor, type DragEndEvent } from '@dnd-kit/react'
+import { isSortable, useSortable } from '@dnd-kit/react/sortable'
 import {
-  type FieldInfo as MetadataFieldInfo,
-  type FieldInfo,
   FieldType,
+  type FieldInfo,
+  type FieldInfo as MetadataFieldInfo,
   type SelectOption,
 } from '@shumai/dtos'
-import { ulid } from 'ulid'
-import { client } from '@/ui/api/client'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { InferRequestType, InferResponseType } from 'hono/client'
-import { useFieldStore } from '@/ui/stores/fields'
-import { DragDropProvider, KeyboardSensor, PointerSensor, type DragEndEvent } from '@dnd-kit/react'
-import { useSortable } from '@dnd-kit/react/sortable'
-import { arrayMove } from '@/ui/lib/dnd-utils'
-import { PointerActivationConstraints } from '@dnd-kit/dom'
 import {
   ChevronDown,
   FileText,
@@ -23,15 +24,14 @@ import {
   Sparkles,
   X,
 } from 'lucide-react'
-import { useMemo, useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { Popover, PopoverTrigger, PopoverContent } from '@/ui/components/ui/popover'
-import { m } from '@/ui/paraglide/messages.js'
+import { ulid } from 'ulid'
 import {
-  FIELD_TYPE_ICONS,
-  PREDEFINED_COLORS,
   COLOR_MAP,
+  FIELD_TYPE_ICONS,
   getRandomUnusedColor,
+  PREDEFINED_COLORS,
 } from './fields-manager'
 
 import { Button } from '@/ui/components/ui/button'
@@ -278,25 +278,24 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
-    const { source, target } = event.operation
-    if (source && target && source.id !== target.id) {
-      const oldIndex = fields.findIndex((f) => f.id === source.id)
-      const newIndex = fields.findIndex((f) => f.id === target.id)
-      const newFields = arrayMove(fields, oldIndex, newIndex)
-      updateFields(newFields)
+    if (event.canceled) return
+    const { source } = event.operation
+    if (!isSortable(source)) return
+    const { initialIndex, index } = source
+    if (initialIndex === index) return
 
-      // Only persist order if we are in project scope (custom fields)
-      // or if the API supports ordering for other scopes.
-      if (selectedGroup === SCOPE_GROUPS.PROJECT) {
-        updateFieldsOrder({
-          param: { projectId: projectId },
-          json: newFields.map((f: MetadataFieldInfo) => ({
-            fieldId: f.id!,
-            visible: f.visible || false,
-          })),
-        })
-      }
-    }
+    // Sortable rows are rendered from the selected group's subset, so indices are
+    // relative to `filteredFields`, not the full `fields` array.
+    const newFields = reorderFieldSubset(fields, filteredFields, initialIndex, index)
+    updateFields(newFields)
+
+    updateFieldsOrder({
+      param: { projectId: projectId },
+      json: newFields.map((f: MetadataFieldInfo) => ({
+        fieldId: f.id!,
+        visible: f.visible || false,
+      })),
+    })
   }
 
   const handleSaveCreation = () => {
@@ -730,7 +729,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
                     index={index}
                     isSelected={selectedFieldId === field.id}
                     onSelect={handleSelectField}
-                    isSortable={selectedGroup === SCOPE_GROUPS.PROJECT}
+                    isSortable
                   />
                 ))}
               </DragDropProvider>
