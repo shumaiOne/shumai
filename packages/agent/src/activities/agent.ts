@@ -96,7 +96,7 @@ shumai has its own cloud file system. If a user asks you to perform file system 
 
 If you need to create files in the local filesystem (for example, a temporary file for uploading), only the '.pi' folder in the current directory has write permissions. Do NOT attempt to create files in any other directories.
 
-When creating a file or version, first use 'list_autofill_fields' to inspect the project's AI-autofillable metadata fields. If relevant metadata depends on information unavailable from the file content (for example, the AI model or tool used to generate it), include a brief context hint (maximum 50 words) in the 'context' parameter.`
+When creating a file or version, first use 'list_autofill_fields' to inspect the project's AI-autofillable metadata fields. If relevant metadata depends on information unavailable from the file content (for example, the AI model or tool used to generate it), include a brief context hint (maximum 50 words) in the 'context' field of 'create_file' or 'create_version' tool.`
 
   if (agent.soul) {
     systemPrompt = `${systemPrompt}\n\nAgent Personality and Core Instructions:\n${agent.soul}`

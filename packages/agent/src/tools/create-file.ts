@@ -1,12 +1,12 @@
-import { Type } from '@sinclair/typebox'
 import { type AgentTool } from '@earendil-works/pi-agent-core'
-import { executeAgentToolWorkflow } from './utils'
-import * as fs from 'fs'
-import * as path from 'path'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { getFileMimeType, readFileMimeType } from '@shumai/core/src/utils/file-mime'
-import { ulid } from 'ulid'
 import { sanitizeFilename } from '@shumai/core/src/utils/filename'
+import { Type } from '@sinclair/typebox'
+import * as fs from 'fs'
+import * as path from 'path'
+import { ulid } from 'ulid'
+import { executeAgentToolWorkflow } from './utils'
 
 const createFileSchema = Type.Object({
   parent: Type.String({
@@ -57,7 +57,10 @@ export function createCreateFileTool(userId: string): AgentTool<typeof createFil
     name: 'create_file',
     label: 'Create File',
     description:
-      'Create a new file in a specified parent folder, either from a local file path or directly from name and content.',
+      'Create a new file under a folder. You MUST choose exactly ONE creation method: ' +
+      '(1) provide "path" to upload an existing local file, OR ' +
+      '(2) provide "data" with name and content to create a new text file. ' +
+      'Never provide both "path" and "data" together. Never omit both.',
     parameters: createFileSchema,
     execute: async (_toolCallId, params) => {
       const source = assertExactlyOneSource(params)
