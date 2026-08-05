@@ -168,19 +168,17 @@ export function MembersDialog({
   const safeAvailableMembers = Array.isArray(availableMembersToAdd) ? availableMembersToAdd : []
 
   const topMembers =
-    type === 'project'
+    type === 'project' && isOwner
       ? safeMembers.filter((m) => m.role === 'owner' || m.scope === 'project' || m.hasCustomRole)
       : safeMembers
 
   const teamMembersToCustomize =
-    type === 'project'
+    type === 'project' && isOwner
       ? safeMembers.filter((m) => m.scope === 'team' && m.role !== 'owner' && !m.hasCustomRole)
       : []
 
   const otherProjectMembersToAdd =
-    type === 'project'
-      ? safeAvailableMembers.filter((m) => m.scope === 'project')
-      : safeAvailableMembers
+    type === 'project' && isOwner ? safeAvailableMembers.filter((m) => m.scope === 'project') : []
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
