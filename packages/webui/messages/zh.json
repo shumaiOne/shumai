@@ -634,6 +634,7 @@
   "invite_new_member": "邀请新成员",
   "generate_link": "生成链接",
   "members": "成员",
+  "project_member_role_tooltip": "项目成员的角色需在具体的项目设置中管理",
 
   "essentials": "基本信息",
   "team_attributes": "团队属性",
