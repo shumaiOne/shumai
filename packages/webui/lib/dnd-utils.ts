@@ -4,6 +4,23 @@ export function arrayMove<T>(array: T[], from: number, to: number): T[] {
   return newArray
 }
 
+/**
+ * Reorders a subset of fields (a grouped/filtered view) within the full list.
+ * `subset` must appear in `full` in the same relative order (filtering preserves order).
+ */
+export function reorderFieldSubset<T extends { id?: string | null }>(
+  full: T[],
+  subset: T[],
+  from: number,
+  to: number,
+): T[] {
+  if (from === to) return full
+  const reordered = arrayMove(subset, from, to)
+  const subsetIds = new Set(subset.map((f) => f.id))
+  let i = 0
+  return full.map((f) => (subsetIds.has(f.id) ? reordered[i++] : f))
+}
+
 interface SafeFileSystemEntry {
   name: string
   isFile: boolean

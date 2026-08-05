@@ -8,7 +8,7 @@ import { ulid } from 'ulid'
 import { client } from '@/ui/api/client'
 import { useFieldStore } from '@/ui/stores/fields'
 import { DragDropProvider, KeyboardSensor, PointerSensor, type DragEndEvent } from '@dnd-kit/react'
-import { useSortable } from '@dnd-kit/react/sortable'
+import { isSortable, useSortable } from '@dnd-kit/react/sortable'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { InferRequestType, InferResponseType } from 'hono/client'
 import { m } from '@/ui/paraglide/messages.js'
@@ -24,7 +24,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/ui/popo
 import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
 import { Switch } from '@/ui/components/ui/switch'
-import { arrayMove } from '@/ui/lib/dnd-utils'
+import { reorderFieldSubset } from '@/ui/lib/dnd-utils'
 import { PointerActivationConstraints } from '@dnd-kit/dom'
 
 export const PREDEFINED_COLORS = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'gray']
@@ -220,20 +220,23 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
   )
 
   const handleDragEnd = (event: DragEndEvent) => {
-    const { source, target } = event.operation
-    if (source && target && source.id !== target.id) {
-      const oldIndex = fields.findIndex((f) => f.id === source.id)
-      const newIndex = fields.findIndex((f) => f.id === target.id)
-      const newFields = arrayMove(fields, oldIndex, newIndex)
-      updateFields(newFields)
-      updateFieldsOrder({
-        param: { projectId: projectId },
-        json: newFields.map((f: MetadataFieldInfo) => ({
-          fieldId: f.id!,
-          visible: f.visible || false,
-        })),
-      })
-    }
+    if (event.canceled) return
+    const { source } = event.operation
+    if (!isSortable(source)) return
+    const { initialIndex, index } = source
+    if (initialIndex === index) return
+
+    // Rows are rendered from the search-filtered subset, so indices are
+    // relative to `filteredFields`, not the full `fields` array.
+    const newFields = reorderFieldSubset(fields, filteredFields, initialIndex, index)
+    updateFields(newFields)
+    updateFieldsOrder({
+      param: { projectId: projectId },
+      json: newFields.map((f: MetadataFieldInfo) => ({
+        fieldId: f.id!,
+        visible: f.visible || false,
+      })),
+    })
   }
 
   const handleVisibilityChange = (fieldId: string, visible: boolean) => {
