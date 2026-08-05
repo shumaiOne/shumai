@@ -270,6 +270,7 @@ export class ProjectService {
         user: (typeof projectMembers)[0]['teamMember']['user']
         role: string
         scope: 'team' | 'project'
+        hasCustomRole: boolean
       }
     >()
 
@@ -279,6 +280,7 @@ export class ProjectService {
           user: pm.teamMember.user,
           role: pm.role,
           scope: pm.teamMember.scope,
+          hasCustomRole: true,
         })
       }
     }
@@ -289,6 +291,7 @@ export class ProjectService {
           user: tm.user,
           role: tm.role,
           scope: tm.scope,
+          hasCustomRole: false,
         })
       }
     }
@@ -300,6 +303,7 @@ export class ProjectService {
         role: m.role as ProjectUserInfo['role'],
         image: await getAvatarUrl(m.user.image),
         scope: m.scope,
+        hasCustomRole: m.hasCustomRole,
       })),
     )
   }
@@ -380,6 +384,12 @@ export class ProjectService {
   }
 
   async updateMemberRole(req: ServiceUpdateProjectMemberRoleRequest): Promise<void> {
+    const project = await prisma.project.findUnique({
+      where: { id: req.projectId },
+      select: { teamId: true },
+    })
+    if (!project) throw new Error('Project not found')
+
     const member = await prisma.projectMember.findFirst({
       where: {
         projectId: req.projectId,
@@ -389,13 +399,31 @@ export class ProjectService {
       },
     })
 
-    if (!member) throw new Error('Member not found')
-    if (member.role === 'owner') throw new Error('Cannot change the role of an owner')
-
-    await prisma.projectMember.update({
-      where: { id: member.id },
-      data: { role: req.role },
-    })
+    if (member) {
+      if (member.role === 'owner') throw new Error('Cannot change the role of an owner')
+      await prisma.projectMember.update({
+        where: { id: member.id },
+        data: { role: req.role },
+      })
+    } else {
+      const tm = await prisma.teamMember.findUnique({
+        where: {
+          teamIdUserId: {
+            teamId: project.teamId,
+            userId: req.userId,
+          },
+        },
+      })
+      if (!tm) throw new Error('Member not found')
+      await prisma.projectMember.create({
+        data: {
+          projectId: req.projectId,
+          teamMemberId: tm.id,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          role: req.role as any,
+        },
+      })
+    }
   }
 
   async removeMember(projectId: string, userId: string): Promise<void> {

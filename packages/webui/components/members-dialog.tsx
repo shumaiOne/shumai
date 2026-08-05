@@ -31,6 +31,7 @@ export interface Member {
   role?: string
   image?: string
   scope?: 'team' | 'project'
+  hasCustomRole?: boolean
 }
 
 interface MembersDialogProps {
@@ -164,6 +165,22 @@ export function MembersDialog({
   }
 
   const safeMembers = Array.isArray(members) ? members : []
+  const safeAvailableMembers = Array.isArray(availableMembersToAdd) ? availableMembersToAdd : []
+
+  const topMembers =
+    type === 'project'
+      ? safeMembers.filter((m) => m.role === 'owner' || m.scope === 'project' || m.hasCustomRole)
+      : safeMembers
+
+  const teamMembersToCustomize =
+    type === 'project'
+      ? safeMembers.filter((m) => m.scope === 'team' && m.role !== 'owner' && !m.hasCustomRole)
+      : []
+
+  const otherProjectMembersToAdd =
+    type === 'project'
+      ? safeAvailableMembers.filter((m) => m.scope === 'project')
+      : safeAvailableMembers
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -173,7 +190,7 @@ export function MembersDialog({
         </DialogHeader>
         <div className="space-y-4">
           <div className="max-h-[300px] overflow-y-auto space-y-2">
-            {safeMembers.map((member) => (
+            {topMembers.map((member) => (
               <div
                 key={member.id}
                 className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50"
@@ -276,14 +293,14 @@ export function MembersDialog({
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>{' '}
-          {isOwner && onAddMember && availableMembersToAdd && availableMembersToAdd.length > 0 && (
+          {isOwner && onAddMember && teamMembersToCustomize.length > 0 && (
             <div className="border-t pt-4">
               <h4 className="text-sm font-medium mb-1">{m.add_team_member_to_project()}</h4>
               <p className="text-xs text-muted-foreground mb-3 font-normal">
                 {m.add_team_member_to_project_hint()}
               </p>
               <div className="max-h-[200px] overflow-y-auto space-y-2 pr-1">
-                {availableMembersToAdd.map((member) => {
+                {teamMembersToCustomize.map((member) => {
                   const currentRole = rolesToAdd[member.id!] || 'editor'
                   return (
                     <div
@@ -362,6 +379,101 @@ export function MembersDialog({
                             <Loader2 className="h-3 w-3 animate-spin" />
                           ) : (
                             m.set_role()
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+          {isOwner && onAddMember && otherProjectMembersToAdd.length > 0 && (
+            <div className="border-t pt-4">
+              <h4 className="text-sm font-medium mb-1">{m.add_members_from_other_projects()}</h4>
+              <p className="text-xs text-muted-foreground mb-3 font-normal">
+                {m.add_members_from_other_projects_hint()}
+              </p>
+              <div className="max-h-[200px] overflow-y-auto space-y-2 pr-1">
+                {otherProjectMembersToAdd.map((member) => {
+                  const currentRole = rolesToAdd[member.id!] || 'editor'
+                  return (
+                    <div
+                      key={member.id}
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Avatar>
+                          {member.image && (
+                            <AvatarImage
+                              src={member.image}
+                              alt={member.name}
+                              className="object-cover"
+                            />
+                          )}
+                          <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">{member.name}</span>
+                          <span className="text-xs text-muted-foreground capitalize">
+                            {member.scope === 'team' ? m.team_member() : m.project_member()}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 px-2 text-xs capitalize w-26"
+                              disabled={addingMemberId === member.id}
+                            >
+                              {localizeRole(currentRole)}
+                              <ChevronDown className="ml-1 h-3 w-3 opacity-50" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuRadioGroup
+                              value={currentRole}
+                              onValueChange={(v) =>
+                                setRoleToAdd(member.id!, v as 'editor' | 'reviewer')
+                              }
+                            >
+                              <DropdownMenuRadioItem value="editor" className="text-xs">
+                                {m.editor()}
+                              </DropdownMenuRadioItem>
+                              <DropdownMenuRadioItem value="reviewer" className="text-xs">
+                                {m.reviewer()}
+                              </DropdownMenuRadioItem>
+                            </DropdownMenuRadioGroup>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <Button
+                          onClick={async () => {
+                            setAddingMemberId(member.id!)
+                            try {
+                              await onAddMember(member.id!, currentRole)
+                              toast.success(
+                                m.added_member_successfully({ name: member.name || '' }),
+                              )
+                            } catch (error) {
+                              console.error(error)
+                              toast.error(m.failed_to_add_member({ name: member.name || '' }))
+                            } finally {
+                              setAddingMemberId(null)
+                            }
+                          }}
+                          disabled={addingMemberId !== null}
+                          size="sm"
+                          className="h-8 text-xs px-3"
+                        >
+                          {addingMemberId === member.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            m.add_to_project()
                           )}
                         </Button>
                       </div>
