@@ -6,17 +6,17 @@ import { getLocale, experimentalStaticLocale } from '../runtime.js';
 /** @typedef {{}} Description_Optional_PlaceholderInputs */
 
 const en_description_optional_placeholder = /** @type {(inputs: Description_Optional_PlaceholderInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`Description (Optional)`)
+	return /** @type {LocalizedString} */ (`Optional, used for AI autofill`)
 };
 
 const zh_description_optional_placeholder = /** @type {(inputs: Description_Optional_PlaceholderInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`描述（可选）`)
+	return /** @type {LocalizedString} */ (`可选，用于 AI 自动填充`)
 };
 
 /**
 * | output |
 * | --- |
-* | "Description (Optional)" |
+* | "Optional, used for AI autofill" |
 *
 * @param {Description_Optional_PlaceholderInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options

@@ -20,11 +20,11 @@ test('upload a txt file, create a comment with draw', async ({ file, prisma }) =
   await page.goto(`/projects/${projectId}/files/${fileId}`)
 
   // Verify PDF viewer container or page is loaded
-  await expect(
-    page.locator('.pdf-viewer, canvas, [data-testid="pdf-viewer"]').first(),
-  ).toBeVisible({
-    timeout: 30_000,
-  })
+  await expect(page.locator('.pdf-viewer, canvas, [data-testid="pdf-viewer"]').first()).toBeVisible(
+    {
+      timeout: 30_000,
+    },
+  )
 
   // Toggle drawing mode
   const drawToggleBtn = page.getByTitle('Toggle Annotation')

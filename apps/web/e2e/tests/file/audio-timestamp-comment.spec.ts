@@ -2,10 +2,7 @@ import { expect, test } from '../../fixtures'
 
 test.use({ fileOptions: { mediaType: 'audio' } })
 
-test('upload an audio file, create a comment at a non-zero timestamp', async ({
-  file,
-  prisma,
-}) => {
+test('upload an audio file, create a comment at a non-zero timestamp', async ({ file, prisma }) => {
   const { page, projectId, fileId } = file
   const commentText = `Audio timestamp comment ${Date.now()}`
 
