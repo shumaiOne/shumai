@@ -23,6 +23,12 @@ import { ChevronDown, Copy, Loader2, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { copyToClipboard as copyTextToClipboard } from '@/ui/lib/clipboard'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/ui/components/ui/tooltip'
 import { m } from '@/ui/paraglide/messages.js'
 
 export interface Member {
@@ -188,83 +194,116 @@ export function MembersDialog({
         </DialogHeader>
         <div className="space-y-4">
           <div className="max-h-[300px] overflow-y-auto space-y-2">
-            {topMembers.map((member) => (
-              <div
-                key={member.id}
-                className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50"
-              >
-                <div className="flex items-center gap-3">
-                  <Avatar>
-                    {member.image && (
-                      <AvatarImage src={member.image} alt={member.name} className="object-cover" />
-                    )}
-                    <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium">{member.name}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground capitalize">
-                        {localizeRole(member.role)}
-                      </span>
-                      {member.scope && (
-                        <>
-                          <span className="text-[10px] text-muted-foreground/70">•</span>
-                          <span className="text-xs text-muted-foreground capitalize">
-                            {member.scope === 'team' ? m.team_member() : m.project_member()}
-                          </span>
-                        </>
+            {topMembers.map((member) => {
+              const isProjectScopedInTeamView = type === 'team' && member.scope === 'project'
+              return (
+                <div
+                  key={member.id}
+                  className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50"
+                >
+                  <div className="flex items-center gap-3">
+                    <Avatar>
+                      {member.image && (
+                        <AvatarImage
+                          src={member.image}
+                          alt={member.name}
+                          className="object-cover"
+                        />
                       )}
+                      <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">{member.name}</span>
+                      <div className="flex items-center gap-2">
+                        {!isProjectScopedInTeamView && (
+                          <span className="text-xs text-muted-foreground capitalize">
+                            {localizeRole(member.role)}
+                          </span>
+                        )}
+                        {member.scope && (
+                          <>
+                            {!isProjectScopedInTeamView && (
+                              <span className="text-[10px] text-muted-foreground/70">•</span>
+                            )}
+                            <span className="text-xs text-muted-foreground capitalize">
+                              {member.scope === 'team' ? m.team_member() : m.project_member()}
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {isOwner && member.role !== 'owner' && member.id !== currentUserId && (
-                  <div className="flex items-center gap-2">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 px-2 text-xs capitalize w-26"
-                          disabled={updatingMemberId === member.id}
-                        >
-                          {localizeRole(member.role)}
-                          <ChevronDown className="ml-1 h-3 w-3 opacity-50" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuRadioGroup
-                          value={member.role}
-                          onValueChange={(v) =>
-                            handleUpdateRole(member.id!, v as 'editor' | 'reviewer')
-                          }
-                        >
-                          <DropdownMenuRadioItem value="editor" className="text-xs">
-                            {m.editor()}
-                          </DropdownMenuRadioItem>
-                          <DropdownMenuRadioItem value="reviewer" className="text-xs">
-                            {m.reviewer()}
-                          </DropdownMenuRadioItem>
-                        </DropdownMenuRadioGroup>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => setMemberToRemove(member)}
-                      disabled={updatingMemberId === member.id}
-                    >
-                      {updatingMemberId === member.id ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
+                  {isOwner && member.role !== 'owner' && member.id !== currentUserId && (
+                    <div className="flex items-center gap-2">
+                      {isProjectScopedInTeamView ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 px-2 text-xs capitalize w-26 justify-between"
+                                  disabled
+                                >
+                                  <ChevronDown className="ml-auto h-3 w-3 opacity-50" />
+                                </Button>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <p className="text-xs">{m.project_member_role_tooltip()}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       ) : (
-                        <Trash2 className="h-3 w-3" />
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 px-2 text-xs capitalize w-26"
+                              disabled={updatingMemberId === member.id}
+                            >
+                              {localizeRole(member.role)}
+                              <ChevronDown className="ml-1 h-3 w-3 opacity-50" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuRadioGroup
+                              value={member.role}
+                              onValueChange={(v) =>
+                                handleUpdateRole(member.id!, v as 'editor' | 'reviewer')
+                              }
+                            >
+                              <DropdownMenuRadioItem value="editor" className="text-xs">
+                                {m.editor()}
+                              </DropdownMenuRadioItem>
+                              <DropdownMenuRadioItem value="reviewer" className="text-xs">
+                                {m.reviewer()}
+                              </DropdownMenuRadioItem>
+                            </DropdownMenuRadioGroup>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ))}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setMemberToRemove(member)}
+                        disabled={updatingMemberId === member.id}
+                      >
+                        {updatingMemberId === member.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3 w-3" />
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
           <AlertDialog
             open={!!memberToRemove}

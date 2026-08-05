@@ -634,6 +634,7 @@
   "invite_new_member": "Invite New Member",
   "generate_link": "Generate Link",
   "members": "Members",
+  "project_member_role_tooltip": "Project-scoped member roles are managed within individual project settings",
 
   "essentials": "Essentials",
   "team_attributes": "Team Attributes",
