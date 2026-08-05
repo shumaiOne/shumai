@@ -1726,15 +1726,14 @@ describe('Agent Database Activities Integration', () => {
         })
 
         expect(res.fields).toHaveLength(2)
-        const source = res.fields.find((f: { id: string }) => f.id === 'source')
+        const source = res.fields.find((f: { name: string }) => f.name === 'Source')
         expect(source?.name).toBe('Source')
         expect(source?.type).toBe('select')
         expect(source?.description).toBe('Generation source')
-        expect(source?.options).toEqual([
-          { id: 'gemini', displayName: 'Gemini', color: '#ffffff' },
-          { id: 'seedance', displayName: 'Seedance', color: '#ffffff' },
-        ])
-        expect(res.fields.find((f: { id: string }) => f.id === 'manual_notes')).toBeUndefined()
+        expect(source?.options).toEqual([{ displayName: 'Gemini' }, { displayName: 'Seedance' }])
+        expect(
+          res.fields.find((f: { name: string }) => f.name === 'Manual Notes'),
+        ).toBeUndefined()
       })
 
       it('should resolve the project through the ancestor chain', async () => {

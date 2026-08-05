@@ -4,7 +4,7 @@ import { executeAgentToolWorkflow } from './utils'
 
 vi.mock('./utils', () => ({
   executeAgentToolWorkflow: vi.fn().mockResolvedValue({
-    fields: [{ id: 'source', name: 'Source', type: 'select', options: [] }],
+    fields: [{ name: 'Source', type: 'select', options: [{ displayName: 'Gemini' }] }],
   }),
 }))
 
@@ -25,7 +25,7 @@ describe('createListAutofillFieldsTool', () => {
     })
 
     expect(result.details).toEqual({
-      fields: [{ id: 'source', name: 'Source', type: 'select', options: [] }],
+      fields: [{ name: 'Source', type: 'select', options: [{ displayName: 'Gemini' }] }],
     })
   })
 })

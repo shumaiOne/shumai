@@ -1,7 +1,7 @@
 import {
-  type AgentMessage,
-  type AgentTool,
-  type SessionTreeEntry,
+    type AgentMessage,
+    type AgentTool,
+    type SessionTreeEntry,
 } from '@earendil-works/pi-agent-core'
 import { type ImageContent } from '@earendil-works/pi-ai'
 import { assetService } from '@shumai/core/src/asset/asset'
@@ -19,10 +19,10 @@ import { generateKeyBetween } from 'jittered-fractional-indexing'
 import { ulid } from 'ulid'
 import { DatabaseSessionStorage } from '../database-session-storage'
 import {
-  createAgentSession,
-  fieldsToTypeBoxSchema,
-  type AutofillField,
-  type DbProviderInfo,
+    createAgentSession,
+    fieldsToTypeBoxSchema,
+    type AutofillField,
+    type DbProviderInfo,
 } from '../index'
 
 import { aiUsageService } from '@shumai/core/src/ai-usage/ai-usage'
@@ -96,7 +96,7 @@ shumai has its own cloud file system. If a user asks you to perform file system 
 
 If you need to create files in the local filesystem (for example, a temporary file for uploading), only the '.pi' folder in the current directory has write permissions. Do NOT attempt to create files in any other directories.
 
-Before creating a file or version, use 'list_autofill_fields' to check the project's AI-autofillable metadata fields. If relevant, pass a short, simple context (max 50 words) about the file's source or how it was generated via the 'context' parameter of 'create_file' or 'create_version'.`
+When creating a file or version, first use 'list_autofill_fields' to inspect the project's AI-autofillable metadata fields. If relevant metadata depends on information unavailable from the file content (for example, the AI model or tool used to generate it), include a brief context hint (maximum 50 words) in the 'context' parameter.`
 
   if (agent.soul) {
     systemPrompt = `${systemPrompt}\n\nAgent Personality and Core Instructions:\n${agent.soul}`
@@ -1457,11 +1457,14 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
       const autofillFields = fields
         .filter((f) => f.field.aiAutofill)
         .map((f) => ({
-          id: f.field.key,
           name: f.field.config?.name,
           type: f.field.config?.type,
           description: f.field.description,
-          options: f.field.config?.select?.options ?? f.field.config?.selectMulti?.options ?? [],
+          options: (
+            f.field.config?.select?.options ??
+            f.field.config?.selectMulti?.options ??
+            []
+          ).map((o) => ({ displayName: o.displayName })),
         }))
 
       return { fields: autofillFields }
