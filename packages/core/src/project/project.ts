@@ -419,8 +419,7 @@ export class ProjectService {
         data: {
           projectId: req.projectId,
           teamMemberId: tm.id,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          role: req.role as any,
+          role: req.role,
         },
       })
     }
