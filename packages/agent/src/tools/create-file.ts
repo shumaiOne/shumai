@@ -30,6 +30,14 @@ const createFileSchema = Type.Object({
       }),
     }),
   ),
+  context: Type.Optional(
+    Type.String({
+      description:
+        'Optional short context about this file and how it was generated (max 50 words, e.g. "Generated using gemini"). ' +
+        'Passed to the AI metadata autofill workflow to fill fields that cannot be determined from file content alone. ' +
+        'Check autofillable fields with list_autofill_fields first.',
+    }),
+  ),
 })
 
 function assertExactlyOneSource(params: {
@@ -92,6 +100,7 @@ export function createCreateFileTool(userId: string): AgentTool<typeof createFil
           name,
           size,
           contentType: mimeType,
+          ...(params.context ? { context: params.context } : {}),
         },
         userId,
         assetId: params.parent,

@@ -286,6 +286,7 @@ export const AssetScalarFieldEnum = {
   status: 'status',
   transcodeTaskId: 'transcodeTaskId',
   media: 'media',
+  autofillContext: 'autofillContext',
   isDeleted: 'isDeleted',
   deletedAt: 'deletedAt',
   sortIndex: 'sortIndex',

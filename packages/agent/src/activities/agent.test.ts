@@ -9,6 +9,7 @@ import {
   updateCommentActivity,
   getAgentChatContextActivity,
   getAgentAutofillContextActivity,
+  getAssetAutofillContextActivity,
   getAssetActivity,
   getCommentActivity,
   getProjectAutofillFieldsActivity,
@@ -457,6 +458,106 @@ describe('Agent Activities', () => {
 
     expect(res.text).toBe('{"f1":"val"}')
     expect(res.usage.inputTokens).toBe(5)
+  })
+
+  it('should include agentContext in the autofill prompt when provided', async () => {
+    const mockHarness = {
+      subscribe: vi.fn(),
+      prompt: vi.fn().mockResolvedValue({
+        content: [{ type: 'text', text: 'Captured' }],
+        usage: { input: 5, output: 5 },
+      }),
+    }
+    const mockSession = {
+      getEntries: vi.fn().mockResolvedValue([]),
+      getStorage: vi.fn().mockReturnValue({ sessionId: 'mock-session-id' }),
+    }
+
+    vi.mocked(piAgent.createAgentSession).mockImplementation(async (config: unknown) => {
+      const params = config as {
+        customTools: Array<{
+          name: string
+          execute: (id: string, args: Record<string, unknown>) => Promise<unknown>
+        }>
+      }
+      const tool = params.customTools.find((t) => t.name === 'autofill_metadata')
+      if (tool) {
+        await tool.execute('1', { f1: 'val' })
+      }
+      return {
+        session: mockSession as unknown as Session<DatabaseSessionMetadata>,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
+        harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
+      }
+    })
+
+    const context = {
+      agent: { id: 'b1', provider: { name: 'google' }, modelRef: { modelId: 'gemini' } },
+      dbProviders: [],
+      teamSkills: [],
+      allowedDomains: [],
+    } as unknown as AgentExecutionContext
+
+    await autofillAiActivity({
+      teamId: 't1',
+      images: [],
+      fields: [{ id: 'f1', config: { name: 'F1', type: 'text' } }],
+      context,
+      agentContext: 'Generated using gemini',
+    })
+
+    const capturedPrompt = mockHarness.prompt.mock.calls[0]?.[0] ?? ''
+    expect(capturedPrompt).toContain('Generated using gemini')
+    expect(capturedPrompt).toContain('<context>')
+  })
+
+  it('should not include agentContext in the autofill prompt when absent', async () => {
+    const mockHarness = {
+      subscribe: vi.fn(),
+      prompt: vi.fn().mockResolvedValue({
+        content: [{ type: 'text', text: 'Captured' }],
+        usage: { input: 5, output: 5 },
+      }),
+    }
+    const mockSession = {
+      getEntries: vi.fn().mockResolvedValue([]),
+      getStorage: vi.fn().mockReturnValue({ sessionId: 'mock-session-id' }),
+    }
+
+    vi.mocked(piAgent.createAgentSession).mockImplementation(async (config: unknown) => {
+      const params = config as {
+        customTools: Array<{
+          name: string
+          execute: (id: string, args: Record<string, unknown>) => Promise<unknown>
+        }>
+      }
+      const tool = params.customTools.find((t) => t.name === 'autofill_metadata')
+      if (tool) {
+        await tool.execute('1', { f1: 'val' })
+      }
+      return {
+        session: mockSession as unknown as Session<DatabaseSessionMetadata>,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
+        harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
+      }
+    })
+
+    const context = {
+      agent: { id: 'b1', provider: { name: 'google' }, modelRef: { modelId: 'gemini' } },
+      dbProviders: [],
+      teamSkills: [],
+      allowedDomains: [],
+    } as unknown as AgentExecutionContext
+
+    await autofillAiActivity({
+      teamId: 't1',
+      images: [],
+      fields: [{ id: 'f1', config: { name: 'F1', type: 'text' } }],
+      context,
+    })
+
+    const capturedPrompt = mockHarness.prompt.mock.calls[0]?.[0] ?? ''
+    expect(capturedPrompt).not.toContain('<context>')
   })
 })
 
@@ -1163,6 +1264,37 @@ describe('Agent Database Activities Integration', () => {
     })
   })
 
+  describe('getAssetAutofillContextActivity', () => {
+    it('should return the stored autofill context for an asset', async () => {
+      const withContext = await prisma.asset.create({
+        data: {
+          name: 'ctx.png',
+          type: AssetType.file,
+          status: AssetStatus.uploaded,
+          projectId: project.id,
+          autofillContext: 'Generated using gemini',
+        },
+      })
+
+      const ctx = await getAssetAutofillContextActivity(withContext.id)
+      expect(ctx).toBe('Generated using gemini')
+    })
+
+    it('should return null when the asset has no autofill context', async () => {
+      const noContext = await prisma.asset.create({
+        data: {
+          name: 'plain.png',
+          type: AssetType.file,
+          status: AssetStatus.uploaded,
+          projectId: project.id,
+        },
+      })
+
+      const ctx = await getAssetAutofillContextActivity(noContext.id)
+      expect(ctx).toBeNull()
+    })
+  })
+
   describe('executeAgentToolActivity', () => {
     beforeEach(() => {
       vi.spyOn(authzService, 'hasPermission').mockResolvedValue()
@@ -1273,6 +1405,65 @@ describe('Agent Database Activities Integration', () => {
         expect(Number(parentFolder?.sizeByte)).toBe(500)
         expect(uploadService.triggerPostUploadWorkflows).toHaveBeenCalled()
       })
+
+      it('should persist autofillContext on the created file when context is provided', async () => {
+        const folder = await prisma.asset.create({
+          data: {
+            name: 'WorkspaceFolder',
+            type: AssetType.folder,
+            status: AssetStatus.uploaded,
+            projectId: project.id,
+            fileCount: 0,
+            sizeByte: 0,
+          },
+        })
+
+        const res = await executeAgentToolActivity({
+          taskId: 'task-1',
+          toolName: 'create_file',
+          args: {
+            parent: folder.id,
+            s3Key: 'uploads/ctx.txt',
+            name: 'ctx.txt',
+            size: 100,
+            contentType: 'text/plain',
+            context: 'Generated using gemini',
+          },
+          userId: user.id,
+        })
+
+        const created = await prisma.asset.findUnique({ where: { id: res.id } })
+        expect(created?.autofillContext).toBe('Generated using gemini')
+      })
+
+      it('should not set autofillContext when context is not provided', async () => {
+        const folder = await prisma.asset.create({
+          data: {
+            name: 'WorkspaceFolder',
+            type: AssetType.folder,
+            status: AssetStatus.uploaded,
+            projectId: project.id,
+            fileCount: 0,
+            sizeByte: 0,
+          },
+        })
+
+        const res = await executeAgentToolActivity({
+          taskId: 'task-1',
+          toolName: 'create_file',
+          args: {
+            parent: folder.id,
+            s3Key: 'uploads/plain.txt',
+            name: 'plain.txt',
+            size: 100,
+            contentType: 'text/plain',
+          },
+          userId: user.id,
+        })
+
+        const created = await prisma.asset.findUnique({ where: { id: res.id } })
+        expect(created?.autofillContext).toBeNull()
+      })
     })
 
     describe('create_version', () => {
@@ -1380,6 +1571,219 @@ describe('Agent Database Activities Integration', () => {
 
         expect(updatedStack?.fileCount).toBe(2)
         expect(Number(updatedStack?.sizeByte)).toBe(350)
+      })
+
+      it('should persist autofillContext when creating a new version stack', async () => {
+        const folder = await prisma.asset.create({
+          data: {
+            name: 'WorkspaceFolder',
+            type: AssetType.folder,
+            status: AssetStatus.uploaded,
+            projectId: project.id,
+            fileCount: 1,
+            sizeByte: 200,
+          },
+        })
+
+        const fileAsset = await prisma.asset.create({
+          data: {
+            name: 'v1.txt',
+            type: AssetType.file,
+            status: AssetStatus.uploaded,
+            projectId: project.id,
+            parentId: folder.id,
+            sizeByte: 200,
+          },
+        })
+
+        const res = await executeAgentToolActivity({
+          taskId: 'task-1',
+          toolName: 'create_version',
+          args: {
+            parent: fileAsset.id,
+            s3Key: 'uploads/v2.txt',
+            name: 'v2.txt',
+            size: 300,
+            contentType: 'text/plain',
+            context: 'Generated using seedance',
+          },
+          userId: user.id,
+        })
+
+        const created = await prisma.asset.findUnique({ where: { id: res.id } })
+        expect(created?.autofillContext).toBe('Generated using seedance')
+      })
+
+      it('should persist autofillContext when adding to an existing version stack', async () => {
+        const folder = await prisma.asset.create({
+          data: {
+            name: 'WorkspaceFolder',
+            type: AssetType.folder,
+            status: AssetStatus.uploaded,
+            projectId: project.id,
+          },
+        })
+
+        const stack = await prisma.asset.create({
+          data: {
+            name: 'VersionStack',
+            type: AssetType.version_stack,
+            status: AssetStatus.uploaded,
+            projectId: project.id,
+            parentId: folder.id,
+            fileCount: 1,
+            sizeByte: 100,
+          },
+        })
+
+        const existingFileVersion = await prisma.asset.create({
+          data: {
+            name: 'v1.txt',
+            type: AssetType.file,
+            status: AssetStatus.uploaded,
+            projectId: project.id,
+            parentId: stack.id,
+            sizeByte: 100,
+          },
+        })
+
+        const res = await executeAgentToolActivity({
+          taskId: 'task-1',
+          toolName: 'create_version',
+          args: {
+            parent: existingFileVersion.id,
+            s3Key: 'uploads/v2.txt',
+            name: 'v2.txt',
+            size: 250,
+            contentType: 'text/plain',
+            context: 'Generated using sora2',
+          },
+          userId: user.id,
+        })
+
+        const created = await prisma.asset.findUnique({ where: { id: res.id } })
+        expect(created?.autofillContext).toBe('Generated using sora2')
+      })
+    })
+
+    describe('list_autofill_fields', () => {
+      it('should return only aiAutofill fields with their options', async () => {
+        const folder = await prisma.asset.create({
+          data: {
+            name: 'WorkspaceFolder',
+            type: AssetType.folder,
+            status: AssetStatus.uploaded,
+            projectId: project.id,
+          },
+        })
+
+        await prisma.metadataField.create({
+          data: {
+            key: 'source',
+            scope: 'PROJECT',
+            projectId: project.id,
+            teamId: team.id,
+            aiAutofill: true,
+            config: {
+              name: 'Source',
+              type: 'select',
+              select: {
+                options: [
+                  { id: 'gemini', displayName: 'Gemini', color: '#ffffff' },
+                  { id: 'seedance', displayName: 'Seedance', color: '#ffffff' },
+                ],
+              },
+            },
+            description: 'Generation source',
+          },
+        })
+        await prisma.metadataField.create({
+          data: {
+            key: 'title',
+            scope: 'PROJECT',
+            projectId: project.id,
+            teamId: team.id,
+            aiAutofill: true,
+            config: { name: 'Title', type: 'text' },
+          },
+        })
+        await prisma.metadataField.create({
+          data: {
+            key: 'manual_notes',
+            scope: 'PROJECT',
+            projectId: project.id,
+            teamId: team.id,
+            aiAutofill: false,
+            config: { name: 'Manual Notes', type: 'text' },
+          },
+        })
+
+        const res = await executeAgentToolActivity({
+          taskId: 'task-1',
+          toolName: 'list_autofill_fields',
+          args: { parent: folder.id },
+          userId: user.id,
+        })
+
+        expect(res.fields).toHaveLength(2)
+        const source = res.fields.find((f: { name: string }) => f.name === 'Source')
+        expect(source?.name).toBe('Source')
+        expect(source?.type).toBe('select')
+        expect(source?.description).toBe('Generation source')
+        expect(source?.options).toEqual([{ displayName: 'Gemini' }, { displayName: 'Seedance' }])
+        expect(
+          res.fields.find((f: { name: string }) => f.name === 'Manual Notes'),
+        ).toBeUndefined()
+      })
+
+      it('should resolve the project through the ancestor chain', async () => {
+        const rootFolder = await prisma.asset.create({
+          data: {
+            name: 'Root',
+            type: AssetType.folder,
+            status: AssetStatus.uploaded,
+            projectId: project.id,
+          },
+        })
+        const subFolder = await prisma.asset.create({
+          data: {
+            name: 'Sub',
+            type: AssetType.folder,
+            status: AssetStatus.uploaded,
+            parentId: rootFolder.id,
+          },
+        })
+
+        await prisma.metadataField.create({
+          data: {
+            key: 'title_2',
+            scope: 'PROJECT',
+            projectId: project.id,
+            teamId: team.id,
+            aiAutofill: true,
+            config: { name: 'Title 2', type: 'text' },
+          },
+        })
+
+        const res = await executeAgentToolActivity({
+          taskId: 'task-1',
+          toolName: 'list_autofill_fields',
+          args: { parent: subFolder.id },
+          userId: user.id,
+        })
+
+        expect(res.fields.length).toBeGreaterThan(0)
+      })
+
+      it('should fail when parent is missing', async () => {
+        await expect(
+          executeAgentToolActivity({
+            taskId: 'task-1',
+            toolName: 'list_autofill_fields',
+            args: {},
+            userId: user.id,
+          }),
+        ).rejects.toThrow('parent parameter is required')
       })
     })
   })

@@ -20,6 +20,7 @@ describe.each(['local', 'temporal'] as const)(
 
     let agentWorkerPromise: Promise<void> | null = null
     let transcodeWorkerPromise: Promise<void> | null = null
+    let lastAutofillPrompt = ''
 
     beforeAll(async () => {
       // Set bucket environment
@@ -35,7 +36,11 @@ describe.each(['local', 'temporal'] as const)(
       // Spy on the harness prompt method to intercept the LLM call while running real activities & tools
       vi.spyOn(AgentHarness.prototype, 'prompt').mockImplementation(async function (
         this: AgentHarness,
+        ...args: unknown[]
       ) {
+        // Capture the prompt to verify agent-provided context is propagated
+        lastAutofillPrompt = typeof args[0] === 'string' ? args[0] : ''
+
         // Find the real autofill_metadata tool configured on the harness
         const tools = this.getTools()
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Tool execution mock for E2E harness test
@@ -239,6 +244,7 @@ describe.each(['local', 'temporal'] as const)(
           mediaType: 'image/png',
           // eslint-disable-next-line @typescript-eslint/no-explicit-any -- partial MediaInfo mock for testing
           media: { proxyType: 'image' } as any,
+          autofillContext: 'Generated using gemini',
           projectId: project.id,
           storageKeyId: storageKey.id,
         },
@@ -277,6 +283,10 @@ describe.each(['local', 'temporal'] as const)(
 
       // 5. Verification
       expect(completedTask.status).toBe('completed')
+
+      // Verify the agent-provided autofill context was included in the LLM prompt
+      expect(lastAutofillPrompt).toContain('Generated using gemini')
+      expect(lastAutofillPrompt).toContain('<context>')
 
       // Verify placeholder comment is updated correctly
       const comments = await prisma.assetComment.findMany({

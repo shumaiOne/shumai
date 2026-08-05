@@ -1,7 +1,7 @@
 import {
-  type AgentMessage,
-  type AgentTool,
-  type SessionTreeEntry,
+    type AgentMessage,
+    type AgentTool,
+    type SessionTreeEntry,
 } from '@earendil-works/pi-agent-core'
 import { type ImageContent } from '@earendil-works/pi-ai'
 import { assetService } from '@shumai/core/src/asset/asset'
@@ -19,10 +19,10 @@ import { generateKeyBetween } from 'jittered-fractional-indexing'
 import { ulid } from 'ulid'
 import { DatabaseSessionStorage } from '../database-session-storage'
 import {
-  createAgentSession,
-  fieldsToTypeBoxSchema,
-  type AutofillField,
-  type DbProviderInfo,
+    createAgentSession,
+    fieldsToTypeBoxSchema,
+    type AutofillField,
+    type DbProviderInfo,
 } from '../index'
 
 import { aiUsageService } from '@shumai/core/src/ai-usage/ai-usage'
@@ -94,7 +94,9 @@ shumai is a professional creative collaboration platform similar to frame.io, wh
 
 shumai has its own cloud file system. If a user asks you to perform file system operations (for example: creating a folder, creating a file, stacking a version, or listing assets), you MUST use the corresponding agent system tools (e.g., 'create_folder', 'create_file', 'create_version', 'list_assets'). Before calling 'create_folder', first check if the folder exists using 'list_assets'. Do NOT use local bash commands or the local bash tool to perform these operations locally on the host environment; all operations must be executed through the platform's cloud file system tools so they are correctly registered and visible within the platform.
 
-If you need to create files in the local filesystem (for example, a temporary file for uploading), only the '.pi' folder in the current directory has write permissions. Do NOT attempt to create files in any other directories.`
+If you need to create files in the local filesystem (for example, a temporary file for uploading), only the '.pi' folder in the current directory has write permissions. Do NOT attempt to create files in any other directories.
+
+When creating a file or version, first use 'list_autofill_fields' to inspect the project's AI-autofillable metadata fields. If relevant metadata depends on information unavailable from the file content (for example, the AI model or tool used to generate it), include a brief context hint (maximum 50 words) in the 'context' parameter.`
 
   if (agent.soul) {
     systemPrompt = `${systemPrompt}\n\nAgent Personality and Core Instructions:\n${agent.soul}`
@@ -404,10 +406,17 @@ export interface AutofillAiParams {
   images: string[]
   fields: AutofillField[]
   context: AgentExecutionContext
+  agentContext?: string
 }
 
 export async function autofillAiActivity(params: AutofillAiParams) {
-  const prompt = 'Analyze the provided images and extract metadata.'
+  let prompt = 'Analyze the provided images and extract metadata.'
+  if (params.agentContext && params.agentContext.trim()) {
+    prompt +=
+      '\n\nAdditional context about this file, provided during creation:\n' +
+      `<context>\n${params.agentContext.trim()}\n</context>\n` +
+      'Use this context to inform your answers, especially for fields that cannot be determined from the images alone (e.g. generation model/source).'
+  }
   const toolSchema = fieldsToTypeBoxSchema(params.fields)
   let capturedData: Record<string, unknown> | null = null
 
@@ -997,6 +1006,14 @@ export async function getProjectAutofillFieldsActivity(projectId: string) {
   return fields.filter((f) => f.field.aiAutofill).map((f) => f.field)
 }
 
+export async function getAssetAutofillContextActivity(assetId: string): Promise<string | null> {
+  const asset = await prisma.asset.findUnique({
+    where: { id: assetId },
+    select: { autofillContext: true },
+  })
+  return asset?.autofillContext ?? null
+}
+
 export async function updateAssetMetadataActivity(params: {
   assetId: string
   metadata: UpdateAssetMetadataRequest[]
@@ -1170,6 +1187,7 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
       const name = args.name as string
       const fileSize = args.size as number
       const mimeType = args.contentType as string
+      const context = typeof args.context === 'string' ? args.context : undefined
       if (!parent || !s3Key || !name || fileSize === undefined || !mimeType) {
         throw ApplicationFailure.create({
           message: 'parent, s3Key, name, size, and contentType parameters are required',
@@ -1219,6 +1237,14 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await assetService.updateAncestorsSize(tx as any, parent, fileSize)
 
+        // Persist autofill context provided by the agent (used by the autofill workflow)
+        if (context) {
+          await tx.asset.update({
+            where: { id: newFile.id },
+            data: { autofillContext: context },
+          })
+        }
+
         // Trigger post-upload transcode and AI workflows
         await uploadService.triggerPostUploadWorkflows(
           tx,
@@ -1242,6 +1268,7 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
       const name = args.name as string
       const fileSize = args.size as number
       const mimeType = args.contentType as string
+      const context = typeof args.context === 'string' ? args.context : undefined
       if (!parent || !s3Key || !name || fileSize === undefined || !mimeType) {
         throw ApplicationFailure.create({
           message: 'parent, s3Key, name, size, and contentType parameters are required',
@@ -1306,6 +1333,13 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
             where: { id: newFile.id },
             data: { sortIndex: newSortIndex },
           })
+          // Persist autofill context provided by the agent (used by the autofill workflow)
+          if (context) {
+            await tx.asset.update({
+              where: { id: newFile.id },
+              data: { autofillContext: context },
+            })
+          }
           // Increment stack's size (fileCount is incremented by createAsset already)
           const updatedStack = await tx.asset.update({
             where: { id: stackId },
@@ -1364,6 +1398,13 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
             projectId: parentFile.projectId!,
             creatorId: userId,
           })
+          // Persist autofill context provided by the agent (used by the autofill workflow)
+          if (context) {
+            await tx.asset.update({
+              where: { id: newFile.id },
+              data: { autofillContext: context },
+            })
+          }
           // Update ancestors' size (add size of the new file version)
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await assetService.updateAncestorsSize(tx as any, folderParentId!, fileSize)
@@ -1386,12 +1427,70 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
       }
     }
 
+    case 'list_autofill_fields': {
+      const parent = args.parent
+      if (!parent) {
+        throw ApplicationFailure.create({
+          message: 'parent parameter is required',
+          nonRetryable: true,
+        })
+      }
+
+      // Authz check
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Read,
+        type: ResourceType.Asset,
+        id: parent,
+      })
+
+      // Resolve projectId from the parent asset (climb ancestor chain if needed)
+      const projectId = await resolveAssetProjectId(parent)
+      if (!projectId) {
+        throw ApplicationFailure.create({
+          message: `Could not resolve project for parent: ${parent}`,
+          nonRetryable: true,
+        })
+      }
+
+      const fields = await metadataService.listProjectFields(userId, projectId)
+      const autofillFields = fields
+        .filter((f) => f.field.aiAutofill)
+        .map((f) => ({
+          name: f.field.config?.name,
+          type: f.field.config?.type,
+          description: f.field.description,
+          options: (
+            f.field.config?.select?.options ??
+            f.field.config?.selectMulti?.options ??
+            []
+          ).map((o) => ({ displayName: o.displayName })),
+        }))
+
+      return { fields: autofillFields }
+    }
+
     default:
       throw ApplicationFailure.create({
         message: `Unsupported tool name: ${toolName}`,
         nonRetryable: true,
       })
   }
+}
+
+async function resolveAssetProjectId(assetId: string): Promise<string | null> {
+  let currentId: string | null = assetId
+  while (currentId) {
+    /* prettier-ignore */
+    const assetNode = (await prisma.asset.findUnique({
+      where: { id: currentId },
+      select: { id: true, projectId: true, parentId: true },
+    })) as { id: string; projectId: string | null; parentId: string | null } | null
+    if (!assetNode) break
+    if (assetNode.projectId) return assetNode.projectId
+    currentId = assetNode.parentId
+  }
+  return null
 }
 
 export interface GenerateSessionNameParams {
