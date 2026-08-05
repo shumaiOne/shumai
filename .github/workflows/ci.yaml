@@ -89,7 +89,7 @@ jobs:
       - name: Run video player harness tests
         env:
           E2E_SKIP_APP_SERVER: true
-        run: bun run test:e2e --project=harness-${{ matrix.project }}
+        run: bunx playwright test --project=harness-${{ matrix.project }}
 
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
@@ -134,7 +134,7 @@ jobs:
         run: bunx playwright install --with-deps ${{ matrix.project }}
 
       - name: Run app E2E tests
-        run: bun run test:e2e --project=app-${{ matrix.project }} --no-deps
+        run: bunx playwright test --project=app-${{ matrix.project }} --no-deps
 
       - name: Upload Playwright report
         if: ${{ !cancelled() }}
