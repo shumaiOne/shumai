@@ -195,6 +195,44 @@ describe('ProjectService', () => {
       })
       expect(allMembers).toHaveLength(2)
     })
+
+    it('should allow upserting custom role override for team-scoped members via updateMemberRole', async () => {
+      const team = await prisma.team.create({ data: { name: 'Team Scope Test' } })
+      const project = await prisma.project.create({ data: { name: 'Project A', teamId: team.id } })
+
+      const teamEditor = await prisma.user.create({
+        data: { name: 'User B', email: `userb-${Date.now()}@example.com`, password: 'pw' },
+      })
+
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: teamEditor.id, role: 'editor', scope: 'team' },
+      })
+
+      // Initially in listProjectMembers with default team role and hasCustomRole = false
+      const initialMembers = await projectService.listProjectMembers({
+        projectId: project.id,
+      })
+      expect(initialMembers).toHaveLength(1)
+      expect(initialMembers[0].id).toBe(teamEditor.id)
+      expect(initialMembers[0].role).toBe('editor')
+      expect(initialMembers[0].hasCustomRole).toBe(false)
+
+      // Set custom role for User B on project A
+      await projectService.updateMemberRole({
+        projectId: project.id,
+        userId: teamEditor.id,
+        role: 'reviewer',
+      })
+
+      // Now User B should have hasCustomRole = true and role = 'reviewer'
+      const updatedMembers = await projectService.listProjectMembers({
+        projectId: project.id,
+      })
+      expect(updatedMembers).toHaveLength(1)
+      expect(updatedMembers[0].id).toBe(teamEditor.id)
+      expect(updatedMembers[0].role).toBe('reviewer')
+      expect(updatedMembers[0].hasCustomRole).toBe(true)
+    })
   })
 
   describe('createProject', () => {

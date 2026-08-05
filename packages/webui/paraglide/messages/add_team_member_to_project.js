@@ -6,17 +6,17 @@ import { getLocale, experimentalStaticLocale } from '../runtime.js';
 /** @typedef {{}} Add_Team_Member_To_ProjectInputs */
 
 const en_add_team_member_to_project = /** @type {(inputs: Add_Team_Member_To_ProjectInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`Add Team Member to Project`)
+	return /** @type {LocalizedString} */ (`Customize Team Member Role`)
 };
 
 const zh_add_team_member_to_project = /** @type {(inputs: Add_Team_Member_To_ProjectInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`将团队成员添加到项目`)
+	return /** @type {LocalizedString} */ (`自定义团队成员在项目的角色`)
 };
 
 /**
 * | output |
 * | --- |
-* | "Add Team Member to Project" |
+* | "Customize Team Member Role" |
 *
 * @param {Add_Team_Member_To_ProjectInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options

@@ -50,6 +50,7 @@ export const projectUserInfoSchema = z.object({
   role: z.enum(['owner', 'editor', 'reviewer', 'bot', 'unknown']),
   image: z.string().optional(),
   scope: z.enum(['team', 'project']).optional(),
+  hasCustomRole: z.boolean().optional(),
 })
 export type ProjectUserInfo = z.infer<typeof projectUserInfoSchema>
 
