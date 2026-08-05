@@ -27,7 +27,12 @@ import { useMemo, useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { Popover, PopoverTrigger, PopoverContent } from '@/ui/components/ui/popover'
 import { m } from '@/ui/paraglide/messages.js'
-import { FIELD_TYPE_ICONS, PREDEFINED_COLORS, COLOR_MAP } from './fields-manager'
+import {
+  FIELD_TYPE_ICONS,
+  PREDEFINED_COLORS,
+  COLOR_MAP,
+  getRandomUnusedColor,
+} from './fields-manager'
 
 import { Button } from '@/ui/components/ui/button'
 import { Dialog, DialogContent, DialogTitle } from '@/ui/components/ui/dialog'
@@ -137,6 +142,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
   const [newType, setNewType] = useState<FieldType | ''>('')
   const [newAiAutofill, setNewAiAutofill] = useState(false)
   const [newDescription, setNewDescription] = useState('')
+  const [newOptions, setNewOptions] = useState<SelectOption[]>([])
 
   const $patchOrder = client.api.projects[':projectId'].fields.order.$patch
   const { mutate: updateFieldsOrder } = useMutation<
@@ -268,6 +274,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
     setNewType('')
     setNewAiAutofill(false)
     setNewDescription('')
+    setNewOptions([])
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -294,12 +301,19 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
 
   const handleSaveCreation = () => {
     if (!newName || !newType) return
+    const typeConfig =
+      newType === FieldType.select
+        ? { select: { options: newOptions } }
+        : newType === FieldType.selectMulti
+          ? { selectMulti: { options: newOptions } }
+          : {}
     createField({
       param: { projectId: projectId },
       json: {
         config: {
           name: newName,
           type: newType,
+          ...typeConfig,
         },
         label: newName,
         scope: selectedGroup === SCOPE_GROUPS.PROJECT ? undefined : selectedGroup,
@@ -363,7 +377,10 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
                 {Object.values(FieldType).map((type) => (
                   <DropdownMenuItem
                     key={type}
-                    onClick={() => setNewType(type)}
+                    onClick={() => {
+                      setNewType(type)
+                      setNewOptions([])
+                    }}
                     className="capitalize"
                   >
                     {type.replace(/_/g, ' ')}
@@ -384,6 +401,81 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
             <Switch checked={newAiAutofill} onCheckedChange={setNewAiAutofill} />
             <Label>{m.ai_autofill()}</Label>
           </div>
+
+          {(newType === FieldType.select || newType === FieldType.selectMulti) && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">{m.options()}</Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const newOption: SelectOption = {
+                      id: ulid(),
+                      displayName: m.new_option(),
+                      color: getRandomUnusedColor(newOptions),
+                    }
+                    setNewOptions([...newOptions, newOption])
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-2" /> {m.add_option()}
+                </Button>
+              </div>
+              <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                {newOptions.map((opt, idx) => (
+                  <div key={opt.id || idx} className="flex items-center gap-2">
+                    <Input
+                      value={opt.displayName}
+                      onChange={(e) => {
+                        const updated = [...newOptions]
+                        updated[idx] = { ...opt, displayName: e.target.value }
+                        setNewOptions(updated)
+                      }}
+                      placeholder={m.option_name_placeholder()}
+                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="w-6 h-6 rounded-full border shrink-0 cursor-pointer focus:outline-none hover:scale-105 transition-transform"
+                          style={{
+                            backgroundColor:
+                              COLOR_MAP[opt.color || '']?.hex || opt.color || '#808080',
+                          }}
+                        />
+                      </PopoverTrigger>
+                      <PopoverContent className="p-2 w-auto" align="end">
+                        <div className="flex gap-1">
+                          {PREDEFINED_COLORS.map((color) => (
+                            <button
+                              key={color}
+                              type="button"
+                              className="w-5 h-5 rounded-full border cursor-pointer hover:scale-110 transition-transform"
+                              style={{ backgroundColor: COLOR_MAP[color]?.hex || color }}
+                              onClick={() => {
+                                const updated = [...newOptions]
+                                updated[idx] = { ...opt, color }
+                                setNewOptions(updated)
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setNewOptions(newOptions.filter((_, i) => i !== idx))
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )
     }
@@ -447,16 +539,15 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  // Logic to add option
-                  const newOption = {
-                    id: ulid(),
-                    displayName: m.new_option(),
-                    color: '#808080',
-                  }
                   const currentOptions =
                     (selectedField.config?.type === 'select'
                       ? editConfig.select?.options
                       : editConfig.selectMulti?.options) || []
+                  const newOption = {
+                    id: ulid(),
+                    displayName: m.new_option(),
+                    color: getRandomUnusedColor(currentOptions),
+                  }
                   const newOptions = [...currentOptions, newOption]
 
                   setEditConfig({

@@ -1731,9 +1731,7 @@ describe('Agent Database Activities Integration', () => {
         expect(source?.type).toBe('select')
         expect(source?.description).toBe('Generation source')
         expect(source?.options).toEqual([{ displayName: 'Gemini' }, { displayName: 'Seedance' }])
-        expect(
-          res.fields.find((f: { name: string }) => f.name === 'Manual Notes'),
-        ).toBeUndefined()
+        expect(res.fields.find((f: { name: string }) => f.name === 'Manual Notes')).toBeUndefined()
       })
 
       it('should resolve the project through the ancestor chain', async () => {

@@ -71,6 +71,15 @@ export function getOptionStyle(color?: string) {
     color: color,
   }
 }
+
+export function getRandomUnusedColor(existingOptions: SelectOption[] = []): string {
+  const usedColors = new Set(existingOptions.map((o) => o.color?.toLowerCase()).filter(Boolean))
+  const available = PREDEFINED_COLORS.filter((color) => !usedColors.has(color.toLowerCase()))
+  if (available.length > 0) {
+    return available[Math.floor(Math.random() * available.length)]
+  }
+  return PREDEFINED_COLORS[Math.floor(Math.random() * PREDEFINED_COLORS.length)]
+}
 import {
   AlignLeft,
   Calendar,
@@ -338,7 +347,7 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
                     const newOption: SelectOption = {
                       id: ulid(),
                       displayName: m.new_option(),
-                      color: '#808080',
+                      color: getRandomUnusedColor(newOptions),
                     }
                     setNewOptions([...newOptions, newOption])
                   }}

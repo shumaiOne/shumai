@@ -641,7 +641,7 @@
   "field_name_placeholder": "e.g. Status",
   "field_type": "Field Type",
   "select_field_type": "Select field type",
-  "description_optional_placeholder": "Description (Optional)",
+  "description_optional_placeholder": "Description (Optional, used for AI autofill)",
   "ai_autofill": "AI Autofill",
   "select_field_to_edit": "Select a field to edit options",
   "type_label": "Type:",
