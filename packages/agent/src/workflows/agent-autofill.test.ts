@@ -36,6 +36,9 @@ describe('Agent Autofill Workflow', () => {
       getAgentAutofillContextActivity: Object.assign(vi.fn(), {
         _activityName: 'getAgentAutofillContextActivity',
       }),
+      getAssetAutofillContextActivity: Object.assign(vi.fn(), {
+        _activityName: 'getAssetAutofillContextActivity',
+      }),
       autofillAiActivity: Object.assign(vi.fn(), { _activityName: 'autofillAiActivity' }),
       updateTaskUsageActivity: Object.assign(vi.fn(), { _activityName: 'updateTaskUsageActivity' }),
       updateAssetMetadataActivity: Object.assign(vi.fn(), {
@@ -75,6 +78,7 @@ describe('Agent Autofill Workflow', () => {
       { key: 'title', config: { name: 'Title', type: 'text' }, description: 'The title' },
     ])
     mockActivities.getAgentAutofillContextActivity.mockResolvedValue({ agent: { id: 'b1' } })
+    mockActivities.getAssetAutofillContextActivity.mockResolvedValue('Generated using gemini')
     mockActivities.autofillAiActivity.mockResolvedValue({
       text: '{"title":"Extracted Title"}',
       sessionId: 'session-123',
@@ -136,6 +140,7 @@ describe('Agent Autofill Workflow', () => {
     expect(mockActivities.getAgentAutofillContextActivity).toHaveBeenCalledWith({
       teamId: 't1',
     })
+    expect(mockActivities.getAssetAutofillContextActivity).toHaveBeenCalledWith('a1')
 
     // Verify AI autofill called with mapped fields
     expect(mockActivities.autofillAiActivity).toHaveBeenCalledWith({
@@ -149,6 +154,7 @@ describe('Agent Autofill Workflow', () => {
         },
       ],
       context: { agent: { id: 'b1' } },
+      agentContext: 'Generated using gemini',
     })
 
     // Verify task usage update
@@ -187,6 +193,42 @@ describe('Agent Autofill Workflow', () => {
       taskId: task.id,
       status: 'completed',
     })
+  })
+
+  it('should run autofill without agentContext when the asset has no context', async () => {
+    mockActivities.getAssetAutofillContextActivity.mockResolvedValue(null)
+
+    const task = await prisma.workflowTask.create({
+      data: {
+        type: 'ai_metadata_autofill',
+        status: 'pending',
+        assetId: 'a1',
+        payload: {
+          projectId: 'p1',
+          agent: { sessionId: 's1', agentId: 'agent-1' },
+        },
+      },
+    })
+
+    await agentAutofillMedia(task)
+
+    expect(mockActivities.getAssetAutofillContextActivity).toHaveBeenCalledWith('a1')
+    expect(mockActivities.autofillAiActivity).toHaveBeenCalledWith(
+      expect.objectContaining({
+        teamId: 't1',
+        images: ['/tmp/test-dir/1.webp'],
+        fields: [
+          {
+            id: 'title',
+            config: { name: 'Title', type: 'text' },
+            description: 'The title',
+          },
+        ],
+        context: { agent: { id: 'b1' } },
+      }),
+    )
+    const aiCallArgs = mockActivities.autofillAiActivity.mock.calls[0][0]
+    expect(aiCallArgs).not.toHaveProperty('agentContext')
   })
 
   it('should complete early if no image files could be extracted', async () => {

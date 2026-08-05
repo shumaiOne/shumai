@@ -17,6 +17,14 @@ const createVersionSchema = Type.Object({
     description:
       'The absolute or relative local path to the file on disk. This parameter is required.',
   }),
+  context: Type.Optional(
+    Type.String({
+      description:
+        'Optional short context about this version and how it was generated (max 50 words, e.g. "Generated using gemini"). ' +
+        'Passed to the AI metadata autofill workflow to fill fields that cannot be determined from file content alone. ' +
+        'Check autofillable fields with list_autofill_fields first.',
+    }),
+  ),
 })
 
 export function createCreateVersionTool(userId: string): AgentTool<typeof createVersionSchema> {
@@ -46,6 +54,7 @@ export function createCreateVersionTool(userId: string): AgentTool<typeof create
           name: path.basename(absolutePath),
           size: fileSize,
           contentType: mimeType,
+          ...(params.context ? { context: params.context } : {}),
         },
         userId,
         assetId: params.parent,

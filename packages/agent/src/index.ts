@@ -17,6 +17,7 @@ import * as path from 'path'
 import { DatabaseSessionStorage } from './database-session-storage'
 import { createAnalyzeImageTool } from './tools/analyze-image'
 import { createCreateFileTool } from './tools/create-file'
+import { createListAutofillFieldsTool } from './tools/list-autofill-fields'
 import { createCreateFolderTool } from './tools/create-folder'
 import { createCreateVersionTool } from './tools/create-version'
 import { createDownloadAssetTool } from './tools/download-asset'
@@ -322,6 +323,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
       createCreateFileTool(userId),
       createCreateVersionTool(userId),
       createDownloadAssetTool(userId),
+      createListAutofillFieldsTool(userId),
     )
   }
 
