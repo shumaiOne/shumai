@@ -278,7 +278,10 @@ export function MembersDialog({
           </AlertDialog>{' '}
           {isOwner && onAddMember && availableMembersToAdd && availableMembersToAdd.length > 0 && (
             <div className="border-t pt-4">
-              <h4 className="text-sm font-medium mb-3">{m.add_team_member_to_project()}</h4>
+              <h4 className="text-sm font-medium mb-1">{m.add_team_member_to_project()}</h4>
+              <p className="text-xs text-muted-foreground mb-3 font-normal">
+                {m.add_team_member_to_project_hint()}
+              </p>
               <div className="max-h-[200px] overflow-y-auto space-y-2 pr-1">
                 {availableMembersToAdd.map((member) => {
                   const currentRole = rolesToAdd[member.id!] || 'editor'
@@ -353,12 +356,12 @@ export function MembersDialog({
                           }}
                           disabled={addingMemberId !== null}
                           size="sm"
-                          className="h-8 text-xs px-3 w-[60px]"
+                          className="h-8 text-xs px-3"
                         >
                           {addingMemberId === member.id ? (
                             <Loader2 className="h-3 w-3 animate-spin" />
                           ) : (
-                            m.add()
+                            m.set_role()
                           )}
                         </Button>
                       </div>

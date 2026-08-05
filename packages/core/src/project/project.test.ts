@@ -195,6 +195,54 @@ describe('ProjectService', () => {
       })
       expect(allMembers).toHaveLength(2)
     })
+
+    it('should include team-scoped members without explicit ProjectMember records', async () => {
+      const team = await prisma.team.create({ data: { name: 'Team Scope Test' } })
+      const project = await prisma.project.create({ data: { name: 'Project A', teamId: team.id } })
+
+      const teamOwner = await prisma.user.create({
+        data: { name: 'User A', email: `usera-${Date.now()}@example.com`, password: 'pw' },
+      })
+      const teamEditor = await prisma.user.create({
+        data: { name: 'User B', email: `userb-${Date.now()}@example.com`, password: 'pw' },
+      })
+      const projectEditor = await prisma.user.create({
+        data: { name: 'User C', email: `userc-${Date.now()}@example.com`, password: 'pw' },
+      })
+
+      const tmA = await prisma.teamMember.create({
+        data: { teamId: team.id, userId: teamOwner.id, role: 'owner', scope: 'team' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: teamEditor.id, role: 'editor', scope: 'team' },
+      })
+      const tmC = await prisma.teamMember.create({
+        data: { teamId: team.id, userId: projectEditor.id, role: 'reviewer', scope: 'project' },
+      })
+
+      // Only tmA and tmC are in ProjectMember for project A
+      await prisma.projectMember.create({
+        data: { projectId: project.id, teamMemberId: tmA.id, role: 'owner' },
+      })
+      await prisma.projectMember.create({
+        data: { projectId: project.id, teamMemberId: tmC.id, role: 'editor' },
+      })
+
+      const members = await projectService.listProjectMembers({
+        projectId: project.id,
+      })
+
+      expect(members).toHaveLength(3)
+      const memberIds = members.map((m) => m.id)
+      expect(memberIds).toContain(teamOwner.id)
+      expect(memberIds).toContain(teamEditor.id)
+      expect(memberIds).toContain(projectEditor.id)
+
+      // User B should have role 'editor' and scope 'team'
+      const userbInfo = members.find((m) => m.id === teamEditor.id)
+      expect(userbInfo?.role).toBe('editor')
+      expect(userbInfo?.scope).toBe('team')
+    })
   })
 
   describe('createProject', () => {

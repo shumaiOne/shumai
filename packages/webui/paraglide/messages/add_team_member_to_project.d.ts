@@ -1,7 +1,7 @@
 /**
 * | output |
 * | --- |
-* | "Add Team Member to Project" |
+* | "Customize Team Member Role" |
 *
 * @param {Add_Team_Member_To_ProjectInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options
