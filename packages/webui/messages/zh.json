@@ -641,7 +641,7 @@
   "field_name_placeholder": "例如：状态",
   "field_type": "字段类型",
   "select_field_type": "选择字段类型",
-  "description_optional_placeholder": "描述（可选，用于 AI 自动填充）",
+  "description_optional_placeholder": "可选，用于 AI 自动填充",
   "ai_autofill": "AI 自动填充",
   "select_field_to_edit": "选择一个字段以编辑选项",
   "type_label": "类型：",

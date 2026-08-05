@@ -1,7 +1,7 @@
 /**
 * | output |
 * | --- |
-* | "Description (Optional, used for AI autofill)" |
+* | "Optional, used for AI autofill" |
 *
 * @param {Description_Optional_PlaceholderInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options
