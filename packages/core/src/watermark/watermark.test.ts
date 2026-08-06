@@ -4,7 +4,8 @@ import { watermarkService } from '@shumai/core/src/watermark/watermark'
 import { generateWatermarkSvg } from '@shumai/core/src/watermark/watermark-svg'
 import { shareService } from '@shumai/core/src/share/share'
 import { teamService } from '@shumai/core/src/team/team'
-import { computeWatermarkConfigHash, WatermarkConfigSpec } from '@shumai/dtos'
+import { computeWatermarkConfigHash } from '@shumai/core/src/watermark/watermark-hash'
+import type { WatermarkConfigSpec } from '@shumai/dtos'
 import { describe, expect, it } from 'vitest'
 
 describe('WatermarkService', () => {

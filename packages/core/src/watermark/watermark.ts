@@ -10,12 +10,12 @@ import {
 import type { Prisma } from '@shumai/db'
 import '@shumai/db/src/prisma-json-types'
 import {
-  computeWatermarkConfigHash,
   WatermarkConfigSpec,
   WatermarkConfigInfo,
   WatermarkTemplateInfo,
   ShareLinkInfo,
 } from '@shumai/dtos'
+import { computeWatermarkConfigHash } from '@shumai/core/src/watermark/watermark-hash'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import {
   ShareLinkNotFoundError,
