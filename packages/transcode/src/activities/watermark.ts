@@ -187,9 +187,7 @@ export async function transcodeWatermarkMediaActivity(
       }
     }
 
-    // Generate SVG overlay
-    const svgString = generateWatermarkSvg(config, originalWidth, originalHeight, blockImagesMap)
-    const overlayPngBuffer = await transcodeService.renderSvgToPng(svgString)
+    const originalMedia = asset.media as PrismaJson.MediaInfo | null
 
     const mediaInfo: PrismaJson.MediaInfo = {
       duration,
@@ -198,7 +196,6 @@ export async function transcodeWatermarkMediaActivity(
       proxyType: isVideo ? 'video' : 'image',
       imageTranscodes: [],
       videoTranscodes: [],
-      videoPreview: { width: originalWidth, height: originalHeight },
       finishedAt: new Date().toISOString(),
       metadata: {
         originalWidth,
@@ -220,92 +217,115 @@ export async function transcodeWatermarkMediaActivity(
     }
 
     if (isImage) {
-      const outFileName = `${stem}-watermark-${params.watermarkConfigId}.webp`
-      const outFilePath = path.join(tmpDir, outFileName)
+      const originalTranscodes = originalMedia?.imageTranscodes || []
+      let totalSize = 0
 
-      await transcodeService.compositeOverlayToWebpFile(
-        rawFilePath,
-        overlayPngBuffer,
-        outFilePath,
-        originalWidth,
-        originalHeight,
-      )
+      for (let i = 0; i < originalTranscodes.length; i++) {
+        const it = originalTranscodes[i]
+        const targetWidth = it.width || originalWidth
+        const targetHeight = it.height || originalHeight
 
-      const stat = fs.statSync(outFilePath)
-      const outputKey = path.posix.join(path.posix.dirname(assetKey), outFileName)
+        const svgString = generateWatermarkSvg(config, targetWidth, targetHeight, blockImagesMap)
+        const overlayPngBuffer = await transcodeService.renderSvgToPng(svgString)
 
-      await s3Service.putObject(
-        bucket,
-        outputKey,
-        Bun.file(outFilePath).stream(),
-        stat.size,
-        'image/webp',
-      )
+        const outFileName = `${stem}-watermark-${params.watermarkConfigId}-${targetWidth}x${targetHeight}.webp`
+        const outFilePath = path.join(tmpDir, outFileName)
 
-      const imageTranscode: PrismaJson.ImageTranscode = {
-        key: outputKey,
-        width: originalWidth,
-        height: originalHeight,
-        quality: 90,
-        format: 'webp',
+        await transcodeService.compositeOverlayToWebpFile(
+          rawFilePath,
+          overlayPngBuffer,
+          outFilePath,
+          targetWidth,
+          targetHeight,
+        )
+
+        const stat = fs.statSync(outFilePath)
+        totalSize += stat.size
+        const outputKey = path.posix.join(path.posix.dirname(assetKey), outFileName)
+
+        await s3Service.putObject(
+          bucket,
+          outputKey,
+          Bun.file(outFilePath).stream(),
+          stat.size,
+          'image/webp',
+        )
+
+        mediaInfo.imageTranscodes.push({
+          key: outputKey,
+          width: targetWidth,
+          height: targetHeight,
+          quality: it.quality ?? 90,
+          format: it.format ?? 'webp',
+        })
       }
-      mediaInfo.imageTranscodes.push(imageTranscode)
-      mediaInfo.thumbnail = imageTranscode
-      mediaInfo.filesize = stat.size
+      mediaInfo.filesize = totalSize
     } else if (isVideo) {
-      const overlayPngPath = path.join(tmpDir, 'watermarkOverlay.png')
-      fs.writeFileSync(overlayPngPath, overlayPngBuffer)
+      const originalTranscodes = originalMedia?.videoTranscodes || []
+      let totalSize = 0
 
-      const outFileName = `${stem}-watermark-${params.watermarkConfigId}.mp4`
-      const outFilePath = path.join(tmpDir, outFileName)
+      for (let i = 0; i < originalTranscodes.length; i++) {
+        const vt = originalTranscodes[i]
+        const targetWidth = vt.width || originalWidth
+        const targetHeight = vt.height || originalHeight
+        const resolution = vt.resolution || `${targetHeight}p`
 
-      const filterComplex = `[0:v][1:v]overlay=0:0[vout]`
+        const svgString = generateWatermarkSvg(config, targetWidth, targetHeight, blockImagesMap)
+        const overlayPngBuffer = await transcodeService.renderSvgToPng(svgString)
 
-      const args = [
-        '-i',
-        rawFilePath,
-        '-i',
-        overlayPngPath,
-        '-filter_complex',
-        filterComplex,
-        '-map',
-        '[vout]',
-      ]
+        const overlayPngPath = path.join(tmpDir, `watermarkOverlay-${i}.png`)
+        fs.writeFileSync(overlayPngPath, overlayPngBuffer)
 
-      if (hasAudio) {
-        args.push('-map', '0:a?')
+        const outFileName = `${stem}-watermark-${params.watermarkConfigId}-${resolution}.mp4`
+        const outFilePath = path.join(tmpDir, outFileName)
+
+        const filterComplex = `[0:v]scale=${targetWidth}:${targetHeight}[vscaled];[vscaled][1:v]overlay=0:0[vout]`
+
+        const args = [
+          '-i',
+          rawFilePath,
+          '-i',
+          overlayPngPath,
+          '-filter_complex',
+          filterComplex,
+          '-map',
+          '[vout]',
+        ]
+
+        if (hasAudio) {
+          args.push('-map', '0:a?')
+        }
+
+        args.push('-c:v', 'libx264', '-preset', 'fast', '-crf', '26')
+
+        if (hasAudio) {
+          args.push('-c:a', 'aac', '-b:a', '128k')
+        }
+
+        args.push('-movflags', '+faststart', '-max_muxing_queue_size', '1024', outFilePath)
+
+        await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
+
+        const stat = fs.statSync(outFilePath)
+        totalSize += stat.size
+        const outputKey = path.posix.join(path.posix.dirname(assetKey), outFileName)
+
+        await s3Service.putObject(
+          bucket,
+          outputKey,
+          Bun.file(outFilePath).stream(),
+          stat.size,
+          'video/mp4',
+        )
+
+        mediaInfo.videoTranscodes.push({
+          key: outputKey,
+          width: targetWidth,
+          height: targetHeight,
+          resolution,
+        })
       }
-
-      args.push('-c:v', 'libx264', '-preset', 'fast', '-crf', '26')
-
-      if (hasAudio) {
-        args.push('-c:a', 'aac', '-b:a', '128k')
-      }
-
-      args.push('-movflags', '+faststart', '-max_muxing_queue_size', '1024', outFilePath)
-
-      await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
-
-      const stat = fs.statSync(outFilePath)
-      const outputKey = path.posix.join(path.posix.dirname(assetKey), outFileName)
-
-      await s3Service.putObject(
-        bucket,
-        outputKey,
-        Bun.file(outFilePath).stream(),
-        stat.size,
-        'video/mp4',
-      )
-
-      const videoTranscode: PrismaJson.VideoTranscode = {
-        key: outputKey,
-        width: originalWidth,
-        height: originalHeight,
-        resolution: `${originalHeight}p`,
-      }
-      mediaInfo.videoTranscodes.push(videoTranscode)
-      mediaInfo.videoPreview = videoTranscode
-      mediaInfo.filesize = stat.size
+      mediaInfo.filesize = totalSize
     }
 
     return mediaInfo

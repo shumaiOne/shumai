@@ -1192,7 +1192,7 @@ export class TranscodeService {
   ): Promise<void> {
     await sharp(inputPath, { limitInputPixels: false })
       .toColorspace('srgb')
-      .resize(width, height, { fit: 'inside', withoutEnlargement: true })
+      .resize(width, height, { fit: 'inside' })
       .composite([{ input: overlayPngBuffer }])
       .webp({ quality: 90 })
       .toFile(outputPath)

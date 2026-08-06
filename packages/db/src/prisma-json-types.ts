@@ -134,7 +134,7 @@ declare global {
       proxyType?: 'image' | 'video' | 'audio' | 'pdf'
       imageTranscodes: ImageTranscode[]
       videoTranscodes: VideoTranscode[]
-      videoPreview: VideoTranscode
+      videoPreview?: VideoTranscode
       pdfTranscode?: PdfTranscode
       sprite?: SpriteInfo
       poster?: PosterInfo

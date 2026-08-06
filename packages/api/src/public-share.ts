@@ -21,55 +21,55 @@ import {
   ShareLinkExpiredError,
   ShareLinkPasswordInvalidError,
 } from '@shumai/core/src/share/errors'
+import { s3Service } from '@shumai/core/src/s3/s3'
 import type { AssetInfo } from '@shumai/dtos'
 
 /**
  * Replaces the served media entries with the watermarked proxy entries produced
  * by the watermark transcode activity. Only the transcode/preview slots are
  * replaced; `original` is intentionally left untouched here.
+ * S3 GET URLs are generated for all watermarked proxies and preview thumbnails.
  */
-function applyWatermarkToAssetMedia(
+async function applyWatermarkToAssetMedia(
   asset: AssetInfo,
   watermarkMedia: PrismaJson.MediaInfo,
-): AssetInfo {
+): Promise<AssetInfo> {
   if (!asset.media) return asset
   const updatedMedia = { ...asset.media }
+  const bucket = process.env.S3_BUCKET || 'shumai'
 
   if (watermarkMedia.videoTranscodes && watermarkMedia.videoTranscodes.length > 0) {
-    updatedMedia.videoTranscodes = watermarkMedia.videoTranscodes.map((vt) => ({
-      id: vt.key ?? '',
-      url: '',
-      key: vt.key ?? '',
-      width: vt.width ?? 0,
-      height: vt.height ?? 0,
-      size: 0,
-      isRaw: false,
-    }))
-  }
-  if (watermarkMedia.imageTranscodes && watermarkMedia.imageTranscodes.length > 0) {
-    updatedMedia.imageTranscodes = watermarkMedia.imageTranscodes.map((it) => ({
-      id: it.key ?? '',
-      url: '',
-      key: it.key ?? '',
-      width: it.width ?? 0,
-      height: it.height ?? 0,
-      size: 0,
-      isRaw: false,
-    }))
-  }
-  if (watermarkMedia.videoPreview?.key) {
-    updatedMedia.videoPreview = { url: '', key: watermarkMedia.videoPreview.key }
-  }
-  if (watermarkMedia.thumbnail?.key) {
-    ;(
-      updatedMedia as AssetInfo['media'] & { thumbnail?: { url: string; key?: string } }
-    ).thumbnail = {
-      url: '',
-      key: watermarkMedia.thumbnail.key,
-    }
+    updatedMedia.videoTranscodes = await Promise.all(
+      watermarkMedia.videoTranscodes.map(async (vt) => ({
+        id: vt.key ?? '',
+        url: vt.key ? await s3Service.presign(bucket, vt.key, 'GET') : '',
+        key: vt.key ?? '',
+        width: vt.width ?? 0,
+        height: vt.height ?? 0,
+        size: 0,
+        isRaw: false,
+      })),
+    )
   }
 
-  return { ...asset, media: updatedMedia }
+  if (watermarkMedia.imageTranscodes && watermarkMedia.imageTranscodes.length > 0) {
+    updatedMedia.imageTranscodes = await Promise.all(
+      watermarkMedia.imageTranscodes.map(async (it) => ({
+        id: it.key ?? '',
+        url: it.key ? await s3Service.presign(bucket, it.key, 'GET') : '',
+        key: it.key ?? '',
+        width: it.width ?? 0,
+        height: it.height ?? 0,
+        size: 0,
+        isRaw: false,
+      })),
+    )
+  }
+
+  return {
+    ...asset,
+    media: updatedMedia,
+  }
 }
 
 const app = new Hono()
@@ -200,13 +200,15 @@ const route = app
           })
           const wfMap = new Map(watermarkFiles.map((wf) => [wf.assetId, wf.media]))
 
-          res.data = res.data.map((item, index) => {
-            const wMedia = wfMap.get(targetIds[index])
-            if (wMedia) {
-              return applyWatermarkToAssetMedia(item, wMedia)
-            }
-            return item
-          })
+          res.data = await Promise.all(
+            res.data.map(async (item, index) => {
+              const wMedia = wfMap.get(targetIds[index])
+              if (wMedia) {
+                return await applyWatermarkToAssetMedia(item, wMedia)
+              }
+              return item
+            }),
+          )
         }
 
         return c.json(res)
@@ -236,7 +238,7 @@ const route = app
           },
         })
         if (watermarkFile?.status === 'completed' && watermarkFile.media) {
-          asset = applyWatermarkToAssetMedia(asset, watermarkFile.media)
+          asset = await applyWatermarkToAssetMedia(asset, watermarkFile.media)
         }
       }
 

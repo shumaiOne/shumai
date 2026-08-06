@@ -104,7 +104,9 @@ describe.each(['local', 'temporal'] as const)(
             filesize: sampleBuffer.length,
             frames: 0,
             proxyType: 'image',
-            imageTranscodes: [],
+            imageTranscodes: [
+              { key: storageKey.key, width: 100, height: 100, quality: 90, format: 'webp' },
+            ],
             videoTranscodes: [],
             videoPreview: { width: 100, height: 100 },
             finishedAt: new Date().toISOString(),
@@ -230,7 +232,7 @@ describe.each(['local', 'temporal'] as const)(
             frames: 30,
             proxyType: 'video',
             imageTranscodes: [],
-            videoTranscodes: [],
+            videoTranscodes: [{ key: storageKey.key, width: 640, height: 360, resolution: '360p' }],
             videoPreview: { width: 640, height: 360 },
             finishedAt: new Date().toISOString(),
             metadata: {

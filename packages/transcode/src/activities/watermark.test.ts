@@ -14,7 +14,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('child_process', () => ({
   execFile: vi.fn(
-    (_cmd: string, _args: string[], cb: (err: unknown, stdout: string, stderr: string) => void) => {
+    (_cmd: string, args: string[], cb: (err: unknown, stdout: string, stderr: string) => void) => {
+      const outFile = args[args.length - 1]
+      if (outFile && typeof outFile === 'string') {
+        try {
+          fs.writeFileSync(outFile, 'fake-mp4')
+        } catch {
+          // Ignore
+        }
+      }
       cb(null, '', '')
     },
   ),
@@ -25,7 +33,13 @@ vi.mock('@shumai/core/src/s3/s3', () => ({
     getObject: vi.fn(),
     putObject: vi.fn(),
     presign: vi.fn(),
-    downloadToFile: vi.fn(),
+    downloadToFile: vi.fn().mockImplementation(async (_b, _k, dest) => {
+      fs.writeFileSync(dest, 'fake-raw')
+    }),
+    downloadMediaToTmp: vi.fn().mockImplementation(async () => ({
+      filePath: '/tmp/raw-file',
+      tmpDir: '/tmp',
+    })),
     deleteObject: vi.fn(),
   },
 }))
@@ -42,7 +56,9 @@ vi.mock('@shumai/core/src/transcode/transcode', () => ({
       width: 32,
       height: 32,
     }),
-    compositeOverlayToWebpFile: vi.fn().mockResolvedValue(undefined),
+    compositeOverlayToWebpFile: vi.fn().mockImplementation(async (_in, _overlay, out) => {
+      fs.writeFileSync(out, 'fake-webp')
+    }),
   },
 }))
 
@@ -172,8 +188,8 @@ describe('Watermark Activities', () => {
             filesize: 0,
             frames: 0,
             proxyType,
-            videoTranscodes: [],
-            imageTranscodes: [],
+            videoTranscodes: [{ key, width: 100, height: 100, resolution: '100p' }],
+            imageTranscodes: [{ key, width: 100, height: 100, quality: 90, format: 'webp' }],
             videoPreview: { width: 100, height: 100 },
             finishedAt: new Date().toISOString(),
             metadata: {
@@ -240,7 +256,7 @@ describe('Watermark Activities', () => {
 
       // compositeOverlayToWebpFile is mocked, but the activity stats the output
       // file afterwards, so pre-create it at the expected path.
-      const outFileName = `test-watermark-${config.id}.webp`
+      const outFileName = `test-watermark-${config.id}-100x100.webp`
       const outFilePath = path.join('/tmp', outFileName)
       fs.writeFileSync(outFilePath, Buffer.from('fake webp'))
 
@@ -252,7 +268,6 @@ describe('Watermark Activities', () => {
       expect(media.proxyType).toBe('image')
       expect(media.imageTranscodes?.length).toBeGreaterThan(0)
       expect(media.imageTranscodes?.[0].key).toContain('watermark-')
-      expect(media.thumbnail?.key).toBeDefined()
       expect(transcodeService.renderSvgToPng).toHaveBeenCalled()
       expect(transcodeService.compositeOverlayToWebpFile).toHaveBeenCalledWith(
         expect.stringContaining('test.png'),
@@ -294,7 +309,7 @@ describe('Watermark Activities', () => {
       // file afterwards, so pre-create it at the expected path.
       const stem = 'video'
       const configId = config.id
-      const outFilePath = path.join('/tmp', `${stem}-watermark-${configId}.mp4`)
+      const outFilePath = path.join('/tmp', `${stem}-watermark-${configId}-100p.mp4`)
       fs.writeFileSync(outFilePath, Buffer.from('fake mp4'))
 
       const media = await transcodeWatermarkMediaActivity({
