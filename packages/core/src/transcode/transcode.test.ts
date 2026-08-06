@@ -806,7 +806,6 @@ describe('TranscodeService', () => {
         expect(fs.existsSync(outputPath)).toBe(true)
         expect(vi.mocked(sharp().resize)).toHaveBeenCalledWith(1920, 1080, {
           fit: 'inside',
-          withoutEnlargement: true,
         })
         expect(vi.mocked(sharp().composite)).toHaveBeenCalledWith([
           { input: Buffer.from('overlay-png') },

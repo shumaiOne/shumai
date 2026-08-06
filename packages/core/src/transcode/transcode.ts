@@ -110,6 +110,7 @@ export interface TranscodeVideoParams {
   height: number
   frameRate?: number | string
   disableAudio?: boolean
+  overlayFile?: string
 }
 
 export interface ExtractVideoFramesParams {
@@ -339,13 +340,22 @@ export class TranscodeService {
   }
 
   async transcodeVideo(params: TranscodeVideoParams): Promise<void> {
-    let filterComplex = `[0:v]scale=w=${params.width}:h=${params.height}:force_original_aspect_ratio=decrease,scale=w='trunc(iw/2)*2':h='trunc(ih/2)*2'`
+    let filterComplex: string
+    const args: string[] = ['-i', params.inputFile]
+
+    if (params.overlayFile) {
+      args.push('-i', params.overlayFile)
+      filterComplex = `[0:v]scale=${params.width}:${params.height}[vscaled];[vscaled][1:v]overlay=0:0`
+    } else {
+      filterComplex = `[0:v]scale=w=${params.width}:h=${params.height}:force_original_aspect_ratio=decrease,scale=w='trunc(iw/2)*2':h='trunc(ih/2)*2'`
+    }
+
     if (params.frameRate) {
       filterComplex += `,fps=${params.frameRate}`
     }
     filterComplex += '[vout]'
 
-    const args = ['-i', params.inputFile, '-filter_complex', filterComplex, '-map', '[vout]']
+    args.push('-filter_complex', filterComplex, '-map', '[vout]')
 
     if (params.frameRate) {
       let calculatedFps: number

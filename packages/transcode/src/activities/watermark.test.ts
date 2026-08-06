@@ -59,6 +59,9 @@ vi.mock('@shumai/core/src/transcode/transcode', () => ({
     compositeOverlayToWebpFile: vi.fn().mockImplementation(async (_in, _overlay, out) => {
       fs.writeFileSync(out, 'fake-webp')
     }),
+    transcodeVideo: vi.fn().mockImplementation(async (params) => {
+      fs.writeFileSync(params.outputFile, 'fake-mp4')
+    }),
   },
 }))
 

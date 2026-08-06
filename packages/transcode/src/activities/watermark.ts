@@ -12,11 +12,7 @@ import { stemFromKey } from '@shumai/core/src/utils/filename'
 import { ApplicationFailure } from '@temporalio/activity'
 import * as path from 'path'
 import * as fs from 'fs'
-import { execFile } from 'child_process'
-import { promisify } from 'util'
 import type { WatermarkConfigSpec, WatermarkBlockImage } from '@shumai/dtos'
-
-const execFileAsync = promisify(execFile)
 
 // Max dimension for watermark block images embedded into the SVG overlay.
 // Bounding this keeps the SVG (and its base64 payload) small for large logos.
@@ -279,32 +275,14 @@ export async function transcodeWatermarkMediaActivity(
         const outFileName = `${stem}-watermark-${params.watermarkConfigId}-${resolution}.mp4`
         const outFilePath = path.join(tmpDir, outFileName)
 
-        const filterComplex = `[0:v]scale=${targetWidth}:${targetHeight}[vscaled];[vscaled][1:v]overlay=0:0[vout]`
-
-        const args = [
-          '-i',
-          rawFilePath,
-          '-i',
-          overlayPngPath,
-          '-filter_complex',
-          filterComplex,
-          '-map',
-          '[vout]',
-        ]
-
-        if (hasAudio) {
-          args.push('-map', '0:a?')
-        }
-
-        args.push('-c:v', 'libx264', '-preset', 'fast', '-crf', '26')
-
-        if (hasAudio) {
-          args.push('-c:a', 'aac', '-b:a', '128k')
-        }
-
-        args.push('-movflags', '+faststart', '-max_muxing_queue_size', '1024', outFilePath)
-
-        await execFileAsync('ffmpeg', ['-y', '-loglevel', 'warning', ...args])
+        await transcodeService.transcodeVideo({
+          inputFile: rawFilePath,
+          outputFile: outFilePath,
+          width: targetWidth,
+          height: targetHeight,
+          disableAudio: !hasAudio,
+          overlayFile: overlayPngPath,
+        })
 
         const stat = fs.statSync(outFilePath)
         totalSize += stat.size
