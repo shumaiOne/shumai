@@ -498,6 +498,33 @@ export class WatermarkService {
     return purgedCount
   }
 
+  /**
+   * Fetches completed watermark media entries for a list of asset IDs under a specific watermark config.
+   * Returns a map of assetId -> PrismaJson.MediaInfo.
+   */
+  async getCompletedWatermarkMediaMap(
+    assetIds: string[],
+    watermarkConfigId: string,
+  ): Promise<Map<string, PrismaJson.MediaInfo>> {
+    if (assetIds.length === 0) return new Map()
+
+    const watermarkFiles = await prisma.watermarkFile.findMany({
+      where: {
+        assetId: { in: assetIds },
+        watermarkConfigId,
+        status: 'completed',
+      },
+    })
+
+    const map = new Map<string, PrismaJson.MediaInfo>()
+    for (const wf of watermarkFiles) {
+      if (wf.media) {
+        map.set(wf.assetId, wf.media as PrismaJson.MediaInfo)
+      }
+    }
+    return map
+  }
+
   // ----------------------------------------------------------------------
   // DTO Mappers
   // ----------------------------------------------------------------------

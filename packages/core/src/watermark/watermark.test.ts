@@ -270,4 +270,56 @@ describe('WatermarkService', () => {
     })
     expect(findDeleted).toBeNull()
   })
+
+  it('should fetch completed watermark media map for asset IDs', async () => {
+    const config = await watermarkService.upsertConfig(sampleConfig)
+    const asset1 = await prisma.asset.create({
+      data: { name: 'asset1.png', type: 'file', status: 'processed' },
+    })
+    const asset2 = await prisma.asset.create({
+      data: { name: 'asset2.png', type: 'file', status: 'processed' },
+    })
+
+    const sampleMedia: PrismaJson.MediaInfo = {
+      duration: 0,
+      filesize: 100,
+      frames: 0,
+      proxyType: 'image',
+      imageTranscodes: [
+        { key: 'watermarked.webp', width: 100, height: 100, quality: 90, format: 'webp' },
+      ],
+      videoTranscodes: [],
+      finishedAt: new Date().toISOString(),
+      metadata: null,
+      original: null,
+    }
+
+    await prisma.watermarkFile.create({
+      data: {
+        assetId: asset1.id,
+        watermarkConfigId: config.id,
+        status: 'completed',
+        media: sampleMedia,
+      },
+    })
+
+    // asset2 has pending status
+    await prisma.watermarkFile.create({
+      data: {
+        assetId: asset2.id,
+        watermarkConfigId: config.id,
+        status: 'pending',
+      },
+    })
+
+    const map = await watermarkService.getCompletedWatermarkMediaMap(
+      [asset1.id, asset2.id],
+      config.id,
+    )
+
+    expect(map.size).toBe(1)
+    expect(map.get(asset1.id)).toBeDefined()
+    expect(map.get(asset1.id)?.imageTranscodes[0].key).toBe('watermarked.webp')
+    expect(map.get(asset2.id)).toBeUndefined()
+  })
 })

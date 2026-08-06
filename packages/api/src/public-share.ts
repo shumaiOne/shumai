@@ -3,12 +3,11 @@ import type { Context } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { shareService } from '@shumai/core/src/share/share'
 import { assetService } from '@shumai/core/src/asset/asset'
+import { watermarkService } from '@shumai/core/src/watermark/watermark'
 import { paginationParamsSchema } from '@shumai/dtos'
 import { z } from 'zod'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { FieldInfo } from '@shumai/dtos'
-import { prisma } from '@shumai/db'
-import '@shumai/db/src/prisma-json-types'
 import type { Prisma as PrismaType } from '@shumai/db'
 import { projectService } from '@shumai/core/src/project/project'
 import { userService } from '@shumai/core/src/user/user'
@@ -191,14 +190,10 @@ const route = app
           const targetIds = await Promise.all(
             res.data.map((item) => assetService.resolveTargetAssetId(item.id)),
           )
-          const watermarkFiles = await prisma.watermarkFile.findMany({
-            where: {
-              assetId: { in: targetIds },
-              watermarkConfigId: shareLink.watermarkConfigId,
-              status: 'completed',
-            },
-          })
-          const wfMap = new Map(watermarkFiles.map((wf) => [wf.assetId, wf.media]))
+          const wfMap = await watermarkService.getCompletedWatermarkMediaMap(
+            targetIds,
+            shareLink.watermarkConfigId,
+          )
 
           res.data = await Promise.all(
             res.data.map(async (item, index) => {
@@ -228,17 +223,13 @@ const route = app
 
       if (shareLink.watermarkConfigId && shareLink.watermarkStatus === 'ready') {
         const targetAssetId = await assetService.resolveTargetAssetId(fileId)
-        const watermarkFile = await prisma.watermarkFile.findUnique({
-          where: {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            assetId_watermarkConfigId: {
-              assetId: targetAssetId,
-              watermarkConfigId: shareLink.watermarkConfigId,
-            },
-          },
-        })
-        if (watermarkFile?.status === 'completed' && watermarkFile.media) {
-          asset = await applyWatermarkToAssetMedia(asset, watermarkFile.media)
+        const wfMap = await watermarkService.getCompletedWatermarkMediaMap(
+          [targetAssetId],
+          shareLink.watermarkConfigId,
+        )
+        const wMedia = wfMap.get(targetAssetId)
+        if (wMedia) {
+          asset = await applyWatermarkToAssetMedia(asset, wMedia)
         }
       }
 
