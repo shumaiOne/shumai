@@ -22,6 +22,7 @@ import { HTTPException } from 'hono/http-exception'
 import { logger } from '@shumai/core/src/logger'
 import { PaginatedData, paginateQuery, PaginationParams } from '@shumai/core/src/pagination'
 import { s3Service } from '@shumai/core/src/s3/s3'
+import { watermarkService } from '@shumai/core/src/watermark/watermark'
 import { generateKeyBetween } from 'jittered-fractional-indexing'
 import { getAvatarUrl } from '@shumai/core/src/user/avatar'
 
@@ -1104,7 +1105,6 @@ export class AssetService {
         await this.expireTrashedAssets()
         await this.purgePendingAssets()
         await this.purgeUnreferencedStorageKeys()
-        const { watermarkService } = await import('@shumai/core/src/watermark/watermark')
         await watermarkService.purgeOrphanWatermarkConfigs()
       } catch (e: unknown) {
         console.error('Error in asset cleanup job:', e)
