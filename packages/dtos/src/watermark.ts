@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import crypto from 'crypto'
 
 export const watermarkBlockTextSchema = z.object({
   id: z.string(),
@@ -51,7 +50,7 @@ export function computeWatermarkConfigHash(config: WatermarkConfigSpec): string 
   })
   blockStrings.sort()
   const str = blockStrings.join(';')
-  return crypto.createHash('sha256').update(str).digest('hex')
+  return Bun.hash(str).toString(16)
 }
 
 export interface WatermarkConfigInfo {
