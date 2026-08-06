@@ -1148,6 +1148,55 @@ export class TranscodeService {
       this.removeDir(tmpDir)
     }
   }
+
+  /**
+   * Renders an SVG string to a PNG buffer. Used by the watermark workflow to
+   * rasterize the overlay before compositing it onto images or feeding it to
+   * ffmpeg for video overlays.
+   */
+  async renderSvgToPng(svgString: string): Promise<Buffer> {
+    return sharp(Buffer.from(svgString)).png().toBuffer()
+  }
+
+  /**
+   * Downscales an image buffer to a bounded size and normalizes it to PNG.
+   * Used for watermark block images embedded into the SVG overlay, so large
+   * logo assets don't balloon the SVG/base64 payload.
+   */
+  async downscaleImageToPng(
+    buffer: Buffer,
+    maxDimension: number,
+  ): Promise<{ buffer: Buffer; width: number; height: number }> {
+    const processed = await sharp(buffer, { limitInputPixels: false })
+      .resize(maxDimension, maxDimension, { fit: 'inside', withoutEnlargement: true })
+      .png()
+      .toBuffer()
+    const meta = await sharp(processed).metadata()
+    return {
+      buffer: processed,
+      width: meta.width || 100,
+      height: meta.height || 100,
+    }
+  }
+
+  /**
+   * Composites an overlay PNG onto an image file and writes a WebP file.
+   * Used by the watermark workflow to produce watermarked image proxies.
+   */
+  async compositeOverlayToWebpFile(
+    inputPath: string,
+    overlayPngBuffer: Buffer,
+    outputPath: string,
+    width: number,
+    height: number,
+  ): Promise<void> {
+    await sharp(inputPath, { limitInputPixels: false })
+      .toColorspace('srgb')
+      .resize(width, height, { fit: 'inside', withoutEnlargement: true })
+      .composite([{ input: overlayPngBuffer }])
+      .webp({ quality: 90 })
+      .toFile(outputPath)
+  }
 }
 
 function renderAnnotationsToSvg(

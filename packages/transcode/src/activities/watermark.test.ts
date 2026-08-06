@@ -10,7 +10,6 @@ import {
 } from './watermark'
 import * as fs from 'fs'
 import * as path from 'path'
-import sharp from 'sharp'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('child_process', () => ({
@@ -37,6 +36,13 @@ vi.mock('@shumai/core/src/transcode/transcode', () => ({
     getImageInfo: vi.fn(),
     createTempDir: vi.fn().mockReturnValue('/tmp'),
     removeDir: vi.fn(),
+    renderSvgToPng: vi.fn().mockResolvedValue(Buffer.from('fake-overlay-png')),
+    downscaleImageToPng: vi.fn().mockResolvedValue({
+      buffer: Buffer.from('fake-block-png'),
+      width: 32,
+      height: 32,
+    }),
+    compositeOverlayToWebpFile: vi.fn().mockResolvedValue(undefined),
   },
 }))
 
@@ -220,12 +226,6 @@ describe('Watermark Activities', () => {
       const asset = await seedAsset('test.png', 'image/png', assetKey, 'image')
       const config = await seedConfig()
 
-      // Write a real image so sharp can process it (downloadToFile is mocked)
-      const rawFilePath = path.join('/tmp', path.basename(assetKey))
-      await sharp({ create: { width: 100, height: 100, channels: 3, background: '#336699' } })
-        .png()
-        .toFile(rawFilePath)
-
       vi.mocked(transcodeService.getImageInfo).mockResolvedValue({
         originalWidth: 100,
         originalHeight: 100,
@@ -238,6 +238,12 @@ describe('Watermark Activities', () => {
       })
       vi.mocked(s3Service.putObject).mockResolvedValue(undefined as never)
 
+      // compositeOverlayToWebpFile is mocked, but the activity stats the output
+      // file afterwards, so pre-create it at the expected path.
+      const outFileName = `test-watermark-${config.id}.webp`
+      const outFilePath = path.join('/tmp', outFileName)
+      fs.writeFileSync(outFilePath, Buffer.from('fake webp'))
+
       const media = await transcodeWatermarkMediaActivity({
         assetId: asset.id,
         watermarkConfigId: config.id,
@@ -247,6 +253,14 @@ describe('Watermark Activities', () => {
       expect(media.imageTranscodes?.length).toBeGreaterThan(0)
       expect(media.imageTranscodes?.[0].key).toContain('watermark-')
       expect(media.thumbnail?.key).toBeDefined()
+      expect(transcodeService.renderSvgToPng).toHaveBeenCalled()
+      expect(transcodeService.compositeOverlayToWebpFile).toHaveBeenCalledWith(
+        expect.stringContaining('test.png'),
+        Buffer.from('fake-overlay-png'),
+        outFilePath,
+        100,
+        100,
+      )
       expect(s3Service.putObject).toHaveBeenCalledWith(
         bucket,
         expect.stringContaining('watermark-'),
@@ -255,15 +269,7 @@ describe('Watermark Activities', () => {
         'image/webp',
       )
 
-      // cleanup the generated file
-      try {
-        fs.rmSync(path.join('/tmp', path.basename(media.imageTranscodes?.[0].key ?? '')), {
-          force: true,
-        })
-      } catch {
-        // ignore
-      }
-      fs.rmSync(rawFilePath, { force: true })
+      fs.rmSync(outFilePath, { force: true })
     })
 
     it('produces a watermarked mp4 proxy for a video asset (ffmpeg path)', async () => {

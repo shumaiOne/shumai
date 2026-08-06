@@ -14,7 +14,6 @@ import * as path from 'path'
 import * as fs from 'fs'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
-import sharp from 'sharp'
 import type { WatermarkConfigSpec, WatermarkBlockImage } from '@shumai/dtos'
 
 const execFileAsync = promisify(execFile)
@@ -168,20 +167,16 @@ export async function transcodeWatermarkMediaActivity(
           const buffer = fs.readFileSync(imgTmpPath)
           // Downscale to a bounded size and normalize to PNG so large logo assets
           // don't balloon the SVG/base64 payload.
-          const processed = await sharp(buffer, { limitInputPixels: false })
-            .resize(MAX_BLOCK_IMAGE_DIMENSION, MAX_BLOCK_IMAGE_DIMENSION, {
-              fit: 'inside',
-              withoutEnlargement: true,
-            })
-            .png()
-            .toBuffer()
-          const meta = await sharp(processed).metadata()
+          const processed = await transcodeService.downscaleImageToPng(
+            buffer,
+            MAX_BLOCK_IMAGE_DIMENSION,
+          )
           blockImagesMap.set(imgBlock.imageAssetId, {
             imageAssetId: imgBlock.imageAssetId,
-            base64Data: processed.toString('base64'),
+            base64Data: processed.buffer.toString('base64'),
             mimeType: 'image/png',
-            width: meta.width || 100,
-            height: meta.height || 100,
+            width: processed.width,
+            height: processed.height,
           })
         }
       } catch (err) {
@@ -194,7 +189,7 @@ export async function transcodeWatermarkMediaActivity(
 
     // Generate SVG overlay
     const svgString = generateWatermarkSvg(config, originalWidth, originalHeight, blockImagesMap)
-    const overlayPngBuffer = await sharp(Buffer.from(svgString)).png().toBuffer()
+    const overlayPngBuffer = await transcodeService.renderSvgToPng(svgString)
 
     const mediaInfo: PrismaJson.MediaInfo = {
       duration,
@@ -228,12 +223,13 @@ export async function transcodeWatermarkMediaActivity(
       const outFileName = `${stem}-watermark-${params.watermarkConfigId}.webp`
       const outFilePath = path.join(tmpDir, outFileName)
 
-      await sharp(rawFilePath, { limitInputPixels: false })
-        .toColorspace('srgb')
-        .resize(originalWidth, originalHeight, { fit: 'inside', withoutEnlargement: true })
-        .composite([{ input: overlayPngBuffer }])
-        .webp({ quality: 90 })
-        .toFile(outFilePath)
+      await transcodeService.compositeOverlayToWebpFile(
+        rawFilePath,
+        overlayPngBuffer,
+        outFilePath,
+        originalWidth,
+        originalHeight,
+      )
 
       const stat = fs.statSync(outFilePath)
       const outputKey = path.posix.join(path.posix.dirname(assetKey), outFileName)
