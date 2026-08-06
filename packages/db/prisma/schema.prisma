@@ -106,6 +106,7 @@ enum WorkflowTaskType {
   transcode_pdf_pages
   transcode_screenshot
   transcode_image_annotation
+  transcode_watermark
   ai_metadata_autofill
   chat
   ai_embedding
@@ -117,6 +118,13 @@ enum WorkflowTaskStatus {
   pending
   processing
   completed
+  failed
+}
+
+enum WatermarkStatus {
+  disabled
+  processing
+  ready
   failed
 }
 
@@ -241,6 +249,7 @@ model Team {
   agents         Agent[]         @relation("TeamToAgent")
   aiUsages       AiUsage[]       @relation("TeamToAiUsage")
   auditLogs      AuditLog[]      @relation("TeamToAuditLog")
+  watermarkTemplates WatermarkTemplate[] @relation("TeamToWatermarkTemplate")
 
   @@map("teams")
 }
@@ -367,7 +376,57 @@ model ShareLink {
   creatorId        String?   @map("creator_id")
   creator          User?     @relation("UserToShareLink", fields: [creatorId], references: [id])
 
+  watermarkConfigId String?          @map("watermark_config_id")
+  watermarkStatus   WatermarkStatus  @default(disabled) @map("watermark_status")
+  watermarkConfig   WatermarkConfig? @relation(fields: [watermarkConfigId], references: [id], onDelete: SetNull)
+
   @@map("share_links")
+}
+
+model WatermarkConfig {
+  id        String   @id @default(ulid())
+  /// [WatermarkConfigSpec]
+  config    Json
+  hash      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  shareLinks     ShareLink[]
+  watermarkFiles WatermarkFile[]
+
+  @@map("watermark_configs")
+}
+
+model WatermarkTemplate {
+  id        String   @id @default(ulid())
+  name      String
+  /// [WatermarkConfigSpec]
+  config    Json
+  teamId    String?  @map("team_id")
+  team      Team?    @relation("TeamToWatermarkTemplate", fields: [teamId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([teamId])
+  @@map("watermark_templates")
+}
+
+model WatermarkFile {
+  id                String             @id @default(ulid())
+  assetId           String             @map("asset_id")
+  watermarkConfigId String             @map("watermark_config_id")
+  /// [MediaInfo]
+  media             Json?
+  status            WorkflowTaskStatus @default(pending)
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+
+  asset           Asset           @relation("AssetToWatermarkFile", fields: [assetId], references: [id], onDelete: Cascade)
+  watermarkConfig WatermarkConfig @relation(fields: [watermarkConfigId], references: [id], onDelete: Cascade)
+
+  @@unique([assetId, watermarkConfigId])
+  @@index([watermarkConfigId])
+  @@map("watermark_files")
 }
 
 model Asset {
@@ -421,6 +480,7 @@ model Asset {
   projectShareRoot     Project?     @relation("ProjectToShareRoot")
   shareLinkRootFolder  ShareLink?   @relation("ShareLinkToRootFolder")
   agentSessions        AgentSession[] @relation("AssetToAgentSession")
+  watermarkFiles       WatermarkFile[] @relation("AssetToWatermarkFile")
 
   @@map("assets")
   @@index([type])

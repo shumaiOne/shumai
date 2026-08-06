@@ -5,6 +5,7 @@ import { transcodePdfWorkflow } from './transcode-pdf'
 import { renderPdfPagesWorkflow } from './render-pdf-pages'
 import { takeVideoScreenshotsWorkflow } from './take-video-screenshots'
 import { overlayImageAnnotationWorkflow } from './overlay-image-annotation'
+import { transcodeWatermarkWorkflow } from './transcode-watermark'
 
 /**
  * @deprecated Legacy monolithic transcode workflow. Prefer using focused workflows:
@@ -13,6 +14,9 @@ import { overlayImageAnnotationWorkflow } from './overlay-image-annotation'
  */
 export async function transcodeMedia(task: WorkflowTask): Promise<void> {
   const payload = task.payload
+  if (payload?.watermark || task.type === 'transcode_watermark') {
+    return transcodeWatermarkWorkflow(task)
+  }
   if (payload?.pdfPages) {
     return renderPdfPagesWorkflow(task)
   }
@@ -42,5 +46,6 @@ export * from './transcode-pdf'
 export * from './render-pdf-pages'
 export * from './take-video-screenshots'
 export * from './overlay-image-annotation'
+export * from './transcode-watermark'
 export * from './common'
 export * from './transcode-utils'

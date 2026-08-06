@@ -8,10 +8,13 @@ import {
   updateShareLinkRequestSchema,
   listShareLinksRequestSchema,
   addAssetToShareRequestSchema,
+  updateShareLinkWatermarkRequestSchema,
   AuditAction,
 } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
+import { watermarkService } from '@shumai/core/src/watermark/watermark'
+import { ShareLinkWatermarkProcessingError } from '@shumai/core/src/share/errors'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -182,6 +185,50 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     await shareService.removeAssetFromShare(shareId, assetId)
     return c.body(null, 204)
+  })
+  .put(
+    '/shares/:shareId/watermark',
+    zValidator('json', updateShareLinkWatermarkRequestSchema),
+    async (c) => {
+      const shareId = c.req.param('shareId')
+      const user = c.get('user')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Edit,
+        type: ResourceType.Share,
+        id: shareId,
+      })
+
+      try {
+        const updated = await watermarkService.updateShareLinkWatermark(
+          shareId,
+          req.enabled,
+          req.config,
+        )
+        return c.json(updated)
+      } catch (err) {
+        if (err instanceof ShareLinkWatermarkProcessingError) {
+          return c.json({ error: err.message }, 409)
+        }
+        throw err
+      }
+    },
+  )
+  .get('/shares/:shareId/watermark', async (c) => {
+    const shareId = c.req.param('shareId')
+    const user = c.get('user')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Share,
+      id: shareId,
+    })
+
+    const res = await watermarkService.getShareLinkWatermark(shareId)
+    return c.json(res)
   })
 
 export default route

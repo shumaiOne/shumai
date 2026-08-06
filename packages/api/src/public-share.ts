@@ -7,7 +7,30 @@ import { paginationParamsSchema } from '@shumai/dtos'
 import { z } from 'zod'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { FieldInfo } from '@shumai/dtos'
+import { prisma } from '@shumai/db'
 import type { Prisma as PrismaType } from '@shumai/db'
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function applyWatermarkToAssetMedia(asset: any, watermarkMedia: any) {
+  if (!asset || !asset.media || !watermarkMedia) return asset
+  const updatedMedia = { ...asset.media }
+  if (Array.isArray(watermarkMedia.videoTranscodes) && watermarkMedia.videoTranscodes.length > 0) {
+    updatedMedia.videoTranscodes = watermarkMedia.videoTranscodes
+  }
+  if (Array.isArray(watermarkMedia.imageTranscodes) && watermarkMedia.imageTranscodes.length > 0) {
+    updatedMedia.imageTranscodes = watermarkMedia.imageTranscodes
+  }
+  if (watermarkMedia.videoPreview) {
+    updatedMedia.videoPreview = watermarkMedia.videoPreview
+  }
+  if (watermarkMedia.thumbnail) {
+    updatedMedia.thumbnail = watermarkMedia.thumbnail
+  }
+  return {
+    ...asset,
+    media: updatedMedia,
+  }
+}
 import { projectService } from '@shumai/core/src/project/project'
 import { userService } from '@shumai/core/src/user/user'
 import { auth } from '@shumai/core/src/auth/auth'
@@ -129,6 +152,37 @@ const route = app
           order,
         })
 
+        if (
+          shareLink.watermarkConfigId &&
+          shareLink.watermarkStatus === 'ready' &&
+          res.data.length > 0
+        ) {
+          const targetIds = await Promise.all(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            res.data.map((item: any) => assetService.resolveTargetAssetId(item.id)),
+          )
+          const watermarkFiles = await prisma.watermarkFile.findMany({
+            where: {
+              assetId: { in: targetIds },
+              watermarkConfigId: shareLink.watermarkConfigId,
+              status: 'completed',
+            },
+          })
+          const wfMap = new Map(watermarkFiles.map((wf) => [wf.assetId, wf.media]))
+
+          res.data = await Promise.all(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            res.data.map(async (item: any) => {
+              const targetId = await assetService.resolveTargetAssetId(item.id)
+              const wMedia = wfMap.get(targetId)
+              if (wMedia) {
+                return applyWatermarkToAssetMedia(item, wMedia)
+              }
+              return item
+            }),
+          )
+        }
+
         return c.json(res)
       } catch (err) {
         return handlePublicShareError(c, err)
@@ -140,9 +194,26 @@ const route = app
     const password = c.req.header('x-share-password')
 
     try {
-      await shareService.verifyPublicAccess(fileId, password)
+      const shareLink = await shareService.verifyPublicAccess(fileId, password)
 
-      const asset = await assetService.getAsset({ assetId: fileId })
+      let asset = await assetService.getAsset({ assetId: fileId })
+
+      if (shareLink.watermarkConfigId && shareLink.watermarkStatus === 'ready') {
+        const targetAssetId = await assetService.resolveTargetAssetId(fileId)
+        const watermarkFile = await prisma.watermarkFile.findUnique({
+          where: {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            assetId_watermarkConfigId: {
+              assetId: targetAssetId,
+              watermarkConfigId: shareLink.watermarkConfigId,
+            },
+          },
+        })
+        if (watermarkFile?.status === 'completed' && watermarkFile.media) {
+          asset = applyWatermarkToAssetMedia(asset, watermarkFile.media)
+        }
+      }
+
       return c.json(asset)
     } catch (err) {
       return handlePublicShareError(c, err)

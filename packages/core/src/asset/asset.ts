@@ -1104,6 +1104,8 @@ export class AssetService {
         await this.expireTrashedAssets()
         await this.purgePendingAssets()
         await this.purgeUnreferencedStorageKeys()
+        const { watermarkService } = await import('@shumai/core/src/watermark/watermark')
+        await watermarkService.purgeOrphanWatermarkConfigs()
       } catch (e: unknown) {
         console.error('Error in asset cleanup job:', e)
       }

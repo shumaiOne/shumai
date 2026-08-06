@@ -39,6 +39,8 @@ export type ShareLinkMinAggregateOutputType = {
   projectId: string | null
   rootFolderId: string | null
   creatorId: string | null
+  watermarkConfigId: string | null
+  watermarkStatus: $Enums.WatermarkStatus | null
 }
 
 export type ShareLinkMaxAggregateOutputType = {
@@ -54,6 +56,8 @@ export type ShareLinkMaxAggregateOutputType = {
   projectId: string | null
   rootFolderId: string | null
   creatorId: string | null
+  watermarkConfigId: string | null
+  watermarkStatus: $Enums.WatermarkStatus | null
 }
 
 export type ShareLinkCountAggregateOutputType = {
@@ -70,6 +74,8 @@ export type ShareLinkCountAggregateOutputType = {
   projectId: number
   rootFolderId: number
   creatorId: number
+  watermarkConfigId: number
+  watermarkStatus: number
   _all: number
 }
 
@@ -87,6 +93,8 @@ export type ShareLinkMinAggregateInputType = {
   projectId?: true
   rootFolderId?: true
   creatorId?: true
+  watermarkConfigId?: true
+  watermarkStatus?: true
 }
 
 export type ShareLinkMaxAggregateInputType = {
@@ -102,6 +110,8 @@ export type ShareLinkMaxAggregateInputType = {
   projectId?: true
   rootFolderId?: true
   creatorId?: true
+  watermarkConfigId?: true
+  watermarkStatus?: true
 }
 
 export type ShareLinkCountAggregateInputType = {
@@ -118,6 +128,8 @@ export type ShareLinkCountAggregateInputType = {
   projectId?: true
   rootFolderId?: true
   creatorId?: true
+  watermarkConfigId?: true
+  watermarkStatus?: true
   _all?: true
 }
 
@@ -207,6 +219,8 @@ export type ShareLinkGroupByOutputType = {
   projectId: string
   rootFolderId: string
   creatorId: string | null
+  watermarkConfigId: string | null
+  watermarkStatus: $Enums.WatermarkStatus
   _count: ShareLinkCountAggregateOutputType | null
   _min: ShareLinkMinAggregateOutputType | null
   _max: ShareLinkMaxAggregateOutputType | null
@@ -244,9 +258,12 @@ export type ShareLinkWhereInput = {
   projectId?: Prisma.StringFilter<"ShareLink"> | string
   rootFolderId?: Prisma.StringFilter<"ShareLink"> | string
   creatorId?: Prisma.StringNullableFilter<"ShareLink"> | string | null
+  watermarkConfigId?: Prisma.StringNullableFilter<"ShareLink"> | string | null
+  watermarkStatus?: Prisma.EnumWatermarkStatusFilter<"ShareLink"> | $Enums.WatermarkStatus
   project?: Prisma.XOR<Prisma.ProjectScalarRelationFilter, Prisma.ProjectWhereInput>
   rootFolder?: Prisma.XOR<Prisma.AssetScalarRelationFilter, Prisma.AssetWhereInput>
   creator?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
+  watermarkConfig?: Prisma.XOR<Prisma.WatermarkConfigNullableScalarRelationFilter, Prisma.WatermarkConfigWhereInput> | null
 }
 
 export type ShareLinkOrderByWithRelationInput = {
@@ -263,9 +280,12 @@ export type ShareLinkOrderByWithRelationInput = {
   projectId?: Prisma.SortOrder
   rootFolderId?: Prisma.SortOrder
   creatorId?: Prisma.SortOrderInput | Prisma.SortOrder
+  watermarkConfigId?: Prisma.SortOrderInput | Prisma.SortOrder
+  watermarkStatus?: Prisma.SortOrder
   project?: Prisma.ProjectOrderByWithRelationInput
   rootFolder?: Prisma.AssetOrderByWithRelationInput
   creator?: Prisma.UserOrderByWithRelationInput
+  watermarkConfig?: Prisma.WatermarkConfigOrderByWithRelationInput
 }
 
 export type ShareLinkWhereUniqueInput = Prisma.AtLeast<{
@@ -285,9 +305,12 @@ export type ShareLinkWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"ShareLink"> | Date | string
   projectId?: Prisma.StringFilter<"ShareLink"> | string
   creatorId?: Prisma.StringNullableFilter<"ShareLink"> | string | null
+  watermarkConfigId?: Prisma.StringNullableFilter<"ShareLink"> | string | null
+  watermarkStatus?: Prisma.EnumWatermarkStatusFilter<"ShareLink"> | $Enums.WatermarkStatus
   project?: Prisma.XOR<Prisma.ProjectScalarRelationFilter, Prisma.ProjectWhereInput>
   rootFolder?: Prisma.XOR<Prisma.AssetScalarRelationFilter, Prisma.AssetWhereInput>
   creator?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
+  watermarkConfig?: Prisma.XOR<Prisma.WatermarkConfigNullableScalarRelationFilter, Prisma.WatermarkConfigWhereInput> | null
 }, "id" | "rootFolderId">
 
 export type ShareLinkOrderByWithAggregationInput = {
@@ -304,6 +327,8 @@ export type ShareLinkOrderByWithAggregationInput = {
   projectId?: Prisma.SortOrder
   rootFolderId?: Prisma.SortOrder
   creatorId?: Prisma.SortOrderInput | Prisma.SortOrder
+  watermarkConfigId?: Prisma.SortOrderInput | Prisma.SortOrder
+  watermarkStatus?: Prisma.SortOrder
   _count?: Prisma.ShareLinkCountOrderByAggregateInput
   _max?: Prisma.ShareLinkMaxOrderByAggregateInput
   _min?: Prisma.ShareLinkMinOrderByAggregateInput
@@ -326,6 +351,8 @@ export type ShareLinkScalarWhereWithAggregatesInput = {
   projectId?: Prisma.StringWithAggregatesFilter<"ShareLink"> | string
   rootFolderId?: Prisma.StringWithAggregatesFilter<"ShareLink"> | string
   creatorId?: Prisma.StringNullableWithAggregatesFilter<"ShareLink"> | string | null
+  watermarkConfigId?: Prisma.StringNullableWithAggregatesFilter<"ShareLink"> | string | null
+  watermarkStatus?: Prisma.EnumWatermarkStatusWithAggregatesFilter<"ShareLink"> | $Enums.WatermarkStatus
 }
 
 export type ShareLinkCreateInput = {
@@ -339,9 +366,11 @@ export type ShareLinkCreateInput = {
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
   createdAt?: Date | string
   updatedAt?: Date | string
+  watermarkStatus?: $Enums.WatermarkStatus
   project: Prisma.ProjectCreateNestedOneWithoutShareLinksInput
   rootFolder: Prisma.AssetCreateNestedOneWithoutShareLinkRootFolderInput
   creator?: Prisma.UserCreateNestedOneWithoutShareLinksInput
+  watermarkConfig?: Prisma.WatermarkConfigCreateNestedOneWithoutShareLinksInput
 }
 
 export type ShareLinkUncheckedCreateInput = {
@@ -358,6 +387,8 @@ export type ShareLinkUncheckedCreateInput = {
   projectId: string
   rootFolderId: string
   creatorId?: string | null
+  watermarkConfigId?: string | null
+  watermarkStatus?: $Enums.WatermarkStatus
 }
 
 export type ShareLinkUpdateInput = {
@@ -371,9 +402,11 @@ export type ShareLinkUpdateInput = {
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
   project?: Prisma.ProjectUpdateOneRequiredWithoutShareLinksNestedInput
   rootFolder?: Prisma.AssetUpdateOneRequiredWithoutShareLinkRootFolderNestedInput
   creator?: Prisma.UserUpdateOneWithoutShareLinksNestedInput
+  watermarkConfig?: Prisma.WatermarkConfigUpdateOneWithoutShareLinksNestedInput
 }
 
 export type ShareLinkUncheckedUpdateInput = {
@@ -390,6 +423,8 @@ export type ShareLinkUncheckedUpdateInput = {
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
   rootFolderId?: Prisma.StringFieldUpdateOperationsInput | string
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  watermarkConfigId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
 }
 
 export type ShareLinkCreateManyInput = {
@@ -406,6 +441,8 @@ export type ShareLinkCreateManyInput = {
   projectId: string
   rootFolderId: string
   creatorId?: string | null
+  watermarkConfigId?: string | null
+  watermarkStatus?: $Enums.WatermarkStatus
 }
 
 export type ShareLinkUpdateManyMutationInput = {
@@ -419,6 +456,7 @@ export type ShareLinkUpdateManyMutationInput = {
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
 }
 
 export type ShareLinkUncheckedUpdateManyInput = {
@@ -435,6 +473,8 @@ export type ShareLinkUncheckedUpdateManyInput = {
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
   rootFolderId?: Prisma.StringFieldUpdateOperationsInput | string
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  watermarkConfigId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
 }
 
 export type ShareLinkListRelationFilter = {
@@ -461,6 +501,8 @@ export type ShareLinkCountOrderByAggregateInput = {
   projectId?: Prisma.SortOrder
   rootFolderId?: Prisma.SortOrder
   creatorId?: Prisma.SortOrder
+  watermarkConfigId?: Prisma.SortOrder
+  watermarkStatus?: Prisma.SortOrder
 }
 
 export type ShareLinkMaxOrderByAggregateInput = {
@@ -476,6 +518,8 @@ export type ShareLinkMaxOrderByAggregateInput = {
   projectId?: Prisma.SortOrder
   rootFolderId?: Prisma.SortOrder
   creatorId?: Prisma.SortOrder
+  watermarkConfigId?: Prisma.SortOrder
+  watermarkStatus?: Prisma.SortOrder
 }
 
 export type ShareLinkMinOrderByAggregateInput = {
@@ -491,6 +535,8 @@ export type ShareLinkMinOrderByAggregateInput = {
   projectId?: Prisma.SortOrder
   rootFolderId?: Prisma.SortOrder
   creatorId?: Prisma.SortOrder
+  watermarkConfigId?: Prisma.SortOrder
+  watermarkStatus?: Prisma.SortOrder
 }
 
 export type ShareLinkNullableScalarRelationFilter = {
@@ -582,6 +628,52 @@ export type ShareLinkUncheckedUpdateManyWithoutProjectNestedInput = {
   deleteMany?: Prisma.ShareLinkScalarWhereInput | Prisma.ShareLinkScalarWhereInput[]
 }
 
+export type EnumWatermarkStatusFieldUpdateOperationsInput = {
+  set?: $Enums.WatermarkStatus
+}
+
+export type ShareLinkCreateNestedManyWithoutWatermarkConfigInput = {
+  create?: Prisma.XOR<Prisma.ShareLinkCreateWithoutWatermarkConfigInput, Prisma.ShareLinkUncheckedCreateWithoutWatermarkConfigInput> | Prisma.ShareLinkCreateWithoutWatermarkConfigInput[] | Prisma.ShareLinkUncheckedCreateWithoutWatermarkConfigInput[]
+  connectOrCreate?: Prisma.ShareLinkCreateOrConnectWithoutWatermarkConfigInput | Prisma.ShareLinkCreateOrConnectWithoutWatermarkConfigInput[]
+  createMany?: Prisma.ShareLinkCreateManyWatermarkConfigInputEnvelope
+  connect?: Prisma.ShareLinkWhereUniqueInput | Prisma.ShareLinkWhereUniqueInput[]
+}
+
+export type ShareLinkUncheckedCreateNestedManyWithoutWatermarkConfigInput = {
+  create?: Prisma.XOR<Prisma.ShareLinkCreateWithoutWatermarkConfigInput, Prisma.ShareLinkUncheckedCreateWithoutWatermarkConfigInput> | Prisma.ShareLinkCreateWithoutWatermarkConfigInput[] | Prisma.ShareLinkUncheckedCreateWithoutWatermarkConfigInput[]
+  connectOrCreate?: Prisma.ShareLinkCreateOrConnectWithoutWatermarkConfigInput | Prisma.ShareLinkCreateOrConnectWithoutWatermarkConfigInput[]
+  createMany?: Prisma.ShareLinkCreateManyWatermarkConfigInputEnvelope
+  connect?: Prisma.ShareLinkWhereUniqueInput | Prisma.ShareLinkWhereUniqueInput[]
+}
+
+export type ShareLinkUpdateManyWithoutWatermarkConfigNestedInput = {
+  create?: Prisma.XOR<Prisma.ShareLinkCreateWithoutWatermarkConfigInput, Prisma.ShareLinkUncheckedCreateWithoutWatermarkConfigInput> | Prisma.ShareLinkCreateWithoutWatermarkConfigInput[] | Prisma.ShareLinkUncheckedCreateWithoutWatermarkConfigInput[]
+  connectOrCreate?: Prisma.ShareLinkCreateOrConnectWithoutWatermarkConfigInput | Prisma.ShareLinkCreateOrConnectWithoutWatermarkConfigInput[]
+  upsert?: Prisma.ShareLinkUpsertWithWhereUniqueWithoutWatermarkConfigInput | Prisma.ShareLinkUpsertWithWhereUniqueWithoutWatermarkConfigInput[]
+  createMany?: Prisma.ShareLinkCreateManyWatermarkConfigInputEnvelope
+  set?: Prisma.ShareLinkWhereUniqueInput | Prisma.ShareLinkWhereUniqueInput[]
+  disconnect?: Prisma.ShareLinkWhereUniqueInput | Prisma.ShareLinkWhereUniqueInput[]
+  delete?: Prisma.ShareLinkWhereUniqueInput | Prisma.ShareLinkWhereUniqueInput[]
+  connect?: Prisma.ShareLinkWhereUniqueInput | Prisma.ShareLinkWhereUniqueInput[]
+  update?: Prisma.ShareLinkUpdateWithWhereUniqueWithoutWatermarkConfigInput | Prisma.ShareLinkUpdateWithWhereUniqueWithoutWatermarkConfigInput[]
+  updateMany?: Prisma.ShareLinkUpdateManyWithWhereWithoutWatermarkConfigInput | Prisma.ShareLinkUpdateManyWithWhereWithoutWatermarkConfigInput[]
+  deleteMany?: Prisma.ShareLinkScalarWhereInput | Prisma.ShareLinkScalarWhereInput[]
+}
+
+export type ShareLinkUncheckedUpdateManyWithoutWatermarkConfigNestedInput = {
+  create?: Prisma.XOR<Prisma.ShareLinkCreateWithoutWatermarkConfigInput, Prisma.ShareLinkUncheckedCreateWithoutWatermarkConfigInput> | Prisma.ShareLinkCreateWithoutWatermarkConfigInput[] | Prisma.ShareLinkUncheckedCreateWithoutWatermarkConfigInput[]
+  connectOrCreate?: Prisma.ShareLinkCreateOrConnectWithoutWatermarkConfigInput | Prisma.ShareLinkCreateOrConnectWithoutWatermarkConfigInput[]
+  upsert?: Prisma.ShareLinkUpsertWithWhereUniqueWithoutWatermarkConfigInput | Prisma.ShareLinkUpsertWithWhereUniqueWithoutWatermarkConfigInput[]
+  createMany?: Prisma.ShareLinkCreateManyWatermarkConfigInputEnvelope
+  set?: Prisma.ShareLinkWhereUniqueInput | Prisma.ShareLinkWhereUniqueInput[]
+  disconnect?: Prisma.ShareLinkWhereUniqueInput | Prisma.ShareLinkWhereUniqueInput[]
+  delete?: Prisma.ShareLinkWhereUniqueInput | Prisma.ShareLinkWhereUniqueInput[]
+  connect?: Prisma.ShareLinkWhereUniqueInput | Prisma.ShareLinkWhereUniqueInput[]
+  update?: Prisma.ShareLinkUpdateWithWhereUniqueWithoutWatermarkConfigInput | Prisma.ShareLinkUpdateWithWhereUniqueWithoutWatermarkConfigInput[]
+  updateMany?: Prisma.ShareLinkUpdateManyWithWhereWithoutWatermarkConfigInput | Prisma.ShareLinkUpdateManyWithWhereWithoutWatermarkConfigInput[]
+  deleteMany?: Prisma.ShareLinkScalarWhereInput | Prisma.ShareLinkScalarWhereInput[]
+}
+
 export type ShareLinkCreateNestedOneWithoutRootFolderInput = {
   create?: Prisma.XOR<Prisma.ShareLinkCreateWithoutRootFolderInput, Prisma.ShareLinkUncheckedCreateWithoutRootFolderInput>
   connectOrCreate?: Prisma.ShareLinkCreateOrConnectWithoutRootFolderInput
@@ -625,8 +717,10 @@ export type ShareLinkCreateWithoutCreatorInput = {
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
   createdAt?: Date | string
   updatedAt?: Date | string
+  watermarkStatus?: $Enums.WatermarkStatus
   project: Prisma.ProjectCreateNestedOneWithoutShareLinksInput
   rootFolder: Prisma.AssetCreateNestedOneWithoutShareLinkRootFolderInput
+  watermarkConfig?: Prisma.WatermarkConfigCreateNestedOneWithoutShareLinksInput
 }
 
 export type ShareLinkUncheckedCreateWithoutCreatorInput = {
@@ -642,6 +736,8 @@ export type ShareLinkUncheckedCreateWithoutCreatorInput = {
   updatedAt?: Date | string
   projectId: string
   rootFolderId: string
+  watermarkConfigId?: string | null
+  watermarkStatus?: $Enums.WatermarkStatus
 }
 
 export type ShareLinkCreateOrConnectWithoutCreatorInput = {
@@ -687,6 +783,8 @@ export type ShareLinkScalarWhereInput = {
   projectId?: Prisma.StringFilter<"ShareLink"> | string
   rootFolderId?: Prisma.StringFilter<"ShareLink"> | string
   creatorId?: Prisma.StringNullableFilter<"ShareLink"> | string | null
+  watermarkConfigId?: Prisma.StringNullableFilter<"ShareLink"> | string | null
+  watermarkStatus?: Prisma.EnumWatermarkStatusFilter<"ShareLink"> | $Enums.WatermarkStatus
 }
 
 export type ShareLinkCreateWithoutProjectInput = {
@@ -700,8 +798,10 @@ export type ShareLinkCreateWithoutProjectInput = {
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
   createdAt?: Date | string
   updatedAt?: Date | string
+  watermarkStatus?: $Enums.WatermarkStatus
   rootFolder: Prisma.AssetCreateNestedOneWithoutShareLinkRootFolderInput
   creator?: Prisma.UserCreateNestedOneWithoutShareLinksInput
+  watermarkConfig?: Prisma.WatermarkConfigCreateNestedOneWithoutShareLinksInput
 }
 
 export type ShareLinkUncheckedCreateWithoutProjectInput = {
@@ -717,6 +817,8 @@ export type ShareLinkUncheckedCreateWithoutProjectInput = {
   updatedAt?: Date | string
   rootFolderId: string
   creatorId?: string | null
+  watermarkConfigId?: string | null
+  watermarkStatus?: $Enums.WatermarkStatus
 }
 
 export type ShareLinkCreateOrConnectWithoutProjectInput = {
@@ -745,6 +847,66 @@ export type ShareLinkUpdateManyWithWhereWithoutProjectInput = {
   data: Prisma.XOR<Prisma.ShareLinkUpdateManyMutationInput, Prisma.ShareLinkUncheckedUpdateManyWithoutProjectInput>
 }
 
+export type ShareLinkCreateWithoutWatermarkConfigInput = {
+  id?: string
+  name: string
+  expireAt?: Date | string | null
+  password?: string | null
+  isDisabled?: boolean
+  defaultSortOrder?: string | null
+  viewMode?: string | null
+  fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  watermarkStatus?: $Enums.WatermarkStatus
+  project: Prisma.ProjectCreateNestedOneWithoutShareLinksInput
+  rootFolder: Prisma.AssetCreateNestedOneWithoutShareLinkRootFolderInput
+  creator?: Prisma.UserCreateNestedOneWithoutShareLinksInput
+}
+
+export type ShareLinkUncheckedCreateWithoutWatermarkConfigInput = {
+  id?: string
+  name: string
+  expireAt?: Date | string | null
+  password?: string | null
+  isDisabled?: boolean
+  defaultSortOrder?: string | null
+  viewMode?: string | null
+  fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  projectId: string
+  rootFolderId: string
+  creatorId?: string | null
+  watermarkStatus?: $Enums.WatermarkStatus
+}
+
+export type ShareLinkCreateOrConnectWithoutWatermarkConfigInput = {
+  where: Prisma.ShareLinkWhereUniqueInput
+  create: Prisma.XOR<Prisma.ShareLinkCreateWithoutWatermarkConfigInput, Prisma.ShareLinkUncheckedCreateWithoutWatermarkConfigInput>
+}
+
+export type ShareLinkCreateManyWatermarkConfigInputEnvelope = {
+  data: Prisma.ShareLinkCreateManyWatermarkConfigInput | Prisma.ShareLinkCreateManyWatermarkConfigInput[]
+  skipDuplicates?: boolean
+}
+
+export type ShareLinkUpsertWithWhereUniqueWithoutWatermarkConfigInput = {
+  where: Prisma.ShareLinkWhereUniqueInput
+  update: Prisma.XOR<Prisma.ShareLinkUpdateWithoutWatermarkConfigInput, Prisma.ShareLinkUncheckedUpdateWithoutWatermarkConfigInput>
+  create: Prisma.XOR<Prisma.ShareLinkCreateWithoutWatermarkConfigInput, Prisma.ShareLinkUncheckedCreateWithoutWatermarkConfigInput>
+}
+
+export type ShareLinkUpdateWithWhereUniqueWithoutWatermarkConfigInput = {
+  where: Prisma.ShareLinkWhereUniqueInput
+  data: Prisma.XOR<Prisma.ShareLinkUpdateWithoutWatermarkConfigInput, Prisma.ShareLinkUncheckedUpdateWithoutWatermarkConfigInput>
+}
+
+export type ShareLinkUpdateManyWithWhereWithoutWatermarkConfigInput = {
+  where: Prisma.ShareLinkScalarWhereInput
+  data: Prisma.XOR<Prisma.ShareLinkUpdateManyMutationInput, Prisma.ShareLinkUncheckedUpdateManyWithoutWatermarkConfigInput>
+}
+
 export type ShareLinkCreateWithoutRootFolderInput = {
   id?: string
   name: string
@@ -756,8 +918,10 @@ export type ShareLinkCreateWithoutRootFolderInput = {
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
   createdAt?: Date | string
   updatedAt?: Date | string
+  watermarkStatus?: $Enums.WatermarkStatus
   project: Prisma.ProjectCreateNestedOneWithoutShareLinksInput
   creator?: Prisma.UserCreateNestedOneWithoutShareLinksInput
+  watermarkConfig?: Prisma.WatermarkConfigCreateNestedOneWithoutShareLinksInput
 }
 
 export type ShareLinkUncheckedCreateWithoutRootFolderInput = {
@@ -773,6 +937,8 @@ export type ShareLinkUncheckedCreateWithoutRootFolderInput = {
   updatedAt?: Date | string
   projectId: string
   creatorId?: string | null
+  watermarkConfigId?: string | null
+  watermarkStatus?: $Enums.WatermarkStatus
 }
 
 export type ShareLinkCreateOrConnectWithoutRootFolderInput = {
@@ -802,8 +968,10 @@ export type ShareLinkUpdateWithoutRootFolderInput = {
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
   project?: Prisma.ProjectUpdateOneRequiredWithoutShareLinksNestedInput
   creator?: Prisma.UserUpdateOneWithoutShareLinksNestedInput
+  watermarkConfig?: Prisma.WatermarkConfigUpdateOneWithoutShareLinksNestedInput
 }
 
 export type ShareLinkUncheckedUpdateWithoutRootFolderInput = {
@@ -819,6 +987,8 @@ export type ShareLinkUncheckedUpdateWithoutRootFolderInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  watermarkConfigId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
 }
 
 export type ShareLinkCreateManyCreatorInput = {
@@ -834,6 +1004,8 @@ export type ShareLinkCreateManyCreatorInput = {
   updatedAt?: Date | string
   projectId: string
   rootFolderId: string
+  watermarkConfigId?: string | null
+  watermarkStatus?: $Enums.WatermarkStatus
 }
 
 export type ShareLinkUpdateWithoutCreatorInput = {
@@ -847,8 +1019,10 @@ export type ShareLinkUpdateWithoutCreatorInput = {
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
   project?: Prisma.ProjectUpdateOneRequiredWithoutShareLinksNestedInput
   rootFolder?: Prisma.AssetUpdateOneRequiredWithoutShareLinkRootFolderNestedInput
+  watermarkConfig?: Prisma.WatermarkConfigUpdateOneWithoutShareLinksNestedInput
 }
 
 export type ShareLinkUncheckedUpdateWithoutCreatorInput = {
@@ -864,6 +1038,8 @@ export type ShareLinkUncheckedUpdateWithoutCreatorInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
   rootFolderId?: Prisma.StringFieldUpdateOperationsInput | string
+  watermarkConfigId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
 }
 
 export type ShareLinkUncheckedUpdateManyWithoutCreatorInput = {
@@ -879,6 +1055,8 @@ export type ShareLinkUncheckedUpdateManyWithoutCreatorInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   projectId?: Prisma.StringFieldUpdateOperationsInput | string
   rootFolderId?: Prisma.StringFieldUpdateOperationsInput | string
+  watermarkConfigId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
 }
 
 export type ShareLinkCreateManyProjectInput = {
@@ -894,6 +1072,8 @@ export type ShareLinkCreateManyProjectInput = {
   updatedAt?: Date | string
   rootFolderId: string
   creatorId?: string | null
+  watermarkConfigId?: string | null
+  watermarkStatus?: $Enums.WatermarkStatus
 }
 
 export type ShareLinkUpdateWithoutProjectInput = {
@@ -907,8 +1087,10 @@ export type ShareLinkUpdateWithoutProjectInput = {
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
   rootFolder?: Prisma.AssetUpdateOneRequiredWithoutShareLinkRootFolderNestedInput
   creator?: Prisma.UserUpdateOneWithoutShareLinksNestedInput
+  watermarkConfig?: Prisma.WatermarkConfigUpdateOneWithoutShareLinksNestedInput
 }
 
 export type ShareLinkUncheckedUpdateWithoutProjectInput = {
@@ -924,6 +1106,8 @@ export type ShareLinkUncheckedUpdateWithoutProjectInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   rootFolderId?: Prisma.StringFieldUpdateOperationsInput | string
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  watermarkConfigId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
 }
 
 export type ShareLinkUncheckedUpdateManyWithoutProjectInput = {
@@ -939,6 +1123,76 @@ export type ShareLinkUncheckedUpdateManyWithoutProjectInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   rootFolderId?: Prisma.StringFieldUpdateOperationsInput | string
   creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  watermarkConfigId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
+}
+
+export type ShareLinkCreateManyWatermarkConfigInput = {
+  id?: string
+  name: string
+  expireAt?: Date | string | null
+  password?: string | null
+  isDisabled?: boolean
+  defaultSortOrder?: string | null
+  viewMode?: string | null
+  fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  projectId: string
+  rootFolderId: string
+  creatorId?: string | null
+  watermarkStatus?: $Enums.WatermarkStatus
+}
+
+export type ShareLinkUpdateWithoutWatermarkConfigInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  expireAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
+  project?: Prisma.ProjectUpdateOneRequiredWithoutShareLinksNestedInput
+  rootFolder?: Prisma.AssetUpdateOneRequiredWithoutShareLinkRootFolderNestedInput
+  creator?: Prisma.UserUpdateOneWithoutShareLinksNestedInput
+}
+
+export type ShareLinkUncheckedUpdateWithoutWatermarkConfigInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  expireAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  projectId?: Prisma.StringFieldUpdateOperationsInput | string
+  rootFolderId?: Prisma.StringFieldUpdateOperationsInput | string
+  creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
+}
+
+export type ShareLinkUncheckedUpdateManyWithoutWatermarkConfigInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  expireAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  projectId?: Prisma.StringFieldUpdateOperationsInput | string
+  rootFolderId?: Prisma.StringFieldUpdateOperationsInput | string
+  creatorId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  watermarkStatus?: Prisma.EnumWatermarkStatusFieldUpdateOperationsInput | $Enums.WatermarkStatus
 }
 
 
@@ -957,9 +1211,12 @@ export type ShareLinkSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   projectId?: boolean
   rootFolderId?: boolean
   creatorId?: boolean
+  watermarkConfigId?: boolean
+  watermarkStatus?: boolean
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
   rootFolder?: boolean | Prisma.AssetDefaultArgs<ExtArgs>
   creator?: boolean | Prisma.ShareLink$creatorArgs<ExtArgs>
+  watermarkConfig?: boolean | Prisma.ShareLink$watermarkConfigArgs<ExtArgs>
 }, ExtArgs["result"]["shareLink"]>
 
 export type ShareLinkSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -976,9 +1233,12 @@ export type ShareLinkSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   projectId?: boolean
   rootFolderId?: boolean
   creatorId?: boolean
+  watermarkConfigId?: boolean
+  watermarkStatus?: boolean
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
   rootFolder?: boolean | Prisma.AssetDefaultArgs<ExtArgs>
   creator?: boolean | Prisma.ShareLink$creatorArgs<ExtArgs>
+  watermarkConfig?: boolean | Prisma.ShareLink$watermarkConfigArgs<ExtArgs>
 }, ExtArgs["result"]["shareLink"]>
 
 export type ShareLinkSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -995,9 +1255,12 @@ export type ShareLinkSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   projectId?: boolean
   rootFolderId?: boolean
   creatorId?: boolean
+  watermarkConfigId?: boolean
+  watermarkStatus?: boolean
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
   rootFolder?: boolean | Prisma.AssetDefaultArgs<ExtArgs>
   creator?: boolean | Prisma.ShareLink$creatorArgs<ExtArgs>
+  watermarkConfig?: boolean | Prisma.ShareLink$watermarkConfigArgs<ExtArgs>
 }, ExtArgs["result"]["shareLink"]>
 
 export type ShareLinkSelectScalar = {
@@ -1014,23 +1277,28 @@ export type ShareLinkSelectScalar = {
   projectId?: boolean
   rootFolderId?: boolean
   creatorId?: boolean
+  watermarkConfigId?: boolean
+  watermarkStatus?: boolean
 }
 
-export type ShareLinkOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "expireAt" | "password" | "isDisabled" | "defaultSortOrder" | "viewMode" | "fieldVisibility" | "createdAt" | "updatedAt" | "projectId" | "rootFolderId" | "creatorId", ExtArgs["result"]["shareLink"]>
+export type ShareLinkOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "expireAt" | "password" | "isDisabled" | "defaultSortOrder" | "viewMode" | "fieldVisibility" | "createdAt" | "updatedAt" | "projectId" | "rootFolderId" | "creatorId" | "watermarkConfigId" | "watermarkStatus", ExtArgs["result"]["shareLink"]>
 export type ShareLinkInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
   rootFolder?: boolean | Prisma.AssetDefaultArgs<ExtArgs>
   creator?: boolean | Prisma.ShareLink$creatorArgs<ExtArgs>
+  watermarkConfig?: boolean | Prisma.ShareLink$watermarkConfigArgs<ExtArgs>
 }
 export type ShareLinkIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
   rootFolder?: boolean | Prisma.AssetDefaultArgs<ExtArgs>
   creator?: boolean | Prisma.ShareLink$creatorArgs<ExtArgs>
+  watermarkConfig?: boolean | Prisma.ShareLink$watermarkConfigArgs<ExtArgs>
 }
 export type ShareLinkIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
   rootFolder?: boolean | Prisma.AssetDefaultArgs<ExtArgs>
   creator?: boolean | Prisma.ShareLink$creatorArgs<ExtArgs>
+  watermarkConfig?: boolean | Prisma.ShareLink$watermarkConfigArgs<ExtArgs>
 }
 
 export type $ShareLinkPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1039,6 +1307,7 @@ export type $ShareLinkPayload<ExtArgs extends runtime.Types.Extensions.InternalA
     project: Prisma.$ProjectPayload<ExtArgs>
     rootFolder: Prisma.$AssetPayload<ExtArgs>
     creator: Prisma.$UserPayload<ExtArgs> | null
+    watermarkConfig: Prisma.$WatermarkConfigPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1057,6 +1326,8 @@ export type $ShareLinkPayload<ExtArgs extends runtime.Types.Extensions.InternalA
     projectId: string
     rootFolderId: string
     creatorId: string | null
+    watermarkConfigId: string | null
+    watermarkStatus: $Enums.WatermarkStatus
   }, ExtArgs["result"]["shareLink"]>
   composites: {}
 }
@@ -1454,6 +1725,7 @@ export interface Prisma__ShareLinkClient<T, Null = never, ExtArgs extends runtim
   project<T extends Prisma.ProjectDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ProjectDefaultArgs<ExtArgs>>): Prisma.Prisma__ProjectClient<runtime.Types.Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   rootFolder<T extends Prisma.AssetDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AssetDefaultArgs<ExtArgs>>): Prisma.Prisma__AssetClient<runtime.Types.Result.GetResult<Prisma.$AssetPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   creator<T extends Prisma.ShareLink$creatorArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ShareLink$creatorArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  watermarkConfig<T extends Prisma.ShareLink$watermarkConfigArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ShareLink$watermarkConfigArgs<ExtArgs>>): Prisma.Prisma__WatermarkConfigClient<runtime.Types.Result.GetResult<Prisma.$WatermarkConfigPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1496,6 +1768,8 @@ export interface ShareLinkFieldRefs {
   readonly projectId: Prisma.FieldRef<"ShareLink", 'String'>
   readonly rootFolderId: Prisma.FieldRef<"ShareLink", 'String'>
   readonly creatorId: Prisma.FieldRef<"ShareLink", 'String'>
+  readonly watermarkConfigId: Prisma.FieldRef<"ShareLink", 'String'>
+  readonly watermarkStatus: Prisma.FieldRef<"ShareLink", 'WatermarkStatus'>
 }
     
 
@@ -1913,6 +2187,25 @@ export type ShareLink$creatorArgs<ExtArgs extends runtime.Types.Extensions.Inter
    */
   include?: Prisma.UserInclude<ExtArgs> | null
   where?: Prisma.UserWhereInput
+}
+
+/**
+ * ShareLink.watermarkConfig
+ */
+export type ShareLink$watermarkConfigArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the WatermarkConfig
+   */
+  select?: Prisma.WatermarkConfigSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the WatermarkConfig
+   */
+  omit?: Prisma.WatermarkConfigOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.WatermarkConfigInclude<ExtArgs> | null
+  where?: Prisma.WatermarkConfigWhereInput
 }
 
 /**

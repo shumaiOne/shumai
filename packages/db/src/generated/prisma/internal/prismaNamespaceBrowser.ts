@@ -63,6 +63,9 @@ export const ModelName = {
   Project: 'Project',
   ProjectMember: 'ProjectMember',
   ShareLink: 'ShareLink',
+  WatermarkConfig: 'WatermarkConfig',
+  WatermarkTemplate: 'WatermarkTemplate',
+  WatermarkFile: 'WatermarkFile',
   Asset: 'Asset',
   StorageKey: 'StorageKey',
   AssetMetadataValue: 'AssetMetadataValue',
@@ -269,10 +272,48 @@ export const ShareLinkScalarFieldEnum = {
   updatedAt: 'updatedAt',
   projectId: 'projectId',
   rootFolderId: 'rootFolderId',
-  creatorId: 'creatorId'
+  creatorId: 'creatorId',
+  watermarkConfigId: 'watermarkConfigId',
+  watermarkStatus: 'watermarkStatus'
 } as const
 
 export type ShareLinkScalarFieldEnum = (typeof ShareLinkScalarFieldEnum)[keyof typeof ShareLinkScalarFieldEnum]
+
+
+export const WatermarkConfigScalarFieldEnum = {
+  id: 'id',
+  config: 'config',
+  hash: 'hash',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type WatermarkConfigScalarFieldEnum = (typeof WatermarkConfigScalarFieldEnum)[keyof typeof WatermarkConfigScalarFieldEnum]
+
+
+export const WatermarkTemplateScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  config: 'config',
+  teamId: 'teamId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type WatermarkTemplateScalarFieldEnum = (typeof WatermarkTemplateScalarFieldEnum)[keyof typeof WatermarkTemplateScalarFieldEnum]
+
+
+export const WatermarkFileScalarFieldEnum = {
+  id: 'id',
+  assetId: 'assetId',
+  watermarkConfigId: 'watermarkConfigId',
+  media: 'media',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type WatermarkFileScalarFieldEnum = (typeof WatermarkFileScalarFieldEnum)[keyof typeof WatermarkFileScalarFieldEnum]
 
 
 export const AssetScalarFieldEnum = {

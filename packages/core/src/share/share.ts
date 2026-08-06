@@ -202,6 +202,18 @@ export class ShareService {
       })
     })
 
+    if (shareLink.watermarkConfigId) {
+      await prisma.shareLink.update({
+        where: { id: shareLinkId },
+        data: { watermarkStatus: 'processing' },
+      })
+      const { watermarkService } = await import('@shumai/core/src/watermark/watermark')
+      await watermarkService.triggerWatermarkTranscodeForShareLink(
+        shareLinkId,
+        shareLink.watermarkConfigId,
+      )
+    }
+
     return idsToAdd.length
   }
 
@@ -301,6 +313,12 @@ export class ShareService {
   private async toShareLinkInfo(l: any): Promise<ShareLinkInfo> {
     const isExpired = l.expireAt ? new Date(l.expireAt) < new Date() : false
     const avatarUrl = l.creator ? await getAvatarUrl(l.creator.image) : undefined
+    let watermarkConfig = l.watermarkConfig
+    if (l.watermarkConfigId && !watermarkConfig) {
+      watermarkConfig = await prisma.watermarkConfig.findUnique({
+        where: { id: l.watermarkConfigId },
+      })
+    }
     return {
       id: l.id,
       name: l.name,
@@ -314,6 +332,15 @@ export class ShareService {
       rootFolderId: l.rootFolderId,
       projectId: l.projectId,
       isExpired,
+      watermarkConfigId: l.watermarkConfigId,
+      watermarkStatus: l.watermarkStatus || 'disabled',
+      watermarkConfig: watermarkConfig
+        ? {
+            id: watermarkConfig.id,
+            config: watermarkConfig.config,
+            hash: watermarkConfig.hash,
+          }
+        : null,
       createdAt: l.createdAt.toISOString(),
       updatedAt: l.updatedAt.toISOString(),
       creator: l.creator ? { id: l.creator.id, name: l.creator.name, image: avatarUrl } : null,

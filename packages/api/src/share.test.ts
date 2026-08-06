@@ -326,4 +326,91 @@ describe('Share API', () => {
       expect(shareService.addAssetToShare).toHaveBeenCalledWith('share1', { assetIds: ['asset1'] })
     })
   })
+
+  describe('Watermark API', () => {
+    test('PUT /shares/:shareId/watermark success', async () => {
+      const { watermarkService } = await import('@shumai/core/src/watermark/watermark')
+      vi.spyOn(watermarkService, 'updateShareLinkWatermark').mockResolvedValue({
+        id: 'share1',
+        name: 'test-share',
+        isDisabled: false,
+        rootFolderId: 'root1',
+        projectId: 'project1',
+        isExpired: false,
+        hasPassword: false,
+        watermarkStatus: 'processing',
+        watermarkConfigId: 'cfg1',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+
+      const res = await app.request('/shares/share1/watermark', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          enabled: true,
+          config: {
+            blocks: [
+              {
+                id: 'b1',
+                type: 'text',
+                x: 0.5,
+                y: 0.5,
+                opacity: 0.5,
+                rotation: 0,
+                text: 'TEST',
+                size: 0.1,
+                color: '#FFF',
+              },
+            ],
+          },
+        }),
+      })
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.watermarkStatus).toBe('processing')
+    })
+
+    test('PUT /shares/:shareId/watermark conflict 409', async () => {
+      const { watermarkService } = await import('@shumai/core/src/watermark/watermark')
+      const { ShareLinkWatermarkProcessingError } = await import('@shumai/core/src/share/errors')
+      vi.spyOn(watermarkService, 'updateShareLinkWatermark').mockRejectedValue(
+        new ShareLinkWatermarkProcessingError(),
+      )
+
+      const res = await app.request('/shares/share1/watermark', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: false }),
+      })
+
+      expect(res.status).toBe(409)
+      const body = await res.json()
+      expect(body.error).toBe('Watermark transcoding is currently in progress')
+    })
+
+    test('GET /shares/:shareId/watermark success', async () => {
+      const { watermarkService } = await import('@shumai/core/src/watermark/watermark')
+      vi.spyOn(watermarkService, 'getShareLinkWatermark').mockResolvedValue({
+        watermarkStatus: 'ready',
+        watermarkConfig: {
+          id: 'cfg1',
+          config: { blocks: [] },
+          hash: 'h1',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      })
+
+      const res = await app.request('/shares/share1/watermark', {
+        method: 'GET',
+      })
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.watermarkStatus).toBe('ready')
+      expect(body.watermarkConfig.hash).toBe('h1')
+    })
+  })
 })

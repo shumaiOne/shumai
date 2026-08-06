@@ -132,6 +132,7 @@ export const WorkflowTaskType = {
   transcode_pdf_pages: 'transcode_pdf_pages',
   transcode_screenshot: 'transcode_screenshot',
   transcode_image_annotation: 'transcode_image_annotation',
+  transcode_watermark: 'transcode_watermark',
   ai_metadata_autofill: 'ai_metadata_autofill',
   chat: 'chat',
   ai_embedding: 'ai_embedding',
@@ -150,6 +151,16 @@ export const WorkflowTaskStatus = {
 } as const
 
 export type WorkflowTaskStatus = (typeof WorkflowTaskStatus)[keyof typeof WorkflowTaskStatus]
+
+
+export const WatermarkStatus = {
+  disabled: 'disabled',
+  processing: 'processing',
+  ready: 'ready',
+  failed: 'failed'
+} as const
+
+export type WatermarkStatus = (typeof WatermarkStatus)[keyof typeof WatermarkStatus]
 
 
 export const AgentType = {
