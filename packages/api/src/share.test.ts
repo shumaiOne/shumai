@@ -390,6 +390,16 @@ describe('Share API', () => {
       expect(body.error).toBe('Watermark transcoding is currently in progress')
     })
 
+    test('PUT /shares/:shareId/watermark without config when enabled returns 400', async () => {
+      const res = await app.request('/shares/share1/watermark', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: true }),
+      })
+
+      expect(res.status).toBe(400)
+    })
+
     test('GET /shares/:shareId/watermark success', async () => {
       const { watermarkService } = await import('@shumai/core/src/watermark/watermark')
       vi.spyOn(watermarkService, 'getShareLinkWatermark').mockResolvedValue({

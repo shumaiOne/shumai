@@ -335,21 +335,21 @@ export type JsonWithAggregatesFilterBase<$PrismaModel = never> = {
   _max?: Prisma.NestedJsonFilter<$PrismaModel>
 }
 
-export type EnumWorkflowTaskStatusFilter<$PrismaModel = never> = {
-  equals?: $Enums.WorkflowTaskStatus | Prisma.EnumWorkflowTaskStatusFieldRefInput<$PrismaModel>
-  in?: $Enums.WorkflowTaskStatus[] | Prisma.ListEnumWorkflowTaskStatusFieldRefInput<$PrismaModel>
-  notIn?: $Enums.WorkflowTaskStatus[] | Prisma.ListEnumWorkflowTaskStatusFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumWorkflowTaskStatusFilter<$PrismaModel> | $Enums.WorkflowTaskStatus
+export type EnumWatermarkFileStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.WatermarkFileStatus | Prisma.EnumWatermarkFileStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.WatermarkFileStatus[] | Prisma.ListEnumWatermarkFileStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.WatermarkFileStatus[] | Prisma.ListEnumWatermarkFileStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumWatermarkFileStatusFilter<$PrismaModel> | $Enums.WatermarkFileStatus
 }
 
-export type EnumWorkflowTaskStatusWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.WorkflowTaskStatus | Prisma.EnumWorkflowTaskStatusFieldRefInput<$PrismaModel>
-  in?: $Enums.WorkflowTaskStatus[] | Prisma.ListEnumWorkflowTaskStatusFieldRefInput<$PrismaModel>
-  notIn?: $Enums.WorkflowTaskStatus[] | Prisma.ListEnumWorkflowTaskStatusFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumWorkflowTaskStatusWithAggregatesFilter<$PrismaModel> | $Enums.WorkflowTaskStatus
+export type EnumWatermarkFileStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.WatermarkFileStatus | Prisma.EnumWatermarkFileStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.WatermarkFileStatus[] | Prisma.ListEnumWatermarkFileStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.WatermarkFileStatus[] | Prisma.ListEnumWatermarkFileStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumWatermarkFileStatusWithAggregatesFilter<$PrismaModel> | $Enums.WatermarkFileStatus
   _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumWorkflowTaskStatusFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumWorkflowTaskStatusFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumWatermarkFileStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumWatermarkFileStatusFilter<$PrismaModel>
 }
 
 export type EnumAssetTypeFilter<$PrismaModel = never> = {
@@ -1011,21 +1011,21 @@ export type NestedJsonFilterBase<$PrismaModel = never> = {
   not?: runtime.InputJsonValue | Prisma.JsonFieldRefInput<$PrismaModel> | Prisma.JsonNullValueFilter
 }
 
-export type NestedEnumWorkflowTaskStatusFilter<$PrismaModel = never> = {
-  equals?: $Enums.WorkflowTaskStatus | Prisma.EnumWorkflowTaskStatusFieldRefInput<$PrismaModel>
-  in?: $Enums.WorkflowTaskStatus[] | Prisma.ListEnumWorkflowTaskStatusFieldRefInput<$PrismaModel>
-  notIn?: $Enums.WorkflowTaskStatus[] | Prisma.ListEnumWorkflowTaskStatusFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumWorkflowTaskStatusFilter<$PrismaModel> | $Enums.WorkflowTaskStatus
+export type NestedEnumWatermarkFileStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.WatermarkFileStatus | Prisma.EnumWatermarkFileStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.WatermarkFileStatus[] | Prisma.ListEnumWatermarkFileStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.WatermarkFileStatus[] | Prisma.ListEnumWatermarkFileStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumWatermarkFileStatusFilter<$PrismaModel> | $Enums.WatermarkFileStatus
 }
 
-export type NestedEnumWorkflowTaskStatusWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.WorkflowTaskStatus | Prisma.EnumWorkflowTaskStatusFieldRefInput<$PrismaModel>
-  in?: $Enums.WorkflowTaskStatus[] | Prisma.ListEnumWorkflowTaskStatusFieldRefInput<$PrismaModel>
-  notIn?: $Enums.WorkflowTaskStatus[] | Prisma.ListEnumWorkflowTaskStatusFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedEnumWorkflowTaskStatusWithAggregatesFilter<$PrismaModel> | $Enums.WorkflowTaskStatus
+export type NestedEnumWatermarkFileStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.WatermarkFileStatus | Prisma.EnumWatermarkFileStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.WatermarkFileStatus[] | Prisma.ListEnumWatermarkFileStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.WatermarkFileStatus[] | Prisma.ListEnumWatermarkFileStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumWatermarkFileStatusWithAggregatesFilter<$PrismaModel> | $Enums.WatermarkFileStatus
   _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumWorkflowTaskStatusFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumWorkflowTaskStatusFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumWatermarkFileStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumWatermarkFileStatusFilter<$PrismaModel>
 }
 
 export type NestedEnumAssetTypeFilter<$PrismaModel = never> = {

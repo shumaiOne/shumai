@@ -163,6 +163,16 @@ export const WatermarkStatus = {
 export type WatermarkStatus = (typeof WatermarkStatus)[keyof typeof WatermarkStatus]
 
 
+export const WatermarkFileStatus = {
+  pending: 'pending',
+  processing: 'processing',
+  completed: 'completed',
+  failed: 'failed'
+} as const
+
+export type WatermarkFileStatus = (typeof WatermarkFileStatus)[keyof typeof WatermarkFileStatus]
+
+
 export const AgentType = {
   chat: 'chat',
   autofill: 'autofill',

@@ -144,13 +144,16 @@ export class ShareService {
     )
   }
 
-  async getShareLink(shareLinkId: string): Promise<ShareLinkInfo> {
-    const shareLink = await prisma.shareLink.findUnique({
+  async getShareLink(
+    shareLinkId: string,
+    client: Prisma.TransactionClient | typeof prisma = prisma,
+  ): Promise<ShareLinkInfo> {
+    const shareLink = await client.shareLink.findUnique({
       where: { id: shareLinkId },
       include: { creator: true },
     })
     if (!shareLink) throw new ShareLinkNotFoundError('Share link not found')
-    return await this.toShareLinkInfo(shareLink)
+    return await this.toShareLinkInfo(shareLink, client)
   }
 
   async addAssetToShare(shareLinkId: string, req: AddAssetToShareRequest): Promise<number> {
@@ -309,13 +312,15 @@ export class ShareService {
     return shareLink
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private async toShareLinkInfo(l: any): Promise<ShareLinkInfo> {
+  private async toShareLinkInfo(
+    l: Prisma.ShareLinkGetPayload<{ include: { creator: true } }>,
+    client: Prisma.TransactionClient | typeof prisma = prisma,
+  ): Promise<ShareLinkInfo> {
     const isExpired = l.expireAt ? new Date(l.expireAt) < new Date() : false
     const avatarUrl = l.creator ? await getAvatarUrl(l.creator.image) : undefined
-    let watermarkConfig = l.watermarkConfig
-    if (l.watermarkConfigId && !watermarkConfig) {
-      watermarkConfig = await prisma.watermarkConfig.findUnique({
+    let watermarkConfig: Prisma.WatermarkConfigGetPayload<Record<string, never>> | null = null
+    if (l.watermarkConfigId) {
+      watermarkConfig = await client.watermarkConfig.findUnique({
         where: { id: l.watermarkConfigId },
       })
     }
@@ -326,8 +331,8 @@ export class ShareService {
       isDisabled: l.isDisabled,
       hasPassword: !!l.password,
       password: l.password,
-      defaultSortOrder: l.defaultSortOrder,
-      viewMode: l.viewMode,
+      defaultSortOrder: l.defaultSortOrder ?? undefined,
+      viewMode: l.viewMode ?? undefined,
       fieldVisibility: l.fieldVisibility as Record<string, boolean> | undefined,
       rootFolderId: l.rootFolderId,
       projectId: l.projectId,

@@ -100,6 +100,14 @@ describe('WatermarkService', () => {
     expect(config2.id).toBe(config1.id)
   })
 
+  it('should not race when upserting the same config concurrently', async () => {
+    const results = await Promise.all(
+      Array.from({ length: 10 }, () => watermarkService.upsertConfig(sampleConfig)),
+    )
+    const ids = new Set(results.map((r) => r.id))
+    expect(ids.size).toBe(1)
+  })
+
   it('should manage watermark templates (CRUD)', async () => {
     const user = await prisma.user.create({
       data: { name: 'Test User', email: 'test-wm-tpl@example.com' },
@@ -183,6 +191,69 @@ describe('WatermarkService', () => {
     const disabled = await watermarkService.updateShareLinkWatermark(shareLink.id, false)
     expect(disabled.watermarkStatus).toBe('disabled')
     expect(disabled.watermarkConfigId).toBeNull()
+  })
+
+  it('should resolve media assets including nested symlinks in shared folders', async () => {
+    const user = await prisma.user.create({
+      data: { name: 'Nested User', email: 'nested-wm@example.com' },
+    })
+    const team = await teamService.createTeam(user, { name: 'Nested Team' })
+
+    const projectFolder = await prisma.asset.create({
+      data: { name: 'root', type: 'root', status: 'processed' },
+    })
+    const project = await prisma.project.create({
+      data: { name: 'Nested Project', teamId: team.id, rootFolderId: projectFolder.id },
+    })
+
+    const shareLink = await shareService.createShareLink(
+      project.id,
+      { name: 'Nested Share' },
+      user.id,
+    )
+
+    // Shared folder -> inner folder -> symlink -> media file
+    const sharedFolder = await prisma.asset.create({
+      data: { name: 'shared', type: 'folder', status: 'processed', projectId: project.id },
+    })
+    const innerFolder = await prisma.asset.create({
+      data: { name: 'inner', type: 'folder', status: 'processed', projectId: project.id },
+    })
+    const mediaFile = await prisma.asset.create({
+      data: {
+        name: 'clip.mp4',
+        type: 'file',
+        mediaType: 'video/mp4',
+        status: 'processed',
+        projectId: project.id,
+        parentId: innerFolder.id,
+      },
+    })
+    // symlink inside the shared folder points at the inner folder
+    await prisma.asset.create({
+      data: {
+        name: 'inner-link',
+        type: 'symlink',
+        status: 'processed',
+        projectId: project.id,
+        parentId: sharedFolder.id,
+        targetId: innerFolder.id,
+      },
+    })
+    // root symlink for the share points at the shared folder
+    await prisma.asset.create({
+      data: {
+        name: 'shared-link',
+        type: 'symlink',
+        status: 'processed',
+        projectId: project.id,
+        parentId: shareLink.rootFolderId,
+        targetId: sharedFolder.id,
+      },
+    })
+
+    const mediaIds = await watermarkService.getMediaAssetIdsInShareLink(shareLink.rootFolderId)
+    expect(mediaIds).toContain(mediaFile.id)
   })
 
   it('should purge orphan watermark configs during background GC', async () => {

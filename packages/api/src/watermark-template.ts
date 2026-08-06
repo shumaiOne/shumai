@@ -21,6 +21,7 @@ const route = new Hono<{ Variables: { user: User } }>()
     const user = c.get('user')
     const { teamId } = c.req.valid('query')
 
+    let teamIds: string[]
     if (teamId) {
       await authzService.hasPermission({
         user,
@@ -28,9 +29,18 @@ const route = new Hono<{ Variables: { user: User } }>()
         type: ResourceType.Team,
         id: teamId,
       })
+      teamIds = [teamId]
+    } else {
+      // No teamId: scope to the caller's own teams so templates are never
+      // leaked across tenants.
+      const userTeams = await teamService.getUserTeams({
+        userId: user.id,
+        pagination: { first: 20 },
+      })
+      teamIds = userTeams.data.map((t) => t.id)
     }
 
-    const templates = await watermarkService.listTemplates(teamId)
+    const templates = await watermarkService.listTemplates(teamIds)
     return c.json(templates)
   })
   .get('/watermark-templates/:templateId', async (c) => {
@@ -46,6 +56,8 @@ const route = new Hono<{ Variables: { user: User } }>()
         id: template.teamId,
       })
     }
+    // Teamless templates are shared platform defaults: readable by any
+    // authenticated user, but not writable (enforced on PUT/DELETE).
 
     return c.json(template)
   })
@@ -56,13 +68,24 @@ const route = new Hono<{ Variables: { user: User } }>()
       const user = c.get('user')
       const req = c.req.valid('json')
 
-      const userTeams = await teamService.getUserTeams({
-        userId: user.id,
-        pagination: { first: 20 },
-      })
-      const teamId = userTeams.data[0]?.id || null
-
-      if (teamId) {
+      let teamId: string | null
+      if (req.teamId) {
+        await authzService.hasPermission({
+          user,
+          permission: Permission.Edit,
+          type: ResourceType.Team,
+          id: req.teamId,
+        })
+        teamId = req.teamId
+      } else {
+        const userTeams = await teamService.getUserTeams({
+          userId: user.id,
+          pagination: { first: 20 },
+        })
+        teamId = userTeams.data[0]?.id || null
+        if (!teamId) {
+          return c.json({ error: 'A team is required to create a watermark template' }, 400)
+        }
         await authzService.hasPermission({
           user,
           permission: Permission.Edit,
@@ -91,6 +114,8 @@ const route = new Hono<{ Variables: { user: User } }>()
           type: ResourceType.Team,
           id: existing.teamId,
         })
+      } else {
+        return c.json({ error: 'Platform templates are read-only' }, 403)
       }
 
       const updated = await watermarkService.updateTemplate(templateId, req.name, req.config)
@@ -109,6 +134,8 @@ const route = new Hono<{ Variables: { user: User } }>()
         type: ResourceType.Team,
         id: existing.teamId,
       })
+    } else {
+      return c.json({ error: 'Platform templates are read-only' }, 403)
     }
 
     await watermarkService.deleteTemplate(templateId)

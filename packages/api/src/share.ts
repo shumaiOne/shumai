@@ -14,7 +14,10 @@ import {
 import type { Prisma } from '@shumai/db'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 import { watermarkService } from '@shumai/core/src/watermark/watermark'
-import { ShareLinkWatermarkProcessingError } from '@shumai/core/src/share/errors'
+import {
+  ShareLinkNotFoundError,
+  ShareLinkWatermarkProcessingError,
+} from '@shumai/core/src/share/errors'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -211,6 +214,9 @@ const route = new Hono<{ Variables: { user: User } }>()
       } catch (err) {
         if (err instanceof ShareLinkWatermarkProcessingError) {
           return c.json({ error: err.message }, 409)
+        }
+        if (err instanceof ShareLinkNotFoundError) {
+          return c.json({ error: err.message }, 404)
         }
         throw err
       }

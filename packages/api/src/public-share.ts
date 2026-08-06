@@ -8,29 +8,8 @@ import { z } from 'zod'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { FieldInfo } from '@shumai/dtos'
 import { prisma } from '@shumai/db'
+import '@shumai/db/src/prisma-json-types'
 import type { Prisma as PrismaType } from '@shumai/db'
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function applyWatermarkToAssetMedia(asset: any, watermarkMedia: any) {
-  if (!asset || !asset.media || !watermarkMedia) return asset
-  const updatedMedia = { ...asset.media }
-  if (Array.isArray(watermarkMedia.videoTranscodes) && watermarkMedia.videoTranscodes.length > 0) {
-    updatedMedia.videoTranscodes = watermarkMedia.videoTranscodes
-  }
-  if (Array.isArray(watermarkMedia.imageTranscodes) && watermarkMedia.imageTranscodes.length > 0) {
-    updatedMedia.imageTranscodes = watermarkMedia.imageTranscodes
-  }
-  if (watermarkMedia.videoPreview) {
-    updatedMedia.videoPreview = watermarkMedia.videoPreview
-  }
-  if (watermarkMedia.thumbnail) {
-    updatedMedia.thumbnail = watermarkMedia.thumbnail
-  }
-  return {
-    ...asset,
-    media: updatedMedia,
-  }
-}
 import { projectService } from '@shumai/core/src/project/project'
 import { userService } from '@shumai/core/src/user/user'
 import { auth } from '@shumai/core/src/auth/auth'
@@ -42,6 +21,56 @@ import {
   ShareLinkExpiredError,
   ShareLinkPasswordInvalidError,
 } from '@shumai/core/src/share/errors'
+import type { AssetInfo } from '@shumai/dtos'
+
+/**
+ * Replaces the served media entries with the watermarked proxy entries produced
+ * by the watermark transcode activity. Only the transcode/preview slots are
+ * replaced; `original` is intentionally left untouched here.
+ */
+function applyWatermarkToAssetMedia(
+  asset: AssetInfo,
+  watermarkMedia: PrismaJson.MediaInfo,
+): AssetInfo {
+  if (!asset.media) return asset
+  const updatedMedia = { ...asset.media }
+
+  if (watermarkMedia.videoTranscodes && watermarkMedia.videoTranscodes.length > 0) {
+    updatedMedia.videoTranscodes = watermarkMedia.videoTranscodes.map((vt) => ({
+      id: vt.key ?? '',
+      url: '',
+      key: vt.key ?? '',
+      width: vt.width ?? 0,
+      height: vt.height ?? 0,
+      size: 0,
+      isRaw: false,
+    }))
+  }
+  if (watermarkMedia.imageTranscodes && watermarkMedia.imageTranscodes.length > 0) {
+    updatedMedia.imageTranscodes = watermarkMedia.imageTranscodes.map((it) => ({
+      id: it.key ?? '',
+      url: '',
+      key: it.key ?? '',
+      width: it.width ?? 0,
+      height: it.height ?? 0,
+      size: 0,
+      isRaw: false,
+    }))
+  }
+  if (watermarkMedia.videoPreview?.key) {
+    updatedMedia.videoPreview = { url: '', key: watermarkMedia.videoPreview.key }
+  }
+  if (watermarkMedia.thumbnail?.key) {
+    ;(
+      updatedMedia as AssetInfo['media'] & { thumbnail?: { url: string; key?: string } }
+    ).thumbnail = {
+      url: '',
+      key: watermarkMedia.thumbnail.key,
+    }
+  }
+
+  return { ...asset, media: updatedMedia }
+}
 
 const app = new Hono()
 
@@ -157,9 +186,10 @@ const route = app
           shareLink.watermarkStatus === 'ready' &&
           res.data.length > 0
         ) {
+          // Resolve symlink targets once and reuse for the media lookup, so each
+          // item costs a single query instead of two.
           const targetIds = await Promise.all(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            res.data.map((item: any) => assetService.resolveTargetAssetId(item.id)),
+            res.data.map((item) => assetService.resolveTargetAssetId(item.id)),
           )
           const watermarkFiles = await prisma.watermarkFile.findMany({
             where: {
@@ -170,17 +200,13 @@ const route = app
           })
           const wfMap = new Map(watermarkFiles.map((wf) => [wf.assetId, wf.media]))
 
-          res.data = await Promise.all(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            res.data.map(async (item: any) => {
-              const targetId = await assetService.resolveTargetAssetId(item.id)
-              const wMedia = wfMap.get(targetId)
-              if (wMedia) {
-                return applyWatermarkToAssetMedia(item, wMedia)
-              }
-              return item
-            }),
-          )
+          res.data = res.data.map((item, index) => {
+            const wMedia = wfMap.get(targetIds[index])
+            if (wMedia) {
+              return applyWatermarkToAssetMedia(item, wMedia)
+            }
+            return item
+          })
         }
 
         return c.json(res)

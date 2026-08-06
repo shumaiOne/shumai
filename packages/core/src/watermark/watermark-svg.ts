@@ -34,7 +34,7 @@ export function generateWatermarkSvg(
     if (block.type === 'text') {
       const fontSize = Math.max(1, Math.round(canvasWidth * block.size))
       const textContent = escapeXml(block.text || '')
-      const fill = block.color || '#FFFFFF'
+      const fill = escapeXml(block.color || '#FFFFFF')
 
       elements.push(
         `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="${fontSize}" font-weight="bold" fill="${fill}" opacity="${opacity}" transform="rotate(${rotation}, ${cx}, ${cy})">${textContent}</text>`,

@@ -4014,16 +4014,16 @@ export type ListEnumWatermarkStatusFieldRefInput<$PrismaModel> = FieldRefInputTy
 
 
 /**
- * Reference to a field of type 'WorkflowTaskStatus'
+ * Reference to a field of type 'WatermarkFileStatus'
  */
-export type EnumWorkflowTaskStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WorkflowTaskStatus'>
+export type EnumWatermarkFileStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WatermarkFileStatus'>
     
 
 
 /**
- * Reference to a field of type 'WorkflowTaskStatus[]'
+ * Reference to a field of type 'WatermarkFileStatus[]'
  */
-export type ListEnumWorkflowTaskStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WorkflowTaskStatus[]'>
+export type ListEnumWatermarkFileStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WatermarkFileStatus[]'>
     
 
 
@@ -4192,6 +4192,20 @@ export type EnumWorkflowTaskTypeFieldRefInput<$PrismaModel> = FieldRefInputType<
  * Reference to a field of type 'WorkflowTaskType[]'
  */
 export type ListEnumWorkflowTaskTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WorkflowTaskType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'WorkflowTaskStatus'
+ */
+export type EnumWorkflowTaskStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WorkflowTaskStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'WorkflowTaskStatus[]'
+ */
+export type ListEnumWorkflowTaskStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WorkflowTaskStatus[]'>
     
 
 

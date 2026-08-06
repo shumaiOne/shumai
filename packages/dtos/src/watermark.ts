@@ -73,6 +73,7 @@ export interface WatermarkTemplateInfo {
 
 export const createWatermarkTemplateRequestSchema = z.object({
   name: z.string().min(1),
+  teamId: z.string().optional(),
   config: watermarkConfigSpecSchema,
 })
 
@@ -85,9 +86,19 @@ export const updateWatermarkTemplateRequestSchema = z.object({
 
 export type UpdateWatermarkTemplateRequest = z.infer<typeof updateWatermarkTemplateRequestSchema>
 
-export const updateShareLinkWatermarkRequestSchema = z.object({
-  enabled: z.boolean(),
-  config: watermarkConfigSpecSchema.optional(),
-})
+export const updateShareLinkWatermarkRequestSchema = z
+  .object({
+    enabled: z.boolean(),
+    config: watermarkConfigSpecSchema.optional(),
+  })
+  .superRefine((val, ctx) => {
+    if (val.enabled && (!val.config || val.config.blocks.length === 0)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['config'],
+        message: 'Watermark configuration is required when enabling watermark',
+      })
+    }
+  })
 
 export type UpdateShareLinkWatermarkRequest = z.infer<typeof updateShareLinkWatermarkRequestSchema>

@@ -1,4 +1,5 @@
-import { prisma, WorkflowTaskStatus } from '@shumai/db'
+import { prisma, WatermarkFileStatus } from '@shumai/db'
+import '@shumai/db/src/prisma-json-types'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { transcodeService } from '@shumai/core/src/transcode/transcode'
 import {
@@ -6,6 +7,7 @@ import {
   RenderBlockImageData,
 } from '@shumai/core/src/watermark/watermark-svg'
 import { watermarkService } from '@shumai/core/src/watermark/watermark'
+import { logger } from '@shumai/core/src/logger'
 import { stemFromKey } from '@shumai/core/src/utils/filename'
 import { ApplicationFailure } from '@temporalio/activity'
 import * as path from 'path'
@@ -17,6 +19,10 @@ import type { WatermarkConfigSpec, WatermarkBlockImage } from '@shumai/dtos'
 
 const execFileAsync = promisify(execFile)
 
+// Max dimension for watermark block images embedded into the SVG overlay.
+// Bounding this keeps the SVG (and its base64 payload) small for large logos.
+const MAX_BLOCK_IMAGE_DIMENSION = 1024
+
 export interface InitWatermarkFileParams {
   assetId: string
   watermarkConfigId: string
@@ -24,8 +30,7 @@ export interface InitWatermarkFileParams {
 
 export interface InitWatermarkFileResult {
   skip: boolean
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  media?: any
+  media?: PrismaJson.MediaInfo | null
 }
 
 export async function initWatermarkFileActivity(
@@ -42,16 +47,15 @@ export async function initWatermarkFileActivity(
   })
 
   if (existing) {
-    if (existing.status === WorkflowTaskStatus.completed) {
+    if (existing.status === WatermarkFileStatus.completed) {
       return { skip: true, media: existing.media }
     }
-    if (existing.status === WorkflowTaskStatus.processing) {
-      return { skip: true }
-    }
-    // If failed, reset to processing
+    // A `processing` row may be a leftover from a crashed worker; never treat it
+    // as "already done" or the re-claimed task would be marked completed without
+    // generating any watermark. Reset it and re-transcode.
     await prisma.watermarkFile.update({
       where: { id: existing.id },
-      data: { status: WorkflowTaskStatus.processing },
+      data: { status: WatermarkFileStatus.processing },
     })
     return { skip: false }
   }
@@ -60,7 +64,7 @@ export async function initWatermarkFileActivity(
     data: {
       assetId: params.assetId,
       watermarkConfigId: params.watermarkConfigId,
-      status: WorkflowTaskStatus.processing,
+      status: WatermarkFileStatus.processing,
     },
   })
 
@@ -99,7 +103,9 @@ export async function transcodeWatermarkMediaActivity(
     })
   }
 
-  const config = watermarkConfigRecord.config as unknown as WatermarkConfigSpec
+  // The config column is declared as PrismaJson.WatermarkConfigSpec, which is
+  // structurally identical to the DTO type, so no cast is required.
+  const config: WatermarkConfigSpec = watermarkConfigRecord.config
   const assetKey = asset.storageKey.key
   const stem = stemFromKey(assetKey)
 
@@ -160,18 +166,29 @@ export async function transcodeWatermarkMediaActivity(
           const imgTmpPath = path.join(tmpDir, `block-${imgBlock.imageAssetId}`)
           await s3Service.downloadToFile(bucket, imgAsset.storageKey.key, imgTmpPath)
           const buffer = fs.readFileSync(imgTmpPath)
-          const meta = await sharp(buffer, { limitInputPixels: false }).metadata()
-          const mimeType = meta.format ? `image/${meta.format}` : 'image/png'
+          // Downscale to a bounded size and normalize to PNG so large logo assets
+          // don't balloon the SVG/base64 payload.
+          const processed = await sharp(buffer, { limitInputPixels: false })
+            .resize(MAX_BLOCK_IMAGE_DIMENSION, MAX_BLOCK_IMAGE_DIMENSION, {
+              fit: 'inside',
+              withoutEnlargement: true,
+            })
+            .png()
+            .toBuffer()
+          const meta = await sharp(processed).metadata()
           blockImagesMap.set(imgBlock.imageAssetId, {
             imageAssetId: imgBlock.imageAssetId,
-            base64Data: buffer.toString('base64'),
-            mimeType,
+            base64Data: processed.toString('base64'),
+            mimeType: 'image/png',
             width: meta.width || 100,
             height: meta.height || 100,
           })
         }
       } catch (err) {
-        console.warn(`Failed to load watermark block image ${imgBlock.imageAssetId}:`, err)
+        logger.warn(
+          { imageAssetId: imgBlock.imageAssetId, err },
+          'Failed to load watermark block image',
+        )
       }
     }
 
@@ -297,7 +314,7 @@ export async function transcodeWatermarkMediaActivity(
 
     return mediaInfo
   } catch (err) {
-    console.error('Failed to generate watermark proxy:', err)
+    logger.error({ assetId: params.assetId, err }, 'Failed to generate watermark proxy')
     throw ApplicationFailure.create({
       message: `Failed to generate watermark proxy: ${err instanceof Error ? err.message : String(err)}`,
       nonRetryable: true,
@@ -312,7 +329,7 @@ export interface CompleteWatermarkFileParams {
   assetId: string
   watermarkConfigId: string
   mediaInfo?: PrismaJson.MediaInfo | null
-  status: WorkflowTaskStatus
+  status: WatermarkFileStatus
   shareLinkId?: string | null
 }
 
@@ -330,13 +347,11 @@ export async function completeWatermarkFileActivity(
     create: {
       assetId: params.assetId,
       watermarkConfigId: params.watermarkConfigId,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      media: (params.mediaInfo as any) || undefined,
+      media: params.mediaInfo ?? undefined,
       status: params.status,
     },
     update: {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      media: (params.mediaInfo as any) || undefined,
+      media: params.mediaInfo ?? undefined,
       status: params.status,
     },
   })

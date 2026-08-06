@@ -30,7 +30,7 @@ export type WatermarkFileMinAggregateOutputType = {
   id: string | null
   assetId: string | null
   watermarkConfigId: string | null
-  status: $Enums.WorkflowTaskStatus | null
+  status: $Enums.WatermarkFileStatus | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -39,7 +39,7 @@ export type WatermarkFileMaxAggregateOutputType = {
   id: string | null
   assetId: string | null
   watermarkConfigId: string | null
-  status: $Enums.WorkflowTaskStatus | null
+  status: $Enums.WatermarkFileStatus | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -162,7 +162,7 @@ export type WatermarkFileGroupByOutputType = {
   assetId: string
   watermarkConfigId: string
   media:PrismaJson.MediaInfo | null
-  status: $Enums.WorkflowTaskStatus
+  status: $Enums.WatermarkFileStatus
   createdAt: Date
   updatedAt: Date
   _count: WatermarkFileCountAggregateOutputType | null
@@ -193,7 +193,7 @@ export type WatermarkFileWhereInput = {
   assetId?: Prisma.StringFilter<"WatermarkFile"> | string
   watermarkConfigId?: Prisma.StringFilter<"WatermarkFile"> | string
   media?: Prisma.JsonNullableFilter<"WatermarkFile">
-  status?: Prisma.EnumWorkflowTaskStatusFilter<"WatermarkFile"> | $Enums.WorkflowTaskStatus
+  status?: Prisma.EnumWatermarkFileStatusFilter<"WatermarkFile"> | $Enums.WatermarkFileStatus
   createdAt?: Prisma.DateTimeFilter<"WatermarkFile"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"WatermarkFile"> | Date | string
   asset?: Prisma.XOR<Prisma.AssetScalarRelationFilter, Prisma.AssetWhereInput>
@@ -221,7 +221,7 @@ export type WatermarkFileWhereUniqueInput = Prisma.AtLeast<{
   assetId?: Prisma.StringFilter<"WatermarkFile"> | string
   watermarkConfigId?: Prisma.StringFilter<"WatermarkFile"> | string
   media?: Prisma.JsonNullableFilter<"WatermarkFile">
-  status?: Prisma.EnumWorkflowTaskStatusFilter<"WatermarkFile"> | $Enums.WorkflowTaskStatus
+  status?: Prisma.EnumWatermarkFileStatusFilter<"WatermarkFile"> | $Enums.WatermarkFileStatus
   createdAt?: Prisma.DateTimeFilter<"WatermarkFile"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"WatermarkFile"> | Date | string
   asset?: Prisma.XOR<Prisma.AssetScalarRelationFilter, Prisma.AssetWhereInput>
@@ -249,7 +249,7 @@ export type WatermarkFileScalarWhereWithAggregatesInput = {
   assetId?: Prisma.StringWithAggregatesFilter<"WatermarkFile"> | string
   watermarkConfigId?: Prisma.StringWithAggregatesFilter<"WatermarkFile"> | string
   media?: Prisma.JsonNullableWithAggregatesFilter<"WatermarkFile">
-  status?: Prisma.EnumWorkflowTaskStatusWithAggregatesFilter<"WatermarkFile"> | $Enums.WorkflowTaskStatus
+  status?: Prisma.EnumWatermarkFileStatusWithAggregatesFilter<"WatermarkFile"> | $Enums.WatermarkFileStatus
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"WatermarkFile"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"WatermarkFile"> | Date | string
 }
@@ -257,7 +257,7 @@ export type WatermarkFileScalarWhereWithAggregatesInput = {
 export type WatermarkFileCreateInput = {
   id?: string
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  status?: $Enums.WorkflowTaskStatus
+  status?: $Enums.WatermarkFileStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   asset: Prisma.AssetCreateNestedOneWithoutWatermarkFilesInput
@@ -269,7 +269,7 @@ export type WatermarkFileUncheckedCreateInput = {
   assetId: string
   watermarkConfigId: string
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  status?: $Enums.WorkflowTaskStatus
+  status?: $Enums.WatermarkFileStatus
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -277,7 +277,7 @@ export type WatermarkFileUncheckedCreateInput = {
 export type WatermarkFileUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  status?: Prisma.EnumWorkflowTaskStatusFieldUpdateOperationsInput | $Enums.WorkflowTaskStatus
+  status?: Prisma.EnumWatermarkFileStatusFieldUpdateOperationsInput | $Enums.WatermarkFileStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   asset?: Prisma.AssetUpdateOneRequiredWithoutWatermarkFilesNestedInput
@@ -289,7 +289,7 @@ export type WatermarkFileUncheckedUpdateInput = {
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
   watermarkConfigId?: Prisma.StringFieldUpdateOperationsInput | string
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  status?: Prisma.EnumWorkflowTaskStatusFieldUpdateOperationsInput | $Enums.WorkflowTaskStatus
+  status?: Prisma.EnumWatermarkFileStatusFieldUpdateOperationsInput | $Enums.WatermarkFileStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -299,7 +299,7 @@ export type WatermarkFileCreateManyInput = {
   assetId: string
   watermarkConfigId: string
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  status?: $Enums.WorkflowTaskStatus
+  status?: $Enums.WatermarkFileStatus
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -307,7 +307,7 @@ export type WatermarkFileCreateManyInput = {
 export type WatermarkFileUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  status?: Prisma.EnumWorkflowTaskStatusFieldUpdateOperationsInput | $Enums.WorkflowTaskStatus
+  status?: Prisma.EnumWatermarkFileStatusFieldUpdateOperationsInput | $Enums.WatermarkFileStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -317,7 +317,7 @@ export type WatermarkFileUncheckedUpdateManyInput = {
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
   watermarkConfigId?: Prisma.StringFieldUpdateOperationsInput | string
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  status?: Prisma.EnumWorkflowTaskStatusFieldUpdateOperationsInput | $Enums.WorkflowTaskStatus
+  status?: Prisma.EnumWatermarkFileStatusFieldUpdateOperationsInput | $Enums.WatermarkFileStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -407,8 +407,8 @@ export type WatermarkFileUncheckedUpdateManyWithoutWatermarkConfigNestedInput = 
   deleteMany?: Prisma.WatermarkFileScalarWhereInput | Prisma.WatermarkFileScalarWhereInput[]
 }
 
-export type EnumWorkflowTaskStatusFieldUpdateOperationsInput = {
-  set?: $Enums.WorkflowTaskStatus
+export type EnumWatermarkFileStatusFieldUpdateOperationsInput = {
+  set?: $Enums.WatermarkFileStatus
 }
 
 export type WatermarkFileCreateNestedManyWithoutAssetInput = {
@@ -456,7 +456,7 @@ export type WatermarkFileUncheckedUpdateManyWithoutAssetNestedInput = {
 export type WatermarkFileCreateWithoutWatermarkConfigInput = {
   id?: string
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  status?: $Enums.WorkflowTaskStatus
+  status?: $Enums.WatermarkFileStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   asset: Prisma.AssetCreateNestedOneWithoutWatermarkFilesInput
@@ -466,7 +466,7 @@ export type WatermarkFileUncheckedCreateWithoutWatermarkConfigInput = {
   id?: string
   assetId: string
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  status?: $Enums.WorkflowTaskStatus
+  status?: $Enums.WatermarkFileStatus
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -505,7 +505,7 @@ export type WatermarkFileScalarWhereInput = {
   assetId?: Prisma.StringFilter<"WatermarkFile"> | string
   watermarkConfigId?: Prisma.StringFilter<"WatermarkFile"> | string
   media?: Prisma.JsonNullableFilter<"WatermarkFile">
-  status?: Prisma.EnumWorkflowTaskStatusFilter<"WatermarkFile"> | $Enums.WorkflowTaskStatus
+  status?: Prisma.EnumWatermarkFileStatusFilter<"WatermarkFile"> | $Enums.WatermarkFileStatus
   createdAt?: Prisma.DateTimeFilter<"WatermarkFile"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"WatermarkFile"> | Date | string
 }
@@ -513,7 +513,7 @@ export type WatermarkFileScalarWhereInput = {
 export type WatermarkFileCreateWithoutAssetInput = {
   id?: string
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  status?: $Enums.WorkflowTaskStatus
+  status?: $Enums.WatermarkFileStatus
   createdAt?: Date | string
   updatedAt?: Date | string
   watermarkConfig: Prisma.WatermarkConfigCreateNestedOneWithoutWatermarkFilesInput
@@ -523,7 +523,7 @@ export type WatermarkFileUncheckedCreateWithoutAssetInput = {
   id?: string
   watermarkConfigId: string
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  status?: $Enums.WorkflowTaskStatus
+  status?: $Enums.WatermarkFileStatus
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -558,7 +558,7 @@ export type WatermarkFileCreateManyWatermarkConfigInput = {
   id?: string
   assetId: string
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  status?: $Enums.WorkflowTaskStatus
+  status?: $Enums.WatermarkFileStatus
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -566,7 +566,7 @@ export type WatermarkFileCreateManyWatermarkConfigInput = {
 export type WatermarkFileUpdateWithoutWatermarkConfigInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  status?: Prisma.EnumWorkflowTaskStatusFieldUpdateOperationsInput | $Enums.WorkflowTaskStatus
+  status?: Prisma.EnumWatermarkFileStatusFieldUpdateOperationsInput | $Enums.WatermarkFileStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   asset?: Prisma.AssetUpdateOneRequiredWithoutWatermarkFilesNestedInput
@@ -576,7 +576,7 @@ export type WatermarkFileUncheckedUpdateWithoutWatermarkConfigInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  status?: Prisma.EnumWorkflowTaskStatusFieldUpdateOperationsInput | $Enums.WorkflowTaskStatus
+  status?: Prisma.EnumWatermarkFileStatusFieldUpdateOperationsInput | $Enums.WatermarkFileStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -585,7 +585,7 @@ export type WatermarkFileUncheckedUpdateManyWithoutWatermarkConfigInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   assetId?: Prisma.StringFieldUpdateOperationsInput | string
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  status?: Prisma.EnumWorkflowTaskStatusFieldUpdateOperationsInput | $Enums.WorkflowTaskStatus
+  status?: Prisma.EnumWatermarkFileStatusFieldUpdateOperationsInput | $Enums.WatermarkFileStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -594,7 +594,7 @@ export type WatermarkFileCreateManyAssetInput = {
   id?: string
   watermarkConfigId: string
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  status?: $Enums.WorkflowTaskStatus
+  status?: $Enums.WatermarkFileStatus
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -602,7 +602,7 @@ export type WatermarkFileCreateManyAssetInput = {
 export type WatermarkFileUpdateWithoutAssetInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  status?: Prisma.EnumWorkflowTaskStatusFieldUpdateOperationsInput | $Enums.WorkflowTaskStatus
+  status?: Prisma.EnumWatermarkFileStatusFieldUpdateOperationsInput | $Enums.WatermarkFileStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   watermarkConfig?: Prisma.WatermarkConfigUpdateOneRequiredWithoutWatermarkFilesNestedInput
@@ -612,7 +612,7 @@ export type WatermarkFileUncheckedUpdateWithoutAssetInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   watermarkConfigId?: Prisma.StringFieldUpdateOperationsInput | string
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  status?: Prisma.EnumWorkflowTaskStatusFieldUpdateOperationsInput | $Enums.WorkflowTaskStatus
+  status?: Prisma.EnumWatermarkFileStatusFieldUpdateOperationsInput | $Enums.WatermarkFileStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -621,7 +621,7 @@ export type WatermarkFileUncheckedUpdateManyWithoutAssetInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   watermarkConfigId?: Prisma.StringFieldUpdateOperationsInput | string
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  status?: Prisma.EnumWorkflowTaskStatusFieldUpdateOperationsInput | $Enums.WorkflowTaskStatus
+  status?: Prisma.EnumWatermarkFileStatusFieldUpdateOperationsInput | $Enums.WatermarkFileStatus
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -702,7 +702,7 @@ export type $WatermarkFilePayload<ExtArgs extends runtime.Types.Extensions.Inter
      * [MediaInfo]
      */
     media:PrismaJson.MediaInfo | null
-    status: $Enums.WorkflowTaskStatus
+    status: $Enums.WatermarkFileStatus
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["watermarkFile"]>
@@ -1134,7 +1134,7 @@ export interface WatermarkFileFieldRefs {
   readonly assetId: Prisma.FieldRef<"WatermarkFile", 'String'>
   readonly watermarkConfigId: Prisma.FieldRef<"WatermarkFile", 'String'>
   readonly media: Prisma.FieldRef<"WatermarkFile", 'Json'>
-  readonly status: Prisma.FieldRef<"WatermarkFile", 'WorkflowTaskStatus'>
+  readonly status: Prisma.FieldRef<"WatermarkFile", 'WatermarkFileStatus'>
   readonly createdAt: Prisma.FieldRef<"WatermarkFile", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"WatermarkFile", 'DateTime'>
 }

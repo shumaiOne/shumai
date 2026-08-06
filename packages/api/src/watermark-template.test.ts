@@ -59,6 +59,23 @@ describe('Watermark Template API', () => {
     expect(body[0].name).toBe('Preset 1')
   })
 
+  test("GET /watermark-templates without teamId scopes to the caller's teams", async () => {
+    vi.spyOn(teamService, 'getUserTeams').mockResolvedValue({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data: [{ id: 't1', name: 'My Team' }] as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      pageInfo: {} as any,
+    })
+    vi.spyOn(watermarkService, 'listTemplates').mockResolvedValue([])
+
+    const res = await app.request('/watermark-templates', {
+      method: 'GET',
+    })
+
+    expect(res.status).toBe(200)
+    expect(watermarkService.listTemplates).toHaveBeenCalledWith(['t1'])
+  })
+
   test('POST /watermark-templates', async () => {
     vi.spyOn(teamService, 'getUserTeams').mockResolvedValue({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -106,5 +123,24 @@ describe('Watermark Template API', () => {
 
     expect(res.status).toBe(204)
     expect(watermarkService.deleteTemplate).toHaveBeenCalledWith('tpl1')
+  })
+
+  test('DELETE /watermark-templates/:templateId on a teamless template returns 403', async () => {
+    vi.spyOn(watermarkService, 'getTemplate').mockResolvedValue({
+      id: 'tpl-global',
+      name: 'Platform Preset',
+      config: { blocks: [] },
+      teamId: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+    vi.spyOn(watermarkService, 'deleteTemplate').mockResolvedValue(undefined)
+
+    const res = await app.request('/watermark-templates/tpl-global', {
+      method: 'DELETE',
+    })
+
+    expect(res.status).toBe(403)
+    expect(watermarkService.deleteTemplate).not.toHaveBeenCalled()
   })
 })

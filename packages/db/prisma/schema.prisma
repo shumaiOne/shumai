@@ -128,6 +128,13 @@ enum WatermarkStatus {
   failed
 }
 
+enum WatermarkFileStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
 // ----------------------------------------------------------------------
 // Models
 // ----------------------------------------------------------------------
@@ -417,7 +424,7 @@ model WatermarkFile {
   watermarkConfigId String             @map("watermark_config_id")
   /// [MediaInfo]
   media             Json?
-  status            WorkflowTaskStatus @default(pending)
+  status            WatermarkFileStatus @default(pending)
   createdAt         DateTime           @default(now()) @map("created_at")
   updatedAt         DateTime           @updatedAt @map("updated_at")
 

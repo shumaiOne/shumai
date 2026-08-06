@@ -1,4 +1,14 @@
-import { prisma, WorkflowTaskStatus, WorkflowTaskType, WatermarkStatus } from '@shumai/db'
+import {
+  prisma,
+  WorkflowTaskStatus,
+  WorkflowTaskType,
+  WatermarkStatus,
+  WatermarkFileStatus,
+  WatermarkConfig,
+  WatermarkTemplate,
+} from '@shumai/db'
+import type { Prisma } from '@shumai/db'
+import '@shumai/db/src/prisma-json-types'
 import {
   computeWatermarkConfigHash,
   WatermarkConfigSpec,
@@ -14,24 +24,27 @@ import {
 import { shareService } from '@shumai/core/src/share/share'
 import { logger } from '@shumai/core/src/logger'
 
+// Union of the global client and interactive-transaction client, which share the
+// same delegate shapes for the models used by this service.
+type WatermarkDbClient = Prisma.TransactionClient | typeof prisma
+
 export class WatermarkService {
   constructor(private readonly prismaClient: typeof prisma = prisma) {}
 
   async upsertConfig(config: WatermarkConfigSpec) {
+    return this.upsertConfigWithClient(this.prismaClient, config)
+  }
+
+  private async upsertConfigWithClient(client: WatermarkDbClient, config: WatermarkConfigSpec) {
     const hash = computeWatermarkConfigHash(config)
-    const existing = await this.prismaClient.watermarkConfig.findUnique({
+    // Upsert keyed on the unique hash so concurrent enables of the same config
+    // cannot race into a unique-constraint violation.
+    return client.watermarkConfig.upsert({
       where: { hash },
-    })
-
-    if (existing) {
-      return existing
-    }
-
-    return await this.prismaClient.watermarkConfig.create({
-      data: {
+      update: {},
+      create: {
         hash,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        config: config as any,
+        config: config as PrismaJson.WatermarkConfigSpec,
       },
     })
   }
@@ -48,8 +61,7 @@ export class WatermarkService {
     const tpl = await this.prismaClient.watermarkTemplate.create({
       data: {
         name,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        config: config as any,
+        config: config as PrismaJson.WatermarkConfigSpec,
         teamId,
       },
     })
@@ -72,8 +84,7 @@ export class WatermarkService {
       where: { id: templateId },
       data: {
         name: name ?? undefined,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        config: config ? (config as any) : undefined,
+        config: config ? (config as PrismaJson.WatermarkConfigSpec) : undefined,
       },
     })
     return this.toWatermarkTemplateInfo(tpl)
@@ -91,10 +102,16 @@ export class WatermarkService {
     })
   }
 
-  async listTemplates(teamId?: string | null): Promise<WatermarkTemplateInfo[]> {
+  async listTemplates(teamIds?: string | string[] | null): Promise<WatermarkTemplateInfo[]> {
+    const where = teamIds
+      ? Array.isArray(teamIds)
+        ? { teamId: { in: teamIds } }
+        : { teamId: teamIds }
+      : undefined
     const tpls = await this.prismaClient.watermarkTemplate.findMany({
-      where: teamId ? { teamId } : undefined,
-      orderBy: { createdAt: 'desc' },
+      where,
+      // ULIDs are time-sortable; ordering by id desc is the project convention
+      orderBy: { id: 'desc' },
     })
     return tpls.map((t) => this.toWatermarkTemplateInfo(t))
   }
@@ -148,7 +165,9 @@ export class WatermarkService {
             watermarkStatus: WatermarkStatus.disabled,
           },
         })
-        return await shareService.getShareLink(shareLinkId)
+        // Read back through the transaction client: the global client runs on a
+        // different pooled connection and cannot see uncommitted changes.
+        return await shareService.getShareLink(shareLinkId, tx)
       }
 
       if (!config || !config.blocks || config.blocks.length === 0) {
@@ -156,17 +175,7 @@ export class WatermarkService {
       }
 
       // Upsert watermark config based on hash
-      const hash = computeWatermarkConfigHash(config)
-      let watermarkConfig = await tx.watermarkConfig.findUnique({ where: { hash } })
-      if (!watermarkConfig) {
-        watermarkConfig = await tx.watermarkConfig.create({
-          data: {
-            hash,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            config: config as any,
-          },
-        })
-      }
+      const watermarkConfig = await this.upsertConfigWithClient(tx, config)
 
       await tx.shareLink.update({
         where: { id: shareLinkId },
@@ -179,7 +188,7 @@ export class WatermarkService {
       // Dispatch transcode tasks for all video/image assets in the sharelink
       await this.triggerWatermarkTranscodeForShareLink(shareLinkId, watermarkConfig.id, tx)
 
-      return await shareService.getShareLink(shareLinkId)
+      return await shareService.getShareLink(shareLinkId, tx)
     })
   }
 
@@ -211,8 +220,7 @@ export class WatermarkService {
   async triggerWatermarkTranscodeForShareLink(
     shareLinkId: string,
     watermarkConfigId: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    txClient?: any,
+    txClient?: WatermarkDbClient,
   ): Promise<number> {
     const client = txClient || this.prismaClient
     const shareLink = await client.shareLink.findUnique({
@@ -233,6 +241,9 @@ export class WatermarkService {
 
     let dispatchedCount = 0
     for (const assetId of targetMediaAssets) {
+      // Deliberately one create() per task: the @shumai/db client extension that
+      // submits tasks to the workflow engine only hooks `workflowTask.create`,
+      // not `createMany`.
       await client.workflowTask.create({
         data: {
           assetId,
@@ -240,6 +251,7 @@ export class WatermarkService {
           status: WorkflowTaskStatus.pending,
           projectId: shareLink.projectId,
           payload: {
+            projectId: shareLink.projectId,
             watermark: {
               watermarkConfigId,
               shareLinkId,
@@ -255,15 +267,15 @@ export class WatermarkService {
 
   /**
    * Recursively resolves real media file asset IDs (video and image) under a sharelink root folder.
+   * Walks the tree level-by-level (batched queries) and follows symlinks at any depth.
    */
   async getMediaAssetIdsInShareLink(
     rootFolderId: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    txClient?: any,
+    txClient?: WatermarkDbClient,
   ): Promise<string[]> {
     const client = txClient || this.prismaClient
 
-    // Fetch symlinks under root folder
+    // Fetch symlinks directly under root folder; these point to the shared targets
     const symlinks = await client.asset.findMany({
       where: {
         parentId: rootFolderId,
@@ -273,54 +285,61 @@ export class WatermarkService {
       select: { targetId: true },
     })
 
-    const targetIds = symlinks
-      .map((s: { targetId: string | null }) => s.targetId)
-      .filter(Boolean) as string[]
+    const queue = symlinks.map((s) => s.targetId).filter((id): id is string => !!id)
 
-    if (targetIds.length === 0) return []
+    if (queue.length === 0) return []
 
-    // Fetch targets and resolve tree recursively
     const mediaAssetIds: string[] = []
-    const queue = [...targetIds]
     const visited = new Set<string>()
 
     while (queue.length > 0) {
-      const currentId = queue.shift()!
-      if (visited.has(currentId)) continue
-      visited.add(currentId)
-
-      const asset = await client.asset.findUnique({
-        where: { id: currentId },
+      const frontier = queue.splice(0)
+      const assets = await client.asset.findMany({
+        where: { id: { in: frontier } },
         select: {
           id: true,
           type: true,
           mediaType: true,
           media: true,
           isDeleted: true,
+          targetId: true,
         },
       })
 
-      if (!asset || asset.isDeleted) continue
+      const folderIds: string[] = []
+      const next: string[] = []
 
-      if (asset.type === 'file') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mediaInfo = asset.media as any
-        const proxyType = mediaInfo?.proxyType
-        const isVideo = proxyType === 'video' || asset.mediaType?.startsWith('video/')
-        const isImage = proxyType === 'image' || asset.mediaType?.startsWith('image/')
+      for (const asset of assets) {
+        if (visited.has(asset.id)) continue
+        visited.add(asset.id)
+        if (asset.isDeleted) continue
 
-        if (isVideo || isImage) {
-          mediaAssetIds.push(asset.id)
-        }
-      } else if (asset.type === 'folder') {
-        const children = await client.asset.findMany({
-          where: { parentId: asset.id, isDeleted: false },
-          select: { id: true },
-        })
-        for (const child of children) {
-          queue.push(child.id)
+        if (asset.type === 'file') {
+          const mediaInfo = asset.media as PrismaJson.MediaInfo | null
+          const proxyType = mediaInfo?.proxyType
+          const isVideo = proxyType === 'video' || asset.mediaType?.startsWith('video/')
+          const isImage = proxyType === 'image' || asset.mediaType?.startsWith('image/')
+
+          if (isVideo || isImage) {
+            mediaAssetIds.push(asset.id)
+          }
+        } else if (asset.type === 'folder') {
+          folderIds.push(asset.id)
+        } else if (asset.type === 'symlink' && asset.targetId) {
+          // Resolve nested symlinks (e.g. folders that contain their own symlinks)
+          next.push(asset.targetId)
         }
       }
+
+      if (folderIds.length > 0) {
+        const children = await client.asset.findMany({
+          where: { parentId: { in: folderIds }, isDeleted: false },
+          select: { id: true },
+        })
+        next.push(...children.map((c) => c.id))
+      }
+
+      queue.push(...next)
     }
 
     return mediaAssetIds
@@ -364,12 +383,12 @@ export class WatermarkService {
 
     for (const assetId of mediaAssetIds) {
       const status = statusMap.get(assetId)
-      if (status === WorkflowTaskStatus.failed) {
+      if (status === WatermarkFileStatus.failed) {
         anyFailed = true
         allCompleted = false
         break
       }
-      if (status !== WorkflowTaskStatus.completed) {
+      if (status !== WatermarkFileStatus.completed) {
         allCompleted = false
       }
     }
@@ -404,10 +423,18 @@ export class WatermarkService {
   async purgeOrphanWatermarkConfigs(): Promise<number> {
     const bucket = process.env.S3_BUCKET || 'shumai'
 
-    // 1. Find orphan configs with 0 sharelinks attached, using FOR UPDATE SKIP LOCKED
+    // 1. Find orphan configs with 0 sharelinks attached and no in-flight watermark
+    //    tasks, using FOR UPDATE SKIP LOCKED. Configs with pending/processing tasks
+    //    must not be purged, or the running activities would fail with FK violations.
     const orphanConfigs = await this.prismaClient.$queryRaw<{ id: string }[]>`
       SELECT wc.id FROM watermark_configs wc
       WHERE NOT EXISTS (SELECT 1 FROM share_links sl WHERE sl.watermark_config_id = wc.id)
+        AND NOT EXISTS (
+          SELECT 1 FROM workflow_tasks wt
+          WHERE wt.type = 'transcode_watermark'
+            AND wt.status IN ('pending', 'processing')
+            AND wt.payload->'watermark'->>'watermarkConfigId' = wc.id
+        )
       LIMIT 20
       FOR UPDATE SKIP LOCKED
     `
@@ -425,8 +452,7 @@ export class WatermarkService {
 
         // Delete proxy files from S3
         for (const wf of watermarkFiles) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const media = wf.media as any
+          const media = wf.media
           if (media) {
             const keysToDelete: string[] = []
             if (Array.isArray(media.videoTranscodes)) {
@@ -476,8 +502,7 @@ export class WatermarkService {
   // DTO Mappers
   // ----------------------------------------------------------------------
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private toWatermarkTemplateInfo(t: any): WatermarkTemplateInfo {
+  private toWatermarkTemplateInfo(t: WatermarkTemplate): WatermarkTemplateInfo {
     return {
       id: t.id,
       name: t.name,
@@ -488,8 +513,7 @@ export class WatermarkService {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private toWatermarkConfigInfo(c: any): WatermarkConfigInfo {
+  private toWatermarkConfigInfo(c: WatermarkConfig): WatermarkConfigInfo {
     return {
       id: c.id,
       config: c.config as WatermarkConfigSpec,
