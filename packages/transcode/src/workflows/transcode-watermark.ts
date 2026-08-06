@@ -21,6 +21,7 @@ export async function transcodeWatermarkWorkflow(task: WorkflowTask): Promise<vo
 
     const {
       initWatermarkFileActivity,
+      waitForWatermarkFileActivity,
       transcodeWatermarkMediaActivity,
       completeWatermarkFileActivity,
     } = getActivities()
@@ -30,9 +31,49 @@ export async function transcodeWatermarkWorkflow(task: WorkflowTask): Promise<vo
       watermarkConfigId,
     })
 
-    if (initResult.skip) {
+    if (initResult.action === 'completed') {
+      if (shareLinkId) {
+        await executeActivity(workerQueue, completeWatermarkFileActivity, {
+          assetId: task.assetId,
+          watermarkConfigId,
+          status: 'completed',
+          shareLinkId,
+        })
+      }
       await completeTask(workerQueue, task.id)
       return
+    }
+
+    if (initResult.action === 'failed') {
+      throw ApplicationFailure.create({
+        message: 'Watermark file generation failed in another task',
+        nonRetryable: true,
+      })
+    }
+
+    if (initResult.action === 'processing') {
+      const waitResult = await executeActivity(workerQueue, waitForWatermarkFileActivity, {
+        assetId: task.assetId,
+        watermarkConfigId,
+      })
+
+      if (waitResult.status === 'completed') {
+        if (shareLinkId) {
+          await executeActivity(workerQueue, completeWatermarkFileActivity, {
+            assetId: task.assetId,
+            watermarkConfigId,
+            status: 'completed',
+            shareLinkId,
+          })
+        }
+        await completeTask(workerQueue, task.id)
+        return
+      }
+
+      throw ApplicationFailure.create({
+        message: 'Watermark file generation failed in in-flight task',
+        nonRetryable: true,
+      })
     }
 
     const mediaInfo = await executeActivity(workerQueue, transcodeWatermarkMediaActivity, {

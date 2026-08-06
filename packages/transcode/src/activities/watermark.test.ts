@@ -5,6 +5,7 @@ import { s3Service } from '@shumai/core/src/s3/s3'
 import { transcodeService } from '@shumai/core/src/transcode/transcode'
 import {
   initWatermarkFileActivity,
+  waitForWatermarkFileActivity,
   transcodeWatermarkMediaActivity,
   completeWatermarkFileActivity,
 } from './watermark'
@@ -18,9 +19,9 @@ vi.mock('child_process', () => ({
       const outFile = args[args.length - 1]
       if (outFile && typeof outFile === 'string') {
         try {
-          fs.writeFileSync(outFile, 'fake-mp4')
+          fs.writeFileSync(outFile, 'fake-transcoded-output')
         } catch {
-          // Ignore
+          // ignore directory creation errors in mock
         }
       }
       cb(null, '', '')
@@ -92,7 +93,7 @@ describe('Watermark Activities', () => {
         assetId: asset.id,
         watermarkConfigId: config.id,
       })
-      expect(res.skip).toBe(false)
+      expect(res.action).toBe('created')
       const row = await prisma.watermarkFile.findUnique({
         where: {
           // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -105,7 +106,7 @@ describe('Watermark Activities', () => {
       expect(row?.status).toBe(WatermarkFileStatus.processing)
     })
 
-    it('skips when a completed watermark file exists', async () => {
+    it('returns completed action when a completed watermark file exists', async () => {
       const { asset, config } = await seedAssetAndConfig()
       await prisma.watermarkFile.create({
         data: {
@@ -118,10 +119,10 @@ describe('Watermark Activities', () => {
         assetId: asset.id,
         watermarkConfigId: config.id,
       })
-      expect(res.skip).toBe(true)
+      expect(res.action).toBe('completed')
     })
 
-    it('re-transcodes a stale processing row instead of skipping (crash recovery)', async () => {
+    it('returns processing action when a processing row exists', async () => {
       const { asset, config } = await seedAssetAndConfig()
       await prisma.watermarkFile.create({
         data: {
@@ -134,20 +135,10 @@ describe('Watermark Activities', () => {
         assetId: asset.id,
         watermarkConfigId: config.id,
       })
-      expect(res.skip).toBe(false)
-      const row = await prisma.watermarkFile.findUnique({
-        where: {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          assetId_watermarkConfigId: {
-            assetId: asset.id,
-            watermarkConfigId: config.id,
-          },
-        },
-      })
-      expect(row?.status).toBe(WatermarkFileStatus.processing)
+      expect(res.action).toBe('processing')
     })
 
-    it('resets a failed row to processing', async () => {
+    it('returns failed action when a failed row exists', async () => {
       const { asset, config } = await seedAssetAndConfig()
       await prisma.watermarkFile.create({
         data: {
@@ -160,17 +151,31 @@ describe('Watermark Activities', () => {
         assetId: asset.id,
         watermarkConfigId: config.id,
       })
-      expect(res.skip).toBe(false)
-      const row = await prisma.watermarkFile.findUnique({
-        where: {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          assetId_watermarkConfigId: {
-            assetId: asset.id,
-            watermarkConfigId: config.id,
-          },
+      expect(res.action).toBe('failed')
+    })
+
+    it('waits for watermark file completion in waitForWatermarkFileActivity', async () => {
+      const { asset, config } = await seedAssetAndConfig()
+      const wf = await prisma.watermarkFile.create({
+        data: {
+          assetId: asset.id,
+          watermarkConfigId: config.id,
+          status: WatermarkFileStatus.processing,
         },
       })
-      expect(row?.status).toBe(WatermarkFileStatus.processing)
+
+      setTimeout(async () => {
+        await prisma.watermarkFile.update({
+          where: { id: wf.id },
+          data: { status: WatermarkFileStatus.completed },
+        })
+      }, 50)
+
+      const res = await waitForWatermarkFileActivity({
+        assetId: asset.id,
+        watermarkConfigId: config.id,
+      })
+      expect(res.status).toBe(WatermarkFileStatus.completed)
     })
   })
 

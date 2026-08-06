@@ -23,47 +23,91 @@ export interface InitWatermarkFileParams {
   watermarkConfigId: string
 }
 
+export type InitWatermarkFileAction = 'created' | 'completed' | 'processing' | 'failed'
+
 export interface InitWatermarkFileResult {
-  skip: boolean
+  action: InitWatermarkFileAction
   media?: PrismaJson.MediaInfo | null
 }
 
 export async function initWatermarkFileActivity(
   params: InitWatermarkFileParams,
 ): Promise<InitWatermarkFileResult> {
-  const existing = await prisma.watermarkFile.findUnique({
-    where: {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      assetId_watermarkConfigId: {
+  return await prisma.$transaction(async (tx) => {
+    const rows = await tx.$queryRaw<
+      Array<{
+        id: string
+        status: WatermarkFileStatus
+        media: PrismaJson.MediaInfo | null
+      }>
+    >`
+      SELECT id, status, media
+      FROM watermark_files
+      WHERE asset_id = ${params.assetId}
+        AND watermark_config_id = ${params.watermarkConfigId}
+      FOR UPDATE
+    `
+
+    if (rows.length > 0) {
+      const existing = rows[0]
+      if (existing.status === WatermarkFileStatus.completed) {
+        return { action: 'completed', media: existing.media }
+      }
+      if (existing.status === WatermarkFileStatus.failed) {
+        return { action: 'failed' }
+      }
+      return { action: 'processing' }
+    }
+
+    await tx.watermarkFile.create({
+      data: {
         assetId: params.assetId,
         watermarkConfigId: params.watermarkConfigId,
+        status: WatermarkFileStatus.processing,
       },
-    },
-  })
-
-  if (existing) {
-    if (existing.status === WatermarkFileStatus.completed) {
-      return { skip: true, media: existing.media }
-    }
-    // A `processing` row may be a leftover from a crashed worker; never treat it
-    // as "already done" or the re-claimed task would be marked completed without
-    // generating any watermark. Reset it and re-transcode.
-    await prisma.watermarkFile.update({
-      where: { id: existing.id },
-      data: { status: WatermarkFileStatus.processing },
     })
-    return { skip: false }
+
+    return { action: 'created' }
+  })
+}
+
+export interface WaitForWatermarkFileParams {
+  assetId: string
+  watermarkConfigId: string
+}
+
+export interface WaitForWatermarkFileResult {
+  status: WatermarkFileStatus
+  media?: PrismaJson.MediaInfo | null
+}
+
+export async function waitForWatermarkFileActivity(
+  params: WaitForWatermarkFileParams,
+): Promise<WaitForWatermarkFileResult> {
+  const pollIntervalMs = 1000
+  const maxWaitMs = 600000 // 10 minutes timeout
+
+  const startTime = Date.now()
+
+  while (Date.now() - startTime < maxWaitMs) {
+    const wf = await prisma.watermarkFile.findUnique({
+      where: {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        assetId_watermarkConfigId: {
+          assetId: params.assetId,
+          watermarkConfigId: params.watermarkConfigId,
+        },
+      },
+    })
+
+    if (wf && wf.status !== WatermarkFileStatus.processing) {
+      return { status: wf.status, media: wf.media }
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs))
   }
 
-  await prisma.watermarkFile.create({
-    data: {
-      assetId: params.assetId,
-      watermarkConfigId: params.watermarkConfigId,
-      status: WatermarkFileStatus.processing,
-    },
-  })
-
-  return { skip: false }
+  return { status: WatermarkFileStatus.failed }
 }
 
 export interface TranscodeWatermarkMediaParams {
