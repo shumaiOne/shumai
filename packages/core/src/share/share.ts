@@ -9,6 +9,7 @@ import {
 } from '@shumai/dtos'
 import { PaginatedData, paginateQuery } from '@shumai/core/src/pagination'
 import { getAvatarUrl } from '@shumai/core/src/user/avatar'
+import { watermarkService } from '@shumai/core/src/watermark/watermark'
 import {
   ShareLinkNotFoundError,
   ShareLinkDisabledError,
@@ -210,7 +211,6 @@ export class ShareService {
         where: { id: shareLinkId },
         data: { watermarkStatus: 'processing' },
       })
-      const { watermarkService } = await import('@shumai/core/src/watermark/watermark')
       await watermarkService.triggerWatermarkTranscodeForShareLink(
         shareLinkId,
         shareLink.watermarkConfigId,
