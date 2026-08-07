@@ -306,6 +306,10 @@ export async function transcodeWatermarkMediaActivity(
 
       for (let i = 0; i < originalTranscodes.length; i++) {
         const vt = originalTranscodes[i]
+        // Skip the raw marker entry (points at the original file) — it is not a
+        // transcoded proxy, so there is nothing to watermark (and transcoding
+        // the original at full resolution would be needlessly expensive).
+        if (vt.isRaw) continue
         const targetWidth = vt.width || originalWidth
         const targetHeight = vt.height || originalHeight
         const resolution = vt.resolution || `${targetHeight}p`

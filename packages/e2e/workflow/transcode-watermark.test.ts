@@ -232,7 +232,12 @@ describe.each(['local', 'temporal'] as const)(
             frames: 30,
             proxyType: 'video',
             imageTranscodes: [],
-            videoTranscodes: [{ key: storageKey.key, width: 640, height: 360, resolution: '360p' }],
+            videoTranscodes: [
+              { key: storageKey.key, width: 640, height: 360, resolution: '360p' },
+              // Raw marker entry (as produced by transcodeVideoWorkflow) — must
+              // not be watermarked.
+              { key: storageKey.key, width: 640, height: 360, isRaw: true },
+            ],
             videoPreview: { width: 640, height: 360 },
             finishedAt: new Date().toISOString(),
             metadata: {
@@ -308,8 +313,11 @@ describe.each(['local', 'temporal'] as const)(
       expect(watermarkFile).toBeDefined()
       expect(watermarkFile?.status).toBe(WatermarkFileStatus.completed)
       expect(watermarkFile?.media).toBeDefined()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      expect((watermarkFile?.media as any)?.videoTranscodes?.length).toBeGreaterThan(0)
+      // Only the transcoded proxy should be watermarked — the raw marker entry
+      // (isRaw: true) must be skipped, so exactly one watermark proxy is produced.
+      const mediaInfo = watermarkFile?.media as PrismaJson.MediaInfo | null
+      expect(mediaInfo?.videoTranscodes?.length).toBe(1)
+      expect(mediaInfo?.videoTranscodes?.[0].resolution).toBe('360p')
     })
   },
 )
