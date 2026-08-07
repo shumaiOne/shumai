@@ -65,7 +65,7 @@ export class WatermarkService {
         teamId,
       },
     })
-    return this.toWatermarkTemplateInfo(tpl)
+    return await this.toWatermarkTemplateInfo(tpl)
   }
 
   async updateTemplate(
@@ -87,7 +87,7 @@ export class WatermarkService {
         config: config ? (config as PrismaJson.WatermarkConfigSpec) : undefined,
       },
     })
-    return this.toWatermarkTemplateInfo(tpl)
+    return await this.toWatermarkTemplateInfo(tpl)
   }
 
   async deleteTemplate(templateId: string): Promise<void> {
@@ -113,7 +113,7 @@ export class WatermarkService {
       // ULIDs are time-sortable; ordering by id desc is the project convention
       orderBy: { id: 'desc' },
     })
-    return tpls.map((t) => this.toWatermarkTemplateInfo(t))
+    return await Promise.all(tpls.map((t) => this.toWatermarkTemplateInfo(t)))
   }
 
   async getTemplate(templateId: string): Promise<WatermarkTemplateInfo> {
@@ -123,7 +123,7 @@ export class WatermarkService {
     if (!tpl) {
       throw new Error('Watermark template not found')
     }
-    return this.toWatermarkTemplateInfo(tpl)
+    return await this.toWatermarkTemplateInfo(tpl)
   }
 
   // ----------------------------------------------------------------------
@@ -208,7 +208,7 @@ export class WatermarkService {
     return {
       watermarkStatus: shareLink.watermarkStatus,
       watermarkConfig: shareLink.watermarkConfig
-        ? this.toWatermarkConfigInfo(shareLink.watermarkConfig)
+        ? await this.toWatermarkConfigInfo(shareLink.watermarkConfig)
         : null,
     }
   }
@@ -525,25 +525,55 @@ export class WatermarkService {
     return map
   }
 
+  /**
+   * Enriches image blocks in a watermark config with accessible presigned URLs for WebUI rendering.
+   */
+  async enrichWatermarkConfigWithPresignedUrls(
+    config: WatermarkConfigSpec,
+  ): Promise<WatermarkConfigSpec> {
+    if (!config || !config.blocks || config.blocks.length === 0) return config
+    const bucket = process.env.S3_BUCKET || 'shumai'
+    const enrichedBlocks = await Promise.all(
+      config.blocks.map(async (block) => {
+        if (block.type === 'image' && block.imageAssetKey) {
+          try {
+            const url = await s3Service.presign(bucket, block.imageAssetKey, 'GET')
+            return { ...block, imageAssetUrl: url }
+          } catch (err) {
+            logger.warn({ key: block.imageAssetKey, err }, 'Failed to presign watermark image key')
+          }
+        }
+        return block
+      }),
+    )
+    return { ...config, blocks: enrichedBlocks }
+  }
+
   // ----------------------------------------------------------------------
   // DTO Mappers
   // ----------------------------------------------------------------------
 
-  private toWatermarkTemplateInfo(t: WatermarkTemplate): WatermarkTemplateInfo {
+  private async toWatermarkTemplateInfo(t: WatermarkTemplate): Promise<WatermarkTemplateInfo> {
+    const config = await this.enrichWatermarkConfigWithPresignedUrls(
+      t.config as WatermarkConfigSpec,
+    )
     return {
       id: t.id,
       name: t.name,
-      config: t.config as WatermarkConfigSpec,
+      config,
       teamId: t.teamId,
       createdAt: t.createdAt.toISOString(),
       updatedAt: t.updatedAt.toISOString(),
     }
   }
 
-  private toWatermarkConfigInfo(c: WatermarkConfig): WatermarkConfigInfo {
+  private async toWatermarkConfigInfo(c: WatermarkConfig): Promise<WatermarkConfigInfo> {
+    const config = await this.enrichWatermarkConfigWithPresignedUrls(
+      c.config as WatermarkConfigSpec,
+    )
     return {
       id: c.id,
-      config: c.config as WatermarkConfigSpec,
+      config,
       hash: c.hash,
       createdAt: c.createdAt.toISOString(),
       updatedAt: c.updatedAt.toISOString(),

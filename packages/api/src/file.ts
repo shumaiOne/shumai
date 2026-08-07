@@ -351,7 +351,8 @@ const route = new Hono<{ Variables: { user: User } }>()
       contentType,
     )
 
-    return c.json({ key })
+    const url = await s3Service.presign(process.env.S3_BUCKET || 'shumai', key, 'GET')
+    return c.json({ key, url })
   })
   .post('/files/download-links', zValidator('json', getDownloadLinksRequestSchema), async (c) => {
     const user = c.get('user')

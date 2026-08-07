@@ -31,7 +31,7 @@ describe('Watermark Config DTO and Logic', () => {
       y: 0.8,
       opacity: 0.5,
       rotation: 0,
-      imageAssetId: 'asset-logo-123',
+      imageAssetKey: 'asset-logo-123',
       size: 0.15,
     }
     const result = watermarkBlockImageSchema.safeParse(block)
@@ -59,7 +59,7 @@ describe('Watermark Config DTO and Logic', () => {
           y: 0.8,
           opacity: 0.5,
           rotation: 0,
-          imageAssetId: 'asset-logo-123',
+          imageAssetKey: 'asset-logo-123',
           size: 0.15,
         },
       ],

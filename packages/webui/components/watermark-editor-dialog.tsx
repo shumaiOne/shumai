@@ -1,63 +1,76 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
-import {
-  WatermarkConfigSpec,
-  WatermarkBlock,
-  WatermarkBlockText,
-  WatermarkBlockImage,
-  WatermarkTemplateInfo,
-} from '@shumai/dtos'
-import { m } from '@/ui/paraglide/messages.js'
 import { client } from '@/ui/api/client'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/ui/components/ui/dialog'
 import { Button } from '@/ui/components/ui/button'
+import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/ui/components/ui/dialog'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/ui/components/ui/dropdown-menu'
 import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
-import { Slider } from '@/ui/components/ui/slider'
 import { ScrollArea } from '@/ui/components/ui/scroll-area'
+import { Slider } from '@/ui/components/ui/slider'
+import { m } from '@/ui/paraglide/messages.js'
+import { useTeamContextStore } from '@/ui/stores/team-context'
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from '@/ui/components/ui/dropdown-menu'
+    WatermarkBlock,
+    WatermarkBlockImage,
+    WatermarkBlockText,
+    WatermarkConfigSpec,
+    WatermarkTemplateInfo,
+} from '@shumai/dtos'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  Type,
-  Image as ImageIcon,
-  Trash2,
-  Plus,
-  ChevronLeft,
-  ChevronRight,
-  FolderOpen,
-  Save,
-  Check,
-  LayoutGrid,
-  Sparkles,
+    Check,
+    ChevronLeft,
+    ChevronRight,
+    FolderOpen,
+    Image as ImageIcon,
+    LayoutGrid,
+    Loader2,
+    Plus,
+    Save,
+    Trash2,
+    Type,
+    Upload,
+    X,
 } from 'lucide-react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 
 function AspectIcon({ ratio }: { ratio: string }) {
   switch (ratio) {
     case '16:9':
-      return <span className="inline-block w-4 h-2.5 border border-current rounded-[1px] shrink-0" />
+      return (
+        <span className="inline-block w-4 h-2.5 border border-current rounded-[1px] shrink-0" />
+      )
     case '9:16':
-      return <span className="inline-block w-2.5 h-4 border border-current rounded-[1px] shrink-0" />
+      return (
+        <span className="inline-block w-2.5 h-4 border border-current rounded-[1px] shrink-0" />
+      )
     case '4:3':
-      return <span className="inline-block w-3.5 h-2.5 border border-current rounded-[1px] shrink-0" />
+      return (
+        <span className="inline-block w-3.5 h-2.5 border border-current rounded-[1px] shrink-0" />
+      )
     case '3:4':
-      return <span className="inline-block w-2.5 h-3.5 border border-current rounded-[1px] shrink-0" />
+      return (
+        <span className="inline-block w-2.5 h-3.5 border border-current rounded-[1px] shrink-0" />
+      )
     case '1:1':
       return <span className="inline-block w-3 h-3 border border-current rounded-[1px] shrink-0" />
     default:
-      return <span className="inline-block w-4 h-2.5 border border-current rounded-[1px] shrink-0" />
+      return (
+        <span className="inline-block w-4 h-2.5 border border-current rounded-[1px] shrink-0" />
+      )
   }
 }
 
@@ -84,7 +97,7 @@ function createDefaultImageBlock(): WatermarkBlockImage {
   return {
     id: generateUniqueId(),
     type: 'image',
-    imageAssetId: 'sample-logo',
+    imageAssetKey: '',
     x: 0.5,
     y: 0.5,
     // size is a FRACTION (0..1) of the canvas width
@@ -135,6 +148,49 @@ export function WatermarkEditorDialog({
   const canvasRef = useRef<HTMLDivElement>(null)
   const [canvasWidthPx, setCanvasWidthPx] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
+
+  const contextTeamId = useTeamContextStore((s) => s.teamId)
+  const activeTeamId = teamId || contextTeamId
+
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const [localImagePreviews, setLocalImagePreviews] = useState<Record<string, string>>({})
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const $uploadFile = client.api.teams[':teamId'].files.$post
+  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>, blockId: string) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 1 * 1024 * 1024) {
+      toast.error(m.file_exceeds_1mb_limit())
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
+    }
+    if (!activeTeamId) {
+      toast.error(m.failed_upload_file())
+      return
+    }
+    setIsUploadingImage(true)
+    const localUrl = URL.createObjectURL(file)
+    setLocalImagePreviews((prev) => ({ ...prev, [blockId]: localUrl }))
+    try {
+      const res = await $uploadFile({
+        param: { teamId: activeTeamId },
+        form: { file },
+      })
+      if (!res.ok) throw new Error(m.failed_upload_file())
+      const data = await res.json()
+      handleUpdateBlock(blockId, {
+        imageAssetKey: data.key,
+        imageAssetUrl: data.url,
+      })
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : m.failed_upload_file()
+      toast.error(message)
+    } finally {
+      setIsUploadingImage(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
 
   // Measure the preview canvas width so block sizes (stored as a fraction of
   // the canvas width) render at the correct pixel size inside the preview.
@@ -429,7 +485,6 @@ export function WatermarkEditorDialog({
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card">
             <div className="flex items-center gap-3">
-              <Sparkles className="h-5 w-5 text-primary" />
               <DialogTitle className="text-base font-semibold">{m.watermark_editor()}</DialogTitle>
             </div>
 
@@ -597,75 +652,87 @@ export function WatermarkEditorDialog({
                         aspectRatio === '1:1' && 'aspect-square h-full max-w-full',
                       )}
                     >
-                  {/* Render Blocks */}
-                  {blocks.map((block) => {
-                    const isSelected = block.id === selectedBlockId
-                    // Preview scale: size is a fraction of the canvas width, so
-                    // multiply by the measured preview box width (fallback 640px).
-                    const blockSizePx = block.size * (canvasWidthPx || 640)
-                    return (
-                      <div
-                        key={block.id}
-                        onMouseDown={(e) => handleMouseDownCanvasBlock(e, block.id)}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setSelectedBlockId(block.id)
-                        }}
-                        style={{
-                          left: `${block.x * 100}%`,
-                          top: `${block.y * 100}%`,
-                          transform: `translate(-50%, -50%) rotate(${block.rotation}deg)`,
-                          opacity: block.opacity,
-                        }}
-                        className={cn(
-                          'absolute cursor-move select-none transition-shadow rounded p-1.5 flex items-center justify-center',
-                          isSelected
-                            ? 'ring-2 ring-primary ring-offset-2 ring-offset-background/80 bg-primary/10'
-                            : 'hover:ring-1 hover:ring-muted-foreground/50',
-                        )}
-                      >
-                        {block.type === 'text' ? (
-                          <span
-                            style={{
-                              fontSize: `${blockSizePx}px`,
-                              color: block.color,
-                              lineHeight: 1,
-                              whiteSpace: 'nowrap',
-                              fontWeight: 700,
-                              textShadow: '0 1px 3px rgba(0,0,0,0.5)',
-                            }}
-                          >
-                            {block.text || 'Text'}
-                          </span>
-                        ) : (
+                      {/* Render Blocks */}
+                      {blocks.map((block) => {
+                        const isSelected = block.id === selectedBlockId
+                        // Preview scale: size is a fraction of the canvas width, so
+                        // multiply by the measured preview box width (fallback 640px).
+                        const blockSizePx = block.size * (canvasWidthPx || 640)
+                        return (
                           <div
-                            style={{
-                              width: `${blockSizePx}px`,
-                              height: `${blockSizePx}px`,
+                            key={block.id}
+                            onMouseDown={(e) => handleMouseDownCanvasBlock(e, block.id)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setSelectedBlockId(block.id)
                             }}
-                            className="bg-primary/20 border border-primary/40 rounded flex items-center justify-center p-2 text-primary font-bold text-xs"
+                            style={{
+                              left: `${block.x * 100}%`,
+                              top: `${block.y * 100}%`,
+                              transform: `translate(-50%, -50%) rotate(${block.rotation}deg)`,
+                              opacity: block.opacity,
+                            }}
+                            className={cn(
+                              'absolute cursor-move select-none transition-shadow rounded p-1.5 flex items-center justify-center',
+                              isSelected
+                                ? 'ring-2 ring-primary ring-offset-2 ring-offset-background/80 bg-primary/10'
+                                : 'hover:ring-1 hover:ring-muted-foreground/50',
+                            )}
                           >
-                            <ImageIcon className="h-1/2 w-1/2 opacity-70" />
+                            {block.type === 'text' ? (
+                              <span
+                                style={{
+                                  fontSize: `${blockSizePx}px`,
+                                  color: block.color,
+                                  lineHeight: 1,
+                                  whiteSpace: 'nowrap',
+                                  fontWeight: 700,
+                                  textShadow: '0 1px 3px rgba(0,0,0,0.5)',
+                                }}
+                              >
+                                {block.text || 'Text'}
+                              </span>
+                            ) : (
+                              <div
+                                style={{
+                                  width: `${blockSizePx}px`,
+                                  height: `${blockSizePx}px`,
+                                }}
+                                className="bg-primary/20 border border-primary/40 rounded flex items-center justify-center p-1 overflow-hidden"
+                              >
+                                {localImagePreviews[block.id] ||
+                                (block as WatermarkBlockImage).imageAssetUrl ? (
+                                  <img
+                                    src={
+                                      localImagePreviews[block.id] ||
+                                      (block as WatermarkBlockImage).imageAssetUrl
+                                    }
+                                    alt="Watermark logo"
+                                    className="max-w-full max-h-full object-contain pointer-events-none"
+                                  />
+                                ) : (
+                                  <ImageIcon className="h-1/2 w-1/2 opacity-70 text-primary" />
+                                )}
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              )
-            })()}
-          </div>
-        </div>
-
-        {/* Right Configuration Column (1/3 width) */}
-        <div className="w-[35%] flex flex-col bg-card overflow-hidden border-l border-border">
-          {/* Right Column Header */}
-          <div className="p-4 border-b border-border bg-muted/10 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <LayoutGrid className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs font-semibold">{m.watermark()}</span>
+                        )
+                      })}
+                    </div>
+                  )
+                })()}
+              </div>
             </div>
-          </div>
+
+            {/* Right Configuration Column (1/3 width) */}
+            <div className="w-[35%] flex flex-col bg-card overflow-hidden border-l border-border">
+              {/* Right Column Header */}
+              <div className="p-4 border-b border-border bg-muted/10 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <LayoutGrid className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-xs font-semibold">{m.watermark()}</span>
+                </div>
+              </div>
 
               {/* Block Selector Navigation Row */}
               <div className="p-3 border-b border-border bg-background flex items-center justify-between gap-2">
@@ -699,7 +766,9 @@ export function WatermarkEditorDialog({
                             ) : (
                               <ImageIcon className="h-3.5 w-3.5 text-muted-foreground" />
                             )}
-                            {b.type === 'text' ? b.text || 'Text' : b.imageAssetId}
+                            {b.type === 'text'
+                              ? b.text || 'Text'
+                              : (b as WatermarkBlockImage).imageAssetKey || 'Image'}
                           </span>
                           <span className="text-[10px] font-mono text-muted-foreground ml-2">
                             #{idx + 1}
@@ -797,15 +866,78 @@ export function WatermarkEditorDialog({
                     {/* Image specific fields */}
                     {selectedBlock.type === 'image' && (
                       <div className="space-y-2">
-                        <Label className="text-xs">{m.image_asset_id()}</Label>
-                        <Input
-                          type="text"
-                          value={(selectedBlock as WatermarkBlockImage).imageAssetId}
-                          onChange={(e) =>
-                            handleUpdateBlock(selectedBlock.id, { imageAssetId: e.target.value })
-                          }
-                          className="text-xs h-8"
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs">{m.image_asset_key()}</Label>
+                          {(selectedBlock as WatermarkBlockImage).imageAssetKey && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleUpdateBlock(selectedBlock.id, {
+                                  imageAssetKey: '',
+                                  imageAssetUrl: undefined,
+                                })
+                              }
+                              className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1 font-medium transition-colors cursor-pointer"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                              {m.remove ? m.remove() : 'Remove'}
+                            </button>
+                          )}
+                        </div>
+
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          className="hidden"
+                          accept="image/*"
+                          onChange={(e) => handleImageFileChange(e, selectedBlock.id)}
                         />
+
+                        <div
+                          onClick={() => fileInputRef.current?.click()}
+                          className="relative aspect-square w-full rounded-xl border border-dashed border-border flex items-center justify-center cursor-pointer overflow-hidden group shadow-inner bg-muted/20 hover:border-primary/50 hover:bg-muted/40 transition-all p-2"
+                        >
+                          {isUploadingImage && (
+                            <div className="absolute inset-0 bg-background/70 backdrop-blur-xs flex flex-col items-center justify-center gap-2 z-20">
+                              <div className="flex items-center gap-2 px-3 py-1.5 bg-background border rounded-full shadow-lg">
+                                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                                <span className="text-xs font-semibold">{m.uploading()}</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {localImagePreviews[selectedBlock.id] ||
+                          (selectedBlock as WatermarkBlockImage).imageAssetUrl ? (
+                            <>
+                              <img
+                                src={
+                                  localImagePreviews[selectedBlock.id] ||
+                                  (selectedBlock as WatermarkBlockImage).imageAssetUrl
+                                }
+                                alt="Uploaded logo preview"
+                                className="max-w-full max-h-full object-contain transition-transform duration-300 group-hover:scale-105"
+                              />
+                              <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-1 text-white z-10">
+                                <Upload className="w-5 h-5 transform translate-y-1 group-hover:translate-y-0 transition-transform duration-300" />
+                                <span className="text-xs font-semibold">{m.upload_image()}</span>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="flex flex-col items-center gap-1.5 text-center p-3">
+                              <div className="p-2 rounded-full bg-background border shadow-xs group-hover:scale-110 transition-transform duration-300">
+                                <Upload className="w-4 h-4 text-muted-foreground" />
+                              </div>
+                              <div>
+                                <p className="text-xs font-medium text-foreground">
+                                  {m.upload_watermark_image()}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground mt-0.5 max-w-[150px] mx-auto leading-normal">
+                                  {m.upload_watermark_image_hint()}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
 

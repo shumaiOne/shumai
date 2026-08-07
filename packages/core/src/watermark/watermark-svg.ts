@@ -1,7 +1,7 @@
 import type { WatermarkConfigSpec } from '@shumai/dtos'
 
 export interface RenderBlockImageData {
-  imageAssetId: string
+  imageAssetKey: string
   base64Data: string
   mimeType: string
   width: number
@@ -43,7 +43,7 @@ export function generateWatermarkSvg(
         `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="${fontSize}" font-weight="bold" fill="${fill}" opacity="${opacity}" transform="rotate(${rotation}, ${cx}, ${cy})">${textContent}</text>`,
       )
     } else if (block.type === 'image') {
-      const imageData = blockImagesMap.get(block.imageAssetId)
+      const imageData = blockImagesMap.get(block.imageAssetKey)
       if (!imageData) continue
 
       // Fraction of canvas width, same as the text blocks above.

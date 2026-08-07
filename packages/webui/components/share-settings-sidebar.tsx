@@ -1,38 +1,40 @@
-import { ShareLinkInfo, UpdateShareLinkRequest } from '@shumai/dtos'
-import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
-import { m } from '@/ui/paraglide/messages.js'
 import { client } from '@/ui/api/client'
+import { DateTimePicker } from '@/ui/components/datetime-picker'
 import { Button } from '@/ui/components/ui/button'
 import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/ui/components/ui/select'
 import { Switch } from '@/ui/components/ui/switch'
+import { WatermarkEditorDialog } from '@/ui/components/watermark-editor-dialog'
+import { copyToClipboard as copyTextToClipboard } from '@/ui/lib/clipboard'
+import { m } from '@/ui/paraglide/messages.js'
+import {
+    ShareLinkInfo,
+    UpdateShareLinkRequest,
+    type FieldInfo as MetadataFieldInfo,
+} from '@shumai/dtos'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  ChevronRight,
-  Copy,
-  ExternalLink,
-  Shield,
-  Palette,
-  ListFilter,
-  SortAsc,
-  LayoutGrid,
-  List,
-  ArrowDownUp,
-  Loader2,
-  Sparkles,
+    ArrowDownUp,
+    ChevronRight,
+    Copy,
+    ExternalLink,
+    LayoutGrid,
+    List,
+    ListFilter,
+    Loader2,
+    Palette,
+    Shield,
+    SortAsc,
 } from 'lucide-react'
 import React, { useState } from 'react'
 import { toast } from 'sonner'
-import { copyToClipboard as copyTextToClipboard } from '@/ui/lib/clipboard'
-import { DateTimePicker } from '@/ui/components/datetime-picker'
-import { WatermarkEditorDialog } from '@/ui/components/watermark-editor-dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/ui/components/ui/select'
 
 interface ShareSettingsSidebarProps {
   shareLink: ShareLinkInfo
@@ -269,7 +271,6 @@ export function ShareSettingsSidebar({
                       className="w-full text-xs gap-1.5 mt-1"
                       onClick={() => setIsWatermarkEditorOpen(true)}
                     >
-                      <Sparkles className="h-3.5 w-3.5 text-primary" />
                       {m.edit_watermark()}
                     </Button>
                   )}
