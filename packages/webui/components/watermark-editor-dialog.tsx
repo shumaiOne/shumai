@@ -23,6 +23,13 @@ import { Label } from '@/ui/components/ui/label'
 import { Slider } from '@/ui/components/ui/slider'
 import { ScrollArea } from '@/ui/components/ui/scroll-area'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/ui/components/ui/select'
+import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
@@ -43,6 +50,23 @@ import {
   LayoutGrid,
   Sparkles,
 } from 'lucide-react'
+
+function AspectIcon({ ratio }: { ratio: string }) {
+  switch (ratio) {
+    case '16:9':
+      return <span className="inline-block w-4 h-2.5 border border-current rounded-[1px] shrink-0" />
+    case '9:16':
+      return <span className="inline-block w-2.5 h-4 border border-current rounded-[1px] shrink-0" />
+    case '4:3':
+      return <span className="inline-block w-3.5 h-2.5 border border-current rounded-[1px] shrink-0" />
+    case '3:4':
+      return <span className="inline-block w-2.5 h-3.5 border border-current rounded-[1px] shrink-0" />
+    case '1:1':
+      return <span className="inline-block w-3 h-3 border border-current rounded-[1px] shrink-0" />
+    default:
+      return <span className="inline-block w-4 h-2.5 border border-current rounded-[1px] shrink-0" />
+  }
+}
 
 function generateUniqueId(): string {
   return Math.random().toString(36).substring(2, 9)
@@ -98,6 +122,8 @@ export function WatermarkEditorDialog({
   const [blocks, setBlocks] = useState<WatermarkBlock[]>([])
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
   const [loadedTemplateId, setLoadedTemplateId] = useState<string | null>(null)
+  const [aspectRatio, setAspectRatio] = useState<'16:9' | '9:16' | '4:3' | '3:4' | '1:1'>('16:9')
+  const [bgColor, setBgColor] = useState<string>('grid')
 
   // Save template dialog modal state
   const [isSaveTemplateOpen, setIsSaveTemplateOpen] = useState(false)
@@ -502,8 +528,72 @@ export function WatermarkEditorDialog({
           <div className="flex-1 flex overflow-hidden">
             {/* Left Preview Column (2/3 width) */}
             <div className="w-[65%] flex flex-col p-4 bg-muted/20 border-r border-border overflow-hidden select-none">
-              <div className="mb-3">
-                <span className="text-xs font-medium text-muted-foreground">{m.preview()}</span>
+              {/* Single Row Controls Header */}
+              <div className="flex items-center justify-between mb-3">
+                {/* Aspect Ratio Selector */}
+                <Select value={aspectRatio} onValueChange={(val) => setAspectRatio(val as typeof aspectRatio)}>
+                  <SelectTrigger className="h-8 w-40 text-xs gap-2 border-border/60 bg-background shadow-none">
+                    <AspectIcon ratio={aspectRatio} />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent align="start">
+                    <SelectItem value="16:9" className="text-xs">
+                      <div className="flex items-center gap-2">
+                        <AspectIcon ratio="16:9" />
+                        <span>{m.aspect_16_9()}</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="9:16" className="text-xs">
+                      <div className="flex items-center gap-2">
+                        <AspectIcon ratio="9:16" />
+                        <span>{m.aspect_9_16()}</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="4:3" className="text-xs">
+                      <div className="flex items-center gap-2">
+                        <AspectIcon ratio="4:3" />
+                        <span>{m.aspect_4_3()}</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="3:4" className="text-xs">
+                      <div className="flex items-center gap-2">
+                        <AspectIcon ratio="3:4" />
+                        <span>{m.aspect_3_4()}</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="1:1" className="text-xs">
+                      <div className="flex items-center gap-2">
+                        <AspectIcon ratio="1:1" />
+                        <span>{m.aspect_1_1()}</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* 5 Predefined Background Color Swatches */}
+                <div className="flex items-center gap-1.5 bg-background border border-border/60 rounded-md p-1">
+                  {[
+                    { id: 'grid', label: 'Grid', bg: '#0f172a' },
+                    { id: '#000000', label: 'Black', bg: '#000000' },
+                    { id: '#475569', label: 'Gray', bg: '#475569' },
+                    { id: '#ffffff', label: 'White', bg: '#ffffff' },
+                    { id: '#00ff00', label: 'Green', bg: '#00ff00' },
+                  ].map((color) => (
+                    <button
+                      key={color.id}
+                      type="button"
+                      onClick={() => setBgColor(color.id)}
+                      style={{ backgroundColor: color.bg }}
+                      className={cn(
+                        'w-5 h-5 rounded-full border border-border/80 transition-all cursor-pointer relative',
+                        bgColor === color.id
+                          ? 'ring-2 ring-primary ring-offset-1 scale-110'
+                          : 'hover:scale-105 opacity-80 hover:opacity-100',
+                      )}
+                      title={color.label}
+                    />
+                  ))}
+                </div>
               </div>
 
               {/* Canvas Frame */}
@@ -511,7 +601,17 @@ export function WatermarkEditorDialog({
                 <div
                   ref={canvasRef}
                   onClick={() => setSelectedBlockId(null)}
-                  className="relative w-full aspect-video max-h-full rounded-lg border border-border overflow-hidden shadow-inner bg-slate-950 bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:16px_16px]"
+                  style={bgColor !== 'grid' ? { backgroundColor: bgColor } : undefined}
+                  className={cn(
+                    'relative rounded-lg border border-border overflow-hidden shadow-inner transition-all',
+                    aspectRatio === '16:9' && 'aspect-[16/9] w-full max-h-full',
+                    aspectRatio === '9:16' && 'aspect-[9/16] h-full max-w-full',
+                    aspectRatio === '4:3' && 'aspect-[4/3] w-full max-h-full',
+                    aspectRatio === '3:4' && 'aspect-[3/4] h-full max-w-full',
+                    aspectRatio === '1:1' && 'aspect-square h-full max-w-full',
+                    bgColor === 'grid' &&
+                      'bg-slate-950 bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:16px_16px]',
+                  )}
                 >
                   {/* Render Blocks */}
                   {blocks.map((block) => {
