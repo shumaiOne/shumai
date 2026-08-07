@@ -384,7 +384,7 @@ export function WatermarkEditorDialog({
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
-          className="max-w-5xl w-[95vw] h-[85vh] flex flex-col p-0 gap-0 overflow-hidden"
+          className="max-w-[1400px] w-[95vw] h-[88vh] flex flex-col p-0 gap-0 overflow-hidden"
           onPointerDownOutside={(e) => e.preventDefault()}
         >
           {/* Header */}
@@ -489,8 +489,8 @@ export function WatermarkEditorDialog({
 
           {/* Main 2-Column Content Area */}
           <div className="flex-1 flex overflow-hidden">
-            {/* Left Preview Column */}
-            <div className="flex-1 flex flex-col p-4 bg-muted/20 border-r border-border overflow-hidden select-none">
+            {/* Left Preview Column (2/3 width) */}
+            <div className="w-[65%] flex flex-col p-4 bg-muted/20 border-r border-border overflow-hidden select-none">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-medium text-muted-foreground">{m.preview()}</span>
                 <div className="flex items-center gap-1 bg-background border border-border rounded-md p-1">
@@ -601,8 +601,8 @@ export function WatermarkEditorDialog({
               </div>
             </div>
 
-            {/* Right Configuration Column */}
-            <div className="w-[380px] flex flex-col bg-card overflow-hidden border-l border-border">
+            {/* Right Configuration Column (1/3 width) */}
+            <div className="w-[35%] flex flex-col bg-card overflow-hidden border-l border-border">
               {/* Right Column Header */}
               <div className="p-4 border-b border-border bg-muted/10 flex items-center justify-between">
                 <div className="flex items-center gap-2">
