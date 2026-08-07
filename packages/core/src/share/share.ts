@@ -6,6 +6,7 @@ import {
   UpdateShareLinkRequest,
   ListShareLinksRequest,
   AddAssetToShareRequest,
+  WatermarkConfigSpec,
 } from '@shumai/dtos'
 import { PaginatedData, paginateQuery } from '@shumai/core/src/pagination'
 import { getAvatarUrl } from '@shumai/core/src/user/avatar'
@@ -342,7 +343,9 @@ export class ShareService {
       watermarkConfig: watermarkConfig
         ? {
             id: watermarkConfig.id,
-            config: watermarkConfig.config,
+            config: await watermarkService.enrichWatermarkConfigWithPresignedUrls(
+              watermarkConfig.config as WatermarkConfigSpec,
+            ),
             hash: watermarkConfig.hash,
           }
         : null,

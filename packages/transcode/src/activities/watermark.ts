@@ -12,6 +12,7 @@ import { stemFromKey } from '@shumai/core/src/utils/filename'
 import { ApplicationFailure } from '@temporalio/activity'
 import * as path from 'path'
 import * as fs from 'fs'
+import { ulid } from 'ulid'
 import type { WatermarkConfigSpec, WatermarkBlockImage } from '@shumai/dtos'
 
 // Max dimension for watermark block images embedded into the SVG overlay.
@@ -196,32 +197,27 @@ export async function transcodeWatermarkMediaActivity(
     ) as WatermarkBlockImage[]
 
     for (const imgBlock of imageBlocks) {
+      if (!imgBlock.imageAssetKey) continue
       try {
-        const imgAsset = await prisma.asset.findUnique({
-          where: { id: imgBlock.imageAssetId },
-          include: { storageKey: true },
+        const imgTmpPath = path.join(tmpDir, `block-${ulid()}`)
+        await s3Service.downloadToFile(bucket, imgBlock.imageAssetKey, imgTmpPath)
+        const buffer = fs.readFileSync(imgTmpPath)
+        // Downscale to a bounded size and normalize to PNG so large logo assets
+        // don't balloon the SVG/base64 payload.
+        const processed = await transcodeService.downscaleImageToPng(
+          buffer,
+          MAX_BLOCK_IMAGE_DIMENSION,
+        )
+        blockImagesMap.set(imgBlock.imageAssetKey, {
+          imageAssetKey: imgBlock.imageAssetKey,
+          base64Data: processed.buffer.toString('base64'),
+          mimeType: 'image/png',
+          width: processed.width,
+          height: processed.height,
         })
-        if (imgAsset && imgAsset.storageKey?.key) {
-          const imgTmpPath = path.join(tmpDir, `block-${imgBlock.imageAssetId}`)
-          await s3Service.downloadToFile(bucket, imgAsset.storageKey.key, imgTmpPath)
-          const buffer = fs.readFileSync(imgTmpPath)
-          // Downscale to a bounded size and normalize to PNG so large logo assets
-          // don't balloon the SVG/base64 payload.
-          const processed = await transcodeService.downscaleImageToPng(
-            buffer,
-            MAX_BLOCK_IMAGE_DIMENSION,
-          )
-          blockImagesMap.set(imgBlock.imageAssetId, {
-            imageAssetId: imgBlock.imageAssetId,
-            base64Data: processed.buffer.toString('base64'),
-            mimeType: 'image/png',
-            width: processed.width,
-            height: processed.height,
-          })
-        }
       } catch (err) {
         logger.warn(
-          { imageAssetId: imgBlock.imageAssetId, err },
+          { imageAssetKey: imgBlock.imageAssetKey, err },
           'Failed to load watermark block image',
         )
       }
@@ -306,6 +302,10 @@ export async function transcodeWatermarkMediaActivity(
 
       for (let i = 0; i < originalTranscodes.length; i++) {
         const vt = originalTranscodes[i]
+        // Skip the raw marker entry (points at the original file) — it is not a
+        // transcoded proxy, so there is nothing to watermark (and transcoding
+        // the original at full resolution would be needlessly expensive).
+        if (vt.isRaw) continue
         const targetWidth = vt.width || originalWidth
         const targetHeight = vt.height || originalHeight
         const resolution = vt.resolution || `${targetHeight}p`

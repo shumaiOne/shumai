@@ -346,7 +346,8 @@ declare global {
       y: number
       opacity: number
       rotation: number
-      imageAssetId: string
+      imageAssetKey: string
+      imageAssetUrl?: string
       size: number
     }
 

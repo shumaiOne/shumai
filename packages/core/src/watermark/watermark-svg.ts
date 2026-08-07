@@ -1,7 +1,7 @@
 import type { WatermarkConfigSpec } from '@shumai/dtos'
 
 export interface RenderBlockImageData {
-  imageAssetId: string
+  imageAssetKey: string
   base64Data: string
   mimeType: string
   width: number
@@ -32,6 +32,9 @@ export function generateWatermarkSvg(
     const rotation = block.rotation || 0
 
     if (block.type === 'text') {
+      // block.size is a FRACTION of the canvas width (0..1), so the watermark
+      // scales proportionally with the output resolution. The editor must store
+      // size as a fraction too (it converts from its %/px UI controls).
       const fontSize = Math.max(1, Math.round(canvasWidth * block.size))
       const textContent = escapeXml(block.text || '')
       const fill = escapeXml(block.color || '#FFFFFF')
@@ -40,9 +43,10 @@ export function generateWatermarkSvg(
         `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="${fontSize}" font-weight="bold" fill="${fill}" opacity="${opacity}" transform="rotate(${rotation}, ${cx}, ${cy})">${textContent}</text>`,
       )
     } else if (block.type === 'image') {
-      const imageData = blockImagesMap.get(block.imageAssetId)
+      const imageData = blockImagesMap.get(block.imageAssetKey)
       if (!imageData) continue
 
+      // Fraction of canvas width, same as the text blocks above.
       const targetWidth = Math.max(1, Math.round(canvasWidth * block.size))
       const aspectRatio = imageData.height > 0 ? imageData.width / imageData.height : 1
       const targetHeight = Math.max(1, Math.round(targetWidth / aspectRatio))

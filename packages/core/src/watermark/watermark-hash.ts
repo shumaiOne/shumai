@@ -5,7 +5,7 @@ export function computeWatermarkConfigHash(config: WatermarkConfigSpec): string 
     if (block.type === 'text') {
       return `text|x:${block.x.toFixed(4)}|y:${block.y.toFixed(4)}|op:${block.opacity.toFixed(2)}|rot:${block.rotation.toFixed(2)}|sz:${block.size.toFixed(4)}|col:${block.color.toLowerCase()}|txt:${block.text}`
     } else {
-      return `image|x:${block.x.toFixed(4)}|y:${block.y.toFixed(4)}|op:${block.opacity.toFixed(2)}|rot:${block.rotation.toFixed(2)}|sz:${block.size.toFixed(4)}|img:${block.imageAssetId}`
+      return `image|x:${block.x.toFixed(4)}|y:${block.y.toFixed(4)}|op:${block.opacity.toFixed(2)}|rot:${block.rotation.toFixed(2)}|sz:${block.size.toFixed(4)}|img:${block.imageAssetKey}`
     }
   })
   blockStrings.sort()
