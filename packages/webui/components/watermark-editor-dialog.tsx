@@ -384,7 +384,7 @@ export function WatermarkEditorDialog({
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
-          className="max-w-[1400px] w-[95vw] h-[88vh] flex flex-col p-0 gap-0 overflow-hidden"
+          className="sm:max-w-[1400px] max-w-[95vw] w-[95vw] h-[88vh] flex flex-col p-0 gap-0 overflow-hidden"
           onPointerDownOutside={(e) => e.preventDefault()}
         >
           {/* Header */}
