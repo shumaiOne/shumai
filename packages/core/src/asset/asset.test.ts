@@ -2617,6 +2617,35 @@ describe('AssetService — natural sort by name', () => {
         assetService.getDownloadUrl(asset.id, 'files/01TESTULID000000000000000/test.mp4'),
       ).rejects.toThrow('Asset not found or has no storage key')
     })
+
+    it('should return a presigned download URL when given a symlink asset ID', async () => {
+      const realAsset = await prisma.asset.create({
+        data: {
+          name: 'fly.png',
+          type: AssetType.file,
+          status: AssetStatus.uploaded,
+          storageKey: {
+            create: { key: 'files/01KZ8VH3QHKQCSQDC5JPXCYT0R/fly.png' },
+          },
+        },
+      })
+
+      const symlinkAsset = await prisma.asset.create({
+        data: {
+          name: 'fly.png',
+          type: AssetType.symlink,
+          status: AssetStatus.uploaded,
+          targetId: realAsset.id,
+        },
+      })
+
+      const url = await assetService.getDownloadUrl(
+        symlinkAsset.id,
+        'files/01KZ8VH3QHKQCSQDC5JPXCYT0R/fly.png',
+      )
+
+      expect(url).toBe('http://mock-s3-url')
+    })
   })
 
   describe('resolveLatestVersionId', () => {

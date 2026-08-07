@@ -16,6 +16,8 @@ interface UseFileActionsProps {
   folders: AssetInfo[]
   files: AssetInfo[]
   selectedIds: Set<string>
+  isPublic?: boolean
+  shareId?: string
 }
 
 export function useFileActions({
@@ -25,6 +27,8 @@ export function useFileActions({
   folders,
   files,
   selectedIds,
+  isPublic,
+  shareId,
 }: UseFileActionsProps) {
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -215,10 +219,35 @@ export function useFileActions({
     setIsLoadingLinks(true)
     setResolvedFiles([])
     try {
-      const res = await getDownloadLinks({
-        json: { ids: items.map((i) => i.id!) },
-      })
-      setResolvedFiles(res.files)
+      if (isPublic && shareId) {
+        const password = localStorage.getItem(`share_pwd_${shareId}`) || ''
+        const links: Array<{ id: string; name: string; url: string }> = []
+        for (const item of items) {
+          const key = item.media?.original?.key
+          if (!key || !item.id) continue
+          const res = await client.api.shares[':shareId'].files[':fileId']['download-url'].$post(
+            {
+              param: { shareId, fileId: item.id },
+              json: { key },
+            },
+            {
+              headers: {
+                'x-share-password': password,
+              },
+            },
+          )
+          if (res.ok) {
+            const { url } = await res.json()
+            links.push({ id: item.id, name: item.name || 'download', url })
+          }
+        }
+        setResolvedFiles(links)
+      } else {
+        const res = await getDownloadLinks({
+          json: { ids: items.map((i) => i.id!) },
+        })
+        setResolvedFiles(res.files)
+      }
     } catch (error) {
       toast.error('Failed to prepare download links')
       setIsDownloadDialogOpen(false)

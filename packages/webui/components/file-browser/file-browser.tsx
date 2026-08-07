@@ -91,6 +91,7 @@ interface FileBrowserProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onUpdateCollection?: (updates: { name?: string; filter?: any }) => void
   rootFolderId?: string
+  shareId?: string
 }
 
 type FileWithId = {
@@ -136,6 +137,7 @@ export function FileBrowser({
   collection,
   onUpdateCollection,
   rootFolderId,
+  shareId,
 }: FileBrowserProps) {
   const [contextMenuItem, setContextMenuItem] = useState<AssetInfo | null>(null)
   const [moveCopyMode, setMoveCopyMode] = useState<'move' | 'copy' | null>(null)
@@ -418,6 +420,8 @@ export function FileBrowser({
     folders,
     files: displayedFiles,
     selectedIds,
+    isPublic,
+    shareId,
   })
 
   const [isEmptyTrashDialogOpen, setIsEmptyTrashDialogOpen] = useState(false)
@@ -666,6 +670,8 @@ export function FileBrowser({
               ? [...folders, ...files].filter((i) => selectedIds.has(i.id!))
               : [item]
             onRemoveFromShare?.(targetItems)
+          } else if (action === 'download') {
+            handleAction('download', item)
           }
           return
         }
