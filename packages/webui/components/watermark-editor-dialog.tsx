@@ -94,6 +94,14 @@ function createDefaultImageBlock(): WatermarkBlockImage {
   }
 }
 
+const PRESET_BACKGROUND_OPTIONS = [
+  { id: 'dark', label: 'Dark Slate', bg: '#1e293b', dot: '#475569' },
+  { id: 'black', label: 'Black', bg: '#000000', dot: '#404040' },
+  { id: 'gray', label: 'Slate Gray', bg: '#64748b', dot: '#cbd5e1' },
+  { id: 'white', label: 'White', bg: '#ffffff', dot: '#94a3b8' },
+  { id: 'green', label: 'Chroma Green', bg: '#059669', dot: '#047857' },
+]
+
 interface WatermarkEditorDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -546,13 +554,7 @@ export function WatermarkEditorDialog({
 
                 {/* 5 Predefined Background Color Swatches */}
                 <div className="flex items-center gap-1.5 bg-background border border-border/60 rounded-md p-1">
-                  {[
-                    { id: 'dark', label: 'Dark Slate', bg: '#020617', dot: '#334155' },
-                    { id: 'black', label: 'Black', bg: '#000000', dot: '#404040' },
-                    { id: 'gray', label: 'Slate Gray', bg: '#475569', dot: '#94a3b8' },
-                    { id: 'white', label: 'White', bg: '#ffffff', dot: '#cbd5e1' },
-                    { id: 'green', label: 'Chroma Green', bg: '#00ff00', dot: '#059669' },
-                  ].map((color) => (
+                  {PRESET_BACKGROUND_OPTIONS.map((color) => (
                     <button
                       key={color.id}
                       type="button"
@@ -573,14 +575,9 @@ export function WatermarkEditorDialog({
               {/* Canvas Frame */}
               <div className="flex-1 flex items-center justify-center overflow-hidden">
                 {(() => {
-                  const bgOpts = [
-                    { id: 'dark', label: 'Dark Slate', bg: '#020617', dot: '#334155' },
-                    { id: 'black', label: 'Black', bg: '#000000', dot: '#404040' },
-                    { id: 'gray', label: 'Slate Gray', bg: '#475569', dot: '#94a3b8' },
-                    { id: 'white', label: 'White', bg: '#ffffff', dot: '#cbd5e1' },
-                    { id: 'green', label: 'Chroma Green', bg: '#00ff00', dot: '#059669' },
-                  ]
-                  const activeBg = bgOpts.find((b) => b.id === bgColor) || bgOpts[0]
+                  const activeBg =
+                    PRESET_BACKGROUND_OPTIONS.find((b) => b.id === bgColor) ||
+                    PRESET_BACKGROUND_OPTIONS[0]
                   return (
                     <div
                       ref={canvasRef}
