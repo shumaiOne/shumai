@@ -1,19 +1,19 @@
 import { client } from '@/ui/api/client'
 import { Button } from '@/ui/components/ui/button'
 import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@/ui/components/ui/dialog'
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu'
 import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
@@ -22,27 +22,27 @@ import { Slider } from '@/ui/components/ui/slider'
 import { m } from '@/ui/paraglide/messages.js'
 import { useTeamContextStore } from '@/ui/stores/team-context'
 import {
-    WatermarkBlock,
-    WatermarkBlockImage,
-    WatermarkBlockText,
-    WatermarkConfigSpec,
-    WatermarkTemplateInfo,
+  WatermarkBlock,
+  WatermarkBlockImage,
+  WatermarkBlockText,
+  WatermarkConfigSpec,
+  WatermarkTemplateInfo,
 } from '@shumai/dtos'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-    Check,
-    ChevronLeft,
-    ChevronRight,
-    FolderOpen,
-    Image as ImageIcon,
-    LayoutGrid,
-    Loader2,
-    Plus,
-    Save,
-    Trash2,
-    Type,
-    Upload,
-    X,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  FolderOpen,
+  Image as ImageIcon,
+  LayoutGrid,
+  Loader2,
+  Plus,
+  Save,
+  Trash2,
+  Type,
+  Upload,
+  X,
 } from 'lucide-react'
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -149,6 +149,35 @@ export function WatermarkEditorDialog({
   const [canvasWidthPx, setCanvasWidthPx] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
 
+  // Measure the preview canvas width so block sizes (stored as a fraction of
+  // the canvas width) render at the correct pixel size inside the preview.
+  //
+  // This is attached via a ref callback instead of a useEffect([open]):
+  // the Radix Dialog defers mounting its content to a later commit, so the
+  // canvas element does not exist yet when a [open]-keyed effect first runs —
+  // canvasWidthPx stays 0 and every block silently falls back to the hardcoded
+  // 640px width (`block.size * (canvasWidthPx || 640)`), making the preview
+  // render ~72% of the real watermark size. The ref callback fires exactly
+  // when the node mounts, regardless of dialog mount timing.
+  //
+  // clientWidth (padding-box width) is measured instead of
+  // getBoundingClientRect().width because the latter includes ancestor CSS
+  // transforms (the dialog's zoom-in-95 open animation), which would skew it.
+  const setCanvasRef = useCallback((el: HTMLDivElement | null) => {
+    canvasRef.current = el
+    if (!el) return
+    const update = () => {
+      setCanvasWidthPx(el.clientWidth)
+    }
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    return () => {
+      observer.disconnect()
+      canvasRef.current = null
+    }
+  }, [])
+
   const contextTeamId = useTeamContextStore((s) => s.teamId)
   const activeTeamId = teamId || contextTeamId
 
@@ -191,18 +220,6 @@ export function WatermarkEditorDialog({
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
-
-  // Measure the preview canvas width so block sizes (stored as a fraction of
-  // the canvas width) render at the correct pixel size inside the preview.
-  useEffect(() => {
-    const el = canvasRef.current
-    if (!el) return
-    const update = () => setCanvasWidthPx(el.getBoundingClientRect().width)
-    update()
-    const observer = new ResizeObserver(update)
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [open])
 
   // Initialize blocks from initialConfig or default
   useEffect(() => {
@@ -636,7 +653,7 @@ export function WatermarkEditorDialog({
                     PRESET_BACKGROUND_OPTIONS[0]
                   return (
                     <div
-                      ref={canvasRef}
+                      ref={setCanvasRef}
                       onClick={() => setSelectedBlockId(null)}
                       style={{
                         backgroundColor: activeBg.bg,
@@ -708,7 +725,7 @@ export function WatermarkEditorDialog({
                                       (block as WatermarkBlockImage).imageAssetUrl
                                     }
                                     alt="Watermark logo"
-                                    className="max-w-full max-h-full object-contain pointer-events-none"
+                                    className="w-full h-full object-contain pointer-events-none"
                                   />
                                 ) : (
                                   <ImageIcon className="h-1/2 w-1/2 opacity-70 text-primary" />
