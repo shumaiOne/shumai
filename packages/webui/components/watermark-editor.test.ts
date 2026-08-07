@@ -16,7 +16,7 @@ describe('Watermark Config DTO and Logic', () => {
       opacity: 0.8,
       rotation: -30,
       text: 'CONFIDENTIAL',
-      size: 36,
+      size: 0.05,
       color: '#FF0000',
     }
     const result = watermarkBlockTextSchema.safeParse(block)
@@ -32,7 +32,7 @@ describe('Watermark Config DTO and Logic', () => {
       opacity: 0.5,
       rotation: 0,
       imageAssetId: 'asset-logo-123',
-      size: 150,
+      size: 0.15,
     }
     const result = watermarkBlockImageSchema.safeParse(block)
     expect(result.success).toBe(true)
@@ -49,7 +49,7 @@ describe('Watermark Config DTO and Logic', () => {
           opacity: 0.8,
           rotation: -30,
           text: 'CONFIDENTIAL',
-          size: 36,
+          size: 0.05,
           color: '#FF0000',
         },
         {
@@ -60,7 +60,7 @@ describe('Watermark Config DTO and Logic', () => {
           opacity: 0.5,
           rotation: 0,
           imageAssetId: 'asset-logo-123',
-          size: 150,
+          size: 0.15,
         },
       ],
     }
@@ -78,7 +78,7 @@ describe('Watermark Config DTO and Logic', () => {
         opacity: 0.5,
         rotation: 0,
         text: 'B1',
-        size: 24,
+        size: 0.08,
         color: '#000000',
       },
       {
@@ -89,7 +89,7 @@ describe('Watermark Config DTO and Logic', () => {
         opacity: 0.5,
         rotation: 0,
         text: 'B2',
-        size: 24,
+        size: 0.08,
         color: '#000000',
       },
       {
@@ -100,7 +100,7 @@ describe('Watermark Config DTO and Logic', () => {
         opacity: 0.5,
         rotation: 0,
         text: 'B3',
-        size: 24,
+        size: 0.08,
         color: '#000000',
       },
     ]

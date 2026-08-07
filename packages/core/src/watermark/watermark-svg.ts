@@ -32,6 +32,9 @@ export function generateWatermarkSvg(
     const rotation = block.rotation || 0
 
     if (block.type === 'text') {
+      // block.size is a FRACTION of the canvas width (0..1), so the watermark
+      // scales proportionally with the output resolution. The editor must store
+      // size as a fraction too (it converts from its %/px UI controls).
       const fontSize = Math.max(1, Math.round(canvasWidth * block.size))
       const textContent = escapeXml(block.text || '')
       const fill = escapeXml(block.color || '#FFFFFF')
@@ -43,6 +46,7 @@ export function generateWatermarkSvg(
       const imageData = blockImagesMap.get(block.imageAssetId)
       if (!imageData) continue
 
+      // Fraction of canvas width, same as the text blocks above.
       const targetWidth = Math.max(1, Math.round(canvasWidth * block.size))
       const aspectRatio = imageData.height > 0 ? imageData.width / imageData.height : 1
       const targetHeight = Math.max(1, Math.round(targetWidth / aspectRatio))

@@ -8,7 +8,9 @@ export const watermarkBlockTextSchema = z.object({
   opacity: z.number().min(0).max(1),
   rotation: z.number().min(-180).max(180),
   text: z.string(),
-  size: z.number().positive(),
+  // size is a FRACTION (0..1) of the canvas width, so the watermark scales
+  // proportionally with the output resolution.
+  size: z.number().positive().max(1),
   color: z.string(),
 })
 
@@ -22,7 +24,8 @@ export const watermarkBlockImageSchema = z.object({
   opacity: z.number().min(0).max(1),
   rotation: z.number().min(-180).max(180),
   imageAssetId: z.string().min(1),
-  size: z.number().positive(),
+  // size is a FRACTION (0..1) of the canvas width, same as text blocks.
+  size: z.number().positive().max(1),
 })
 
 export type WatermarkBlockImage = z.infer<typeof watermarkBlockImageSchema>

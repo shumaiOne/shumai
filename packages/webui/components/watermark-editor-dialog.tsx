@@ -55,7 +55,8 @@ function createDefaultTextBlock(): WatermarkBlockText {
     text: 'CONFIDENTIAL',
     x: 0.5,
     y: 0.5,
-    size: 36,
+    // size is a FRACTION (0..1) of the canvas width
+    size: 0.05,
     color: '#999999',
     opacity: 0.5,
     rotation: -30,
@@ -69,7 +70,8 @@ function createDefaultImageBlock(): WatermarkBlockImage {
     imageAssetId: 'sample-logo',
     x: 0.5,
     y: 0.5,
-    size: 120,
+    // size is a FRACTION (0..1) of the canvas width
+    size: 0.15,
     opacity: 0.5,
     rotation: 0,
   }
@@ -104,7 +106,20 @@ export function WatermarkEditorDialog({
   const [targetOverwriteTemplateId, setTargetOverwriteTemplateId] = useState<string | null>(null)
 
   const canvasRef = useRef<HTMLDivElement>(null)
+  const [canvasWidthPx, setCanvasWidthPx] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
+
+  // Measure the preview canvas width so block sizes (stored as a fraction of
+  // the canvas width) render at the correct pixel size inside the preview.
+  useEffect(() => {
+    const el = canvasRef.current
+    if (!el) return
+    const update = () => setCanvasWidthPx(el.getBoundingClientRect().width)
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [open])
 
   // Initialize blocks from initialConfig or default
   useEffect(() => {
@@ -501,6 +516,9 @@ export function WatermarkEditorDialog({
                   {/* Render Blocks */}
                   {blocks.map((block) => {
                     const isSelected = block.id === selectedBlockId
+                    // Preview scale: size is a fraction of the canvas width, so
+                    // multiply by the measured preview box width (fallback 640px).
+                    const blockSizePx = block.size * (canvasWidthPx || 640)
                     return (
                       <div
                         key={block.id}
@@ -525,7 +543,7 @@ export function WatermarkEditorDialog({
                         {block.type === 'text' ? (
                           <span
                             style={{
-                              fontSize: `${block.size}px`,
+                              fontSize: `${blockSizePx}px`,
                               color: block.color,
                               lineHeight: 1,
                               whiteSpace: 'nowrap',
@@ -538,8 +556,8 @@ export function WatermarkEditorDialog({
                         ) : (
                           <div
                             style={{
-                              width: `${block.size}px`,
-                              height: `${block.size}px`,
+                              width: `${blockSizePx}px`,
+                              height: `${blockSizePx}px`,
                             }}
                             className="bg-primary/20 border border-primary/40 rounded flex items-center justify-center p-2 text-primary font-bold text-xs"
                           >
@@ -705,21 +723,21 @@ export function WatermarkEditorDialog({
                       </div>
                     )}
 
-                    {/* Size Control */}
+                    {/* Size Control (fraction 0..1 of canvas width, shown as %) */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <Label className="text-xs">
                           {selectedBlock.type === 'text' ? m.font_size() : m.image_size()}
                         </Label>
                         <span className="font-mono text-[11px] text-muted-foreground">
-                          {selectedBlock.size}px
+                          {Math.round(selectedBlock.size * 100)}%
                         </span>
                       </div>
                       <div className="flex items-center gap-3">
                         <Slider
-                          min={selectedBlock.type === 'text' ? 10 : 20}
-                          max={selectedBlock.type === 'text' ? 120 : 500}
-                          step={1}
+                          min={selectedBlock.type === 'text' ? 0.01 : 0.02}
+                          max={selectedBlock.type === 'text' ? 0.12 : 0.5}
+                          step={0.005}
                           value={[selectedBlock.size]}
                           onValueChange={([val]) =>
                             handleUpdateBlock(selectedBlock.id, { size: val })
@@ -728,10 +746,12 @@ export function WatermarkEditorDialog({
                         />
                         <Input
                           type="number"
-                          value={selectedBlock.size}
+                          min={1}
+                          max={100}
+                          value={Math.round(selectedBlock.size * 100)}
                           onChange={(e) =>
                             handleUpdateBlock(selectedBlock.id, {
-                              size: Math.max(1, Number(e.target.value)),
+                              size: Math.min(1, Math.max(0.001, Number(e.target.value) / 100)),
                             })
                           }
                           className="w-16 h-7 text-xs font-mono text-right"
