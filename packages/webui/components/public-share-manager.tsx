@@ -618,6 +618,7 @@ export function PublicShareManager({
               isFetchingNextFilesPage={isFetchingNextFilesPage}
               isShareView={true}
               isPublic={true}
+              shareId={shareId}
             />
           )
         )}

@@ -736,4 +736,25 @@ describe('Share API', () => {
       expect(body.watermarkConfig.hash).toBe('h1')
     })
   })
+
+  describe('POST /shares/:shareId/files/:fileId/download-url', () => {
+    test('Success for symlink asset in share', async () => {
+      vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue(
+        {} as unknown as Awaited<ReturnType<typeof shareService.verifyPublicAccess>>,
+      )
+      vi.spyOn(assetService, 'getDownloadUrl').mockResolvedValue('https://s3.example.com/download')
+
+      const res = await app.request('/shares/share1/files/symlink1/download-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'files/target1/fly.png' }),
+      })
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.url).toBe('https://s3.example.com/download')
+      expect(shareService.verifyPublicAccess).toHaveBeenCalledWith('symlink1', undefined)
+      expect(assetService.getDownloadUrl).toHaveBeenCalledWith('symlink1', 'files/target1/fly.png')
+    })
+  })
 })

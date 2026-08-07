@@ -1985,19 +1985,40 @@ export class AssetService {
    * that belong to an asset they have access to.
    */
   async getDownloadUrl(assetId: string, key: string): Promise<string> {
+    const targetAssetId = await this.resolveLatestVersionId(assetId)
     const asset = await this.prismaClient.asset.findUnique({
-      where: { id: assetId },
-      select: { storageKey: { select: { key: true } } },
+      where: { id: targetAssetId },
+      select: { id: true, parentId: true, storageKey: { select: { key: true } } },
     })
 
     if (!asset?.storageKey?.key) {
       throw new Error('Asset not found or has no storage key')
     }
 
-    // Verify the requested key shares the same parent directory as the asset's storage key
-    const storageKey = asset.storageKey.key
-    const assetDir = storageKey.substring(0, storageKey.lastIndexOf('/') + 1)
-    if (key.includes('..') || !key.startsWith(assetDir)) {
+    if (key.includes('..')) {
+      throw new Error('Key does not belong to this asset')
+    }
+
+    let storageKey = asset.storageKey.key
+    let assetDir = storageKey.substring(0, storageKey.lastIndexOf('/') + 1)
+
+    if (!key.startsWith(assetDir) && asset.parentId) {
+      // Check if requested key belongs to another version in the same version stack
+      const sibling = await this.prismaClient.asset.findFirst({
+        where: {
+          parentId: asset.parentId,
+          isDeleted: false,
+          storageKey: { key: { startsWith: key.substring(0, key.lastIndexOf('/') + 1) } },
+        },
+        select: { storageKey: { select: { key: true } } },
+      })
+      if (sibling?.storageKey?.key) {
+        storageKey = sibling.storageKey.key
+        assetDir = storageKey.substring(0, storageKey.lastIndexOf('/') + 1)
+      }
+    }
+
+    if (!key.startsWith(assetDir)) {
       throw new Error('Key does not belong to this asset')
     }
 
