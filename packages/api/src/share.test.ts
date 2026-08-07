@@ -71,7 +71,6 @@ function watermarkMediaInfo(overrides: Partial<PrismaJson.MediaInfo> = {}): Pris
     },
     original: {
       key: 'files/orig.mp4',
-      downloadUrl: 'u',
       filesizeInBytes: 100,
       codec: '',
     },
@@ -249,7 +248,7 @@ describe('Share API', () => {
                 },
               ],
               imageTranscodes: [],
-              original: { downloadUrl: 'u', key: 'files/orig.mp4' },
+              original: { key: 'files/orig.mp4' },
             },
           },
           {
@@ -274,7 +273,7 @@ describe('Share API', () => {
                 },
               ],
               imageTranscodes: [],
-              original: { downloadUrl: 'u', key: 'files/orig.mp4' },
+              original: { key: 'files/orig.mp4' },
             },
           },
           {
@@ -290,7 +289,7 @@ describe('Share API', () => {
               pdfTranscode: { url: 'u', key: 'files/doc.pdf' },
               videoTranscodes: [],
               imageTranscodes: [],
-              original: { downloadUrl: 'u', key: 'files/doc.pdf' },
+              original: { key: 'files/doc.pdf' },
             },
           },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -372,7 +371,7 @@ describe('Share API', () => {
           },
         ],
         imageTranscodes: [],
-        original: { downloadUrl: 'http://s3/original', key: 'files/original.mp4' },
+        original: { key: 'files/original.mp4' },
       },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any
@@ -447,7 +446,7 @@ describe('Share API', () => {
           pdfTranscode: { url: 'http://s3/doc', key: 'files/doc.pdf' },
           videoTranscodes: [],
           imageTranscodes: [],
-          original: { downloadUrl: 'http://s3/doc-original', key: 'files/doc.pdf' },
+          original: { key: 'files/doc.pdf' },
         },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any)

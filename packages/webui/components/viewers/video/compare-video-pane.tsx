@@ -30,36 +30,21 @@ interface CompareVideoPaneProps {
 }
 
 function computeResolutions(file: AssetInfo): DisplayTranscode[] {
-  const original: DisplayTranscode | null = file.media?.original?.downloadUrl
-    ? {
-        id: 'original',
-        url: file.media.original.downloadUrl,
-        key: file.media.original.key ?? '',
-        width: file.media?.metadata?.originalWidth ?? 0,
-        height: file.media?.metadata?.originalHeight ?? 0,
-        size: 0,
-        isRaw: true,
-        resolution: 'Original',
-      }
-    : null
-
-  const transcodes: DisplayTranscode[] = (file.media?.videoTranscodes ?? []).map((t) => {
-    const longSide = Math.max(t.width, t.height)
-    let resolution = `${t.height}p`
-    if (longSide >= 3840) resolution = '2160p'
-    else if (longSide >= 1920) resolution = '1080p'
-    else if (longSide >= 1280) resolution = '720p'
-    else if (longSide >= 960) resolution = '540p'
-    else if (longSide >= 640) resolution = '360p'
-    else if (longSide >= 320) resolution = '180p'
-    return { ...t, resolution: t.isRaw ? 'Original' : resolution }
-  })
-
-  const hasOriginalTranscode = transcodes.some((t) => t.isRaw)
-  if (!hasOriginalTranscode && original) {
-    return [...transcodes, original]
-  }
-  return transcodes
+  // Only transcoded proxy versions are ever displayed; the raw original file
+  // is never used as a playback source.
+  return (file.media?.videoTranscodes ?? [])
+    .filter((t) => !t.isRaw)
+    .map((t) => {
+      const longSide = Math.max(t.width, t.height)
+      let resolution = `${t.height}p`
+      if (longSide >= 3840) resolution = '2160p'
+      else if (longSide >= 1920) resolution = '1080p'
+      else if (longSide >= 1280) resolution = '720p'
+      else if (longSide >= 960) resolution = '540p'
+      else if (longSide >= 640) resolution = '360p'
+      else if (longSide >= 320) resolution = '180p'
+      return { ...t, resolution }
+    })
 }
 
 export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPaneProps>(
@@ -113,9 +98,8 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
     const totalFrames = resolveTotalFrames({ dbTotalFrames, containerDuration, frameRate })
 
     const resolutions = computeResolutions(file)
-    const previewResolutions = resolutions.filter((r) => !r.isRaw)
-    const initialRes = previewResolutions[0] ?? resolutions[0]
-    const [currentResolution, setCurrentResolution] = useState(initialRes?.resolution ?? 'Original')
+    const initialRes = resolutions[0]
+    const [currentResolution, setCurrentResolution] = useState(initialRes?.resolution ?? '')
     const currentSrcRef = useRef(initialRes?.url)
 
     const isAudio = file.proxyType === 'audio'
@@ -155,7 +139,7 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
     // if the parent renders this pane without a per-asset `key`. Runs before the
     // video.js init effect below (declaration order) so the ref is fresh.
     useEffect(() => {
-      setCurrentResolution(initialRes?.resolution ?? 'Original')
+      setCurrentResolution(initialRes?.resolution ?? '')
       currentSrcRef.current = initialRes?.url
     }, [file.id])
 
@@ -421,7 +405,7 @@ export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPanePr
       onRequestTogglePlay?.()
     }, [isActive, onActivate, onRequestTogglePlay])
 
-    if (!file.media?.original?.downloadUrl || !metadata) {
+    if (!file.media?.metadata || resolutions.length === 0) {
       return (
         <div className="flex h-full w-full items-center justify-center bg-black">
           <p className="text-muted-foreground">Media is not available.</p>

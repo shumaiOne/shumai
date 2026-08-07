@@ -246,7 +246,6 @@ export async function transcodeWatermarkMediaActivity(
       },
       original: {
         key: assetKey,
-        downloadUrl: '',
         filesizeInBytes: 0,
         codec: '',
       },

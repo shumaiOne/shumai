@@ -117,7 +117,6 @@ declare global {
 
     export interface OriginalInfo {
       key: string
-      downloadUrl: string
       filesizeInBytes: number
       codec: string
     }

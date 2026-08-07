@@ -96,12 +96,7 @@ export const ImageViewer = React.forwardRef<MediaController, FileViewerProps>(
       setPan({ x, y })
     }
 
-    let bestUrl = file.media?.original?.downloadUrl
-
-    const bestTranscode = getBestTranscode(file.media?.imageTranscodes, screenWidth)
-    if (bestTranscode?.url) {
-      bestUrl = bestTranscode.url
-    }
+    const bestUrl = getBestTranscode(file.media?.imageTranscodes, screenWidth)?.url ?? ''
 
     const handleDownload = async () => {
       const key = file.media?.original?.key
@@ -184,24 +179,30 @@ export const ImageViewer = React.forwardRef<MediaController, FileViewerProps>(
         <div className="flex-1 flex flex-col-reverse md:flex-row min-h-0 relative">
           {children}
           <div ref={containerRef} className="flex-1 relative overflow-hidden">
-            <DrawingCanvas
-              width={conW}
-              height={conH}
-              mediaDimensions={{
-                width: imgW,
-                height: imgH,
-              }}
-              imageUrl={bestUrl}
-              annotations={displayAnnotations}
-              scale={zoom}
-              offset={pan}
-              onPan={setPan}
-              className="absolute inset-0 z-0"
-              isDrawing={isDrawing}
-              currentTool={currentTool}
-              currentColor={currentColor}
-              onAddAnnotation={addAnnotation}
-            />
+            {bestUrl ? (
+              <DrawingCanvas
+                width={conW}
+                height={conH}
+                mediaDimensions={{
+                  width: imgW,
+                  height: imgH,
+                }}
+                imageUrl={bestUrl}
+                annotations={displayAnnotations}
+                scale={zoom}
+                offset={pan}
+                onPan={setPan}
+                className="absolute inset-0 z-0"
+                isDrawing={isDrawing}
+                currentTool={currentTool}
+                currentColor={currentColor}
+                onAddAnnotation={addAnnotation}
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                <p className="text-muted-foreground">Preview unavailable</p>
+              </div>
+            )}
           </div>
         </div>
         <ImageControlBar

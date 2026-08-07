@@ -60,7 +60,6 @@ export async function transcodePdfWorkflow(task: WorkflowTask): Promise<void> {
 
     mediaInfo.original = {
       key,
-      downloadUrl: '',
       filesizeInBytes: 0,
       codec: '',
     }

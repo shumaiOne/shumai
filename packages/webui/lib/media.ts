@@ -10,20 +10,18 @@ export function getBestTranscode(
     return null
   }
 
-  // Filter out raw versions unless they are the only option
-  const nonRaw = transcodes.filter((t) => !t.isRaw)
-  const candidates = nonRaw.length > 0 ? nonRaw : transcodes
+  // Only transcoded proxy versions are ever used for display; the raw
+  // original file is never shown in the UI.
+  const candidates = transcodes.filter((t) => !t.isRaw)
+  if (candidates.length === 0) {
+    return null
+  }
 
   // Sort by width descending to easily find largest available
-  // If widths are equal, prefer the one that is NOT raw (transcoded optimized version)
   const sorted = [...candidates].sort((a, b) => {
     const wA = a.width ?? 0
     const wB = b.width ?? 0
-    if (wA !== wB) {
-      return wB - wA // Descending width
-    }
-    // If widths equal, prefer non-raw (optimized)
-    return (a.isRaw ? 1 : 0) - (b.isRaw ? 1 : 0)
+    return wB - wA // Descending width
   })
 
   // Find smallest width that is >= screenWidth
@@ -34,8 +32,7 @@ export function getBestTranscode(
     suitable.sort((a, b) => {
       const wA = a.width ?? 0
       const wB = b.width ?? 0
-      if (wA !== wB) return wA - wB // Ascending
-      return (a.isRaw ? 1 : 0) - (b.isRaw ? 1 : 0) // Non-raw first
+      return wA - wB // Ascending
     })
     return suitable[0]
   }

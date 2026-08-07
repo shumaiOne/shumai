@@ -54,7 +54,6 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
 
     mediaInfo.original = {
       key,
-      downloadUrl: '',
       filesizeInBytes: 0,
       codec: '',
     }
@@ -94,13 +93,6 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
           mediaInfo.videoTranscodes.push(videoTranscode)
         }
       }
-
-      mediaInfo.videoTranscodes.push({
-        key: mediaInfo.original?.key,
-        width: metadata.originalWidth,
-        height: metadata.originalHeight,
-        isRaw: true,
-      })
     }
 
     const isAudio = mediaInfo.proxyType === 'audio'

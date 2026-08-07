@@ -213,7 +213,6 @@ describe('Watermark Activities', () => {
             },
             original: {
               key,
-              downloadUrl: '',
               filesizeInBytes: 0,
               codec: '',
             },
@@ -435,7 +434,6 @@ describe('Watermark Activities', () => {
         },
         original: {
           key: 'files/x/original.png',
-          downloadUrl: '',
           filesizeInBytes: 0,
           codec: '',
         },

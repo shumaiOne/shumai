@@ -4,6 +4,13 @@ The **File Viewer Registry** is a modular, type-safe system that makes it easy f
 
 By registering a file type, the detail pages (`FileViewer`), split-screen comparison interfaces (`CompareViewer`), and sidebars automatically adapt to the content, control schemes, and comment features of that file type.
 
+> **Display policy**: Viewers must **only ever display transcoded proxies**
+> (`imageTranscodes`, `videoTranscodes`, `pdfTranscode`). The raw original file
+> (`media.original`) is **never** used as a display source — there is no fallback
+> to the original when no transcode exists. `media.original.key` is used solely
+> for the download flow (via the `download-url` API endpoints);
+> `media.original.downloadUrl` no longer exists.
+
 ---
 
 ## 1. Core Architecture
@@ -115,7 +122,7 @@ export const AudioViewer = React.forwardRef<MediaController, FileViewerProps>(
         <div className="flex-1 flex items-center justify-center">
           <audio 
             ref={audioEl} 
-            src={file.media?.original?.downloadUrl} 
+            src={file.media?.videoTranscodes?.[0]?.url} 
             onPlay={onPlay}
             onTimeUpdate={(e) => onTimeUpdate?.((e.target as HTMLAudioElement).currentTime)}
             controls 
@@ -148,7 +155,7 @@ export const CompareAudioPane = forwardRef<ComparePaneHandle, CompareAudioPanePr
 
     return (
       <div onClick={onActivate} className="flex-1 flex flex-col items-center justify-center">
-        <audio ref={audioEl} src={file.media?.original?.downloadUrl} />
+        <audio ref={audioEl} src={file.media?.videoTranscodes?.[0]?.url} />
       </div>
     )
   }

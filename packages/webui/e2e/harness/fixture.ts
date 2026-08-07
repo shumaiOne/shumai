@@ -37,9 +37,19 @@ export const sampleVideoAsset: AssetInfo = {
   media: {
     proxyType: 'video',
     original: {
-      downloadUrl: SAMPLE_VIDEO_URL,
       key: 'sample.mp4',
     },
+    videoTranscodes: [
+      {
+        id: 'sample-proxy',
+        url: SAMPLE_VIDEO_URL,
+        key: 'sample.mp4',
+        width: SAMPLE_WIDTH,
+        height: SAMPLE_HEIGHT,
+        size: 6170,
+        isRaw: false,
+      },
+    ],
     metadata: {
       duration: SAMPLE_DURATION,
       originalWidth: SAMPLE_WIDTH,
@@ -84,7 +94,6 @@ export const containerLongerVideoAsset: AssetInfo = {
   media: {
     ...sampleVideoAsset.media,
     original: {
-      downloadUrl: SAMPLE_VIDEO_URL,
       key: 'sample.mp4',
     },
     metadata: {
@@ -127,9 +136,19 @@ export const longAudioVideoAsset: AssetInfo = {
   media: {
     ...sampleVideoAsset.media,
     original: {
-      downloadUrl: LONG_AUDIO_VIDEO_URL,
       key: 'sample-long-audio.mp4',
     },
+    videoTranscodes: [
+      {
+        id: 'long-audio-proxy',
+        url: LONG_AUDIO_VIDEO_URL,
+        key: 'sample-long-audio.mp4',
+        width: SAMPLE_WIDTH,
+        height: SAMPLE_HEIGHT,
+        size: 6170,
+        isRaw: false,
+      },
+    ],
     metadata: {
       duration: LONG_AUDIO_DURATION,
       originalWidth: SAMPLE_WIDTH,
@@ -154,9 +173,19 @@ export const sampleAudioAsset: AssetInfo = {
   media: {
     proxyType: 'audio',
     original: {
-      downloadUrl: SAMPLE_AUDIO_URL,
       key: 'sample-audio.mp4',
     },
+    videoTranscodes: [
+      {
+        id: 'sample-audio-proxy',
+        url: SAMPLE_AUDIO_URL,
+        key: 'sample-audio.mp4',
+        width: 0,
+        height: 0,
+        size: 0,
+        isRaw: false,
+      },
+    ],
     metadata: {
       duration: SAMPLE_AUDIO_DURATION,
       originalWidth: 0,

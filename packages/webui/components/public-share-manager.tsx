@@ -425,7 +425,6 @@ export function PublicShareManager({
                 key: t.key,
                 width: t.width,
                 height: t.height,
-                isRaw: t.isRaw,
               })),
             }
           : undefined,

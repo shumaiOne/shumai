@@ -123,7 +123,6 @@ describe.each(['local', 'temporal'] as const)(
             },
             original: {
               key: storageKey.key,
-              downloadUrl: '',
               filesizeInBytes: sampleBuffer.length,
               codec: '',
             },
@@ -234,8 +233,8 @@ describe.each(['local', 'temporal'] as const)(
             imageTranscodes: [],
             videoTranscodes: [
               { key: storageKey.key, width: 640, height: 360, resolution: '360p' },
-              // Raw marker entry (as produced by transcodeVideoWorkflow) — must
-              // not be watermarked.
+              // Legacy raw marker entry (previously produced by
+              // transcodeVideoWorkflow) — must not be watermarked.
               { key: storageKey.key, width: 640, height: 360, isRaw: true },
             ],
             videoPreview: { width: 640, height: 360 },
@@ -253,7 +252,6 @@ describe.each(['local', 'temporal'] as const)(
             },
             original: {
               key: storageKey.key,
-              downloadUrl: '',
               filesizeInBytes: videoBuffer.length,
               codec: '',
             },
@@ -384,7 +382,6 @@ describe.each(['local', 'temporal'] as const)(
               },
               original: {
                 key,
-                downloadUrl: '',
                 filesizeInBytes: buffer.length,
                 codec: '',
               },

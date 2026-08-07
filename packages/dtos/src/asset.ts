@@ -77,7 +77,7 @@ export const assetInfoSchema = z.object({
 
   media: z
     .object({
-      original: z.object({ downloadUrl: z.string(), key: z.string().optional() }).optional(),
+      original: z.object({ key: z.string().optional() }).optional(),
       videoTranscodes: z
         .array(
           z.object({
