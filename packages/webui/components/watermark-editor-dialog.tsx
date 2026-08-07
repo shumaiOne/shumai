@@ -41,9 +41,6 @@ import {
   Save,
   Check,
   LayoutGrid,
-  Sun,
-  Moon,
-  Film,
   Sparkles,
 } from 'lucide-react'
 
@@ -98,7 +95,6 @@ export function WatermarkEditorDialog({
   const queryClient = useQueryClient()
   const [blocks, setBlocks] = useState<WatermarkBlock[]>([])
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
-  const [backdrop, setBackdrop] = useState<'dark' | 'light' | 'sample'>('dark')
   const [loadedTemplateId, setLoadedTemplateId] = useState<string | null>(null)
 
   // Save template dialog modal state
@@ -491,37 +487,8 @@ export function WatermarkEditorDialog({
           <div className="flex-1 flex overflow-hidden">
             {/* Left Preview Column (2/3 width) */}
             <div className="w-[65%] flex flex-col p-4 bg-muted/20 border-r border-border overflow-hidden select-none">
-              <div className="flex items-center justify-between mb-3">
+              <div className="mb-3">
                 <span className="text-xs font-medium text-muted-foreground">{m.preview()}</span>
-                <div className="flex items-center gap-1 bg-background border border-border rounded-md p-1">
-                  <Button
-                    variant={backdrop === 'dark' ? 'secondary' : 'ghost'}
-                    size="icon"
-                    className="h-6 w-6 rounded text-xs"
-                    title={m.dark_grid()}
-                    onClick={() => setBackdrop('dark')}
-                  >
-                    <Moon className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    variant={backdrop === 'light' ? 'secondary' : 'ghost'}
-                    size="icon"
-                    className="h-6 w-6 rounded text-xs"
-                    title={m.light_grid()}
-                    onClick={() => setBackdrop('light')}
-                  >
-                    <Sun className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    variant={backdrop === 'sample' ? 'secondary' : 'ghost'}
-                    size="icon"
-                    className="h-6 w-6 rounded text-xs"
-                    title={m.sample_backdrop()}
-                    onClick={() => setBackdrop('sample')}
-                  >
-                    <Film className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
               </div>
 
               {/* Canvas Frame */}
@@ -529,27 +496,8 @@ export function WatermarkEditorDialog({
                 <div
                   ref={canvasRef}
                   onClick={() => setSelectedBlockId(null)}
-                  className={cn(
-                    'relative w-full aspect-video max-h-full rounded-lg border border-border overflow-hidden shadow-inner transition-colors',
-                    backdrop === 'dark' &&
-                      'bg-slate-950 bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:16px_16px]',
-                    backdrop === 'light' &&
-                      'bg-slate-100 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:16px_16px]',
-                    backdrop === 'sample' &&
-                      'bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900',
-                  )}
+                  className="relative w-full aspect-video max-h-full rounded-lg border border-border overflow-hidden shadow-inner bg-slate-950 bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:16px_16px]"
                 >
-                  {/* Sample Backdrop decorative elements */}
-                  {backdrop === 'sample' && (
-                    <div className="absolute inset-0 flex flex-col justify-between p-4 pointer-events-none opacity-30">
-                      <div className="flex items-center justify-between text-white text-[10px] font-mono">
-                        <span>PREVIEW VIDEO FRAME</span>
-                        <span>00:01:24:12</span>
-                      </div>
-                      <div className="h-1 bg-white/20 rounded w-full" />
-                    </div>
-                  )}
-
                   {/* Render Blocks */}
                   {blocks.map((block) => {
                     const isSelected = block.id === selectedBlockId
@@ -557,6 +505,10 @@ export function WatermarkEditorDialog({
                       <div
                         key={block.id}
                         onMouseDown={(e) => handleMouseDownCanvasBlock(e, block.id)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedBlockId(block.id)
+                        }}
                         style={{
                           left: `${block.x * 100}%`,
                           top: `${block.y * 100}%`,
