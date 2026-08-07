@@ -28,6 +28,7 @@ vi.mock('sharp', () => {
     toColorspace: vi.fn().mockReturnThis(),
     webp: vi.fn().mockReturnThis(),
     composite: vi.fn().mockReturnThis(),
+    png: vi.fn().mockReturnThis(),
     toBuffer: vi.fn().mockResolvedValue(Buffer.from('fake-webp-buffer')),
     toFile: vi.fn().mockImplementation(async (filePath: string) => {
       fs.writeFileSync(filePath, 'fake-webp-data')
@@ -762,6 +763,56 @@ describe('TranscodeService', () => {
       expect(fs.existsSync(pdfFile)).toBe(true)
       const stat = fs.statSync(pdfFile)
       expect(stat.size).toBeGreaterThan(0)
+    })
+
+    describe('watermark overlay helpers', () => {
+      it('renderSvgToPng should rasterize the SVG to a PNG buffer', async () => {
+        const svg = '<svg xmlns="http://www.w3.org/2000/svg"><text>WM</text></svg>'
+        const result = await transcodeService.renderSvgToPng(svg)
+        expect(Buffer.isBuffer(result)).toBe(true)
+        // sharp was invoked with the SVG bytes
+        expect(sharp).toHaveBeenCalledWith(Buffer.from(svg))
+      })
+
+      it('downscaleImageToPng should resize, normalize to PNG and return dimensions', async () => {
+        const result = await transcodeService.downscaleImageToPng(Buffer.from('raw-image'), 1024)
+        expect(result.buffer).toBeDefined()
+        expect(result.width).toBe(800)
+        expect(result.height).toBe(600)
+        // resize limited to the max dimension without enlargement
+        const resizeCall = vi.mocked(sharp().resize).mock.calls[0] as unknown[]
+        expect(resizeCall[0]).toBe(1024)
+        expect(resizeCall[1]).toBe(1024)
+        expect(resizeCall[2]).toEqual({
+          fit: 'inside',
+          withoutEnlargement: true,
+        })
+        expect(vi.mocked(sharp().png)).toHaveBeenCalled()
+      })
+
+      it('compositeOverlayToWebpFile should composite the overlay and write a webp file', async () => {
+        const inputPath = path.join(tempDir, 'input.png')
+        const outputPath = path.join(tempDir, 'output.webp')
+        fs.writeFileSync(inputPath, 'fake-input')
+
+        await transcodeService.compositeOverlayToWebpFile(
+          inputPath,
+          Buffer.from('overlay-png'),
+          outputPath,
+          1920,
+          1080,
+        )
+
+        expect(fs.existsSync(outputPath)).toBe(true)
+        expect(vi.mocked(sharp().resize)).toHaveBeenCalledWith(1920, 1080, {
+          fit: 'inside',
+        })
+        expect(vi.mocked(sharp().composite)).toHaveBeenCalledWith([
+          { input: Buffer.from('overlay-png') },
+        ])
+        expect(vi.mocked(sharp().webp)).toHaveBeenCalledWith({ quality: 90 })
+        expect(vi.mocked(sharp().toFile)).toHaveBeenCalledWith(outputPath)
+      })
     })
   })
 })

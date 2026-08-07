@@ -65,6 +65,10 @@ export class TemporalExecutor implements Executor {
         workflowName = 'overlayImageAnnotationWorkflow'
         taskQueue = TaskQueueTranscode
         break
+      case WorkflowTaskType.transcode_watermark:
+        workflowName = 'transcodeWatermarkWorkflow'
+        taskQueue = TaskQueueTranscode
+        break
       default:
         throw new Error(`Unknown task type: ${task.type}`)
     }

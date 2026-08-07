@@ -6,9 +6,11 @@ import {
   UpdateShareLinkRequest,
   ListShareLinksRequest,
   AddAssetToShareRequest,
+  WatermarkConfigSpec,
 } from '@shumai/dtos'
 import { PaginatedData, paginateQuery } from '@shumai/core/src/pagination'
 import { getAvatarUrl } from '@shumai/core/src/user/avatar'
+import { watermarkService } from '@shumai/core/src/watermark/watermark'
 import {
   ShareLinkNotFoundError,
   ShareLinkDisabledError,
@@ -144,13 +146,16 @@ export class ShareService {
     )
   }
 
-  async getShareLink(shareLinkId: string): Promise<ShareLinkInfo> {
-    const shareLink = await prisma.shareLink.findUnique({
+  async getShareLink(
+    shareLinkId: string,
+    client: Prisma.TransactionClient | typeof prisma = prisma,
+  ): Promise<ShareLinkInfo> {
+    const shareLink = await client.shareLink.findUnique({
       where: { id: shareLinkId },
       include: { creator: true },
     })
     if (!shareLink) throw new ShareLinkNotFoundError('Share link not found')
-    return await this.toShareLinkInfo(shareLink)
+    return await this.toShareLinkInfo(shareLink, client)
   }
 
   async addAssetToShare(shareLinkId: string, req: AddAssetToShareRequest): Promise<number> {
@@ -201,6 +206,17 @@ export class ShareService {
         data: { fileCount: { increment: idsToAdd.length } },
       })
     })
+
+    if (shareLink.watermarkConfigId) {
+      await prisma.shareLink.update({
+        where: { id: shareLinkId },
+        data: { watermarkStatus: 'processing' },
+      })
+      await watermarkService.triggerWatermarkTranscodeForShareLink(
+        shareLinkId,
+        shareLink.watermarkConfigId,
+      )
+    }
 
     return idsToAdd.length
   }
@@ -297,10 +313,18 @@ export class ShareService {
     return shareLink
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private async toShareLinkInfo(l: any): Promise<ShareLinkInfo> {
+  private async toShareLinkInfo(
+    l: Prisma.ShareLinkGetPayload<{ include: { creator: true } }>,
+    client: Prisma.TransactionClient | typeof prisma = prisma,
+  ): Promise<ShareLinkInfo> {
     const isExpired = l.expireAt ? new Date(l.expireAt) < new Date() : false
     const avatarUrl = l.creator ? await getAvatarUrl(l.creator.image) : undefined
+    let watermarkConfig: Prisma.WatermarkConfigGetPayload<Record<string, never>> | null = null
+    if (l.watermarkConfigId) {
+      watermarkConfig = await client.watermarkConfig.findUnique({
+        where: { id: l.watermarkConfigId },
+      })
+    }
     return {
       id: l.id,
       name: l.name,
@@ -308,12 +332,23 @@ export class ShareService {
       isDisabled: l.isDisabled,
       hasPassword: !!l.password,
       password: l.password,
-      defaultSortOrder: l.defaultSortOrder,
-      viewMode: l.viewMode,
+      defaultSortOrder: l.defaultSortOrder ?? undefined,
+      viewMode: l.viewMode ?? undefined,
       fieldVisibility: l.fieldVisibility as Record<string, boolean> | undefined,
       rootFolderId: l.rootFolderId,
       projectId: l.projectId,
       isExpired,
+      watermarkConfigId: l.watermarkConfigId,
+      watermarkStatus: l.watermarkStatus || 'disabled',
+      watermarkConfig: watermarkConfig
+        ? {
+            id: watermarkConfig.id,
+            config: await watermarkService.enrichWatermarkConfigWithPresignedUrls(
+              watermarkConfig.config as WatermarkConfigSpec,
+            ),
+            hash: watermarkConfig.hash,
+          }
+        : null,
       createdAt: l.createdAt.toISOString(),
       updatedAt: l.updatedAt.toISOString(),
       creator: l.creator ? { id: l.creator.id, name: l.creator.name, image: avatarUrl } : null,

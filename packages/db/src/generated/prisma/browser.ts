@@ -78,6 +78,21 @@ export type ProjectMember = Prisma.ProjectMemberModel
  */
 export type ShareLink = Prisma.ShareLinkModel
 /**
+ * Model WatermarkConfig
+ * 
+ */
+export type WatermarkConfig = Prisma.WatermarkConfigModel
+/**
+ * Model WatermarkTemplate
+ * 
+ */
+export type WatermarkTemplate = Prisma.WatermarkTemplateModel
+/**
+ * Model WatermarkFile
+ * 
+ */
+export type WatermarkFile = Prisma.WatermarkFileModel
+/**
  * Model Asset
  * 
  */

@@ -110,6 +110,7 @@ export interface TranscodeVideoParams {
   height: number
   frameRate?: number | string
   disableAudio?: boolean
+  overlayFile?: string
 }
 
 export interface ExtractVideoFramesParams {
@@ -339,13 +340,22 @@ export class TranscodeService {
   }
 
   async transcodeVideo(params: TranscodeVideoParams): Promise<void> {
-    let filterComplex = `[0:v]scale=w=${params.width}:h=${params.height}:force_original_aspect_ratio=decrease,scale=w='trunc(iw/2)*2':h='trunc(ih/2)*2'`
+    let filterComplex: string
+    const args: string[] = ['-i', params.inputFile]
+
+    if (params.overlayFile) {
+      args.push('-i', params.overlayFile)
+      filterComplex = `[0:v]scale=${params.width}:${params.height}[vscaled];[vscaled][1:v]overlay=0:0`
+    } else {
+      filterComplex = `[0:v]scale=w=${params.width}:h=${params.height}:force_original_aspect_ratio=decrease,scale=w='trunc(iw/2)*2':h='trunc(ih/2)*2'`
+    }
+
     if (params.frameRate) {
       filterComplex += `,fps=${params.frameRate}`
     }
     filterComplex += '[vout]'
 
-    const args = ['-i', params.inputFile, '-filter_complex', filterComplex, '-map', '[vout]']
+    args.push('-filter_complex', filterComplex, '-map', '[vout]')
 
     if (params.frameRate) {
       let calculatedFps: number
@@ -1147,6 +1157,55 @@ export class TranscodeService {
     } finally {
       this.removeDir(tmpDir)
     }
+  }
+
+  /**
+   * Renders an SVG string to a PNG buffer. Used by the watermark workflow to
+   * rasterize the overlay before compositing it onto images or feeding it to
+   * ffmpeg for video overlays.
+   */
+  async renderSvgToPng(svgString: string): Promise<Buffer> {
+    return sharp(Buffer.from(svgString)).png().toBuffer()
+  }
+
+  /**
+   * Downscales an image buffer to a bounded size and normalizes it to PNG.
+   * Used for watermark block images embedded into the SVG overlay, so large
+   * logo assets don't balloon the SVG/base64 payload.
+   */
+  async downscaleImageToPng(
+    buffer: Buffer,
+    maxDimension: number,
+  ): Promise<{ buffer: Buffer; width: number; height: number }> {
+    const processed = await sharp(buffer, { limitInputPixels: false })
+      .resize(maxDimension, maxDimension, { fit: 'inside', withoutEnlargement: true })
+      .png()
+      .toBuffer()
+    const meta = await sharp(processed).metadata()
+    return {
+      buffer: processed,
+      width: meta.width || 100,
+      height: meta.height || 100,
+    }
+  }
+
+  /**
+   * Composites an overlay PNG onto an image file and writes a WebP file.
+   * Used by the watermark workflow to produce watermarked image proxies.
+   */
+  async compositeOverlayToWebpFile(
+    inputPath: string,
+    overlayPngBuffer: Buffer,
+    outputPath: string,
+    width: number,
+    height: number,
+  ): Promise<void> {
+    await sharp(inputPath, { limitInputPixels: false })
+      .toColorspace('srgb')
+      .resize(width, height, { fit: 'inside' })
+      .composite([{ input: overlayPngBuffer }])
+      .webp({ quality: 90 })
+      .toFile(outputPath)
   }
 }
 

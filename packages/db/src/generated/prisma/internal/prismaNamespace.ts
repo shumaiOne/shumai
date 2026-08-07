@@ -396,6 +396,9 @@ export const ModelName = {
   Project: 'Project',
   ProjectMember: 'ProjectMember',
   ShareLink: 'ShareLink',
+  WatermarkConfig: 'WatermarkConfig',
+  WatermarkTemplate: 'WatermarkTemplate',
+  WatermarkFile: 'WatermarkFile',
   Asset: 'Asset',
   StorageKey: 'StorageKey',
   AssetMetadataValue: 'AssetMetadataValue',
@@ -434,7 +437,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "sandbox" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "asset" | "storageKey" | "assetMetadataValue" | "assetComment" | "assetCommentAttachment" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "agentSession" | "agentSessionEntry" | "userMetadata" | "model" | "provider" | "collection" | "apiToken" | "aiUsage" | "auditLog"
+    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "sandbox" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "watermarkConfig" | "watermarkTemplate" | "watermarkFile" | "asset" | "storageKey" | "assetMetadataValue" | "assetComment" | "assetCommentAttachment" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "agentSession" | "agentSessionEntry" | "userMetadata" | "model" | "provider" | "collection" | "apiToken" | "aiUsage" | "auditLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1323,6 +1326,228 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.ShareLinkCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.ShareLinkCountAggregateOutputType> | number
+        }
+      }
+    }
+    WatermarkConfig: {
+      payload: Prisma.$WatermarkConfigPayload<ExtArgs>
+      fields: Prisma.WatermarkConfigFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.WatermarkConfigFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkConfigPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.WatermarkConfigFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkConfigPayload>
+        }
+        findFirst: {
+          args: Prisma.WatermarkConfigFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkConfigPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.WatermarkConfigFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkConfigPayload>
+        }
+        findMany: {
+          args: Prisma.WatermarkConfigFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkConfigPayload>[]
+        }
+        create: {
+          args: Prisma.WatermarkConfigCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkConfigPayload>
+        }
+        createMany: {
+          args: Prisma.WatermarkConfigCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.WatermarkConfigCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkConfigPayload>[]
+        }
+        delete: {
+          args: Prisma.WatermarkConfigDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkConfigPayload>
+        }
+        update: {
+          args: Prisma.WatermarkConfigUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkConfigPayload>
+        }
+        deleteMany: {
+          args: Prisma.WatermarkConfigDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.WatermarkConfigUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.WatermarkConfigUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkConfigPayload>[]
+        }
+        upsert: {
+          args: Prisma.WatermarkConfigUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkConfigPayload>
+        }
+        aggregate: {
+          args: Prisma.WatermarkConfigAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateWatermarkConfig>
+        }
+        groupBy: {
+          args: Prisma.WatermarkConfigGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.WatermarkConfigGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.WatermarkConfigCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.WatermarkConfigCountAggregateOutputType> | number
+        }
+      }
+    }
+    WatermarkTemplate: {
+      payload: Prisma.$WatermarkTemplatePayload<ExtArgs>
+      fields: Prisma.WatermarkTemplateFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.WatermarkTemplateFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkTemplatePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.WatermarkTemplateFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkTemplatePayload>
+        }
+        findFirst: {
+          args: Prisma.WatermarkTemplateFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkTemplatePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.WatermarkTemplateFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkTemplatePayload>
+        }
+        findMany: {
+          args: Prisma.WatermarkTemplateFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkTemplatePayload>[]
+        }
+        create: {
+          args: Prisma.WatermarkTemplateCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkTemplatePayload>
+        }
+        createMany: {
+          args: Prisma.WatermarkTemplateCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.WatermarkTemplateCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkTemplatePayload>[]
+        }
+        delete: {
+          args: Prisma.WatermarkTemplateDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkTemplatePayload>
+        }
+        update: {
+          args: Prisma.WatermarkTemplateUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkTemplatePayload>
+        }
+        deleteMany: {
+          args: Prisma.WatermarkTemplateDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.WatermarkTemplateUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.WatermarkTemplateUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkTemplatePayload>[]
+        }
+        upsert: {
+          args: Prisma.WatermarkTemplateUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkTemplatePayload>
+        }
+        aggregate: {
+          args: Prisma.WatermarkTemplateAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateWatermarkTemplate>
+        }
+        groupBy: {
+          args: Prisma.WatermarkTemplateGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.WatermarkTemplateGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.WatermarkTemplateCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.WatermarkTemplateCountAggregateOutputType> | number
+        }
+      }
+    }
+    WatermarkFile: {
+      payload: Prisma.$WatermarkFilePayload<ExtArgs>
+      fields: Prisma.WatermarkFileFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.WatermarkFileFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkFilePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.WatermarkFileFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkFilePayload>
+        }
+        findFirst: {
+          args: Prisma.WatermarkFileFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkFilePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.WatermarkFileFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkFilePayload>
+        }
+        findMany: {
+          args: Prisma.WatermarkFileFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkFilePayload>[]
+        }
+        create: {
+          args: Prisma.WatermarkFileCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkFilePayload>
+        }
+        createMany: {
+          args: Prisma.WatermarkFileCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.WatermarkFileCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkFilePayload>[]
+        }
+        delete: {
+          args: Prisma.WatermarkFileDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkFilePayload>
+        }
+        update: {
+          args: Prisma.WatermarkFileUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkFilePayload>
+        }
+        deleteMany: {
+          args: Prisma.WatermarkFileDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.WatermarkFileUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.WatermarkFileUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkFilePayload>[]
+        }
+        upsert: {
+          args: Prisma.WatermarkFileUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$WatermarkFilePayload>
+        }
+        aggregate: {
+          args: Prisma.WatermarkFileAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateWatermarkFile>
+        }
+        groupBy: {
+          args: Prisma.WatermarkFileGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.WatermarkFileGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.WatermarkFileCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.WatermarkFileCountAggregateOutputType> | number
         }
       }
     }
@@ -3232,10 +3457,48 @@ export const ShareLinkScalarFieldEnum = {
   updatedAt: 'updatedAt',
   projectId: 'projectId',
   rootFolderId: 'rootFolderId',
-  creatorId: 'creatorId'
+  creatorId: 'creatorId',
+  watermarkConfigId: 'watermarkConfigId',
+  watermarkStatus: 'watermarkStatus'
 } as const
 
 export type ShareLinkScalarFieldEnum = (typeof ShareLinkScalarFieldEnum)[keyof typeof ShareLinkScalarFieldEnum]
+
+
+export const WatermarkConfigScalarFieldEnum = {
+  id: 'id',
+  config: 'config',
+  hash: 'hash',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type WatermarkConfigScalarFieldEnum = (typeof WatermarkConfigScalarFieldEnum)[keyof typeof WatermarkConfigScalarFieldEnum]
+
+
+export const WatermarkTemplateScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  config: 'config',
+  teamId: 'teamId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type WatermarkTemplateScalarFieldEnum = (typeof WatermarkTemplateScalarFieldEnum)[keyof typeof WatermarkTemplateScalarFieldEnum]
+
+
+export const WatermarkFileScalarFieldEnum = {
+  id: 'id',
+  assetId: 'assetId',
+  watermarkConfigId: 'watermarkConfigId',
+  media: 'media',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type WatermarkFileScalarFieldEnum = (typeof WatermarkFileScalarFieldEnum)[keyof typeof WatermarkFileScalarFieldEnum]
 
 
 export const AssetScalarFieldEnum = {
@@ -3737,6 +4000,34 @@ export type ListEnumProjectMemberRoleFieldRefInput<$PrismaModel> = FieldRefInput
 
 
 /**
+ * Reference to a field of type 'WatermarkStatus'
+ */
+export type EnumWatermarkStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WatermarkStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'WatermarkStatus[]'
+ */
+export type ListEnumWatermarkStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WatermarkStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'WatermarkFileStatus'
+ */
+export type EnumWatermarkFileStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WatermarkFileStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'WatermarkFileStatus[]'
+ */
+export type ListEnumWatermarkFileStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WatermarkFileStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'AssetType'
  */
 export type EnumAssetTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AssetType'>
@@ -4067,6 +4358,9 @@ export type GlobalOmitConfig = {
   project?: Prisma.ProjectOmit
   projectMember?: Prisma.ProjectMemberOmit
   shareLink?: Prisma.ShareLinkOmit
+  watermarkConfig?: Prisma.WatermarkConfigOmit
+  watermarkTemplate?: Prisma.WatermarkTemplateOmit
+  watermarkFile?: Prisma.WatermarkFileOmit
   asset?: Prisma.AssetOmit
   storageKey?: Prisma.StorageKeyOmit
   assetMetadataValue?: Prisma.AssetMetadataValueOmit

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { paginationParamsSchema } from './pagination'
+import type { WatermarkConfigSpec } from './watermark'
 
 export interface ShareLinkInfo {
   id: string
@@ -14,6 +15,13 @@ export interface ShareLinkInfo {
   rootFolderId: string
   projectId: string
   isExpired: boolean
+  watermarkConfigId?: string | null
+  watermarkStatus?: 'disabled' | 'processing' | 'ready' | 'failed'
+  watermarkConfig?: {
+    id: string
+    config: WatermarkConfigSpec
+    hash: string
+  } | null
   createdAt: string
   updatedAt: string
   creator?: { id: string; name: string; image?: string | null } | null

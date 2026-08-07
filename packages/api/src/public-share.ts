@@ -3,6 +3,7 @@ import type { Context } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { shareService } from '@shumai/core/src/share/share'
 import { assetService } from '@shumai/core/src/asset/asset'
+import { watermarkService } from '@shumai/core/src/watermark/watermark'
 import { paginationParamsSchema } from '@shumai/dtos'
 import { z } from 'zod'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
@@ -19,6 +20,65 @@ import {
   ShareLinkExpiredError,
   ShareLinkPasswordInvalidError,
 } from '@shumai/core/src/share/errors'
+import { s3Service } from '@shumai/core/src/s3/s3'
+import type { AssetInfo } from '@shumai/dtos'
+
+/**
+ * Replaces the served media entries with the watermarked proxy entries produced
+ * by the watermark transcode activity. When no completed watermark proxy exists
+ * yet (still transcoding, or failed), the video/image transcode slots are emptied
+ * so original, unwatermarked proxies are never exposed on the public share.
+ *
+ * Only video/image assets are subject to watermark protection; other media types
+ * (pdf, audio, ...) never receive watermark transcodes and pass through untouched.
+ * `original`, `thumbnail` and `videoPreview` are intentionally left untouched here.
+ * S3 GET URLs are generated for all watermarked proxies.
+ */
+async function applyWatermarkToAssetMedia(
+  asset: AssetInfo,
+  watermarkMedia: PrismaJson.MediaInfo | null,
+): Promise<AssetInfo> {
+  if (!asset.media) return asset
+  if (asset.proxyType !== 'video' && asset.proxyType !== 'image') return asset
+
+  const updatedMedia = { ...asset.media }
+  const bucket = process.env.S3_BUCKET || 'shumai'
+
+  updatedMedia.videoTranscodes =
+    watermarkMedia?.videoTranscodes && watermarkMedia.videoTranscodes.length > 0
+      ? await Promise.all(
+          watermarkMedia.videoTranscodes.map(async (vt) => ({
+            id: vt.key ?? '',
+            url: vt.key ? await s3Service.presign(bucket, vt.key, 'GET') : '',
+            key: vt.key ?? '',
+            width: vt.width ?? 0,
+            height: vt.height ?? 0,
+            size: 0,
+            isRaw: false,
+          })),
+        )
+      : []
+
+  updatedMedia.imageTranscodes =
+    watermarkMedia?.imageTranscodes && watermarkMedia.imageTranscodes.length > 0
+      ? await Promise.all(
+          watermarkMedia.imageTranscodes.map(async (it) => ({
+            id: it.key ?? '',
+            url: it.key ? await s3Service.presign(bucket, it.key, 'GET') : '',
+            key: it.key ?? '',
+            width: it.width ?? 0,
+            height: it.height ?? 0,
+            size: 0,
+            isRaw: false,
+          })),
+        )
+      : []
+
+  return {
+    ...asset,
+    media: updatedMedia,
+  }
+}
 
 const app = new Hono()
 
@@ -129,6 +189,24 @@ const route = app
           order,
         })
 
+        if (shareLink.watermarkConfigId && res.data.length > 0) {
+          // Resolve symlink targets once and reuse for the media lookup, so each
+          // item costs a single query instead of two.
+          const targetIds = await Promise.all(
+            res.data.map((item) => assetService.resolveTargetAssetId(item.id)),
+          )
+          const wfMap = await watermarkService.getCompletedWatermarkMediaMap(
+            targetIds,
+            shareLink.watermarkConfigId,
+          )
+
+          res.data = await Promise.all(
+            res.data.map(async (item, index) =>
+              applyWatermarkToAssetMedia(item, wfMap.get(targetIds[index]) ?? null),
+            ),
+          )
+        }
+
         return c.json(res)
       } catch (err) {
         return handlePublicShareError(c, err)
@@ -140,9 +218,24 @@ const route = app
     const password = c.req.header('x-share-password')
 
     try {
-      await shareService.verifyPublicAccess(fileId, password)
+      const shareLink = await shareService.verifyPublicAccess(fileId, password)
 
-      const asset = await assetService.getAsset({ assetId: fileId })
+      let asset = await assetService.getAsset({ assetId: fileId })
+
+      // Only video/image assets are subject to watermark protection; skip the
+      // watermark lookup entirely for other media types (pdf, audio, ...).
+      if (
+        shareLink.watermarkConfigId &&
+        (asset.proxyType === 'video' || asset.proxyType === 'image')
+      ) {
+        const targetAssetId = await assetService.resolveTargetAssetId(fileId)
+        const wfMap = await watermarkService.getCompletedWatermarkMediaMap(
+          [targetAssetId],
+          shareLink.watermarkConfigId,
+        )
+        asset = await applyWatermarkToAssetMedia(asset, wfMap.get(targetAssetId) ?? null)
+      }
+
       return c.json(asset)
     } catch (err) {
       return handlePublicShareError(c, err)

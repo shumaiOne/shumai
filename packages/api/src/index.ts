@@ -19,6 +19,7 @@ import publicShareRoute from './public-share'
 import s3Route from './s3'
 import shareRoute from './share'
 import skillRoute from './skill'
+import watermarkTemplateRoute from './watermark-template'
 import teamRoute from './team'
 import uploadRoute, { localUploadRoute } from './upload'
 import versionStackRoute from './versionStack'
@@ -60,6 +61,7 @@ const apiRoute = new Hono<{ Variables: { user: User } }>()
   .route('/', uploadRoute)
   .route('/', shareRoute)
   .route('/', skillRoute)
+  .route('/', watermarkTemplateRoute)
 
 app.route('/files', s3Route)
 

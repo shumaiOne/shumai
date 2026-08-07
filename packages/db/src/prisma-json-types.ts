@@ -134,7 +134,7 @@ declare global {
       proxyType?: 'image' | 'video' | 'audio' | 'pdf'
       imageTranscodes: ImageTranscode[]
       videoTranscodes: VideoTranscode[]
-      videoPreview: VideoTranscode
+      videoPreview?: VideoTranscode
       pdfTranscode?: PdfTranscode
       sprite?: SpriteInfo
       poster?: PosterInfo
@@ -277,6 +277,7 @@ declare global {
       screenshot?: ScreenshotSpec
       imageAnnotation?: ImageAnnotationSpec
       pdfPages?: PdfPagesSpec
+      watermark?: WatermarkTaskPayload
     }
 
     // ----------------------------------------------------------------------
@@ -322,5 +323,43 @@ declare global {
     // ----------------------------------------------------------------------
     export type SkillEnvironmentVariable = import('@shumai/dtos').SkillEnvironmentVariable
     export type SkillConfig = import('@shumai/dtos').SkillConfig
+
+    // ----------------------------------------------------------------------
+    // Watermark Config
+    // ----------------------------------------------------------------------
+    export interface WatermarkBlockText {
+      id: string
+      type: 'text'
+      x: number
+      y: number
+      opacity: number
+      rotation: number
+      text: string
+      size: number
+      color: string
+    }
+
+    export interface WatermarkBlockImage {
+      id: string
+      type: 'image'
+      x: number
+      y: number
+      opacity: number
+      rotation: number
+      imageAssetKey: string
+      imageAssetUrl?: string
+      size: number
+    }
+
+    export type WatermarkBlock = WatermarkBlockText | WatermarkBlockImage
+
+    export interface WatermarkConfigSpec {
+      blocks: WatermarkBlock[]
+    }
+
+    export interface WatermarkTaskPayload {
+      watermarkConfigId: string
+      shareLinkId?: string
+    }
   }
 }
