@@ -186,7 +186,7 @@ describe('Agent Embedding Workflow', () => {
         mediaType: 'image/png',
         storageKey: { key: 'test.png' },
         media: {
-          imageTranscodes: [{ key: 'test-transcoded.webp', isRaw: false, format: 'webp' }],
+          imageTranscodes: [{ key: 'test-transcoded.webp', format: 'webp' }],
         },
       },
       chunkDuration: 60.0,
@@ -220,7 +220,7 @@ describe('Agent Embedding Workflow', () => {
         storageKey: { key: 'test.mp4' },
         media: {
           duration: 150.0,
-          videoTranscodes: [{ key: 'test-transcoded.mp4', isRaw: false }],
+          videoTranscodes: [{ key: 'test-transcoded.mp4' }],
         },
       },
       chunkDuration: 60.0,

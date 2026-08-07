@@ -10,15 +10,8 @@ export function getBestTranscode(
     return null
   }
 
-  // Only transcoded proxy versions are ever used for display; the raw
-  // original file is never shown in the UI.
-  const candidates = transcodes.filter((t) => !t.isRaw)
-  if (candidates.length === 0) {
-    return null
-  }
-
   // Sort by width descending to easily find largest available
-  const sorted = [...candidates].sort((a, b) => {
+  const sorted = [...transcodes].sort((a, b) => {
     const wA = a.width ?? 0
     const wB = b.width ?? 0
     return wB - wA // Descending width

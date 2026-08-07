@@ -321,7 +321,8 @@ We use `prisma-json-types-generator` to enforce strict type-safety for Prisma `J
 
 - Development: Use `bun --bun run prisma migrate dev` to create and apply migrations during development.
 - Production: Use `bun --bun run prisma migrate deploy` to apply pending migrations in production environments.
-- **No Manual Migration Creation**: Never create migration SQL files or directories manually by hand. Always use Prisma CLI commands (e.g. `bun --bun run prisma migrate dev --create-only` to generate a migration template, or `bun --bun run prisma migrate dev`) so Prisma correctly tracks migration metadata and checksums.
+- **No Manual DDL Creation**: Never hand-write **schema (DDL) migration** files or directories. Always generate them with Prisma CLI (`bun --bun run prisma migrate dev --create-only` to create a template, then edit it if needed, or `bun --bun run prisma migrate dev` to apply) so Prisma correctly tracks migration metadata and checksums.
+- **Data Migrations Are Allowed**: Pure **data migration** SQL (no schema change) may be written by hand, but it MUST live inside a migration generated via `bun --bun run prisma migrate dev --create-only` so it is tracked and applied automatically.
 - **No Automatic Dev DB Reset**: Do not run `prisma migrate reset --force` or commands that force-reset the database automatically. If migrations become out of sync or a reset is required, stop executing, report the situation to the user, and present suggested manual cleanup/reset steps for the user to execute.
 
 ### Commands

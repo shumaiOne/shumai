@@ -32,19 +32,17 @@ interface CompareVideoPaneProps {
 function computeResolutions(file: AssetInfo): DisplayTranscode[] {
   // Only transcoded proxy versions are ever displayed; the raw original file
   // is never used as a playback source.
-  return (file.media?.videoTranscodes ?? [])
-    .filter((t) => !t.isRaw)
-    .map((t) => {
-      const longSide = Math.max(t.width, t.height)
-      let resolution = `${t.height}p`
-      if (longSide >= 3840) resolution = '2160p'
-      else if (longSide >= 1920) resolution = '1080p'
-      else if (longSide >= 1280) resolution = '720p'
-      else if (longSide >= 960) resolution = '540p'
-      else if (longSide >= 640) resolution = '360p'
-      else if (longSide >= 320) resolution = '180p'
-      return { ...t, resolution }
-    })
+  return (file.media?.videoTranscodes ?? []).map((t) => {
+    const longSide = Math.max(t.width, t.height)
+    let resolution = `${t.height}p`
+    if (longSide >= 3840) resolution = '2160p'
+    else if (longSide >= 1920) resolution = '1080p'
+    else if (longSide >= 1280) resolution = '720p'
+    else if (longSide >= 960) resolution = '540p'
+    else if (longSide >= 640) resolution = '360p'
+    else if (longSide >= 320) resolution = '180p'
+    return { ...t, resolution }
+  })
 }
 
 export const CompareVideoPane = forwardRef<ComparePaneHandle, CompareVideoPaneProps>(

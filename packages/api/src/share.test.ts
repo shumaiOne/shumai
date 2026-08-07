@@ -244,7 +244,6 @@ describe('Share API', () => {
                   width: 640,
                   height: 360,
                   size: 1,
-                  isRaw: false,
                 },
               ],
               imageTranscodes: [],
@@ -269,7 +268,6 @@ describe('Share API', () => {
                   width: 640,
                   height: 360,
                   size: 1,
-                  isRaw: false,
                 },
               ],
               imageTranscodes: [],
@@ -325,7 +323,6 @@ describe('Share API', () => {
           width: 640,
           height: 360,
           size: 0,
-          isRaw: false,
         },
       ])
       // Pending item → original transcodes emptied
@@ -367,7 +364,6 @@ describe('Share API', () => {
             width: 640,
             height: 360,
             size: 100,
-            isRaw: false,
           },
         ],
         imageTranscodes: [],
@@ -410,7 +406,6 @@ describe('Share API', () => {
           width: 640,
           height: 360,
           size: 0,
-          isRaw: false,
         },
       ])
       expect(body.media.imageTranscodes).toEqual([])
@@ -494,7 +489,6 @@ describe('Share API', () => {
           width: 640,
           height: 360,
           size: 100,
-          isRaw: false,
         },
       ])
       expect(wfSpy).not.toHaveBeenCalled()

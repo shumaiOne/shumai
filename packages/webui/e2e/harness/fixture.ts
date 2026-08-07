@@ -47,7 +47,6 @@ export const sampleVideoAsset: AssetInfo = {
         width: SAMPLE_WIDTH,
         height: SAMPLE_HEIGHT,
         size: 6170,
-        isRaw: false,
       },
     ],
     metadata: {
@@ -146,7 +145,6 @@ export const longAudioVideoAsset: AssetInfo = {
         width: SAMPLE_WIDTH,
         height: SAMPLE_HEIGHT,
         size: 6170,
-        isRaw: false,
       },
     ],
     metadata: {
@@ -183,7 +181,6 @@ export const sampleAudioAsset: AssetInfo = {
         width: 0,
         height: 0,
         size: 0,
-        isRaw: false,
       },
     ],
     metadata: {

@@ -54,7 +54,6 @@ async function applyWatermarkToAssetMedia(
             width: vt.width ?? 0,
             height: vt.height ?? 0,
             size: 0,
-            isRaw: false,
           })),
         )
       : []
@@ -69,7 +68,6 @@ async function applyWatermarkToAssetMedia(
             width: it.width ?? 0,
             height: it.height ?? 0,
             size: 0,
-            isRaw: false,
           })),
         )
       : []
