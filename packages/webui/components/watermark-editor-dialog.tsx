@@ -23,13 +23,6 @@ import { Label } from '@/ui/components/ui/label'
 import { Slider } from '@/ui/components/ui/slider'
 import { ScrollArea } from '@/ui/components/ui/scroll-area'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/ui/components/ui/select'
-import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
@@ -530,54 +523,35 @@ export function WatermarkEditorDialog({
             <div className="w-[65%] flex flex-col p-4 bg-muted/20 border-r border-border overflow-hidden select-none">
               {/* Single Row Controls Header */}
               <div className="flex items-center justify-between mb-3">
-                {/* Aspect Ratio Selector */}
-                <Select value={aspectRatio} onValueChange={(val) => setAspectRatio(val as typeof aspectRatio)}>
-                  <SelectTrigger className="h-8 w-40 text-xs gap-2 border-border/60 bg-background shadow-none">
-                    <AspectIcon ratio={aspectRatio} />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent align="start">
-                    <SelectItem value="16:9" className="text-xs">
-                      <div className="flex items-center gap-2">
-                        <AspectIcon ratio="16:9" />
-                        <span>{m.aspect_16_9()}</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="9:16" className="text-xs">
-                      <div className="flex items-center gap-2">
-                        <AspectIcon ratio="9:16" />
-                        <span>{m.aspect_9_16()}</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="4:3" className="text-xs">
-                      <div className="flex items-center gap-2">
-                        <AspectIcon ratio="4:3" />
-                        <span>{m.aspect_4_3()}</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="3:4" className="text-xs">
-                      <div className="flex items-center gap-2">
-                        <AspectIcon ratio="3:4" />
-                        <span>{m.aspect_3_4()}</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="1:1" className="text-xs">
-                      <div className="flex items-center gap-2">
-                        <AspectIcon ratio="1:1" />
-                        <span>{m.aspect_1_1()}</span>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                {/* Aspect Ratio Toggles */}
+                <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-md border border-border/60">
+                  {(['16:9', '9:16', '4:3', '3:4', '1:1'] as const).map((ratio) => (
+                    <Button
+                      key={ratio}
+                      variant={aspectRatio === ratio ? 'secondary' : 'ghost'}
+                      size="sm"
+                      className={cn(
+                        'h-7 px-2.5 text-xs gap-1.5 font-mono transition-all',
+                        aspectRatio === ratio
+                          ? 'bg-background shadow-xs font-semibold text-foreground border border-border/50'
+                          : 'text-muted-foreground hover:text-foreground',
+                      )}
+                      onClick={() => setAspectRatio(ratio)}
+                    >
+                      <AspectIcon ratio={ratio} />
+                      <span>{ratio}</span>
+                    </Button>
+                  ))}
+                </div>
 
                 {/* 5 Predefined Background Color Swatches */}
                 <div className="flex items-center gap-1.5 bg-background border border-border/60 rounded-md p-1">
                   {[
-                    { id: 'grid', label: 'Grid', bg: '#0f172a' },
-                    { id: '#000000', label: 'Black', bg: '#000000' },
-                    { id: '#475569', label: 'Gray', bg: '#475569' },
-                    { id: '#ffffff', label: 'White', bg: '#ffffff' },
-                    { id: '#00ff00', label: 'Green', bg: '#00ff00' },
+                    { id: 'dark', label: 'Dark Slate', bg: '#020617', dot: '#334155' },
+                    { id: 'black', label: 'Black', bg: '#000000', dot: '#404040' },
+                    { id: 'gray', label: 'Slate Gray', bg: '#475569', dot: '#94a3b8' },
+                    { id: 'white', label: 'White', bg: '#ffffff', dot: '#cbd5e1' },
+                    { id: 'green', label: 'Chroma Green', bg: '#00ff00', dot: '#059669' },
                   ].map((color) => (
                     <button
                       key={color.id}
@@ -598,21 +572,33 @@ export function WatermarkEditorDialog({
 
               {/* Canvas Frame */}
               <div className="flex-1 flex items-center justify-center overflow-hidden">
-                <div
-                  ref={canvasRef}
-                  onClick={() => setSelectedBlockId(null)}
-                  style={bgColor !== 'grid' ? { backgroundColor: bgColor } : undefined}
-                  className={cn(
-                    'relative rounded-lg border border-border overflow-hidden shadow-inner transition-all',
-                    aspectRatio === '16:9' && 'aspect-[16/9] w-full max-h-full',
-                    aspectRatio === '9:16' && 'aspect-[9/16] h-full max-w-full',
-                    aspectRatio === '4:3' && 'aspect-[4/3] w-full max-h-full',
-                    aspectRatio === '3:4' && 'aspect-[3/4] h-full max-w-full',
-                    aspectRatio === '1:1' && 'aspect-square h-full max-w-full',
-                    bgColor === 'grid' &&
-                      'bg-slate-950 bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:16px_16px]',
-                  )}
-                >
+                {(() => {
+                  const bgOpts = [
+                    { id: 'dark', label: 'Dark Slate', bg: '#020617', dot: '#334155' },
+                    { id: 'black', label: 'Black', bg: '#000000', dot: '#404040' },
+                    { id: 'gray', label: 'Slate Gray', bg: '#475569', dot: '#94a3b8' },
+                    { id: 'white', label: 'White', bg: '#ffffff', dot: '#cbd5e1' },
+                    { id: 'green', label: 'Chroma Green', bg: '#00ff00', dot: '#059669' },
+                  ]
+                  const activeBg = bgOpts.find((b) => b.id === bgColor) || bgOpts[0]
+                  return (
+                    <div
+                      ref={canvasRef}
+                      onClick={() => setSelectedBlockId(null)}
+                      style={{
+                        backgroundColor: activeBg.bg,
+                        backgroundImage: `radial-gradient(${activeBg.dot} 1px, transparent 1px)`,
+                        backgroundSize: '16px 16px',
+                      }}
+                      className={cn(
+                        'relative rounded-lg border border-border overflow-hidden shadow-inner transition-all',
+                        aspectRatio === '16:9' && 'aspect-[16/9] w-full max-h-full',
+                        aspectRatio === '9:16' && 'aspect-[9/16] h-full max-w-full',
+                        aspectRatio === '4:3' && 'aspect-[4/3] w-full max-h-full',
+                        aspectRatio === '3:4' && 'aspect-[3/4] h-full max-w-full',
+                        aspectRatio === '1:1' && 'aspect-square h-full max-w-full',
+                      )}
+                    >
                   {/* Render Blocks */}
                   {blocks.map((block) => {
                     const isSelected = block.id === selectedBlockId
@@ -668,18 +654,20 @@ export function WatermarkEditorDialog({
                     )
                   })}
                 </div>
-              </div>
-            </div>
+              )
+            })()}
+          </div>
+        </div>
 
-            {/* Right Configuration Column (1/3 width) */}
-            <div className="w-[35%] flex flex-col bg-card overflow-hidden border-l border-border">
-              {/* Right Column Header */}
-              <div className="p-4 border-b border-border bg-muted/10 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <LayoutGrid className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-xs font-semibold">{m.watermark()}</span>
-                </div>
-              </div>
+        {/* Right Configuration Column (1/3 width) */}
+        <div className="w-[35%] flex flex-col bg-card overflow-hidden border-l border-border">
+          {/* Right Column Header */}
+          <div className="p-4 border-b border-border bg-muted/10 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <LayoutGrid className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs font-semibold">{m.watermark()}</span>
+            </div>
+          </div>
 
               {/* Block Selector Navigation Row */}
               <div className="p-3 border-b border-border bg-background flex items-center justify-between gap-2">
