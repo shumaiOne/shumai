@@ -319,5 +319,149 @@ describe.each(['local', 'temporal'] as const)(
       expect(mediaInfo?.videoTranscodes?.length).toBe(1)
       expect(mediaInfo?.videoTranscodes?.[0].resolution).toBe('360p')
     })
+
+    it('should watermark a newly added asset after the sharelink is already ready', async () => {
+      // 1. Seed Database
+      const team = await prisma.team.create({
+        data: { name: 'E2E Watermark Team' },
+      })
+      const projectFolder = await prisma.asset.create({
+        data: { name: 'root', type: 'root', status: 'processed' },
+      })
+      const project = await prisma.project.create({
+        data: { name: 'E2E Watermark Project', teamId: team.id, rootFolderId: projectFolder.id },
+      })
+
+      const readSampleImage = (): Buffer => {
+        const sampleImagePath = path.join(fixturesDir, 'sample.png')
+        if (fs.existsSync(sampleImagePath)) {
+          return fs.readFileSync(sampleImagePath)
+        }
+        // Minimal 1x1 PNG fallback if fixture is missing
+        return Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+          'base64',
+        )
+      }
+
+      const createImageAsset = async (key: string, name: string) => {
+        const buffer = readSampleImage()
+        const storageKey = await prisma.storageKey.create({ data: { key } })
+        await s3Service.putObject(
+          'shumai-e2e-test-bucket-watermark',
+          key,
+          buffer,
+          buffer.length,
+          'image/png',
+        )
+        return await prisma.asset.create({
+          data: {
+            name,
+            type: 'file',
+            mediaType: 'image/png',
+            status: 'processed',
+            projectId: project.id,
+            storageKeyId: storageKey.id,
+            media: {
+              duration: 0,
+              filesize: buffer.length,
+              frames: 0,
+              proxyType: 'image',
+              imageTranscodes: [{ key, width: 100, height: 100, quality: 90, format: 'webp' }],
+              videoTranscodes: [],
+              videoPreview: { width: 100, height: 100 },
+              finishedAt: new Date().toISOString(),
+              metadata: {
+                originalWidth: 100,
+                originalHeight: 100,
+                duration: 0,
+                bitRate: 0,
+                frameRate: 0,
+                totalFrames: 0,
+                startTimecode: '00:00:00:00',
+                hasAudio: false,
+                format: {},
+              },
+              original: {
+                key,
+                downloadUrl: '',
+                filesizeInBytes: buffer.length,
+                codec: '',
+              },
+            },
+          },
+        })
+      }
+
+      const assetA = await createImageAsset('files/e2e-add-after-ready/a.png', 'a.png')
+      const shareLink = await shareService.createShareLink(project.id, {
+        name: 'Public Watermarked Share',
+      })
+      await shareService.addAssetToShare(shareLink.id, { assetIds: [assetA.id] })
+
+      const watermarkConfig: WatermarkConfigSpec = {
+        blocks: [
+          {
+            id: 'b1',
+            type: 'text',
+            x: 0.5,
+            y: 0.5,
+            opacity: 0.5,
+            rotation: 0,
+            text: 'CONFIDENTIAL E2E',
+            size: 0.2,
+            color: '#FF0000',
+          },
+        ],
+      }
+
+      // 2. Enable Watermark on Sharelink and wait for initial 'ready'
+      const updatedShare = await watermarkService.updateShareLinkWatermark(
+        shareLink.id,
+        true,
+        watermarkConfig,
+      )
+      expect(updatedShare.watermarkStatus).toBe('processing')
+
+      let share = await shareService.getShareLink(shareLink.id)
+      let startTime = Date.now()
+      while (share.watermarkStatus === 'processing' && Date.now() - startTime < 30000) {
+        await new Promise((resolve) => setTimeout(resolve, 500))
+        share = await shareService.getShareLink(shareLink.id)
+      }
+      expect(share.watermarkStatus).toBe('ready')
+      expect(share.watermarkConfigId).toBe(updatedShare.watermarkConfigId)
+
+      // 3. Add a NEW asset to the ready sharelink
+      const assetB = await createImageAsset('files/e2e-add-after-ready/b.png', 'b.png')
+      await shareService.addAssetToShare(shareLink.id, { assetIds: [assetB.id] })
+
+      // 4. Status flips back to 'processing' while the new asset is transcoded
+      share = await shareService.getShareLink(shareLink.id)
+      expect(share.watermarkStatus).toBe('processing')
+
+      // 5. Poll until the sharelink is 'ready' again
+      startTime = Date.now()
+      while (share.watermarkStatus === 'processing' && Date.now() - startTime < 30000) {
+        await new Promise((resolve) => setTimeout(resolve, 500))
+        share = await shareService.getShareLink(shareLink.id)
+      }
+      expect(share.watermarkStatus).toBe('ready')
+
+      // 6. Both assets now have completed watermark files
+      for (const asset of [assetA, assetB]) {
+        const wf = await prisma.watermarkFile.findUnique({
+          where: {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            assetId_watermarkConfigId: {
+              assetId: asset.id,
+              watermarkConfigId: updatedShare.watermarkConfigId!,
+            },
+          },
+        })
+        expect(wf).toBeDefined()
+        expect(wf?.status).toBe(WatermarkFileStatus.completed)
+      }
+    })
   },
 )

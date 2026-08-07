@@ -9,6 +9,8 @@ import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/a
 import { ShareLinkPasswordInvalidError, ShareLinkExpiredError } from '@shumai/core/src/share/errors'
 
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
+import { watermarkService } from '@shumai/core/src/watermark/watermark'
+import { s3Service } from '@shumai/core/src/s3/s3'
 
 vi.mock('./middleware/auth', () => ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -46,6 +48,36 @@ vi.mock('@shumai/core/src/project/project', () => ({
     getProjectTeam: vi.fn().mockResolvedValue('t1'),
   },
 }))
+
+function watermarkMediaInfo(overrides: Partial<PrismaJson.MediaInfo> = {}): PrismaJson.MediaInfo {
+  return {
+    duration: 1,
+    filesize: 100,
+    frames: 30,
+    proxyType: 'video',
+    imageTranscodes: [],
+    videoTranscodes: [],
+    finishedAt: new Date().toISOString(),
+    metadata: {
+      originalHeight: 360,
+      originalWidth: 640,
+      hasAudio: false,
+      duration: 1,
+      bitRate: 0,
+      frameRate: 30,
+      totalFrames: 30,
+      startTimecode: '00:00:00:00',
+      format: {},
+    },
+    original: {
+      key: 'files/orig.mp4',
+      downloadUrl: 'u',
+      filesizeInBytes: 100,
+      codec: '',
+    },
+    ...overrides,
+  }
+}
 
 describe('Share API', () => {
   const app = new Hono()
@@ -179,6 +211,294 @@ describe('Share API', () => {
           order: 'asc',
         }),
       )
+    })
+
+    test('applies per-file watermark proxies when watermark enabled', async () => {
+      vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue({
+        id: 'share1',
+        name: 'My Share',
+        isDisabled: false,
+        rootFolderId: 'folder1',
+        projectId: 'project1',
+        password: null,
+        expireAt: null,
+        watermarkConfigId: 'cfg1',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+      vi.spyOn(assetService, 'listChildren').mockResolvedValue({
+        data: [
+          {
+            id: 'video-ready',
+            name: 'a.mp4',
+            sizeByte: 1,
+            fileCount: 0,
+            type: 'file',
+            status: 'processed',
+            proxyType: 'video',
+            media: {
+              proxyType: 'video',
+              videoTranscodes: [
+                {
+                  id: 'orig',
+                  url: 'u',
+                  key: 'files/orig.mp4',
+                  width: 640,
+                  height: 360,
+                  size: 1,
+                  isRaw: false,
+                },
+              ],
+              imageTranscodes: [],
+              original: { downloadUrl: 'u', key: 'files/orig.mp4' },
+            },
+          },
+          {
+            id: 'video-pending',
+            name: 'b.mp4',
+            sizeByte: 1,
+            fileCount: 0,
+            type: 'file',
+            status: 'processed',
+            proxyType: 'video',
+            media: {
+              proxyType: 'video',
+              videoTranscodes: [
+                {
+                  id: 'orig',
+                  url: 'u',
+                  key: 'files/orig.mp4',
+                  width: 640,
+                  height: 360,
+                  size: 1,
+                  isRaw: false,
+                },
+              ],
+              imageTranscodes: [],
+              original: { downloadUrl: 'u', key: 'files/orig.mp4' },
+            },
+          },
+          {
+            id: 'doc',
+            name: 'c.pdf',
+            sizeByte: 1,
+            fileCount: 0,
+            type: 'file',
+            status: 'processed',
+            proxyType: 'pdf',
+            media: {
+              proxyType: 'pdf',
+              pdfTranscode: { url: 'u', key: 'files/doc.pdf' },
+              videoTranscodes: [],
+              imageTranscodes: [],
+              original: { downloadUrl: 'u', key: 'files/doc.pdf' },
+            },
+          },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ] as any,
+        pageInfo: { total: 3, cursor: undefined },
+      })
+      vi.spyOn(assetService, 'resolveTargetAssetId').mockImplementation(async (id) => id)
+      vi.spyOn(s3Service, 'presign').mockResolvedValue('http://s3/presigned')
+      vi.spyOn(watermarkService, 'getCompletedWatermarkMediaMap').mockResolvedValue(
+        new Map([
+          [
+            'video-ready',
+            watermarkMediaInfo({
+              videoTranscodes: [{ key: 'files/wm-a.mp4', width: 640, height: 360 }],
+            }),
+          ],
+        ]),
+      )
+
+      const res = await app.request('/shares/share1/folders/folder1/children?assetType=file', {
+        method: 'GET',
+        headers: { 'x-share-password': 'pass' },
+      })
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      // Ready item → watermarked proxy
+      expect(body.data[0].media.videoTranscodes).toEqual([
+        {
+          id: 'files/wm-a.mp4',
+          url: 'http://s3/presigned',
+          key: 'files/wm-a.mp4',
+          width: 640,
+          height: 360,
+          size: 0,
+          isRaw: false,
+        },
+      ])
+      // Pending item → original transcodes emptied
+      expect(body.data[1].media.videoTranscodes).toEqual([])
+      expect(body.data[1].media.imageTranscodes).toEqual([])
+      // Non-media item → untouched
+      expect(body.data[2].media.pdfTranscode).toEqual({ url: 'u', key: 'files/doc.pdf' })
+    })
+  })
+
+  describe('GET /shares/:shareId/files/:fileId', () => {
+    const shareLinkWithWatermark = {
+      id: 'share1',
+      name: 'My Share',
+      isDisabled: false,
+      rootFolderId: 'folder1',
+      projectId: 'project1',
+      password: null,
+      expireAt: null,
+      watermarkConfigId: 'cfg1',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any
+
+    const videoAsset = {
+      id: 'file1',
+      name: 'video.mp4',
+      sizeByte: 1024,
+      fileCount: 0,
+      type: 'file',
+      status: 'processed',
+      proxyType: 'video',
+      media: {
+        proxyType: 'video',
+        videoTranscodes: [
+          {
+            id: 'orig-360p',
+            url: 'http://s3/original-360p',
+            key: 'files/original-360p.mp4',
+            width: 640,
+            height: 360,
+            size: 100,
+            isRaw: false,
+          },
+        ],
+        imageTranscodes: [],
+        original: { downloadUrl: 'http://s3/original', key: 'files/original.mp4' },
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any
+
+    beforeEach(() => {
+      vi.spyOn(assetService, 'getAsset').mockResolvedValue(videoAsset)
+      vi.spyOn(assetService, 'resolveTargetAssetId').mockResolvedValue('file1')
+      vi.spyOn(s3Service, 'presign').mockResolvedValue('http://s3/presigned')
+    })
+
+    test('serves watermarked transcodes when watermark enabled and completed', async () => {
+      vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue(shareLinkWithWatermark)
+      vi.spyOn(watermarkService, 'getCompletedWatermarkMediaMap').mockResolvedValue(
+        new Map([
+          [
+            'file1',
+            watermarkMediaInfo({
+              videoTranscodes: [{ key: 'files/watermarked-360p.mp4', width: 640, height: 360 }],
+            }),
+          ],
+        ]),
+      )
+
+      const res = await app.request('/shares/share1/files/file1', {
+        method: 'GET',
+        headers: { 'x-share-password': 'pass' },
+      })
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.media.videoTranscodes).toEqual([
+        {
+          id: 'files/watermarked-360p.mp4',
+          url: 'http://s3/presigned',
+          key: 'files/watermarked-360p.mp4',
+          width: 640,
+          height: 360,
+          size: 0,
+          isRaw: false,
+        },
+      ])
+      expect(body.media.imageTranscodes).toEqual([])
+    })
+
+    test('serves empty transcode arrays while watermark transcoding is in flight', async () => {
+      vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue(shareLinkWithWatermark)
+      vi.spyOn(watermarkService, 'getCompletedWatermarkMediaMap').mockResolvedValue(new Map())
+
+      const res = await app.request('/shares/share1/files/file1', {
+        method: 'GET',
+        headers: { 'x-share-password': 'pass' },
+      })
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.media.videoTranscodes).toEqual([])
+      expect(body.media.imageTranscodes).toEqual([])
+    })
+
+    test('leaves non-video/image media untouched when watermark enabled', async () => {
+      vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue(shareLinkWithWatermark)
+      vi.spyOn(assetService, 'getAsset').mockResolvedValue({
+        id: 'file1',
+        name: 'doc.pdf',
+        sizeByte: 1024,
+        fileCount: 0,
+        type: 'file',
+        status: 'processed',
+        proxyType: 'pdf',
+        media: {
+          proxyType: 'pdf',
+          pdfTranscode: { url: 'http://s3/doc', key: 'files/doc.pdf' },
+          videoTranscodes: [],
+          imageTranscodes: [],
+          original: { downloadUrl: 'http://s3/doc-original', key: 'files/doc.pdf' },
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+      const resolveSpy = vi.spyOn(assetService, 'resolveTargetAssetId')
+      const wfSpy = vi.spyOn(watermarkService, 'getCompletedWatermarkMediaMap')
+
+      const res = await app.request('/shares/share1/files/file1', {
+        method: 'GET',
+        headers: { 'x-share-password': 'pass' },
+      })
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.media.pdfTranscode).toEqual({ url: 'http://s3/doc', key: 'files/doc.pdf' })
+      expect(resolveSpy).not.toHaveBeenCalled()
+      expect(wfSpy).not.toHaveBeenCalled()
+    })
+
+    test('serves original media unchanged when watermark disabled', async () => {
+      vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue({
+        id: 'share1',
+        name: 'My Share',
+        isDisabled: false,
+        rootFolderId: 'folder1',
+        projectId: 'project1',
+        password: null,
+        expireAt: null,
+        watermarkConfigId: null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+      const wfSpy = vi.spyOn(watermarkService, 'getCompletedWatermarkMediaMap')
+
+      const res = await app.request('/shares/share1/files/file1', {
+        method: 'GET',
+        headers: { 'x-share-password': 'pass' },
+      })
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.media.videoTranscodes).toEqual([
+        {
+          id: 'orig-360p',
+          url: 'http://s3/original-360p',
+          key: 'files/original-360p.mp4',
+          width: 640,
+          height: 360,
+          size: 100,
+          isRaw: false,
+        },
+      ])
+      expect(wfSpy).not.toHaveBeenCalled()
     })
   })
 
