@@ -497,7 +497,6 @@ export function WatermarkEditorDialog({
       setBlocks(clonedBlocks)
       setSelectedBlockId(clonedBlocks[0].id)
       setLoadedTemplateId(tpl.id)
-      toast.success(m.template_saved())
     }
   }
 
