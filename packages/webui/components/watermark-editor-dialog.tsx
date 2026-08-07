@@ -115,6 +115,17 @@ const PRESET_BACKGROUND_OPTIONS = [
   { id: 'green', label: 'Chroma Green', bg: '#059669', dot: '#047857' },
 ]
 
+// Numeric ratios for the preview aspect-ratio toggle. Used to compute the
+// fitted canvas size ("contain" fit) so the preview canvas always keeps the
+// selected aspect ratio strictly, no matter the window dimensions.
+const ASPECT_RATIOS = {
+  '16:9': 16 / 9,
+  '9:16': 9 / 16,
+  '4:3': 4 / 3,
+  '3:4': 3 / 4,
+  '1:1': 1,
+}
+
 interface WatermarkEditorDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -146,37 +157,61 @@ export function WatermarkEditorDialog({
   const [targetOverwriteTemplateId, setTargetOverwriteTemplateId] = useState<string | null>(null)
 
   const canvasRef = useRef<HTMLDivElement>(null)
-  const [canvasWidthPx, setCanvasWidthPx] = useState(0)
+  const canvasFrameRef = useRef<HTMLDivElement>(null)
+  // Fitted size (px) of the preview canvas: the largest box with the selected
+  // aspect ratio that fully fits inside the measured frame ("contain" fit).
+  // This keeps the aspect ratio strict regardless of window dimensions —
+  // relying on CSS alone (e.g. `aspect-[16/9] w-full max-h-full`) breaks the
+  // ratio as soon as the frame is wide-and-short (or tall-and-narrow), because
+  // `w-full` pins the width while `max-h-full` clamps the height.
+  const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 })
   const [isDragging, setIsDragging] = useState(false)
 
-  // Measure the preview canvas width so block sizes (stored as a fraction of
-  // the canvas width) render at the correct pixel size inside the preview.
+  // Measure the preview canvas frame and compute the fitted canvas size so
+  // (a) block sizes (stored as a fraction of the canvas width) render at the
+  // correct pixel size inside the preview, and (b) the canvas strictly keeps
+  // the selected aspect ratio while fully fitting inside the frame.
   //
   // This is attached via a ref callback instead of a useEffect([open]):
   // the Radix Dialog defers mounting its content to a later commit, so the
-  // canvas element does not exist yet when a [open]-keyed effect first runs —
-  // canvasWidthPx stays 0 and every block silently falls back to the hardcoded
-  // 640px width (`block.size * (canvasWidthPx || 640)`), making the preview
+  // frame element does not exist yet when a [open]-keyed effect first runs —
+  // canvasSize stays 0 and every block silently falls back to the hardcoded
+  // 640px width (`block.size * (canvasSize.w || 640)`), making the preview
   // render ~72% of the real watermark size. The ref callback fires exactly
-  // when the node mounts, regardless of dialog mount timing.
+  // when the node mounts, regardless of dialog mount timing, and re-runs when
+  // `aspectRatio` changes so the fit is recomputed on ratio switch.
   //
-  // clientWidth (padding-box width) is measured instead of
-  // getBoundingClientRect().width because the latter includes ancestor CSS
+  // clientWidth/clientHeight (padding-box) are measured instead of
+  // getBoundingClientRect() because the latter includes ancestor CSS
   // transforms (the dialog's zoom-in-95 open animation), which would skew it.
-  const setCanvasRef = useCallback((el: HTMLDivElement | null) => {
-    canvasRef.current = el
-    if (!el) return
-    const update = () => {
-      setCanvasWidthPx(el.clientWidth)
-    }
-    update()
-    const observer = new ResizeObserver(update)
-    observer.observe(el)
-    return () => {
-      observer.disconnect()
-      canvasRef.current = null
-    }
-  }, [])
+  const setCanvasFrameRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      canvasFrameRef.current = el
+      if (!el) return
+      const update = () => {
+        const frameW = el.clientWidth
+        const frameH = el.clientHeight
+        if (frameW <= 0 || frameH <= 0) return
+        const ratio = ASPECT_RATIOS[aspectRatio]
+        // "contain" fit: largest box with the given ratio inside the frame
+        let w = frameW
+        let h = w / ratio
+        if (h > frameH) {
+          h = frameH
+          w = h * ratio
+        }
+        setCanvasSize({ w: Math.round(w), h: Math.round(h) })
+      }
+      update()
+      const observer = new ResizeObserver(update)
+      observer.observe(el)
+      return () => {
+        observer.disconnect()
+        canvasFrameRef.current = null
+      }
+    },
+    [aspectRatio],
+  )
 
   const contextTeamId = useTeamContextStore((s) => s.teamId)
   const activeTeamId = teamId || contextTeamId
@@ -646,19 +681,28 @@ export function WatermarkEditorDialog({
               </div>
 
               {/* Canvas Frame */}
-              <div className="flex-1 flex items-center justify-center overflow-hidden">
+              <div
+                ref={setCanvasFrameRef}
+                className="flex-1 flex items-center justify-center overflow-hidden"
+              >
                 {(() => {
                   const activeBg =
                     PRESET_BACKGROUND_OPTIONS.find((b) => b.id === bgColor) ||
                     PRESET_BACKGROUND_OPTIONS[0]
+                  const hasFittedSize = canvasSize.w > 0 && canvasSize.h > 0
                   return (
                     <div
-                      ref={setCanvasRef}
+                      ref={canvasRef}
                       onClick={() => setSelectedBlockId(null)}
                       style={{
                         backgroundColor: activeBg.bg,
                         backgroundImage: `radial-gradient(${activeBg.dot} 1px, transparent 1px)`,
                         backgroundSize: '16px 16px',
+                        // Explicit fitted size keeps the aspect ratio strict.
+                        // The aspect-* classes below remain as a first-paint
+                        // fallback for the moment before the frame is measured
+                        // by the ResizeObserver above.
+                        ...(hasFittedSize ? { width: canvasSize.w, height: canvasSize.h } : {}),
                       }}
                       className={cn(
                         'relative rounded-lg border border-border overflow-hidden shadow-inner transition-all',
@@ -674,7 +718,7 @@ export function WatermarkEditorDialog({
                         const isSelected = block.id === selectedBlockId
                         // Preview scale: size is a fraction of the canvas width, so
                         // multiply by the measured preview box width (fallback 640px).
-                        const blockSizePx = block.size * (canvasWidthPx || 640)
+                        const blockSizePx = block.size * (canvasSize.w || 640)
                         return (
                           <div
                             key={block.id}
@@ -847,7 +891,11 @@ export function WatermarkEditorDialog({
               </div>
 
               {/* Property Controls */}
-              <ScrollArea className="flex-1 p-4">
+              {/* min-h-0 lets the ScrollArea shrink to the column's remaining
+                  height instead of growing to its content height (flex items
+                  default to min-height:auto), which would overflow the column
+                  and collapse the scrollable range to ~0. */}
+              <ScrollArea className="flex-1 min-h-0 p-4">
                 {selectedBlock ? (
                   <div className="space-y-5 text-xs">
                     {/* Block Type Badge */}
