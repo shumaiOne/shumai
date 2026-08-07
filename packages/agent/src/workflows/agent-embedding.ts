@@ -91,20 +91,14 @@ export async function agentEmbeddingMedia(task: WorkflowTask): Promise<void> {
       const media = asset.media as any
       if (isVideo) {
         if (media.videoTranscodes && media.videoTranscodes.length > 0) {
-          // Find first non-raw transcode or fallback to first transcode
-          const transcode =
-            media.videoTranscodes.find((t: PrismaJson.VideoTranscode) => !t.isRaw) ||
-            media.videoTranscodes[0]
+          const transcode = media.videoTranscodes[0] as PrismaJson.VideoTranscode
           if (transcode?.key) {
             embeddingKey = transcode.key
           }
         }
       } else if (isImage) {
         if (media.imageTranscodes && media.imageTranscodes.length > 0) {
-          // Find first non-raw transcode or fallback to first transcode
-          const transcode =
-            media.imageTranscodes.find((t: PrismaJson.ImageTranscode) => !t.isRaw) ||
-            media.imageTranscodes[0]
+          const transcode = media.imageTranscodes[0] as PrismaJson.ImageTranscode
           if (transcode?.key) {
             embeddingKey = transcode.key
             if (transcode.format) {

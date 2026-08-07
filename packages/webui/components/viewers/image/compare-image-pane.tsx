@@ -111,11 +111,7 @@ export const CompareImagePane = forwardRef<ComparePaneHandle, CompareImagePanePr
       })
     }, [baseScale, conW, conH, imgW, imgH])
 
-    let bestUrl = file.media?.original?.downloadUrl
-    const bestTranscode = getBestTranscode(file.media?.imageTranscodes, screenWidth)
-    if (bestTranscode?.url) {
-      bestUrl = bestTranscode.url
-    }
+    const bestUrl = getBestTranscode(file.media?.imageTranscodes, screenWidth)?.url ?? ''
 
     const handleDownload = useCallback(async () => {
       const key = file.media?.original?.key

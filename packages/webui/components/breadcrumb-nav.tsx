@@ -71,7 +71,6 @@ interface BreadcrumbNavProps {
       key: string
       width: number
       height: number
-      isRaw?: boolean
     }>
   }
   versions?: Array<{
@@ -159,10 +158,7 @@ export function BreadcrumbNav({
   }
 
   const isAudio = currentAsset.proxyType === 'audio'
-  const hasVideoTranscodes =
-    !isAudio &&
-    downloadInfo?.videoTranscodes &&
-    downloadInfo.videoTranscodes.filter((t) => !t.isRaw).length > 0
+  const hasVideoTranscodes = !isAudio && (downloadInfo?.videoTranscodes?.length ?? 0) > 0
 
   const breadcrumbs: { name: string; path?: string; id?: string; isMuted?: boolean }[] = isPublic
     ? [
@@ -244,28 +240,26 @@ export function BreadcrumbNav({
                       <DropdownMenuPortal>
                         <DropdownMenuSubContent className="w-48">
                           <DropdownMenuLabel>{m.download()}</DropdownMenuLabel>
-                          {downloadInfo?.videoTranscodes
-                            ?.filter((t) => !t.isRaw)
-                            .map((t) => {
-                              const longSide = Math.max(t.width, t.height)
-                              let resolution = `${t.height}p`
-                              if (longSide >= 3840) resolution = '2160p'
-                              else if (longSide >= 1920) resolution = '1080p'
-                              else if (longSide >= 1280) resolution = '720p'
-                              else if (longSide >= 960) resolution = '540p'
-                              else if (longSide >= 640) resolution = '360p'
-                              else if (longSide >= 320) resolution = '180p'
-                              return (
-                                <DropdownMenuItem
-                                  key={resolution}
-                                  onClick={() => handleDownload(t.key)}
-                                  className="flex items-center justify-between"
-                                >
-                                  <span>{resolution}</span>
-                                  <span className="text-xs text-muted-foreground">MP4</span>
-                                </DropdownMenuItem>
-                              )
-                            })}
+                          {downloadInfo?.videoTranscodes?.map((t) => {
+                            const longSide = Math.max(t.width, t.height)
+                            let resolution = `${t.height}p`
+                            if (longSide >= 3840) resolution = '2160p'
+                            else if (longSide >= 1920) resolution = '1080p'
+                            else if (longSide >= 1280) resolution = '720p'
+                            else if (longSide >= 960) resolution = '540p'
+                            else if (longSide >= 640) resolution = '360p'
+                            else if (longSide >= 320) resolution = '180p'
+                            return (
+                              <DropdownMenuItem
+                                key={resolution}
+                                onClick={() => handleDownload(t.key)}
+                                className="flex items-center justify-between"
+                              >
+                                <span>{resolution}</span>
+                                <span className="text-xs text-muted-foreground">MP4</span>
+                              </DropdownMenuItem>
+                            )
+                          })}
                           {downloadInfo?.originalKey && (
                             <>
                               <DropdownMenuSeparator />

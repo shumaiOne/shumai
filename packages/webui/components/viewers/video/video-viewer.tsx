@@ -18,9 +18,67 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
   ) => {
     const localPlayerRef = useRef<Player | null>(null)
     const playerRef = localPlayerRef
-    const hasMedia = !!data.media?.original?.downloadUrl && !!data.media?.metadata
+    const resolutions: DisplayTranscode[] = (data.media?.videoTranscodes ?? []).map((t) => {
+      const longSide = Math.max(t.width, t.height)
+      let resolution = `${t.height}p`
+      if (longSide >= 3840) resolution = '2160p'
+      else if (longSide >= 1920) resolution = '1080p'
+      else if (longSide >= 1280) resolution = '720p'
+      else if (longSide >= 960) resolution = '540p'
+      else if (longSide >= 640) resolution = '360p'
+      else if (longSide >= 320) resolution = '180p'
+
+      return {
+        ...t,
+        resolution,
+      }
+    })
+    // Only transcoded proxy versions are ever displayed; the raw original file
+    // is never used as a playback source.
+    const hasMedia = resolutions.length > 0 && !!data.media?.metadata
     // We use a container ref to manually append the video element
     const videoContainerRef = useRef<HTMLDivElement>(null)
+
+    // Logic to select best resolution based on screen size
+    const getInitialResolution = (): DisplayTranscode | null => {
+      if (resolutions.length === 0) return null
+
+      if (typeof window === 'undefined') return resolutions[0]
+
+      // Use device pixel ratio for high DPI screens
+      const screenWidth = window.innerWidth * (window.devicePixelRatio || 1)
+
+      // 1. Sort by width ascending
+      const sortedResolutions = [...resolutions].sort((a, b) => {
+        const wA = a.width ?? 0
+        const wB = b.width ?? 0
+        return wA - wB
+      })
+
+      // 2. Find first one >= screenWidth
+      const bestFit = sortedResolutions.find((r) => (r.width ?? 0) >= screenWidth)
+
+      // 3. If found, return it. If not (all are smaller), return the last one (largest).
+      return bestFit || sortedResolutions[sortedResolutions.length - 1]
+    }
+
+    const initialRes = getInitialResolution()
+
+    // State
+    const [state, setState] = useState<PlayerState>({
+      isPlaying: false,
+      progress: 0,
+      currentTime: 0,
+      duration: data.media?.metadata?.duration || 0,
+      volume: 1,
+      isMuted: false,
+      isLooping: false,
+      playbackRate: 1,
+      isFullScreen: false,
+      showFrames: false,
+      currentResolution: initialRes?.resolution ?? '',
+      currentSrc: initialRes?.url ?? '',
+    })
     const containerRef = useRef<HTMLDivElement>(null)
     const rootRef = useRef<HTMLDivElement>(null)
     const controlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -113,76 +171,6 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
     }, [])
 
     // Initial resolution setup
-    const originalRes: DisplayTranscode = {
-      id: 'original',
-      url: data.media?.original?.downloadUrl || '',
-      key: data.media?.original?.key ?? '',
-      width: data.media?.metadata?.originalWidth ?? 0,
-      height: data.media?.metadata?.originalHeight ?? 0,
-      size: 0,
-      isRaw: true,
-      resolution: 'Original',
-    }
-
-    const resolutions: DisplayTranscode[] = (data.media?.videoTranscodes ?? []).map((t) => {
-      const longSide = Math.max(t.width, t.height)
-      let resolution = `${t.height}p`
-      if (longSide >= 3840) resolution = '2160p'
-      else if (longSide >= 1920) resolution = '1080p'
-      else if (longSide >= 1280) resolution = '720p'
-      else if (longSide >= 960) resolution = '540p'
-      else if (longSide >= 640) resolution = '360p'
-      else if (longSide >= 320) resolution = '180p'
-
-      return {
-        ...t,
-        resolution: t.isRaw ? 'Original' : resolution,
-      }
-    })
-
-    const previewResolutions = resolutions.filter((r) => !r.isRaw)
-
-    // Logic to select best resolution based on screen size
-    const getInitialResolution = (): DisplayTranscode => {
-      if (previewResolutions.length === 0) return originalRes
-
-      if (typeof window === 'undefined') return previewResolutions[0]
-
-      // Use device pixel ratio for high DPI screens
-      const screenWidth = window.innerWidth * (window.devicePixelRatio || 1)
-
-      // 1. Sort by width ascending
-      const sortedResolutions = [...previewResolutions].sort((a, b) => {
-        const wA = a.width ?? 0
-        const wB = b.width ?? 0
-        return wA - wB
-      })
-
-      // 2. Find first one >= screenWidth
-      const bestFit = sortedResolutions.find((r) => (r.width ?? 0) >= screenWidth)
-
-      // 3. If found, return it. If not (all are smaller), return the last one (largest).
-      return bestFit || sortedResolutions[sortedResolutions.length - 1]
-    }
-
-    const initialRes = getInitialResolution()
-
-    // State
-    const [state, setState] = useState<PlayerState>({
-      isPlaying: false,
-      progress: 0,
-      currentTime: 0,
-      duration: data.media?.metadata?.duration || 0,
-      volume: 1,
-      isMuted: false,
-      isLooping: false,
-      playbackRate: 1,
-      isFullScreen: false,
-      showFrames: false,
-      currentResolution: initialRes?.resolution || 'Original',
-      currentSrc: initialRes?.url || '',
-    })
-
     const [buffered, setBuffered] = useState(0)
     const [isControlsVisible, setIsControlsVisible] = useState(true)
     const [isPlayerReady, setIsPlayerReady] = useState(false)

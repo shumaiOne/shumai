@@ -213,7 +213,6 @@ describe('Watermark Activities', () => {
             },
             original: {
               key,
-              downloadUrl: '',
               filesizeInBytes: 0,
               codec: '',
             },
@@ -293,66 +292,6 @@ describe('Watermark Activities', () => {
       )
 
       fs.rmSync(outFilePath, { force: true })
-    })
-
-    it('skips the raw (isRaw) video transcode when generating watermark proxies', async () => {
-      const assetKey = 'files/e2e-wm/raw-video.mp4'
-      const asset = await seedAsset('raw-video.mp4', 'video/mp4', assetKey, 'video')
-      const config = await seedConfig()
-
-      // Simulate the media state produced by transcodeVideoWorkflow: a
-      // transcoded proxy plus a raw marker entry pointing at the original file.
-      await prisma.asset.update({
-        where: { id: asset.id },
-        data: {
-          media: {
-            ...(asset.media as PrismaJson.MediaInfo),
-            videoTranscodes: [
-              { key: assetKey, width: 100, height: 100, resolution: '100p' },
-              { key: assetKey, width: 1920, height: 1080, isRaw: true },
-            ],
-          },
-        },
-      })
-
-      vi.mocked(transcodeService.getVideoInfo).mockResolvedValue({
-        originalWidth: 1920,
-        originalHeight: 1080,
-        duration: 10,
-        bitRate: 1000,
-        frameRate: 30,
-        totalFrames: 300,
-        startTimecode: '00:00:00:00',
-        hasAudio: true,
-        mimeType: 'video/mp4',
-      })
-      vi.mocked(s3Service.putObject).mockResolvedValue(undefined as never)
-
-      // The ffmpeg execFile call is mocked, but the activity stats the output
-      // file afterwards, so pre-create both expected output paths.
-      const stem = 'raw-video'
-      const configId = config.id
-      const proxyOutFilePath = path.join('/tmp', `${stem}-watermark-${configId}-100p.mp4`)
-      const rawOutFilePath = path.join('/tmp', `${stem}-watermark-${configId}-1080p.mp4`)
-      fs.writeFileSync(proxyOutFilePath, Buffer.from('fake mp4'))
-      fs.writeFileSync(rawOutFilePath, Buffer.from('fake mp4'))
-
-      try {
-        const media = await transcodeWatermarkMediaActivity({
-          assetId: asset.id,
-          watermarkConfigId: config.id,
-        })
-
-        expect(media.proxyType).toBe('video')
-        // Only the transcoded proxy should be watermarked, never the raw original.
-        expect(transcodeService.transcodeVideo).toHaveBeenCalledTimes(1)
-        expect(media.videoTranscodes).toHaveLength(1)
-        expect(media.videoTranscodes?.[0].resolution).toBe('100p')
-        expect(media.videoTranscodes?.[0].key).toContain('watermark-')
-      } finally {
-        fs.rmSync(proxyOutFilePath, { force: true })
-        fs.rmSync(rawOutFilePath, { force: true })
-      }
     })
 
     it('produces a watermarked mp4 proxy for a video asset (ffmpeg path)', async () => {
@@ -435,7 +374,6 @@ describe('Watermark Activities', () => {
         },
         original: {
           key: 'files/x/original.png',
-          downloadUrl: '',
           filesizeInBytes: 0,
           codec: '',
         },

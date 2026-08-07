@@ -75,7 +75,6 @@ export async function getMediaInfoActivity(params: {
       metadata: null,
       original: {
         key: '', // Will be filled by caller or updated later
-        downloadUrl: '',
         filesizeInBytes: 0,
         codec: '',
       },

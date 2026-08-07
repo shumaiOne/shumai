@@ -132,7 +132,7 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
       }
     }, [])
 
-    const fileUrl = file.media?.pdfTranscode?.url || file.media?.original?.downloadUrl
+    const fileUrl = file.media?.pdfTranscode?.url
 
     // Load PDF Document
     useEffect(() => {

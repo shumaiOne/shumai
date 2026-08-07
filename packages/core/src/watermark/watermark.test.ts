@@ -290,7 +290,7 @@ describe('WatermarkService', () => {
         },
         finishedAt: new Date().toISOString(),
         metadata: null,
-        original: { key: 'files/gc/original.mp4', downloadUrl: '', filesizeInBytes: 0, codec: '' },
+        original: { key: 'files/gc/original.mp4', filesizeInBytes: 0, codec: '' },
       }
     }
 

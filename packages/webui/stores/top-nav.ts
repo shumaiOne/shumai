@@ -20,7 +20,6 @@ export interface TopNavProjectState {
       key: string
       width: number
       height: number
-      isRaw?: boolean
     }>
   }
   versions?: Array<{

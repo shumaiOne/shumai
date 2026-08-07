@@ -853,13 +853,6 @@ export class AssetService {
           t.url = await s3Service.presign(process.env.S3_BUCKET || 'shumai', t.key, 'GET')
         }
       }
-      if (info.media.original?.key) {
-        info.media.original.downloadUrl = await s3Service.presign(
-          process.env.S3_BUCKET || 'shumai',
-          info.media.original.key,
-          'GET',
-        )
-      }
     }
 
     return info
@@ -1732,7 +1725,6 @@ export class AssetService {
         }
         media.original = {
           key,
-          downloadUrl: await s3Service.presign(process.env.S3_BUCKET || 'shumai', key, 'GET'),
           filesizeInBytes: Number(latestVersion.sizeByte),
           codec: '',
         }

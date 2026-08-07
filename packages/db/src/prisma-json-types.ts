@@ -74,7 +74,6 @@ declare global {
       width: number
       height: number
       resolution?: string
-      isRaw?: boolean
     }
 
     export interface ImageTranscode {
@@ -84,7 +83,6 @@ declare global {
       height: number
       quality: number
       format: string
-      isRaw?: boolean
     }
 
     export interface SpriteInfo {
@@ -117,7 +115,6 @@ declare global {
 
     export interface OriginalInfo {
       key: string
-      downloadUrl: string
       filesizeInBytes: number
       codec: string
     }

@@ -210,7 +210,6 @@ describe('transcodeVideoWorkflow', () => {
       },
       original: {
         key: 'audio.wav',
-        downloadUrl: '',
         filesizeInBytes: 0,
         codec: '',
       },

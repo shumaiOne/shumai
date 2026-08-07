@@ -123,7 +123,6 @@ describe.each(['local', 'temporal'] as const)(
             },
             original: {
               key: storageKey.key,
-              downloadUrl: '',
               filesizeInBytes: sampleBuffer.length,
               codec: '',
             },
@@ -232,12 +231,7 @@ describe.each(['local', 'temporal'] as const)(
             frames: 30,
             proxyType: 'video',
             imageTranscodes: [],
-            videoTranscodes: [
-              { key: storageKey.key, width: 640, height: 360, resolution: '360p' },
-              // Raw marker entry (as produced by transcodeVideoWorkflow) — must
-              // not be watermarked.
-              { key: storageKey.key, width: 640, height: 360, isRaw: true },
-            ],
+            videoTranscodes: [{ key: storageKey.key, width: 640, height: 360, resolution: '360p' }],
             videoPreview: { width: 640, height: 360 },
             finishedAt: new Date().toISOString(),
             metadata: {
@@ -253,7 +247,6 @@ describe.each(['local', 'temporal'] as const)(
             },
             original: {
               key: storageKey.key,
-              downloadUrl: '',
               filesizeInBytes: videoBuffer.length,
               codec: '',
             },
@@ -313,8 +306,7 @@ describe.each(['local', 'temporal'] as const)(
       expect(watermarkFile).toBeDefined()
       expect(watermarkFile?.status).toBe(WatermarkFileStatus.completed)
       expect(watermarkFile?.media).toBeDefined()
-      // Only the transcoded proxy should be watermarked — the raw marker entry
-      // (isRaw: true) must be skipped, so exactly one watermark proxy is produced.
+      // The transcoded proxy should be watermarked, producing exactly one proxy.
       const mediaInfo = watermarkFile?.media as PrismaJson.MediaInfo | null
       expect(mediaInfo?.videoTranscodes?.length).toBe(1)
       expect(mediaInfo?.videoTranscodes?.[0].resolution).toBe('360p')
@@ -384,7 +376,6 @@ describe.each(['local', 'temporal'] as const)(
               },
               original: {
                 key,
-                downloadUrl: '',
                 filesizeInBytes: buffer.length,
                 codec: '',
               },

@@ -77,7 +77,7 @@ export const assetInfoSchema = z.object({
 
   media: z
     .object({
-      original: z.object({ downloadUrl: z.string(), key: z.string().optional() }).optional(),
+      original: z.object({ key: z.string().optional() }).optional(),
       videoTranscodes: z
         .array(
           z.object({
@@ -87,7 +87,6 @@ export const assetInfoSchema = z.object({
             width: z.number(),
             height: z.number(),
             size: z.number(),
-            isRaw: z.boolean(),
           }),
         )
         .optional(),
@@ -100,7 +99,6 @@ export const assetInfoSchema = z.object({
             width: z.number(),
             height: z.number(),
             size: z.number(),
-            isRaw: z.boolean(),
           }),
         )
         .optional(),
@@ -285,7 +283,6 @@ export interface ImageTranscode {
   width: number
   height: number
   size: number
-  isRaw: boolean
 }
 
 export interface VideoTranscode {
@@ -295,7 +292,6 @@ export interface VideoTranscode {
   width: number
   height: number
   size: number
-  isRaw: boolean
 }
 
 export const postAttachmentRequestSchema = z.object({

@@ -49,7 +49,6 @@ export async function transcodeImageWorkflow(task: WorkflowTask): Promise<void> 
 
     mediaInfo.original = {
       key,
-      downloadUrl: '',
       filesizeInBytes: 0,
       codec: '',
     }

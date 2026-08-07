@@ -23,6 +23,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../../ui/dropdown-menu'
 import { Slider } from '../../ui/slider'
@@ -115,7 +116,6 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
   const overlay = state.isFullScreen && floatOverlayInFullScreen
 
   const isAudio = data.proxyType === 'audio'
-  const previewResolutions = resolutions.filter((r) => !r.isRaw)
 
   const startTimecode = data.media?.metadata?.startTimecode
   const displayTotalFrames = Math.max(0, totalFrames - 1)
@@ -311,7 +311,7 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
           </DropdownMenu>
 
           {/* Settings / Resolution */}
-          {!isAudio && previewResolutions.length > 0 && (
+          {!isAudio && resolutions.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-1 rounded border border-border px-2 py-0.5 text-sm font-semibold hover:bg-muted transition-colors">
@@ -326,7 +326,7 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
 
               <DropdownMenuContent>
                 <DropdownMenuLabel>{m.quality()}</DropdownMenuLabel>
-                {previewResolutions.map((res) => (
+                {resolutions.map((res) => (
                   <DropdownMenuItem
                     key={res.resolution}
                     onClick={() => changeResolution(res)}
@@ -372,12 +372,24 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
                     onClick={() => handleDownload(res.key ?? '')}
                     className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-foreground"
                   >
-                    <span>{res.resolution === 'Original' ? m.original() : res.resolution}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {res.isRaw ? data.name?.split('.').pop()?.toUpperCase() || 'RAW' : 'MP4'}
-                    </span>
+                    <span>{res.resolution}</span>
+                    <span className="text-xs text-muted-foreground">MP4</span>
                   </DropdownMenuItem>
                 ))}
+                {data.media?.original?.key && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => handleDownload(data.media?.original?.key ?? '')}
+                      className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-foreground"
+                    >
+                      <span>{m.original()}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {data.name?.split('.').pop()?.toUpperCase() || 'RAW'}
+                      </span>
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           )}

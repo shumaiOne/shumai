@@ -171,7 +171,6 @@ function FileViewPage() {
             key: t.key,
             width: t.width,
             height: t.height,
-            isRaw: t.isRaw,
           })),
         },
         versions: versionsDataList,
