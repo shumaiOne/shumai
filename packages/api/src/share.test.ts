@@ -96,6 +96,7 @@ describe('Share API', () => {
         id: 'share1',
         name: 'Public Share',
         isDisabled: false,
+        allowDownload: false,
         isExpired: false,
         hasPassword: true,
         rootFolderId: 'folder1',
@@ -119,6 +120,7 @@ describe('Share API', () => {
       const body = await res.json()
       expect(body.name).toBe('Public Share')
       expect(body.hasPassword).toBe(true)
+      expect(body.allowDownload).toBe(false)
       expect(shareService.verifyPublicAccess).toHaveBeenCalledWith('folder1', 'pass')
     })
 
@@ -127,6 +129,7 @@ describe('Share API', () => {
         id: 'share1',
         name: 'Public Share',
         isDisabled: false,
+        allowDownload: false,
         isExpired: false,
         hasPassword: true,
         rootFolderId: 'folder1',
@@ -153,6 +156,7 @@ describe('Share API', () => {
         id: 'share1',
         name: 'Public Share',
         isDisabled: false,
+        allowDownload: false,
         isExpired: false,
         hasPassword: true,
         rootFolderId: 'folder1',
@@ -180,6 +184,7 @@ describe('Share API', () => {
         id: 'share1',
         name: 'My Share',
         isDisabled: false,
+        allowDownload: false,
         rootFolderId: 'folder1',
         projectId: 'project1',
         password: null,
@@ -217,6 +222,7 @@ describe('Share API', () => {
         id: 'share1',
         name: 'My Share',
         isDisabled: false,
+        allowDownload: false,
         rootFolderId: 'folder1',
         projectId: 'project1',
         password: null,
@@ -338,6 +344,7 @@ describe('Share API', () => {
       id: 'share1',
       name: 'My Share',
       isDisabled: false,
+      allowDownload: false,
       rootFolderId: 'folder1',
       projectId: 'project1',
       password: null,
@@ -465,6 +472,7 @@ describe('Share API', () => {
         id: 'share1',
         name: 'My Share',
         isDisabled: false,
+        allowDownload: false,
         rootFolderId: 'folder1',
         projectId: 'project1',
         password: null,
@@ -502,6 +510,7 @@ describe('Share API', () => {
         id: 'share1',
         name: 'test-share',
         isDisabled: false,
+        allowDownload: false,
         rootFolderId: 'root1',
         projectId: 'project1',
         isExpired: false,
@@ -539,6 +548,34 @@ describe('Share API', () => {
         itemId: 'share1',
       })
     })
+
+    test('Passes allowDownload to service', async () => {
+      vi.spyOn(shareService, 'createShareLink').mockResolvedValue({
+        id: 'share1',
+        name: 'test-share',
+        isDisabled: false,
+        allowDownload: false,
+        rootFolderId: 'root1',
+        projectId: 'project1',
+        isExpired: false,
+        hasPassword: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+
+      const res = await app.request('/projects/project1/shares', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'My Share', allowDownload: false }),
+      })
+
+      expect(res.status).toBe(200)
+      expect(shareService.createShareLink).toHaveBeenCalledWith(
+        'project1',
+        { name: 'My Share', allowDownload: false },
+        'user1',
+      )
+    })
   })
 
   describe('GET /projects/:projectId/shares', () => {
@@ -574,6 +611,7 @@ describe('Share API', () => {
         id: 'share1',
         name: 'test-share',
         isDisabled: false,
+        allowDownload: false,
         rootFolderId: 'root1',
         projectId: 'project1',
         isExpired: false,
@@ -604,6 +642,7 @@ describe('Share API', () => {
         id: 'share1',
         name: 'test-share',
         isDisabled: false,
+        allowDownload: false,
         rootFolderId: 'root1',
         projectId: 'project1',
         isExpired: false,
@@ -647,6 +686,7 @@ describe('Share API', () => {
         id: 'share1',
         name: 'test-share',
         isDisabled: false,
+        allowDownload: false,
         rootFolderId: 'root1',
         projectId: 'project1',
         isExpired: false,
@@ -739,9 +779,10 @@ describe('Share API', () => {
 
   describe('POST /shares/:shareId/files/:fileId/download-url', () => {
     test('Success for symlink asset in share', async () => {
-      vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue(
-        {} as unknown as Awaited<ReturnType<typeof shareService.verifyPublicAccess>>,
-      )
+      vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue({
+        allowDownload: true,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
       vi.spyOn(assetService, 'getDownloadUrl').mockResolvedValue('https://s3.example.com/download')
 
       const res = await app.request('/shares/share1/files/symlink1/download-url', {
@@ -755,6 +796,29 @@ describe('Share API', () => {
       expect(body.url).toBe('https://s3.example.com/download')
       expect(shareService.verifyPublicAccess).toHaveBeenCalledWith('symlink1', undefined)
       expect(assetService.getDownloadUrl).toHaveBeenCalledWith('symlink1', 'files/target1/fly.png')
+    })
+
+    test('Rejects when allowDownload is disabled', async () => {
+      vi.spyOn(shareService, 'verifyPublicAccess').mockResolvedValue({
+        id: 'share1',
+        name: 'No Download',
+        allowDownload: false,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+      const getDownloadUrlSpy = vi
+        .spyOn(assetService, 'getDownloadUrl')
+        .mockResolvedValue('https://s3.example.com/download')
+
+      const res = await app.request('/shares/share1/files/symlink1/download-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'files/target1/fly.png' }),
+      })
+
+      expect(res.status).toBe(403)
+      const body = await res.json()
+      expect(body.error).toBe('Download is disabled for this share link')
+      expect(getDownloadUrlSpy).not.toHaveBeenCalled()
     })
   })
 })

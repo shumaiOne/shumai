@@ -32,6 +32,7 @@ export type ShareLinkMinAggregateOutputType = {
   expireAt: Date | null
   password: string | null
   isDisabled: boolean | null
+  allowDownload: boolean | null
   defaultSortOrder: string | null
   viewMode: string | null
   createdAt: Date | null
@@ -49,6 +50,7 @@ export type ShareLinkMaxAggregateOutputType = {
   expireAt: Date | null
   password: string | null
   isDisabled: boolean | null
+  allowDownload: boolean | null
   defaultSortOrder: string | null
   viewMode: string | null
   createdAt: Date | null
@@ -66,6 +68,7 @@ export type ShareLinkCountAggregateOutputType = {
   expireAt: number
   password: number
   isDisabled: number
+  allowDownload: number
   defaultSortOrder: number
   viewMode: number
   fieldVisibility:PrismaJson.ShareLinkFieldVisibility
@@ -86,6 +89,7 @@ export type ShareLinkMinAggregateInputType = {
   expireAt?: true
   password?: true
   isDisabled?: true
+  allowDownload?: true
   defaultSortOrder?: true
   viewMode?: true
   createdAt?: true
@@ -103,6 +107,7 @@ export type ShareLinkMaxAggregateInputType = {
   expireAt?: true
   password?: true
   isDisabled?: true
+  allowDownload?: true
   defaultSortOrder?: true
   viewMode?: true
   createdAt?: true
@@ -120,6 +125,7 @@ export type ShareLinkCountAggregateInputType = {
   expireAt?: true
   password?: true
   isDisabled?: true
+  allowDownload?: true
   defaultSortOrder?: true
   viewMode?: true
   fieldVisibility?: true
@@ -211,6 +217,7 @@ export type ShareLinkGroupByOutputType = {
   expireAt: Date | null
   password: string | null
   isDisabled: boolean
+  allowDownload: boolean
   defaultSortOrder: string | null
   viewMode: string | null
   fieldVisibility:PrismaJson.ShareLinkFieldVisibility | null
@@ -250,6 +257,7 @@ export type ShareLinkWhereInput = {
   expireAt?: Prisma.DateTimeNullableFilter<"ShareLink"> | Date | string | null
   password?: Prisma.StringNullableFilter<"ShareLink"> | string | null
   isDisabled?: Prisma.BoolFilter<"ShareLink"> | boolean
+  allowDownload?: Prisma.BoolFilter<"ShareLink"> | boolean
   defaultSortOrder?: Prisma.StringNullableFilter<"ShareLink"> | string | null
   viewMode?: Prisma.StringNullableFilter<"ShareLink"> | string | null
   fieldVisibility?: Prisma.JsonNullableFilter<"ShareLink">
@@ -272,6 +280,7 @@ export type ShareLinkOrderByWithRelationInput = {
   expireAt?: Prisma.SortOrderInput | Prisma.SortOrder
   password?: Prisma.SortOrderInput | Prisma.SortOrder
   isDisabled?: Prisma.SortOrder
+  allowDownload?: Prisma.SortOrder
   defaultSortOrder?: Prisma.SortOrderInput | Prisma.SortOrder
   viewMode?: Prisma.SortOrderInput | Prisma.SortOrder
   fieldVisibility?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -298,6 +307,7 @@ export type ShareLinkWhereUniqueInput = Prisma.AtLeast<{
   expireAt?: Prisma.DateTimeNullableFilter<"ShareLink"> | Date | string | null
   password?: Prisma.StringNullableFilter<"ShareLink"> | string | null
   isDisabled?: Prisma.BoolFilter<"ShareLink"> | boolean
+  allowDownload?: Prisma.BoolFilter<"ShareLink"> | boolean
   defaultSortOrder?: Prisma.StringNullableFilter<"ShareLink"> | string | null
   viewMode?: Prisma.StringNullableFilter<"ShareLink"> | string | null
   fieldVisibility?: Prisma.JsonNullableFilter<"ShareLink">
@@ -319,6 +329,7 @@ export type ShareLinkOrderByWithAggregationInput = {
   expireAt?: Prisma.SortOrderInput | Prisma.SortOrder
   password?: Prisma.SortOrderInput | Prisma.SortOrder
   isDisabled?: Prisma.SortOrder
+  allowDownload?: Prisma.SortOrder
   defaultSortOrder?: Prisma.SortOrderInput | Prisma.SortOrder
   viewMode?: Prisma.SortOrderInput | Prisma.SortOrder
   fieldVisibility?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -343,6 +354,7 @@ export type ShareLinkScalarWhereWithAggregatesInput = {
   expireAt?: Prisma.DateTimeNullableWithAggregatesFilter<"ShareLink"> | Date | string | null
   password?: Prisma.StringNullableWithAggregatesFilter<"ShareLink"> | string | null
   isDisabled?: Prisma.BoolWithAggregatesFilter<"ShareLink"> | boolean
+  allowDownload?: Prisma.BoolWithAggregatesFilter<"ShareLink"> | boolean
   defaultSortOrder?: Prisma.StringNullableWithAggregatesFilter<"ShareLink"> | string | null
   viewMode?: Prisma.StringNullableWithAggregatesFilter<"ShareLink"> | string | null
   fieldVisibility?: Prisma.JsonNullableWithAggregatesFilter<"ShareLink">
@@ -361,6 +373,7 @@ export type ShareLinkCreateInput = {
   expireAt?: Date | string | null
   password?: string | null
   isDisabled?: boolean
+  allowDownload?: boolean
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -379,6 +392,7 @@ export type ShareLinkUncheckedCreateInput = {
   expireAt?: Date | string | null
   password?: string | null
   isDisabled?: boolean
+  allowDownload?: boolean
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -397,6 +411,7 @@ export type ShareLinkUpdateInput = {
   expireAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allowDownload?: Prisma.BoolFieldUpdateOperationsInput | boolean
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -415,6 +430,7 @@ export type ShareLinkUncheckedUpdateInput = {
   expireAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allowDownload?: Prisma.BoolFieldUpdateOperationsInput | boolean
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -433,6 +449,7 @@ export type ShareLinkCreateManyInput = {
   expireAt?: Date | string | null
   password?: string | null
   isDisabled?: boolean
+  allowDownload?: boolean
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -451,6 +468,7 @@ export type ShareLinkUpdateManyMutationInput = {
   expireAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allowDownload?: Prisma.BoolFieldUpdateOperationsInput | boolean
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -465,6 +483,7 @@ export type ShareLinkUncheckedUpdateManyInput = {
   expireAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allowDownload?: Prisma.BoolFieldUpdateOperationsInput | boolean
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -493,6 +512,7 @@ export type ShareLinkCountOrderByAggregateInput = {
   expireAt?: Prisma.SortOrder
   password?: Prisma.SortOrder
   isDisabled?: Prisma.SortOrder
+  allowDownload?: Prisma.SortOrder
   defaultSortOrder?: Prisma.SortOrder
   viewMode?: Prisma.SortOrder
   fieldVisibility?: Prisma.SortOrder
@@ -511,6 +531,7 @@ export type ShareLinkMaxOrderByAggregateInput = {
   expireAt?: Prisma.SortOrder
   password?: Prisma.SortOrder
   isDisabled?: Prisma.SortOrder
+  allowDownload?: Prisma.SortOrder
   defaultSortOrder?: Prisma.SortOrder
   viewMode?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -528,6 +549,7 @@ export type ShareLinkMinOrderByAggregateInput = {
   expireAt?: Prisma.SortOrder
   password?: Prisma.SortOrder
   isDisabled?: Prisma.SortOrder
+  allowDownload?: Prisma.SortOrder
   defaultSortOrder?: Prisma.SortOrder
   viewMode?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -712,6 +734,7 @@ export type ShareLinkCreateWithoutCreatorInput = {
   expireAt?: Date | string | null
   password?: string | null
   isDisabled?: boolean
+  allowDownload?: boolean
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -729,6 +752,7 @@ export type ShareLinkUncheckedCreateWithoutCreatorInput = {
   expireAt?: Date | string | null
   password?: string | null
   isDisabled?: boolean
+  allowDownload?: boolean
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -775,6 +799,7 @@ export type ShareLinkScalarWhereInput = {
   expireAt?: Prisma.DateTimeNullableFilter<"ShareLink"> | Date | string | null
   password?: Prisma.StringNullableFilter<"ShareLink"> | string | null
   isDisabled?: Prisma.BoolFilter<"ShareLink"> | boolean
+  allowDownload?: Prisma.BoolFilter<"ShareLink"> | boolean
   defaultSortOrder?: Prisma.StringNullableFilter<"ShareLink"> | string | null
   viewMode?: Prisma.StringNullableFilter<"ShareLink"> | string | null
   fieldVisibility?: Prisma.JsonNullableFilter<"ShareLink">
@@ -793,6 +818,7 @@ export type ShareLinkCreateWithoutProjectInput = {
   expireAt?: Date | string | null
   password?: string | null
   isDisabled?: boolean
+  allowDownload?: boolean
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -810,6 +836,7 @@ export type ShareLinkUncheckedCreateWithoutProjectInput = {
   expireAt?: Date | string | null
   password?: string | null
   isDisabled?: boolean
+  allowDownload?: boolean
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -853,6 +880,7 @@ export type ShareLinkCreateWithoutWatermarkConfigInput = {
   expireAt?: Date | string | null
   password?: string | null
   isDisabled?: boolean
+  allowDownload?: boolean
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -870,6 +898,7 @@ export type ShareLinkUncheckedCreateWithoutWatermarkConfigInput = {
   expireAt?: Date | string | null
   password?: string | null
   isDisabled?: boolean
+  allowDownload?: boolean
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -913,6 +942,7 @@ export type ShareLinkCreateWithoutRootFolderInput = {
   expireAt?: Date | string | null
   password?: string | null
   isDisabled?: boolean
+  allowDownload?: boolean
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -930,6 +960,7 @@ export type ShareLinkUncheckedCreateWithoutRootFolderInput = {
   expireAt?: Date | string | null
   password?: string | null
   isDisabled?: boolean
+  allowDownload?: boolean
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -963,6 +994,7 @@ export type ShareLinkUpdateWithoutRootFolderInput = {
   expireAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allowDownload?: Prisma.BoolFieldUpdateOperationsInput | boolean
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -980,6 +1012,7 @@ export type ShareLinkUncheckedUpdateWithoutRootFolderInput = {
   expireAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allowDownload?: Prisma.BoolFieldUpdateOperationsInput | boolean
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -997,6 +1030,7 @@ export type ShareLinkCreateManyCreatorInput = {
   expireAt?: Date | string | null
   password?: string | null
   isDisabled?: boolean
+  allowDownload?: boolean
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -1014,6 +1048,7 @@ export type ShareLinkUpdateWithoutCreatorInput = {
   expireAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allowDownload?: Prisma.BoolFieldUpdateOperationsInput | boolean
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -1031,6 +1066,7 @@ export type ShareLinkUncheckedUpdateWithoutCreatorInput = {
   expireAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allowDownload?: Prisma.BoolFieldUpdateOperationsInput | boolean
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -1048,6 +1084,7 @@ export type ShareLinkUncheckedUpdateManyWithoutCreatorInput = {
   expireAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allowDownload?: Prisma.BoolFieldUpdateOperationsInput | boolean
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -1065,6 +1102,7 @@ export type ShareLinkCreateManyProjectInput = {
   expireAt?: Date | string | null
   password?: string | null
   isDisabled?: boolean
+  allowDownload?: boolean
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -1082,6 +1120,7 @@ export type ShareLinkUpdateWithoutProjectInput = {
   expireAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allowDownload?: Prisma.BoolFieldUpdateOperationsInput | boolean
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -1099,6 +1138,7 @@ export type ShareLinkUncheckedUpdateWithoutProjectInput = {
   expireAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allowDownload?: Prisma.BoolFieldUpdateOperationsInput | boolean
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -1116,6 +1156,7 @@ export type ShareLinkUncheckedUpdateManyWithoutProjectInput = {
   expireAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allowDownload?: Prisma.BoolFieldUpdateOperationsInput | boolean
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -1133,6 +1174,7 @@ export type ShareLinkCreateManyWatermarkConfigInput = {
   expireAt?: Date | string | null
   password?: string | null
   isDisabled?: boolean
+  allowDownload?: boolean
   defaultSortOrder?: string | null
   viewMode?: string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -1150,6 +1192,7 @@ export type ShareLinkUpdateWithoutWatermarkConfigInput = {
   expireAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allowDownload?: Prisma.BoolFieldUpdateOperationsInput | boolean
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -1167,6 +1210,7 @@ export type ShareLinkUncheckedUpdateWithoutWatermarkConfigInput = {
   expireAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allowDownload?: Prisma.BoolFieldUpdateOperationsInput | boolean
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -1184,6 +1228,7 @@ export type ShareLinkUncheckedUpdateManyWithoutWatermarkConfigInput = {
   expireAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDisabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  allowDownload?: Prisma.BoolFieldUpdateOperationsInput | boolean
   defaultSortOrder?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   viewMode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   fieldVisibility?:PrismaJson.ShareLinkFieldVisibility | Prisma.NullableJsonNullValueInput
@@ -1203,6 +1248,7 @@ export type ShareLinkSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   expireAt?: boolean
   password?: boolean
   isDisabled?: boolean
+  allowDownload?: boolean
   defaultSortOrder?: boolean
   viewMode?: boolean
   fieldVisibility?: boolean
@@ -1225,6 +1271,7 @@ export type ShareLinkSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   expireAt?: boolean
   password?: boolean
   isDisabled?: boolean
+  allowDownload?: boolean
   defaultSortOrder?: boolean
   viewMode?: boolean
   fieldVisibility?: boolean
@@ -1247,6 +1294,7 @@ export type ShareLinkSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   expireAt?: boolean
   password?: boolean
   isDisabled?: boolean
+  allowDownload?: boolean
   defaultSortOrder?: boolean
   viewMode?: boolean
   fieldVisibility?: boolean
@@ -1269,6 +1317,7 @@ export type ShareLinkSelectScalar = {
   expireAt?: boolean
   password?: boolean
   isDisabled?: boolean
+  allowDownload?: boolean
   defaultSortOrder?: boolean
   viewMode?: boolean
   fieldVisibility?: boolean
@@ -1281,7 +1330,7 @@ export type ShareLinkSelectScalar = {
   watermarkStatus?: boolean
 }
 
-export type ShareLinkOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "expireAt" | "password" | "isDisabled" | "defaultSortOrder" | "viewMode" | "fieldVisibility" | "createdAt" | "updatedAt" | "projectId" | "rootFolderId" | "creatorId" | "watermarkConfigId" | "watermarkStatus", ExtArgs["result"]["shareLink"]>
+export type ShareLinkOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "expireAt" | "password" | "isDisabled" | "allowDownload" | "defaultSortOrder" | "viewMode" | "fieldVisibility" | "createdAt" | "updatedAt" | "projectId" | "rootFolderId" | "creatorId" | "watermarkConfigId" | "watermarkStatus", ExtArgs["result"]["shareLink"]>
 export type ShareLinkInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   project?: boolean | Prisma.ProjectDefaultArgs<ExtArgs>
   rootFolder?: boolean | Prisma.AssetDefaultArgs<ExtArgs>
@@ -1315,6 +1364,7 @@ export type $ShareLinkPayload<ExtArgs extends runtime.Types.Extensions.InternalA
     expireAt: Date | null
     password: string | null
     isDisabled: boolean
+    allowDownload: boolean
     defaultSortOrder: string | null
     viewMode: string | null
     /**
@@ -1760,6 +1810,7 @@ export interface ShareLinkFieldRefs {
   readonly expireAt: Prisma.FieldRef<"ShareLink", 'DateTime'>
   readonly password: Prisma.FieldRef<"ShareLink", 'String'>
   readonly isDisabled: Prisma.FieldRef<"ShareLink", 'Boolean'>
+  readonly allowDownload: Prisma.FieldRef<"ShareLink", 'Boolean'>
   readonly defaultSortOrder: Prisma.FieldRef<"ShareLink", 'String'>
   readonly viewMode: Prisma.FieldRef<"ShareLink", 'String'>
   readonly fieldVisibility: Prisma.FieldRef<"ShareLink", 'Json'>

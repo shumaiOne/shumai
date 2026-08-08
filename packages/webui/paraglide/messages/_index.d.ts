@@ -163,6 +163,8 @@ export * from "./copy_link.js";
 export * from "./view.js";
 export * from "./security.js";
 export * from "./expiration_date.js";
+export * from "./allow_download.js";
+export * from "./allow_download_description.js";
 export * from "./appearance.js";
 export * from "./grid.js";
 export * from "./list.js";

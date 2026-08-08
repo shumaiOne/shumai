@@ -7,6 +7,7 @@ export interface ShareLinkInfo {
   name: string
   expireAt?: string
   isDisabled: boolean
+  allowDownload: boolean
   hasPassword: boolean
   password?: string | null
   defaultSortOrder?: string
@@ -32,6 +33,7 @@ export const createShareLinkRequestSchema = z.object({
   expireAt: z.string().datetime().optional(),
   password: z.string().optional(),
   isDisabled: z.boolean().optional(),
+  allowDownload: z.boolean().optional(),
   defaultSortOrder: z.string().optional(),
   viewMode: z.string().optional(),
 })
@@ -43,6 +45,7 @@ export const updateShareLinkRequestSchema = z.object({
   expireAt: z.string().datetime().optional().nullable(),
   password: z.string().optional().nullable(),
   isDisabled: z.boolean().optional(),
+  allowDownload: z.boolean().optional(),
   defaultSortOrder: z.string().optional().nullable(),
   viewMode: z.string().optional().nullable(),
   fieldVisibility: z.record(z.string(), z.boolean()).optional().nullable(),

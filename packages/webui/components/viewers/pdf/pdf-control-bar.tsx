@@ -11,6 +11,8 @@ export interface PdfControlBarProps {
   onFit: () => void
   onDownload: () => void
   canDownload: boolean
+  /** When false, hides the download affordance. Defaults to true. */
+  allowDownload?: boolean
 }
 
 export function PdfControlBar({
@@ -23,6 +25,7 @@ export function PdfControlBar({
   onFit,
   onDownload,
   canDownload,
+  allowDownload = true,
 }: PdfControlBarProps) {
   return (
     <div className="relative px-4 py-3 bg-card border-t border-gray-200 dark:border-gray-700 z-10 flex items-center justify-between gap-2 transition-colors duration-200">
@@ -76,15 +79,17 @@ export function PdfControlBar({
         >
           {m.fit()}
         </button>
-        <button
-          onClick={onDownload}
-          disabled={!canDownload}
-          className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded bg-gray-200/50 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors border border-transparent disabled:opacity-50"
-          title={m.download_original_file()}
-        >
-          <Download size={14} />
-          {m.download()}
-        </button>
+        {allowDownload && (
+          <button
+            onClick={onDownload}
+            disabled={!canDownload}
+            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded bg-gray-200/50 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors border border-transparent disabled:opacity-50"
+            title={m.download_original_file()}
+          >
+            <Download size={14} />
+            {m.download()}
+          </button>
+        )}
       </div>
     </div>
   )

@@ -265,6 +265,7 @@ export const ShareLinkScalarFieldEnum = {
   expireAt: 'expireAt',
   password: 'password',
   isDisabled: 'isDisabled',
+  allowDownload: 'allowDownload',
   defaultSortOrder: 'defaultSortOrder',
   viewMode: 'viewMode',
   fieldVisibility: 'fieldVisibility',

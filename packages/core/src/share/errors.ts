@@ -30,6 +30,14 @@ export class ShareLinkPasswordInvalidError extends Error {
   }
 }
 
+export class ShareLinkDownloadDisabledError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'ShareLinkDownloadDisabledError'
+    Object.setPrototypeOf(this, ShareLinkDownloadDisabledError.prototype)
+  }
+}
+
 export class ShareLinkWatermarkProcessingError extends Error {
   constructor(message = 'Watermark transcoding is currently in progress') {
     super(message)

@@ -19,7 +19,20 @@ if (typeof window !== 'undefined' && pdfjsLib.GlobalWorkerOptions) {
 }
 
 export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
-  ({ file, annotations, shareId, children, onPlay, onPause, onTimeUpdate, startTime }, ref) => {
+  (
+    {
+      file,
+      annotations,
+      shareId,
+      children,
+      onPlay,
+      onPause,
+      onTimeUpdate,
+      startTime,
+      allowDownload,
+    },
+    ref,
+  ) => {
     const {
       isDrawing,
       currentTool,
@@ -347,6 +360,7 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
           onFit={handleFit}
           onDownload={handleDownload}
           canDownload={!!file.media?.original?.key}
+          allowDownload={allowDownload}
         />
       </div>
     )

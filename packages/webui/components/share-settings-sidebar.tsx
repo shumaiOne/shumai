@@ -241,6 +241,17 @@ export function ShareSettingsSidebar({
                   )}
                 </div>
 
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">{m.allow_download()}</Label>
+                    <Switch
+                      checked={shareLink.allowDownload}
+                      onCheckedChange={(checked) => updateShare({ allowDownload: checked })}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">{m.allow_download_description()}</p>
+                </div>
+
                 <div className="space-y-2 pt-2 border-t border-border/50">
                   <div className="flex items-center justify-between">
                     <Label className="text-xs">{m.watermark()}</Label>

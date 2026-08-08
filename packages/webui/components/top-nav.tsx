@@ -25,6 +25,7 @@ export function TopNav() {
     versions,
     isPublic,
     shareId,
+    allowDownload,
     onFolderClick,
     compareMode,
     canCompareVersions,
@@ -112,6 +113,7 @@ export function TopNav() {
       onChatbotToggle={onChatbotToggle}
       isPublic={isPublic}
       shareId={shareId}
+      allowDownload={allowDownload}
       fileId={fileId}
       downloadInfo={downloadInfo}
       versions={versions}

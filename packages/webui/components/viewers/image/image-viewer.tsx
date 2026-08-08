@@ -8,7 +8,7 @@ import { useAnnotationStore } from '@/ui/stores/annotation-store'
 import { FileViewerProps, MediaController } from '../types'
 
 export const ImageViewer = React.forwardRef<MediaController, FileViewerProps>(
-  ({ file, annotations, shareId, children }, ref) => {
+  ({ file, annotations, shareId, children, allowDownload }, ref) => {
     // Implement no-op media controller since images are static
     useImperativeHandle(ref, () => ({
       play: () => {},
@@ -215,6 +215,7 @@ export const ImageViewer = React.forwardRef<MediaController, FileViewerProps>(
           onCopy={handleCopy}
           copied={copied}
           canCopy={!!bestUrl}
+          allowDownload={allowDownload}
         />
       </div>
     )

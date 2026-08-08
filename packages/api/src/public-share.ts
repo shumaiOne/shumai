@@ -19,6 +19,7 @@ import {
   ShareLinkDisabledError,
   ShareLinkExpiredError,
   ShareLinkPasswordInvalidError,
+  ShareLinkDownloadDisabledError,
 } from '@shumai/core/src/share/errors'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import type { AssetInfo } from '@shumai/dtos'
@@ -104,6 +105,10 @@ export function handlePublicShareError(c: Context, err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
     return c.json({ error: msg }, 403)
   }
+  if (err instanceof ShareLinkDownloadDisabledError) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return c.json({ error: msg }, 403)
+  }
   if (err instanceof ShareLinkNotFoundError) {
     const msg = err instanceof Error ? err.message : String(err)
     return c.json({ error: msg }, 404)
@@ -128,6 +133,7 @@ const route = app
         name: shareLink.name,
         expireAt: shareLink.expireAt,
         isDisabled: shareLink.isDisabled,
+        allowDownload: shareLink.allowDownload,
         isExpired: shareLink.isExpired,
         hasPassword: shareLink.hasPassword,
         rootFolderId: shareLink.rootFolderId,
@@ -248,7 +254,11 @@ const route = app
       const { key } = c.req.valid('json')
 
       try {
-        await shareService.verifyPublicAccess(fileId, password)
+        const shareLink = await shareService.verifyPublicAccess(fileId, password)
+
+        if (!shareLink.allowDownload) {
+          throw new ShareLinkDownloadDisabledError('Download is disabled for this share link')
+        }
 
         if (!key.startsWith('files/')) {
           return c.json({ error: 'Invalid key' }, 400)

@@ -33,6 +33,8 @@ interface CompareViewerProps {
   onActiveAssetChange: (asset: AssetInfo | null) => void
   onPlay?: () => void
   onTimeUpdate?: (second: number) => void
+  /** When false, hides the download affordance. Defaults to true. */
+  allowDownload?: boolean
 }
 
 function useCompareAsset(id: string, isPublic: boolean, shareId?: string) {
@@ -73,6 +75,7 @@ export function CompareViewer({
   onActiveAssetChange,
   onPlay,
   onTimeUpdate,
+  allowDownload = true,
 }: CompareViewerProps) {
   const rootRef = useRef<HTMLDivElement>(null)
   const leftRef = useRef<ComparePaneHandle | null>(null)
@@ -378,6 +381,7 @@ export function CompareViewer({
         onFit={handleFit}
         onDownload={handleDownload}
         onToggleFullScreen={handleToggleFullScreen}
+        allowDownload={allowDownload}
       />
     </div>
   )
