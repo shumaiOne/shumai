@@ -623,6 +623,7 @@ export function PublicShareManager({
               isShareView={true}
               isPublic={true}
               shareId={shareId}
+              allowDownload={shareInfo.allowDownload}
             />
           )
         )}

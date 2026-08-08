@@ -45,6 +45,8 @@ interface FolderCardProps {
   setExternalOverFolderId?: (id: string | null) => void
   resetExternalDragState?: () => void
   onExternalDrop?: (files: File[], folderId: string) => void
+  /** When false, hides the download action. Defaults to true. */
+  allowDownload?: boolean
 }
 
 const FolderPreviewGrid = ({ items }: { items: ChildPreview[] }) => {
@@ -126,6 +128,7 @@ export function FolderCard({
   setExternalOverFolderId,
   resetExternalDragState,
   onExternalDrop,
+  allowDownload = true,
 }: FolderCardProps) {
   const [name, setName] = useState(item.name || '')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -361,15 +364,17 @@ export function FolderCard({
               <DropdownMenuContent align="end">
                 {isShareView ? (
                   <>
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onAction?.('download', item)
-                      }}
-                    >
-                      <Download className="mr-2 h-4 w-4" />
-                      <span>{m.download()}</span>
-                    </DropdownMenuItem>
+                    {allowDownload && (
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onAction?.('download', item)
+                        }}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        <span>{m.download()}</span>
+                      </DropdownMenuItem>
+                    )}
                     {canEdit && (
                       <DropdownMenuItem
                         onClick={(e) => {
@@ -406,15 +411,17 @@ export function FolderCard({
                         <span>{m.rename()}</span>
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onAction?.('download', item)
-                      }}
-                    >
-                      <Download className="mr-2 h-4 w-4" />
-                      <span>{m.download()}</span>
-                    </DropdownMenuItem>
+                    {allowDownload && (
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onAction?.('download', item)
+                        }}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        <span>{m.download()}</span>
+                      </DropdownMenuItem>
+                    )}
                     {canEdit && (
                       <>
                         <DropdownMenuSeparator />
