@@ -17,7 +17,7 @@ export function createListAutofillFieldsTool(
     label: 'List Autofill Fields',
     description:
       'List the AI-autofillable metadata fields defined for the project of a parent folder, including their types and available options. ' +
-      'Use this before creating a file or version so you can pass relevant context (e.g. generation source) to create_file/create_version.',
+      'Use this before creating a file or version so you can pass relevant context (e.g. the model or prompt used to generate the asset) to create_file/create_version.',
     parameters: listAutofillFieldsSchema,
     execute: async (_toolCallId, params) => {
       const result = await executeAgentToolWorkflow({
