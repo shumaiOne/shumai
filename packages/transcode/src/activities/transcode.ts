@@ -377,6 +377,7 @@ export async function transcodeImageActivity(
       outputFile,
       params.imageSpec.width,
       params.imageSpec.quality,
+      params.imageSpec.height || null,
     )
     const buffer = fs.readFileSync(outputFile)
     await s3Service.putObject(bucket, key, buffer, buffer.length, 'image/webp')

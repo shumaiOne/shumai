@@ -124,8 +124,8 @@ describe('transcodeVideoWorkflow', () => {
     })
     mockActivities.transcodeImageActivity.mockResolvedValue({
       key: 't.webp',
-      width: 480,
-      height: 270,
+      width: 300,
+      height: 169,
     })
 
     await transcodeVideoWorkflow(task)

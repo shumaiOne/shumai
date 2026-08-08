@@ -115,8 +115,8 @@ describe('transcodeImageWorkflow', () => {
 
     mockActivities.transcodeImageActivity.mockResolvedValue({
       key: 't.webp',
-      width: 480,
-      height: 480,
+      width: 300,
+      height: 300,
       format: 'webp',
     })
 
@@ -132,8 +132,8 @@ describe('transcodeImageWorkflow', () => {
       mediaInfo: expect.objectContaining({
         thumbnail: expect.objectContaining({
           key: 't.webp',
-          width: 480,
-          height: 480,
+          width: 300,
+          height: 300,
         }),
       }),
     })

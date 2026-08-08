@@ -108,7 +108,7 @@ export async function transcodeVideoWorkflow(task: WorkflowTask): Promise<void> 
       const thumbTranscode = await executeActivity(workerQueue, transcodeImageActivity, {
         assetKey: key,
         filePath,
-        imageSpec: { width: 480, height: 0, quality: 80, format: 'webp' },
+        imageSpec: { width: 300, height: 300, quality: 80, format: 'webp' },
       })
       mediaInfo.thumbnail = thumbTranscode
     }
