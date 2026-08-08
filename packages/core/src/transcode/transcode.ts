@@ -175,6 +175,11 @@ export function calculatePreviewDimensions(
   return { width: newW, height: newH }
 }
 
+export interface TranscodeImageOptions {
+  height?: number | null
+  isPreview?: boolean
+}
+
 export class TranscodeService {
   constructor(private readonly prismaClient: typeof prisma = prisma) {}
 
@@ -431,8 +436,22 @@ export class TranscodeService {
     outputFile: string,
     width: number,
     quality: number,
-    height: number | null = null,
+    heightOrOptions: number | null | TranscodeImageOptions = null,
   ): Promise<void> {
+    const height =
+      typeof heightOrOptions === 'object' && heightOrOptions !== null
+        ? (heightOrOptions.height ?? null)
+        : heightOrOptions
+    let isPreview =
+      typeof heightOrOptions === 'object' && heightOrOptions !== null
+        ? (heightOrOptions.isPreview ?? false)
+        : false
+
+    // Backward compatibility shim for legacy queued tasks or old call signatures passing width 480 or height 0
+    if (width === 480 || height === 0) {
+      isPreview = true
+    }
+
     let input: string | Buffer = inputFile
     if (typeof inputFile === 'string' && inputFile.startsWith('http')) {
       const resp = await fetch(inputFile)
@@ -448,10 +467,11 @@ export class TranscodeService {
 
     const sharpInstance = sharp(input, { limitInputPixels: false })
 
-    if (width > 0 && (height === null || height === 0 || height === width)) {
+    if (isPreview) {
       try {
         const meta = await sharpInstance.metadata()
         if (meta.width && meta.height) {
+          // Fallback shim: If legacy 480 caller passed width=480, map targetShort to 300
           const targetShort = width === 480 ? 300 : width
           const maxLong = Math.round((targetShort * 16) / 9)
           const dims = calculatePreviewDimensions(meta.width, meta.height, targetShort, maxLong)
@@ -462,6 +482,10 @@ export class TranscodeService {
         // Fallback to targetW/targetH as calculated above
       }
     }
+
+    // WEBP_MAX_DIMENSION (7680) safety cap is ALWAYS enforced
+    targetW = Math.min(targetW, WEBP_MAX_DIMENSION)
+    targetH = Math.min(targetH, WEBP_MAX_DIMENSION)
 
     if (isPsdInput(input)) {
       let psdPath: string

@@ -185,9 +185,9 @@ describe('TranscodeService', () => {
     )
   })
 
-  it('should use sharp for image transcoding with sRGB conversion', async () => {
+  it('should use sharp for image transcoding with sRGB conversion (production 300p spec)', async () => {
     const outputFile = path.join(tempDir, 'output.webp')
-    await transcodeService.transcodeImage('input.png', outputFile, 480, 80)
+    await transcodeService.transcodeImage('input.png', outputFile, 300, 80, { isPreview: true })
 
     expect(sharp).toHaveBeenCalledWith('input.png', { limitInputPixels: false })
     const mockSharp = vi.mocked(sharp).mock.results[0].value
@@ -195,6 +195,73 @@ describe('TranscodeService', () => {
     expect(mockSharp.resize).toHaveBeenCalledWith(400, 300, expect.any(Object))
     expect(mockSharp.webp).toHaveBeenCalledWith({ quality: 80 })
     expect(mockSharp.toFile).toHaveBeenCalledWith(outputFile)
+  })
+
+  it('should support legacy 480 width fallback shim', async () => {
+    const outputFile = path.join(tempDir, 'output_legacy.webp')
+    await transcodeService.transcodeImage('input.png', outputFile, 480, 80)
+
+    const mockSharp = vi.mocked(sharp).mock.results[vi.mocked(sharp).mock.results.length - 1].value
+    expect(mockSharp.resize).toHaveBeenCalledWith(400, 300, expect.any(Object))
+  })
+
+  it('should handle preview and full-res proxy dimension calculations correctly', async () => {
+    const outputFile = path.join(tempDir, 'out.webp')
+
+    // 16:9 source (1920x1080) in preview mode -> 533x300
+    const mockSharp169 = {
+      resize: vi.fn().mockReturnThis(),
+      toColorspace: vi.fn().mockReturnThis(),
+      webp: vi.fn().mockReturnThis(),
+      toFile: vi.fn().mockResolvedValue({}),
+      metadata: vi.fn().mockResolvedValue({ width: 1920, height: 1080 }),
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(sharp).mockReturnValueOnce(mockSharp169 as any)
+    await transcodeService.transcodeImage('169.png', outputFile, 300, 80, { isPreview: true })
+    expect(mockSharp169.resize).toHaveBeenCalledWith(533, 300, expect.any(Object))
+
+    // Small image (200x150) in preview mode -> 200x150
+    const mockSharpSmall = {
+      resize: vi.fn().mockReturnThis(),
+      toColorspace: vi.fn().mockReturnThis(),
+      webp: vi.fn().mockReturnThis(),
+      toFile: vi.fn().mockResolvedValue({}),
+      metadata: vi.fn().mockResolvedValue({ width: 200, height: 150 }),
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(sharp).mockReturnValueOnce(mockSharpSmall as any)
+    await transcodeService.transcodeImage('small.png', outputFile, 300, 80, { isPreview: true })
+    expect(mockSharpSmall.resize).toHaveBeenCalledWith(200, 150, expect.any(Object))
+
+    // 1:10 Tall screenshot (1000x10000) in preview mode -> 53x533
+    const mockSharpTall = {
+      resize: vi.fn().mockReturnThis(),
+      toColorspace: vi.fn().mockReturnThis(),
+      webp: vi.fn().mockReturnThis(),
+      toFile: vi.fn().mockResolvedValue({}),
+      metadata: vi.fn().mockResolvedValue({ width: 1000, height: 10000 }),
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(sharp).mockReturnValueOnce(mockSharpTall as any)
+    await transcodeService.transcodeImage('tall.png', outputFile, 300, 80, { isPreview: true })
+    expect(mockSharpTall.resize).toHaveBeenCalledWith(53, 533, expect.any(Object))
+
+    // Square full-resolution proxy (10000x10000, isPreview: false) -> capped at WEBP_MAX_DIMENSION (7680)
+    const mockSharpSquareProxy = {
+      resize: vi.fn().mockReturnThis(),
+      toColorspace: vi.fn().mockReturnThis(),
+      webp: vi.fn().mockReturnThis(),
+      toFile: vi.fn().mockResolvedValue({}),
+      metadata: vi.fn().mockResolvedValue({ width: 10000, height: 10000 }),
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(sharp).mockReturnValueOnce(mockSharpSquareProxy as any)
+    await transcodeService.transcodeImage('square.png', outputFile, 10000, 90, {
+      height: 10000,
+      isPreview: false,
+    })
+    expect(mockSharpSquareProxy.resize).toHaveBeenCalledWith(7680, 7680, expect.any(Object))
   })
 
   it('should calculate preview dimensions correctly for 300p (short side 300, max long side 533)', () => {

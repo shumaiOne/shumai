@@ -83,6 +83,7 @@ declare global {
       height: number
       quality: number
       format: string
+      isPreview?: boolean
     }
 
     export interface SpriteInfo {
