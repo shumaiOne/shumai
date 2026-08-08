@@ -78,6 +78,8 @@ export interface ControlBarProps {
   /** Fired when the cursor enters/leaves the bar (used to pin it visible). */
   onMouseEnter?: () => void
   onMouseLeave?: () => void
+  /** When false, hides the download affordance. Defaults to true. */
+  allowDownload?: boolean
 }
 
 export const VideoControlBar: React.FC<ControlBarProps> = ({
@@ -104,6 +106,7 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
   floatOverlayInFullScreen = true,
   onMouseEnter,
   onMouseLeave,
+  allowDownload = true,
 }) => {
   const { videoTimeDisplayMode, setVideoTimeDisplayMode } = useUiStore()
 
@@ -348,51 +351,52 @@ export const VideoControlBar: React.FC<ControlBarProps> = ({
           )}
 
           {/* Download */}
-          {isAudio ? (
-            <button
-              onClick={() => handleDownload(data.media?.original?.key || '')}
-              className="transition-colors hover:text-primary"
-              title={m.download()}
-              disabled={!data.media?.original?.key}
-            >
-              <Download className="h-5 w-5" />
-            </button>
-          ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="transition-colors hover:text-primary" title={m.download()}>
-                  <Download className="h-5 w-5" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuLabel>{m.download()}</DropdownMenuLabel>
-                {resolutions.map((res) => (
-                  <DropdownMenuItem
-                    key={res.resolution}
-                    onClick={() => handleDownload(res.key ?? '')}
-                    className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-foreground"
-                  >
-                    <span>{res.resolution}</span>
-                    <span className="text-xs text-muted-foreground">MP4</span>
-                  </DropdownMenuItem>
-                ))}
-                {data.media?.original?.key && (
-                  <>
-                    <DropdownMenuSeparator />
+          {allowDownload &&
+            (isAudio ? (
+              <button
+                onClick={() => handleDownload(data.media?.original?.key || '')}
+                className="transition-colors hover:text-primary"
+                title={m.download()}
+                disabled={!data.media?.original?.key}
+              >
+                <Download className="h-5 w-5" />
+              </button>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="transition-colors hover:text-primary" title={m.download()}>
+                    <Download className="h-5 w-5" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuLabel>{m.download()}</DropdownMenuLabel>
+                  {resolutions.map((res) => (
                     <DropdownMenuItem
-                      onClick={() => handleDownload(data.media?.original?.key ?? '')}
+                      key={res.resolution}
+                      onClick={() => handleDownload(res.key ?? '')}
                       className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-foreground"
                     >
-                      <span>{m.original()}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {data.name?.split('.').pop()?.toUpperCase() || 'RAW'}
-                      </span>
+                      <span>{res.resolution}</span>
+                      <span className="text-xs text-muted-foreground">MP4</span>
                     </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+                  ))}
+                  {data.media?.original?.key && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => handleDownload(data.media?.original?.key ?? '')}
+                        className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-foreground"
+                      >
+                        <span>{m.original()}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {data.name?.split('.').pop()?.toUpperCase() || 'RAW'}
+                        </span>
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ))}
 
           {/* Fullscreen */}
           <button

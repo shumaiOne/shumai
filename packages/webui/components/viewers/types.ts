@@ -19,6 +19,8 @@ export interface FileViewerProps {
   onTimeUpdate?: (time: number) => void
   startTime?: number
   shareId?: string
+  /** When false, the viewer hides its download affordances. Defaults to true. */
+  allowDownload?: boolean
   children?: React.ReactNode
 }
 

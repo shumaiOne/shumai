@@ -63,6 +63,7 @@ interface BreadcrumbNavProps {
   onChatbotToggle?: () => void
   isPublic?: boolean
   shareId?: string
+  allowDownload?: boolean
   onFolderClick?: (folderId: string) => void
   fileId?: string
   downloadInfo?: {
@@ -104,6 +105,7 @@ export function BreadcrumbNav({
   onFolderClick,
   fileId,
   shareId,
+  allowDownload = true,
   downloadInfo,
   versions,
   compareMode = false,
@@ -232,61 +234,62 @@ export function BreadcrumbNav({
                   <ChevronDown className="h-4 w-4" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56">
-                  {hasVideoTranscodes ? (
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger className="flex items-center gap-2">
-                        <span>{m.download()}</span>
-                      </DropdownMenuSubTrigger>
-                      <DropdownMenuPortal>
-                        <DropdownMenuSubContent className="w-48">
-                          <DropdownMenuLabel>{m.download()}</DropdownMenuLabel>
-                          {downloadInfo?.videoTranscodes?.map((t) => {
-                            const longSide = Math.max(t.width, t.height)
-                            let resolution = `${t.height}p`
-                            if (longSide >= 3840) resolution = '2160p'
-                            else if (longSide >= 1920) resolution = '1080p'
-                            else if (longSide >= 1280) resolution = '720p'
-                            else if (longSide >= 960) resolution = '540p'
-                            else if (longSide >= 640) resolution = '360p'
-                            else if (longSide >= 320) resolution = '180p'
-                            return (
-                              <DropdownMenuItem
-                                key={resolution}
-                                onClick={() => handleDownload(t.key)}
-                                className="flex items-center justify-between"
-                              >
-                                <span>{resolution}</span>
-                                <span className="text-xs text-muted-foreground">MP4</span>
-                              </DropdownMenuItem>
-                            )
-                          })}
-                          {downloadInfo?.originalKey && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => handleDownload(downloadInfo.originalKey!)}
-                                className="flex items-center justify-between"
-                              >
-                                <span>Original</span>
-                                <span className="text-xs text-muted-foreground">
-                                  {currentAsset.name?.split('.').pop()?.toUpperCase() || 'RAW'}
-                                </span>
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuSubContent>
-                      </DropdownMenuPortal>
-                    </DropdownMenuSub>
-                  ) : (
-                    <DropdownMenuItem
-                      onClick={() =>
-                        downloadInfo?.originalKey && handleDownload(downloadInfo.originalKey)
-                      }
-                      disabled={!downloadInfo?.originalKey}
-                    >
-                      {m.download()}
-                    </DropdownMenuItem>
-                  )}
+                  {allowDownload &&
+                    (hasVideoTranscodes ? (
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger className="flex items-center gap-2">
+                          <span>{m.download()}</span>
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuPortal>
+                          <DropdownMenuSubContent className="w-48">
+                            <DropdownMenuLabel>{m.download()}</DropdownMenuLabel>
+                            {downloadInfo?.videoTranscodes?.map((t) => {
+                              const longSide = Math.max(t.width, t.height)
+                              let resolution = `${t.height}p`
+                              if (longSide >= 3840) resolution = '2160p'
+                              else if (longSide >= 1920) resolution = '1080p'
+                              else if (longSide >= 1280) resolution = '720p'
+                              else if (longSide >= 960) resolution = '540p'
+                              else if (longSide >= 640) resolution = '360p'
+                              else if (longSide >= 320) resolution = '180p'
+                              return (
+                                <DropdownMenuItem
+                                  key={resolution}
+                                  onClick={() => handleDownload(t.key)}
+                                  className="flex items-center justify-between"
+                                >
+                                  <span>{resolution}</span>
+                                  <span className="text-xs text-muted-foreground">MP4</span>
+                                </DropdownMenuItem>
+                              )
+                            })}
+                            {downloadInfo?.originalKey && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => handleDownload(downloadInfo.originalKey!)}
+                                  className="flex items-center justify-between"
+                                >
+                                  <span>Original</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {currentAsset.name?.split('.').pop()?.toUpperCase() || 'RAW'}
+                                  </span>
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuSubContent>
+                        </DropdownMenuPortal>
+                      </DropdownMenuSub>
+                    ) : (
+                      <DropdownMenuItem
+                        onClick={() =>
+                          downloadInfo?.originalKey && handleDownload(downloadInfo.originalKey)
+                        }
+                        disabled={!downloadInfo?.originalKey}
+                      >
+                        {m.download()}
+                      </DropdownMenuItem>
+                    ))}
                   {canEdit && (
                     <DropdownMenuItem onClick={() => console.log('Rename')}>
                       Rename

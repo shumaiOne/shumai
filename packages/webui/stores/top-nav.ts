@@ -31,6 +31,8 @@ export interface TopNavProjectState {
   }>
   isPublic?: boolean
   shareId?: string
+  /** When false, the public share hides download affordances. Defaults to true. */
+  allowDownload?: boolean
   onFolderClick?: (folderId: string) => void
   isRightSidebarCollapsed?: boolean
   onRightSidebarToggle?: () => void

@@ -42,6 +42,7 @@ interface PublicShareInfo {
   isDisabled: boolean
   isExpired: boolean
   hasPassword: boolean
+  allowDownload: boolean
   rootFolderId: string
   projectId: string
   viewMode?: string | null
@@ -418,6 +419,7 @@ export function PublicShareManager({
         isPublic: true,
         shareId,
         fileId: viewingFileId || undefined,
+        allowDownload: shareInfo.allowDownload,
         downloadInfo: viewingFileData
           ? {
               originalKey: viewingFileData.media?.original?.key,
@@ -561,6 +563,7 @@ export function PublicShareManager({
                 activeSide={compareActiveSide}
                 annotations={annotations}
                 seekRequest={seekRequest}
+                allowDownload={shareInfo.allowDownload}
                 onActiveSideChange={(side) => updateCompareSearch({ cmpActive: side })}
                 onSwitchVersion={(side, versionId) =>
                   updateCompareSearch(
@@ -582,6 +585,7 @@ export function PublicShareManager({
                   annotations={annotations}
                   startTime={startTime}
                   shareId={shareId}
+                  allowDownload={shareInfo.allowDownload}
                 />
               )
             )}
@@ -619,6 +623,7 @@ export function PublicShareManager({
               isShareView={true}
               isPublic={true}
               shareId={shareId}
+              allowDownload={shareInfo.allowDownload}
             />
           )
         )}

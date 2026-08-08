@@ -11,6 +11,8 @@ export interface ImageControlBarProps {
   onCopy?: () => void
   copied?: boolean
   canCopy?: boolean
+  /** When false, hides the download affordance. Defaults to true. */
+  allowDownload?: boolean
   /** When provided, renders a fullscreen toggle (used by compare mode). */
   fullscreen?: { isFullScreen: boolean; onToggle: () => void }
 }
@@ -25,6 +27,7 @@ export function ImageControlBar({
   onCopy,
   copied = false,
   canCopy = true,
+  allowDownload = true,
   fullscreen,
 }: ImageControlBarProps) {
   return (
@@ -65,15 +68,17 @@ export function ImageControlBar({
           {copied ? m.copied() : m.copy()}
         </button>
       )}
-      <button
-        onClick={onDownload}
-        disabled={!canDownload}
-        className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded bg-gray-200/50 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors border border-transparent disabled:opacity-50 animate-in fade-in zoom-in-95 duration-200"
-        title={m.download_original_image()}
-      >
-        <Download size={14} />
-        {m.download()}
-      </button>
+      {allowDownload && (
+        <button
+          onClick={onDownload}
+          disabled={!canDownload}
+          className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded bg-gray-200/50 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition-colors border border-transparent disabled:opacity-50 animate-in fade-in zoom-in-95 duration-200"
+          title={m.download_original_image()}
+        >
+          <Download size={14} />
+          {m.download()}
+        </button>
+      )}
       {fullscreen && (
         <button
           onClick={fullscreen.onToggle}

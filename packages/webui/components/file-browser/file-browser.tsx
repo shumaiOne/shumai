@@ -92,6 +92,8 @@ interface FileBrowserProps {
   onUpdateCollection?: (updates: { name?: string; filter?: any }) => void
   rootFolderId?: string
   shareId?: string
+  /** When false, hides download affordances (used by public share views). Defaults to true. */
+  allowDownload?: boolean
 }
 
 type FileWithId = {
@@ -138,6 +140,7 @@ export function FileBrowser({
   onUpdateCollection,
   rootFolderId,
   shareId,
+  allowDownload = true,
 }: FileBrowserProps) {
   const [contextMenuItem, setContextMenuItem] = useState<AssetInfo | null>(null)
   const [moveCopyMode, setMoveCopyMode] = useState<'move' | 'copy' | null>(null)
@@ -680,6 +683,7 @@ export function FileBrowser({
       isRecentlyDeleted,
       selectedCount: selectedIds.size,
       isShareView,
+      allowDownload,
       fields: displayedFields,
       canEdit,
       isExternalDragging,
@@ -1136,19 +1140,21 @@ export function FileBrowser({
                     </span>
                   )}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() =>
-                    handleDownload(
-                      [...folders, ...displayedFiles].filter((i) => selectedIds.has(i.id!)),
-                    )
-                  }
-                  className="gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  Download
-                </Button>
+                {allowDownload && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      handleDownload(
+                        [...folders, ...displayedFiles].filter((i) => selectedIds.has(i.id!)),
+                      )
+                    }
+                    className="gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download
+                  </Button>
+                )}
               </div>
             )}
             {isExternalDragging && !externalOverFolderId && (

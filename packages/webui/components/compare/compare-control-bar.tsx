@@ -25,6 +25,8 @@ interface CompareControlBarProps {
   onFit: () => void
   onDownload: (key?: string) => void
   onToggleFullScreen: () => void
+  /** When false, hides the download affordance. Defaults to true. */
+  allowDownload?: boolean
 }
 
 export function CompareControlBar({
@@ -44,6 +46,7 @@ export function CompareControlBar({
   onFit,
   onDownload,
   onToggleFullScreen,
+  allowDownload = true,
 }: CompareControlBarProps) {
   // Active side is a video: reuse the shared VideoControlBar.
   if (activeState?.kind === 'video' && activeState.video && activeAsset) {
@@ -94,6 +97,7 @@ export function CompareControlBar({
         totalFrames={v.totalFrames}
         currentFrame={v.currentFrame}
         seekToFrame={onSeek}
+        allowDownload={allowDownload}
       />
     )
   }
@@ -109,6 +113,7 @@ export function CompareControlBar({
         onDownload={() => onDownload()}
         canDownload={!!activeAsset?.media?.original?.key}
         fullscreen={{ isFullScreen, onToggle: onToggleFullScreen }}
+        allowDownload={allowDownload}
       />
     )
   }

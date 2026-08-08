@@ -4,34 +4,34 @@ import { Button } from '@/ui/components/ui/button'
 import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '@/ui/components/ui/select'
 import { Switch } from '@/ui/components/ui/switch'
 import { WatermarkEditorDialog } from '@/ui/components/watermark-editor-dialog'
 import { copyToClipboard as copyTextToClipboard } from '@/ui/lib/clipboard'
 import { m } from '@/ui/paraglide/messages.js'
 import {
-  ShareLinkInfo,
-  UpdateShareLinkRequest,
-  type FieldInfo as MetadataFieldInfo,
+    ShareLinkInfo,
+    UpdateShareLinkRequest,
+    type FieldInfo as MetadataFieldInfo,
 } from '@shumai/dtos'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  ArrowDownUp,
-  ChevronRight,
-  Copy,
-  ExternalLink,
-  LayoutGrid,
-  List,
-  ListFilter,
-  Loader2,
-  Palette,
-  Shield,
-  SortAsc,
+    ArrowDownUp,
+    ChevronRight,
+    Copy,
+    ExternalLink,
+    LayoutGrid,
+    List,
+    ListFilter,
+    Loader2,
+    Palette,
+    Shield,
+    SortAsc,
 } from 'lucide-react'
 import React, { useState } from 'react'
 import { toast } from 'sonner'
@@ -186,7 +186,7 @@ export function ShareSettingsSidebar({
 
           <div className="space-y-1">
             <SidebarAccordionItem title={m.security()} icon={<Shield className="h-4 w-4" />}>
-              <div className="p-3 space-y-4 pt-0">
+              <div className="p-3 space-y-4 pt-2">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label className="text-xs">{m.password()}</Label>
@@ -241,6 +241,17 @@ export function ShareSettingsSidebar({
                   )}
                 </div>
 
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">{m.allow_download()}</Label>
+                    <Switch
+                      checked={shareLink.allowDownload}
+                      onCheckedChange={(checked) => updateShare({ allowDownload: checked })}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">{m.allow_download_description()}</p>
+                </div>
+
                 <div className="space-y-2 pt-2 border-t border-border/50">
                   <div className="flex items-center justify-between">
                     <Label className="text-xs">{m.watermark()}</Label>
@@ -278,7 +289,7 @@ export function ShareSettingsSidebar({
               </div>
             </SidebarAccordionItem>
             <SidebarAccordionItem title={m.appearance()} icon={<Palette className="h-4 w-4" />}>
-              <div className="p-3 space-y-3 pt-0 flex gap-2">
+              <div className="p-3 space-y-3 pt-2 flex gap-2">
                 <Button
                   variant={viewMode === 'card' ? 'secondary' : 'outline'}
                   size="sm"
@@ -300,7 +311,7 @@ export function ShareSettingsSidebar({
               </div>
             </SidebarAccordionItem>
             <SidebarAccordionItem title={m.fields()} icon={<ListFilter className="h-4 w-4" />}>
-              <div className="p-3 space-y-3 pt-0">
+              <div className="p-3 space-y-3 pt-2">
                 {(fields as MetadataFieldInfo[])?.map((field) => (
                   <div key={field.id} className="flex items-center justify-between">
                     <Label className="text-xs">{field.config?.name}</Label>
@@ -313,7 +324,7 @@ export function ShareSettingsSidebar({
               </div>
             </SidebarAccordionItem>
             <SidebarAccordionItem title={m.sort_by()} icon={<SortAsc className="h-4 w-4" />}>
-              <div className="p-3 space-y-4 pt-0">
+              <div className="p-3 space-y-4 pt-2">
                 <div className="space-y-2">
                   <Label className="text-xs text-muted-foreground">{m.field()}</Label>
                   <Select

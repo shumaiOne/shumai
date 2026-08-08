@@ -15,6 +15,7 @@ export function FileViewer({
   annotations,
   startTime,
   shareId,
+  allowDownload,
   children,
 }: OuterFileViewerProps) {
   const viewerDef = getViewerForFile(file)
@@ -31,6 +32,7 @@ export function FileViewer({
       annotations={annotations}
       startTime={startTime}
       shareId={shareId}
+      allowDownload={allowDownload}
     >
       {children}
     </ViewerComponent>

@@ -53,6 +53,7 @@ describe('ShareService', () => {
     })
 
     expect(shareLink.name).toBe('Public Share')
+    expect(shareLink.allowDownload).toBe(true)
     expect(shareLink.rootFolderId).toBeDefined()
 
     const asset = await prisma.asset.findUnique({
@@ -60,6 +61,18 @@ describe('ShareService', () => {
     })
     expect(asset?.type).toBe(AssetType.share)
     expect(asset?.projectId).toBe(projectId)
+  })
+
+  it('creates a share link with allowDownload disabled', async () => {
+    const shareLink = await shareService.createShareLink(projectId, {
+      name: 'No Download Share',
+      allowDownload: false,
+    })
+
+    expect(shareLink.allowDownload).toBe(false)
+
+    const fetched = await shareService.getShareLink(shareLink.id)
+    expect(fetched.allowDownload).toBe(false)
   })
 
   it('adds multiple assets to share and handles duplicates', async () => {
@@ -242,6 +255,17 @@ describe('ShareService', () => {
 
     const rootAsset = await prisma.asset.findUnique({ where: { id: shareLink.rootFolderId } })
     expect(rootAsset?.name).toBe('New Name')
+  })
+
+  it('updates allowDownload on a share link', async () => {
+    const shareLink = await shareService.createShareLink(projectId, { name: 'Toggle Share' })
+    expect(shareLink.allowDownload).toBe(true)
+
+    const disabled = await shareService.updateShareLink(shareLink.id, { allowDownload: false })
+    expect(disabled.allowDownload).toBe(false)
+
+    const reEnabled = await shareService.updateShareLink(shareLink.id, { allowDownload: true })
+    expect(reEnabled.allowDownload).toBe(true)
   })
 
   it('deletes a share link', async () => {

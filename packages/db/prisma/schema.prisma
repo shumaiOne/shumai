@@ -367,6 +367,7 @@ model ShareLink {
   expireAt         DateTime? @map("expire_at")
   password         String?
   isDisabled       Boolean   @default(false) @map("is_disabled")
+  allowDownload    Boolean   @default(true) @map("allow_download")
   defaultSortOrder String?   @map("default_sort_order")
   viewMode         String?   @map("view_mode")
   /// [ShareLinkFieldVisibility]

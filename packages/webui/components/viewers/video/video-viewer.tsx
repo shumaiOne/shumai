@@ -13,7 +13,17 @@ import { FileViewerProps, MediaController } from '../types'
 
 const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
   (
-    { file: data, onPlay, onPause, onTimeUpdate, annotations, startTime, shareId, children },
+    {
+      file: data,
+      onPlay,
+      onPause,
+      onTimeUpdate,
+      annotations,
+      startTime,
+      shareId,
+      children,
+      allowDownload,
+    },
     ref,
   ) => {
     const localPlayerRef = useRef<Player | null>(null)
@@ -683,6 +693,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
           seekToFrame={seekToFrame}
           onMouseEnter={handleControlsMouseEnter}
           onMouseLeave={handleControlsMouseLeave}
+          allowDownload={allowDownload}
         />
       </div>
     )

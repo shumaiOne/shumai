@@ -55,6 +55,8 @@ interface FileCardProps {
   fields: MetadataFieldInfo[]
   isShareView?: boolean
   canEdit?: boolean
+  /** When false, hides the download action. Defaults to true. */
+  allowDownload?: boolean
 }
 
 export function FileCard({
@@ -81,6 +83,7 @@ export function FileCard({
   fields,
   isShareView,
   canEdit = true,
+  allowDownload = true,
 }: FileCardProps) {
   const [name, setName] = useState(item.name)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -314,15 +317,17 @@ export function FileCard({
           <DropdownMenuContent align="end">
             {isShareView ? (
               <>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onAction?.('download', item)
-                  }}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  <span>{m.download()}</span>
-                </DropdownMenuItem>
+                {allowDownload && (
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onAction?.('download', item)
+                    }}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    <span>{m.download()}</span>
+                  </DropdownMenuItem>
+                )}
                 {canEdit && (
                   <DropdownMenuItem
                     onClick={(e) => {
@@ -359,15 +364,17 @@ export function FileCard({
                     <span>{m.rename()}</span>
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onAction?.('download', item)
-                  }}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  <span>{m.download()}</span>
-                </DropdownMenuItem>
+                {allowDownload && (
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onAction?.('download', item)
+                    }}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    <span>{m.download()}</span>
+                  </DropdownMenuItem>
+                )}
                 {canEdit && (
                   <>
                     <DropdownMenuSeparator />
