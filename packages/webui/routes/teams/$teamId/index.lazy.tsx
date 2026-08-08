@@ -28,11 +28,12 @@ import { Input } from '@/ui/components/ui/input'
 import { Switch } from '@/ui/components/ui/switch'
 import { formatDateAgo } from '@/ui/lib/time'
 import { cn } from '@/ui/lib/utils'
-import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useUserMetadataStore } from '@/ui/stores/user-metadata'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import type { InferRequestType, InferResponseType } from 'hono/client'
 import { MoreHorizontal, PlusIcon } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 function TeamPage() {
@@ -57,12 +58,29 @@ function TeamPage() {
   // State for Members Dialog
   const [isMembersDialogOpen, setIsMembersDialogOpen] = useState(false)
 
-  // Sort State
-  const [sortBy, setSortBy] = useState<string>('name')
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  // Sort State & Preference
+  const { metadata, setMetadata: setUserMetadata } = useUserMetadataStore()
+  const sortKey = `team:${teamId}:projects:sort`
+  const savedSort = metadata[sortKey] as
+    | { sortBy?: string; sortDirection?: 'asc' | 'desc' }
+    | undefined
+
+  const [sortBy, setSortBy] = useState<string>(() => savedSort?.sortBy || 'name')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(
+    () => savedSort?.sortDirection || 'asc',
+  )
+
+  useEffect(() => {
+    if (savedSort?.sortBy && savedSort.sortBy !== sortBy) {
+      setSortBy(savedSort.sortBy)
+    }
+    if (savedSort?.sortDirection && savedSort.sortDirection !== sortDirection) {
+      setSortDirection(savedSort.sortDirection)
+    }
+  }, [savedSort])
 
   const $getProjects = client.api.teams[':teamId'].projects.$get
-  const { data: projects } = useSuspenseQuery({
+  const { data: projects } = useQuery({
     queryKey: ['teams', teamId, 'projects', sortBy, sortDirection],
     queryFn: async () => {
       const res = await $getProjects({
@@ -72,6 +90,7 @@ function TeamPage() {
       if (!res.ok) throw new Error('Failed to fetch projects')
       return await res.json()
     },
+    placeholderData: keepPreviousData,
   })
 
   const { data: members } = useQuery({
@@ -249,6 +268,7 @@ function TeamPage() {
   const handleSortChange = (newSortBy: string, newSortDirection: 'asc' | 'desc') => {
     setSortBy(newSortBy)
     setSortDirection(newSortDirection)
+    setUserMetadata(teamId, sortKey, { sortBy: newSortBy, sortDirection: newSortDirection })
   }
 
   const safeMembers = Array.isArray(members) ? members : []
@@ -294,7 +314,7 @@ function TeamPage() {
         </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-        {projects.data?.map((project: ProjectInfo) => (
+        {projects?.data?.map((project: ProjectInfo) => (
           <div
             key={project.id}
             className={cn(

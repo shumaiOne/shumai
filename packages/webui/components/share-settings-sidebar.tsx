@@ -4,34 +4,34 @@ import { Button } from '@/ui/components/ui/button'
 import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/ui/components/ui/select'
 import { Switch } from '@/ui/components/ui/switch'
 import { WatermarkEditorDialog } from '@/ui/components/watermark-editor-dialog'
 import { copyToClipboard as copyTextToClipboard } from '@/ui/lib/clipboard'
 import { m } from '@/ui/paraglide/messages.js'
 import {
-    ShareLinkInfo,
-    UpdateShareLinkRequest,
-    type FieldInfo as MetadataFieldInfo,
+  ShareLinkInfo,
+  UpdateShareLinkRequest,
+  type FieldInfo as MetadataFieldInfo,
 } from '@shumai/dtos'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-    ArrowDownUp,
-    ChevronRight,
-    Copy,
-    ExternalLink,
-    LayoutGrid,
-    List,
-    ListFilter,
-    Loader2,
-    Palette,
-    Shield,
-    SortAsc,
+  ArrowDownUp,
+  ChevronRight,
+  Copy,
+  ExternalLink,
+  LayoutGrid,
+  List,
+  ListFilter,
+  Loader2,
+  Palette,
+  Shield,
+  SortAsc,
 } from 'lucide-react'
 import React, { useState } from 'react'
 import { toast } from 'sonner'
