@@ -3,6 +3,7 @@ import type { APIRequestContext, Locator, Page } from '@playwright/test'
 interface CreateShareResponse {
   id?: string
   name?: string
+  rootFolderId?: string
 }
 
 /**
@@ -23,7 +24,7 @@ export async function apiCreateShare(
   request: APIRequestContext,
   projectId: string,
   name: string,
-): Promise<{ id: string; name: string }> {
+): Promise<{ id: string; name: string; rootFolderId: string }> {
   const res = await request.post(`/api/projects/${projectId}/shares`, {
     data: { name },
   })
@@ -31,10 +32,10 @@ export async function apiCreateShare(
     throw new Error(`Create share API failed (${res.status()}): ${await res.text()}`)
   }
   const body = (await res.json()) as CreateShareResponse
-  if (!body.id || !body.name) {
+  if (!body.id || !body.name || !body.rootFolderId) {
     throw new Error(`Create share returned an unexpected response: ${JSON.stringify(body)}`)
   }
-  return { id: body.id, name: body.name }
+  return { id: body.id, name: body.name, rootFolderId: body.rootFolderId }
 }
 
 /** Adds assets to a share link through the API. */
@@ -49,6 +50,66 @@ export async function apiAddAssetsToShare(
   if (!res.ok()) {
     throw new Error(`Add assets to share API failed (${res.status()}): ${await res.text()}`)
   }
+}
+
+/** Updates share link settings (e.g. `allowDownload`) through the API. */
+export async function apiUpdateShare(
+  request: APIRequestContext,
+  shareId: string,
+  patch: { allowDownload?: boolean },
+): Promise<void> {
+  const res = await request.put(`/api/shares/${shareId}`, { data: patch })
+  if (!res.ok()) {
+    throw new Error(`Update share API failed (${res.status()}): ${await res.text()}`)
+  }
+}
+
+/**
+ * Enables a text watermark on the share link through the API. Uses the same
+ * default block shape the watermark editor produces (a "CONFIDENTIAL" text
+ * block), so the transcode workflow runs against a realistic config.
+ */
+export async function apiEnableShareWatermark(
+  request: APIRequestContext,
+  shareId: string,
+): Promise<void> {
+  const res = await request.put(`/api/shares/${shareId}/watermark`, {
+    data: {
+      enabled: true,
+      config: {
+        blocks: [
+          {
+            id: `wm-${Date.now()}`,
+            type: 'text',
+            text: 'CONFIDENTIAL',
+            x: 0.5,
+            y: 0.5,
+            // size is a fraction (0..1) of the canvas width
+            size: 0.05,
+            color: '#999999',
+            opacity: 0.5,
+            rotation: -30,
+          },
+        ],
+      },
+    },
+  })
+  if (!res.ok()) {
+    throw new Error(`Enable share watermark API failed (${res.status()}): ${await res.text()}`)
+  }
+}
+
+/** Requests a public download URL. Returns status + body for assertions. */
+export async function apiPublicDownloadUrl(
+  request: APIRequestContext,
+  shareId: string,
+  fileId: string,
+  key: string,
+): Promise<{ status: number; body: unknown }> {
+  const res = await request.post(`/api/shares/${shareId}/files/${fileId}/download-url`, {
+    data: { key },
+  })
+  return { status: res.status(), body: await res.json().catch(() => null) }
 }
 
 /** Uploads a file asset through the official API upload task endpoints. */

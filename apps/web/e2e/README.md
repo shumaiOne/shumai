@@ -84,6 +84,8 @@ apps/web/e2e/
 | Owner searches the file list by Chinese, Japanese, and Korean name keywords | `tests/project/search-file-list.spec.ts` |
 | Owner searches the file list with a keyword and a filter condition | `tests/project/search-file-list.spec.ts` |
 | Owner saves a search result as a collection | `tests/project/save-search-collection.spec.ts` |
+| Image share with watermark + download disabled: no download buttons on public list/detail pages, watermarked proxy served, download-url rejected | `tests/project/share-watermark-no-download.spec.ts` |
+| Video share with watermark + download disabled: no download buttons on public list/detail pages, watermarked proxy served, download-url rejected | `tests/project/share-watermark-no-download.spec.ts` |
 
 ### file
 | Test | File |
