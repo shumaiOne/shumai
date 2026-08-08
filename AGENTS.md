@@ -90,7 +90,8 @@ Add any additional context, caveats, or follow-up work.
   - `bun run format`
   - `bun run typecheck`
   - `bun run test`
-  - `bun run test:e2e`
+  - `bun run test:e2e:app`
+  - `bun run test:e2e:webui`
   - `bun run test:e2e:workflow`
 
 - **Backend Testing Mandate**: Every backend feature, service method, workflow, and activity MUST be accompanied by comprehensive tests. Logic-heavy code without corresponding test coverage is considered incomplete.
@@ -285,7 +286,7 @@ describe('Team API', () => {
 ### Web App E2E Tests
 
 - Located in `apps/web/e2e/**/*.spec.ts`, organized by domain under `tests/<domain>/` (e.g. `auth`, `project`).
-- Run via `bun run test:e2e`.
+- Run via `bun run test:e2e:app`.
 - **Fixtures**: Use the `owner`, `project`, and `file` fixtures for setup — they seed data through API calls/DB (no slow UI setup). You can add more fixtures if necessary.
 - **Documentation**: Every test case MUST be documented in [`apps/web/e2e/README.md`](apps/web/e2e/README.md). Add or update the corresponding entry in the README whenever you add, rename, or remove a spec.
 

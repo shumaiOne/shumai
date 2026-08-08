@@ -2,7 +2,7 @@
 
 Fullstack end-to-end tests for the Shumai web app. They run against a real backend
 (pgvector container + local S3 storage) served on `http://localhost:5200` and are
-executed with Playwright via `bun run test:e2e`.
+executed with Playwright via `bun run test:e2e:app`.
 
 ## Structure
 
