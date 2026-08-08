@@ -14,6 +14,8 @@ Shumai allows you to collaborate with external stakeholders who do not have acco
 3. Configure the share link in the right sidebar. You can:
    - Add password protection
    - Set an expiration date
+   - Allow or disallow downloads
+   - Add a watermark to previews
    - Configure which metadata fields are visible to recipients
 4. Click **Copy Link** at the bottom of the sidebar, then send the link to your client or stakeholder.
 
@@ -40,6 +42,30 @@ Set an optional date and time after which the link becomes inactive. Once the da
 ### Password Protection
 
 Secure sensitive work by adding a password. External users visiting the link will be prompted to enter the correct password before they can view the assets.
+
+### Allow Download
+
+Control whether visitors can download the shared files. When **Allow download** is turned off:
+
+- All download buttons are hidden on the public share page (file cards, selection bar, viewer control bars, and the top navigation).
+
+Guests can still preview the files; only downloading is blocked. This is often combined with a watermark so previews remain viewable but protected.
+
+### Watermark
+
+Overlay a watermark (e.g. a "CONFIDENTIAL" text label or a logo image) on every preview shown through the share link. Open the watermark editor, arrange the blocks, and save.
+
+Watermarking is **lazy and per-share-link** to keep storage costs low:
+
+- The watermark transcode is only triggered when you **enable the watermark on a share link** — Shumai does **not** pre-generate watermark copies for every file in your workspace.
+- All video and image assets already in the share are transcoded at that moment (the sidebar shows a _processing_ status until it finishes).
+- Files and folders **added to the share link later are automatically transcoded too**, so the watermark always covers the full share without any manual steps.
+- Since watermark copies are only produced for assets that are actually shared through a watermarked link, files that are never shared (or shared through non-watermarked links) never consume extra storage for watermark proxies. This can save a very large amount of storage on big libraries.
+
+Notes:
+
+- Only **video and image** proxies are watermarked; other media types (PDF, audio, ...) are not affected.
+- While the watermark is still processing, previews are hidden rather than exposing the original, unwatermarked proxy.
 
 ### Default Sort Order
 
