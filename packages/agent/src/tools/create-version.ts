@@ -20,9 +20,10 @@ const createVersionSchema = Type.Object({
   context: Type.Optional(
     Type.String({
       description:
-        'Optional short context about this version and how it was generated (max 50 words, e.g. "Generated using gemini"). ' +
-        'Passed to the AI metadata autofill workflow to fill fields that cannot be determined from file content alone. ' +
-        'Check autofillable fields with list_autofill_fields first.',
+        'Optional context passed to the AI metadata autofill workflow for fields that cannot be inferred from file content alone ' +
+        '(e.g. the model or prompt used to generate the asset). ' +
+        'Use list_autofill_fields first to check which fields can be autofilled. ' +
+        'Keep the context short and only include information relevant to those fields.',
     }),
   ),
 })
