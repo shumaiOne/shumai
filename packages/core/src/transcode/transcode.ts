@@ -145,6 +145,40 @@ export function isPsdInput(input: string | Buffer): boolean {
     input[3] === 0x53
   )
 }
+export function calculatePreviewDimensions(
+  origW: number,
+  origH: number,
+  targetShort = 300,
+  maxLong = 533,
+): { width: number; height: number } {
+  if (origW <= 0 || origH <= 0) {
+    return { width: targetShort, height: targetShort }
+  }
+
+  const origShort = Math.min(origW, origH)
+  const origLong = Math.max(origW, origH)
+
+  if (origShort <= targetShort && origLong <= maxLong) {
+    return { width: origW, height: origH }
+  }
+
+  let scale = targetShort / origShort
+  const scaledLong = Math.round(origLong * scale)
+
+  if (scaledLong > maxLong) {
+    scale = maxLong / origLong
+  }
+
+  const newW = Math.max(1, Math.round(origW * scale))
+  const newH = Math.max(1, Math.round(origH * scale))
+
+  return { width: newW, height: newH }
+}
+
+export interface TranscodeImageOptions {
+  height?: number | null
+  isPreview?: boolean
+}
 
 export class TranscodeService {
   constructor(private readonly prismaClient: typeof prisma = prisma) {}
@@ -402,8 +436,22 @@ export class TranscodeService {
     outputFile: string,
     width: number,
     quality: number,
-    height: number | null = null,
+    heightOrOptions: number | null | TranscodeImageOptions = null,
   ): Promise<void> {
+    const height =
+      typeof heightOrOptions === 'object' && heightOrOptions !== null
+        ? (heightOrOptions.height ?? null)
+        : heightOrOptions
+    let isPreview =
+      typeof heightOrOptions === 'object' && heightOrOptions !== null
+        ? (heightOrOptions.isPreview ?? false)
+        : false
+
+    // Backward compatibility shim for legacy queued tasks or old call signatures passing width 480 or height 0
+    if (width === 480 || height === 0) {
+      isPreview = true
+    }
+
     let input: string | Buffer = inputFile
     if (typeof inputFile === 'string' && inputFile.startsWith('http')) {
       const resp = await fetch(inputFile)
@@ -414,8 +462,30 @@ export class TranscodeService {
     }
 
     const WEBP_MAX_DIMENSION = 7680
-    const targetW = width > 0 ? Math.min(width, WEBP_MAX_DIMENSION) : WEBP_MAX_DIMENSION
-    const targetH = height && height > 0 ? Math.min(height, WEBP_MAX_DIMENSION) : WEBP_MAX_DIMENSION
+    let targetW = width > 0 ? Math.min(width, WEBP_MAX_DIMENSION) : WEBP_MAX_DIMENSION
+    let targetH = height && height > 0 ? Math.min(height, WEBP_MAX_DIMENSION) : WEBP_MAX_DIMENSION
+
+    const sharpInstance = sharp(input, { limitInputPixels: false })
+
+    if (isPreview) {
+      try {
+        const meta = await sharpInstance.metadata()
+        if (meta.width && meta.height) {
+          // Fallback shim: If legacy 480 caller passed width=480, map targetShort to 300
+          const targetShort = width === 480 ? 300 : width
+          const maxLong = Math.round((targetShort * 16) / 9)
+          const dims = calculatePreviewDimensions(meta.width, meta.height, targetShort, maxLong)
+          targetW = dims.width
+          targetH = dims.height
+        }
+      } catch {
+        // Fallback to targetW/targetH as calculated above
+      }
+    }
+
+    // WEBP_MAX_DIMENSION (7680) safety cap is ALWAYS enforced
+    targetW = Math.min(targetW, WEBP_MAX_DIMENSION)
+    targetH = Math.min(targetH, WEBP_MAX_DIMENSION)
 
     if (isPsdInput(input)) {
       let psdPath: string
@@ -452,8 +522,6 @@ export class TranscodeService {
       }
     }
 
-    const sharpInstance = sharp(input, { limitInputPixels: false })
-
     sharpInstance.toColorspace('srgb').resize(targetW, targetH, {
       withoutEnlargement: true,
       fit: 'inside',
@@ -469,7 +537,7 @@ export class TranscodeService {
     duration: number,
   ): Promise<void> {
     const spriteFps = 100 / duration
-    const filterComplex = `[0:v]fps=${spriteFps},scale=w=480:h=-2,tile=10x10[sprite_out];[0:v]scale=-2:480:force_original_aspect_ratio=decrease,select='eq(n\\,0)'[thumb_out]`
+    const filterComplex = `[0:v]fps=${spriteFps},scale=w=300:h=-2,tile=10x10[sprite_out];[0:v]scale=-2:300:force_original_aspect_ratio=decrease,select='eq(n\\,0)'[thumb_out]`
 
     const args = [
       '-i',
@@ -557,7 +625,7 @@ export class TranscodeService {
         '-i',
         path.join(tmpDir, 'frame_%d.png'),
         '-filter_complex',
-        'scale=w=480:h=-2,tile=10x10',
+        'scale=w=300:h=-2,tile=10x10',
         '-frames:v',
         '1',
         '-c:v',
@@ -570,7 +638,7 @@ export class TranscodeService {
 
       await sharp(firstPagePath, { limitInputPixels: false })
         .toColorspace('srgb')
-        .resize(480, null, { withoutEnlargement: true, fit: 'inside' })
+        .resize(300, 533, { withoutEnlargement: true, fit: 'inside' })
         .webp({ quality: 75 })
         .toFile(outputPoster)
 
