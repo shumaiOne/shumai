@@ -34,6 +34,8 @@ export interface TopNavProjectState {
   /** When false, the public share hides download affordances. Defaults to true. */
   allowDownload?: boolean
   onFolderClick?: (folderId: string) => void
+  onRename?: () => void
+  onDelete?: () => void
   isRightSidebarCollapsed?: boolean
   onRightSidebarToggle?: () => void
   // Compare Versions

@@ -65,6 +65,8 @@ interface BreadcrumbNavProps {
   shareId?: string
   allowDownload?: boolean
   onFolderClick?: (folderId: string) => void
+  onRename?: () => void
+  onDelete?: () => void
   fileId?: string
   downloadInfo?: {
     originalKey?: string
@@ -103,6 +105,8 @@ export function BreadcrumbNav({
   onChatbotToggle,
   isPublic = false,
   onFolderClick,
+  onRename,
+  onDelete,
   fileId,
   shareId,
   allowDownload = true,
@@ -290,14 +294,15 @@ export function BreadcrumbNav({
                         {m.download()}
                       </DropdownMenuItem>
                     ))}
-                  {canEdit && (
-                    <DropdownMenuItem onClick={() => console.log('Rename')}>
-                      Rename
-                    </DropdownMenuItem>
+                  {canEdit && onRename && (
+                    <DropdownMenuItem onClick={onRename}>{m.rename()}</DropdownMenuItem>
                   )}
-                  {canEdit && (
-                    <DropdownMenuItem onClick={() => console.log('Delete')}>
-                      Delete
+                  {canEdit && onDelete && (
+                    <DropdownMenuItem
+                      onClick={onDelete}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      {m.delete()}
                     </DropdownMenuItem>
                   )}
 

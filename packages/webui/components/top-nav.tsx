@@ -27,6 +27,8 @@ export function TopNav() {
     shareId,
     allowDownload,
     onFolderClick,
+    onRename,
+    onDelete,
     compareMode,
     canCompareVersions,
     onCompareVersions,
@@ -118,6 +120,8 @@ export function TopNav() {
       downloadInfo={downloadInfo}
       versions={versions}
       onFolderClick={onFolderClick}
+      onRename={onRename}
+      onDelete={onDelete}
       compareMode={compareMode}
       canCompareVersions={canCompareVersions}
       onCompareVersions={onCompareVersions}
