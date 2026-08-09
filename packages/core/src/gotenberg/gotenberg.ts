@@ -132,10 +132,7 @@ export class GotenbergService {
       throw new Error('Gotenberg URL is not configured.')
     }
 
-    const mdFilename =
-      filename.toLowerCase().endsWith('.md') || filename.toLowerCase().endsWith('.markdown')
-        ? filename
-        : 'file.md'
+    const mdFilename = filename.toLowerCase().endsWith('.md') ? filename : 'file.md'
 
     const htmlTemplate = `<!DOCTYPE html>
 <html lang="en">

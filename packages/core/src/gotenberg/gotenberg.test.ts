@@ -189,5 +189,31 @@ describe('GotenbergService', () => {
         }),
       )
     })
+
+    it('should rename non-.md filenames like README.markdown to file.md for Gotenberg endpoint compatibility', async () => {
+      process.env.GOTENBERG_URL = 'http://gotenberg:3000'
+      const mockPdfBuffer = Buffer.from('%PDF-1.4 markdown output')
+      let capturedFormData: FormData | null = null
+
+      vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, options) => {
+        capturedFormData = options?.body as FormData
+        return {
+          ok: true,
+          status: 200,
+          arrayBuffer: async () => mockPdfBuffer.buffer,
+        } as unknown as Response
+      })
+
+      const mdPath = path.join(tmpDir, 'README.markdown')
+      fs.writeFileSync(mdPath, '# Hello Gotenberg')
+
+      const service = new GotenbergService()
+      await service.convertMarkdownToPdf(mdPath, 'README.markdown')
+
+      expect(capturedFormData).not.toBeNull()
+      const indexBlob = (capturedFormData as unknown as FormData).get('files') as File
+      const indexHtmlText = await indexBlob.text()
+      expect(indexHtmlText).toContain('{{ toHTML "file.md" }}')
+    })
   })
 })
