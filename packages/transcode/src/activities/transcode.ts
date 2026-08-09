@@ -560,7 +560,7 @@ export async function generatePdfProxyActivity(
       if (gotenbergAvailable) {
         let isLandscape = false
         try {
-          const content = fs.readFileSync(params.filePath, 'utf-8')
+          const content = String(fs.readFileSync(params.filePath, 'utf-8'))
           const rows = parseCsvContent(content)
           const maxCols = Math.max(...rows.map((r) => r.length), 0)
           isLandscape = maxCols > 5

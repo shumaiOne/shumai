@@ -326,6 +326,69 @@ describe('UploadService', () => {
     expect(workflowTask).toBeNull()
   })
 
+  it('should confirm file upload and create transcode_pdf for HTML document when Gotenberg is available', async () => {
+    vi.spyOn(gotenbergService, 'isAvailable').mockResolvedValue(true)
+    const task = await prisma.task.create({
+      data: { creatorId: userId, total: 1, uploaded: 0, type: 'upload' },
+    })
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'index.html',
+        type: AssetType.file,
+        project: { connect: { id: projectId } },
+        parent: { connect: { id: parentId } },
+        status: AssetStatus.uploading,
+        storageKey: {
+          connectOrCreate: {
+            where: { key: 'test-key-html-1' },
+            create: { key: 'test-key-html-1' },
+          },
+        },
+        mediaType: 'text/html',
+      },
+    })
+
+    await uploadService.confirmFileUpload(userId, task.id, { fileId: asset.id })
+
+    const workflowTask = await prisma.workflowTask.findFirst({
+      where: { assetId: asset.id, type: WorkflowTaskType.transcode_pdf },
+    })
+    expect(workflowTask).toBeDefined()
+  })
+
+  it('should mark asset processed without creating transcode_pdf for HTML document when Gotenberg is unavailable', async () => {
+    vi.spyOn(gotenbergService, 'isAvailable').mockResolvedValue(false)
+    const task = await prisma.task.create({
+      data: { creatorId: userId, total: 1, uploaded: 0, type: 'upload' },
+    })
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'index.html',
+        type: AssetType.file,
+        project: { connect: { id: projectId } },
+        parent: { connect: { id: parentId } },
+        status: AssetStatus.uploading,
+        storageKey: {
+          connectOrCreate: {
+            where: { key: 'test-key-html-2' },
+            create: { key: 'test-key-html-2' },
+          },
+        },
+        mediaType: 'text/html',
+      },
+    })
+
+    await uploadService.confirmFileUpload(userId, task.id, { fileId: asset.id })
+
+    const updatedAsset = await prisma.asset.findUnique({ where: { id: asset.id } })
+    expect(updatedAsset?.status).toBe(AssetStatus.processed)
+
+    const workflowTask = await prisma.workflowTask.findFirst({
+      where: { assetId: asset.id, type: WorkflowTaskType.transcode_pdf },
+    })
+    expect(workflowTask).toBeNull()
+  })
+
   it('should confirm file upload and resolve empty mediaType using Bun resolver for audio', async () => {
     const task = await prisma.task.create({
       data: { creatorId: userId, total: 1, uploaded: 0, type: 'upload' },

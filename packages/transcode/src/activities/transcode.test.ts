@@ -38,39 +38,43 @@ vi.mock('@shumai/core/src/s3/s3', () => ({
   },
 }))
 
-vi.mock('@shumai/core/src/transcode/transcode', () => ({
-  transcodeService: {
-    getVideoInfo: vi.fn(),
-    getAudioInfo: vi.fn(),
-    getImageInfo: vi.fn(),
-    getPdfInfo: vi.fn().mockResolvedValue({
-      originalWidth: 800,
-      originalHeight: 1000,
-      duration: 0,
-      bitRate: 0,
-      frameRate: 0,
-      totalFrames: 10,
-      hasAudio: false,
-      mimeType: 'application/pdf',
-    }),
-    transcodeVideo: vi.fn(),
-    transcodeAudio: vi.fn(),
-    transcodeImage: vi.fn(),
-    generateSprite: vi.fn(),
-    generatePdfSprite: vi.fn().mockResolvedValue({
-      pageCount: 10,
-      originalWidth: 800,
-      originalHeight: 1000,
-    }),
-    generatePdfFromText: vi.fn(),
-    generatePdfFromCsv: vi.fn(),
-    createTempDir: vi.fn().mockReturnValue('/tmp'),
-    removeDir: vi.fn(),
-    takeScreenshots: vi.fn(),
-    overlayAnnotations: vi.fn(),
-    renderPdfPages: vi.fn(),
-  },
-}))
+vi.mock('@shumai/core/src/transcode/transcode', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@shumai/core/src/transcode/transcode')>()
+  return {
+    ...actual,
+    transcodeService: {
+      getVideoInfo: vi.fn(),
+      getAudioInfo: vi.fn(),
+      getImageInfo: vi.fn(),
+      getPdfInfo: vi.fn().mockResolvedValue({
+        originalWidth: 800,
+        originalHeight: 1000,
+        duration: 0,
+        bitRate: 0,
+        frameRate: 0,
+        totalFrames: 10,
+        hasAudio: false,
+        mimeType: 'application/pdf',
+      }),
+      transcodeVideo: vi.fn(),
+      transcodeAudio: vi.fn(),
+      transcodeImage: vi.fn(),
+      generateSprite: vi.fn(),
+      generatePdfSprite: vi.fn().mockResolvedValue({
+        pageCount: 10,
+        originalWidth: 800,
+        originalHeight: 1000,
+      }),
+      generatePdfFromText: vi.fn(),
+      generatePdfFromCsv: vi.fn(),
+      createTempDir: vi.fn().mockReturnValue('/tmp'),
+      removeDir: vi.fn(),
+      takeScreenshots: vi.fn(),
+      overlayAnnotations: vi.fn(),
+      renderPdfPages: vi.fn(),
+    },
+  }
+})
 
 vi.mock('@shumai/core/src/metadata/metadata', () => ({
   metadataService: {
@@ -93,8 +97,70 @@ vi.mock('fs', async (importOriginal) => {
 describe('Transcode Activities', () => {
   setupTestDbHooks()
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks()
+    const fs = await import('fs')
+    vi.mocked(fs.readFileSync).mockImplementation(() => Buffer.from('fake data') as never)
+  })
+
+  it('should convert CSV via Gotenberg in landscape mode when maxCols > 5', async () => {
+    const asset = await prisma.asset.create({
+      data: { name: 'wide.csv', type: 'file', status: 'uploaded' },
+    })
+
+    const fs = await import('fs')
+    vi.mocked(fs.readFileSync).mockImplementation((_path: unknown, options?: unknown) => {
+      if (options) {
+        return 'c1,c2,c3,c4,c5,c6,c7\n1,2,3,4,5,6,7' as never
+      }
+      return Buffer.from('fake data') as never
+    })
+    vi.spyOn(gotenbergService, 'isAvailable').mockResolvedValue(true)
+    const convertSpy = vi
+      .spyOn(gotenbergService, 'convertDocumentToPdf')
+      .mockResolvedValue(Buffer.from('fake pdf landscape csv'))
+
+    const res = await generatePdfProxyActivity({
+      assetId: asset.id,
+      assetKey: 'files/asset1/wide.csv',
+      filePath: '/tmp/wide.csv',
+      mediaType: 'text/csv',
+      filename: 'wide.csv',
+    })
+
+    expect(res.pdfProxyKey).toBe(`files/${asset.id}/proxy.pdf`)
+    expect(convertSpy).toHaveBeenCalledWith('/tmp/wide.csv', 'wide.csv', { landscape: true })
+    vi.mocked(fs.readFileSync).mockImplementation(() => Buffer.from('fake data') as never)
+  })
+
+  it('should convert CSV via Gotenberg in portrait mode when maxCols <= 5', async () => {
+    const asset = await prisma.asset.create({
+      data: { name: 'narrow.csv', type: 'file', status: 'uploaded' },
+    })
+
+    const fs = await import('fs')
+    vi.mocked(fs.readFileSync).mockImplementation((_path: unknown, options?: unknown) => {
+      if (options) {
+        return 'c1,c2,c3\n1,2,3' as never
+      }
+      return Buffer.from('fake data') as never
+    })
+    vi.spyOn(gotenbergService, 'isAvailable').mockResolvedValue(true)
+    const convertSpy = vi
+      .spyOn(gotenbergService, 'convertDocumentToPdf')
+      .mockResolvedValue(Buffer.from('fake pdf portrait csv'))
+
+    const res = await generatePdfProxyActivity({
+      assetId: asset.id,
+      assetKey: 'files/asset1/narrow.csv',
+      filePath: '/tmp/narrow.csv',
+      mediaType: 'text/csv',
+      filename: 'narrow.csv',
+    })
+
+    expect(res.pdfProxyKey).toBe(`files/${asset.id}/proxy.pdf`)
+    expect(convertSpy).toHaveBeenCalledWith('/tmp/narrow.csv', 'narrow.csv', { landscape: false })
+    vi.mocked(fs.readFileSync).mockImplementation(() => Buffer.from('fake data') as never)
   })
 
   it('should call getVideoInfo and set file_type to video', async () => {
@@ -246,6 +312,7 @@ describe('Transcode Activities', () => {
       data: { name: 'test.txt', type: 'file', status: 'uploaded' },
     })
 
+    vi.spyOn(gotenbergService, 'isAvailable').mockResolvedValue(false)
     const generatePdfFromTextSpy = vi
       .spyOn(transcodeService, 'generatePdfFromText')
       .mockImplementation(async (_inPath, outPath) => {
@@ -271,6 +338,7 @@ describe('Transcode Activities', () => {
       data: { name: 'README.md', type: 'file', status: 'uploaded' },
     })
 
+    vi.spyOn(gotenbergService, 'isAvailable').mockResolvedValue(false)
     const generatePdfFromTextSpy = vi
       .spyOn(transcodeService, 'generatePdfFromText')
       .mockImplementation(async (_inPath, outPath) => {
@@ -376,6 +444,104 @@ describe('Transcode Activities', () => {
         filename: 'sheet.xlsx',
       }),
     ).rejects.toThrow('Gotenberg service is required for Office document conversion')
+  })
+
+  it('should throw ApplicationFailure when HTML document conversion is attempted but Gotenberg is unavailable', async () => {
+    const asset = await prisma.asset.create({
+      data: { name: 'index.html', type: 'file', status: 'uploaded' },
+    })
+
+    vi.spyOn(gotenbergService, 'isAvailable').mockResolvedValue(false)
+
+    await expect(
+      generatePdfProxyActivity({
+        assetId: asset.id,
+        assetKey: 'files/asset1/index.html',
+        filePath: '/tmp/index.html',
+        mediaType: 'text/html',
+        filename: 'index.html',
+      }),
+    ).rejects.toThrow('Gotenberg service is required for HTML document conversion')
+  })
+
+  it('should fallback to transcodeService.generatePdfFromCsv for CSV when Gotenberg is unavailable', async () => {
+    const asset = await prisma.asset.create({
+      data: { name: 'data.csv', type: 'file', status: 'uploaded' },
+    })
+
+    vi.spyOn(gotenbergService, 'isAvailable').mockResolvedValue(false)
+    const generatePdfFromCsvSpy = vi
+      .spyOn(transcodeService, 'generatePdfFromCsv')
+      .mockImplementation(async (_inPath, outPath) => {
+        const fs = await import('fs')
+        fs.writeFileSync(outPath, 'fake pdf from csv fallback')
+      })
+
+    const res = await generatePdfProxyActivity({
+      assetId: asset.id,
+      assetKey: 'files/asset1/data.csv',
+      filePath: '/tmp/data.csv',
+      mediaType: 'text/csv',
+      filename: 'data.csv',
+    })
+
+    expect(res.pdfProxyKey).toBe(`files/${asset.id}/proxy.pdf`)
+    expect(generatePdfFromCsvSpy).toHaveBeenCalledWith(
+      '/tmp/data.csv',
+      expect.stringContaining('proxy.pdf'),
+    )
+    generatePdfFromCsvSpy.mockRestore()
+  })
+
+  it('should convert TXT document via Gotenberg when available', async () => {
+    const asset = await prisma.asset.create({
+      data: { name: 'notes.txt', type: 'file', status: 'uploaded' },
+    })
+
+    vi.spyOn(gotenbergService, 'isAvailable').mockResolvedValue(true)
+    const convertSpy = vi
+      .spyOn(gotenbergService, 'convertDocumentToPdf')
+      .mockResolvedValue(Buffer.from('fake pdf from txt gotenberg'))
+
+    const res = await generatePdfProxyActivity({
+      assetId: asset.id,
+      assetKey: 'files/asset1/notes.txt',
+      filePath: '/tmp/notes.txt',
+      mediaType: 'text/plain',
+      filename: 'notes.txt',
+    })
+
+    expect(res.pdfProxyKey).toBe(`files/${asset.id}/proxy.pdf`)
+    expect(convertSpy).toHaveBeenCalledWith('/tmp/notes.txt', 'notes.txt')
+  })
+
+  it('should fallback to transcodeService.generatePdfFromText for TXT when Gotenberg is unavailable', async () => {
+    const asset = await prisma.asset.create({
+      data: { name: 'notes.txt', type: 'file', status: 'uploaded' },
+    })
+
+    vi.spyOn(gotenbergService, 'isAvailable').mockResolvedValue(false)
+    const generatePdfFromTextSpy = vi
+      .spyOn(transcodeService, 'generatePdfFromText')
+      .mockImplementation(async (_inPath, outPath) => {
+        const fs = await import('fs')
+        fs.writeFileSync(outPath, 'fake pdf from txt fallback')
+      })
+
+    const res = await generatePdfProxyActivity({
+      assetId: asset.id,
+      assetKey: 'files/asset1/notes.txt',
+      filePath: '/tmp/notes.txt',
+      mediaType: 'text/plain',
+      filename: 'notes.txt',
+    })
+
+    expect(res.pdfProxyKey).toBe(`files/${asset.id}/proxy.pdf`)
+    expect(generatePdfFromTextSpy).toHaveBeenCalledWith(
+      '/tmp/notes.txt',
+      expect.stringContaining('proxy.pdf'),
+    )
+    generatePdfFromTextSpy.mockRestore()
   })
 
   it('should set file_type to file for unknown types', async () => {
