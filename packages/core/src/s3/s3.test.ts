@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as fs from 'fs'
 import * as path from 'path'
-import { LocalStorageService, S3StorageService } from './s3'
+import { buildContentDisposition, LocalStorageService, S3StorageService } from './s3'
 
 // Mock Bun S3Client
 const s3ClientConstructorSpy = vi.fn()
@@ -140,6 +140,30 @@ describe('S3Service implementations', () => {
       )
     })
 
+    it('should set contentDisposition with the filename when download filename is provided', async () => {
+      const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
+      await s3.presign('bucket', 'key', 'GET', true, 'foo.png')
+
+      expect(s3PresignSpy).toHaveBeenCalledWith(
+        'key',
+        expect.objectContaining({
+          contentDisposition: 'attachment; filename="foo.png"; filename*=UTF-8\'\'foo.png',
+        }),
+      )
+    })
+
+    it('should include an RFC 5987 filename* for non-ASCII filenames', async () => {
+      const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
+      await s3.presign('bucket', 'key', 'GET', true, '报告.png')
+
+      expect(s3PresignSpy).toHaveBeenCalledWith(
+        'key',
+        expect.objectContaining({
+          contentDisposition: expect.stringContaining("filename*=UTF-8''"),
+        }),
+      )
+    })
+
     it('should not cache download presign URLs', async () => {
       const s3 = new S3StorageService('http://localhost:9000', 'key', 'secret', 'test-bucket')
 
@@ -248,6 +272,18 @@ describe('S3Service implementations', () => {
       expect(url).toBe('http://localhost:3000/files/my-bucket/dir/file.txt?download=1')
     })
 
+    it('should include an encoded filename in the local download URL', async () => {
+      const url = await localS3.presign('my-bucket', 'dir/file.txt', 'GET', true, 'foo bar.png')
+      expect(url).toBe(
+        'http://localhost:3000/files/my-bucket/dir/file.txt?download=1&filename=foo%20bar.png',
+      )
+    })
+
+    it('should not append a filename param when none is provided', async () => {
+      const url = await localS3.presign('my-bucket', 'dir/file.txt', 'GET', true)
+      expect(url).not.toContain('filename=')
+    })
+
     it('should throw an error for unsupported presign methods', async () => {
       await expect(localS3.presign('b', 'k', 'POST')).rejects.toThrow()
     })
@@ -285,6 +321,32 @@ describe('S3Service implementations', () => {
       const url = await s3Service.presign('bucket', 'key', 'GET')
       expect(url).toContain('http://123.456.7.8:12345')
       expect(url).not.toContain('4567')
+    })
+  })
+
+  describe('buildContentDisposition', () => {
+    it('returns plain attachment when no filename is provided', () => {
+      expect(buildContentDisposition()).toBe('attachment')
+      expect(buildContentDisposition('')).toBe('attachment')
+      expect(buildContentDisposition(null)).toBe('attachment')
+    })
+
+    it('builds a disposition with quoted filename and RFC 5987 filename*', () => {
+      expect(buildContentDisposition('foo.png')).toBe(
+        'attachment; filename="foo.png"; filename*=UTF-8\'\'foo.png',
+      )
+    })
+
+    it('strips control characters and quotes to prevent header injection', () => {
+      expect(buildContentDisposition('a\r\nb"c\\d')).toBe(
+        'attachment; filename="abcd"; filename*=UTF-8\'\'abcd',
+      )
+    })
+
+    it('percent-encodes reserved RFC 5987 characters', () => {
+      expect(buildContentDisposition("it's (final).png")).toBe(
+        "attachment; filename=\"it's (final).png\"; filename*=UTF-8''it%27s%20%28final%29.png",
+      )
     })
   })
 })

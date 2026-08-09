@@ -27,6 +27,32 @@ export function verifyLocalUrlSignature(bucket: string, key: string, signature: 
   }
 }
 
+/**
+ * Build a Content-Disposition header value for downloads.
+ * - Falls back to plain `attachment` when no filename is provided.
+ * - Strips control characters (CR/LF header injection), quotes, and backslashes.
+ * - Includes the RFC 5987 `filename*` form so non-ASCII (e.g. Chinese) names survive.
+ */
+export function buildContentDisposition(filename?: string | null): string {
+  if (!filename) return 'attachment'
+  // Strip C0 control characters (incl. CR/LF header injection) and DEL, then
+  // quotes/backslashes which would break the quoted-string form.
+  const sanitized = [...filename]
+    .filter((ch) => {
+      const code = ch.charCodeAt(0)
+      return code > 0x1f && code !== 0x7f && ch !== '"' && ch !== '\\'
+    })
+    .join('')
+    .trim()
+  if (!sanitized) return 'attachment'
+  // RFC 5987 attr-char excludes ' ( ) — percent-encode them explicitly
+  const encoded = encodeURIComponent(sanitized).replace(
+    /['()]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+  )
+  return `attachment; filename="${sanitized}"; filename*=UTF-8''${encoded}`
+}
+
 export interface S3Object {
   buffer: Buffer
   contentType: string
@@ -55,7 +81,13 @@ export interface S3Service {
   listObjects: (bucket: string, prefix: string) => Promise<string[]>
   uploadFile: (filePath: string, contentType: string) => Promise<string>
   uploadFileToKey: (filePath: string, key: string, contentType: string) => Promise<void>
-  presign: (bucket: string, key: string, method: string, download?: boolean) => Promise<string>
+  presign: (
+    bucket: string,
+    key: string,
+    method: string,
+    download?: boolean,
+    filename?: string,
+  ) => Promise<string>
 }
 
 export class S3StorageService implements S3Service {
@@ -214,7 +246,13 @@ export class S3StorageService implements S3Service {
     })
   }
 
-  async presign(bucket: string, key: string, method: string, download?: boolean): Promise<string> {
+  async presign(
+    bucket: string,
+    key: string,
+    method: string,
+    download?: boolean,
+    filename?: string,
+  ): Promise<string> {
     const expireHours = parseInt(process.env.PRESIGNED_URL_EXPIRES_IN || '5', 10)
     const expiresInSeconds = expireHours * 3600
     // Cache time is 2/3 of expire time, rounded to minute
@@ -237,7 +275,7 @@ export class S3StorageService implements S3Service {
     }
 
     if (download) {
-      options.contentDisposition = 'attachment'
+      options.contentDisposition = buildContentDisposition(filename)
     }
 
     const url = this.client.presign(key, options)
@@ -461,7 +499,13 @@ export class LocalStorageService implements S3Service {
     await fs.promises.copyFile(filePath, destPath)
   }
 
-  async presign(bucket: string, key: string, method: string, download?: boolean): Promise<string> {
+  async presign(
+    bucket: string,
+    key: string,
+    method: string,
+    download?: boolean,
+    filename?: string,
+  ): Promise<string> {
     if (method !== 'GET' && method !== 'PUT') {
       throw new Error(`Invalid method: ${method}`)
     }
@@ -471,6 +515,9 @@ export class LocalStorageService implements S3Service {
     let url = `${this.endpoint}/files/${bucket}/${key}`
     if (download) {
       url += '?download=1'
+      if (filename) {
+        url += `&filename=${encodeURIComponent(filename)}`
+      }
     }
     return url
   }

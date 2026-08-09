@@ -1966,7 +1966,13 @@ export class AssetService {
         const key = file.storageKeyId ? storageKeyMap.get(file.storageKeyId) : null
         if (!key) return null
 
-        const url = await s3Service.presign(process.env.S3_BUCKET || 'shumai', key, 'GET', true)
+        const url = await s3Service.presign(
+          process.env.S3_BUCKET || 'shumai',
+          key,
+          'GET',
+          true,
+          file.name,
+        )
 
         return {
           id: file.id,
@@ -1988,7 +1994,7 @@ export class AssetService {
     const targetAssetId = await this.resolveLatestVersionId(assetId)
     const asset = await this.prismaClient.asset.findUnique({
       where: { id: targetAssetId },
-      select: { id: true, parentId: true, storageKey: { select: { key: true } } },
+      select: { id: true, name: true, parentId: true, storageKey: { select: { key: true } } },
     })
 
     if (!asset?.storageKey?.key) {
@@ -2022,7 +2028,13 @@ export class AssetService {
       throw new Error('Key does not belong to this asset')
     }
 
-    return s3Service.presign(process.env.S3_BUCKET || 'shumai', key, 'GET', true)
+    return s3Service.presign(
+      process.env.S3_BUCKET || 'shumai',
+      key,
+      'GET',
+      true,
+      asset.name ?? undefined,
+    )
   }
 
   private async toPreviewInfo(asset: Asset | AssetWithIncludes): Promise<PreviewInfo | null> {
