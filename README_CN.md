@@ -27,6 +27,7 @@ Shumai 是一个开源的 Frame.io 替代方案，专为创意团队打造，让
 * **自定义素材元数据**：可以按你的制作流程，自由定义动态元数据字段。
 * **分享链接水印**：通过可自定义的文字和图片水印保护共享媒体，并将水印配置保存为模板以便重复使用。
 * **丰富的文件格式支持**：支持预览常见创意文件格式，包括图片（支持 PSD）、视频、音频和文档，同时可上传和存储任意类型的文件。
+* **基于 Gotenberg 的文档 PDF 转码代理**：通过集成 [Gotenberg](https://docs.shumai.one/using-shumai/gotenberg) 支持将 Word、PowerPoint、Excel、Markdown、HTML 和 CSV 文档高质量转换为 PDF 代理文件进行在线预览。
 
 但 Shumai 不仅仅只满足于 Frame.io 的开源替代。随着 GPT-Image-2、Seedance 2.5 这类强大模型的问世，AI已经生成产品级的图片/视频。很多时候，你只要给一句提示词，就能直接生成或修改图片和视频，而不用再打开 Photoshop、Premiere 或者 Houdini。也正因为这样，Shumai 才把 AI Agent 做成了核心能力：
 

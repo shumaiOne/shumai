@@ -3,7 +3,15 @@ import { s3Service } from '@shumai/core/src/s3/s3'
 import { transcodeService } from '@shumai/core/src/transcode/transcode'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { stemFromKey } from '@shumai/core/src/utils/filename'
-import { getProxyType } from '@shumai/core/src/utils/mime'
+import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
+import { parseCsvContent } from '@shumai/core/src/transcode/transcode'
+import {
+  getProxyType,
+  isCsvDocument,
+  isHtmlDocument,
+  isMarkdownDocument,
+  isOfficeDocument,
+} from '@shumai/core/src/utils/mime'
 import { ApplicationFailure } from '@temporalio/activity'
 import * as path from 'path'
 import * as fs from 'fs'
@@ -511,16 +519,13 @@ export interface GeneratePdfProxyActivityParams {
 export async function generatePdfProxyActivity(
   params: GeneratePdfProxyActivityParams,
 ): Promise<{ pdfProxyKey: string; pdfFilePath: string }> {
-  const isTxt =
-    params.mediaType === 'text/plain' ||
-    params.mediaType === 'text/markdown' ||
-    params.mediaType === 'text/x-markdown' ||
-    params.filename.toLowerCase().endsWith('.txt') ||
-    params.filename.toLowerCase().endsWith('.md') ||
-    params.filename.toLowerCase().endsWith('.markdown')
-  const isCsv = params.mediaType === 'text/csv' || params.filename.toLowerCase().endsWith('.csv')
+  const isOffice = isOfficeDocument(params.mediaType, params.filename)
+  const isHtml = isHtmlDocument(params.mediaType, params.filename)
+  const isMd = isMarkdownDocument(params.mediaType, params.filename)
+  const isCsv = isCsvDocument(params.mediaType, params.filename)
+  const isTxt = params.mediaType === 'text/plain' || params.filename.toLowerCase().endsWith('.txt')
 
-  if (!isTxt && !isCsv) {
+  if (!isOffice && !isHtml && !isMd && !isCsv && !isTxt) {
     return { pdfProxyKey: params.assetKey, pdfFilePath: params.filePath }
   }
 
@@ -530,10 +535,67 @@ export async function generatePdfProxyActivity(
   const pdfFilePath = path.join(tmpDir, 'proxy.pdf')
 
   try {
-    if (isCsv) {
-      await transcodeService.generatePdfFromCsv(params.filePath, pdfFilePath)
-    } else {
-      await transcodeService.generatePdfFromText(params.filePath, pdfFilePath)
+    const gotenbergAvailable = await gotenbergService.isAvailable()
+
+    if (isOffice) {
+      if (!gotenbergAvailable) {
+        throw new Error(
+          'Gotenberg service is required for Office document conversion but is unavailable.',
+        )
+      }
+      const pdfBuffer = await gotenbergService.convertDocumentToPdf(
+        params.filePath,
+        params.filename,
+      )
+      fs.writeFileSync(pdfFilePath, pdfBuffer)
+    } else if (isHtml) {
+      if (!gotenbergAvailable) {
+        throw new Error(
+          'Gotenberg service is required for HTML document conversion but is unavailable.',
+        )
+      }
+      const pdfBuffer = await gotenbergService.convertHtmlToPdf(params.filePath, params.filename)
+      fs.writeFileSync(pdfFilePath, pdfBuffer)
+    } else if (isCsv) {
+      if (gotenbergAvailable) {
+        let isLandscape = false
+        try {
+          const content = String(fs.readFileSync(params.filePath, 'utf-8'))
+          const rows = parseCsvContent(content)
+          const maxCols = Math.max(...rows.map((r) => r.length), 0)
+          isLandscape = maxCols > 5
+        } catch {
+          // Fallback landscape calculation
+        }
+        const pdfBuffer = await gotenbergService.convertDocumentToPdf(
+          params.filePath,
+          params.filename,
+          { landscape: isLandscape },
+        )
+        fs.writeFileSync(pdfFilePath, pdfBuffer)
+      } else {
+        await transcodeService.generatePdfFromCsv(params.filePath, pdfFilePath)
+      }
+    } else if (isMd) {
+      if (gotenbergAvailable) {
+        const pdfBuffer = await gotenbergService.convertMarkdownToPdf(
+          params.filePath,
+          params.filename,
+        )
+        fs.writeFileSync(pdfFilePath, pdfBuffer)
+      } else {
+        await transcodeService.generatePdfFromText(params.filePath, pdfFilePath)
+      }
+    } else if (isTxt) {
+      if (gotenbergAvailable) {
+        const pdfBuffer = await gotenbergService.convertDocumentToPdf(
+          params.filePath,
+          params.filename,
+        )
+        fs.writeFileSync(pdfFilePath, pdfBuffer)
+      } else {
+        await transcodeService.generatePdfFromText(params.filePath, pdfFilePath)
+      }
     }
 
     const stat = fs.statSync(pdfFilePath)
@@ -544,7 +606,7 @@ export async function generatePdfProxyActivity(
   } catch (err) {
     const { message } = getErrorDetails(err)
     throw ApplicationFailure.create({
-      message: `Failed to generate PDF proxy for text/csv/markdown: ${message}`,
+      message: `Failed to generate PDF proxy: ${message}`,
       nonRetryable: true,
       cause: err instanceof Error ? err : undefined,
     })

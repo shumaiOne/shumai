@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { detectSupportedMimeType, getProxyType } from './mime'
+import {
+  detectSupportedMimeType,
+  getProxyType,
+  isOfficeDocument,
+  isHtmlDocument,
+  isMarkdownDocument,
+  isCsvDocument,
+} from './mime'
 
 describe('detectSupportedMimeType', () => {
   it('should detect JPEG', () => {
@@ -45,6 +52,38 @@ describe('detectSupportedMimeType', () => {
   })
 })
 
+describe('document helpers', () => {
+  it('isOfficeDocument should correctly identify office files', () => {
+    expect(isOfficeDocument('application/msword', 'letter.doc')).toBe(true)
+    expect(
+      isOfficeDocument(
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'file.docx',
+      ),
+    ).toBe(true)
+    expect(isOfficeDocument(null, 'sheet.xlsx')).toBe(true)
+    expect(isOfficeDocument(null, 'slides.pptx')).toBe(true)
+    expect(isOfficeDocument(null, 'notes.rtf')).toBe(true)
+    expect(isOfficeDocument('text/plain', 'notes.txt')).toBe(false)
+  })
+
+  it('isHtmlDocument should correctly identify html files', () => {
+    expect(isHtmlDocument('text/html', 'page.html')).toBe(true)
+    expect(isHtmlDocument(null, 'index.htm')).toBe(true)
+    expect(isHtmlDocument('text/plain', 'notes.txt')).toBe(false)
+  })
+
+  it('isMarkdownDocument should correctly identify markdown files', () => {
+    expect(isMarkdownDocument('text/markdown', 'README.md')).toBe(true)
+    expect(isMarkdownDocument(null, 'doc.markdown')).toBe(true)
+  })
+
+  it('isCsvDocument should correctly identify csv files', () => {
+    expect(isCsvDocument('text/csv', 'data.csv')).toBe(true)
+    expect(isCsvDocument(null, 'data.csv')).toBe(true)
+  })
+})
+
 describe('getProxyType', () => {
   it('should detect image proxyType', () => {
     expect(getProxyType('image/png', 'test.png')).toBe('image')
@@ -61,21 +100,20 @@ describe('getProxyType', () => {
     expect(getProxyType('audio/mpeg', 'song.mp3')).toBe('audio')
   })
 
-  it('should detect pdf proxyType only for pdf, csv, txt, and markdown files', () => {
+  it('should detect pdf proxyType for pdf, csv, txt, markdown, html, and office files', () => {
     expect(getProxyType('application/pdf', 'doc.pdf')).toBe('pdf')
     expect(getProxyType('text/plain', 'notes.txt')).toBe('pdf')
     expect(getProxyType('text/csv', 'data.csv')).toBe('pdf')
     expect(getProxyType('text/markdown', 'README.md')).toBe('pdf')
     expect(getProxyType('text/x-markdown', 'doc.markdown')).toBe('pdf')
-    expect(getProxyType(null, 'file.txt')).toBe('pdf')
-    expect(getProxyType(null, 'README.md')).toBe('pdf')
-    expect(getProxyType(null, 'doc.markdown')).toBe('pdf')
+    expect(getProxyType('text/html', 'index.html')).toBe('pdf')
+    expect(getProxyType('application/msword', 'letter.doc')).toBe('pdf')
+    expect(getProxyType(null, 'sheet.xlsx')).toBe('pdf')
+    expect(getProxyType(null, 'slides.pptx')).toBe('pdf')
   })
 
-  it('should return null for unsupported files including office files', () => {
+  it('should return null for unsupported files', () => {
     expect(getProxyType('application/zip', 'archive.zip')).toBeNull()
-    expect(getProxyType('application/msword', 'letter.doc')).toBeNull()
-    expect(getProxyType(null, 'sheet.xlsx')).toBeNull()
     expect(getProxyType(null, 'unknown.bin')).toBeNull()
   })
 })
