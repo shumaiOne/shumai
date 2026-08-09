@@ -303,13 +303,17 @@ export function useFileActions({
       for (let i = 0; i < files.length; i += batchSize) {
         const chunk = files.slice(i, i + batchSize)
         for (const file of chunk) {
-          const a = document.createElement('a')
-          a.href = file.url
-          a.download = file.name
-          a.target = '_blank'
-          document.body.appendChild(a)
-          a.click()
-          document.body.removeChild(a)
+          // Use a hidden iframe instead of an anchor with target="_blank".
+          // Download URLs respond with Content-Disposition: attachment, so the
+          // browser starts the download in the background: no flash of a tab
+          // that opens and auto-closes. A failed/expired link renders inside
+          // the hidden iframe instead of navigating the SPA tab away.
+          const iframe = document.createElement('iframe')
+          iframe.style.display = 'none'
+          iframe.src = file.url
+          document.body.appendChild(iframe)
+          // Remove the iframe once the download has had time to start.
+          window.setTimeout(() => iframe.remove(), 60_000)
         }
         if (i + batchSize < files.length) {
           await delay(600)
