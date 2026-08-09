@@ -11,8 +11,8 @@ export class GotenbergService {
   }
 
   private getAuthHeader(): string | undefined {
-    const username = process.env.GOTENBERG_USERNAME || process.env.GOTENBERG_BASIC_AUTH_USERNAME
-    const password = process.env.GOTENBERG_PASSWORD || process.env.GOTENBERG_BASIC_AUTH_PASSWORD
+    const username = process.env.GOTENBERG_BASIC_AUTH_USERNAME
+    const password = process.env.GOTENBERG_BASIC_AUTH_PASSWORD
 
     if (username && password) {
       const credentials = Buffer.from(`${username}:${password}`).toString('base64')

@@ -56,8 +56,8 @@ describe('GotenbergService', () => {
 
     it('should include Basic Auth header if username and password are provided', async () => {
       process.env.GOTENBERG_URL = 'http://gotenberg:3000'
-      process.env.GOTENBERG_USERNAME = 'user'
-      process.env.GOTENBERG_PASSWORD = 'pass'
+      process.env.GOTENBERG_BASIC_AUTH_USERNAME = 'user'
+      process.env.GOTENBERG_BASIC_AUTH_PASSWORD = 'pass'
 
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
         ok: true,
