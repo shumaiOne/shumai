@@ -51,12 +51,23 @@ Gotenberg support is opt-in and controlled by the following environment variable
 | `GOTENBERG_BASIC_AUTH_USERNAME` | No              | Username when Basic Authentication is enabled on Gotenberg.      |
 | `GOTENBERG_BASIC_AUTH_PASSWORD` | No              | Password when Basic Authentication is enabled on Gotenberg.      |
 
-> [!NOTE]
-> The shorter aliases `GOTENBERG_USERNAME` and `GOTENBERG_PASSWORD` are also accepted and take precedence if both are set. Only one set is needed.
+### Docker Quickstart
+
+You can start a Gotenberg container with a single command:
+
+```bash
+docker run -d --name gotenberg -p 3000:3000 gotenberg/gotenberg:8
+```
+
+If you wish to enable Basic Authentication:
+
+```bash
+docker run -d --name gotenberg -p 3000:3000 gotenberg/gotenberg:8 gotenberg --gotenberg-basic-auth-username=admin --gotenberg-basic-auth-password=secret
+```
 
 ### Docker Compose Setup
 
-Add a Gotenberg service to your deployment:
+Add a Gotenberg service to your `docker-compose.yaml`:
 
 ```yaml
 gotenberg:
