@@ -18,6 +18,26 @@ import { useMutation } from '@tanstack/react-query'
 import { createLazyFileRoute } from '@tanstack/react-router'
 import { InferRequestType, InferResponseType } from 'hono/client'
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/ui/components/ui/alert-dialog'
+import { Button } from '@/ui/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/ui/components/ui/dialog'
+import { Input } from '@/ui/components/ui/input'
+import { toast } from 'sonner'
 import type { MediaController } from '@/ui/components/viewers/types'
 import type { AssetInfo, AssetInfoPaginatedList, CommentInfo } from '@shumai/dtos'
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -147,6 +167,82 @@ function FileViewPage() {
   const fileData = versionData || stackData
   const versionsDataList = versionAssetId ? versionsList : stackData?.versionStack?.versions
 
+  const parentFolderId = fileData?.ancestorFolders?.[0]?.id ?? projectInfo?.rootFolder ?? ''
+
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false)
+  const [renameInput, setRenameInput] = useState('')
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+
+  const $renameFile = client.api.files[':fileId'].$put
+  const { mutate: renameFile, isPending: isRenaming } = useMutation<
+    InferResponseType<typeof $renameFile, 200>,
+    Error,
+    InferRequestType<typeof $renameFile>
+  >({
+    mutationFn: async (request) => {
+      const res = await $renameFile(request)
+      if (!res.ok) throw new Error('Failed to rename file')
+      return (await res.json()) as unknown as InferResponseType<typeof $renameFile, 200>
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['files'] })
+      queryClient.invalidateQueries({ queryKey: ['version_stacks'] })
+      toast.success(m.renamed_successfully?.() || 'Renamed successfully')
+      setIsRenameDialogOpen(false)
+    },
+    onError: () => {
+      toast.error(m.failed_to_rename?.() || 'Failed to rename')
+    },
+  })
+
+  const $deleteFiles = client.api.files.$delete
+  const { mutate: deleteFiles, isPending: isDeleting } = useMutation<
+    void,
+    Error,
+    InferRequestType<typeof $deleteFiles>
+  >({
+    mutationFn: async (request) => {
+      const res = await $deleteFiles(request)
+      if (!res.ok) throw new Error('Failed to delete file')
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['files'] })
+      queryClient.invalidateQueries({ queryKey: ['version_stacks'] })
+      toast.success(m.deleted?.() || 'Deleted')
+      setIsDeleteDialogOpen(false)
+      if (parentFolderId && parentFolderId !== projectInfo?.rootFolder) {
+        navigate({
+          to: '/projects/$projectId/folders/$folderId',
+          params: { projectId, folderId: parentFolderId },
+        })
+      } else {
+        navigate({
+          to: '/projects/$projectId',
+          params: { projectId },
+        })
+      }
+    },
+    onError: () => {
+      toast.error(m.failed_to_delete?.() || 'Failed to delete')
+    },
+  })
+
+  const handleRenameSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault()
+    if (!renameInput.trim() || !activeFileId) return
+    renameFile({
+      param: { fileId: activeFileId },
+      json: { name: renameInput.trim() },
+    })
+  }
+
+  const handleDeleteSubmit = () => {
+    if (!activeFileId) return
+    deleteFiles({
+      json: { ids: [activeFileId] },
+    })
+  }
+
   useEffect(() => {
     if (fileData && projectInfo && teamId) {
       setProjectState({
@@ -198,6 +294,13 @@ function FileViewPage() {
             params: { projectId, folderId: id },
           })
         },
+        onRename: () => {
+          setRenameInput(fileData?.name ?? '')
+          setIsRenameDialogOpen(true)
+        },
+        onDelete: () => {
+          setIsDeleteDialogOpen(true)
+        },
       })
     }
 
@@ -215,8 +318,6 @@ function FileViewPage() {
     clearProjectState,
     navigate,
   ])
-
-  const parentFolderId = fileData?.ancestorFolders?.[0]?.id ?? projectInfo?.rootFolder ?? ''
 
   useEffect(() => {
     if (!parentFolderId || !activeFileId) return
@@ -470,6 +571,56 @@ function FileViewPage() {
           </>
         )}
       </div>
+
+      <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
+        <DialogContent>
+          <form onSubmit={handleRenameSubmit}>
+            <DialogHeader>
+              <DialogTitle>{m.rename()}</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <Input
+                value={renameInput}
+                onChange={(e) => setRenameInput(e.target.value)}
+                placeholder={m.enter_new_name?.() || 'Enter new name'}
+                autoFocus
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsRenameDialogOpen(false)}>
+                {m.cancel()}
+              </Button>
+              <Button type="submit" disabled={isRenaming || !renameInput.trim()}>
+                {isRenaming && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {m.save()}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{m.delete_asset_title?.() || 'Delete Asset?'}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {m.delete_asset_description?.() ||
+                'Deleted items can be recovered for 30 days before being permanently deleted.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{m.cancel()}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteSubmit}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {m.delete()}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
