@@ -163,4 +163,31 @@ describe('GotenbergService', () => {
       )
     })
   })
+
+  describe('convertMarkdownToPdf', () => {
+    it('should call chromium markdown convert endpoint with index.html wrapper and return buffer', async () => {
+      process.env.GOTENBERG_URL = 'http://gotenberg:3000'
+      const mockPdfBuffer = Buffer.from('%PDF-1.4 markdown output')
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+        ok: true,
+        status: 200,
+        arrayBuffer: async () => mockPdfBuffer.buffer,
+      } as unknown as Response)
+
+      const mdPath = path.join(tmpDir, 'test.md')
+      fs.writeFileSync(mdPath, '# Hello Gotenberg')
+
+      const service = new GotenbergService()
+      const result = await service.convertMarkdownToPdf(mdPath, 'test.md')
+
+      expect(result).toBeDefined()
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'http://gotenberg:3000/forms/chromium/convert/markdown',
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.any(FormData),
+        }),
+      )
+    })
+  })
 })

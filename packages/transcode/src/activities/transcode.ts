@@ -576,7 +576,17 @@ export async function generatePdfProxyActivity(
       } else {
         await transcodeService.generatePdfFromCsv(params.filePath, pdfFilePath)
       }
-    } else if (isMd || isTxt) {
+    } else if (isMd) {
+      if (gotenbergAvailable) {
+        const pdfBuffer = await gotenbergService.convertMarkdownToPdf(
+          params.filePath,
+          params.filename,
+        )
+        fs.writeFileSync(pdfFilePath, pdfBuffer)
+      } else {
+        await transcodeService.generatePdfFromText(params.filePath, pdfFilePath)
+      }
+    } else if (isTxt) {
       if (gotenbergAvailable) {
         const pdfBuffer = await gotenbergService.convertDocumentToPdf(
           params.filePath,

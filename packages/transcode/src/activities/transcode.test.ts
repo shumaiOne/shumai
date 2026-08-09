@@ -294,6 +294,28 @@ describe('Transcode Activities', () => {
     generatePdfFromTextSpy.mockRestore()
   })
 
+  it('should convert markdown document via Gotenberg Chromium in generatePdfProxyActivity when available', async () => {
+    const asset = await prisma.asset.create({
+      data: { name: 'README.md', type: 'file', status: 'uploaded' },
+    })
+
+    vi.spyOn(gotenbergService, 'isAvailable').mockResolvedValue(true)
+    const convertMdSpy = vi
+      .spyOn(gotenbergService, 'convertMarkdownToPdf')
+      .mockResolvedValue(Buffer.from('fake pdf from gotenberg markdown'))
+
+    const res = await generatePdfProxyActivity({
+      assetId: asset.id,
+      assetKey: 'files/asset1/README.md',
+      filePath: '/tmp/README.md',
+      mediaType: 'text/markdown',
+      filename: 'README.md',
+    })
+
+    expect(res.pdfProxyKey).toBe(`files/${asset.id}/proxy.pdf`)
+    expect(convertMdSpy).toHaveBeenCalledWith('/tmp/README.md', 'README.md')
+  })
+
   it('should convert office document via Gotenberg in generatePdfProxyActivity when available', async () => {
     const asset = await prisma.asset.create({
       data: { name: 'document.docx', type: 'file', status: 'uploaded' },

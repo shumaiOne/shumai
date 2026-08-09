@@ -125,6 +125,57 @@ export class GotenbergService {
     const arrayBuffer = await response.arrayBuffer()
     return Buffer.from(arrayBuffer)
   }
+
+  async convertMarkdownToPdf(filePath: string, filename: string): Promise<Buffer> {
+    const baseUrl = this.getUrl()
+    if (!baseUrl) {
+      throw new Error('Gotenberg URL is not configured.')
+    }
+
+    const mdFilename =
+      filename.toLowerCase().endsWith('.md') || filename.toLowerCase().endsWith('.markdown')
+        ? filename
+        : 'file.md'
+
+    const htmlTemplate = `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>PDF</title>
+  </head>
+  <body>
+    {{ toHTML "${mdFilename}" }}
+  </body>
+</html>`
+
+    const fileBytes = fs.readFileSync(filePath)
+    const formData = new FormData()
+    formData.append('files', new Blob([htmlTemplate], { type: 'text/html' }), 'index.html')
+    formData.append('files', new Blob([fileBytes]), mdFilename)
+
+    const headers: Record<string, string> = {}
+    const authHeader = this.getAuthHeader()
+    if (authHeader) {
+      headers['Authorization'] = authHeader
+    }
+
+    const response = await fetch(`${baseUrl}/forms/chromium/convert/markdown`, {
+      method: 'POST',
+      headers,
+      body: formData,
+      signal: AbortSignal.timeout(60000),
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '')
+      throw new Error(
+        `Gotenberg Markdown conversion failed with status ${response.status}: ${errorText || response.statusText}`,
+      )
+    }
+
+    const arrayBuffer = await response.arrayBuffer()
+    return Buffer.from(arrayBuffer)
+  }
 }
 
 export const gotenbergService = new GotenbergService()
