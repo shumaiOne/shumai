@@ -37,6 +37,7 @@ import {
   DialogTitle,
 } from '@/ui/components/ui/dialog'
 import { Input } from '@/ui/components/ui/input'
+import { selectFileNameWithoutExtension } from '@/ui/lib/rename-utils'
 import { toast } from 'sonner'
 import type { MediaController } from '@/ui/components/viewers/types'
 import type { AssetInfo, AssetInfoPaginatedList, CommentInfo } from '@shumai/dtos'
@@ -171,6 +172,8 @@ function FileViewPage() {
 
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false)
   const [renameInput, setRenameInput] = useState('')
+  const renameInputRef = useRef<HTMLInputElement>(null)
+  const renameSettledRef = useRef(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
   const $renameFile = client.api.files[':fileId'].$put
@@ -295,6 +298,7 @@ function FileViewPage() {
           })
         },
         onRename: () => {
+          renameSettledRef.current = false
           setRenameInput(fileData?.name ?? '')
           setIsRenameDialogOpen(true)
         },
@@ -318,6 +322,30 @@ function FileViewPage() {
     clearProjectState,
     navigate,
   ])
+
+  useEffect(() => {
+    if (!isRenameDialogOpen) return
+    // Stop correcting the selection shortly after the dialog opens so user
+    // edits are not disturbed. The dropdown's focus restoration settles well
+    // within this window.
+    const timeoutId = setTimeout(() => {
+      renameSettledRef.current = true
+    }, 1000)
+    return () => clearTimeout(timeoutId)
+  }, [isRenameDialogOpen])
+
+  const handleRenameInputFocus = () => {
+    if (renameSettledRef.current) return
+    // The dialog focus scope calls select() synchronously right after the
+    // focus event, and the breadcrumb dropdown restores focus ~150ms later
+    // (after its exit animation), re-triggering the trap's select-all. Defer
+    // the base-name selection so it runs after those select-all calls.
+    setTimeout(() => {
+      if (renameInputRef.current) {
+        selectFileNameWithoutExtension(renameInputRef.current)
+      }
+    }, 0)
+  }
 
   useEffect(() => {
     if (!parentFolderId || !activeFileId) return
@@ -580,9 +608,11 @@ function FileViewPage() {
             </DialogHeader>
             <div className="py-4">
               <Input
+                ref={renameInputRef}
                 value={renameInput}
                 onChange={(e) => setRenameInput(e.target.value)}
                 placeholder={m.enter_new_name?.() || 'Enter new name'}
+                onFocus={handleRenameInputFocus}
                 autoFocus
               />
             </div>
