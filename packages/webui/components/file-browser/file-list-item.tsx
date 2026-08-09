@@ -7,6 +7,7 @@ import { File, Folder, MoreVertical, AudioLines } from 'lucide-react'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '@/ui/lib/utils'
 import { formatSize } from '@/ui/lib/format'
+import { selectFileNameWithoutExtension } from '@/ui/lib/rename-utils'
 import type { DragState } from '../dnd-types'
 import FieldRenderer from '../field-renderer'
 import { Badge } from '@/ui/components/ui/badge'
@@ -133,8 +134,9 @@ export function FileListItem({
       // the DOM has stabilized before focusing. Radix focus restoration
       // can sometimes conflict with immediate focus calls.
       const timeoutId = setTimeout(() => {
-        inputRef.current?.focus()
-        inputRef.current?.select()
+        if (inputRef.current) {
+          selectFileNameWithoutExtension(inputRef.current)
+        }
       }, 150)
       return () => clearTimeout(timeoutId)
     }
