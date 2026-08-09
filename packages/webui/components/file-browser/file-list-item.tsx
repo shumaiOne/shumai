@@ -91,7 +91,15 @@ export function FileListItem({
     },
   })
 
-  const displayItem = polledItem || item
+  const displayItem = useMemo(() => {
+    if (item.status === 'processed' || item.status === 'error') {
+      return item
+    }
+    if (polledItem?.status === 'processed' || polledItem?.status === 'error') {
+      return polledItem
+    }
+    return polledItem || item
+  }, [item, polledItem])
 
   // dnd-kit hooks
   const { ref: setDraggableRef, isDragging: isDraggableDragging } = useDraggable({
