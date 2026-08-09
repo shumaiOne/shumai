@@ -47,3 +47,39 @@ test('owner uploads a file via the "Upload File" context menu action', async ({
   const projectRow = await prisma.project.findUnique({ where: { id: projectId } })
   expect(asset!.parentId).toBe(projectRow?.rootFolderId)
 })
+
+test('owner uploads an unsupported file via context menu action', async ({ project, prisma }) => {
+  const { page, projectId } = project
+  const fileName = `e2e-upload-${Date.now()}.bin`
+  const binBuffer = Buffer.from([0x00, 0x01, 0x02, 0x03])
+
+  await page.goto(`/projects/${projectId}`)
+  await expect(page.getByText('This folder is empty')).toBeVisible()
+
+  await page.getByText('This folder is empty').click({ button: 'right' })
+  const [fileChooser] = await Promise.all([
+    page.waitForEvent('filechooser'),
+    page.getByRole('menuitem', { name: 'Upload File' }).click(),
+  ])
+  await fileChooser.setFiles({
+    name: fileName,
+    mimeType: 'application/octet-stream',
+    buffer: binBuffer,
+  })
+
+  const card = fileCard(page, fileName)
+  await expect(card).toBeVisible()
+
+  await expect
+    .poll(
+      async () => {
+        const asset = await prisma.asset.findFirst({ where: { name: fileName } })
+        return asset?.status
+      },
+      { timeout: 30_000 },
+    )
+    .toBe('processed')
+
+  // Verify that the file card shows the generic file icon and is not stuck in uploading state
+  await expect(card.locator('svg.lucide-file')).toBeVisible({ timeout: 10_000 })
+})
