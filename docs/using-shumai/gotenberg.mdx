@@ -1,0 +1,92 @@
+---
+title: Document PDF Conversion with Gotenberg
+description: Convert Office documents, HTML, Markdown, CSV, and TXT files into high-fidelity PDF proxies for in-browser previewing.
+---
+
+Office documents, HTML pages, Markdown files, spreadsheets, and plain-text files cannot be rendered natively in web browsers. Shumai uses [Gotenberg](https://gotenberg.dev) — an open-source, Docker-powered conversion API — to turn these files into PDF proxy assets for seamless in-browser previewing.
+
+Gotenberg performs the conversion using:
+
+- **LibreOffice** for Office documents, spreadsheets, and plain text.
+- **Headless Chromium** for HTML and Markdown files.
+
+---
+
+## Supported File Types
+
+When Gotenberg is configured, Shumai automatically generates a PDF proxy for the following uploads:
+
+| Category           | Extensions             | Converter   |
+| ------------------ | ---------------------- | ----------- |
+| Word               | `.doc`, `.docx`        | LibreOffice |
+| Excel              | `.xls`, `.xlsx`        | LibreOffice |
+| PowerPoint         | `.ppt`, `.pptx`        | LibreOffice |
+| OpenDocument       | `.odt`, `.ods`, `.odp` | LibreOffice |
+| Rich Text          | `.rtf`                 | LibreOffice |
+| HTML               | `.html`, `.htm`        | Chromium    |
+| Markdown           | `.md`, `.markdown`     | Chromium    |
+| Spreadsheets / CSV | `.csv`                 | LibreOffice |
+| Plain text         | `.txt`                 | LibreOffice |
+
+### How It Works
+
+1. The file is uploaded and stored in its original form.
+2. Shumai submits a background `transcode_pdf` task to the workflow engine.
+3. Gotenberg converts the file into a `proxy.pdf` asset.
+4. The PDF proxy is further processed into a **poster** WebP image and a **sprite** WebP image, enabling fast, high-fidelity previews in the asset list and viewer.
+
+**Automatic landscape optimization**: Spreadsheets and CSV files with more than 5 columns are automatically converted in landscape layout so wide tables remain readable.
+
+**Markdown rendering**: Markdown content is rendered by Chromium through an `index.html` wrapper template (`{{ toHTML "file.md" }}`), producing clean, styled PDF output.
+
+---
+
+## Configuration
+
+Gotenberg support is opt-in and controlled by the following environment variables on the machine running the transcode workers:
+
+| Variable                        | Required        | Description                                                      |
+| ------------------------------- | --------------- | ---------------------------------------------------------------- |
+| `GOTENBERG_URL`                 | Yes (to enable) | Base URL of the Gotenberg service, e.g. `http://gotenberg:3000`. |
+| `GOTENBERG_BASIC_AUTH_USERNAME` | No              | Username when Basic Authentication is enabled on Gotenberg.      |
+| `GOTENBERG_BASIC_AUTH_PASSWORD` | No              | Password when Basic Authentication is enabled on Gotenberg.      |
+
+> [!NOTE]
+> The shorter aliases `GOTENBERG_USERNAME` and `GOTENBERG_PASSWORD` are also accepted and take precedence if both are set. Only one set is needed.
+
+### Docker Compose Setup
+
+Add a Gotenberg service to your deployment:
+
+```yaml
+gotenberg:
+  image: gotenberg/gotenberg:8
+  restart: unless-stopped
+  ports:
+    - '3000:3000'
+```
+
+Then point Shumai at it:
+
+```bash
+GOTENBERG_URL=http://localhost:3000
+```
+
+---
+
+## Behavior Without Gotenberg
+
+If Gotenberg is not configured or unreachable, Shumai degrades gracefully:
+
+- **Office documents and HTML**: the upload completes as `processed` without a PDF proxy.
+- **CSV, Markdown, and TXT**: a lightweight built-in PDF generator produces the proxy instead, with reduced fidelity.
+
+---
+
+## Security Considerations
+
+Gotenberg renders user-uploaded HTML and Markdown in a headless Chromium instance, which may fetch referenced remote resources (images, stylesheets, links). If your deployment exposes Gotenberg to untrusted content, we recommend:
+
+- Running Gotenberg in an isolated network segment with restricted egress.
+- Configuring Gotenberg's Chromium allow-list (`--chromium-allow-list`) to constrain which URLs Chromium may access.
+- Applying resource limits (CPU/memory) to the Gotenberg container.

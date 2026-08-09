@@ -26,6 +26,7 @@ Shumai is an open-source Frame.io alternative built for creative teams to collab
 * **Custom Asset Metadata**: Define dynamic metadata fields tailored to your production pipeline.
 * **Share Link Watermarking**: Protect shared media with customizable text and image watermarks, and save watermark as reusable templates.
 * **Wide File Format Support**: Preview common creative file formats, including images (with PSD support), videos, audio, and documents, while allowing any file type to be uploaded and stored.
+* **Office & Document PDF Proxying via Gotenberg**: Convert Word, PowerPoint, Excel, Markdown, HTML, and CSV documents to high-quality PDF proxies for in-browser previewing using [Gotenberg](https://docs.shumai.one/using-shumai/gotenberg).
 
 But Shumai goes beyond being a Frame.io alternative. With modern models like GPT-Image-2 and Seedance 2.5, AI can already handle a surprising amount of creative work. That means you can create or update videos and images from a simple prompt without having to jump back into Photoshop, Premiere or Houdini. That is why Shumai includes a powerful agent system:
 
