@@ -17,6 +17,7 @@ import { EditableText } from '@/ui/components/ui/editable-text'
 import { ProgressCircle } from '@/ui/components/ui/progress-circle'
 import { Skeleton } from '@/ui/components/ui/skeleton'
 import { formatTimeAgo } from '@/ui/lib/time'
+import { selectFileNameWithoutExtension } from '@/ui/lib/rename-utils'
 import { cn } from '@/ui/lib/utils'
 import { useUploadStore } from '@/ui/stores/upload'
 import { useDraggable, useDroppable } from '@dnd-kit/react'
@@ -188,8 +189,9 @@ export function FileCard({
       // the DOM has stabilized before focusing. Radix focus restoration
       // can sometimes conflict with immediate focus calls.
       const timeoutId = setTimeout(() => {
-        inputRef.current?.focus()
-        inputRef.current?.select()
+        if (inputRef.current) {
+          selectFileNameWithoutExtension(inputRef.current)
+        }
       }, 150)
       return () => clearTimeout(timeoutId)
     }
