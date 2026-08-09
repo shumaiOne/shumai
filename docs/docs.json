@@ -26,7 +26,6 @@
         "group": "Using Shumai",
         "pages": [
           "using-shumai/asset-management",
-          "using-shumai/gotenberg",
           "using-shumai/comments",
           "using-shumai/version-stack",
           "using-shumai/sort-and-search",
@@ -35,7 +34,8 @@
           "using-shumai/notifications",
           "using-shumai/metadata",
           "using-shumai/collections",
-          "using-shumai/share-links"
+          "using-shumai/share-links",
+          "using-shumai/gotenberg"
         ]
       },
       {
