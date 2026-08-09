@@ -159,7 +159,9 @@ describe('S3Service implementations', () => {
       expect(s3PresignSpy).toHaveBeenCalledWith(
         'key',
         expect.objectContaining({
-          contentDisposition: expect.stringContaining("filename*=UTF-8''"),
+          // Non-ASCII names are conveyed only via filename* (percent-encoded),
+          // keeping the header value pure ASCII (RFC 7230).
+          contentDisposition: "attachment; filename*=UTF-8''%E6%8A%A5%E5%91%8A.png",
         }),
       )
     })
@@ -347,6 +349,22 @@ describe('S3Service implementations', () => {
       expect(buildContentDisposition("it's (final).png")).toBe(
         "attachment; filename=\"it's (final).png\"; filename*=UTF-8''it%27s%20%28final%29.png",
       )
+    })
+
+    it('percent-encodes the * character in filename*', () => {
+      expect(buildContentDisposition('foo*bar.png')).toBe(
+        'attachment; filename="foo*bar.png"; filename*=UTF-8\'\'foo%2Abar.png',
+      )
+    })
+
+    it('omits the quoted filename fallback for non-ASCII names to keep the header ASCII', () => {
+      expect(buildContentDisposition('幻境边界.pptx')).toBe(
+        "attachment; filename*=UTF-8''%E5%B9%BB%E5%A2%83%E8%BE%B9%E7%95%8C.pptx",
+      )
+      // The whole header value must remain pure ASCII so Bun/Node Headers accept it
+      expect(
+        [...buildContentDisposition('幻境边界.pptx')].every((ch) => ch.charCodeAt(0) <= 0x7f),
+      ).toBe(true)
     })
   })
 })

@@ -31,7 +31,9 @@ export function verifyLocalUrlSignature(bucket: string, key: string, signature: 
  * Build a Content-Disposition header value for downloads.
  * - Falls back to plain `attachment` when no filename is provided.
  * - Strips control characters (CR/LF header injection), quotes, and backslashes.
- * - Includes the RFC 5987 `filename*` form so non-ASCII (e.g. Chinese) names survive.
+ * - Header values must be ASCII (RFC 7230): non-ASCII names are conveyed only
+ *   via the percent-encoded RFC 5987 `filename*` parameter; the quoted
+ *   `filename="..."` fallback is included only when the name is pure ASCII.
  */
 export function buildContentDisposition(filename?: string | null): string {
   if (!filename) return 'attachment'
@@ -45,11 +47,15 @@ export function buildContentDisposition(filename?: string | null): string {
     .join('')
     .trim()
   if (!sanitized) return 'attachment'
-  // RFC 5987 attr-char excludes ' ( ) — percent-encode them explicitly
+  // RFC 5987 attr-char excludes ' ( ) * — percent-encode them explicitly
   const encoded = encodeURIComponent(sanitized).replace(
-    /['()]/g,
+    /['()*]/g,
     (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
   )
+  const isAscii = [...sanitized].every((ch) => ch.charCodeAt(0) <= 0x7f)
+  if (!isAscii) {
+    return `attachment; filename*=UTF-8''${encoded}`
+  }
   return `attachment; filename="${sanitized}"; filename*=UTF-8''${encoded}`
 }
 
