@@ -7,20 +7,36 @@ import { s3Service } from '@shumai/core/src/s3/s3'
 import { fileURLToPath } from 'url'
 import * as path from 'path'
 import * as fs from 'fs'
+import { GenericContainer, StartedTestContainer } from 'testcontainers'
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url))
 const transcodeWorkflowsPath = path.resolve(currentDir, '../../../apps/transcode/src/workflows.ts')
 const fixturesDir = path.resolve(currentDir, '../fixtures')
 
 describe.each(['local', 'temporal'] as const)(
-  'Workflow E2E - transcodePdfWorkflow (executor: %s)',
+  'Workflow E2E - Real Gotenberg Transcode (executor: %s)',
   (mode) => {
     setupTestDbHooks()
 
     let transcodeWorkerPromise: Promise<void> | null = null
+    let gotenbergContainer: StartedTestContainer | null = null
 
     beforeAll(async () => {
-      process.env.S3_BUCKET = 'shumai-e2e-test-bucket-transcode'
+      process.env.S3_BUCKET = 'shumai-e2e-test-bucket-gotenberg'
+
+      console.log('Starting Gotenberg container via testcontainers...')
+      try {
+        gotenbergContainer = await new GenericContainer('gotenberg/gotenberg:8')
+          .withExposedPorts(3000)
+          .start()
+        const host = gotenbergContainer.getHost()
+        const port = gotenbergContainer.getMappedPort(3000)
+        process.env.GOTENBERG_URL = `http://${host}:${port}`
+        console.log(`Gotenberg container ready at ${process.env.GOTENBERG_URL}`)
+      } catch (err) {
+        console.error('Failed to start Gotenberg container:', err)
+        throw err
+      }
 
       workflowService.setExecutorType(mode)
       initTranscodeWorkflows()
@@ -35,7 +51,7 @@ describe.each(['local', 'temporal'] as const)(
         console.log('Starting local workflow service polling...')
         workflowService.start()
       }
-    })
+    }, 120000)
 
     afterAll(async () => {
       if (mode === 'temporal') {
@@ -45,229 +61,57 @@ describe.each(['local', 'temporal'] as const)(
       }
       workflowService.close()
       vi.restoreAllMocks()
+
+      if (gotenbergContainer) {
+        console.log('Stopping Gotenberg container...')
+        await gotenbergContainer.stop()
+      }
+
       try {
-        console.log('Cleaning up local E2E storage files...')
-        await s3Service.deletePrefix('shumai-e2e-test-bucket-transcode', '')
+        console.log('Cleaning up E2E storage files...')
+        await s3Service.deletePrefix('shumai-e2e-test-bucket-gotenberg', '')
       } catch (err) {
         console.error('Failed to clean up E2E storage folder:', err)
       }
-    })
+    }, 120000)
 
-    it('should run transcodeMedia workflow for a PDF asset successfully', async () => {
-      // 1. Seed Database
+    it('should process real office Word document (.docx) transcode PDF task using Gotenberg', async () => {
       const team = await prisma.team.create({
-        data: { name: 'E2E PDF Transcode Team' },
+        data: { name: 'E2E Gotenberg DOCX Team' },
       })
 
       const project = await prisma.project.create({
-        data: { name: 'E2E PDF Transcode Project', teamId: team.id },
+        data: { name: 'E2E Gotenberg DOCX Project', teamId: team.id },
       })
 
       const storageKey = await prisma.storageKey.create({
         data: {
-          key: 'projects/e2e/test.pdf',
-        },
-      })
-
-      const asset = await prisma.asset.create({
-        data: {
-          name: 'test.pdf',
-          type: 'file',
-          status: 'uploaded',
-          mediaType: 'application/pdf',
-          projectId: project.id,
-          storageKeyId: storageKey.id,
-        },
-      })
-
-      // 2. Seed S3 Storage from fixture test.pdf
-      const pdfPath = path.join(fixturesDir, 'test.pdf')
-      const pdfBuffer = fs.readFileSync(pdfPath)
-      await s3Service.putObject(
-        'shumai-e2e-test-bucket-transcode',
-        'projects/e2e/test.pdf',
-        pdfBuffer,
-        pdfBuffer.length,
-        'application/pdf',
-      )
-
-      // 3. Create Workflow Task
-      const task = await prisma.workflowTask.create({
-        data: {
-          type: 'transcode_pdf',
-          status: 'pending',
-          assetId: asset.id,
-          projectId: project.id,
-          teamId: team.id,
-          payload: {
-            projectId: project.id,
-            transcode: {
-              poster: true,
-              sprite: true,
-            },
-          },
-        },
-      })
-
-      // 4. Wait for workflow to complete
-      console.log(
-        `Submitted E2E PDF Transcode Workflow Task. ID: ${task.id}. Awaiting completion...`,
-      )
-      const completedTask = await workflowService.executeWait(task, 45000)
-
-      // 5. Verification
-      expect(completedTask.status).toBe('completed')
-
-      // Verify Asset status is updated to processed
-      const updatedAsset = await prisma.asset.findUnique({
-        where: { id: asset.id },
-      })
-      expect(updatedAsset?.status).toBe(AssetStatus.processed)
-
-      // Verify media info contains pdf details, poster, sprite, and pageCount
-      const mediaInfo = updatedAsset?.media as unknown as {
-        proxyType: string
-        poster: { key: string }
-        sprite: { key: string }
-        frames?: number
-        pageCount?: number
-        metadata?: { totalFrames?: number; pageCount?: number }
-      }
-      expect(mediaInfo).toBeDefined()
-      expect(mediaInfo.proxyType).toBe('pdf')
-      expect(mediaInfo.poster).toBeDefined()
-      expect(mediaInfo.poster.key).toContain('poster.webp')
-      expect(mediaInfo.sprite).toBeDefined()
-      expect(mediaInfo.sprite.key).toContain('sprite.webp')
-      expect(mediaInfo.frames ?? mediaInfo.metadata?.totalFrames).toBeGreaterThan(0)
-    }, 50000)
-
-    it('should run transcodeMedia workflow for a TXT asset with CJK text to generate PDF proxy successfully', async () => {
-      // 1. Seed Database
-      const team = await prisma.team.create({
-        data: { name: 'E2E CJK TXT Transcode Team' },
-      })
-
-      const project = await prisma.project.create({
-        data: { name: 'E2E CJK TXT Transcode Project', teamId: team.id },
-      })
-
-      const storageKey = await prisma.storageKey.create({
-        data: {
-          key: 'projects/e2e/cjk-test.txt',
-        },
-      })
-
-      const asset = await prisma.asset.create({
-        data: {
-          name: 'cjk-test.txt',
-          type: 'file',
-          status: 'uploaded',
-          mediaType: 'text/plain',
-          projectId: project.id,
-          storageKeyId: storageKey.id,
-        },
-      })
-
-      // 2. Seed S3 Storage with CJK text
-      const cjkText =
-        'Hello World\n你好世界 (Chinese)\nこんにちは世界 (Japanese)\n안녕하세요世界 (Korean)\nLine 5 of random text.'
-      const txtBuffer = Buffer.from(cjkText, 'utf-8')
-      await s3Service.putObject(
-        'shumai-e2e-test-bucket-transcode',
-        'projects/e2e/cjk-test.txt',
-        txtBuffer,
-        txtBuffer.length,
-        'text/plain',
-      )
-
-      // 3. Create Workflow Task
-      const task = await prisma.workflowTask.create({
-        data: {
-          type: 'transcode_pdf',
-          status: 'pending',
-          assetId: asset.id,
-          projectId: project.id,
-          teamId: team.id,
-          payload: {
-            projectId: project.id,
-            transcode: {
-              poster: true,
-              sprite: true,
-            },
-          },
-        },
-      })
-
-      // 4. Wait for workflow to complete
-      console.log(
-        `Submitted E2E CJK TXT Transcode Workflow Task. ID: ${task.id}. Awaiting completion...`,
-      )
-      const completedTask = await workflowService.executeWait(task, 45000)
-
-      // 5. Verification
-      expect(completedTask.status).toBe('completed')
-
-      const updatedAsset = await prisma.asset.findUnique({
-        where: { id: asset.id },
-      })
-      expect(updatedAsset?.status).toBe(AssetStatus.processed)
-
-      const mediaInfo = updatedAsset?.media as unknown as {
-        proxyType?: string
-        pdfTranscode?: { key: string }
-        poster?: { key: string }
-        sprite?: { key: string }
-        frames?: number
-      }
-      expect(mediaInfo).toBeDefined()
-      expect(mediaInfo.proxyType).toBe('pdf')
-      expect(mediaInfo.pdfTranscode?.key).toBe(`files/${asset.id}/proxy.pdf`)
-      expect(mediaInfo.poster?.key).toContain('poster.webp')
-      expect(mediaInfo.sprite?.key).toContain('sprite.webp')
-      expect(mediaInfo.frames).toBeGreaterThan(0)
-    }, 50000)
-
-    it('should process markdown (.md) transcode PDF task correctly', async () => {
-      // 1. Create Team, Project, Asset & StorageKey
-      const team = await prisma.team.create({
-        data: { name: 'E2E MD Transcode Team' },
-      })
-
-      const project = await prisma.project.create({
-        data: { name: 'E2E MD Transcode Project', teamId: team.id },
-      })
-
-      const storageKey = await prisma.storageKey.create({
-        data: {
-          key: 'projects/e2e/doc.md',
+          key: 'projects/e2e/test.docx',
           status: 'active',
         },
       })
 
       const asset = await prisma.asset.create({
         data: {
-          name: 'doc.md',
+          name: 'test.docx',
           type: 'file',
           status: 'uploaded',
-          mediaType: 'text/markdown',
+          mediaType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
           projectId: project.id,
           storageKeyId: storageKey.id,
         },
       })
 
-      // 2. Seed S3 Storage with Markdown text
-      const mdText = '# Heading\n\nThis is a **markdown** document to be rendered to PDF proxy.'
-      const mdBuffer = Buffer.from(mdText, 'utf-8')
+      const docxPath = path.join(fixturesDir, 'test.docx')
+      const docxBuffer = fs.readFileSync(docxPath)
       await s3Service.putObject(
-        'shumai-e2e-test-bucket-transcode',
-        'projects/e2e/doc.md',
-        mdBuffer,
-        mdBuffer.length,
-        'text/markdown',
+        'shumai-e2e-test-bucket-gotenberg',
+        'projects/e2e/test.docx',
+        docxBuffer,
+        docxBuffer.length,
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       )
 
-      // 3. Create Workflow Task
       const task = await prisma.workflowTask.create({
         data: {
           type: 'transcode_pdf',
@@ -285,13 +129,11 @@ describe.each(['local', 'temporal'] as const)(
         },
       })
 
-      // 4. Wait for workflow to complete
       console.log(
-        `Submitted E2E MD Transcode Workflow Task. ID: ${task.id}. Awaiting completion...`,
+        `Submitted E2E Gotenberg DOCX Workflow Task. ID: ${task.id}. Awaiting completion...`,
       )
-      const completedTask = await workflowService.executeWait(task, 45000)
+      const completedTask = await workflowService.executeWait(task, 60000)
 
-      // 5. Verification
       expect(completedTask.status).toBe('completed')
 
       const updatedAsset = await prisma.asset.findUnique({
@@ -312,6 +154,168 @@ describe.each(['local', 'temporal'] as const)(
       expect(mediaInfo.poster?.key).toContain('poster.webp')
       expect(mediaInfo.sprite?.key).toContain('sprite.webp')
       expect(mediaInfo.frames).toBeGreaterThan(0)
-    }, 50000)
+    }, 90000)
+
+    it('should process real office PowerPoint presentation (.pptx) transcode PDF task using Gotenberg', async () => {
+      const team = await prisma.team.create({
+        data: { name: 'E2E Gotenberg PPTX Team' },
+      })
+
+      const project = await prisma.project.create({
+        data: { name: 'E2E Gotenberg PPTX Project', teamId: team.id },
+      })
+
+      const storageKey = await prisma.storageKey.create({
+        data: {
+          key: 'projects/e2e/test.pptx',
+          status: 'active',
+        },
+      })
+
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'test.pptx',
+          type: 'file',
+          status: 'uploaded',
+          mediaType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+          projectId: project.id,
+          storageKeyId: storageKey.id,
+        },
+      })
+
+      const pptxPath = path.join(fixturesDir, 'test.pptx')
+      const pptxBuffer = fs.readFileSync(pptxPath)
+      await s3Service.putObject(
+        'shumai-e2e-test-bucket-gotenberg',
+        'projects/e2e/test.pptx',
+        pptxBuffer,
+        pptxBuffer.length,
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      )
+
+      const task = await prisma.workflowTask.create({
+        data: {
+          type: 'transcode_pdf',
+          status: 'pending',
+          assetId: asset.id,
+          projectId: project.id,
+          teamId: team.id,
+          payload: {
+            projectId: project.id,
+            transcode: {
+              poster: true,
+              sprite: true,
+            },
+          },
+        },
+      })
+
+      console.log(
+        `Submitted E2E Gotenberg PPTX Workflow Task. ID: ${task.id}. Awaiting completion...`,
+      )
+      const completedTask = await workflowService.executeWait(task, 60000)
+
+      expect(completedTask.status).toBe('completed')
+
+      const updatedAsset = await prisma.asset.findUnique({
+        where: { id: asset.id },
+      })
+      expect(updatedAsset?.status).toBe(AssetStatus.processed)
+
+      const mediaInfo = updatedAsset?.media as unknown as {
+        proxyType?: string
+        pdfTranscode?: { key: string }
+        poster?: { key: string }
+        sprite?: { key: string }
+        frames?: number
+      }
+      expect(mediaInfo).toBeDefined()
+      expect(mediaInfo.proxyType).toBe('pdf')
+      expect(mediaInfo.pdfTranscode?.key).toBe(`files/${asset.id}/proxy.pdf`)
+      expect(mediaInfo.poster?.key).toContain('poster.webp')
+      expect(mediaInfo.sprite?.key).toContain('sprite.webp')
+      expect(mediaInfo.frames).toBeGreaterThan(0)
+    }, 90000)
+
+    it('should process real office Excel spreadsheet (.xlsx) transcode PDF task using Gotenberg', async () => {
+      const team = await prisma.team.create({
+        data: { name: 'E2E Gotenberg XLSX Team' },
+      })
+
+      const project = await prisma.project.create({
+        data: { name: 'E2E Gotenberg XLSX Project', teamId: team.id },
+      })
+
+      const storageKey = await prisma.storageKey.create({
+        data: {
+          key: 'projects/e2e/test.xlsx',
+          status: 'active',
+        },
+      })
+
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'test.xlsx',
+          type: 'file',
+          status: 'uploaded',
+          mediaType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          projectId: project.id,
+          storageKeyId: storageKey.id,
+        },
+      })
+
+      const xlsxPath = path.join(fixturesDir, 'test.xlsx')
+      const xlsxBuffer = fs.readFileSync(xlsxPath)
+      await s3Service.putObject(
+        'shumai-e2e-test-bucket-gotenberg',
+        'projects/e2e/test.xlsx',
+        xlsxBuffer,
+        xlsxBuffer.length,
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      )
+
+      const task = await prisma.workflowTask.create({
+        data: {
+          type: 'transcode_pdf',
+          status: 'pending',
+          assetId: asset.id,
+          projectId: project.id,
+          teamId: team.id,
+          payload: {
+            projectId: project.id,
+            transcode: {
+              poster: true,
+              sprite: true,
+            },
+          },
+        },
+      })
+
+      console.log(
+        `Submitted E2E Gotenberg XLSX Workflow Task. ID: ${task.id}. Awaiting completion...`,
+      )
+      const completedTask = await workflowService.executeWait(task, 60000)
+
+      expect(completedTask.status).toBe('completed')
+
+      const updatedAsset = await prisma.asset.findUnique({
+        where: { id: asset.id },
+      })
+      expect(updatedAsset?.status).toBe(AssetStatus.processed)
+
+      const mediaInfo = updatedAsset?.media as unknown as {
+        proxyType?: string
+        pdfTranscode?: { key: string }
+        poster?: { key: string }
+        sprite?: { key: string }
+        frames?: number
+      }
+      expect(mediaInfo).toBeDefined()
+      expect(mediaInfo.proxyType).toBe('pdf')
+      expect(mediaInfo.pdfTranscode?.key).toBe(`files/${asset.id}/proxy.pdf`)
+      expect(mediaInfo.poster?.key).toContain('poster.webp')
+      expect(mediaInfo.sprite?.key).toContain('sprite.webp')
+      expect(mediaInfo.frames).toBeGreaterThan(0)
+    }, 90000)
   },
 )
