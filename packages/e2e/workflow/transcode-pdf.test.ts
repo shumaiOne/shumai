@@ -3,6 +3,7 @@ import { prisma, AssetStatus } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { workflowService, TaskQueueTranscode } from '@shumai/workflow-core'
 import { initTranscodeWorkflows } from '@shumai/transcode'
+import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { fileURLToPath } from 'url'
 import * as path from 'path'
@@ -292,6 +293,92 @@ describe.each(['local', 'temporal'] as const)(
       const completedTask = await workflowService.executeWait(task, 45000)
 
       // 5. Verification
+      expect(completedTask.status).toBe('completed')
+
+      const updatedAsset = await prisma.asset.findUnique({
+        where: { id: asset.id },
+      })
+      expect(updatedAsset?.status).toBe(AssetStatus.processed)
+
+      const mediaInfo = updatedAsset?.media as unknown as {
+        proxyType?: string
+        pdfTranscode?: { key: string }
+        poster?: { key: string }
+        sprite?: { key: string }
+        frames?: number
+      }
+      expect(mediaInfo).toBeDefined()
+      expect(mediaInfo.proxyType).toBe('pdf')
+      expect(mediaInfo.pdfTranscode?.key).toBe(`files/${asset.id}/proxy.pdf`)
+      expect(mediaInfo.poster?.key).toContain('poster.webp')
+      expect(mediaInfo.sprite?.key).toContain('sprite.webp')
+      expect(mediaInfo.frames).toBeGreaterThan(0)
+    }, 50000)
+
+    it('should process office document (.docx) transcode PDF task using Gotenberg correctly', async () => {
+      vi.spyOn(gotenbergService, 'isAvailable').mockResolvedValue(true)
+      vi.spyOn(gotenbergService, 'convertDocumentToPdf').mockImplementation(async () => {
+        // Return valid minimal PDF buffer for poppler-utils/pdftoppm to process
+        return fs.readFileSync(path.join(fixturesDir, 'test.pdf'))
+      })
+
+      const team = await prisma.team.create({
+        data: { name: 'E2E Office Transcode Team' },
+      })
+
+      const project = await prisma.project.create({
+        data: { name: 'E2E Office Transcode Project', teamId: team.id },
+      })
+
+      const storageKey = await prisma.storageKey.create({
+        data: {
+          key: 'projects/e2e/doc.docx',
+          status: 'active',
+        },
+      })
+
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'doc.docx',
+          type: 'file',
+          status: 'uploaded',
+          mediaType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          projectId: project.id,
+          storageKeyId: storageKey.id,
+        },
+      })
+
+      const docxBuffer = Buffer.from('fake-docx-content', 'utf-8')
+      await s3Service.putObject(
+        'shumai-e2e-test-bucket-transcode',
+        'projects/e2e/doc.docx',
+        docxBuffer,
+        docxBuffer.length,
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      )
+
+      const task = await prisma.workflowTask.create({
+        data: {
+          type: 'transcode_pdf',
+          status: 'pending',
+          assetId: asset.id,
+          projectId: project.id,
+          teamId: team.id,
+          payload: {
+            projectId: project.id,
+            transcode: {
+              poster: true,
+              sprite: true,
+            },
+          },
+        },
+      })
+
+      console.log(
+        `Submitted E2E Office Transcode Workflow Task. ID: ${task.id}. Awaiting completion...`,
+      )
+      const completedTask = await workflowService.executeWait(task, 45000)
+
       expect(completedTask.status).toBe('completed')
 
       const updatedAsset = await prisma.asset.findUnique({

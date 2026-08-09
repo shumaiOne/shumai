@@ -1,5 +1,71 @@
 export type ProxyType = 'image' | 'video' | 'audio' | 'pdf'
 
+export function isOfficeDocument(mediaType?: string | null, filename?: string | null): boolean {
+  const lowerMediaType = mediaType?.toLowerCase() || ''
+  const lowerFilename = filename?.toLowerCase() || ''
+
+  if (
+    lowerMediaType === 'application/msword' ||
+    lowerMediaType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+    lowerMediaType === 'application/vnd.ms-excel' ||
+    lowerMediaType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+    lowerMediaType === 'application/vnd.ms-powerpoint' ||
+    lowerMediaType ===
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation' ||
+    lowerMediaType === 'application/vnd.oasis.opendocument.text' ||
+    lowerMediaType === 'application/vnd.oasis.opendocument.spreadsheet' ||
+    lowerMediaType === 'application/vnd.oasis.opendocument.presentation' ||
+    lowerMediaType === 'application/rtf' ||
+    lowerMediaType === 'text/rtf'
+  ) {
+    return true
+  }
+
+  const officeExtensions = [
+    '.doc',
+    '.docx',
+    '.xls',
+    '.xlsx',
+    '.ppt',
+    '.pptx',
+    '.odt',
+    '.ods',
+    '.odp',
+    '.rtf',
+  ]
+  return officeExtensions.some((ext) => lowerFilename.endsWith(ext))
+}
+
+export function isHtmlDocument(mediaType?: string | null, filename?: string | null): boolean {
+  const lowerMediaType = mediaType?.toLowerCase() || ''
+  const lowerFilename = filename?.toLowerCase() || ''
+
+  return (
+    lowerMediaType === 'text/html' ||
+    lowerFilename.endsWith('.html') ||
+    lowerFilename.endsWith('.htm')
+  )
+}
+
+export function isMarkdownDocument(mediaType?: string | null, filename?: string | null): boolean {
+  const lowerMediaType = mediaType?.toLowerCase() || ''
+  const lowerFilename = filename?.toLowerCase() || ''
+
+  return (
+    lowerMediaType === 'text/markdown' ||
+    lowerMediaType === 'text/x-markdown' ||
+    lowerFilename.endsWith('.md') ||
+    lowerFilename.endsWith('.markdown')
+  )
+}
+
+export function isCsvDocument(mediaType?: string | null, filename?: string | null): boolean {
+  const lowerMediaType = mediaType?.toLowerCase() || ''
+  const lowerFilename = filename?.toLowerCase() || ''
+
+  return lowerMediaType === 'text/csv' || lowerFilename.endsWith('.csv')
+}
+
 export function getProxyType(
   mediaType?: string | null,
   filename?: string | null,
@@ -14,14 +80,12 @@ export function getProxyType(
   if (
     lowerMediaType === 'application/pdf' ||
     lowerMediaType === 'text/plain' ||
-    lowerMediaType === 'text/csv' ||
-    lowerMediaType === 'text/markdown' ||
-    lowerMediaType === 'text/x-markdown' ||
     lowerFilename.endsWith('.pdf') ||
     lowerFilename.endsWith('.txt') ||
-    lowerFilename.endsWith('.csv') ||
-    lowerFilename.endsWith('.md') ||
-    lowerFilename.endsWith('.markdown')
+    isCsvDocument(mediaType, filename) ||
+    isMarkdownDocument(mediaType, filename) ||
+    isHtmlDocument(mediaType, filename) ||
+    isOfficeDocument(mediaType, filename)
   ) {
     return 'pdf'
   }

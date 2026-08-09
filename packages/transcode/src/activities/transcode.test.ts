@@ -3,6 +3,7 @@ import { s3Service } from '@shumai/core/src/s3/s3'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
 import { transcodeService } from '@shumai/core/src/transcode/transcode'
 import * as child_process from 'child_process'
 
@@ -291,6 +292,68 @@ describe('Transcode Activities', () => {
       expect.stringContaining('proxy.pdf'),
     )
     generatePdfFromTextSpy.mockRestore()
+  })
+
+  it('should convert office document via Gotenberg in generatePdfProxyActivity when available', async () => {
+    const asset = await prisma.asset.create({
+      data: { name: 'document.docx', type: 'file', status: 'uploaded' },
+    })
+
+    vi.spyOn(gotenbergService, 'isAvailable').mockResolvedValue(true)
+    const convertSpy = vi
+      .spyOn(gotenbergService, 'convertDocumentToPdf')
+      .mockResolvedValue(Buffer.from('fake pdf from gotenberg office'))
+
+    const res = await generatePdfProxyActivity({
+      assetId: asset.id,
+      assetKey: 'files/asset1/document.docx',
+      filePath: '/tmp/document.docx',
+      mediaType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      filename: 'document.docx',
+    })
+
+    expect(res.pdfProxyKey).toBe(`files/${asset.id}/proxy.pdf`)
+    expect(convertSpy).toHaveBeenCalledWith('/tmp/document.docx', 'document.docx')
+  })
+
+  it('should convert html document via Gotenberg Chromium in generatePdfProxyActivity when available', async () => {
+    const asset = await prisma.asset.create({
+      data: { name: 'index.html', type: 'file', status: 'uploaded' },
+    })
+
+    vi.spyOn(gotenbergService, 'isAvailable').mockResolvedValue(true)
+    const convertHtmlSpy = vi
+      .spyOn(gotenbergService, 'convertHtmlToPdf')
+      .mockResolvedValue(Buffer.from('fake pdf from gotenberg html'))
+
+    const res = await generatePdfProxyActivity({
+      assetId: asset.id,
+      assetKey: 'files/asset1/index.html',
+      filePath: '/tmp/index.html',
+      mediaType: 'text/html',
+      filename: 'index.html',
+    })
+
+    expect(res.pdfProxyKey).toBe(`files/${asset.id}/proxy.pdf`)
+    expect(convertHtmlSpy).toHaveBeenCalledWith('/tmp/index.html', 'index.html')
+  })
+
+  it('should throw ApplicationFailure when Office document conversion is attempted but Gotenberg is unavailable', async () => {
+    const asset = await prisma.asset.create({
+      data: { name: 'sheet.xlsx', type: 'file', status: 'uploaded' },
+    })
+
+    vi.spyOn(gotenbergService, 'isAvailable').mockResolvedValue(false)
+
+    await expect(
+      generatePdfProxyActivity({
+        assetId: asset.id,
+        assetKey: 'files/asset1/sheet.xlsx',
+        filePath: '/tmp/sheet.xlsx',
+        mediaType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        filename: 'sheet.xlsx',
+      }),
+    ).rejects.toThrow('Gotenberg service is required for Office document conversion')
   })
 
   it('should set file_type to file for unknown types', async () => {

@@ -13,8 +13,9 @@ import {
 import { ImageTranscoder, PdfTranscoder, VideoTranscoder } from '@shumai/transcode'
 import { generateKeyBetween } from 'jittered-fractional-indexing'
 import { ulid } from 'ulid'
+import { gotenbergService } from '@shumai/core/src/gotenberg/gotenberg'
 import { sanitizeFilename } from '@shumai/core/src/utils/filename'
-import { getProxyType } from '@shumai/core/src/utils/mime'
+import { getProxyType, isHtmlDocument, isOfficeDocument } from '@shumai/core/src/utils/mime'
 
 export class UploadService {
   constructor(private readonly prismaClient: typeof prisma = prisma) {}
@@ -315,6 +316,20 @@ export class UploadService {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await new ImageTranscoder(tx as any, asset.id, team.id, projectId).withThumbnail().submit()
       } else if (isPdf) {
+        const isOffice = isOfficeDocument(asset.mediaType, asset.name)
+        const isHtml = isHtmlDocument(asset.mediaType, asset.name)
+
+        if (isOffice || isHtml) {
+          const gotenbergAvailable = await gotenbergService.isAvailable()
+          if (!gotenbergAvailable) {
+            await tx.asset.update({
+              where: { id: asset.id },
+              data: { status: AssetStatus.processed },
+            })
+            return
+          }
+        }
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await new PdfTranscoder(tx as any, asset.id, team.id, projectId)
           .withSprite()
