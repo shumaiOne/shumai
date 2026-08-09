@@ -39,7 +39,7 @@ describe('S3 API', () => {
     }
   })
 
-  it('GET /files/* sets Content-Disposition: attachment only when download=1 query param is present', async () => {
+  it('GET /files/* sets Content-Disposition with filename when download=1 & filename query params are present', async () => {
     // We need to capture the onFound callback from serveStatic options
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let onFoundCallback: ((path: string, c: any) => void) | undefined
@@ -54,19 +54,36 @@ describe('S3 API', () => {
     const { default: route } = await import('./s3')
     const app = new Hono().route('/files', route)
 
-    await app.request('/files/b1/test.webp?download=1')
+    await app.request('/files/b1/test.webp?download=1&filename=foo.png')
 
     expect(onFoundCallback).toBeDefined()
 
-    // Test with download=1
+    // Test with download=1 and filename
     const mockContextWithDownload = {
-      req: { query: (key: string) => (key === 'download' ? '1' : undefined) },
+      req: {
+        query: (key: string) =>
+          key === 'download' ? '1' : key === 'filename' ? 'foo.png' : undefined,
+      },
       header: vi.fn(),
     }
 
     if (onFoundCallback) {
       onFoundCallback('/files/b1/test.webp', mockContextWithDownload)
       expect(mockContextWithDownload.header).toHaveBeenCalledWith(
+        'Content-Disposition',
+        'attachment; filename="foo.png"; filename*=UTF-8\'\'foo.png',
+      )
+    }
+
+    // Test with download=1 but no filename
+    const mockContextDownloadNoFilename = {
+      req: { query: (key: string) => (key === 'download' ? '1' : undefined) },
+      header: vi.fn(),
+    }
+
+    if (onFoundCallback) {
+      onFoundCallback('/files/b1/test.webp', mockContextDownloadNoFilename)
+      expect(mockContextDownloadNoFilename.header).toHaveBeenCalledWith(
         'Content-Disposition',
         'attachment',
       )

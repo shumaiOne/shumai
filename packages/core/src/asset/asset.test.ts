@@ -4,6 +4,7 @@ import { setupTestDbHooks } from '@shumai/db/test'
 import { HTTPException } from 'hono/http-exception'
 
 import { AssetType, AssetStatus, Prisma } from '@shumai/db'
+import { s3Service } from '@shumai/core/src/s3/s3'
 import { AssetService } from './asset'
 
 vi.mock('@shumai/core/src/s3/s3', () => ({
@@ -2229,6 +2230,18 @@ describe('AssetService — natural sort by name', () => {
       for (const item of result) {
         expect(item.url).toBe('http://mock-s3-url')
       }
+
+      // Renamed file names must be passed to presign so the download
+      // Content-Disposition header uses the asset name, not the storage key
+      for (const name of ['file1.txt', 'file2.txt', 'version2.txt']) {
+        expect(s3Service.presign).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.any(String),
+          'GET',
+          true,
+          name,
+        )
+      }
     })
 
     it('resolves top-level symlinks to their targets when passed as direct starting IDs', async () => {
@@ -2539,6 +2552,40 @@ describe('AssetService — natural sort by name', () => {
       )
 
       expect(url).toBe('http://mock-s3-url')
+      expect(s3Service.presign).toHaveBeenCalledWith(
+        expect.any(String),
+        'files/01TESTULID000000000000000/test-720p.mp4',
+        'GET',
+        true,
+        'test.mp4',
+      )
+    })
+
+    it('should use the renamed asset name as the download filename', async () => {
+      const asset = await prisma.asset.create({
+        data: {
+          name: 'foo.png',
+          type: AssetType.file,
+          status: AssetStatus.uploaded,
+          storageKey: {
+            create: { key: 'files/01RENAMEDULID0000000000000/test.png' },
+          },
+        },
+      })
+
+      const url = await assetService.getDownloadUrl(
+        asset.id,
+        'files/01RENAMEDULID0000000000000/test.png',
+      )
+
+      expect(url).toBe('http://mock-s3-url')
+      expect(s3Service.presign).toHaveBeenCalledWith(
+        expect.any(String),
+        'files/01RENAMEDULID0000000000000/test.png',
+        'GET',
+        true,
+        'foo.png',
+      )
     })
 
     it('should return a presigned download URL for the original key', async () => {

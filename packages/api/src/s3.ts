@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { s3Service } from '@shumai/core/src/s3/s3'
+import { buildContentDisposition, s3Service } from '@shumai/core/src/s3/s3'
 import { serveStatic } from 'hono/bun'
 
 const route = new Hono()
@@ -10,7 +10,7 @@ const route = new Hono()
       rewriteRequestPath: (path) => path.replace(/^\/files\//, ''),
       onFound: (_path, c) => {
         if (c.req.query('download') === '1') {
-          c.header('Content-Disposition', 'attachment')
+          c.header('Content-Disposition', buildContentDisposition(c.req.query('filename')))
         }
       },
     }),
