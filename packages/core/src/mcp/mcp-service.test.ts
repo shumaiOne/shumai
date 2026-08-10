@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
+import '@shumai/db/src/prisma-json-types'
 import { McpService } from './mcp-service'
 import {
   startTestMcpServer,
@@ -97,8 +98,8 @@ describe('McpService', () => {
     })
     const tavily = await service.createServer(teamId, { url: tavilySrv.url })
     const airtable = await service.createServer(teamId, { url: airtableSrv.url })
-    await service.discoverTools(tavily.id)
-    await service.discoverTools(airtable.id)
+    await service.refreshServer(tavily.id)
+    await service.refreshServer(airtable.id)
     await prisma.agentMcpServer.create({ data: { agentId: agent.id, mcpServerId: tavily.id } })
     const tools = await service.buildAgentTools(agent.id, teamId)
     return { agent, proxy: tools[0], tavily, airtable, tavilySrv, airtableSrv }
@@ -154,14 +155,18 @@ describe('McpService', () => {
   // Discovery + tool calls against a real MCP server
   // --------------------------------------------------------------------------
 
-  it('discovers tools from a real MCP server and persists them', async () => {
+  it('refreshes a real MCP server and persists its tools', async () => {
     const server = await service.createServer(teamId, {
       url: srv.url,
       authConfig: { type: 'none' },
     })
 
-    const tools = await service.discoverTools(server.id)
-    const names = tools.map((t) => t.name).sort()
+    const refreshed = await service.refreshServer(server.id)
+    expect(refreshed.status).toBe('connected')
+    expect(refreshed.toolCount).toBe(3)
+
+    const record = await service.getServerRecord(server.id)
+    const names = ((record?.tools ?? []) as PrismaJson.McpToolInfo[]).map((t) => t.name).sort()
     expect(names).toEqual(['add', 'echo', 'list_sims'])
 
     const updated = await service.getServer(server.id)
@@ -183,7 +188,7 @@ describe('McpService', () => {
       const server = await service.createServer(teamId, { url: metaSrv.url })
       expect(server.name).toBe('localhost') // derived placeholder before discovery
 
-      await service.discoverTools(server.id)
+      await service.refreshServer(server.id)
 
       const updated = await service.getServer(server.id)
       expect(updated?.name).toBe('Meta Server') // title wins over name
@@ -211,7 +216,7 @@ describe('McpService', () => {
     })
     try {
       const server = await service.createServer(teamId, { url: instSrv.url })
-      await service.discoverTools(server.id)
+      await service.refreshServer(server.id)
 
       const updated = await service.getServer(server.id)
       expect(updated?.instructions).toBe(
@@ -232,7 +237,7 @@ describe('McpService', () => {
     })
     try {
       const server = await service.createServer(teamId, { url: instSrv.url })
-      await service.discoverTools(server.id)
+      await service.refreshServer(server.id)
       expect((await service.getServer(server.id))?.instructions).toBe(
         'Temporary guidance that will disappear.',
       )
@@ -247,7 +252,7 @@ describe('McpService', () => {
         port: instSrv.port,
       })
       try {
-        await service.discoverTools(server.id)
+        await service.refreshServer(server.id)
         expect((await service.getServer(server.id))?.instructions).toBeUndefined()
       } finally {
         await bareSrv.stop()
@@ -255,6 +260,54 @@ describe('McpService', () => {
     } finally {
       await instSrv.stop()
     }
+  })
+
+  it('refreshServer force-reconnects and picks up updated instructions', async () => {
+    const instSrv = await startTestMcpServer({
+      tools: standardTestTools(),
+      serverInfo: { name: 'reload-srv', instructions: 'Old instructions.' },
+    })
+    try {
+      const server = await service.createServer(teamId, { url: instSrv.url })
+      await service.refreshServer(server.id)
+      expect((await service.getServer(server.id))?.instructions).toBe('Old instructions.')
+      expect(service.getConnectionCount(server.id)).toBe(1)
+
+      // The server restarts on the same URL with different instructions: a
+      // refresh must force a fresh connection and re-persist the new value.
+      await instSrv.stop()
+      const reloadedSrv = await startTestMcpServer({
+        tools: standardTestTools(),
+        serverInfo: { name: 'reload-srv', instructions: 'New instructions.' },
+        port: instSrv.port,
+      })
+      try {
+        const refreshed = await service.refreshServer(server.id)
+        expect(refreshed.instructions).toBe('New instructions.')
+        expect((await service.getServer(server.id))?.instructions).toBe('New instructions.')
+      } finally {
+        await reloadedSrv.stop()
+      }
+    } finally {
+      await instSrv.stop()
+    }
+  })
+
+  it('refreshServer re-populates tools that were cleared from the cache', async () => {
+    const server = await service.createServer(teamId, { url: srv.url })
+    await service.refreshServer(server.id)
+    expect((await service.getServer(server.id))?.toolCount).toBe(3)
+
+    // Simulate a cache wipe (e.g. an auth/transport invalidation).
+    await prisma.mcpServer.update({
+      where: { id: server.id },
+      data: { tools: [], status: 'not_connected' },
+    })
+    expect((await service.getServer(server.id))?.toolCount).toBe(0)
+
+    const refreshed = await service.refreshServer(server.id)
+    expect(refreshed.toolCount).toBe(3)
+    expect((await service.getServer(server.id))?.toolCount).toBe(3)
   })
 
   it('surfaces server instructions at all three levels (snippet, preview, full text)', async () => {
@@ -270,7 +323,7 @@ describe('McpService', () => {
     })
     try {
       const server = await service.createServer(teamId, { url: instSrv.url })
-      await service.discoverTools(server.id)
+      await service.refreshServer(server.id)
 
       const agent = await seedAgentAndUser(teamId, 'Instructions Agent')
       await prisma.agentMcpServer.create({ data: { agentId: agent.id, mcpServerId: server.id } })
@@ -303,7 +356,7 @@ describe('McpService', () => {
   it('reports when a server provides no instructions', async () => {
     const agent = await seedAgentAndUser(teamId, 'No Instructions Agent')
     const server = await service.createServer(teamId, { url: srv.url })
-    await service.discoverTools(server.id)
+    await service.refreshServer(server.id)
     await prisma.agentMcpServer.create({ data: { agentId: agent.id, mcpServerId: server.id } })
 
     const tools = await service.buildAgentTools(agent.id, teamId)
@@ -326,7 +379,7 @@ describe('McpService', () => {
     })
     try {
       const server = await service.createServer(teamId, { url: instSrv.url })
-      await service.discoverTools(server.id)
+      await service.refreshServer(server.id)
       await service.closeAllConnections()
       expect(service.getConnectionCount(server.id)).toBe(0)
 
@@ -344,7 +397,7 @@ describe('McpService', () => {
 
   it('falls back to the reported name when no title is provided', async () => {
     const server = await service.createServer(teamId, { url: srv.url })
-    await service.discoverTools(server.id)
+    await service.refreshServer(server.id)
     const updated = await service.getServer(server.id)
     expect(updated?.name).toBe('test-mcp-server')
   })
@@ -411,7 +464,7 @@ describe('McpService', () => {
       url: srv.url,
       authConfig: { type: 'none' },
     })
-    await service.discoverTools(server.id)
+    await service.refreshServer(server.id)
     expect((await service.getServer(server.id))?.toolCount).toBe(3)
 
     // The endpoint URL is immutable; a transport change invalidates the
@@ -496,7 +549,7 @@ describe('McpService', () => {
   it('builds the proxy tool for assigned servers', async () => {
     const agent = await seedAgentAndUser(teamId, 'Proxy Agent')
     const server = await service.createServer(teamId, { url: srv.url })
-    await service.discoverTools(server.id)
+    await service.refreshServer(server.id)
     await prisma.agentMcpServer.create({ data: { agentId: agent.id, mcpServerId: server.id } })
 
     const tools = await service.buildAgentTools(agent.id, teamId, undefined)
@@ -527,8 +580,8 @@ describe('McpService', () => {
     try {
       const assigned = await service.createServer(teamId, { url: assignedSrv.url })
       const unassigned = await service.createServer(teamId, { url: unassignedSrv.url })
-      await service.discoverTools(assigned.id)
-      await service.discoverTools(unassigned.id)
+      await service.refreshServer(assigned.id)
+      await service.refreshServer(unassigned.id)
       await prisma.agentMcpServer.create({
         data: { agentId: agent.id, mcpServerId: assigned.id },
       })
@@ -634,8 +687,8 @@ describe('McpService', () => {
         url: unassignedSrv.url,
         config: { directTools: true },
       })
-      await service.discoverTools(assigned.id)
-      await service.discoverTools(unassigned.id)
+      await service.refreshServer(assigned.id)
+      await service.refreshServer(unassigned.id)
       await prisma.agentMcpServer.create({ data: { agentId: agent.id, mcpServerId: assigned.id } })
 
       const tools = await service.buildAgentTools(agent.id, teamId)
@@ -658,7 +711,7 @@ describe('McpService', () => {
       url: srv.url,
       config: { directTools: true },
     })
-    await service.discoverTools(server.id)
+    await service.refreshServer(server.id)
     await prisma.agentMcpServer.create({ data: { agentId: agent.id, mcpServerId: server.id } })
 
     const tools = await service.buildAgentTools(agent.id, teamId)
@@ -685,7 +738,7 @@ describe('McpService', () => {
       url: srv.url,
       config: { directTools: true, excludeTools: ['add'] },
     })
-    await service.discoverTools(server.id)
+    await service.refreshServer(server.id)
     await prisma.agentMcpServer.create({ data: { agentId: agent.id, mcpServerId: server.id } })
 
     const tools = await service.buildAgentTools(agent.id, teamId)
@@ -764,8 +817,8 @@ describe('McpService', () => {
 
       const serverA = await service.createServer(teamId, { url: srvA.url })
       const serverB = await service.createServer(teamId, { url: srvB.url })
-      await service.discoverTools(serverA.id)
-      await service.discoverTools(serverB.id)
+      await service.refreshServer(serverA.id)
+      await service.refreshServer(serverB.id)
       await prisma.agentMcpServer.createMany({
         data: [
           { agentId: agent.id, mcpServerId: serverA.id },

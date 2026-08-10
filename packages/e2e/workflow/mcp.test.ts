@@ -205,10 +205,10 @@ describe.each(['local', 'temporal'] as const)('Workflow E2E - MCP tools (executo
       },
     })
     await prisma.agentMcpServer.create({ data: { agentId, mcpServerId: server.id } })
-    // Mirrors the admin flow: connect the server so its tools are cached in DB
-    // and warmed in the in-process registry (buildAgentTools needs the cache
-    // to register direct tools before any chat turn runs).
-    await mcpService.discoverTools(server.id)
+    // Mirrors the admin flow: refresh the server so its tools are cached in
+    // DB and warmed in the in-process registry (buildAgentTools needs the
+    // cache to register direct tools before any chat turn runs).
+    await mcpService.refreshServer(server.id)
     return server
   }
 

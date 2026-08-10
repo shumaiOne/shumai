@@ -114,11 +114,6 @@ const proxyToolSchema = Type.Object(
         description: 'Arguments for the tool call: either a JSON object or a JSON-encoded string.',
       }),
     ),
-    connect: Type.Optional(
-      Type.String({
-        description: 'Server name to (re)connect and refresh its tool list. Returns the tool list.',
-      }),
-    ),
     describe: Type.Optional(
       Type.String({
         description: 'Tool name to show its full parameter schema.',
@@ -260,7 +255,6 @@ export function buildProxyDescription(servers: ProxyServerInfo[]): string {
   lines.push('  - mcp({ search: "query" })         → search tools across servers')
   lines.push('  - mcp({ describe: "tool" })        → show one tool\'s parameter schema')
   lines.push('  - mcp({ server: "name", tool: "tool_name", args: {...} }) → call a tool')
-  lines.push('  - mcp({ connect: "name" })         → (re)connect and refresh tools')
   lines.push('  - mcp({ instructions: "name" })    → show full server usage instructions')
   lines.push('  - mcp({ action: "auth-start", server: "name" }) → start OAuth for a server')
   lines.push('')
@@ -325,7 +319,6 @@ export function buildProxyTool(ctx: McpProxyToolContext): AgentTool<typeof proxy
       const search = params.search
       const describe = params.describe
       const instructions = params.instructions
-      const connect = params.connect
       const limit = params.limit ?? 12
       const offset = params.offset ?? 0
       const includeSchemas = params.includeSchemas !== false
@@ -387,31 +380,6 @@ export function buildProxyTool(ctx: McpProxyToolContext): AgentTool<typeof proxy
           content: outcome.content,
           details: { error: 'tool_call_failed', tool, server: resolved.serverId },
         }
-      }
-
-      // 3. connect
-      if (connect) {
-        const serverId = ctx.serverIdByName.get(connect)
-        if (!serverId) {
-          return contentText(
-            `Server "${connect}" not found. Use mcp({ action: "status" }) to see available servers.`,
-          )
-        }
-        const outcome = await ctx.ensureConnected(serverId)
-        if (outcome.status === 'needs-auth') {
-          return contentText(
-            `Server "${connect}" requires authentication. Use mcp({ action: "auth-start", server: "${connect}" }) to start OAuth.`,
-          )
-        }
-        if (outcome.status === 'error') {
-          return contentText(`Failed to connect to "${connect}": ${outcome.message}`)
-        }
-        const tools = ctx.registry.getTools(serverId)
-        if (tools.length === 0) {
-          return contentText(`Server "${connect}" is connected but has no tools.`)
-        }
-        const instructionsText = await ctx.getInstructions(serverId)
-        return contentText(renderServerListing(connect, tools, instructionsText))
       }
 
       // 4. describe
@@ -497,7 +465,7 @@ export function buildProxyTool(ctx: McpProxyToolContext): AgentTool<typeof proxy
         const tools = ctx.registry.getTools(serverId)
         if (tools.length === 0) {
           return contentText(
-            `Server "${server}" has no cached tools. Use mcp({ connect: "${server}" }) to connect and refresh.`,
+            `Server "${server}" has no cached tools yet. Call a tool on this server to connect automatically, or refresh it in Settings → MCP.`,
           )
         }
         const instructionsText = await ctx.getInstructions(serverId)

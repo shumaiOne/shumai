@@ -60,7 +60,6 @@ export const updateMcpServerRequestSchema = z.object({
   authConfig: mcpServerAuthConfigSchema.optional(),
   config: mcpServerConfigSchema.optional(),
   permission: mcpServerPermissionSchema.optional(),
-  refreshTools: z.boolean().optional(),
 })
 export type UpdateMcpServerRequest = z.infer<typeof updateMcpServerRequestSchema>
 

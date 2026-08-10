@@ -368,34 +368,41 @@ export class McpService {
   }
 
   /**
-   * Connect (or reuse the connection) and persist the discovered tool list.
-   * Returns the tool list (fresh or cached). Throws on connection failure.
+   * Refresh a server: force a fresh connection (closing any existing one),
+   * then re-discover and persist tools, instructions, name/description and
+   * status. Returns the updated server record. Throws on connection failure
+   * (after marking the server as failed). This is the single discovery
+   * entry point: the refresh endpoint, Test Connection, and post-OAuth
+   * completion all route through it.
    */
-  async discoverTools(serverId: string): Promise<PrismaJson.McpToolInfo[]> {
+  async refreshServer(serverId: string): Promise<McpServerInfo> {
     const server = await this.getServerRecord(serverId)
     if (!server) throw new Error('MCP server not found')
+    await this.manager.close(serverId)
 
     try {
       const connection = await this.manager.connect(serverId, this.toDefinition(server))
       if (connection.status === 'needs-auth') {
         await this.updateStatus(serverId, 'needs_auth', null)
-        return (server.tools ?? []) as PrismaJson.McpToolInfo[]
+      } else {
+        const tools = this.toStoredTools(connection.tools)
+        const metadata = this.serverMetadata(server, connection)
+        await this.updateStatus(serverId, 'connected', null, {
+          tools,
+          lastConnectedAt: new Date(),
+          ...metadata,
+        })
       }
-
-      const tools = this.toStoredTools(connection.tools)
-      const metadata = this.serverMetadata(server, connection)
-      await this.updateStatus(serverId, 'connected', null, {
-        tools,
-        lastConnectedAt: new Date(),
-        ...metadata,
-      })
-      return tools
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      logger.warn({ serverId, error }, 'MCP tool discovery failed')
+      logger.warn({ serverId, error }, 'MCP server refresh failed')
       await this.updateStatus(serverId, 'failed', message)
       throw error
     }
+
+    const record = await this.getServerRecord(serverId)
+    if (!record) throw new Error('MCP server not found')
+    return this.toServerInfo(record)
   }
 
   /** Lazy connect used by the proxy/direct tools; never throws. */
@@ -699,11 +706,11 @@ export class McpService {
       await mcpDbStore.clearPendingAuth(serverId)
       await mcpDbStore.clearDiscoverySnapshot(serverId)
       try {
-        await this.discoverTools(serverId)
+        await this.refreshServer(serverId)
       } catch (err) {
         logger.warn(
           { serverId, err },
-          'Post-auth tool discovery failed, setting status to connected',
+          'Post-auth server refresh failed, setting status to connected',
         )
         await this.updateStatus(serverId, 'connected', null)
       }
@@ -886,13 +893,13 @@ export class McpService {
     return tools
   }
 
-  /** Test a server by connecting and listing tools (UI validation). */
+  /** Test a server by refreshing it and reporting the tool count (UI validation). */
   async testServer(
     serverId: string,
   ): Promise<{ ok: boolean; toolCount: number; message?: string }> {
     try {
-      const tools = await this.discoverTools(serverId)
-      return { ok: true, toolCount: tools.length }
+      const server = await this.refreshServer(serverId)
+      return { ok: true, toolCount: server.toolCount }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       return { ok: false, toolCount: 0, message }

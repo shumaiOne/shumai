@@ -153,7 +153,7 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     return new Response(null, { status: 204 })
   })
-  .post('/mcp/servers/:id/tools/refresh', async (c) => {
+  .post('/mcp/servers/:id/refresh', async (c) => {
     const user = c.get('user')
     const id = c.req.param('id')
 
@@ -165,8 +165,8 @@ const route = new Hono<{ Variables: { user: User } }>()
     })
 
     try {
-      const tools = await mcpService.discoverTools(id)
-      return c.json({ tools })
+      const server = await mcpService.refreshServer(id)
+      return c.json(server)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       return c.json({ error: message }, 502)
