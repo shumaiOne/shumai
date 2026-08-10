@@ -140,6 +140,31 @@ describe('McpDbStore', () => {
     expect(await store.getPendingAuth(serverId)).toBeUndefined()
   })
 
+  it('savePendingAuth does not clobber an in-flight discovery snapshot', async () => {
+    // Simulates the SDK flow: the provider's saveDiscoveryState() stores a
+    // snapshot inside the pendingAuth column, then startAuth() calls
+    // savePendingAuth(). The snapshot MUST survive so the callback leg can
+    // satisfy the SEP-2352 issuer check.
+    await store.saveDiscoverySnapshot(serverId, 'https://mcp.example.com/github', {
+      authorizationServerUrl: 'https://kling.ai/auth',
+      authorizationServerMetadata: { issuer: 'https://kling.ai/auth' },
+    })
+
+    await store.savePendingAuth(serverId, {
+      state: 'state-abc',
+      authorizationUrl: 'https://kling.ai/authorize',
+      discovery: {},
+      expiresAt: Math.floor(Date.now() / 1000) + 300,
+    })
+
+    const snapshot = await store.getDiscoverySnapshot(serverId)
+    expect(snapshot).toBeDefined()
+    expect(snapshot?.['authorizationServerUrl']).toBe('https://kling.ai/auth')
+
+    const pending = await store.getPendingAuth(serverId)
+    expect(pending?.state).toBe('state-abc')
+  })
+
   it('persists and clears the discovery snapshot', async () => {
     await store.saveDiscoverySnapshot(serverId, 'https://mcp.example.com/github', {
       authorizationServerUrl: 'https://issuer.example.com',
