@@ -61,6 +61,7 @@ const serverInfo: McpServerInfo = {
   id: 'server1',
   name: 'github',
   description: 'GitHub MCP server',
+  instructions: 'Always use the sandbox API and respect rate limits.',
   url: 'https://mcp.example.com/github',
   transport: 'streamable_http',
   authType: 'bearer',
@@ -104,6 +105,18 @@ describe('MCP API', () => {
       type: ResourceType.Team,
       id: 'team1',
     })
+  })
+
+  test('includes server instructions in list and get responses', async () => {
+    const list = await app.request('/teams/team1/mcp/servers')
+    expect((await list.json()).servers[0].instructions).toBe(
+      'Always use the sandbox API and respect rate limits.',
+    )
+
+    const got = await app.request('/mcp/servers/server1')
+    expect((await got.json()).instructions).toBe(
+      'Always use the sandbox API and respect rate limits.',
+    )
   })
 
   test('creates a server and audits it', async () => {

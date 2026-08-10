@@ -361,6 +361,7 @@
   "delete_mcp_server": "Delete MCP Server",
   "delete_mcp_server_confirmation": "This action cannot be undone. This will permanently delete the MCP server \"{name}\".",
   "mcp_server_name": "Server Name",
+  "mcp_server_instructions": "Server Instructions",
   "mcp_server_url": "Endpoint URL",
   "mcp_transport": "Transport Protocol",
   "mcp_auth_type": "Authentication Type",

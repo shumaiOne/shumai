@@ -3946,6 +3946,7 @@ export const McpServerScalarFieldEnum = {
   id: 'id',
   name: 'name',
   description: 'description',
+  instructions: 'instructions',
   url: 'url',
   transport: 'transport',
   authConfig: 'authConfig',

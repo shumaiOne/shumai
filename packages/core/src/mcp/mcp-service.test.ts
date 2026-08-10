@@ -201,6 +201,147 @@ describe('McpService', () => {
     }
   })
 
+  it('captures and persists server-reported instructions on discovery', async () => {
+    const instSrv = await startTestMcpServer({
+      tools: standardTestTools(),
+      serverInfo: {
+        name: 'inst-srv',
+        instructions: 'Do not mutate production data. Always confirm destructive operations.',
+      },
+    })
+    try {
+      const server = await service.createServer(teamId, { url: instSrv.url })
+      await service.discoverTools(server.id)
+
+      const updated = await service.getServer(server.id)
+      expect(updated?.instructions).toBe(
+        'Do not mutate production data. Always confirm destructive operations.',
+      )
+    } finally {
+      await instSrv.stop()
+    }
+  })
+
+  it('clears persisted instructions when a reconnected server stops reporting them', async () => {
+    const instSrv = await startTestMcpServer({
+      tools: standardTestTools(),
+      serverInfo: {
+        name: 'clear-srv',
+        instructions: 'Temporary guidance that will disappear.',
+      },
+    })
+    try {
+      const server = await service.createServer(teamId, { url: instSrv.url })
+      await service.discoverTools(server.id)
+      expect((await service.getServer(server.id))?.instructions).toBe(
+        'Temporary guidance that will disappear.',
+      )
+
+      await service.closeAllConnections()
+      await instSrv.stop()
+      // Same URL, but the server now reports no instructions: the cached
+      // value is cleared on the next successful connect.
+      const bareSrv = await startTestMcpServer({
+        tools: standardTestTools(),
+        serverInfo: { name: 'clear-srv' },
+        port: instSrv.port,
+      })
+      try {
+        await service.discoverTools(server.id)
+        expect((await service.getServer(server.id))?.instructions).toBeUndefined()
+      } finally {
+        await bareSrv.stop()
+      }
+    } finally {
+      await instSrv.stop()
+    }
+  })
+
+  it('surfaces server instructions at all three levels (snippet, preview, full text)', async () => {
+    const instructionsText =
+      'Never run destructive queries against the production database. Always operate in the ' +
+      'read-only sandbox environment by default. Confirm any irreversible operation with the ' +
+      'user before executing. Use the internal staging mirror for heavy analytical workloads ' +
+      'and keep result sets small to avoid timeouts. Rate limits apply per account, so batch ' +
+      'requests conservatively and respect the 429 backoff guidance.'
+    const instSrv = await startTestMcpServer({
+      tools: standardTestTools(),
+      serverInfo: { name: 'inst-srv', instructions: instructionsText },
+    })
+    try {
+      const server = await service.createServer(teamId, { url: instSrv.url })
+      await service.discoverTools(server.id)
+
+      const agent = await seedAgentAndUser(teamId, 'Instructions Agent')
+      await prisma.agentMcpServer.create({ data: { agentId: agent.id, mcpServerId: server.id } })
+      const tools = await service.buildAgentTools(agent.id, teamId)
+      const proxy = tools[0]
+
+      // L1: truncated snippet in the proxy tool description (no call needed).
+      expect(proxy.description).toContain('Server instructions (truncated')
+      expect(proxy.description).toContain('inst-srv:')
+      expect(proxy.description).toContain('mcp({ instructions: "name" })')
+      expect(proxy.description).not.toContain(instructionsText)
+
+      // L2: longer preview at the end of the server listing + full-text hint.
+      const list = await (proxy.execute as ProxyExecute)('list-1', { server: 'inst-srv' })
+      const listText = JSON.stringify(list.content)
+      expect(listText).toContain('Server instructions:')
+      expect(listText).toContain('for the full text')
+      expect(listText).not.toContain(instructionsText)
+
+      // L3: full text via the instructions mode.
+      const full = await (proxy.execute as ProxyExecute)('inst-1', { instructions: 'inst-srv' })
+      const fullText = JSON.stringify(full.content)
+      expect(fullText).toContain(instructionsText)
+      expect(fullText).toContain('inst-srv instructions:')
+    } finally {
+      await instSrv.stop()
+    }
+  })
+
+  it('reports when a server provides no instructions', async () => {
+    const agent = await seedAgentAndUser(teamId, 'No Instructions Agent')
+    const server = await service.createServer(teamId, { url: srv.url })
+    await service.discoverTools(server.id)
+    await prisma.agentMcpServer.create({ data: { agentId: agent.id, mcpServerId: server.id } })
+
+    const tools = await service.buildAgentTools(agent.id, teamId)
+    const proxy = tools[0]
+
+    // No L1 block, no L2 preview, and L3 says so explicitly.
+    expect(proxy.description).not.toContain('Server instructions (truncated')
+    const list = await (proxy.execute as ProxyExecute)('list-1', { server: 'test-mcp-server' })
+    expect(JSON.stringify(list.content)).not.toContain('Server instructions:')
+    const full = await (proxy.execute as ProxyExecute)('inst-1', {
+      instructions: 'test-mcp-server',
+    })
+    expect(JSON.stringify(full.content)).toContain('does not provide instructions')
+  })
+
+  it('keeps instructions available without a live connection (DB cache)', async () => {
+    const instSrv = await startTestMcpServer({
+      tools: standardTestTools(),
+      serverInfo: { name: 'cache-srv', instructions: 'Always use the read-only API.' },
+    })
+    try {
+      const server = await service.createServer(teamId, { url: instSrv.url })
+      await service.discoverTools(server.id)
+      await service.closeAllConnections()
+      expect(service.getConnectionCount(server.id)).toBe(0)
+
+      const agent = await seedAgentAndUser(teamId, 'Cache Agent')
+      await prisma.agentMcpServer.create({ data: { agentId: agent.id, mcpServerId: server.id } })
+      const tools = await service.buildAgentTools(agent.id, teamId)
+      const full = await (tools[0].execute as ProxyExecute)('inst-1', {
+        instructions: 'cache-srv',
+      })
+      expect(JSON.stringify(full.content)).toContain('Always use the read-only API.')
+    } finally {
+      await instSrv.stop()
+    }
+  })
+
   it('falls back to the reported name when no title is provided', async () => {
     const server = await service.createServer(teamId, { url: srv.url })
     await service.discoverTools(server.id)

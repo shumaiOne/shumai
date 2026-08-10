@@ -28,7 +28,7 @@ export interface TestMcpServerOptions {
   /** Port to bind; defaults to an ephemeral port. */
   port?: number
   /** Override the server's self-reported identity (getServerVersion result). */
-  serverInfo?: { name: string; title?: string; description?: string }
+  serverInfo?: { name: string; title?: string; description?: string; instructions?: string }
 }
 
 export interface RunningTestMcpServer {
@@ -42,11 +42,16 @@ export interface RunningTestMcpServer {
 export async function startTestMcpServer(
   options: TestMcpServerOptions,
 ): Promise<RunningTestMcpServer> {
-  const server = new McpServer({
-    name: 'test-mcp-server',
-    version: '1.0.0',
-    ...options.serverInfo,
-  })
+  const { serverInfo } = options
+  const server = new McpServer(
+    {
+      name: serverInfo?.name ?? 'test-mcp-server',
+      version: '1.0.0',
+      ...(serverInfo?.title !== undefined ? { title: serverInfo.title } : {}),
+      ...(serverInfo?.description !== undefined ? { description: serverInfo.description } : {}),
+    },
+    serverInfo?.instructions !== undefined ? { instructions: serverInfo.instructions } : undefined,
+  )
   // registerTool has overloads with incompatible zod type resolutions; bind a
   // narrow local signature so tool registration stays type-safe and simple.
   const registerTool = server.registerTool.bind(server) as unknown as (

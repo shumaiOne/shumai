@@ -401,11 +401,24 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
                     )}
                   </div>
 
-                  {/* Row 2: description + url + lastError */}
+                  {/* Row 2: description + instructions + url + lastError */}
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground line-clamp-2">
                       {server.description || m.no_description_provided()}
                     </p>
+                    {server.instructions && (
+                      <div className="border-l-2 border-border pl-2">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                          {m.mcp_server_instructions()}
+                        </p>
+                        <p
+                          className="text-xs text-muted-foreground/80 line-clamp-3"
+                          title={server.instructions}
+                        >
+                          {server.instructions}
+                        </p>
+                      </div>
+                    )}
                     <p className="font-mono text-[10px] text-muted-foreground/70 truncate">
                       {server.url}
                     </p>
