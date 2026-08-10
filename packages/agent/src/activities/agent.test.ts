@@ -1089,6 +1089,24 @@ describe('Agent Database Activities Integration', () => {
         },
       })
 
+      // Create two team skills, only one of which is enabled for the agent
+      const enabledSkill = await prisma.skill.create({
+        data: {
+          name: 'Enabled Chat Skill',
+          assetId: 'asset-enabled',
+          hash: 'enabled-hash',
+          teamId: team.id,
+        },
+      })
+      const disabledSkill = await prisma.skill.create({
+        data: {
+          name: 'Disabled Chat Skill',
+          assetId: 'asset-disabled',
+          hash: 'disabled-hash',
+          teamId: team.id,
+        },
+      })
+
       const agent = await prisma.agent.create({
         data: {
           id: agentUser.id,
@@ -1100,6 +1118,9 @@ describe('Agent Database Activities Integration', () => {
             provider: 'openai',
             model: 'gpt-4',
           },
+          skills: {
+            create: [{ skillId: enabledSkill.id }],
+          },
         },
       })
 
@@ -1110,6 +1131,10 @@ describe('Agent Database Activities Integration', () => {
 
       expect(chatCtx.agent.id).toBe(agent.id)
       expect(chatCtx.dbProviders[0].name).toBe('openai')
+      // Only the enabled skill must be advertised, and disabled team skills excluded
+      expect(chatCtx.teamSkills.map((s) => s.id)).toEqual([enabledSkill.id])
+      expect(chatCtx.enabledSkillIds).toEqual([enabledSkill.id])
+      expect(chatCtx.teamSkills.map((s) => s.id)).not.toContain(disabledSkill.id)
 
       // Create User for autofill agent
       const autofillUser = await prisma.user.create({
@@ -1132,6 +1157,9 @@ describe('Agent Database Activities Integration', () => {
             provider: 'openai',
             model: 'gpt-4',
           },
+          skills: {
+            create: [{ skillId: enabledSkill.id }],
+          },
         },
       })
 
@@ -1140,6 +1168,77 @@ describe('Agent Database Activities Integration', () => {
       })
 
       expect(autofillCtx.agent.id).toBe(autofillAgent.id)
+      // Only the enabled skill must be advertised for the autofill agent as well
+      expect(autofillCtx.teamSkills.map((s) => s.id)).toEqual([enabledSkill.id])
+      expect(autofillCtx.enabledSkillIds).toEqual([enabledSkill.id])
+      expect(autofillCtx.teamSkills.map((s) => s.id)).not.toContain(disabledSkill.id)
+    })
+
+    it('should return an empty enabled skill list when the agent has no skills enabled', async () => {
+      const provider = await prisma.provider.create({
+        data: {
+          teamId: team.id,
+          name: 'openai-noskill',
+          config: {
+            api: 'openai-completions',
+            apiKey: 'mock-key',
+          },
+        },
+      })
+
+      const model = await prisma.model.create({
+        data: {
+          providerId: provider.id,
+          modelId: 'gpt-4',
+          name: 'GPT 4',
+          config: {
+            reasoning: false,
+            input: ['text'],
+            contextWindow: 8192,
+            maxTokens: 2048,
+            cost: { input: 0.01, output: 0.03, cacheRead: 0, cacheWrite: 0 },
+          },
+        },
+      })
+
+      await prisma.skill.create({
+        data: {
+          name: 'Team Wide Skill',
+          assetId: 'asset-team',
+          hash: 'team-hash',
+          teamId: team.id,
+        },
+      })
+
+      const agentUser = await prisma.user.create({
+        data: {
+          name: 'No Skill Agent User',
+          email: 'noskillagent@shumai.ai',
+          type: 'agent',
+        },
+      })
+      const agent = await prisma.agent.create({
+        data: {
+          id: agentUser.id,
+          teamId: team.id,
+          type: 'chat',
+          providerId: provider.id,
+          modelId: model.id,
+          config: {
+            provider: 'openai-noskill',
+            model: 'gpt-4',
+          },
+        },
+      })
+
+      const chatCtx = await getAgentChatContextActivity({
+        teamId: team.id,
+        agentId: agent.id,
+      })
+
+      // Team-wide skill exists but is not enabled for this agent
+      expect(chatCtx.teamSkills).toEqual([])
+      expect(chatCtx.enabledSkillIds).toEqual([])
     })
   })
 

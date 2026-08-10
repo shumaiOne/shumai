@@ -17,6 +17,7 @@ export const createReadSkillTool = (
   userId: string | undefined,
   onEnvsAdded: (envs: Record<string, string>) => void,
   onSkillLoaded?: () => Promise<void> | void,
+  enabledSkillIds?: string[],
 ): AgentTool<typeof readSkillSchema, { skillId: string }> => ({
   name: 'read_skill',
   label: 'Read Agent Skill',
@@ -29,6 +30,12 @@ export const createReadSkillTool = (
 
     if (!skill) {
       throw new Error(`Skill with ID ${params.skillId} not found.`)
+    }
+
+    // Skills disabled for this agent must not be loadable, even if the model
+    // somehow knows their ID (e.g. from earlier conversation history).
+    if (enabledSkillIds && !enabledSkillIds.includes(params.skillId)) {
+      throw new Error(`Skill with ID ${params.skillId} is not enabled for this agent.`)
     }
 
     const requiredLevel = ROLE_HIERARCHY[skill.permission] || 1

@@ -42,6 +42,11 @@ export type AgentWithProviderAndModel = Prisma.AgentGetPayload<{
   include: {
     provider: true
     modelRef: true
+    skills: {
+      include: {
+        skill: true
+      }
+    }
   }
 }>
 
@@ -56,6 +61,7 @@ export interface AgentExecutionContext {
   dbProviders: DbProviderWithModels[]
   teamSkills: Skill[]
   mcpServers: Prisma.McpServerGetPayload<Record<string, never>>[]
+  enabledSkillIds: string[]
   allowedDomains: string[]
 }
 
@@ -73,7 +79,7 @@ async function executeAgentPrompt(params: {
   context: AgentExecutionContext
   attachedAssets?: Array<{ id: string; name: string; type: string }>
 }): Promise<{ text: string; usage: Usage; sessionId: string }> {
-  const { agent, dbProviders, teamSkills, allowedDomains } = params.context
+  const { agent, dbProviders, teamSkills, enabledSkillIds, allowedDomains } = params.context
 
   if (!agent.provider) {
     throw ApplicationFailure.create({
@@ -134,6 +140,7 @@ When creating a file or version, first use 'list_autofill_fields' to inspect the
       name: s.name,
       description: s.description,
     })),
+    enabledSkillIds,
     allowedDomains,
     sessionId: params.sessionId,
     userId: params.userId,
@@ -843,6 +850,11 @@ export async function getAgentChatContextActivity(params: {
     include: {
       provider: true,
       modelRef: true,
+      skills: {
+        include: {
+          skill: true,
+        },
+      },
     },
   })
   if (!agent) {
@@ -873,10 +885,10 @@ export async function getAgentChatContextActivity(params: {
     include: { models: true },
   })
 
-  // Fetch team skills
-  const teamSkills = await prisma.skill.findMany({
-    where: { teamId: params.teamId },
-  })
+  // Only advertise skills that are explicitly enabled for this agent (agent_skills).
+  // Disabled skills must not be listed in the system prompt nor loadable via read_skill.
+  const enabledSkills = (agent.skills ?? []).map((as) => as.skill)
+  const enabledSkillIds = enabledSkills.map((s) => s.id)
 
   // Fetch the agent's assigned MCP servers
   const assignments = await prisma.agentMcpServer.findMany({
@@ -893,8 +905,9 @@ export async function getAgentChatContextActivity(params: {
   return {
     agent,
     dbProviders,
-    teamSkills,
+    teamSkills: enabledSkills,
     mcpServers,
+    enabledSkillIds,
     allowedDomains,
   }
 }
@@ -929,6 +942,11 @@ export async function getAgentAutofillContextActivity(params: {
     include: {
       provider: true,
       modelRef: true,
+      skills: {
+        include: {
+          skill: true,
+        },
+      },
     },
   })
   if (!agentWithDetails) {
@@ -955,10 +973,10 @@ export async function getAgentAutofillContextActivity(params: {
     include: { models: true },
   })
 
-  // Fetch team skills
-  const teamSkills = await prisma.skill.findMany({
-    where: { teamId: params.teamId },
-  })
+  // Only advertise skills that are explicitly enabled for this agent (agent_skills).
+  // Disabled skills must not be listed in the system prompt nor loadable via read_skill.
+  const enabledSkills = (agentWithDetails.skills ?? []).map((as) => as.skill)
+  const enabledSkillIds = enabledSkills.map((s) => s.id)
 
   // Autofill agents currently do not use MCP tools.
   const mcpServers: Prisma.McpServerGetPayload<Record<string, never>>[] = []
@@ -971,8 +989,9 @@ export async function getAgentAutofillContextActivity(params: {
   return {
     agent: agentWithDetails,
     dbProviders,
-    teamSkills,
+    teamSkills: enabledSkills,
     mcpServers,
+    enabledSkillIds,
     allowedDomains,
   }
 }

@@ -98,6 +98,7 @@ export interface CreateAgentSessionParams {
   modelId: string
   systemPrompt: string
   teamSkills: Array<{ id: string; name: string; description?: string | null }>
+  enabledSkillIds?: string[]
   allowedDomains: string[]
   sessionId?: string
   userId?: string
@@ -145,6 +146,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     modelId,
     systemPrompt,
     teamSkills,
+    enabledSkillIds,
     allowedDomains,
     sessionId,
     userId,
@@ -313,7 +315,12 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
       next.map((t) => t.name),
     )
   }
-  const readSkill = createReadSkillTool(userId, onEnvsAdded, restricted ? onSkillLoaded : undefined)
+  const readSkill = createReadSkillTool(
+    userId,
+    onEnvsAdded,
+    restricted ? onSkillLoaded : undefined,
+    enabledSkillIds,
+  )
 
   const systemTools: AgentTool[] = []
   if (userId) {

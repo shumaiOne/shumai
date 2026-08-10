@@ -813,3 +813,149 @@ describe('createAgentSession bash restriction for non-owner users', () => {
     expect(prompt).not.toContain('# Restricted User Context')
   })
 })
+
+describe('createAgentSession enabled skill filtering', () => {
+  setupTestDbHooks()
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('should only advertise and allow reading skills enabled for the agent', async () => {
+    const team = await prisma.team.create({ data: { name: 'Skill Filter Team' } })
+
+    const enabledSkill = await prisma.skill.create({
+      data: {
+        name: 'Enabled Skill',
+        assetId: 'asset-enabled',
+        hash: 'enabled-hash',
+        teamId: team.id,
+      },
+    })
+    const disabledSkill = await prisma.skill.create({
+      data: {
+        name: 'Disabled Skill',
+        assetId: 'asset-disabled',
+        hash: 'disabled-hash',
+        teamId: team.id,
+      },
+    })
+
+    await prisma.user.create({
+      data: {
+        id: 'skill-filter-agent',
+        name: 'Ai Agent Skill Filter',
+        email: 'skill-filter-agent@shumai.ai',
+        type: 'agent',
+      },
+    })
+    await prisma.agent.create({
+      data: {
+        id: 'skill-filter-agent',
+        teamId: team.id,
+        type: 'chat',
+        config: { provider: 'google', model: 'gemini' },
+        skills: {
+          create: [{ skillId: enabledSkill.id }],
+        },
+      },
+    })
+
+    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
+    try {
+      const { harness } = await createAgentSession({
+        teamId: team.id,
+        agentId: 'skill-filter-agent',
+        providerName: 'google',
+        modelId: 'gemini',
+        systemPrompt: 'prompt',
+        teamSkills: [{ id: enabledSkill.id, name: enabledSkill.name }],
+        enabledSkillIds: [enabledSkill.id],
+        allowedDomains: [],
+        providers: mockProviders,
+      })
+
+      // The disabled skill must not be advertised in the available skills list
+      // @ts-expect-error accessing private property for verification
+      const prompt = await harness.systemPrompt()
+      expect(prompt).toContain(enabledSkill.id)
+      expect(prompt).not.toContain(disabledSkill.id)
+
+      // read_skill must reject the disabled skill id
+      const readSkillTool = harness.getTools().find((t) => t.name === 'read_skill')
+      expect(readSkillTool).toBeDefined()
+
+      vi.spyOn(fs, 'existsSync').mockReturnValue(true)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking node fs readFileSync which has complex overloaded signatures
+      vi.spyOn(fs, 'readFileSync').mockImplementation((p: any) => {
+        if (p.toString().endsWith('.hash')) return 'enabled-hash'
+        if (p.toString().endsWith('SKILL.md')) return '# Enabled Skill'
+        return ''
+      })
+
+      await expect(
+        readSkillTool!.execute('1', { skillId: disabledSkill.id }, undefined, undefined, undefined),
+      ).rejects.toThrow('not enabled for this agent')
+
+      const result = await readSkillTool!.execute(
+        '1',
+        { skillId: enabledSkill.id },
+        undefined,
+        undefined,
+        undefined,
+      )
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((result.content[0] as any).text).toBe('# Enabled Skill')
+    } finally {
+      initializeSpy.mockRestore()
+    }
+  })
+
+  it('should reject all read_skill calls when no skills are enabled for the agent', async () => {
+    const team = await prisma.team.create({ data: { name: 'Skill None Team' } })
+    const skill = await prisma.skill.create({
+      data: { name: 'Unassigned Skill', assetId: 'asset-none', hash: 'none-hash', teamId: team.id },
+    })
+
+    await prisma.user.create({
+      data: {
+        id: 'skill-none-agent',
+        name: 'Ai Agent Skill None',
+        email: 'skill-none-agent@shumai.ai',
+        type: 'agent',
+      },
+    })
+    await prisma.agent.create({
+      data: {
+        id: 'skill-none-agent',
+        teamId: team.id,
+        type: 'chat',
+        config: { provider: 'google', model: 'gemini' },
+      },
+    })
+
+    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
+    try {
+      const { harness } = await createAgentSession({
+        teamId: team.id,
+        agentId: 'skill-none-agent',
+        providerName: 'google',
+        modelId: 'gemini',
+        systemPrompt: 'prompt',
+        teamSkills: [],
+        enabledSkillIds: [],
+        allowedDomains: [],
+        providers: mockProviders,
+      })
+
+      const readSkillTool = harness.getTools().find((t) => t.name === 'read_skill')
+      expect(readSkillTool).toBeDefined()
+
+      await expect(
+        readSkillTool!.execute('1', { skillId: skill.id }, undefined, undefined, undefined),
+      ).rejects.toThrow('not enabled for this agent')
+    } finally {
+      initializeSpy.mockRestore()
+    }
+  })
+})
