@@ -31,7 +31,6 @@ export const mcpServerAuthConfigSchema = z.object({
 export type McpServerAuthConfig = z.infer<typeof mcpServerAuthConfigSchema>
 
 export const mcpServerConfigSchema = z.object({
-  includeTools: z.array(z.string()).optional(),
   excludeTools: z.array(z.string()).optional(),
   requestTimeoutMs: z.number().int().positive().optional(),
   protocolVersion: z.enum(['legacy', 'auto', '2026-07-28']).optional(),
@@ -48,23 +47,18 @@ export const mcpToolInfoSchema = z.object({
 export type McpToolInfo = z.infer<typeof mcpToolInfoSchema>
 
 export const createMcpServerRequestSchema = z.object({
-  name: z.string().min(1),
   url: z.string().url(),
   transport: mcpTransportSchema.optional(),
   authConfig: mcpServerAuthConfigSchema.optional(),
   config: mcpServerConfigSchema.optional(),
-  enabled: z.boolean().optional(),
   permission: mcpServerPermissionSchema.optional(),
 })
 export type CreateMcpServerRequest = z.infer<typeof createMcpServerRequestSchema>
 
 export const updateMcpServerRequestSchema = z.object({
-  name: z.string().min(1).optional(),
-  url: z.string().url().optional(),
   transport: mcpTransportSchema.optional(),
   authConfig: mcpServerAuthConfigSchema.optional(),
   config: mcpServerConfigSchema.optional(),
-  enabled: z.boolean().optional(),
   permission: mcpServerPermissionSchema.optional(),
   refreshTools: z.boolean().optional(),
 })
@@ -80,11 +74,11 @@ export type UpdateMcpServerPermissionRequest = z.infer<
 export const mcpServerInfoSchema = z.object({
   id: z.string(),
   name: z.string(),
+  description: z.string().optional(),
   url: z.string(),
   transport: mcpTransportSchema,
   authType: mcpServerAuthTypeSchema,
   config: mcpServerConfigSchema.optional(),
-  enabled: z.boolean(),
   permission: mcpServerPermissionSchema,
   status: z.string(),
   lastError: z.string().nullable().optional(),

@@ -3,6 +3,7 @@ import {
   McpToolRegistry,
   formatToolName,
   normalizeSearchText,
+  sanitizeServerPrefix,
   tokenize,
   scoreToolMatch,
   paginate,
@@ -27,6 +28,20 @@ describe('formatToolName', () => {
   it('prefixes server name and sanitizes dots', () => {
     expect(formatToolName('xcodebuild', 'list_sims')).toBe('xcodebuild_list_sims')
     expect(formatToolName('my-server', 'tool.name')).toBe('my_server_tool_name')
+  })
+
+  it('sanitizes spaces and punctuation in the server prefix', () => {
+    expect(formatToolName('Meta Server', 'echo')).toBe('Meta_Server_echo')
+    expect(formatToolName('my.server/v1', 'list')).toBe('my_server_v1_list')
+    expect(formatToolName('!!!', 'list')).toBe('list')
+  })
+})
+
+describe('sanitizeServerPrefix', () => {
+  it('collapses non-alphanumeric runs into a single underscore', () => {
+    expect(sanitizeServerPrefix('Meta Server')).toBe('Meta_Server')
+    expect(sanitizeServerPrefix('github.com')).toBe('github_com')
+    expect(sanitizeServerPrefix('  a  b ')).toBe('a_b')
   })
 })
 

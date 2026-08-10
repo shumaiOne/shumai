@@ -383,7 +383,6 @@ declare global {
     }
 
     export interface McpServerConfig {
-      includeTools?: string[]
       excludeTools?: string[]
       requestTimeoutMs?: number
       protocolVersion?: 'legacy' | 'auto' | '2026-07-28'

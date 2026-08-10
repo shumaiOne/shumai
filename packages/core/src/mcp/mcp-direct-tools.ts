@@ -2,8 +2,8 @@
  * Direct MCP tools — per-server opt-in registration.
  *
  * When a server's config sets `directTools: true`, its allowed tools (after
- * includeTools/excludeTools filters) are registered as native AgentTools with
- * prefixed names `{server}_{tool}`. The `mcp` proxy tool stays registered for
+ * excludeTools filters) are registered as native AgentTools with prefixed
+ * names `{server}_{tool}`. The `mcp` proxy tool stays registered for
  * discovery/auth/status and for servers not in direct mode.
  */
 
@@ -46,19 +46,13 @@ function matchesToolPattern(name: string, patterns?: string[]): boolean {
   return false
 }
 
-/** Decide whether a tool is allowed by includeTools/excludeTools (matches prefixed or original name). */
+/** Decide whether a tool is allowed by excludeTools (matches prefixed or original name). */
 export function isToolAllowed(
   prefixedName: string,
   originalName: string,
   config?: PrismaJson.McpServerConfig,
 ): boolean {
-  const include = config?.includeTools
   const exclude = config?.excludeTools
-  if (Array.isArray(include) && include.length > 0) {
-    const included =
-      matchesToolPattern(prefixedName, include) || matchesToolPattern(originalName, include)
-    if (!included) return false
-  }
   if (matchesToolPattern(prefixedName, exclude) || matchesToolPattern(originalName, exclude)) {
     return false
   }

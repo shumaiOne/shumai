@@ -12,6 +12,7 @@ import {
   SSEClientTransport,
   StreamableHTTPClientTransport,
   UnauthorizedError,
+  type Implementation,
   type ListToolsResult,
   type RequestOptions,
   type VersionNegotiationOptions,
@@ -34,6 +35,8 @@ export interface ServerConnection {
   definition: McpServerDefinition
   tools: McpTool[]
   status: 'connected' | 'needs-auth'
+  /** Self-reported server name/title/version/description (from getServerVersion). */
+  serverVersion?: Implementation
   lastUsedAt: number
   inFlight: number
 }
@@ -180,6 +183,7 @@ export class McpServerManager {
           definition,
           tools,
           status: 'connected',
+          serverVersion: result.client.getServerVersion(),
           lastUsedAt: Date.now(),
           inFlight: 0,
         }

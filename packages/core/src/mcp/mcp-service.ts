@@ -17,7 +17,12 @@ import { mcpDbStore, type PendingAuth } from './mcp-db-store'
 import { buildDirectTools } from './mcp-direct-tools'
 import { McpOauthProvider, type McpOauthConfig } from './mcp-oauth-provider'
 import { buildProxyTool, transformMcpContent, type McpProxyToolContext } from './mcp-proxy-tool'
-import { formatToolName, mcpToolRegistry, type ToolMetadata } from './mcp-tool-registry'
+import {
+  formatToolName,
+  mcpToolRegistry,
+  sanitizeServerPrefix,
+  type ToolMetadata,
+} from './mcp-tool-registry'
 import { McpServerManager, type McpServerDefinition } from './mcp-server-manager'
 
 const ROLE_HIERARCHY: Record<string, number> = {
@@ -41,11 +46,11 @@ export interface McpToolCallResult {
 export interface McpServerRecord {
   id: string
   name: string
+  description: string | null
   url: string
   transport: 'streamable_http' | 'sse'
   authConfig: PrismaJson.McpServerAuthConfig | null
   config: PrismaJson.McpServerConfig | null
-  enabled: boolean
   permission: 'owner' | 'editor' | 'reviewer'
   tools: PrismaJson.McpToolInfo[] | null
   status: string
@@ -55,6 +60,26 @@ export interface McpServerRecord {
   updatedAt: Date
   teamId: string
   credential: { id: string } | null
+}
+
+/**
+ * Derive a placeholder server name from its URL until the server self-reports
+ * its name/title on first successful connection. Strips www/api/mcp prefixes
+ * and sanitizes the remaining host label (used as the direct-tool prefix).
+ */
+function deriveServerName(url: string): string {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase()
+    const labels = hostname.split('.').filter(Boolean)
+    let label = labels[0] ?? 'mcp-server'
+    if (labels.length > 1 && ['www', 'api', 'mcp'].includes(label)) {
+      label = labels[1]
+    }
+    const sanitized = label.replace(/[^a-z0-9_-]/g, '_').replace(/^[-_]+|[-_]+$/g, '')
+    return sanitized || 'mcp-server'
+  } catch {
+    return 'mcp-server'
+  }
 }
 
 function generateState(): string {
@@ -93,13 +118,12 @@ export class McpService {
   async createServer(teamId: string, req: CreateMcpServerRequest): Promise<McpServerInfo> {
     const server = await prisma.mcpServer.create({
       data: {
-        name: req.name,
+        name: deriveServerName(req.url),
         url: req.url,
         teamId,
         transport: req.transport ?? 'streamable_http',
         authConfig: (req.authConfig ?? {}) as PrismaJson.McpServerAuthConfig,
         config: (req.config ?? {}) as PrismaJson.McpServerConfig,
-        enabled: req.enabled ?? true,
         permission: req.permission ?? 'reviewer',
       },
       include: { credential: true },
@@ -111,16 +135,14 @@ export class McpService {
     const existing = await prisma.mcpServer.findUnique({ where: { id } })
     if (!existing) throw new Error('MCP server not found')
 
-    const nameChanged = req.name !== undefined && req.name !== existing.name
-    const urlChanged = req.url !== undefined && req.url !== existing.url
     const authChanged =
       req.authConfig !== undefined &&
       JSON.stringify(req.authConfig) !== JSON.stringify(existing.authConfig ?? {})
     const transportChanged = req.transport !== undefined && req.transport !== existing.transport
 
-    // Rename changes the direct-tool prefix; URL/auth/transport changes
-    // invalidate credentials. All of them invalidate cached tools + connection.
-    const invalidateAll = nameChanged || urlChanged || authChanged || transportChanged
+    // The endpoint URL is immutable (delete + re-add to change it).
+    // Auth/transport changes invalidate credentials and cached tools.
+    const invalidateAll = authChanged || transportChanged
 
     await prisma.$transaction(async (tx) => {
       if (invalidateAll) {
@@ -129,14 +151,11 @@ export class McpService {
       return tx.mcpServer.update({
         where: { id },
         data: {
-          ...(req.name !== undefined ? { name: req.name } : {}),
-          ...(req.url !== undefined ? { url: req.url } : {}),
           ...(req.transport !== undefined ? { transport: req.transport } : {}),
           ...(req.authConfig !== undefined
             ? { authConfig: req.authConfig as PrismaJson.McpServerAuthConfig }
             : {}),
           ...(req.config !== undefined ? { config: req.config as PrismaJson.McpServerConfig } : {}),
-          ...(req.enabled !== undefined ? { enabled: req.enabled } : {}),
           ...(req.permission !== undefined ? { permission: req.permission } : {}),
           ...(invalidateAll ? { tools: [], status: 'not_connected', lastError: null } : {}),
         },
@@ -200,11 +219,11 @@ export class McpService {
   private mapRecord(server: {
     id: string
     name: string
+    description: string | null
     url: string
     transport: 'streamable_http' | 'sse'
     authConfig: unknown
     config: unknown
-    enabled: boolean
     permission: 'owner' | 'editor' | 'reviewer'
     tools: unknown
     status: string
@@ -218,11 +237,11 @@ export class McpService {
     return {
       id: server.id,
       name: server.name,
+      description: server.description,
       url: server.url,
       transport: server.transport,
       authConfig: (server.authConfig ?? null) as PrismaJson.McpServerAuthConfig | null,
       config: (server.config ?? null) as PrismaJson.McpServerConfig | null,
-      enabled: server.enabled,
       permission: server.permission,
       tools: (server.tools ?? null) as PrismaJson.McpToolInfo[] | null,
       status: server.status,
@@ -240,11 +259,11 @@ export class McpService {
     return {
       id: server.id,
       name: server.name,
+      description: server.description ?? undefined,
       url: server.url,
       transport: server.transport,
       authType: server.authConfig?.type ?? 'auto',
       config: server.config ?? undefined,
-      enabled: server.enabled,
       permission: server.permission,
       status: server.status,
       lastError: server.lastError ?? undefined,
@@ -273,7 +292,12 @@ export class McpService {
     serverId: string,
     status: string,
     lastError: string | null,
-    extra?: { tools?: PrismaJson.McpToolInfo[]; lastConnectedAt?: Date },
+    extra?: {
+      tools?: PrismaJson.McpToolInfo[]
+      lastConnectedAt?: Date
+      name?: string
+      description?: string | null
+    },
   ): Promise<void> {
     await prisma.mcpServer.update({
       where: { id: serverId },
@@ -282,6 +306,8 @@ export class McpService {
         lastError,
         ...(extra?.tools !== undefined ? { tools: extra.tools } : {}),
         ...(extra?.lastConnectedAt !== undefined ? { lastConnectedAt: extra.lastConnectedAt } : {}),
+        ...(extra?.name !== undefined ? { name: extra.name } : {}),
+        ...(extra?.description !== undefined ? { description: extra.description } : {}),
       },
     })
   }
@@ -295,6 +321,28 @@ export class McpService {
       ...(t.description !== undefined ? { description: t.description } : {}),
       ...(t.inputSchema !== undefined ? { inputSchema: t.inputSchema } : {}),
     }))
+  }
+
+  /**
+   * Persist the server's self-reported metadata (name = title ?? name, plus
+   * description) captured from getServerVersion() after a successful connect.
+   */
+  private serverMetadata(
+    server: McpServerRecord,
+    connection: { serverVersion?: unknown },
+  ): {
+    name?: string
+    description?: string | null
+  } {
+    const impl = connection.serverVersion as
+      | { name?: string; title?: string; description?: string }
+      | undefined
+    if (!impl || typeof impl !== 'object') return {}
+    const reportedName = impl.title ?? impl.name
+    if (typeof reportedName !== 'string' || reportedName.trim() === '') return {}
+    const name = reportedName.trim()
+    const description = typeof impl.description === 'string' ? impl.description : null
+    return { name, description }
   }
 
   /**
@@ -313,10 +361,13 @@ export class McpService {
       }
 
       const tools = this.toStoredTools(connection.tools)
-      mcpToolRegistry.setTools(serverId, server.name, connection.tools)
+      const metadata = this.serverMetadata(server, connection)
+      const displayName = metadata.name ?? server.name
+      mcpToolRegistry.setTools(serverId, displayName, connection.tools)
       await this.updateStatus(serverId, 'connected', null, {
         tools,
         lastConnectedAt: new Date(),
+        ...metadata,
       })
       return tools
     } catch (error) {
@@ -335,7 +386,6 @@ export class McpService {
   > {
     const server = await this.getServerRecord(serverId)
     if (!server) return { status: 'error', message: 'server not found' }
-    if (!server.enabled) return { status: 'error', message: 'server is disabled' }
 
     const existing = this.manager.getConnection(serverId)
     if (existing?.status === 'connected') return { status: 'connected' }
@@ -347,10 +397,13 @@ export class McpService {
         return { status: 'needs-auth' }
       }
       const tools = this.toStoredTools(connection.tools)
-      mcpToolRegistry.setTools(serverId, server.name, connection.tools)
+      const metadata = this.serverMetadata(server, connection)
+      const displayName = metadata.name ?? server.name
+      mcpToolRegistry.setTools(serverId, displayName, connection.tools)
       await this.updateStatus(serverId, 'connected', null, {
         tools,
         lastConnectedAt: new Date(),
+        ...metadata,
       })
       return { status: 'connected' }
     } catch (error) {
@@ -430,12 +483,6 @@ export class McpService {
     if (!server) {
       return { ok: false, content: [{ type: 'text', text: 'MCP server not found' }] }
     }
-    if (!server.enabled) {
-      return {
-        ok: false,
-        content: [{ type: 'text', text: `MCP server "${server.name}" is disabled` }],
-      }
-    }
 
     const denied = await this.checkPermission(server, ctx)
     if (denied) {
@@ -514,7 +561,6 @@ export class McpService {
   }> {
     const server = await this.getServerRecord(serverId)
     if (!server) throw new Error('MCP server not found')
-    if (!server.enabled) throw new Error(`MCP server "${server.name}" is disabled`)
 
     const config = extractOauthConfig(server.authConfig ?? undefined)
     if (config.grantType === 'client_credentials') {
@@ -633,7 +679,10 @@ export class McpService {
       try {
         await this.discoverTools(serverId)
       } catch (err) {
-        logger.warn({ serverId, err }, 'Post-auth tool discovery failed, setting status to connected')
+        logger.warn(
+          { serverId, err },
+          'Post-auth tool discovery failed, setting status to connected',
+        )
         await this.updateStatus(serverId, 'connected', null)
       }
       return 'authenticated'
@@ -710,7 +759,7 @@ export class McpService {
   /**
    * Build the agent's MCP AgentTools: the single `mcp` proxy tool plus direct
    * tools for assigned servers in direct-tools mode. Returns [] when the agent
-   * has no assigned enabled servers (no proxy tool — don't waste LLM context).
+   * has no assigned servers (no proxy tool — don't waste LLM context).
    */
   async buildAgentTools(agentId: string, teamId: string, userId?: string): Promise<AgentTool[]> {
     const assignments = await prisma.agentMcpServer.findMany({
@@ -720,7 +769,6 @@ export class McpService {
 
     const servers = assignments
       .map((a) => a.mcpServer)
-      .filter((s) => s.enabled)
       .map((s) => ({
         id: s.id,
         name: s.name,
@@ -770,7 +818,7 @@ export class McpService {
         let best: string | undefined
         let bestLen = 0
         for (const [sid, name] of serverNameById.entries()) {
-          const prefix = name.replace(/-/g, '_')
+          const prefix = sanitizeServerPrefix(name)
           if (toolName.startsWith(`${prefix}_`) && prefix.length > bestLen) {
             best = sid
             bestLen = prefix.length

@@ -55,11 +55,11 @@ describe('McpService', () => {
 
   it('creates, lists, reads and deletes servers (secrets masked)', async () => {
     const created = await service.createServer(teamId, {
-      name: 'github',
       url: srv.url,
       authConfig: { type: 'bearer', bearerToken: 'super-secret' },
     })
-    expect(created.name).toBe('github')
+    // Name is derived from the URL until the server self-reports on connect.
+    expect(created.name).toBe('localhost')
     expect(created.url).toBe(srv.url)
     expect(created.authType).toBe('bearer')
     expect(created.toolCount).toBe(0)
@@ -67,19 +67,32 @@ describe('McpService', () => {
     expect(JSON.stringify(created)).not.toContain('super-secret')
 
     const listed = await service.listServers(teamId)
-    expect(listed.map((s) => s.name)).toContain('github')
+    expect(listed.map((s) => s.name)).toContain('localhost')
 
     const got = await service.getServer(created.id)
     expect(got?.id).toBe(created.id)
 
     await service.deleteServer(created.id)
     const after = await service.listServers(teamId)
-    expect(after.map((s) => s.name)).not.toContain('github')
+    expect(after.map((s) => s.name)).not.toContain('localhost')
   })
 
-  it('enforces unique server names per team', async () => {
-    await service.createServer(teamId, { name: 'dup', url: srv.url })
-    await expect(service.createServer(teamId, { name: 'dup', url: srv.url })).rejects.toThrow()
+  it('allows duplicate server names per team (name is auto-derived)', async () => {
+    const a = await service.createServer(teamId, { url: srv.url })
+    const b = await service.createServer(teamId, { url: srv.url })
+    expect(a.name).toBe(b.name)
+    expect(a.id).not.toBe(b.id)
+  })
+
+  it('derives the name from the URL host when creating', async () => {
+    const github = await service.createServer(teamId, { url: 'https://api.github.com/mcp' })
+    expect(github.name).toBe('github')
+
+    const example = await service.createServer(teamId, { url: 'https://mcp.example.com/sse' })
+    expect(example.name).toBe('example')
+
+    const raw = await service.createServer(teamId, { url: 'not-a-url' })
+    expect(raw.name).toBe('mcp-server')
   })
 
   // --------------------------------------------------------------------------
@@ -88,7 +101,6 @@ describe('McpService', () => {
 
   it('discovers tools from a real MCP server and persists them', async () => {
     const server = await service.createServer(teamId, {
-      name: 'tools-srv',
       url: srv.url,
       authConfig: { type: 'none' },
     })
@@ -107,9 +119,42 @@ describe('McpService', () => {
     expect(metadata.map((m) => m.originalName)).toEqual(expect.arrayContaining(['echo', 'add']))
   })
 
+  it('captures the server-reported name (title preferred) and description on discovery', async () => {
+    const metaSrv = await startTestMcpServer({
+      tools: standardTestTools(),
+      serverInfo: {
+        name: 'meta-srv',
+        title: 'Meta Server',
+        description: 'A server with rich metadata',
+      },
+    })
+    try {
+      const server = await service.createServer(teamId, { url: metaSrv.url })
+      expect(server.name).toBe('localhost') // derived placeholder before discovery
+
+      await service.discoverTools(server.id)
+
+      const updated = await service.getServer(server.id)
+      expect(updated?.name).toBe('Meta Server') // title wins over name
+      expect(updated?.description).toBe('A server with rich metadata')
+
+      // Registry prefix uses the display name too (direct-tool prefixes).
+      const metadata = mcpToolRegistry.getTools(server.id)
+      expect(metadata.map((m) => m.name)).toContain('Meta_Server_echo')
+    } finally {
+      await metaSrv.stop()
+    }
+  })
+
+  it('falls back to the reported name when no title is provided', async () => {
+    const server = await service.createServer(teamId, { url: srv.url })
+    await service.discoverTools(server.id)
+    const updated = await service.getServer(server.id)
+    expect(updated?.name).toBe('test-mcp-server')
+  })
+
   it('calls a tool through callMcpTool and returns content', async () => {
     const server = await service.createServer(teamId, {
-      name: 'call-srv',
       url: srv.url,
       authConfig: { type: 'none' },
     })
@@ -125,7 +170,6 @@ describe('McpService', () => {
 
   it('surfaces server failures as error text (non-fatal)', async () => {
     const server = await service.createServer(teamId, {
-      name: 'down-srv',
       url: 'http://localhost:1/mcp', // nothing listens here
       authConfig: { type: 'none' },
     })
@@ -144,7 +188,6 @@ describe('McpService', () => {
     })
     try {
       const wrong = await service.createServer(teamId, {
-        name: 'auth-wrong',
         url: authSrv.url,
         authConfig: { type: 'bearer', bearerToken: 'wrong-token' },
       })
@@ -152,7 +195,6 @@ describe('McpService', () => {
       expect(result.ok).toBe(false)
 
       const right = await service.createServer(teamId, {
-        name: 'auth-right',
         url: authSrv.url,
         authConfig: { type: 'bearer', bearerToken: 'tok-123' },
       })
@@ -165,23 +207,23 @@ describe('McpService', () => {
   })
 
   // --------------------------------------------------------------------------
-  // Rename invalidation
+  // URL invalidation
   // --------------------------------------------------------------------------
 
-  it('rename clears cached tools, credentials and the connection', async () => {
+  it('transport change clears cached tools, credentials and the connection', async () => {
     const server = await service.createServer(teamId, {
-      name: 'rename-me',
       url: srv.url,
       authConfig: { type: 'none' },
     })
     await service.discoverTools(server.id)
     expect((await service.getServer(server.id))?.toolCount).toBe(3)
 
-    // Seed a credential row to prove it gets wiped.
-    await service.updateServer(server.id, { name: 'renamed' })
+    // The endpoint URL is immutable; a transport change invalidates the
+    // cached tools + connection (and would wipe credentials).
+    await service.updateServer(server.id, { transport: 'sse' })
 
     const updated = await service.getServer(server.id)
-    expect(updated?.name).toBe('renamed')
+    expect(updated?.transport).toBe('sse')
     expect(updated?.toolCount).toBe(0)
     expect(updated?.status).toBe('not_connected')
     expect(mcpToolRegistry.getTools(server.id)).toEqual([])
@@ -194,7 +236,6 @@ describe('McpService', () => {
 
   it('denies tool calls below the server permission and allows above it', async () => {
     const server = await service.createServer(teamId, {
-      name: 'perm-srv',
       url: srv.url,
       permission: 'editor', // reviewers are denied
     })
@@ -230,7 +271,6 @@ describe('McpService', () => {
 
   it('denies calls without user context when permission is above reviewer', async () => {
     const server = await service.createServer(teamId, {
-      name: 'perm-no-user',
       url: srv.url,
       permission: 'editor',
     })
@@ -241,7 +281,6 @@ describe('McpService', () => {
 
   it('allows calls without user context at reviewer permission', async () => {
     const server = await service.createServer(teamId, {
-      name: 'perm-reviewer',
       url: srv.url,
       permission: 'reviewer',
     })
@@ -259,16 +298,16 @@ describe('McpService', () => {
     expect(tools).toEqual([])
   })
 
-  it('builds the proxy tool for assigned enabled servers', async () => {
+  it('builds the proxy tool for assigned servers', async () => {
     const agent = await seedAgentAndUser(teamId, 'Proxy Agent')
-    const server = await service.createServer(teamId, { name: 'assigned', url: srv.url })
+    const server = await service.createServer(teamId, { url: srv.url })
     await service.discoverTools(server.id)
     await prisma.agentMcpServer.create({ data: { agentId: agent.id, mcpServerId: server.id } })
 
     const tools = await service.buildAgentTools(agent.id, teamId, undefined)
     expect(tools.length).toBe(1)
     expect(tools[0].name).toBe('mcp')
-    expect(tools[0].description).toContain('assigned')
+    expect(tools[0].description).toContain('test-mcp-server')
 
     // Executing the proxy's call mode hits the real server.
     const result = await (
@@ -276,20 +315,37 @@ describe('McpService', () => {
         id: string,
         params: unknown,
       ) => Promise<{ content: Array<{ type: string; text?: string }> }>
-    )('call-1', { server: 'assigned', tool: 'echo', args: { text: 'via-proxy' } })
+    )('call-1', { server: 'test-mcp-server', tool: 'echo', args: { text: 'via-proxy' } })
     expect(JSON.stringify(result.content)).toContain('echo:via-proxy')
   })
 
-  it('excludes disabled servers from the agent tools', async () => {
-    const agent = await seedAgentAndUser(teamId, 'Disabled Agent')
-    const server = await service.createServer(teamId, {
-      name: 'disabled-srv',
-      url: srv.url,
-      enabled: false,
+  it('only includes assigned servers in the agent tools', async () => {
+    const agent = await seedAgentAndUser(teamId, 'Assigned Only Agent')
+    const assignedSrv = await startTestMcpServer({
+      tools: standardTestTools(),
+      serverInfo: { name: 'assigned-srv' },
     })
-    await prisma.agentMcpServer.create({ data: { agentId: agent.id, mcpServerId: server.id } })
-    const tools = await service.buildAgentTools(agent.id, teamId)
-    expect(tools).toEqual([])
+    const unassignedSrv = await startTestMcpServer({
+      tools: standardTestTools(),
+      serverInfo: { name: 'unassigned-srv' },
+    })
+    try {
+      const assigned = await service.createServer(teamId, { url: assignedSrv.url })
+      const unassigned = await service.createServer(teamId, { url: unassignedSrv.url })
+      await service.discoverTools(assigned.id)
+      await service.discoverTools(unassigned.id)
+      await prisma.agentMcpServer.create({
+        data: { agentId: agent.id, mcpServerId: assigned.id },
+      })
+
+      const tools = await service.buildAgentTools(agent.id, teamId)
+      expect(tools.length).toBe(1)
+      expect(tools[0].description).toContain('assigned-srv')
+      expect(tools[0].description).not.toContain('unassigned-srv')
+    } finally {
+      await assignedSrv.stop()
+      await unassignedSrv.stop()
+    }
   })
 
   // --------------------------------------------------------------------------
@@ -299,7 +355,6 @@ describe('McpService', () => {
   it('registers direct tools for opted-in servers alongside the proxy', async () => {
     const agent = await seedAgentAndUser(teamId, 'Direct Agent')
     const server = await service.createServer(teamId, {
-      name: 'direct-srv',
       url: srv.url,
       config: { directTools: true },
     })
@@ -310,11 +365,11 @@ describe('McpService', () => {
     expect(tools.length).toBe(4) // proxy + 3 direct tools
     const names = tools.map((t) => t.name)
     expect(names).toContain('mcp')
-    expect(names).toContain('direct_srv_echo')
-    expect(names).toContain('direct_srv_add')
+    expect(names).toContain('test_mcp_server_echo')
+    expect(names).toContain('test_mcp_server_add')
 
     // Direct tool executes through callMcpTool.
-    const echo = tools.find((t) => t.name === 'direct_srv_echo')!
+    const echo = tools.find((t) => t.name === 'test_mcp_server_echo')!
     const result = await (
       echo.execute as (
         id: string,
@@ -324,21 +379,20 @@ describe('McpService', () => {
     expect(JSON.stringify(result.content)).toContain('echo:direct')
   })
 
-  it('applies includeTools/excludeTools filters to direct tools', async () => {
+  it('applies excludeTools filters to direct tools', async () => {
     const agent = await seedAgentAndUser(teamId, 'Filtered Agent')
     const server = await service.createServer(teamId, {
-      name: 'filter-srv',
       url: srv.url,
-      config: { directTools: true, includeTools: ['echo'], excludeTools: ['add'] },
+      config: { directTools: true, excludeTools: ['add'] },
     })
     await service.discoverTools(server.id)
     await prisma.agentMcpServer.create({ data: { agentId: agent.id, mcpServerId: server.id } })
 
     const tools = await service.buildAgentTools(agent.id, teamId)
     const names = tools.map((t) => t.name)
-    expect(names).toContain('filter_srv_echo')
-    expect(names).not.toContain('filter_srv_add')
-    expect(names).not.toContain('filter_srv_list_sims')
+    expect(names).toContain('test_mcp_server_echo')
+    expect(names).toContain('test_mcp_server_list_sims')
+    expect(names).not.toContain('test_mcp_server_add')
   })
 
   // --------------------------------------------------------------------------
@@ -347,28 +401,24 @@ describe('McpService', () => {
 
   it('reports auth status for each auth type', async () => {
     const none = await service.createServer(teamId, {
-      name: 'auth-none',
       url: srv.url,
       authConfig: { type: 'none' },
     })
     expect(await service.getAuthStatus(none.id)).toBe('authenticated')
 
     const bearer = await service.createServer(teamId, {
-      name: 'auth-bearer',
       url: srv.url,
       authConfig: { type: 'bearer', bearerToken: 'x' },
     })
     expect(await service.getAuthStatus(bearer.id)).toBe('authenticated')
 
     const bearerEmpty = await service.createServer(teamId, {
-      name: 'auth-bearer-empty',
       url: srv.url,
       authConfig: { type: 'bearer' },
     })
     expect(await service.getAuthStatus(bearerEmpty.id)).toBe('not_authenticated')
 
     const oauth = await service.createServer(teamId, {
-      name: 'auth-oauth',
       url: srv.url,
       authConfig: { type: 'oauth' },
     })
@@ -377,7 +427,7 @@ describe('McpService', () => {
   })
 
   it('testServer connects and lists tools', async () => {
-    const server = await service.createServer(teamId, { name: 'test-srv', url: srv.url })
+    const server = await service.createServer(teamId, { url: srv.url })
     const result = await service.testServer(server.id)
     expect(result.ok).toBe(true)
     expect(result.toolCount).toBe(3)
@@ -386,9 +436,6 @@ describe('McpService', () => {
   // --------------------------------------------------------------------------
   // Proxy disambiguation across two servers (same-named tools)
   // --------------------------------------------------------------------------
-
-  let srvA: RunningTestMcpServer
-  let srvB: RunningTestMcpServer
 
   it('disambiguates same-named tools via the server parameter', async () => {
     const toolsA: TestMcpToolDef[] = [
@@ -399,62 +446,64 @@ describe('McpService', () => {
       { name: 'get', description: 'Get from server B', handler: async () => 'B' },
       { name: 'shared', description: 'Shared tool on B', handler: async () => 'from-B' },
     ]
-    srvA = await startTestMcpServer({ tools: toolsA })
-    srvB = await startTestMcpServer({ tools: toolsB })
-    const agent = await prisma.user.create({
-      data: { name: 'Two Srv Agent', email: 'two-srv-agent@shumai.ai', type: 'agent' },
-    })
-    await prisma.teamMember.create({ data: { teamId, userId: agent.id, role: 'editor' } })
-    await prisma.agent.create({
-      data: {
-        id: agent.id,
-        teamId,
-        type: 'chat',
-        config: { provider: 'openai', model: 'gpt-4' },
-      },
-    })
+    const srvA = await startTestMcpServer({ tools: toolsA, serverInfo: { name: 'srvA' } })
+    const srvB = await startTestMcpServer({ tools: toolsB, serverInfo: { name: 'srvB' } })
+    try {
+      const agent = await prisma.user.create({
+        data: { name: 'Two Srv Agent', email: 'two-srv-agent@shumai.ai', type: 'agent' },
+      })
+      await prisma.teamMember.create({ data: { teamId, userId: agent.id, role: 'editor' } })
+      await prisma.agent.create({
+        data: {
+          id: agent.id,
+          teamId,
+          type: 'chat',
+          config: { provider: 'openai', model: 'gpt-4' },
+        },
+      })
 
-    const serverA = await service.createServer(teamId, { name: 'srvA', url: srvA.url })
-    const serverB = await service.createServer(teamId, { name: 'srvB', url: srvB.url })
-    await service.discoverTools(serverA.id)
-    await service.discoverTools(serverB.id)
-    await prisma.agentMcpServer.createMany({
-      data: [
-        { agentId: agent.id, mcpServerId: serverA.id },
-        { agentId: agent.id, mcpServerId: serverB.id },
-      ],
-    })
+      const serverA = await service.createServer(teamId, { url: srvA.url })
+      const serverB = await service.createServer(teamId, { url: srvB.url })
+      await service.discoverTools(serverA.id)
+      await service.discoverTools(serverB.id)
+      await prisma.agentMcpServer.createMany({
+        data: [
+          { agentId: agent.id, mcpServerId: serverA.id },
+          { agentId: agent.id, mcpServerId: serverB.id },
+        ],
+      })
 
-    const tools = await service.buildAgentTools(agent.id, teamId)
-    expect(tools.length).toBe(1) // only the proxy
-    const proxy = tools[0]
+      const tools = await service.buildAgentTools(agent.id, teamId)
+      expect(tools.length).toBe(1) // only the proxy
+      const proxy = tools[0]
 
-    const callA = await (
-      proxy.execute as (
-        id: string,
-        params: unknown,
-      ) => Promise<{ content: Array<{ type: string; text?: string }> }>
-    )('c1', { server: 'srvA', tool: 'shared' })
-    expect(JSON.stringify(callA.content)).toContain('from-A')
+      const callA = await (
+        proxy.execute as (
+          id: string,
+          params: unknown,
+        ) => Promise<{ content: Array<{ type: string; text?: string }> }>
+      )('c1', { server: 'srvA', tool: 'shared' })
+      expect(JSON.stringify(callA.content)).toContain('from-A')
 
-    const callB = await (
-      proxy.execute as (
-        id: string,
-        params: unknown,
-      ) => Promise<{ content: Array<{ type: string; text?: string }> }>
-    )('c2', { server: 'srvB', tool: 'shared' })
-    expect(JSON.stringify(callB.content)).toContain('from-B')
+      const callB = await (
+        proxy.execute as (
+          id: string,
+          params: unknown,
+        ) => Promise<{ content: Array<{ type: string; text?: string }> }>
+      )('c2', { server: 'srvB', tool: 'shared' })
+      expect(JSON.stringify(callB.content)).toContain('from-B')
 
-    // Prefixed names also resolve without the server parameter.
-    const prefixed = await (
-      proxy.execute as (
-        id: string,
-        params: unknown,
-      ) => Promise<{ content: Array<{ type: string; text?: string }> }>
-    )('c3', { tool: 'srvA_get' })
-    expect(JSON.stringify(prefixed.content)).toContain('A')
-
-    await srvA.stop()
-    await srvB.stop()
+      // Prefixed names also resolve without the server parameter.
+      const prefixed = await (
+        proxy.execute as (
+          id: string,
+          params: unknown,
+        ) => Promise<{ content: Array<{ type: string; text?: string }> }>
+      )('c3', { tool: 'srvA_get' })
+      expect(JSON.stringify(prefixed.content)).toContain('A')
+    } finally {
+      await srvA.stop()
+      await srvB.stop()
+    }
   })
 })
