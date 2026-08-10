@@ -210,7 +210,7 @@ describe('McpService', () => {
   // URL invalidation
   // --------------------------------------------------------------------------
 
-  it('url change clears cached tools, credentials and the connection', async () => {
+  it('transport change clears cached tools, credentials and the connection', async () => {
     const server = await service.createServer(teamId, {
       url: srv.url,
       authConfig: { type: 'none' },
@@ -218,11 +218,12 @@ describe('McpService', () => {
     await service.discoverTools(server.id)
     expect((await service.getServer(server.id))?.toolCount).toBe(3)
 
-    // Seed a credential row to prove it gets wiped.
-    await service.updateServer(server.id, { url: 'http://localhost:9/mcp' })
+    // The endpoint URL is immutable; a transport change invalidates the
+    // cached tools + connection (and would wipe credentials).
+    await service.updateServer(server.id, { transport: 'sse' })
 
     const updated = await service.getServer(server.id)
-    expect(updated?.url).toBe('http://localhost:9/mcp')
+    expect(updated?.transport).toBe('sse')
     expect(updated?.toolCount).toBe(0)
     expect(updated?.status).toBe('not_connected')
     expect(mcpToolRegistry.getTools(server.id)).toEqual([])

@@ -179,7 +179,6 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
 
       if (isEditing && server) {
         const updatePayload: UpdateMcpServerRequest = {
-          url: url.trim(),
           transport,
           permission,
           authConfig: buildAuthConfig(),
@@ -276,25 +275,23 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
             <ScrollArea className="flex-1 min-h-0">
               <div className="p-6 space-y-5">
-                {/* Endpoint URL */}
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold">{m.mcp_server_url()}</Label>
-                  <Input
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    placeholder="https://mcp.example.com/mcp"
-                    type="url"
-                    required
-                  />
-                </div>
-
-                {/* Auto-detected identity (read-only) */}
+                {/* Auto-detected identity (read-only) — the endpoint URL is
+                    set at creation and immutable here (delete + re-add to
+                    change it). */}
                 <div className="grid grid-cols-1 gap-3 p-3 bg-muted/30 border border-border rounded-lg">
                   <div className="flex flex-col">
                     <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
                       {m.mcp_server_name()}
                     </span>
                     <span className="text-sm font-medium">{server.name}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                      {m.mcp_server_url()}
+                    </span>
+                    <span className="text-sm font-mono text-foreground break-all">
+                      {server.url}
+                    </span>
                   </div>
                   {server.description && (
                     <div className="flex flex-col">

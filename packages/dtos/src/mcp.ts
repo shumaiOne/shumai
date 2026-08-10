@@ -56,7 +56,6 @@ export const createMcpServerRequestSchema = z.object({
 export type CreateMcpServerRequest = z.infer<typeof createMcpServerRequestSchema>
 
 export const updateMcpServerRequestSchema = z.object({
-  url: z.string().url().optional(),
   transport: mcpTransportSchema.optional(),
   authConfig: mcpServerAuthConfigSchema.optional(),
   config: mcpServerConfigSchema.optional(),

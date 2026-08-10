@@ -151,15 +151,15 @@ describe('MCP API', () => {
   test('updates a server and audits it', async () => {
     vi.mocked(mcpService.updateServer).mockResolvedValue({
       ...serverInfo,
-      url: 'https://new.example.com/mcp',
+      transport: 'sse',
     })
     const res = await app.request('/mcp/servers/server1', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: 'https://new.example.com/mcp' }),
+      body: JSON.stringify({ transport: 'sse' }),
     })
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ ...serverInfo, url: 'https://new.example.com/mcp' })
+    expect(await res.json()).toEqual({ ...serverInfo, transport: 'sse' })
     expect(auditLogService.logAction).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'mcp_server_update', itemId: 'server1' }),
     )

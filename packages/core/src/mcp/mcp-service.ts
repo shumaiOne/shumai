@@ -135,14 +135,14 @@ export class McpService {
     const existing = await prisma.mcpServer.findUnique({ where: { id } })
     if (!existing) throw new Error('MCP server not found')
 
-    const urlChanged = req.url !== undefined && req.url !== existing.url
     const authChanged =
       req.authConfig !== undefined &&
       JSON.stringify(req.authConfig) !== JSON.stringify(existing.authConfig ?? {})
     const transportChanged = req.transport !== undefined && req.transport !== existing.transport
 
-    // URL/auth/transport changes invalidate credentials and cached tools.
-    const invalidateAll = urlChanged || authChanged || transportChanged
+    // The endpoint URL is immutable (delete + re-add to change it).
+    // Auth/transport changes invalidate credentials and cached tools.
+    const invalidateAll = authChanged || transportChanged
 
     await prisma.$transaction(async (tx) => {
       if (invalidateAll) {
@@ -151,7 +151,6 @@ export class McpService {
       return tx.mcpServer.update({
         where: { id },
         data: {
-          ...(req.url !== undefined ? { url: req.url } : {}),
           ...(req.transport !== undefined ? { transport: req.transport } : {}),
           ...(req.authConfig !== undefined
             ? { authConfig: req.authConfig as PrismaJson.McpServerAuthConfig }
