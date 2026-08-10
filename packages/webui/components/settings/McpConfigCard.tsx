@@ -323,9 +323,10 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
               return (
                 <div
                   key={server.id}
+                  onClick={() => canAdmin && setEditingServer(server)}
                   className={`flex flex-col md:flex-row items-start md:items-center justify-between p-4 border border-border rounded-xl gap-4 transition-all ${
-                    server.enabled ? 'bg-card' : 'bg-muted/30 opacity-75'
-                  }`}
+                    canAdmin ? 'cursor-pointer hover:border-primary/50 hover:shadow-sm' : ''
+                  } ${server.enabled ? 'bg-card' : 'bg-muted/30 opacity-75'}`}
                 >
                   <div className="flex items-start gap-3.5 flex-1 min-w-0">
                     <div className="p-2.5 bg-muted rounded-lg text-foreground mt-0.5">
@@ -359,7 +360,10 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
                         <span className="truncate max-w-md font-mono">{server.url}</span>
                         <span>•</span>
                         <button
-                          onClick={() => setSelectedToolsServer(server)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedToolsServer(server)
+                          }}
                           className="hover:underline font-semibold text-primary flex items-center gap-1"
                         >
                           <Wrench className="w-3 h-3" />
@@ -375,13 +379,19 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 w-full md:w-auto justify-end border-t md:border-t-0 pt-3 md:pt-0 border-border">
+                  <div
+                    className="flex items-center gap-3 w-full md:w-auto justify-end border-t md:border-t-0 pt-3 md:pt-0 border-border"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     {/* Prominent Connect button if needs authentication */}
                     {needsAuth && canAdmin && (
                       <Button
                         size="sm"
                         variant="default"
-                        onClick={() => handleStartAuth(server.id)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleStartAuth(server.id)
+                        }}
                         disabled={isAuthenticating}
                         className="gap-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs"
                       >
@@ -436,7 +446,7 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
                     {/* Action Dropdown Menu */}
                     {canAdmin && (
                       <DropdownMenu modal={false}>
-                        <DropdownMenuTrigger asChild>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                           <Button variant="ghost" size="icon" className="h-8 w-8">
                             <MoreVertical className="w-4 h-4" />
                           </Button>
