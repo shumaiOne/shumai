@@ -336,12 +336,20 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setEditingServer(server)}>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setEditingServer(server)
+                            }}
+                          >
                             <Edit className="w-4 h-4 mr-2" />
                             {m.edit()}
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => testMutation.mutate(server.id)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              testMutation.mutate(server.id)
+                            }}
                             disabled={testMutation.isPending}
                           >
                             <RefreshCw
@@ -353,7 +361,12 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
                           </DropdownMenuItem>
 
                           {server.authType !== 'none' || server.hasCredential ? (
-                            <DropdownMenuItem onClick={() => handleStartAuth(server.id)}>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleStartAuth(server.id)
+                              }}
+                            >
                               <Key className="w-4 h-4 mr-2" />
                               {m.mcp_connect_auth()}
                             </DropdownMenuItem>
@@ -361,7 +374,10 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
 
                           {server.hasCredential && (
                             <DropdownMenuItem
-                              onClick={() => disconnectAuthMutation.mutate(server.id)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                disconnectAuthMutation.mutate(server.id)
+                              }}
                               className="text-amber-600"
                             >
                               <ShieldCheck className="w-4 h-4 mr-2" />
@@ -371,7 +387,10 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
 
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            onClick={() => setDeletingServer(server)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setDeletingServer(server)
+                            }}
                             className="text-red-600"
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
