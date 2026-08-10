@@ -73,6 +73,28 @@ describe('McpOauthProvider SEP-2352 issuer stamping', () => {
     expect((info as { issuer?: string }).issuer).toBe(ISSUER)
   })
 
+  it('clientInformation() backfills a missing issuer stamp on stale client info', async () => {
+    const provider = makeProvider()
+    // Pre-existing client info stored WITHOUT an issuer (registered before the
+    // stamping fix). The discovery snapshot is available for this read.
+    await store.updateClientInfo(
+      serverId,
+      { clientId: 'legacy-client', clientSecret: 'legacy-secret' },
+      SERVER_URL,
+    )
+    await provider.saveDiscoveryState({
+      authorizationServerUrl: ISSUER,
+      authorizationServerMetadata: { issuer: ISSUER },
+    } as never)
+
+    const info = await makeProvider().clientInformation()
+    expect(info?.client_id).toBe('legacy-client')
+    expect((info as { issuer?: string }).issuer).toBe(ISSUER)
+    // The stamp is persisted, not just returned.
+    const entry = await store.getAuthForUrl(serverId, SERVER_URL)
+    expect(entry?.clientInfo?.issuer).toBe(ISSUER)
+  })
+
   it('saveTokens stamps the issuer and tokens round-trips it', async () => {
     const provider = makeProvider()
     await provider.saveDiscoveryState({

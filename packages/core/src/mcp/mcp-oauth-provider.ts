@@ -245,6 +245,14 @@ export class McpOauthProvider implements OAuthClientProvider {
       ) {
         return undefined
       }
+      // SEP-2352: backfill a missing issuer stamp (pre-upgrade / stale storage)
+      // from the discovery snapshot, persisting it so later reads are isolated.
+      const issuer = await this.getDiscoveredIssuer()
+      if (issuer !== undefined && clientInfo.issuer === undefined) {
+        const stamped: StoredClientInfo = { ...clientInfo, issuer }
+        await this.store.updateClientInfo(this.serverId, stamped, this.serverUrl)
+        clientInfo.issuer = issuer
+      }
       return {
         client_id: clientInfo.clientId,
         client_secret: clientInfo.clientSecret,
