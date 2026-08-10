@@ -244,6 +244,7 @@ export class McpService {
       url: server.url,
       transport: server.transport,
       authType: server.authConfig?.type ?? 'none',
+      config: server.config ?? undefined,
       enabled: server.enabled,
       permission: server.permission,
       status: server.status,

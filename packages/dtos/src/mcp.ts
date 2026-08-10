@@ -83,6 +83,7 @@ export const mcpServerInfoSchema = z.object({
   url: z.string(),
   transport: mcpTransportSchema,
   authType: mcpServerAuthTypeSchema,
+  config: mcpServerConfigSchema.optional(),
   enabled: z.boolean(),
   permission: mcpServerPermissionSchema,
   status: z.string(),

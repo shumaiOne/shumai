@@ -5,12 +5,13 @@ import { AgentsSettings } from '@/ui/components/settings/AgentsSettings'
 import { ProvidersSettings } from '@/ui/components/settings/ProvidersSettings'
 import { SandboxSettings } from '@/ui/components/settings/SandboxSettings'
 import { SkillsConfigCard } from '@/ui/components/settings/SkillsConfigCard'
+import { McpConfigCard } from '@/ui/components/settings/McpConfigCard'
 import { NotificationSettings } from '@/ui/components/settings/NotificationSettings'
 import { DeveloperSettings } from '@/ui/components/settings/DeveloperSettings'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card'
 import { cn } from '@/ui/lib/utils'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Bot, Cpu, Film, Loader2, Puzzle, Shield, User, Bell, Key } from 'lucide-react'
+import { Bot, Cpu, Film, Loader2, Puzzle, Server, Shield, User, Bell, Key } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/ui/avatar'
 import { Input } from '@/ui/components/ui/input'
@@ -32,6 +33,7 @@ type SettingsTab =
   | 'general'
   | 'transcode'
   | 'skills'
+  | 'mcp'
   | 'providers'
   | 'agents'
   | 'sandbox'
@@ -349,6 +351,22 @@ function TeamSettingsPage() {
                 </button>
 
                 <button
+                  onClick={() => setActiveTab('mcp')}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
+                    activeTab === 'mcp'
+                      ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
+                      : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                  )}
+                >
+                  <Server className="w-5 h-5" />
+                  {m.mcp_servers()}
+                  {activeTab === 'mcp' && (
+                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
+                  )}
+                </button>
+
+                <button
                   onClick={() => setActiveTab('agents')}
                   className={cn(
                     'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
@@ -393,6 +411,7 @@ function TeamSettingsPage() {
                   {activeTab === 'general' && m.general_settings()}
                   {activeTab === 'transcode' && m.media_processing()}
                   {activeTab === 'skills' && m.skills_management()}
+                  {activeTab === 'mcp' && m.mcp_servers()}
                   {activeTab === 'providers' && m.ai_providers()}
                   {activeTab === 'agents' && m.ai_agents()}
                   {activeTab === 'sandbox' && m.agent_sandbox_settings()}
@@ -403,6 +422,7 @@ function TeamSettingsPage() {
                   {activeTab === 'general' && m.general_settings_description()}
                   {activeTab === 'transcode' && m.transcode_description()}
                   {activeTab === 'skills' && m.skills_description()}
+                  {activeTab === 'mcp' && m.mcp_servers_description()}
                   {activeTab === 'providers' && m.providers_description()}
                   {activeTab === 'agents' && m.agents_description()}
                   {activeTab === 'sandbox' && m.sandbox_description()}
@@ -599,6 +619,12 @@ function TeamSettingsPage() {
               {activeTab === 'skills' && (
                 <div className="h-full overflow-y-auto pr-1">
                   <SkillsConfigCard teamId={teamId} />
+                </div>
+              )}
+
+              {activeTab === 'mcp' && (
+                <div className="h-full overflow-y-auto pr-1">
+                  <McpConfigCard teamId={teamId} />
                 </div>
               )}
 
