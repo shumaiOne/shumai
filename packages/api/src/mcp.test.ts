@@ -21,7 +21,7 @@ vi.mock('@shumai/core/src/mcp/mcp-service', () => ({
     updateServer: vi.fn(),
     updateServerPermission: vi.fn(),
     deleteServer: vi.fn(),
-    discoverTools: vi.fn(),
+    refreshServer: vi.fn(),
     startAuth: vi.fn(),
     completeAuth: vi.fn(),
     getAuthStatus: vi.fn(),
@@ -61,6 +61,7 @@ const serverInfo: McpServerInfo = {
   id: 'server1',
   name: 'github',
   description: 'GitHub MCP server',
+  instructions: 'Always use the sandbox API and respect rate limits.',
   url: 'https://mcp.example.com/github',
   transport: 'streamable_http',
   authType: 'bearer',
@@ -104,6 +105,18 @@ describe('MCP API', () => {
       type: ResourceType.Team,
       id: 'team1',
     })
+  })
+
+  test('includes server instructions in list and get responses', async () => {
+    const list = await app.request('/teams/team1/mcp/servers')
+    expect((await list.json()).servers[0].instructions).toBe(
+      'Always use the sandbox API and respect rate limits.',
+    )
+
+    const got = await app.request('/mcp/servers/server1')
+    expect((await got.json()).instructions).toBe(
+      'Always use the sandbox API and respect rate limits.',
+    )
   })
 
   test('creates a server and audits it', async () => {
@@ -197,20 +210,26 @@ describe('MCP API', () => {
     )
   })
 
-  test('refreshes tools', async () => {
-    vi.mocked(mcpService.discoverTools).mockResolvedValue([
-      { name: 'echo', description: 'echo', inputSchema: { type: 'object' } },
-    ])
-    const res = await app.request('/mcp/servers/server1/tools/refresh', { method: 'POST' })
+  test('refreshes a server and returns the updated record', async () => {
+    vi.mocked(mcpService.refreshServer).mockResolvedValue({
+      ...serverInfo,
+      status: 'connected',
+      toolCount: 3,
+      instructions: 'Always use the sandbox API and respect rate limits.',
+    })
+    const res = await app.request('/mcp/servers/server1/refresh', { method: 'POST' })
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({
-      tools: [{ name: 'echo', description: 'echo', inputSchema: { type: 'object' } }],
+      ...serverInfo,
+      status: 'connected',
+      toolCount: 3,
+      instructions: 'Always use the sandbox API and respect rate limits.',
     })
   })
 
   test('refresh failure returns 502 with the error message', async () => {
-    vi.mocked(mcpService.discoverTools).mockRejectedValue(new Error('boom'))
-    const res = await app.request('/mcp/servers/server1/tools/refresh', { method: 'POST' })
+    vi.mocked(mcpService.refreshServer).mockRejectedValue(new Error('boom'))
+    const res = await app.request('/mcp/servers/server1/refresh', { method: 'POST' })
     expect(res.status).toBe(502)
     expect(await res.json()).toEqual({ error: 'boom' })
   })

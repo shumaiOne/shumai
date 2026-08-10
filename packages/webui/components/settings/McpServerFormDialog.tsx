@@ -151,18 +151,19 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
   const refreshMutation = useMutation({
     mutationFn: async () => {
       if (!server?.id) return
-      const res = await client.api.mcp.servers[':id'].tools.refresh.$post({
+      const res = await client.api.mcp.servers[':id'].refresh.$post({
         param: { id: server.id },
       })
       if (!res.ok) {
         const err = (await res.json().catch(() => ({}))) as { error?: string }
-        throw new Error(err.error || 'Failed to refresh tools')
+        throw new Error(err.error || 'Failed to refresh server')
       }
       return await res.json()
     },
     onSuccess: () => {
-      // No toast on success: the button reverting to its idle state is the
-      // confirmation. The tool list is refetched and the toggles re-enable.
+      toast.success(m.mcp_refresh_server_success())
+      // The tool list is refetched and the toggles re-enable; the server cards
+      // re-fetch the updated record (name, description, instructions, status).
       refetchTools()
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'mcp', 'servers'] })
     },
@@ -184,7 +185,6 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
           permission,
           authConfig: buildAuthConfig(),
           config,
-          refreshTools: true,
         }
 
         const res = await client.api.mcp.servers[':id'].$patch({
@@ -210,12 +210,6 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
           throw new Error(errData.error || m.an_unknown_error_occurred())
         }
         const created = await res.json()
-        // Auto-refresh tools in background
-        if (created && 'id' in created && typeof created.id === 'string') {
-          client.api.mcp.servers[':id'].tools.refresh
-            .$post({ param: { id: created.id } })
-            .catch(() => {})
-        }
         return created
       }
     },
@@ -460,19 +454,6 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
                       <Wrench className="w-3.5 h-3.5" />
                       {m.mcp_tools()}
                     </Label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => refreshMutation.mutate()}
-                      disabled={refreshMutation.isPending || isToolsLoading}
-                      className="gap-1.5 text-xs"
-                    >
-                      <RefreshCw
-                        className={`w-3.5 h-3.5 ${refreshMutation.isPending ? 'animate-spin' : ''}`}
-                      />
-                      {m.mcp_refresh_tools()}
-                    </Button>
                   </div>
                   <p className="text-[11px] text-muted-foreground">
                     {m.mcp_tools_count({ count: tools.length })} — {m.mcp_excluded_tools_hint()}
@@ -612,6 +593,18 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
             </ScrollArea>
 
             <DialogFooter className="p-6 pt-4 border-t border-border flex-shrink-0">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => refreshMutation.mutate()}
+                disabled={refreshMutation.isPending || isToolsLoading || saveMutation.isPending}
+                className="gap-1.5 mr-auto"
+              >
+                <RefreshCw
+                  className={`w-4 h-4 ${refreshMutation.isPending ? 'animate-spin' : ''}`}
+                />
+                {m.mcp_refresh_server()}
+              </Button>
               <Button type="button" variant="outline" onClick={onClose}>
                 {m.cancel()}
               </Button>

@@ -30,6 +30,7 @@ export type McpServerMinAggregateOutputType = {
   id: string | null
   name: string | null
   description: string | null
+  instructions: string | null
   url: string | null
   transport: $Enums.McpTransport | null
   permission: $Enums.TeamMemberRole | null
@@ -45,6 +46,7 @@ export type McpServerMaxAggregateOutputType = {
   id: string | null
   name: string | null
   description: string | null
+  instructions: string | null
   url: string | null
   transport: $Enums.McpTransport | null
   permission: $Enums.TeamMemberRole | null
@@ -60,6 +62,7 @@ export type McpServerCountAggregateOutputType = {
   id: number
   name: number
   description: number
+  instructions: number
   url: number
   transport: number
   authConfig:PrismaJson.McpServerAuthConfig
@@ -80,6 +83,7 @@ export type McpServerMinAggregateInputType = {
   id?: true
   name?: true
   description?: true
+  instructions?: true
   url?: true
   transport?: true
   permission?: true
@@ -95,6 +99,7 @@ export type McpServerMaxAggregateInputType = {
   id?: true
   name?: true
   description?: true
+  instructions?: true
   url?: true
   transport?: true
   permission?: true
@@ -110,6 +115,7 @@ export type McpServerCountAggregateInputType = {
   id?: true
   name?: true
   description?: true
+  instructions?: true
   url?: true
   transport?: true
   authConfig?: true
@@ -201,6 +207,7 @@ export type McpServerGroupByOutputType = {
   id: string
   name: string
   description: string | null
+  instructions: string | null
   url: string
   transport: $Enums.McpTransport
   authConfig:PrismaJson.McpServerAuthConfig | null
@@ -240,6 +247,7 @@ export type McpServerWhereInput = {
   id?: Prisma.StringFilter<"McpServer"> | string
   name?: Prisma.StringFilter<"McpServer"> | string
   description?: Prisma.StringNullableFilter<"McpServer"> | string | null
+  instructions?: Prisma.StringNullableFilter<"McpServer"> | string | null
   url?: Prisma.StringFilter<"McpServer"> | string
   transport?: Prisma.EnumMcpTransportFilter<"McpServer"> | $Enums.McpTransport
   authConfig?: Prisma.JsonNullableFilter<"McpServer">
@@ -261,6 +269,7 @@ export type McpServerOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
+  instructions?: Prisma.SortOrderInput | Prisma.SortOrder
   url?: Prisma.SortOrder
   transport?: Prisma.SortOrder
   authConfig?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -285,6 +294,7 @@ export type McpServerWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.McpServerWhereInput | Prisma.McpServerWhereInput[]
   name?: Prisma.StringFilter<"McpServer"> | string
   description?: Prisma.StringNullableFilter<"McpServer"> | string | null
+  instructions?: Prisma.StringNullableFilter<"McpServer"> | string | null
   url?: Prisma.StringFilter<"McpServer"> | string
   transport?: Prisma.EnumMcpTransportFilter<"McpServer"> | $Enums.McpTransport
   authConfig?: Prisma.JsonNullableFilter<"McpServer">
@@ -306,6 +316,7 @@ export type McpServerOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
+  instructions?: Prisma.SortOrderInput | Prisma.SortOrder
   url?: Prisma.SortOrder
   transport?: Prisma.SortOrder
   authConfig?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -330,6 +341,7 @@ export type McpServerScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"McpServer"> | string
   name?: Prisma.StringWithAggregatesFilter<"McpServer"> | string
   description?: Prisma.StringNullableWithAggregatesFilter<"McpServer"> | string | null
+  instructions?: Prisma.StringNullableWithAggregatesFilter<"McpServer"> | string | null
   url?: Prisma.StringWithAggregatesFilter<"McpServer"> | string
   transport?: Prisma.EnumMcpTransportWithAggregatesFilter<"McpServer"> | $Enums.McpTransport
   authConfig?: Prisma.JsonNullableWithAggregatesFilter<"McpServer">
@@ -348,6 +360,7 @@ export type McpServerCreateInput = {
   id?: string
   name: string
   description?: string | null
+  instructions?: string | null
   url: string
   transport?: $Enums.McpTransport
   authConfig?:PrismaJson.McpServerAuthConfig | Prisma.NullableJsonNullValueInput
@@ -368,6 +381,7 @@ export type McpServerUncheckedCreateInput = {
   id?: string
   name: string
   description?: string | null
+  instructions?: string | null
   url: string
   transport?: $Enums.McpTransport
   authConfig?:PrismaJson.McpServerAuthConfig | Prisma.NullableJsonNullValueInput
@@ -388,6 +402,7 @@ export type McpServerUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  instructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   url?: Prisma.StringFieldUpdateOperationsInput | string
   transport?: Prisma.EnumMcpTransportFieldUpdateOperationsInput | $Enums.McpTransport
   authConfig?:PrismaJson.McpServerAuthConfig | Prisma.NullableJsonNullValueInput
@@ -408,6 +423,7 @@ export type McpServerUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  instructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   url?: Prisma.StringFieldUpdateOperationsInput | string
   transport?: Prisma.EnumMcpTransportFieldUpdateOperationsInput | $Enums.McpTransport
   authConfig?:PrismaJson.McpServerAuthConfig | Prisma.NullableJsonNullValueInput
@@ -428,6 +444,7 @@ export type McpServerCreateManyInput = {
   id?: string
   name: string
   description?: string | null
+  instructions?: string | null
   url: string
   transport?: $Enums.McpTransport
   authConfig?:PrismaJson.McpServerAuthConfig | Prisma.NullableJsonNullValueInput
@@ -446,6 +463,7 @@ export type McpServerUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  instructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   url?: Prisma.StringFieldUpdateOperationsInput | string
   transport?: Prisma.EnumMcpTransportFieldUpdateOperationsInput | $Enums.McpTransport
   authConfig?:PrismaJson.McpServerAuthConfig | Prisma.NullableJsonNullValueInput
@@ -463,6 +481,7 @@ export type McpServerUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  instructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   url?: Prisma.StringFieldUpdateOperationsInput | string
   transport?: Prisma.EnumMcpTransportFieldUpdateOperationsInput | $Enums.McpTransport
   authConfig?:PrismaJson.McpServerAuthConfig | Prisma.NullableJsonNullValueInput
@@ -491,6 +510,7 @@ export type McpServerCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrder
+  instructions?: Prisma.SortOrder
   url?: Prisma.SortOrder
   transport?: Prisma.SortOrder
   authConfig?: Prisma.SortOrder
@@ -509,6 +529,7 @@ export type McpServerMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrder
+  instructions?: Prisma.SortOrder
   url?: Prisma.SortOrder
   transport?: Prisma.SortOrder
   permission?: Prisma.SortOrder
@@ -524,6 +545,7 @@ export type McpServerMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   name?: Prisma.SortOrder
   description?: Prisma.SortOrder
+  instructions?: Prisma.SortOrder
   url?: Prisma.SortOrder
   transport?: Prisma.SortOrder
   permission?: Prisma.SortOrder
@@ -618,6 +640,7 @@ export type McpServerCreateWithoutTeamInput = {
   id?: string
   name: string
   description?: string | null
+  instructions?: string | null
   url: string
   transport?: $Enums.McpTransport
   authConfig?:PrismaJson.McpServerAuthConfig | Prisma.NullableJsonNullValueInput
@@ -637,6 +660,7 @@ export type McpServerUncheckedCreateWithoutTeamInput = {
   id?: string
   name: string
   description?: string | null
+  instructions?: string | null
   url: string
   transport?: $Enums.McpTransport
   authConfig?:PrismaJson.McpServerAuthConfig | Prisma.NullableJsonNullValueInput
@@ -685,6 +709,7 @@ export type McpServerScalarWhereInput = {
   id?: Prisma.StringFilter<"McpServer"> | string
   name?: Prisma.StringFilter<"McpServer"> | string
   description?: Prisma.StringNullableFilter<"McpServer"> | string | null
+  instructions?: Prisma.StringNullableFilter<"McpServer"> | string | null
   url?: Prisma.StringFilter<"McpServer"> | string
   transport?: Prisma.EnumMcpTransportFilter<"McpServer"> | $Enums.McpTransport
   authConfig?: Prisma.JsonNullableFilter<"McpServer">
@@ -703,6 +728,7 @@ export type McpServerCreateWithoutAgentMcpServersInput = {
   id?: string
   name: string
   description?: string | null
+  instructions?: string | null
   url: string
   transport?: $Enums.McpTransport
   authConfig?:PrismaJson.McpServerAuthConfig | Prisma.NullableJsonNullValueInput
@@ -722,6 +748,7 @@ export type McpServerUncheckedCreateWithoutAgentMcpServersInput = {
   id?: string
   name: string
   description?: string | null
+  instructions?: string | null
   url: string
   transport?: $Enums.McpTransport
   authConfig?:PrismaJson.McpServerAuthConfig | Prisma.NullableJsonNullValueInput
@@ -757,6 +784,7 @@ export type McpServerUpdateWithoutAgentMcpServersInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  instructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   url?: Prisma.StringFieldUpdateOperationsInput | string
   transport?: Prisma.EnumMcpTransportFieldUpdateOperationsInput | $Enums.McpTransport
   authConfig?:PrismaJson.McpServerAuthConfig | Prisma.NullableJsonNullValueInput
@@ -776,6 +804,7 @@ export type McpServerUncheckedUpdateWithoutAgentMcpServersInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  instructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   url?: Prisma.StringFieldUpdateOperationsInput | string
   transport?: Prisma.EnumMcpTransportFieldUpdateOperationsInput | $Enums.McpTransport
   authConfig?:PrismaJson.McpServerAuthConfig | Prisma.NullableJsonNullValueInput
@@ -795,6 +824,7 @@ export type McpServerCreateWithoutCredentialInput = {
   id?: string
   name: string
   description?: string | null
+  instructions?: string | null
   url: string
   transport?: $Enums.McpTransport
   authConfig?:PrismaJson.McpServerAuthConfig | Prisma.NullableJsonNullValueInput
@@ -814,6 +844,7 @@ export type McpServerUncheckedCreateWithoutCredentialInput = {
   id?: string
   name: string
   description?: string | null
+  instructions?: string | null
   url: string
   transport?: $Enums.McpTransport
   authConfig?:PrismaJson.McpServerAuthConfig | Prisma.NullableJsonNullValueInput
@@ -849,6 +880,7 @@ export type McpServerUpdateWithoutCredentialInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  instructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   url?: Prisma.StringFieldUpdateOperationsInput | string
   transport?: Prisma.EnumMcpTransportFieldUpdateOperationsInput | $Enums.McpTransport
   authConfig?:PrismaJson.McpServerAuthConfig | Prisma.NullableJsonNullValueInput
@@ -868,6 +900,7 @@ export type McpServerUncheckedUpdateWithoutCredentialInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  instructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   url?: Prisma.StringFieldUpdateOperationsInput | string
   transport?: Prisma.EnumMcpTransportFieldUpdateOperationsInput | $Enums.McpTransport
   authConfig?:PrismaJson.McpServerAuthConfig | Prisma.NullableJsonNullValueInput
@@ -887,6 +920,7 @@ export type McpServerCreateManyTeamInput = {
   id?: string
   name: string
   description?: string | null
+  instructions?: string | null
   url: string
   transport?: $Enums.McpTransport
   authConfig?:PrismaJson.McpServerAuthConfig | Prisma.NullableJsonNullValueInput
@@ -904,6 +938,7 @@ export type McpServerUpdateWithoutTeamInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  instructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   url?: Prisma.StringFieldUpdateOperationsInput | string
   transport?: Prisma.EnumMcpTransportFieldUpdateOperationsInput | $Enums.McpTransport
   authConfig?:PrismaJson.McpServerAuthConfig | Prisma.NullableJsonNullValueInput
@@ -923,6 +958,7 @@ export type McpServerUncheckedUpdateWithoutTeamInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  instructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   url?: Prisma.StringFieldUpdateOperationsInput | string
   transport?: Prisma.EnumMcpTransportFieldUpdateOperationsInput | $Enums.McpTransport
   authConfig?:PrismaJson.McpServerAuthConfig | Prisma.NullableJsonNullValueInput
@@ -942,6 +978,7 @@ export type McpServerUncheckedUpdateManyWithoutTeamInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  instructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   url?: Prisma.StringFieldUpdateOperationsInput | string
   transport?: Prisma.EnumMcpTransportFieldUpdateOperationsInput | $Enums.McpTransport
   authConfig?:PrismaJson.McpServerAuthConfig | Prisma.NullableJsonNullValueInput
@@ -990,6 +1027,7 @@ export type McpServerSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   id?: boolean
   name?: boolean
   description?: boolean
+  instructions?: boolean
   url?: boolean
   transport?: boolean
   authConfig?: boolean
@@ -1012,6 +1050,7 @@ export type McpServerSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   id?: boolean
   name?: boolean
   description?: boolean
+  instructions?: boolean
   url?: boolean
   transport?: boolean
   authConfig?: boolean
@@ -1031,6 +1070,7 @@ export type McpServerSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   id?: boolean
   name?: boolean
   description?: boolean
+  instructions?: boolean
   url?: boolean
   transport?: boolean
   authConfig?: boolean
@@ -1050,6 +1090,7 @@ export type McpServerSelectScalar = {
   id?: boolean
   name?: boolean
   description?: boolean
+  instructions?: boolean
   url?: boolean
   transport?: boolean
   authConfig?: boolean
@@ -1064,7 +1105,7 @@ export type McpServerSelectScalar = {
   teamId?: boolean
 }
 
-export type McpServerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "description" | "url" | "transport" | "authConfig" | "config" | "permission" | "tools" | "status" | "lastError" | "lastConnectedAt" | "createdAt" | "updatedAt" | "teamId", ExtArgs["result"]["mcpServer"]>
+export type McpServerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "description" | "instructions" | "url" | "transport" | "authConfig" | "config" | "permission" | "tools" | "status" | "lastError" | "lastConnectedAt" | "createdAt" | "updatedAt" | "teamId", ExtArgs["result"]["mcpServer"]>
 export type McpServerInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
   credential?: boolean | Prisma.McpServer$credentialArgs<ExtArgs>
@@ -1089,6 +1130,7 @@ export type $McpServerPayload<ExtArgs extends runtime.Types.Extensions.InternalA
     id: string
     name: string
     description: string | null
+    instructions: string | null
     url: string
     transport: $Enums.McpTransport
     /**
@@ -1539,6 +1581,7 @@ export interface McpServerFieldRefs {
   readonly id: Prisma.FieldRef<"McpServer", 'String'>
   readonly name: Prisma.FieldRef<"McpServer", 'String'>
   readonly description: Prisma.FieldRef<"McpServer", 'String'>
+  readonly instructions: Prisma.FieldRef<"McpServer", 'String'>
   readonly url: Prisma.FieldRef<"McpServer", 'String'>
   readonly transport: Prisma.FieldRef<"McpServer", 'McpTransport'>
   readonly authConfig: Prisma.FieldRef<"McpServer", 'Json'>

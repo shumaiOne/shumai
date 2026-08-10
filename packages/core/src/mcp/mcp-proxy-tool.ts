@@ -14,11 +14,29 @@ import { formatSchema } from './mcp-tool-schema'
 
 type ProxyToolResult = AgentToolResult<Record<string, unknown>>
 
+/** Truncated instructions head baked into the proxy tool description (L1). */
+const INSTRUCTIONS_SNIPPET_LENGTH = 150
+/** Longer instructions preview appended to server listings (L2). */
+const INSTRUCTIONS_PREVIEW_LENGTH = 300
+
+/** Truncate at a word boundary (mirrors pi-mcp-adapter's truncateAtWord). */
+function truncateInstruction(text: string, target: number): string {
+  if (!text || text.length <= target) return text
+  const truncated = text.slice(0, target)
+  const lastSpace = truncated.lastIndexOf(' ')
+  if (lastSpace > target * 0.6) {
+    return `${truncated.slice(0, lastSpace)}...`
+  }
+  return `${truncated}...`
+}
+
 export interface ProxyServerInfo {
   id: string
   name: string
   toolCount: number
   status: string
+  /** Self-reported server usage instructions (empty when the server provides none). */
+  instructions?: string
 }
 
 export type ConnectionOutcome =
@@ -50,6 +68,8 @@ export interface McpProxyToolContext {
   startAuth(
     serverId: string,
   ): Promise<{ authorizationUrl?: string; alreadyAuthenticated?: boolean }>
+  /** Server-reported usage instructions (DB cache, works without a live connection). */
+  getInstructions(serverId: string): Promise<string | null>
 }
 
 /**
@@ -94,14 +114,14 @@ const proxyToolSchema = Type.Object(
         description: 'Arguments for the tool call: either a JSON object or a JSON-encoded string.',
       }),
     ),
-    connect: Type.Optional(
-      Type.String({
-        description: 'Server name to (re)connect and refresh its tool list. Returns the tool list.',
-      }),
-    ),
     describe: Type.Optional(
       Type.String({
         description: 'Tool name to show its full parameter schema.',
+      }),
+    ),
+    instructions: Type.Optional(
+      Type.String({
+        description: 'Server name to show its full usage instructions.',
       }),
     ),
     search: Type.Optional(
@@ -213,6 +233,8 @@ function notFoundResult(
 
 /**
  * Build the dynamic proxy tool description (server list + tool counts + usage).
+ * Servers with instructions surface a truncated head so the model sees the
+ * guidance without making a call; full text is available on demand.
  */
 export function buildProxyDescription(servers: ProxyServerInfo[]): string {
   const lines: string[] = []
@@ -233,13 +255,51 @@ export function buildProxyDescription(servers: ProxyServerInfo[]): string {
   lines.push('  - mcp({ search: "query" })         → search tools across servers')
   lines.push('  - mcp({ describe: "tool" })        → show one tool\'s parameter schema')
   lines.push('  - mcp({ server: "name", tool: "tool_name", args: {...} }) → call a tool')
-  lines.push('  - mcp({ server: "name", connect: "name" }) → (re)connect and refresh tools')
+  lines.push('  - mcp({ instructions: "name" })    → show full server usage instructions')
   lines.push('  - mcp({ action: "auth-start", server: "name" }) → start OAuth for a server')
   lines.push('')
+  const instructionLines: string[] = []
+  for (const s of servers) {
+    if (!s.instructions || s.instructions.trim() === '') continue
+    const snippet = truncateInstruction(
+      s.instructions.replace(/\s+/g, ' ').trim(),
+      INSTRUCTIONS_SNIPPET_LENGTH,
+    )
+    instructionLines.push(`  - ${s.name}: ${snippet}`)
+  }
+  if (instructionLines.length > 0) {
+    lines.push('Server instructions (truncated — full text via mcp({ instructions: "name" })):')
+    lines.push(...instructionLines)
+    lines.push('')
+  }
   lines.push(
     'Tool names are prefixed "{server}_{tool}" (dots replaced by underscores). You may pass either the prefixed or the original name. ' +
       'If a call fails with "needs auth", tell the user to connect the server in Settings → MCP.',
   )
+  return lines.join('\n')
+}
+
+/**
+ * Render a server's tool listing with the L2 instructions preview appended
+ * (mirrors pi-mcp-adapter's mcp({ server }) output). Shared by the `server`
+ * list mode and the `connect` mode.
+ */
+function renderServerListing(
+  serverName: string,
+  tools: ToolMetadata[],
+  instructions: string | null,
+): string {
+  const lines = [`${serverName} (${tools.length} tools):`, '']
+  for (const t of tools) {
+    lines.push(`- ${t.name}${t.description ? ` - ${t.description.slice(0, 60)}` : ''}`)
+  }
+  if (instructions && instructions.trim() !== '') {
+    const preview = truncateInstruction(instructions, INSTRUCTIONS_PREVIEW_LENGTH)
+    lines.push('', 'Server instructions:', preview)
+    if (preview !== instructions) {
+      lines.push(`Use mcp({ instructions: "${serverName}" }) for the full text.`)
+    }
+  }
   return lines.join('\n')
 }
 
@@ -258,7 +318,7 @@ export function buildProxyTool(ctx: McpProxyToolContext): AgentTool<typeof proxy
       const tool = params.tool
       const search = params.search
       const describe = params.describe
-      const connect = params.connect
+      const instructions = params.instructions
       const limit = params.limit ?? 12
       const offset = params.offset ?? 0
       const includeSchemas = params.includeSchemas !== false
@@ -322,34 +382,6 @@ export function buildProxyTool(ctx: McpProxyToolContext): AgentTool<typeof proxy
         }
       }
 
-      // 3. connect
-      if (connect) {
-        const serverId = ctx.serverIdByName.get(connect)
-        if (!serverId) {
-          return contentText(
-            `Server "${connect}" not found. Use mcp({ action: "status" }) to see available servers.`,
-          )
-        }
-        const outcome = await ctx.ensureConnected(serverId)
-        if (outcome.status === 'needs-auth') {
-          return contentText(
-            `Server "${connect}" requires authentication. Use mcp({ action: "auth-start", server: "${connect}" }) to start OAuth.`,
-          )
-        }
-        if (outcome.status === 'error') {
-          return contentText(`Failed to connect to "${connect}": ${outcome.message}`)
-        }
-        const tools = ctx.registry.getTools(serverId)
-        if (tools.length === 0) {
-          return contentText(`Server "${connect}" is connected but has no tools.`)
-        }
-        const lines = [`${connect} (${tools.length} tools):`, '']
-        for (const t of tools) {
-          lines.push(`- ${t.name}${t.description ? ` - ${t.description.slice(0, 60)}` : ''}`)
-        }
-        return contentText(lines.join('\n'))
-      }
-
       // 4. describe
       if (describe) {
         const resolved = ctx.registry.findTool(
@@ -366,6 +398,21 @@ export function buildProxyTool(ctx: McpProxyToolContext): AgentTool<typeof proxy
         let text = `${resolved.tool.name}\nServer: ${serverName}\n\n${resolved.tool.description || '(no description)'}\n\n`
         text += renderToolShape(resolved.tool)
         return contentText(text.trim())
+      }
+
+      // 4.5 instructions
+      if (instructions) {
+        const serverId = ctx.serverIdByName.get(instructions)
+        if (!serverId) {
+          return contentText(
+            `Server "${instructions}" not found. Use mcp({ action: "status" }) to see available servers.`,
+          )
+        }
+        const text = await ctx.getInstructions(serverId)
+        if (!text || text.trim() === '') {
+          return contentText(`Server "${instructions}" does not provide instructions.`)
+        }
+        return contentText(`${instructions} instructions:\n\n${text}`)
       }
 
       // 5. search
@@ -418,14 +465,11 @@ export function buildProxyTool(ctx: McpProxyToolContext): AgentTool<typeof proxy
         const tools = ctx.registry.getTools(serverId)
         if (tools.length === 0) {
           return contentText(
-            `Server "${server}" has no cached tools. Use mcp({ connect: "${server}" }) to connect and refresh.`,
+            `Server "${server}" has no cached tools yet. Call a tool on this server to connect automatically, or refresh it in Settings → MCP.`,
           )
         }
-        const lines = [`${server} (${tools.length} tools):`, '']
-        for (const t of tools) {
-          lines.push(`- ${t.name}${t.description ? ` - ${t.description.slice(0, 60)}` : ''}`)
-        }
-        return contentText(lines.join('\n'))
+        const instructionsText = await ctx.getInstructions(serverId)
+        return contentText(renderServerListing(server, tools, instructionsText))
       }
 
       // 7. default: status

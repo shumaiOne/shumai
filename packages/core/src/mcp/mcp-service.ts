@@ -47,6 +47,7 @@ export interface McpServerRecord {
   id: string
   name: string
   description: string | null
+  instructions: string | null
   url: string
   transport: 'streamable_http' | 'sse'
   authConfig: PrismaJson.McpServerAuthConfig | null
@@ -218,6 +219,7 @@ export class McpService {
     id: string
     name: string
     description: string | null
+    instructions: string | null
     url: string
     transport: 'streamable_http' | 'sse'
     authConfig: unknown
@@ -236,6 +238,7 @@ export class McpService {
       id: server.id,
       name: server.name,
       description: server.description,
+      instructions: server.instructions,
       url: server.url,
       transport: server.transport,
       authConfig: (server.authConfig ?? null) as PrismaJson.McpServerAuthConfig | null,
@@ -258,6 +261,7 @@ export class McpService {
       id: server.id,
       name: server.name,
       description: server.description ?? undefined,
+      instructions: server.instructions ?? undefined,
       url: server.url,
       transport: server.transport,
       authType: server.authConfig?.type ?? 'auto',
@@ -295,6 +299,7 @@ export class McpService {
       lastConnectedAt?: Date
       name?: string
       description?: string | null
+      instructions?: string | null
     },
   ): Promise<void> {
     await prisma.mcpServer.update({
@@ -306,6 +311,7 @@ export class McpService {
         ...(extra?.lastConnectedAt !== undefined ? { lastConnectedAt: extra.lastConnectedAt } : {}),
         ...(extra?.name !== undefined ? { name: extra.name } : {}),
         ...(extra?.description !== undefined ? { description: extra.description } : {}),
+        ...(extra?.instructions !== undefined ? { instructions: extra.instructions } : {}),
       },
     })
   }
@@ -323,55 +329,80 @@ export class McpService {
 
   /**
    * Persist the server's self-reported metadata (name = title ?? name, plus
-   * description) captured from getServerVersion() after a successful connect.
+   * description and instructions) captured after a successful connect.
+   * Description comes from getServerVersion(); instructions come from
+   * getInstructions() (a sibling field of the initialize/discover result,
+   * not part of Implementation).
    */
   private serverMetadata(
     server: McpServerRecord,
-    connection: { serverVersion?: unknown },
+    connection: { serverVersion?: unknown; instructions?: string },
   ): {
     name?: string
     description?: string | null
+    instructions?: string | null
   } {
+    const metadata: {
+      name?: string
+      description?: string | null
+      instructions?: string | null
+    } = {}
     const impl = connection.serverVersion as
       | { name?: string; title?: string; description?: string }
       | undefined
-    if (!impl || typeof impl !== 'object') return {}
-    const reportedName = impl.title ?? impl.name
-    if (typeof reportedName !== 'string' || reportedName.trim() === '') return {}
-    const name = reportedName.trim()
-    const description = typeof impl.description === 'string' ? impl.description : null
-    return { name, description }
+    if (impl && typeof impl === 'object') {
+      const reportedName = impl.title ?? impl.name
+      if (typeof reportedName === 'string' && reportedName.trim() !== '') {
+        metadata.name = reportedName.trim()
+        metadata.description = typeof impl.description === 'string' ? impl.description : null
+      }
+    }
+    if (typeof connection.instructions === 'string') {
+      metadata.instructions = connection.instructions
+    } else {
+      // Sync-on-connect: a server that stops reporting instructions clears
+      // the cached value (mirrors pi-mcp-adapter's set/delete behavior).
+      metadata.instructions = null
+    }
+    return metadata
   }
 
   /**
-   * Connect (or reuse the connection) and persist the discovered tool list.
-   * Returns the tool list (fresh or cached). Throws on connection failure.
+   * Refresh a server: force a fresh connection (closing any existing one),
+   * then re-discover and persist tools, instructions, name/description and
+   * status. Returns the updated server record. Throws on connection failure
+   * (after marking the server as failed). This is the single discovery
+   * entry point: the refresh endpoint, Test Connection, and post-OAuth
+   * completion all route through it.
    */
-  async discoverTools(serverId: string): Promise<PrismaJson.McpToolInfo[]> {
+  async refreshServer(serverId: string): Promise<McpServerInfo> {
     const server = await this.getServerRecord(serverId)
     if (!server) throw new Error('MCP server not found')
+    await this.manager.close(serverId)
 
     try {
       const connection = await this.manager.connect(serverId, this.toDefinition(server))
       if (connection.status === 'needs-auth') {
         await this.updateStatus(serverId, 'needs_auth', null)
-        return (server.tools ?? []) as PrismaJson.McpToolInfo[]
+      } else {
+        const tools = this.toStoredTools(connection.tools)
+        const metadata = this.serverMetadata(server, connection)
+        await this.updateStatus(serverId, 'connected', null, {
+          tools,
+          lastConnectedAt: new Date(),
+          ...metadata,
+        })
       }
-
-      const tools = this.toStoredTools(connection.tools)
-      const metadata = this.serverMetadata(server, connection)
-      await this.updateStatus(serverId, 'connected', null, {
-        tools,
-        lastConnectedAt: new Date(),
-        ...metadata,
-      })
-      return tools
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      logger.warn({ serverId, error }, 'MCP tool discovery failed')
+      logger.warn({ serverId, error }, 'MCP server refresh failed')
       await this.updateStatus(serverId, 'failed', message)
       throw error
     }
+
+    const record = await this.getServerRecord(serverId)
+    if (!record) throw new Error('MCP server not found')
+    return this.toServerInfo(record)
   }
 
   /** Lazy connect used by the proxy/direct tools; never throws. */
@@ -408,6 +439,20 @@ export class McpService {
       await this.updateStatus(serverId, 'failed', message)
       return { status: 'error', message }
     }
+  }
+
+  /**
+   * Server-reported usage instructions. Prefers the persisted value (the
+   * cache, so it works without a live connection), falling back to the live
+   * connection's getInstructions() for a just-connected server.
+   */
+  private async getServerInstructions(serverId: string): Promise<string | null> {
+    const server = await this.getServerRecord(serverId)
+    if (!server) return null
+    if (server.instructions && server.instructions.trim() !== '') return server.instructions
+    const connection = this.manager.getConnection(serverId)
+    const live = connection?.client.getInstructions?.()
+    return typeof live === 'string' && live.trim() !== '' ? live : null
   }
 
   // --------------------------------------------------------------------------
@@ -661,11 +706,11 @@ export class McpService {
       await mcpDbStore.clearPendingAuth(serverId)
       await mcpDbStore.clearDiscoverySnapshot(serverId)
       try {
-        await this.discoverTools(serverId)
+        await this.refreshServer(serverId)
       } catch (err) {
         logger.warn(
           { serverId, err },
-          'Post-auth tool discovery failed, setting status to connected',
+          'Post-auth server refresh failed, setting status to connected',
         )
         await this.updateStatus(serverId, 'connected', null)
       }
@@ -776,6 +821,7 @@ export class McpService {
         return {
           id: s.id,
           name: s.name,
+          instructions: s.instructions ?? null,
           url: s.url,
           transport: s.transport,
           authConfig: (s.authConfig ?? {}) as PrismaJson.McpServerAuthConfig,
@@ -795,6 +841,9 @@ export class McpService {
         name: s.name,
         toolCount: s.tools.length,
         status: s.status,
+        ...(s.instructions !== null && s.instructions !== undefined
+          ? { instructions: s.instructions }
+          : {}),
       }
     })
 
@@ -823,6 +872,7 @@ export class McpService {
         this.callMcpTool(serverId, toolName, args, { teamId, userId }),
       authStatus: (serverId) => this.getAuthStatus(serverId),
       startAuth: (serverId) => this.startAuth(serverId),
+      getInstructions: (serverId) => this.getServerInstructions(serverId),
     }
 
     const tools: AgentTool[] = [buildProxyTool(ctx)]
@@ -843,13 +893,13 @@ export class McpService {
     return tools
   }
 
-  /** Test a server by connecting and listing tools (UI validation). */
+  /** Test a server by refreshing it and reporting the tool count (UI validation). */
   async testServer(
     serverId: string,
   ): Promise<{ ok: boolean; toolCount: number; message?: string }> {
     try {
-      const tools = await this.discoverTools(serverId)
-      return { ok: true, toolCount: tools.length }
+      const server = await this.refreshServer(serverId)
+      return { ok: true, toolCount: server.toolCount }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       return { ok: false, toolCount: 0, message }

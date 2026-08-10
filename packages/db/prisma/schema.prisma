@@ -777,6 +777,7 @@ model McpServer {
   id               String          @id @default(ulid())
   name             String
   description      String?
+  instructions     String?
   url              String
   transport        McpTransport    @default(streamable_http)
   /// [McpServerAuthConfig]

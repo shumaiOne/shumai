@@ -37,6 +37,8 @@ export interface ServerConnection {
   status: 'connected' | 'needs-auth'
   /** Self-reported server name/title/version/description (from getServerVersion). */
   serverVersion?: Implementation
+  /** Self-reported server usage instructions (from getInstructions). */
+  instructions?: string
   lastUsedAt: number
   inFlight: number
 }
@@ -184,6 +186,7 @@ export class McpServerManager {
           tools,
           status: 'connected',
           serverVersion: result.client.getServerVersion(),
+          instructions: result.client.getInstructions(),
           lastUsedAt: Date.now(),
           inFlight: 0,
         }
