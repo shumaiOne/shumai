@@ -161,7 +161,8 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
       return await res.json()
     },
     onSuccess: () => {
-      toast.success(m.mcp_test_success())
+      // No toast on success: the button reverting to its idle state is the
+      // confirmation. The tool list is refetched and the toggles re-enable.
       refetchTools()
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'mcp', 'servers'] })
     },
@@ -460,10 +461,11 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
                       {m.mcp_tools()}
                     </Label>
                     <Button
+                      type="button"
                       variant="outline"
                       size="sm"
                       onClick={() => refreshMutation.mutate()}
-                      disabled={refreshMutation.isPending}
+                      disabled={refreshMutation.isPending || isToolsLoading}
                       className="gap-1.5 text-xs"
                     >
                       <RefreshCw
@@ -549,6 +551,7 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
                               <div className="flex items-center gap-2 shrink-0">
                                 <Switch
                                   checked={enabled}
+                                  disabled={refreshMutation.isPending || isToolsLoading}
                                   onCheckedChange={(checked) =>
                                     toggleToolEnabled(tool.name, checked)
                                   }
