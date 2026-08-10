@@ -20,7 +20,13 @@ describe('McpOauthProvider SEP-2352 issuer stamping', () => {
   let serverId: string
 
   const makeProvider = () =>
-    new McpOauthProvider(serverId, SERVER_URL, {}, { onRedirect: async () => {} }, store)
+    new McpOauthProvider(
+      serverId,
+      SERVER_URL,
+      { redirectUri: 'https://shumai.ai/api/mcp/oauth/callback' },
+      { onRedirect: async () => {} },
+      store,
+    )
 
   beforeAll(async () => {
     store = new McpDbStore()
