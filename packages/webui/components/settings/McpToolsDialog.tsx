@@ -164,7 +164,7 @@ export const McpToolsDialog: React.FC<McpToolsDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <div className="flex items-center justify-between pr-6">
             <DialogTitle className="flex items-center gap-2 text-xl font-bold">
@@ -199,7 +199,7 @@ export const McpToolsDialog: React.FC<McpToolsDialogProps> = ({
         </div>
 
         {/* Tool list */}
-        <ScrollArea className="flex-1 pr-3 -mr-3">
+        <ScrollArea className="flex-1 min-h-0 pr-3">
           {isToolsLoading ? (
             <div className="flex justify-center py-10">
               <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -209,7 +209,7 @@ export const McpToolsDialog: React.FC<McpToolsDialogProps> = ({
               {m.no_tools_found()}
             </div>
           ) : (
-            <div className="space-y-3 py-1">
+            <div className="space-y-3 py-1 pr-1">
               {filteredTools.map((tool) => {
                 const enabled = isToolEnabled(tool.name)
                 const isExpanded = !!expandedTools[tool.name]
@@ -229,21 +229,21 @@ export const McpToolsDialog: React.FC<McpToolsDialogProps> = ({
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div
-                        className="flex items-start gap-2 flex-1 cursor-pointer"
+                        className="flex items-start gap-2 flex-1 min-w-0 cursor-pointer"
                         onClick={() => hasProperties && toggleExpand(tool.name)}
                       >
                         {hasProperties ? (
                           isExpanded ? (
-                            <ChevronDown className="w-4 h-4 text-muted-foreground mt-0.5" />
+                            <ChevronDown className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
                           ) : (
-                            <ChevronRight className="w-4 h-4 text-muted-foreground mt-0.5" />
+                            <ChevronRight className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
                           )
                         ) : (
-                          <div className="w-4 h-4" />
+                          <div className="w-4 h-4 shrink-0" />
                         )}
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs font-bold text-foreground">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono text-xs font-bold text-foreground break-all">
                               {tool.name}
                             </span>
                             {tool.title && (
@@ -253,14 +253,14 @@ export const McpToolsDialog: React.FC<McpToolsDialogProps> = ({
                             )}
                           </div>
                           {tool.description && (
-                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                            <p className="text-xs text-muted-foreground mt-1 break-words line-clamp-3">
                               {tool.description}
                             </p>
                           )}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 shrink-0">
                         <Switch
                           checked={enabled}
                           onCheckedChange={(checked) => toggleToolEnabled(tool.name, checked)}
@@ -280,10 +280,12 @@ export const McpToolsDialog: React.FC<McpToolsDialogProps> = ({
                             return (
                               <div
                                 key={propName}
-                                className="flex items-baseline justify-between gap-2 p-1.5 bg-muted/20 rounded text-xs"
+                                className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 sm:gap-2 p-2 bg-muted/20 rounded text-xs min-w-0"
                               >
-                                <div className="flex items-center gap-1.5">
-                                  <span className="font-mono font-semibold">{propName}</span>
+                                <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                  <span className="font-mono font-semibold break-all">
+                                    {propName}
+                                  </span>
                                   {isRequired && (
                                     <span className="text-[10px] text-red-500 font-bold">*</span>
                                   )}
@@ -292,7 +294,7 @@ export const McpToolsDialog: React.FC<McpToolsDialogProps> = ({
                                   </Badge>
                                 </div>
                                 {propDef.description && (
-                                  <span className="text-[11px] text-muted-foreground truncate max-w-[280px]">
+                                  <span className="text-[11px] text-muted-foreground break-words sm:max-w-[320px]">
                                     {propDef.description}
                                   </span>
                                 )}
