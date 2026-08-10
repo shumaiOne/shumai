@@ -2,7 +2,6 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { McpService } from './mcp-service'
-import { mcpToolRegistry } from './mcp-tool-registry'
 import {
   startTestMcpServer,
   standardTestTools,
@@ -31,6 +30,42 @@ async function seedAgentAndUser(teamId: string, agentName: string) {
   return agent
 }
 
+const TAVILY_TOOLS: TestMcpToolDef[] = [
+  {
+    name: 'tavily_search',
+    description: 'Search the web for the latest information',
+    handler: async () => 'tavily-search-result',
+  },
+  {
+    name: 'tavily_research',
+    description: 'Run deep multi-step research',
+    handler: async () => 'tavily-research-result',
+  },
+]
+
+const AIRTABLE_TOOLS: TestMcpToolDef[] = [
+  {
+    name: 'search_records',
+    description: 'Search Airtable records',
+    handler: async () => 'AIRTABLE-SECRET-DATA',
+  },
+  {
+    name: 'search_bases',
+    description: 'Search Airtable bases',
+    handler: async () => 'airtable-bases',
+  },
+  {
+    name: 'search_candidate_linked_records',
+    description: 'Search candidate linked records',
+    handler: async () => 'airtable-candidates',
+  },
+]
+
+type ProxyExecute = (
+  id: string,
+  params: unknown,
+) => Promise<{ content: Array<{ type: string; text?: string }> }>
+
 describe('McpService', () => {
   setupTestDbHooks()
 
@@ -48,6 +83,26 @@ describe('McpService', () => {
     await srv.stop()
     await service.closeAllConnections()
   })
+
+  /** Seed an agent with one assigned server (tavily) and one discovered but unassigned server (airtable). */
+  async function seedAgentWithUnassignedServer() {
+    const agent = await seedAgentAndUser(teamId, 'Leak Guard Agent')
+    const tavilySrv = await startTestMcpServer({
+      tools: TAVILY_TOOLS,
+      serverInfo: { name: 'tavily-mcp' },
+    })
+    const airtableSrv = await startTestMcpServer({
+      tools: AIRTABLE_TOOLS,
+      serverInfo: { name: 'airtable-mcp-server' },
+    })
+    const tavily = await service.createServer(teamId, { url: tavilySrv.url })
+    const airtable = await service.createServer(teamId, { url: airtableSrv.url })
+    await service.discoverTools(tavily.id)
+    await service.discoverTools(airtable.id)
+    await prisma.agentMcpServer.create({ data: { agentId: agent.id, mcpServerId: tavily.id } })
+    const tools = await service.buildAgentTools(agent.id, teamId)
+    return { agent, proxy: tools[0], tavily, airtable, tavilySrv, airtableSrv }
+  }
 
   // --------------------------------------------------------------------------
   // CRUD
@@ -113,10 +168,6 @@ describe('McpService', () => {
     expect(updated?.status).toBe('connected')
     expect(updated?.toolCount).toBe(3)
     expect(updated?.lastError).toBeUndefined()
-
-    // The registry is warmed for the proxy tool.
-    const metadata = mcpToolRegistry.getTools(server.id)
-    expect(metadata.map((m) => m.originalName)).toEqual(expect.arrayContaining(['echo', 'add']))
   })
 
   it('captures the server-reported name (title preferred) and description on discovery', async () => {
@@ -138,9 +189,13 @@ describe('McpService', () => {
       expect(updated?.name).toBe('Meta Server') // title wins over name
       expect(updated?.description).toBe('A server with rich metadata')
 
-      // Registry prefix uses the display name too (direct-tool prefixes).
-      const metadata = mcpToolRegistry.getTools(server.id)
-      expect(metadata.map((m) => m.name)).toContain('Meta_Server_echo')
+      // The display name (title) flows into tool-name prefixes used by the
+      // proxy registry, which is warmed from the persisted DB cache.
+      const agent = await seedAgentAndUser(teamId, 'Meta Name Agent')
+      await prisma.agentMcpServer.create({ data: { agentId: agent.id, mcpServerId: server.id } })
+      const agentTools = await service.buildAgentTools(agent.id, teamId)
+      const search = await (agentTools[0].execute as ProxyExecute)('meta-1', { search: 'echo' })
+      expect(JSON.stringify(search.content)).toContain('Meta_Server_echo')
     } finally {
       await metaSrv.stop()
     }
@@ -226,7 +281,6 @@ describe('McpService', () => {
     expect(updated?.transport).toBe('sse')
     expect(updated?.toolCount).toBe(0)
     expect(updated?.status).toBe('not_connected')
-    expect(mcpToolRegistry.getTools(server.id)).toEqual([])
     expect(service.getConnectionCount(server.id)).toBe(0)
   })
 
@@ -342,6 +396,111 @@ describe('McpService', () => {
       expect(tools.length).toBe(1)
       expect(tools[0].description).toContain('assigned-srv')
       expect(tools[0].description).not.toContain('unassigned-srv')
+    } finally {
+      await assignedSrv.stop()
+      await unassignedSrv.stop()
+    }
+  })
+
+  it('does not leak unassigned server tools in "Did you mean" suggestions', async () => {
+    const { proxy, tavilySrv, airtableSrv } = await seedAgentWithUnassignedServer()
+    try {
+      // The agent only has tavily assigned. Asking for a tool that does not
+      // exist on tavily must not surface airtable's tool names as suggestions.
+      const result = await (proxy.execute as ProxyExecute)('leak-1', {
+        server: 'tavily-mcp',
+        tool: 'search',
+      })
+      const text = JSON.stringify(result.content)
+      expect(text).toContain('Did you mean')
+      expect(text).not.toContain('airtable')
+      expect(text).not.toContain('search_records')
+    } finally {
+      await tavilySrv.stop()
+      await airtableSrv.stop()
+    }
+  })
+
+  it('does not resolve, search or describe tools of unassigned servers', async () => {
+    const { proxy, tavilySrv, airtableSrv } = await seedAgentWithUnassignedServer()
+    try {
+      const execute = proxy.execute as ProxyExecute
+
+      // 1. Direct tool call with the unassigned server's prefixed tool name
+      //    (no server param) must not execute airtable's handler.
+      const call = await execute('leak-2', { tool: 'airtable_mcp_server_search_records' })
+      expect(JSON.stringify(call.content)).not.toContain('AIRTABLE-SECRET-DATA')
+
+      // 2. Search must not surface unassigned server tools.
+      const search = await execute('leak-3', { search: 'records' })
+      expect(JSON.stringify(search.content)).not.toContain('airtable')
+
+      // 3. Describe must not leak unassigned server tool schemas (the
+      //    not-found reply may echo the tool name the model passed, but never
+      //    its description or parameter schema).
+      const describe = await execute('leak-4', { describe: 'airtable_mcp_server_search_records' })
+      const describeText = JSON.stringify(describe.content)
+      expect(describeText).toContain('not found')
+      expect(describeText).not.toContain('Search Airtable records')
+      expect(describeText).not.toContain('Parameters:')
+    } finally {
+      await tavilySrv.stop()
+      await airtableSrv.stop()
+    }
+  })
+
+  it('drops unassigned servers from a rebuilt agent tool set', async () => {
+    const { agent, airtable, tavilySrv, airtableSrv } = await seedAgentWithUnassignedServer()
+    try {
+      // Assign airtable, then unassign it — a rebuilt tool set must forget it.
+      await prisma.agentMcpServer.create({ data: { agentId: agent.id, mcpServerId: airtable.id } })
+      let tools = await service.buildAgentTools(agent.id, teamId)
+      expect(JSON.stringify(tools[0].description)).toContain('airtable-mcp-server')
+
+      await prisma.agentMcpServer.deleteMany({
+        where: { agentId: agent.id, mcpServerId: airtable.id },
+      })
+      tools = await service.buildAgentTools(agent.id, teamId)
+      const search = await (tools[0].execute as ProxyExecute)('leak-5', { search: 'records' })
+      expect(JSON.stringify(search.content)).not.toContain('airtable')
+
+      const call = await (tools[0].execute as ProxyExecute)('leak-6', {
+        tool: 'airtable_mcp_server_search_records',
+      })
+      expect(JSON.stringify(call.content)).not.toContain('AIRTABLE-SECRET-DATA')
+    } finally {
+      await tavilySrv.stop()
+      await airtableSrv.stop()
+    }
+  })
+
+  it('registers direct tools only for assigned servers', async () => {
+    const agent = await seedAgentAndUser(teamId, 'Direct Assigned Only Agent')
+    const assignedSrv = await startTestMcpServer({
+      tools: TAVILY_TOOLS,
+      serverInfo: { name: 'tavily-mcp' },
+    })
+    const unassignedSrv = await startTestMcpServer({
+      tools: AIRTABLE_TOOLS,
+      serverInfo: { name: 'airtable-mcp-server' },
+    })
+    try {
+      const assigned = await service.createServer(teamId, {
+        url: assignedSrv.url,
+        config: { directTools: true },
+      })
+      const unassigned = await service.createServer(teamId, {
+        url: unassignedSrv.url,
+        config: { directTools: true },
+      })
+      await service.discoverTools(assigned.id)
+      await service.discoverTools(unassigned.id)
+      await prisma.agentMcpServer.create({ data: { agentId: agent.id, mcpServerId: assigned.id } })
+
+      const tools = await service.buildAgentTools(agent.id, teamId)
+      const names = tools.map((t) => t.name)
+      expect(names).toContain('tavily_mcp_tavily_search')
+      expect(names).not.toContain('airtable_mcp_server_search_records')
     } finally {
       await assignedSrv.stop()
       await unassignedSrv.stop()

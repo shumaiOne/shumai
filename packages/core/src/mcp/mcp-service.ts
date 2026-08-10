@@ -19,7 +19,7 @@ import { McpOauthProvider, type McpOauthConfig } from './mcp-oauth-provider'
 import { buildProxyTool, transformMcpContent, type McpProxyToolContext } from './mcp-proxy-tool'
 import {
   formatToolName,
-  mcpToolRegistry,
+  McpToolRegistry,
   sanitizeServerPrefix,
   type ToolMetadata,
 } from './mcp-tool-registry'
@@ -164,7 +164,6 @@ export class McpService {
 
     if (invalidateAll) {
       await this.manager.close(id)
-      mcpToolRegistry.clear(id)
     }
 
     const record = await this.getServerRecord(id)
@@ -186,7 +185,6 @@ export class McpService {
 
   async deleteServer(id: string): Promise<void> {
     await this.manager.close(id)
-    mcpToolRegistry.clear(id)
     const server = await prisma.mcpServer.findUnique({ where: { id } })
     if (!server) return
     await prisma.mcpServer.delete({ where: { id } })
@@ -362,8 +360,6 @@ export class McpService {
 
       const tools = this.toStoredTools(connection.tools)
       const metadata = this.serverMetadata(server, connection)
-      const displayName = metadata.name ?? server.name
-      mcpToolRegistry.setTools(serverId, displayName, connection.tools)
       await this.updateStatus(serverId, 'connected', null, {
         tools,
         lastConnectedAt: new Date(),
@@ -381,6 +377,7 @@ export class McpService {
   /** Lazy connect used by the proxy/direct tools; never throws. */
   private async ensureConnected(
     serverId: string,
+    registry?: McpToolRegistry,
   ): Promise<
     { status: 'connected' } | { status: 'needs-auth' } | { status: 'error'; message: string }
   > {
@@ -399,7 +396,7 @@ export class McpService {
       const tools = this.toStoredTools(connection.tools)
       const metadata = this.serverMetadata(server, connection)
       const displayName = metadata.name ?? server.name
-      mcpToolRegistry.setTools(serverId, displayName, connection.tools)
+      registry?.setTools(serverId, displayName, connection.tools)
       await this.updateStatus(serverId, 'connected', null, {
         tools,
         lastConnectedAt: new Date(),
@@ -487,19 +484,6 @@ export class McpService {
     const denied = await this.checkPermission(server, ctx)
     if (denied) {
       return { ok: false, content: [{ type: 'text', text: denied }] }
-    }
-
-    // Warm the registry from the DB cache when not yet loaded in-process.
-    if (mcpToolRegistry.getTools(serverId).length === 0 && Array.isArray(server.tools)) {
-      mcpToolRegistry.setTools(
-        serverId,
-        server.name,
-        (server.tools as PrismaJson.McpToolInfo[]).map((t) => ({
-          name: t.name,
-          description: t.description ?? '',
-          ...(t.inputSchema !== undefined ? { inputSchema: t.inputSchema } : {}),
-        })),
-      )
     }
 
     const outcome = await this.ensureConnected(serverId)
@@ -766,38 +750,46 @@ export class McpService {
       where: { agentId },
       include: { mcpServer: true },
     })
+    if (assignments.length === 0) return []
+
+    // Per-agent tool registry: built fresh for this agent from the persisted
+    // discovery cache (McpServer.tools). It only ever contains the agent's
+    // assigned servers, so unassigned/disabled servers can neither be searched
+    // nor called — no global mutable state to leak through.
+    const registry = new McpToolRegistry()
 
     const servers = assignments
       .map((a) => a.mcpServer)
-      .map((s) => ({
-        id: s.id,
-        name: s.name,
-        url: s.url,
-        transport: s.transport,
-        authConfig: (s.authConfig ?? {}) as PrismaJson.McpServerAuthConfig,
-        config: (s.config ?? {}) as PrismaJson.McpServerConfig,
-        tools: (s.tools ?? []) as PrismaJson.McpToolInfo[],
-        status: s.status,
-      }))
-
-    if (servers.length === 0) return []
+      .map((s) => {
+        const storedTools = (s.tools ?? []) as PrismaJson.McpToolInfo[]
+        if (storedTools.length > 0) {
+          registry.setTools(
+            s.id,
+            s.name,
+            storedTools.map((t) => ({
+              name: t.name,
+              description: t.description ?? '',
+              ...(t.inputSchema !== undefined ? { inputSchema: t.inputSchema } : {}),
+            })),
+          )
+        }
+        return {
+          id: s.id,
+          name: s.name,
+          url: s.url,
+          transport: s.transport,
+          authConfig: (s.authConfig ?? {}) as PrismaJson.McpServerAuthConfig,
+          config: (s.config ?? {}) as PrismaJson.McpServerConfig,
+          tools: storedTools,
+          status: s.status,
+        }
+      })
 
     const serverNameById = new Map<string, string>()
     const serverIdByName = new Map<string, string>()
     const proxyServers = servers.map((s) => {
       serverNameById.set(s.id, s.name)
       serverIdByName.set(s.name, s.id)
-      if (mcpToolRegistry.getTools(s.id).length === 0 && s.tools.length > 0) {
-        mcpToolRegistry.setTools(
-          s.id,
-          s.name,
-          s.tools.map((t) => ({
-            name: t.name,
-            description: t.description ?? '',
-            ...(t.inputSchema !== undefined ? { inputSchema: t.inputSchema } : {}),
-          })),
-        )
-      }
       return {
         id: s.id,
         name: s.name,
@@ -812,7 +804,7 @@ export class McpService {
       servers: proxyServers,
       serverNameById,
       serverIdByName,
-      registry: mcpToolRegistry,
+      registry,
       resolveServerForTool: (toolName) => {
         // Longest {server}_ prefix match (dots/hyphens sanitized like the registry).
         let best: string | undefined
@@ -826,7 +818,7 @@ export class McpService {
         }
         return best
       },
-      ensureConnected: (serverId) => this.ensureConnected(serverId),
+      ensureConnected: (serverId) => this.ensureConnected(serverId, registry),
       callTool: (serverId, toolName, args) =>
         this.callMcpTool(serverId, toolName, args, { teamId, userId }),
       authStatus: (serverId) => this.getAuthStatus(serverId),
@@ -837,7 +829,7 @@ export class McpService {
 
     for (const server of servers) {
       if (server.config?.directTools !== true) continue
-      const metadata: ToolMetadata[] = mcpToolRegistry.getTools(server.id)
+      const metadata: ToolMetadata[] = registry.getTools(server.id)
       tools.push(
         ...buildDirectTools(metadata, server.config, {
           serverId: server.id,
@@ -872,7 +864,6 @@ export class McpService {
   /** Close all in-process MCP connections (used by tests/shutdown). */
   async closeAllConnections(): Promise<void> {
     await this.manager.closeAll()
-    mcpToolRegistry.clearAll()
   }
 
   /** Number of live in-process connections (used by tests). */

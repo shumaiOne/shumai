@@ -1,8 +1,11 @@
 /**
  * MCP tool registry — in-memory tool metadata + search
  *
- * Per-process registry of discovered tools keyed by server id. Mirrors
- * pi-mcp-adapter's ToolMetadata + search-ranking.ts.
+ * Per-agent registry of discovered tool metadata keyed by server id, created
+ * fresh by `McpService.buildAgentTools` and warmed from the persisted DB
+ * cache (`McpServer.tools`). Scoping discovery to the agent's assigned
+ * servers means unassigned/disabled servers can never be searched, suggested,
+ * or called. (Adapted from pi-mcp-adapter's ToolMetadata + search-ranking.ts.)
  */
 
 import type { McpTool } from './mcp-server-manager'
@@ -218,5 +221,3 @@ export class McpToolRegistry {
     return this.searchTools(name, undefined, serverNames, limit, 0).items.map((m) => m.tool.name)
   }
 }
-
-export const mcpToolRegistry = new McpToolRegistry()
