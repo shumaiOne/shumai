@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const mcpServerAuthTypeSchema = z.enum(['none', 'bearer', 'oauth'])
+export const mcpServerAuthTypeSchema = z.enum(['auto', 'none', 'bearer', 'oauth'])
 export type McpServerAuthType = z.infer<typeof mcpServerAuthTypeSchema>
 
 export const mcpTransportSchema = z.enum(['streamable_http', 'sse'])
@@ -83,6 +83,7 @@ export const mcpServerInfoSchema = z.object({
   url: z.string(),
   transport: mcpTransportSchema,
   authType: mcpServerAuthTypeSchema,
+  config: mcpServerConfigSchema.optional(),
   enabled: z.boolean(),
   permission: mcpServerPermissionSchema,
   status: z.string(),

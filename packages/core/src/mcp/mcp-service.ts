@@ -91,14 +91,13 @@ export class McpService {
   // --------------------------------------------------------------------------
 
   async createServer(teamId: string, req: CreateMcpServerRequest): Promise<McpServerInfo> {
-    const authType = req.authConfig?.type ?? 'none'
     const server = await prisma.mcpServer.create({
       data: {
         name: req.name,
         url: req.url,
         teamId,
         transport: req.transport ?? 'streamable_http',
-        authConfig: (req.authConfig ?? { type: authType }) as PrismaJson.McpServerAuthConfig,
+        authConfig: (req.authConfig ?? {}) as PrismaJson.McpServerAuthConfig,
         config: (req.config ?? {}) as PrismaJson.McpServerConfig,
         enabled: req.enabled ?? true,
         permission: req.permission ?? 'reviewer',
@@ -243,7 +242,8 @@ export class McpService {
       name: server.name,
       url: server.url,
       transport: server.transport,
-      authType: server.authConfig?.type ?? 'none',
+      authType: server.authConfig?.type ?? 'auto',
+      config: server.config ?? undefined,
       enabled: server.enabled,
       permission: server.permission,
       status: server.status,
@@ -630,6 +630,12 @@ export class McpService {
       }
       await mcpDbStore.clearPendingAuth(serverId)
       await mcpDbStore.clearDiscoverySnapshot(serverId)
+      try {
+        await this.discoverTools(serverId)
+      } catch (err) {
+        logger.warn({ serverId, err }, 'Post-auth tool discovery failed, setting status to connected')
+        await this.updateStatus(serverId, 'connected', null)
+      }
       return 'authenticated'
     } finally {
       provider.deactivate()

@@ -18,7 +18,6 @@
 // cannot be renamed to camelCase.
 
 import {
-  UnauthorizedError,
   type AddClientAuthentication,
   type OAuthClientProvider,
   type OAuthClientInformationMixed,
@@ -402,9 +401,12 @@ export class McpOauthProvider implements OAuthClientProvider {
       throw new Error('state is not used for client_credentials flow')
     }
     this.throwIfInactive()
-    const state = await this.store.getOauthState(this.serverId)
+    let state = await this.store.getOauthState(this.serverId)
     if (!state) {
-      throw new UnauthorizedError(`Re-authentication required for MCP server`)
+      state = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('')
+      await this.store.updateOauthState(this.serverId, state, this.serverUrl)
     }
     return state
   }
