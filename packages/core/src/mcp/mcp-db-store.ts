@@ -297,9 +297,15 @@ export class McpDbStore {
       if (!server) throw new Error(`MCP server ${serverId} not found`)
       await this.ensureRow(serverId, server.url)
     }
+    // Preserve an in-flight discovery snapshot: the OAuth provider's
+    // saveDiscoveryState() lives in the same JSON column, and the callback
+    // leg needs it for the SEP-2352 issuer check.
+    const existing = (row?.pendingAuth as Record<string, unknown> | null | undefined) ?? {}
+    const discoverySnapshot = existing['discoverySnapshot']
+    const data = discoverySnapshot !== undefined ? { ...pending, discoverySnapshot } : pending
     await this.prismaClient.mcpServerCredential.update({
       where: { serverId },
-      data: { pendingAuth: pending as PrismaJson.McpPendingAuth },
+      data: { pendingAuth: data as unknown as PrismaJson.McpPendingAuth },
     })
   }
 

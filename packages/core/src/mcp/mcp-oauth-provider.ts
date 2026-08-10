@@ -157,6 +157,21 @@ export class McpOauthProvider implements OAuthClientProvider {
     return this.redirectUrlSnapshot
   }
 
+  /**
+   * SEP-2352 issuer of the authorization server from the discovery snapshot
+   * persisted by saveDiscoveryState (available on both the start and callback
+   * legs thanks to the DB-backed store).
+   */
+  private async getDiscoveredIssuer(): Promise<string | undefined> {
+    const snapshot = await this.store.getDiscoverySnapshot(this.serverId)
+    if (!snapshot) return undefined
+    const metadata = snapshot['authorizationServerMetadata'] as { issuer?: string } | undefined
+    const issuer = metadata?.issuer
+    if (typeof issuer === 'string' && issuer.length > 0) return issuer
+    const serverUrl = snapshot['authorizationServerUrl']
+    return typeof serverUrl === 'string' && serverUrl.length > 0 ? serverUrl : undefined
+  }
+
   /** Client metadata for dynamic registration. */
   get clientMetadata(): OAuthClientMetadata {
     if (this.usesClientCredentials) {
@@ -196,16 +211,22 @@ export class McpOauthProvider implements OAuthClientProvider {
     if (this.config.clientId) {
       const storedClient =
         stored?.clientInfo?.clientId === this.config.clientId ? stored.clientInfo : undefined
+      const issuer = await this.getDiscoveredIssuer()
       if (storedClient?.issuer === undefined || storedClient.configPreRegistered !== true) {
         await this.store.updateClientInfo(
           this.serverId,
-          { clientId: this.config.clientId, configPreRegistered: true },
+          {
+            clientId: this.config.clientId,
+            configPreRegistered: true,
+            ...(issuer !== undefined ? { issuer } : {}),
+          },
           this.serverUrl,
         )
       }
       return {
         client_id: this.config.clientId,
         client_secret: this.config.clientSecret,
+        ...(issuer !== undefined ? { issuer } : {}),
       } as IssuerBoundClientInformation
     }
 
@@ -236,6 +257,7 @@ export class McpOauthProvider implements OAuthClientProvider {
         ...(clientInfo.redirectUris !== undefined
           ? { redirect_uris: clientInfo.redirectUris }
           : {}),
+        ...(clientInfo.issuer !== undefined ? { issuer: clientInfo.issuer } : {}),
       } as IssuerBoundClientInformation
     }
 
@@ -258,6 +280,7 @@ export class McpOauthProvider implements OAuthClientProvider {
     const redirectUris =
       ('redirect_uris' in info ? info.redirect_uris : undefined) ??
       (this.redirectUrl ? [this.redirectUrl] : undefined)
+    const issuer = await this.getDiscoveredIssuer()
     const clientInfo: StoredClientInfo = {
       clientId: info.client_id,
       ...(info.client_secret !== undefined ? { clientSecret: info.client_secret } : {}),
@@ -268,6 +291,7 @@ export class McpOauthProvider implements OAuthClientProvider {
         ? { clientSecretExpiresAt: info.client_secret_expires_at }
         : {}),
       ...(redirectUris !== undefined ? { redirectUris } : {}),
+      ...(issuer !== undefined ? { issuer } : {}),
     }
     await this.store.updateClientInfo(this.serverId, clientInfo, this.serverUrl)
   }
@@ -278,6 +302,15 @@ export class McpOauthProvider implements OAuthClientProvider {
     if (!entry?.tokens) return undefined
     this.assertStoredIssuerBindings(entry, undefined)
 
+    // SEP-2352: backfill a missing issuer stamp from the discovery snapshot so
+    // isolation stays active for pre-existing credentials.
+    const issuer = await this.getDiscoveredIssuer()
+    if (issuer !== undefined && entry.tokens.issuer === undefined) {
+      const stamped: StoredTokens = { ...entry.tokens, issuer }
+      await this.store.updateTokens(this.serverId, stamped, this.serverUrl)
+      entry.tokens = stamped
+    }
+
     return {
       access_token: entry.tokens.accessToken,
       token_type: 'Bearer',
@@ -286,11 +319,13 @@ export class McpOauthProvider implements OAuthClientProvider {
         ? Math.max(0, Math.floor(entry.tokens.expiresAt - Date.now() / 1000))
         : undefined,
       scope: entry.tokens.scope,
+      ...(entry.tokens.issuer !== undefined ? { issuer: entry.tokens.issuer } : {}),
     } as IssuerBoundTokens
   }
 
   /** Save OAuth tokens. */
   async saveTokens(tokens: OAuthTokens): Promise<void> {
+    const issuer = await this.getDiscoveredIssuer()
     const storedTokens: StoredTokens = {
       accessToken: tokens.access_token,
       ...(tokens.refresh_token !== undefined ? { refreshToken: tokens.refresh_token } : {}),
@@ -298,6 +333,7 @@ export class McpOauthProvider implements OAuthClientProvider {
         ? { expiresAt: Date.now() / 1000 + tokens.expires_in }
         : {}),
       ...(tokens.scope !== undefined ? { scope: tokens.scope } : {}),
+      ...(issuer !== undefined ? { issuer } : {}),
     }
     this.throwIfInactive()
     await this.store.updateTokens(this.serverId, storedTokens, this.serverUrl)
