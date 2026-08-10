@@ -490,8 +490,8 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
                   />
                 </div>
 
-                <div className="max-h-64 overflow-hidden">
-                  <ScrollArea className="max-h-64 pr-3">
+                <div className="h-64 overflow-hidden">
+                  <ScrollArea className="h-full pr-3">
                     <div className="space-y-2 py-1 pr-1">
                       {isToolsLoading ? (
                         <div className="flex justify-center py-8">
