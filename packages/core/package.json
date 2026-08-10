@@ -8,6 +8,7 @@
   "dependencies": {
     "@earendil-works/pi-agent-core": "0.82.1",
     "@earendil-works/pi-ai": "0.82.1",
+    "@modelcontextprotocol/client": "2.0.0",
     "@shumai/db": "workspace:*",
     "@shumai/dtos": "workspace:*",
     "@sinclair/typebox": "0.34.49",
@@ -24,11 +25,13 @@
     "pino": "10.3.1",
     "sharp": "0.34.5",
     "tweetnacl": "1.0.3",
+    "typebox": "1.1.38",
     "ulid": "3.0.2",
     "yaml": "2.9.0",
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "@modelcontextprotocol/server": "2.0.0",
     "@types/adm-zip": "0.5.8",
     "@types/extract-zip": "2.0.3",
     "@types/pdfkit": "0.17.6"

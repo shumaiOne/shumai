@@ -189,3 +189,11 @@ export const AgentSessionType = {
 } as const
 
 export type AgentSessionType = (typeof AgentSessionType)[keyof typeof AgentSessionType]
+
+
+export const McpTransport = {
+  streamable_http: 'streamable_http',
+  sse: 'sse'
+} as const
+
+export type McpTransport = (typeof McpTransport)[keyof typeof McpTransport]

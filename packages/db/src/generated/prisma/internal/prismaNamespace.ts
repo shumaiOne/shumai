@@ -413,6 +413,9 @@ export const ModelName = {
   WorkflowTask: 'WorkflowTask',
   Agent: 'Agent',
   AgentSkill: 'AgentSkill',
+  McpServer: 'McpServer',
+  AgentMcpServer: 'AgentMcpServer',
+  McpServerCredential: 'McpServerCredential',
   AgentSession: 'AgentSession',
   AgentSessionEntry: 'AgentSessionEntry',
   UserMetadata: 'UserMetadata',
@@ -437,7 +440,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "sandbox" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "watermarkConfig" | "watermarkTemplate" | "watermarkFile" | "asset" | "storageKey" | "assetMetadataValue" | "assetComment" | "assetCommentAttachment" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "agentSession" | "agentSessionEntry" | "userMetadata" | "model" | "provider" | "collection" | "apiToken" | "aiUsage" | "auditLog"
+    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "sandbox" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "watermarkConfig" | "watermarkTemplate" | "watermarkFile" | "asset" | "storageKey" | "assetMetadataValue" | "assetComment" | "assetCommentAttachment" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "mcpServer" | "agentMcpServer" | "mcpServerCredential" | "agentSession" | "agentSessionEntry" | "userMetadata" | "model" | "provider" | "collection" | "apiToken" | "aiUsage" | "auditLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2587,6 +2590,228 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    McpServer: {
+      payload: Prisma.$McpServerPayload<ExtArgs>
+      fields: Prisma.McpServerFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.McpServerFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpServerPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.McpServerFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpServerPayload>
+        }
+        findFirst: {
+          args: Prisma.McpServerFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpServerPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.McpServerFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpServerPayload>
+        }
+        findMany: {
+          args: Prisma.McpServerFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpServerPayload>[]
+        }
+        create: {
+          args: Prisma.McpServerCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpServerPayload>
+        }
+        createMany: {
+          args: Prisma.McpServerCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.McpServerCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpServerPayload>[]
+        }
+        delete: {
+          args: Prisma.McpServerDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpServerPayload>
+        }
+        update: {
+          args: Prisma.McpServerUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpServerPayload>
+        }
+        deleteMany: {
+          args: Prisma.McpServerDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.McpServerUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.McpServerUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpServerPayload>[]
+        }
+        upsert: {
+          args: Prisma.McpServerUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpServerPayload>
+        }
+        aggregate: {
+          args: Prisma.McpServerAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMcpServer>
+        }
+        groupBy: {
+          args: Prisma.McpServerGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.McpServerGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.McpServerCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.McpServerCountAggregateOutputType> | number
+        }
+      }
+    }
+    AgentMcpServer: {
+      payload: Prisma.$AgentMcpServerPayload<ExtArgs>
+      fields: Prisma.AgentMcpServerFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AgentMcpServerFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentMcpServerPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AgentMcpServerFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentMcpServerPayload>
+        }
+        findFirst: {
+          args: Prisma.AgentMcpServerFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentMcpServerPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AgentMcpServerFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentMcpServerPayload>
+        }
+        findMany: {
+          args: Prisma.AgentMcpServerFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentMcpServerPayload>[]
+        }
+        create: {
+          args: Prisma.AgentMcpServerCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentMcpServerPayload>
+        }
+        createMany: {
+          args: Prisma.AgentMcpServerCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AgentMcpServerCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentMcpServerPayload>[]
+        }
+        delete: {
+          args: Prisma.AgentMcpServerDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentMcpServerPayload>
+        }
+        update: {
+          args: Prisma.AgentMcpServerUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentMcpServerPayload>
+        }
+        deleteMany: {
+          args: Prisma.AgentMcpServerDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AgentMcpServerUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AgentMcpServerUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentMcpServerPayload>[]
+        }
+        upsert: {
+          args: Prisma.AgentMcpServerUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AgentMcpServerPayload>
+        }
+        aggregate: {
+          args: Prisma.AgentMcpServerAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAgentMcpServer>
+        }
+        groupBy: {
+          args: Prisma.AgentMcpServerGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AgentMcpServerGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AgentMcpServerCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AgentMcpServerCountAggregateOutputType> | number
+        }
+      }
+    }
+    McpServerCredential: {
+      payload: Prisma.$McpServerCredentialPayload<ExtArgs>
+      fields: Prisma.McpServerCredentialFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.McpServerCredentialFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpServerCredentialPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.McpServerCredentialFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpServerCredentialPayload>
+        }
+        findFirst: {
+          args: Prisma.McpServerCredentialFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpServerCredentialPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.McpServerCredentialFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpServerCredentialPayload>
+        }
+        findMany: {
+          args: Prisma.McpServerCredentialFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpServerCredentialPayload>[]
+        }
+        create: {
+          args: Prisma.McpServerCredentialCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpServerCredentialPayload>
+        }
+        createMany: {
+          args: Prisma.McpServerCredentialCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.McpServerCredentialCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpServerCredentialPayload>[]
+        }
+        delete: {
+          args: Prisma.McpServerCredentialDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpServerCredentialPayload>
+        }
+        update: {
+          args: Prisma.McpServerCredentialUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpServerCredentialPayload>
+        }
+        deleteMany: {
+          args: Prisma.McpServerCredentialDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.McpServerCredentialUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.McpServerCredentialUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpServerCredentialPayload>[]
+        }
+        upsert: {
+          args: Prisma.McpServerCredentialUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$McpServerCredentialPayload>
+        }
+        aggregate: {
+          args: Prisma.McpServerCredentialAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMcpServerCredential>
+        }
+        groupBy: {
+          args: Prisma.McpServerCredentialGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.McpServerCredentialGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.McpServerCredentialCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.McpServerCredentialCountAggregateOutputType> | number
+        }
+      }
+    }
     AgentSession: {
       payload: Prisma.$AgentSessionPayload<ExtArgs>
       fields: Prisma.AgentSessionFieldRefs
@@ -3717,6 +3942,54 @@ export const AgentSkillScalarFieldEnum = {
 export type AgentSkillScalarFieldEnum = (typeof AgentSkillScalarFieldEnum)[keyof typeof AgentSkillScalarFieldEnum]
 
 
+export const McpServerScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  url: 'url',
+  transport: 'transport',
+  authConfig: 'authConfig',
+  config: 'config',
+  enabled: 'enabled',
+  permission: 'permission',
+  tools: 'tools',
+  status: 'status',
+  lastError: 'lastError',
+  lastConnectedAt: 'lastConnectedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  teamId: 'teamId'
+} as const
+
+export type McpServerScalarFieldEnum = (typeof McpServerScalarFieldEnum)[keyof typeof McpServerScalarFieldEnum]
+
+
+export const AgentMcpServerScalarFieldEnum = {
+  id: 'id',
+  agentId: 'agentId',
+  mcpServerId: 'mcpServerId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AgentMcpServerScalarFieldEnum = (typeof AgentMcpServerScalarFieldEnum)[keyof typeof AgentMcpServerScalarFieldEnum]
+
+
+export const McpServerCredentialScalarFieldEnum = {
+  id: 'id',
+  serverId: 'serverId',
+  serverUrl: 'serverUrl',
+  tokens: 'tokens',
+  clientInfo: 'clientInfo',
+  codeVerifier: 'codeVerifier',
+  oauthState: 'oauthState',
+  pendingAuth: 'pendingAuth',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type McpServerCredentialScalarFieldEnum = (typeof McpServerCredentialScalarFieldEnum)[keyof typeof McpServerCredentialScalarFieldEnum]
+
+
 export const AgentSessionScalarFieldEnum = {
   id: 'id',
   agentId: 'agentId',
@@ -4225,6 +4498,20 @@ export type ListEnumAgentTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$Pr
 
 
 /**
+ * Reference to a field of type 'McpTransport'
+ */
+export type EnumMcpTransportFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'McpTransport'>
+    
+
+
+/**
+ * Reference to a field of type 'McpTransport[]'
+ */
+export type ListEnumMcpTransportFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'McpTransport[]'>
+    
+
+
+/**
  * Reference to a field of type 'AgentSessionType'
  */
 export type EnumAgentSessionTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AgentSessionType'>
@@ -4376,6 +4663,9 @@ export type GlobalOmitConfig = {
   workflowTask?: Prisma.WorkflowTaskOmit
   agent?: Prisma.AgentOmit
   agentSkill?: Prisma.AgentSkillOmit
+  mcpServer?: Prisma.McpServerOmit
+  agentMcpServer?: Prisma.AgentMcpServerOmit
+  mcpServerCredential?: Prisma.McpServerCredentialOmit
   agentSession?: Prisma.AgentSessionOmit
   agentSessionEntry?: Prisma.AgentSessionEntryOmit
   userMetadata?: Prisma.UserMetadataOmit

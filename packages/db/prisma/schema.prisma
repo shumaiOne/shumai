@@ -252,6 +252,7 @@ model Team {
   userMetadata   UserMetadata[]  @relation("TeamToUserMetadata")
   providers      Provider[]      @relation("TeamToProvider")
   skills         Skill[]         @relation("TeamToSkill")
+  mcpServers     McpServer[]      @relation("TeamToMcpServer")
   sandbox        Sandbox?        @relation("TeamToSandbox")
   agents         Agent[]         @relation("TeamToAgent")
   aiUsages       AiUsage[]       @relation("TeamToAiUsage")
@@ -754,6 +755,7 @@ model Agent {
   updatedAt     DateTime       @updatedAt @map("updated_at")
   agentSessions AgentSession[]
   skills        AgentSkill[]
+  mcpServers    AgentMcpServer[]
 
   @@map("agents")
 }
@@ -769,6 +771,73 @@ model AgentSkill {
 
   @@unique([agentId, skillId])
   @@map("agent_skills")
+}
+
+model McpServer {
+  id               String          @id @default(ulid())
+  name             String
+  url              String
+  transport        McpTransport    @default(streamable_http)
+  /// [McpServerAuthConfig]
+  authConfig       Json?           @default("{}")
+  /// [McpServerConfig]
+  config           Json?           @default("{}")
+  enabled          Boolean         @default(true)
+  permission       TeamMemberRole  @default(reviewer)
+  /// [McpToolInfo[]]
+  tools            Json?           @default("[]")
+  status           String          @default("not_connected")
+  lastError        String?         @map("last_error")
+  lastConnectedAt  DateTime?       @map("last_connected_at")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  teamId           String          @map("team_id")
+  team             Team            @relation("TeamToMcpServer", fields: [teamId], references: [id], onDelete: Cascade)
+
+  credential       McpServerCredential?
+  agentMcpServers  AgentMcpServer[]
+
+  @@unique([teamId, name])
+  @@map("mcp_servers")
+}
+
+// Join table: which agents get which MCP servers (mirrors AgentSkill).
+model AgentMcpServer {
+  id          String    @id @default(ulid())
+  agentId     String    @map("agent_id")
+  agent       Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  mcpServerId String    @map("mcp_server_id")
+  mcpServer   McpServer @relation(fields: [mcpServerId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@unique([agentId, mcpServerId])
+  @@map("agent_mcp_servers")
+}
+
+model McpServerCredential {
+  id          String   @id @default(ulid())
+  serverId    String   @unique @map("server_id")
+  server      McpServer @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  serverUrl   String   @map("server_url")
+  /// [McpStoredTokens]
+  tokens      Json?
+  /// [McpStoredClientInfo]
+  clientInfo  Json?
+  codeVerifier String? @map("code_verifier")
+  oauthState  String?  @map("oauth_state")
+  /// [McpPendingAuth]
+  pendingAuth Json?    @map("pending_auth")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("mcp_server_credentials")
+}
+
+enum McpTransport {
+  streamable_http
+  sse
 }
 
 model AgentSession {

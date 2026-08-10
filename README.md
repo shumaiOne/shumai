@@ -245,11 +245,14 @@ BETTER_AUTH_SECRET=ySxs7DxzHDZBbeeHNPEwBuspYwipBqz5Gk5XdBjNhWw=
 STORAGE_BACKEND=local
 SHUMAI_SERVER_PORT=3000
 AWS_ENDPOINT_URL_S3=http://localhost:3000
+# Optional: base URL for MCP OAuth redirects (defaults to BETTER_AUTH_URL)
+MCP_OAUTH_REDIRECT_BASE_URL=http://localhost:3000
 ```
 
 > [!NOTE]
 > `SHUMAI_SERVER_PORT` sets the port the server starts on, while `AWS_ENDPOINT_URL_S3` is used by the browser to build file upload URLs.
 > If deploying on a remote server (e.g. `http://123.456.7.8`) with a mapped port (e.g. `12345:3000` in docker-compose), set `AWS_ENDPOINT_URL_S3` to `http://123.456.7.8:12345`.
+> `MCP_OAUTH_REDIRECT_BASE_URL` is only needed when MCP servers use OAuth: the authorization redirect URI defaults to `{BETTER_AUTH_URL}/api/mcp/oauth/callback`; set it to an externally reachable URL if the app is served behind a proxy.
 
 #### Step 6: Run Shumai
 
