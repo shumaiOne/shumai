@@ -318,7 +318,7 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
               const isAuthenticating = authenticatingServerId === server.id
               const needsAuth =
                 server.status === 'needs_auth' ||
-                (!server.hasCredential && server.authType === 'oauth')
+                (!server.hasCredential && server.authType !== 'none')
 
               return (
                 <div
@@ -458,7 +458,7 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
                             {m.mcp_test_connection()}
                           </DropdownMenuItem>
 
-                          {server.authType === 'oauth' || server.hasCredential ? (
+                          {server.authType !== 'none' || server.hasCredential ? (
                             <DropdownMenuItem onClick={() => handleStartAuth(server.id)}>
                               <Key className="w-4 h-4 mr-2" />
                               {m.mcp_connect_auth()}
