@@ -363,4 +363,75 @@ describe('readSkillTool', () => {
       expect(onSkillLoaded).not.toHaveBeenCalled()
     })
   })
+
+  describe('enabled skills enforcement', () => {
+    it('should reject loading a skill that is not enabled for the agent', async () => {
+      const team = await prisma.team.create({ data: { name: 'Enabled Filter Team' } })
+      const skill = await prisma.skill.create({
+        data: {
+          name: 'Disabled For Agent Skill',
+          assetId: 'asset1',
+          hash: 'disabled-agent-hash',
+          teamId: team.id,
+        },
+      })
+
+      const readSkillTool = createReadSkillTool(undefined, () => {}, undefined, [
+        'some-other-enabled-skill',
+      ])
+      await expect(
+        readSkillTool.execute('1', { skillId: skill.id }, undefined, undefined),
+      ).rejects.toThrow('not enabled for this agent')
+    })
+
+    it('should allow loading a skill that is enabled for the agent', async () => {
+      const team = await prisma.team.create({ data: { name: 'Enabled Allow Team' } })
+      const skill = await prisma.skill.create({
+        data: {
+          name: 'Enabled For Agent Skill',
+          assetId: 'asset1',
+          hash: 'enabled-agent-hash',
+          teamId: team.id,
+        },
+      })
+
+      vi.spyOn(fs, 'existsSync').mockReturnValue(true)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking node fs readFileSync which has complex overloaded signatures
+      vi.spyOn(fs, 'readFileSync').mockImplementation((path: any) => {
+        if (path.toString().endsWith('.hash')) return 'enabled-agent-hash'
+        if (path.toString().endsWith('SKILL.md')) return '# Enabled For Agent Skill'
+        return ''
+      })
+
+      const readSkillTool = createReadSkillTool(undefined, () => {}, undefined, [skill.id])
+      const result = await readSkillTool.execute('1', { skillId: skill.id }, undefined, undefined)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((result.content[0] as any).text).toBe('# Enabled For Agent Skill')
+    })
+
+    it('should allow loading any skill when enabledSkillIds is not provided (backward compatibility)', async () => {
+      const team = await prisma.team.create({ data: { name: 'No Filter Team' } })
+      const skill = await prisma.skill.create({
+        data: {
+          name: 'No Filter Skill',
+          assetId: 'asset1',
+          hash: 'no-filter-hash',
+          teamId: team.id,
+        },
+      })
+
+      vi.spyOn(fs, 'existsSync').mockReturnValue(true)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking node fs readFileSync which has complex overloaded signatures
+      vi.spyOn(fs, 'readFileSync').mockImplementation((path: any) => {
+        if (path.toString().endsWith('.hash')) return 'no-filter-hash'
+        if (path.toString().endsWith('SKILL.md')) return '# No Filter Skill'
+        return ''
+      })
+
+      const readSkillTool = createReadSkillTool(undefined, () => {})
+      const result = await readSkillTool.execute('1', { skillId: skill.id }, undefined, undefined)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((result.content[0] as any).text).toBe('# No Filter Skill')
+    })
+  })
 })
