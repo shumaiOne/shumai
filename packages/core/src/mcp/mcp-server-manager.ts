@@ -225,12 +225,11 @@ export class McpServerManager {
     serverId: string,
     definition: McpServerDefinition,
   ): McpOauthProvider | undefined {
-    const auth = definition.authConfig
-    if (auth?.type === 'oauth') {
+    if (this.supportsOauth(definition)) {
       return new McpOauthProvider(
         serverId,
         definition.url,
-        this.extractOauthConfig(auth),
+        this.extractOauthConfig(definition.authConfig ?? {}),
         { onRedirect: async () => {} },
         this.dbStore,
       )

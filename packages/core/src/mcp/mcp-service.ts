@@ -630,6 +630,12 @@ export class McpService {
       }
       await mcpDbStore.clearPendingAuth(serverId)
       await mcpDbStore.clearDiscoverySnapshot(serverId)
+      try {
+        await this.discoverTools(serverId)
+      } catch (err) {
+        logger.warn({ serverId, err }, 'Post-auth tool discovery failed, setting status to connected')
+        await this.updateStatus(serverId, 'connected', null)
+      }
       return 'authenticated'
     } finally {
       provider.deactivate()
