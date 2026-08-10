@@ -8,7 +8,6 @@ import {
   Plus,
   Trash2,
   Edit,
-  Wrench,
   RefreshCw,
   Zap,
   ShieldCheck,
@@ -307,134 +306,39 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
                 <div
                   key={server.id}
                   onClick={() => canAdmin && setEditingServer(server)}
-                  className={`flex flex-col md:flex-row items-start md:items-center justify-between p-4 border border-border rounded-xl gap-4 transition-all ${
-                    canAdmin ? 'cursor-pointer hover:border-primary/50 hover:shadow-sm' : ''
-                  } bg-card`}
+                  className={`p-4 bg-card rounded-xl border border-border flex flex-col justify-between hover:shadow-md transition-all group ${
+                    canAdmin ? 'cursor-pointer' : ''
+                  }`}
                 >
-                  <div className="flex items-start gap-3.5 flex-1 min-w-0">
-                    <div className="p-2.5 bg-muted rounded-lg text-foreground mt-0.5">
-                      <Server className="w-5 h-5" />
-                    </div>
-                    <div className="space-y-1.5 flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-base text-foreground truncate">
-                          {server.name}
-                        </span>
-                        {renderStatusBadge(server)}
-                        {isDirectMode ? (
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] bg-primary/5 text-primary border-primary/20"
-                          >
-                            <Zap className="w-3 h-3 mr-1" />
-                            {m.mcp_direct_tools_mode()}
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-[10px]">
-                            Proxy Tool
-                          </Badge>
-                        )}
-                        <Badge variant="outline" className="text-[10px] uppercase">
-                          {server.transport}
-                        </Badge>
-                      </div>
-
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground truncate">
-                        <span className="truncate max-w-md font-mono">{server.url}</span>
-                        <span>•</span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            if (canAdmin) setEditingServer(server)
-                          }}
-                          className="hover:underline font-semibold text-primary flex items-center gap-1"
+                  {/* Row 1: name + three-dot */}
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <h4 className="font-bold text-foreground flex items-center gap-2 min-w-0">
+                      <Server className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <span className="truncate">{server.name}</span>
+                      {isDirectMode && (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] bg-primary/5 text-primary border-primary/20 shrink-0"
                         >
-                          <Wrench className="w-3 h-3" />
-                          {m.mcp_tools_count({ count: server.toolCount ?? 0 })}
-                        </button>
-                      </div>
-
-                      {server.description && (
-                        <p className="text-xs text-muted-foreground truncate max-w-lg">
-                          {server.description}
-                        </p>
+                          <Zap className="w-3 h-3 mr-0.5" />
+                          {m.mcp_direct_tools_mode()}
+                        </Badge>
                       )}
-
-                      {server.lastError && (
-                        <p className="text-xs text-red-500/90 truncate max-w-lg font-mono">
-                          {server.lastError}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div
-                    className="flex items-center gap-3 w-full md:w-auto justify-end border-t md:border-t-0 pt-3 md:pt-0 border-border"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {/* Prominent Connect button if needs authentication */}
-                    {needsAuth && canAdmin && (
-                      <Button
-                        size="sm"
-                        variant="default"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleStartAuth(server.id)
-                        }}
-                        disabled={isAuthenticating}
-                        className="gap-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs"
-                      >
-                        {isAuthenticating ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Key className="w-3.5 h-3.5" />
-                        )}
-                        {m.mcp_connect_auth()}
-                      </Button>
-                    )}
-
-                    {/* Permission Selector */}
-                    {canAdmin ? (
-                      <Select
-                        value={server.permission}
-                        onValueChange={(permission) =>
-                          updatePermissionMutation.mutate({
-                            id: server.id,
-                            permission: permission as McpServerPermission,
-                          })
-                        }
-                      >
-                        <SelectTrigger className="h-8 text-xs w-[130px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="reviewer">{m.permission_all_users()}</SelectItem>
-                          <SelectItem value="editor">{m.permission_owner_and_editor()}</SelectItem>
-                          <SelectItem value="owner">{m.permission_owner_only()}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Badge variant="outline" className="text-xs">
-                        {server.permission === 'reviewer'
-                          ? m.permission_all_users()
-                          : server.permission === 'editor'
-                            ? m.permission_owner_and_editor()
-                            : m.permission_owner_only()}
+                      <Badge variant="outline" className="text-[10px] uppercase shrink-0">
+                        {server.transport}
                       </Badge>
-                    )}
-
-                    {/* Action Dropdown Menu */}
+                    </h4>
                     {canAdmin && (
                       <DropdownMenu modal={false}>
                         <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
                             <MoreVertical className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => setEditingServer(server)}>
-                            <Wrench className="w-4 h-4 mr-2" />
-                            {m.view_tools()}
+                            <Edit className="w-4 h-4 mr-2" />
+                            {m.edit()}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => testMutation.mutate(server.id)}
@@ -466,10 +370,6 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
                           )}
 
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => setEditingServer(server)}>
-                            <Edit className="w-4 h-4 mr-2" />
-                            {m.edit()}
-                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => setDeletingServer(server)}
                             className="text-red-600"
@@ -480,6 +380,86 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     )}
+                  </div>
+
+                  {/* Row 2: description + url + lastError */}
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {server.description || m.no_description_provided()}
+                    </p>
+                    <p className="font-mono text-[10px] text-muted-foreground/70 truncate">
+                      {server.url}
+                    </p>
+                    {server.lastError && (
+                      <p className="text-[10px] text-red-500/90 truncate font-mono">
+                        {server.lastError}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Row 3: status + updated (left), permission + connect (right) */}
+                  <div className="mt-4 flex items-center justify-between gap-2 pt-2 border-t border-border/50 text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {renderStatusBadge(server)}
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold whitespace-nowrap">
+                        {m.updated_date()} {new Date(server.updatedAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div
+                      className="flex items-center gap-2 shrink-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {canAdmin ? (
+                        <Select
+                          value={server.permission}
+                          onValueChange={(permission) =>
+                            updatePermissionMutation.mutate({
+                              id: server.id,
+                              permission: permission as McpServerPermission,
+                            })
+                          }
+                        >
+                          <SelectTrigger className="h-7 text-xs px-2 bg-background border-border w-[130px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent align="end">
+                            <SelectItem value="reviewer">{m.permission_all_users()}</SelectItem>
+                            <SelectItem value="editor">
+                              {m.permission_owner_and_editor()}
+                            </SelectItem>
+                            <SelectItem value="owner">{m.permission_owner_only()}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px]">
+                          {server.permission === 'reviewer'
+                            ? m.permission_all_users()
+                            : server.permission === 'editor'
+                              ? m.permission_owner_and_editor()
+                              : m.permission_owner_only()}
+                        </Badge>
+                      )}
+                      {/* Connect button — right end of the row */}
+                      {needsAuth && canAdmin && (
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleStartAuth(server.id)
+                          }}
+                          disabled={isAuthenticating}
+                          className="gap-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs"
+                        >
+                          {isAuthenticating ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Key className="w-3.5 h-3.5" />
+                          )}
+                          {m.mcp_connect_auth()}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               )
