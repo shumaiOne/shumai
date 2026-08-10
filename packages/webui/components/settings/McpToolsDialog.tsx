@@ -164,8 +164,8 @@ export const McpToolsDialog: React.FC<McpToolsDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl h-[80vh] max-h-[750px] flex flex-col p-6 overflow-hidden">
+        <DialogHeader className="flex-shrink-0">
           <div className="flex items-center justify-between pr-6">
             <DialogTitle className="flex items-center gap-2 text-xl font-bold">
               <Wrench className="w-5 h-5 text-primary" />
@@ -188,7 +188,7 @@ export const McpToolsDialog: React.FC<McpToolsDialogProps> = ({
         </DialogHeader>
 
         {/* Search bar */}
-        <div className="relative my-2">
+        <div className="relative my-3 flex-shrink-0">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={m.search_tools_placeholder()}
@@ -199,7 +199,8 @@ export const McpToolsDialog: React.FC<McpToolsDialogProps> = ({
         </div>
 
         {/* Tool list */}
-        <ScrollArea className="flex-1 min-h-0 pr-3">
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+          <ScrollArea className="flex-1 min-h-0 pr-3">
           {isToolsLoading ? (
             <div className="flex justify-center py-10">
               <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -310,6 +311,7 @@ export const McpToolsDialog: React.FC<McpToolsDialogProps> = ({
             </div>
           )}
         </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   )
