@@ -60,10 +60,10 @@ import type { McpServerInfo } from '@shumai/dtos'
 const serverInfo: McpServerInfo = {
   id: 'server1',
   name: 'github',
+  description: 'GitHub MCP server',
   url: 'https://mcp.example.com/github',
   transport: 'streamable_http',
   authType: 'bearer',
-  enabled: true,
   permission: 'reviewer',
   status: 'not_connected',
   toolCount: 0,
@@ -111,7 +111,7 @@ describe('MCP API', () => {
     const res = await app.request('/teams/team1/mcp/servers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'github', url: 'https://mcp.example.com/github' }),
+      body: JSON.stringify({ url: 'https://mcp.example.com/github' }),
     })
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual(serverInfo)
@@ -124,7 +124,7 @@ describe('MCP API', () => {
     const res = await app.request('/teams/team1/mcp/servers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'bad', url: 'not-a-url' }),
+      body: JSON.stringify({ url: 'not-a-url' }),
     })
     expect(res.status).toBe(400)
     expect(mcpService.createServer).not.toHaveBeenCalled()
@@ -149,14 +149,17 @@ describe('MCP API', () => {
   })
 
   test('updates a server and audits it', async () => {
-    vi.mocked(mcpService.updateServer).mockResolvedValue({ ...serverInfo, name: 'renamed' })
+    vi.mocked(mcpService.updateServer).mockResolvedValue({
+      ...serverInfo,
+      url: 'https://new.example.com/mcp',
+    })
     const res = await app.request('/mcp/servers/server1', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'renamed' }),
+      body: JSON.stringify({ url: 'https://new.example.com/mcp' }),
     })
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ ...serverInfo, name: 'renamed' })
+    expect(await res.json()).toEqual({ ...serverInfo, url: 'https://new.example.com/mcp' })
     expect(auditLogService.logAction).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'mcp_server_update', itemId: 'server1' }),
     )

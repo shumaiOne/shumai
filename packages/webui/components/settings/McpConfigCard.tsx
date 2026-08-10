@@ -20,7 +20,6 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card'
 import { Button } from '@/ui/components/ui/button'
 import { Badge } from '@/ui/components/ui/badge'
-import { Switch } from '@/ui/components/ui/switch'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,7 +49,6 @@ import { m } from '@/ui/paraglide/messages.js'
 import { usePermissions } from '@/ui/hooks/use-permissions'
 import { toast } from 'sonner'
 import { McpServerFormDialog } from './McpServerFormDialog'
-import { McpToolsDialog } from './McpToolsDialog'
 
 interface McpConfigCardProps {
   teamId: string
@@ -62,7 +60,6 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
 
   const [isAddFormOpen, setIsAddFormOpen] = useState(false)
   const [editingServer, setEditingServer] = useState<McpServerInfo | null>(null)
-  const [selectedToolsServer, setSelectedToolsServer] = useState<McpServerInfo | null>(null)
   const [deletingServer, setDeletingServer] = useState<McpServerInfo | null>(null)
   const [authenticatingServerId, setAuthenticatingServerId] = useState<string | null>(null)
 
@@ -110,21 +107,7 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
   })
 
   // Enable/Disable Mutation
-  const toggleEnableMutation = useMutation({
-    mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
-      const res = await client.api.mcp.servers[':id'].$patch({
-        param: { id },
-        json: { enabled },
-      })
-      if (!res.ok) throw new Error('Failed to update server status')
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'mcp', 'servers'] })
-    },
-    onError: (err: Error) => {
-      toast.error(err.message)
-    },
-  })
+  // (Removed: enable/disable now happens per-agent via AgentMcpServer assignment.)
 
   // Test Server Mutation
   const testMutation = useMutation({
@@ -326,7 +309,7 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
                   onClick={() => canAdmin && setEditingServer(server)}
                   className={`flex flex-col md:flex-row items-start md:items-center justify-between p-4 border border-border rounded-xl gap-4 transition-all ${
                     canAdmin ? 'cursor-pointer hover:border-primary/50 hover:shadow-sm' : ''
-                  } ${server.enabled ? 'bg-card' : 'bg-muted/30 opacity-75'}`}
+                  } bg-card`}
                 >
                   <div className="flex items-start gap-3.5 flex-1 min-w-0">
                     <div className="p-2.5 bg-muted rounded-lg text-foreground mt-0.5">
@@ -362,7 +345,7 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
-                            setSelectedToolsServer(server)
+                            if (canAdmin) setEditingServer(server)
                           }}
                           className="hover:underline font-semibold text-primary flex items-center gap-1"
                         >
@@ -370,6 +353,12 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
                           {m.mcp_tools_count({ count: server.toolCount ?? 0 })}
                         </button>
                       </div>
+
+                      {server.description && (
+                        <p className="text-xs text-muted-foreground truncate max-w-lg">
+                          {server.description}
+                        </p>
+                      )}
 
                       {server.lastError && (
                         <p className="text-xs text-red-500/90 truncate max-w-lg font-mono">
@@ -434,15 +423,6 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
                       </Badge>
                     )}
 
-                    {/* Enable / Disable Switch */}
-                    <Switch
-                      checked={server.enabled}
-                      onCheckedChange={(enabled) =>
-                        toggleEnableMutation.mutate({ id: server.id, enabled })
-                      }
-                      disabled={!canAdmin}
-                    />
-
                     {/* Action Dropdown Menu */}
                     {canAdmin && (
                       <DropdownMenu modal={false}>
@@ -452,7 +432,7 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setSelectedToolsServer(server)}>
+                          <DropdownMenuItem onClick={() => setEditingServer(server)}>
                             <Wrench className="w-4 h-4 mr-2" />
                             {m.view_tools()}
                           </DropdownMenuItem>
@@ -517,14 +497,6 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
         }}
         teamId={teamId}
         server={editingServer}
-      />
-
-      {/* Tools Inspector Dialog */}
-      <McpToolsDialog
-        isOpen={!!selectedToolsServer}
-        onClose={() => setSelectedToolsServer(null)}
-        server={selectedToolsServer}
-        teamId={teamId}
       />
 
       {/* Delete Confirmation Alert */}

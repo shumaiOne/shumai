@@ -776,13 +776,13 @@ model AgentSkill {
 model McpServer {
   id               String          @id @default(ulid())
   name             String
+  description      String?
   url              String
   transport        McpTransport    @default(streamable_http)
   /// [McpServerAuthConfig]
   authConfig       Json?           @default("{}")
   /// [McpServerConfig]
   config           Json?           @default("{}")
-  enabled          Boolean         @default(true)
   permission       TeamMemberRole  @default(reviewer)
   /// [McpToolInfo[]]
   tools            Json?           @default("[]")
@@ -798,7 +798,6 @@ model McpServer {
   credential       McpServerCredential?
   agentMcpServers  AgentMcpServer[]
 
-  @@unique([teamId, name])
   @@map("mcp_servers")
 }
 

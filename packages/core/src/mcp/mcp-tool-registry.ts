@@ -16,9 +16,18 @@ export interface ToolMetadata {
   inputSchema?: unknown
 }
 
+/**
+ * Sanitize a server name into a safe tool-name prefix: any run of
+ * non-alphanumeric characters becomes a single underscore. Server-reported
+ * names/titles may contain spaces, dots or other punctuation.
+ */
+export function sanitizeServerPrefix(serverName: string): string {
+  return serverName.replace(/[^a-zA-Z0-9_]+/g, '_').replace(/^_+|_+$/g, '')
+}
+
 /** Format a tool name with the "{server}_{tool}" prefix (dots sanitized). */
 export function formatToolName(serverName: string, toolName: string): string {
-  const serverPart = serverName.replace(/-/g, '_')
+  const serverPart = sanitizeServerPrefix(serverName)
   const sanitized = toolName.replace(/\./g, '_')
   return serverPart ? `${serverPart}_${sanitized}` : sanitized
 }

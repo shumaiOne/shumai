@@ -27,8 +27,13 @@ describe.each(['local', 'temporal'] as const)('Workflow E2E - MCP tools (executo
     process.env.S3_BUCKET = 'shumai-e2e-test-bucket-mcp'
     process.env.GEMINI_API_KEY = 'dummy-key'
 
-    // Real in-process MCP server — only AI calls are mocked.
-    mcpTestServer = await startTestMcpServer({ tools: standardTestTools() })
+    // Real in-process MCP server — only AI calls are mocked. It self-reports
+    // the name 'e2e-mcp' so discovery auto-fills the DB name/tool prefixes
+    // exactly as the tests expect.
+    mcpTestServer = await startTestMcpServer({
+      tools: standardTestTools(),
+      serverInfo: { name: 'e2e-mcp' },
+    })
 
     workflowService.setExecutorType(mode)
     initAgentWorkflows()

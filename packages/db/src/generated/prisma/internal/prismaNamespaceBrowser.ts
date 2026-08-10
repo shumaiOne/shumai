@@ -538,11 +538,11 @@ export type AgentSkillScalarFieldEnum = (typeof AgentSkillScalarFieldEnum)[keyof
 export const McpServerScalarFieldEnum = {
   id: 'id',
   name: 'name',
+  description: 'description',
   url: 'url',
   transport: 'transport',
   authConfig: 'authConfig',
   config: 'config',
-  enabled: 'enabled',
   permission: 'permission',
   tools: 'tools',
   status: 'status',
