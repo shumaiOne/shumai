@@ -1174,13 +1174,40 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
         { first: limit, after },
       )
 
+      const stackIds = assets
+        .filter((a) => a.type === AssetType.version_stack && (!a.name || a.name === ''))
+        .map((a) => a.id)
+
+      const latestVersionsMap = new Map<string, Prisma.AssetGetPayload<Record<string, never>>>()
+
+      if (stackIds.length > 0) {
+        const versions = await prisma.asset.findMany({
+          where: { parentId: { in: stackIds }, isDeleted: false },
+          orderBy: { sortIndex: 'asc' },
+        })
+        for (const v of versions) {
+          if (!latestVersionsMap.has(v.parentId!)) {
+            latestVersionsMap.set(v.parentId!, v)
+          }
+        }
+      }
+
       // return asset id, asset name, asset type, asset size (sizeByte or size)
-      const results = assets.map((a) => ({
-        id: a.id,
-        name: a.name,
-        type: a.type,
-        size: Number(a.sizeByte),
-      }))
+      const results = assets.map((a) => {
+        const latestVersion = latestVersionsMap.get(a.id)
+        return {
+          id: a.id,
+          name:
+            a.type === AssetType.version_stack && (!a.name || a.name === '')
+              ? (latestVersion?.name ?? a.name)
+              : a.name,
+          type: a.type,
+          size:
+            a.type === AssetType.version_stack && latestVersion
+              ? Number(latestVersion.sizeByte)
+              : Number(a.sizeByte),
+        }
+      })
 
       return {
         assets: results,
