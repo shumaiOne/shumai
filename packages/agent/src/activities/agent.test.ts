@@ -1441,6 +1441,54 @@ describe('Agent Database Activities Integration', () => {
         expect(res.assets.length).toBe(1)
         expect(res.pageInfo.cursor).toBeDefined()
       })
+
+      it('should resolve version_stack name and size from top child version when container name is empty', async () => {
+        const folder = await prisma.asset.create({
+          data: {
+            name: 'WorkspaceFolder',
+            type: AssetType.folder,
+            status: AssetStatus.uploaded,
+            projectId: project.id,
+          },
+        })
+
+        const versionStack = await prisma.asset.create({
+          data: {
+            name: '',
+            type: AssetType.version_stack,
+            status: AssetStatus.uploaded,
+            projectId: project.id,
+            parentId: folder.id,
+          },
+        })
+
+        await prisma.asset.create({
+          data: {
+            name: 'banana_ghost.txt',
+            type: AssetType.file,
+            status: AssetStatus.uploaded,
+            projectId: project.id,
+            parentId: versionStack.id,
+            sizeByte: 622960,
+            sortIndex: '0|i00000:',
+          },
+        })
+
+        const res = await executeAgentToolActivity({
+          taskId: 'task-1',
+          toolName: 'list_assets',
+          args: { parent: folder.id, page: 1, pageSize: 10 },
+          userId: user.id,
+        })
+
+        const stackItem = res.assets.find(
+          (a: { id: string; name: string; size: number; type: string }) => a.id === versionStack.id,
+        )
+        expect(stackItem).toBeDefined()
+        expect(stackItem?.name).toBe('banana_ghost.txt')
+        expect(stackItem?.size).toBe(622960)
+        expect(stackItem?.type).toBe('version_stack')
+      })
     })
 
     describe('create_folder', () => {

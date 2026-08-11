@@ -13,6 +13,7 @@ vi.mock('@shumai/db', async (importOriginal) => {
     prisma: {
       asset: {
         findUnique: vi.fn(),
+        findFirst: vi.fn(),
       },
     },
   }
@@ -165,5 +166,49 @@ describe('downloadAssetTool', () => {
 
     expect(fs.existsSync(expectedPath)).toBe(true)
     expect(result.details.contentType).toBe('text/markdown')
+  })
+
+  it('should resolve version_stack asset to its latest version file', async () => {
+    vi.mocked(authzService.hasPermission).mockResolvedValue()
+    vi.mocked(prisma.asset.findUnique).mockResolvedValue({
+      id: 'stack-1',
+      name: '',
+      type: 'version_stack',
+      storageKey: null,
+      media: null,
+    } as unknown as Asset)
+
+    vi.mocked(prisma.asset.findFirst).mockResolvedValue({
+      id: 'file-ver-2',
+      name: 'banana_pig.png',
+      type: 'file',
+      storageKey: { key: 'raw/banana_pig.png' },
+      media: {
+        proxyType: 'image',
+        imageTranscodes: [{ key: 'proxy/banana_pig.webp' }],
+      },
+    } as unknown as Asset)
+
+    vi.mocked(s3Service.getObject).mockResolvedValue({
+      buffer: Buffer.from('fake-version-bytes'),
+      contentType: 'image/webp',
+    } as unknown as { buffer: Buffer; contentType: string })
+
+    const tool = createDownloadAssetTool('user-1')
+    const result = await tool.execute('call-1', { assetId: 'stack-1' })
+
+    expect(prisma.asset.findFirst).toHaveBeenCalledWith({
+      where: { parentId: 'stack-1', isDeleted: false },
+      orderBy: { sortIndex: 'asc' },
+      include: { storageKey: true },
+    })
+
+    expect(s3Service.getObject).toHaveBeenCalledWith('shumai', 'proxy/banana_pig.webp')
+
+    const expectedPath = path.join(piDir, 'file-ver-2_banana_pig.png')
+    createdFiles.push(expectedPath)
+
+    expect(fs.existsSync(expectedPath)).toBe(true)
+    expect(result.details.name).toBe('banana_pig.png')
   })
 })
