@@ -34,6 +34,7 @@ export interface ProxyServerInfo {
   id: string
   name: string
   toolCount: number
+  directToolCount?: number
   status: string
   /** Self-reported server usage instructions (empty when the server provides none). */
   instructions?: string
@@ -239,13 +240,36 @@ function notFoundResult(
 export function buildProxyDescription(servers: ProxyServerInfo[]): string {
   const lines: string[] = []
   lines.push('Call MCP (Model Context Protocol) tools exposed by the configured servers.')
+
+  const directSummaries: string[] = []
+  for (const s of servers) {
+    const directCount = s.directToolCount ?? 0
+    if (directCount > 0) {
+      directSummaries.push(`${s.name} (${directCount})`)
+    }
+  }
+
+  if (directSummaries.length > 0) {
+    lines.push('')
+    lines.push(`Direct tools available (call as normal tools): ${directSummaries.join(', ')}`)
+  }
+
   lines.push('')
   lines.push('Servers:')
   if (servers.length === 0) {
     lines.push('  (none assigned)')
   } else {
+    let listedServerCount = 0
     for (const s of servers) {
-      lines.push(`  - ${s.name} (${s.toolCount} tools, status: ${s.status})`)
+      const directCount = s.directToolCount ?? 0
+      const proxyCount = Math.max(0, s.toolCount - directCount)
+      if (proxyCount > 0 || directCount === 0) {
+        lines.push(`  - ${s.name} (${proxyCount} tools, status: ${s.status})`)
+        listedServerCount++
+      }
+    }
+    if (listedServerCount === 0) {
+      lines.push('  (all assigned tools are configured as direct tools)')
     }
   }
   lines.push('')
