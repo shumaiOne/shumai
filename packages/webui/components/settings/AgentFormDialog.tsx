@@ -2,6 +2,7 @@ import { client } from '@/ui/api/client'
 import { Button } from '@/ui/components/ui/button'
 import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
+import { Badge } from '@/ui/components/ui/badge'
 import {
   Dialog,
   DialogContent,
@@ -21,7 +22,7 @@ import {
 import { Switch } from '@/ui/components/ui/switch'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm, useStore } from '@tanstack/react-form'
-import { Loader2, Puzzle, Terminal } from 'lucide-react'
+import { Loader2, Puzzle, Server, Terminal } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
 import { m } from '@/ui/paraglide/messages.js'
 import { toast } from 'sonner'
@@ -52,6 +53,7 @@ const agentFormSchema = z.object({
   thinkingLevel: thinkingLevelSchema.optional(),
   systemPrompt: z.string().optional(),
   skills: z.array(z.string()).optional(),
+  mcpServerIds: z.array(z.string()).optional(),
   deniedTools: z.array(z.string()).optional(),
 })
 
@@ -144,6 +146,21 @@ export function AgentFormDialog({
 
   const allSkills = skillsData?.skills || []
 
+  // Fetch MCP Servers
+  const { data: mcpData } = useQuery({
+    queryKey: ['teams', teamId, 'mcp', 'servers'],
+    queryFn: async () => {
+      const res = await client.api.teams[':teamId'].mcp.servers.$get({
+        param: { teamId },
+      })
+      if (!res.ok) throw new Error('Failed to fetch MCP servers')
+      return await res.json()
+    },
+    enabled: isOpen,
+  })
+
+  const allMcpServers = mcpData?.servers || []
+
   const schema = useMemo(() => {
     return agentFormSchema.superRefine((data, ctx) => {
       if (data.type === 'chat' || data.type === 'autofill') {
@@ -176,6 +193,7 @@ export function AgentFormDialog({
       thinkingLevel: initialValues?.thinkingLevel || 'off',
       systemPrompt: initialValues?.systemPrompt || '',
       skills: initialValues?.skills?.map((s) => s.skillId) || ([] as string[]),
+      mcpServerIds: initialValues?.mcpServerIds || ([] as string[]),
       deniedTools: initialValues?.deniedTools || ([] as string[]),
     } as AgentFormValues,
     validators: {
@@ -554,6 +572,91 @@ export function AgentFormDialog({
                               <div className="text-center py-8 border-2 border-dashed border-border rounded-xl">
                                 <p className="text-sm text-muted-foreground">
                                   {m.no_skills_available()}
+                                </p>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 border-t border-border pt-6">
+                    <Label className="text-base font-bold flex items-center gap-2">
+                      <Server className="w-5 h-5 text-primary" />
+                      {m.mcp_servers()}
+                    </Label>
+
+                    <div className="space-y-2">
+                      <form.Field
+                        name="mcpServerIds"
+                        children={(mcpField) => (
+                          <>
+                            {allMcpServers.map((mcpServer) => {
+                              const isEnabled =
+                                mcpField.state.value?.includes(mcpServer.id) || false
+                              const needsAuth =
+                                mcpServer.status === 'needs_auth' ||
+                                (!mcpServer.hasCredential && mcpServer.authType === 'oauth')
+
+                              return (
+                                <div
+                                  key={mcpServer.id}
+                                  className="flex items-center justify-between p-3 bg-muted/30 border border-border rounded-lg"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <Server className="w-4 h-4 text-muted-foreground" />
+                                    <div className="flex flex-col">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-sm font-medium">
+                                          {mcpServer.name}
+                                        </span>
+                                        <Badge variant="outline" className="text-[10px]">
+                                          {mcpServer.toolCount ?? 0} tools
+                                        </Badge>
+                                        {needsAuth && (
+                                          <Badge
+                                            variant="secondary"
+                                            className="text-[10px] bg-amber-500/10 text-amber-600 border-amber-500/20"
+                                          >
+                                            {m.mcp_status_needs_auth()}
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      <span className="text-[10px] font-mono text-muted-foreground line-clamp-1">
+                                        {mcpServer.url}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs text-muted-foreground">
+                                      {isEnabled ? m.enabled() : m.disabled()}
+                                    </span>
+                                    <Switch
+                                      checked={isEnabled}
+                                      onCheckedChange={(checked) => {
+                                        if (checked) {
+                                          mcpField.handleChange([
+                                            ...(mcpField.state.value || []),
+                                            mcpServer.id,
+                                          ])
+                                        } else {
+                                          mcpField.handleChange(
+                                            (mcpField.state.value || []).filter(
+                                              (id) => id !== mcpServer.id,
+                                            ),
+                                          )
+                                        }
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              )
+                            })}
+                            {allMcpServers.length === 0 && (
+                              <div className="text-center py-6 border-2 border-dashed border-border rounded-xl">
+                                <p className="text-xs text-muted-foreground">
+                                  {m.no_mcp_servers_installed()}
                                 </p>
                               </div>
                             )}

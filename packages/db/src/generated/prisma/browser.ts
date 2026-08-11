@@ -163,6 +163,21 @@ export type Agent = Prisma.AgentModel
  */
 export type AgentSkill = Prisma.AgentSkillModel
 /**
+ * Model McpServer
+ * 
+ */
+export type McpServer = Prisma.McpServerModel
+/**
+ * Model AgentMcpServer
+ * 
+ */
+export type AgentMcpServer = Prisma.AgentMcpServerModel
+/**
+ * Model McpServerCredential
+ * 
+ */
+export type McpServerCredential = Prisma.McpServerCredentialModel
+/**
  * Model AgentSession
  * 
  */

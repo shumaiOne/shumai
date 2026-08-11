@@ -9,6 +9,7 @@ import fileRoute from './file'
 import folderRoute from './folder'
 import inviteRoute from './invite'
 import metadataRoute from './metadata'
+import mcpRoute, { mcpOauthCallbackRoute } from './mcp'
 import { authMiddleware } from './middleware/auth'
 import { tokenAuthMiddleware } from './middleware/tokenAuth'
 import notificationRoute from './notification'
@@ -34,6 +35,7 @@ const apiRoute = new Hono<{ Variables: { user: User } }>()
   .route('/', publicInviteRoute)
   .route('/', publicShareRoute)
   .route('/', localUploadRoute)
+  .route('/', mcpOauthCallbackRoute)
 
   // Selected routes supporting API token authentication
   .use('/projects', tokenAuthMiddleware)
@@ -61,6 +63,7 @@ const apiRoute = new Hono<{ Variables: { user: User } }>()
   .route('/', uploadRoute)
   .route('/', shareRoute)
   .route('/', skillRoute)
+  .route('/', mcpRoute)
   .route('/', watermarkTemplateRoute)
 
 app.route('/files', s3Route)

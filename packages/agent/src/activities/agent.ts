@@ -7,6 +7,7 @@ import { type ImageContent } from '@earendil-works/pi-ai'
 import { assetService } from '@shumai/core/src/asset/asset'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { logger } from '@shumai/core/src/logger'
+import { mcpService } from '@shumai/core/src/mcp/mcp-service'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { encodeCursor, paginateQuery } from '@shumai/core/src/pagination'
 import { s3Service } from '@shumai/core/src/s3/s3'
@@ -59,6 +60,7 @@ export interface AgentExecutionContext {
   agent: AgentWithProviderAndModel
   dbProviders: DbProviderWithModels[]
   teamSkills: Skill[]
+  mcpServers: Prisma.McpServerGetPayload<Record<string, never>>[]
   enabledSkillIds: string[]
   allowedDomains: string[]
 }
@@ -119,6 +121,13 @@ When creating a file or version, first use 'list_autofill_fields' to inspect the
   const agentConfig = agent.config as PrismaJson.AgentConfig | null | undefined
   const thinkingLevel = agentConfig?.thinkingLevel || 'off'
 
+  // MCP tools are only wired to chat agents (D6); autofill/embedding/naming
+  // sessions never receive MCP tools even if a server is assigned.
+  const mcpTools =
+    agent.type === 'chat'
+      ? await mcpService.buildAgentTools(params.agentId, params.teamId, params.userId)
+      : []
+
   const { session, harness } = await createAgentSession({
     teamId: params.teamId,
     agentId: params.agentId,
@@ -136,7 +145,7 @@ When creating a file or version, first use 'list_autofill_fields' to inspect the
     sessionId: params.sessionId,
     userId: params.userId,
     userCommentId: params.userCommentId,
-    customTools: params.tools || [],
+    customTools: [...(params.tools || []), ...mcpTools],
     providers: dbProviders.map((p) => ({
       name: p.name,
       config: p.config,
@@ -881,6 +890,13 @@ export async function getAgentChatContextActivity(params: {
   const enabledSkills = (agent.skills ?? []).map((as) => as.skill)
   const enabledSkillIds = enabledSkills.map((s) => s.id)
 
+  // Fetch the agent's assigned MCP servers
+  const assignments = await prisma.agentMcpServer.findMany({
+    where: { agentId: params.agentId },
+    include: { mcpServer: true },
+  })
+  const mcpServers = assignments.map((a) => a.mcpServer)
+
   const sandbox = await prisma.sandbox.findUnique({
     where: { teamId: params.teamId },
   })
@@ -890,6 +906,7 @@ export async function getAgentChatContextActivity(params: {
     agent,
     dbProviders,
     teamSkills: enabledSkills,
+    mcpServers,
     enabledSkillIds,
     allowedDomains,
   }
@@ -961,6 +978,9 @@ export async function getAgentAutofillContextActivity(params: {
   const enabledSkills = (agentWithDetails.skills ?? []).map((as) => as.skill)
   const enabledSkillIds = enabledSkills.map((s) => s.id)
 
+  // Autofill agents currently do not use MCP tools.
+  const mcpServers: Prisma.McpServerGetPayload<Record<string, never>>[] = []
+
   const sandbox = await prisma.sandbox.findUnique({
     where: { teamId: params.teamId },
   })
@@ -970,6 +990,7 @@ export async function getAgentAutofillContextActivity(params: {
     agent: agentWithDetails,
     dbProviders,
     teamSkills: enabledSkills,
+    mcpServers,
     enabledSkillIds,
     allowedDomains,
   }

@@ -50,6 +50,7 @@ const route = new Hono<{ Variables: { user: User } }>()
             skillId: s.skillId,
             skill: s.skill,
           })),
+          mcpServerIds: (agent.mcpServers || []).map((m) => m.mcpServerId),
           deniedTools: config.deniedTools || [],
         }
       }),
@@ -93,6 +94,7 @@ const route = new Hono<{ Variables: { user: User } }>()
         skillId: s.skillId,
         skill: s.skill,
       })),
+      mcpServerIds: (agent.mcpServers || []).map((m) => m.mcpServerId),
       deniedTools: config.deniedTools || [],
     }
 
@@ -146,6 +148,7 @@ const route = new Hono<{ Variables: { user: User } }>()
         skillId: s.skillId,
         skill: s.skill,
       })),
+      mcpServerIds: (agent.mcpServers || []).map((m) => m.mcpServerId),
       deniedTools: config.deniedTools || [],
     }
 

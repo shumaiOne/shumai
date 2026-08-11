@@ -80,6 +80,9 @@ export const ModelName = {
   WorkflowTask: 'WorkflowTask',
   Agent: 'Agent',
   AgentSkill: 'AgentSkill',
+  McpServer: 'McpServer',
+  AgentMcpServer: 'AgentMcpServer',
+  McpServerCredential: 'McpServerCredential',
   AgentSession: 'AgentSession',
   AgentSessionEntry: 'AgentSessionEntry',
   UserMetadata: 'UserMetadata',
@@ -530,6 +533,55 @@ export const AgentSkillScalarFieldEnum = {
 } as const
 
 export type AgentSkillScalarFieldEnum = (typeof AgentSkillScalarFieldEnum)[keyof typeof AgentSkillScalarFieldEnum]
+
+
+export const McpServerScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  instructions: 'instructions',
+  url: 'url',
+  transport: 'transport',
+  authConfig: 'authConfig',
+  config: 'config',
+  permission: 'permission',
+  tools: 'tools',
+  status: 'status',
+  lastError: 'lastError',
+  lastConnectedAt: 'lastConnectedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  teamId: 'teamId'
+} as const
+
+export type McpServerScalarFieldEnum = (typeof McpServerScalarFieldEnum)[keyof typeof McpServerScalarFieldEnum]
+
+
+export const AgentMcpServerScalarFieldEnum = {
+  id: 'id',
+  agentId: 'agentId',
+  mcpServerId: 'mcpServerId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AgentMcpServerScalarFieldEnum = (typeof AgentMcpServerScalarFieldEnum)[keyof typeof AgentMcpServerScalarFieldEnum]
+
+
+export const McpServerCredentialScalarFieldEnum = {
+  id: 'id',
+  serverId: 'serverId',
+  serverUrl: 'serverUrl',
+  tokens: 'tokens',
+  clientInfo: 'clientInfo',
+  codeVerifier: 'codeVerifier',
+  oauthState: 'oauthState',
+  pendingAuth: 'pendingAuth',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type McpServerCredentialScalarFieldEnum = (typeof McpServerCredentialScalarFieldEnum)[keyof typeof McpServerCredentialScalarFieldEnum]
 
 
 export const AgentSessionScalarFieldEnum = {

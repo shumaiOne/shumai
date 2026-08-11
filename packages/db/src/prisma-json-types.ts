@@ -359,5 +359,70 @@ declare global {
       watermarkConfigId: string
       shareLinkId?: string
     }
+
+    // ----------------------------------------------------------------------
+    // MCP Server
+    // ----------------------------------------------------------------------
+    export type McpTransport = 'streamable_http' | 'sse'
+
+    export interface McpServerAuthConfig {
+      type?: 'none' | 'bearer' | 'oauth'
+      bearerToken?: string
+      headers?: Record<string, string>
+      oauth?: {
+        grantType?: 'authorization_code' | 'client_credentials'
+        clientId?: string
+        clientSecret?: string
+        scope?: string
+        authorizationParams?: Record<string, string>
+        redirectUri?: string
+        clientName?: string
+        clientUri?: string
+        skipIssuerMetadataValidation?: boolean
+      }
+    }
+
+    export interface McpServerConfig {
+      excludeTools?: string[]
+      requestTimeoutMs?: number
+      idleTimeoutMs?: number
+      keepAlive?: boolean
+      protocolVersion?: 'legacy' | 'auto' | '2026-07-28'
+      directTools?: boolean
+    }
+
+    export interface McpToolInfo {
+      name: string
+      title?: string
+      description?: string
+      inputSchema?: unknown
+    }
+
+    export interface McpStoredTokens {
+      accessToken: string
+      refreshToken?: string
+      expiresAt?: number // Unix timestamp in seconds
+      scope?: string
+      issuer?: string
+    }
+
+    export interface McpStoredClientInfo {
+      clientId: string
+      clientSecret?: string
+      clientIdIssuedAt?: number
+      clientSecretExpiresAt?: number
+      redirectUris?: string[]
+      issuer?: string
+      configPreRegistered?: boolean
+    }
+
+    export interface McpPendingAuth {
+      state: string
+      authorizationUrl: string
+      discovery: Record<string, unknown>
+      expiresAt: number // Unix timestamp in seconds
+      grantType?: 'authorization_code' | 'client_credentials'
+      redirectUri?: string
+    }
   }
 }

@@ -31,6 +31,7 @@ export const agentInfoSchema = z.object({
   systemPrompt: z.string().optional(),
   soul: z.string().optional(),
   skills: z.array(agentSkillSchema).optional(),
+  mcpServerIds: z.array(z.string()).optional(),
   deniedTools: z.array(z.string()).optional(),
 })
 export type AgentInfo = z.infer<typeof agentInfoSchema>
@@ -46,6 +47,7 @@ const baseAgentRequest = z.object({
   systemPrompt: z.string().optional(),
   soul: z.string().optional(),
   skills: z.array(z.string()).optional(),
+  mcpServerIds: z.array(z.string()).optional(),
   deniedTools: z.array(z.string()).optional(),
 })
 

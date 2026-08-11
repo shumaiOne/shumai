@@ -687,6 +687,23 @@ export type EnumAgentTypeWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumAgentTypeFilter<$PrismaModel>
 }
 
+export type EnumMcpTransportFilter<$PrismaModel = never> = {
+  equals?: $Enums.McpTransport | Prisma.EnumMcpTransportFieldRefInput<$PrismaModel>
+  in?: $Enums.McpTransport[] | Prisma.ListEnumMcpTransportFieldRefInput<$PrismaModel>
+  notIn?: $Enums.McpTransport[] | Prisma.ListEnumMcpTransportFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMcpTransportFilter<$PrismaModel> | $Enums.McpTransport
+}
+
+export type EnumMcpTransportWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.McpTransport | Prisma.EnumMcpTransportFieldRefInput<$PrismaModel>
+  in?: $Enums.McpTransport[] | Prisma.ListEnumMcpTransportFieldRefInput<$PrismaModel>
+  notIn?: $Enums.McpTransport[] | Prisma.ListEnumMcpTransportFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMcpTransportWithAggregatesFilter<$PrismaModel> | $Enums.McpTransport
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMcpTransportFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMcpTransportFilter<$PrismaModel>
+}
+
 export type EnumAgentSessionTypeFilter<$PrismaModel = never> = {
   equals?: $Enums.AgentSessionType | Prisma.EnumAgentSessionTypeFieldRefInput<$PrismaModel>
   in?: $Enums.AgentSessionType[] | Prisma.ListEnumAgentSessionTypeFieldRefInput<$PrismaModel>
@@ -1348,6 +1365,23 @@ export type NestedEnumAgentTypeWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumAgentTypeFilter<$PrismaModel>
   _max?: Prisma.NestedEnumAgentTypeFilter<$PrismaModel>
+}
+
+export type NestedEnumMcpTransportFilter<$PrismaModel = never> = {
+  equals?: $Enums.McpTransport | Prisma.EnumMcpTransportFieldRefInput<$PrismaModel>
+  in?: $Enums.McpTransport[] | Prisma.ListEnumMcpTransportFieldRefInput<$PrismaModel>
+  notIn?: $Enums.McpTransport[] | Prisma.ListEnumMcpTransportFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMcpTransportFilter<$PrismaModel> | $Enums.McpTransport
+}
+
+export type NestedEnumMcpTransportWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.McpTransport | Prisma.EnumMcpTransportFieldRefInput<$PrismaModel>
+  in?: $Enums.McpTransport[] | Prisma.ListEnumMcpTransportFieldRefInput<$PrismaModel>
+  notIn?: $Enums.McpTransport[] | Prisma.ListEnumMcpTransportFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumMcpTransportWithAggregatesFilter<$PrismaModel> | $Enums.McpTransport
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMcpTransportFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMcpTransportFilter<$PrismaModel>
 }
 
 export type NestedEnumAgentSessionTypeFilter<$PrismaModel = never> = {

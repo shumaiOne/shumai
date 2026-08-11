@@ -121,6 +121,7 @@ export class AgentService {
       systemPrompt,
       soul,
       skills,
+      mcpServerIds,
       deniedTools,
     } = params
 
@@ -189,6 +190,12 @@ export class AgentService {
                 skillId,
               })) || [],
           },
+          mcpServers: {
+            create:
+              mcpServerIds?.map((mcpServerId) => ({
+                mcpServerId,
+              })) || [],
+          },
         },
       })
 
@@ -202,7 +209,11 @@ export class AgentService {
 
       return tx.agent.findUnique({
         where: { id: agent.id },
-        include: { user: true, skills: { include: { skill: true } } },
+        include: {
+          user: true,
+          skills: { include: { skill: true } },
+          mcpServers: { include: { mcpServer: true } },
+        },
       })
     })
   }
@@ -220,6 +231,7 @@ export class AgentService {
       systemPrompt,
       soul,
       skills,
+      mcpServerIds,
       deniedTools,
     } = params
 
@@ -278,6 +290,11 @@ export class AgentService {
         where: { agentId },
       })
 
+      // Update MCP server assignments: easier to delete all and recreate
+      await tx.agentMcpServer.deleteMany({
+        where: { agentId },
+      })
+
       return tx.agent.update({
         where: { id: agentId },
         data: {
@@ -294,8 +311,18 @@ export class AgentService {
                 skillId,
               })) || [],
           },
+          mcpServers: {
+            create:
+              mcpServerIds?.map((mcpServerId) => ({
+                mcpServerId,
+              })) || [],
+          },
         },
-        include: { user: true, skills: { include: { skill: true } } },
+        include: {
+          user: true,
+          skills: { include: { skill: true } },
+          mcpServers: { include: { mcpServer: true } },
+        },
       })
     })
   }
@@ -338,6 +365,7 @@ export class AgentService {
             skill: true,
           },
         },
+        mcpServers: true,
       },
     })
   }

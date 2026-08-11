@@ -20,6 +20,7 @@ export enum ResourceType {
   MetadataField = 'metadataField',
   Skill = 'skill',
   Provider = 'provider',
+  McpServer = 'mcpServer',
   Invite = 'invite',
   Comment = 'comment',
   AgentSession = 'agentSession',
@@ -185,6 +186,15 @@ export class AuthzService {
         })
         if (!skill) throw new HTTPException(404, { message: 'Skill not found' })
         return { teamId: skill.teamId }
+      }
+
+      case ResourceType.McpServer: {
+        const server = await prisma.mcpServer.findUnique({
+          where: { id },
+          select: { teamId: true },
+        })
+        if (!server) throw new HTTPException(404, { message: 'MCP server not found' })
+        return { teamId: server.teamId }
       }
 
       case ResourceType.Provider: {
