@@ -668,20 +668,18 @@ describe('McpService', () => {
     }
   })
 
-  it(
-    'registers direct tools only for assigned servers',
-    async () => {
-      const agent = await seedAgentAndUser(teamId, 'Direct Assigned Only Agent')
-      const [assignedSrv, unassignedSrv] = await Promise.all([
-        startTestMcpServer({
-          tools: TAVILY_TOOLS,
-          serverInfo: { name: 'tavily-mcp' },
-        }),
-        startTestMcpServer({
-          tools: AIRTABLE_TOOLS,
-          serverInfo: { name: 'airtable-mcp-server' },
-        }),
-      ])
+  it('registers direct tools only for assigned servers', async () => {
+    const agent = await seedAgentAndUser(teamId, 'Direct Assigned Only Agent')
+    const [assignedSrv, unassignedSrv] = await Promise.all([
+      startTestMcpServer({
+        tools: TAVILY_TOOLS,
+        serverInfo: { name: 'tavily-mcp' },
+      }),
+      startTestMcpServer({
+        tools: AIRTABLE_TOOLS,
+        serverInfo: { name: 'airtable-mcp-server' },
+      }),
+    ])
     try {
       const assigned = await service.createServer(teamId, {
         url: assignedSrv.url,

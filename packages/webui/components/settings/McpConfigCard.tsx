@@ -7,8 +7,6 @@ import {
   MoreVertical,
   Plus,
   Trash2,
-  Edit,
-  RefreshCw,
   Zap,
   ShieldCheck,
   CheckCircle2,
@@ -108,28 +106,6 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
 
   // Enable/Disable Mutation
   // (Removed: enable/disable now happens per-agent via AgentMcpServer assignment.)
-
-  // Test Server Mutation
-  const testMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await client.api.mcp.servers[':id'].test.$post({ param: { id } })
-      if (!res.ok) throw new Error('Failed to test server connection')
-      return await res.json()
-    },
-    onSuccess: (res) => {
-      if (res && typeof res === 'object' && 'success' in res && res.success) {
-        toast.success(m.mcp_test_success())
-      } else {
-        const errorMsg =
-          res && typeof res === 'object' && 'error' in res ? String(res.error) : m.mcp_test_failed()
-        toast.error(errorMsg)
-      }
-      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'mcp', 'servers'] })
-    },
-    onError: (err: Error) => {
-      toast.error(err.message)
-    },
-  })
 
   // Disconnect Auth Mutation
   const disconnectAuthMutation = useMutation({
@@ -337,31 +313,8 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setEditingServer(server)
-                            }}
-                          >
-                            <Edit className="w-4 h-4 mr-2" />
-                            {m.edit()}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              testMutation.mutate(server.id)
-                            }}
-                            disabled={testMutation.isPending}
-                          >
-                            <RefreshCw
-                              className={`w-4 h-4 mr-2 ${
-                                testMutation.isPending ? 'animate-spin' : ''
-                              }`}
-                            />
-                            {m.mcp_test_connection()}
-                          </DropdownMenuItem>
-
-                          {server.authType !== 'none' || server.hasCredential ? (
+                          {server.status !== 'connected' &&
+                          (server.authType !== 'none' || server.hasCredential) ? (
                             <DropdownMenuItem
                               onClick={(e) => {
                                 e.stopPropagation()
@@ -386,7 +339,9 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
                             </DropdownMenuItem>
                           )}
 
-                          <DropdownMenuSeparator />
+                          {((server.status !== 'connected' &&
+                            (server.authType !== 'none' || server.hasCredential)) ||
+                            server.hasCredential) && <DropdownMenuSeparator />}
                           <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation()
