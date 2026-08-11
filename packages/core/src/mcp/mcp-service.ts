@@ -911,9 +911,36 @@ export class McpService {
     return formatToolName(serverName, toolName)
   }
 
+  private idleCleanupInterval?: ReturnType<typeof setInterval>
+
+  /** Start a periodic background timer to prune idle connections. Default check interval is 30 seconds. */
+  startIdleCleanupTimer(intervalMs = 30 * 1000, defaultTimeoutMs?: number): void {
+    if (this.idleCleanupInterval) return
+    this.idleCleanupInterval = setInterval(() => {
+      this.closeIdleConnections(defaultTimeoutMs).catch((error) => {
+        logger.debug({ error }, 'Failed to close idle connections in background timer')
+      })
+    }, intervalMs)
+    this.idleCleanupInterval.unref?.()
+  }
+
+  /** Stop the background idle cleanup timer. */
+  stopIdleCleanupTimer(): void {
+    if (this.idleCleanupInterval) {
+      clearInterval(this.idleCleanupInterval)
+      this.idleCleanupInterval = undefined
+    }
+  }
+
   /** Close all in-process MCP connections (used by tests/shutdown). */
   async closeAllConnections(): Promise<void> {
+    this.stopIdleCleanupTimer()
     await this.manager.closeAll()
+  }
+
+  /** Close idle connections across all active server connections. */
+  async closeIdleConnections(defaultTimeoutMs?: number): Promise<string[]> {
+    return this.manager.closeIdleConnections(defaultTimeoutMs)
   }
 
   /** Number of live in-process connections (used by tests). */

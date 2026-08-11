@@ -33,6 +33,8 @@ export type McpServerAuthConfig = z.infer<typeof mcpServerAuthConfigSchema>
 export const mcpServerConfigSchema = z.object({
   excludeTools: z.array(z.string()).optional(),
   requestTimeoutMs: z.number().int().positive().optional(),
+  idleTimeoutMs: z.number().int().positive().optional(),
+  keepAlive: z.boolean().optional(),
   protocolVersion: z.enum(['legacy', 'auto', '2026-07-28']).optional(),
   directTools: z.boolean().optional(),
 })

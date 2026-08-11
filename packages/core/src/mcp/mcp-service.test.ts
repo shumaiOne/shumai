@@ -859,4 +859,115 @@ describe('McpService', () => {
       await srvB.stop()
     }
   })
+
+  describe('Idle connection and in-flight tracking', () => {
+    it('tracks in-flight requests and safely prunes idle connections', async () => {
+      let resolveSlowTool: () => void = () => {}
+      const slowServer = await startTestMcpServer({
+        tools: [
+          {
+            name: 'slow_tool',
+            description: 'Slow tool',
+            handler: async () => {
+              await new Promise<void>((resolve) => {
+                resolveSlowTool = resolve
+              })
+              return 'slow-done'
+            },
+          },
+        ],
+        serverInfo: { name: 'slow-mcp' },
+      })
+
+      try {
+        const serverRecord = await service.createServer(teamId, {
+          url: slowServer.url,
+          config: { idleTimeoutMs: 50 },
+        })
+
+        // Connect to the server
+        await service.discoverTools(serverRecord.id)
+        expect(service.getConnectionCount(serverRecord.id)).toBe(1)
+
+        // Start callTool in background
+        const callPromise = service.callMcpTool(serverRecord.id, 'slow_tool', {})
+
+        // Give tool execution a tick to start
+        await new Promise((r) => setTimeout(r, 10))
+
+        // Connection should NOT be idle while tool is in-flight
+        const closedDuringCall = await service.closeIdleConnections(0)
+        expect(closedDuringCall).not.toContain(serverRecord.id)
+        expect(service.getConnectionCount(serverRecord.id)).toBe(1)
+
+        // Complete tool execution
+        resolveSlowTool()
+        const toolResult = await callPromise
+        expect(toolResult.ok).toBe(true)
+
+        // Wait past idle timeout threshold
+        await new Promise((r) => setTimeout(r, 60))
+
+        // Now idle connection should be closed
+        const closedAfterIdle = await service.closeIdleConnections(50)
+        expect(closedAfterIdle).toContain(serverRecord.id)
+        expect(service.getConnectionCount(serverRecord.id)).toBe(0)
+      } finally {
+        await slowServer.stop()
+      }
+    })
+
+    it('respects keepAlive setting when closing idle connections', async () => {
+      const keepAliveServer = await startTestMcpServer({
+        tools: standardTestTools(),
+        serverInfo: { name: 'keep-alive-mcp' },
+      })
+
+      try {
+        const serverRecord = await service.createServer(teamId, {
+          url: keepAliveServer.url,
+          config: { keepAlive: true },
+        })
+
+        await service.discoverTools(serverRecord.id)
+        expect(service.getConnectionCount(serverRecord.id)).toBe(1)
+
+        // Wait a bit
+        await new Promise((r) => setTimeout(r, 20))
+
+        // Should not close server marked with keepAlive even with 0 timeout
+        const closed = await service.closeIdleConnections(0)
+        expect(closed).not.toContain(serverRecord.id)
+        expect(service.getConnectionCount(serverRecord.id)).toBe(1)
+      } finally {
+        await keepAliveServer.stop()
+      }
+    })
+
+    it('can run periodic idle cleanup background timer', async () => {
+      const timerServer = await startTestMcpServer({
+        tools: standardTestTools(),
+        serverInfo: { name: 'timer-mcp' },
+      })
+
+      try {
+        const serverRecord = await service.createServer(teamId, {
+          url: timerServer.url,
+        })
+        await service.discoverTools(serverRecord.id)
+        expect(service.getConnectionCount(serverRecord.id)).toBe(1)
+
+        // Start timer with very short interval (20ms) and 0ms idle timeout
+        service.startIdleCleanupTimer(20, 0)
+
+        // Wait for timer tick
+        await new Promise((r) => setTimeout(r, 60))
+
+        expect(service.getConnectionCount(serverRecord.id)).toBe(0)
+      } finally {
+        service.stopIdleCleanupTimer()
+        await timerServer.stop()
+      }
+    })
+  })
 })

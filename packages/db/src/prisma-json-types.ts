@@ -385,6 +385,8 @@ declare global {
     export interface McpServerConfig {
       excludeTools?: string[]
       requestTimeoutMs?: number
+      idleTimeoutMs?: number
+      keepAlive?: boolean
       protocolVersion?: 'legacy' | 'auto' | '2026-07-28'
       directTools?: boolean
     }

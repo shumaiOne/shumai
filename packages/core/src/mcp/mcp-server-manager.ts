@@ -324,9 +324,9 @@ export class McpServerManager {
     if (!connection || connection.status !== 'connected') {
       throw new Error(`Server is not connected`)
     }
+    this.incrementInFlight(serverId)
     try {
       this.touch(serverId)
-      connection.inFlight++
       const result = await connection.client.callTool(
         { name: toolName, arguments: args },
         this.buildRequestOptions(connection.definition),
@@ -337,9 +337,43 @@ export class McpServerManager {
         isError: result.isError,
       }
     } finally {
-      connection.inFlight--
+      this.decrementInFlight(serverId)
       this.touch(serverId)
     }
+  }
+
+  incrementInFlight(serverId: string): void {
+    const connection = this.connections.get(serverId)
+    if (connection) {
+      connection.inFlight = (connection.inFlight ?? 0) + 1
+    }
+  }
+
+  decrementInFlight(serverId: string): void {
+    const connection = this.connections.get(serverId)
+    if (connection && connection.inFlight > 0) {
+      connection.inFlight--
+    }
+  }
+
+  isIdle(serverId: string, timeoutMs: number): boolean {
+    const connection = this.connections.get(serverId)
+    if (!connection || connection.status !== 'connected') return false
+    if (connection.inFlight > 0) return false
+    return Date.now() - connection.lastUsedAt > timeoutMs
+  }
+
+  async closeIdleConnections(defaultTimeoutMs = 10 * 60 * 1000): Promise<string[]> {
+    const closedIds: string[] = []
+    for (const [serverId, connection] of this.connections) {
+      if (connection.definition.config?.keepAlive) continue
+      const timeoutMs = connection.definition.config?.idleTimeoutMs ?? defaultTimeoutMs
+      if (this.isIdle(serverId, timeoutMs)) {
+        await this.close(serverId)
+        closedIds.push(serverId)
+      }
+    }
+    return closedIds
   }
 
   touch(serverId: string): void {
