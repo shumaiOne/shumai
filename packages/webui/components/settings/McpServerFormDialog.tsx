@@ -463,40 +463,23 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
 
                 {/* Tools list */}
                 <div className="space-y-3 pt-3 border-t border-border">
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <div>
-                      <Label className="text-xs font-semibold flex items-center gap-1.5">
-                        <Wrench className="w-3.5 h-3.5" />
-                        {m.mcp_tools()} ({tools.length})
-                      </Label>
-                      <div className="text-[11px] text-muted-foreground mt-1.5 space-y-0.5">
-                        <p>
-                          <span className="font-semibold text-foreground">
-                            {m.mcp_tool_state_disabled()}:
-                          </span>{' '}
-                          {m.mcp_tool_hint_off()}
-                        </p>
-                        <p>
-                          <span className="font-semibold text-foreground">
-                            {m.mcp_tool_state_proxy()}:
-                          </span>{' '}
-                          {m.mcp_tool_hint_proxy()}
-                        </p>
-                        <p>
-                          <span className="font-semibold text-foreground">
-                            {m.mcp_tool_state_direct()}:
-                          </span>{' '}
-                          {m.mcp_tool_hint_direct()}
-                        </p>
-                      </div>
-                    </div>
+                  <div className="space-y-2.5">
+                    <Label className="text-xs font-semibold flex items-center gap-1.5">
+                      <Wrench className="w-3.5 h-3.5" />
+                      {m.mcp_tools()} ({tools.length})
+                    </Label>
+
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      {m.mcp_tools_desc()}
+                    </p>
+
                     {tools.length > 0 && (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1.5 pt-0.5">
                         <Button
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="h-7 text-[11px] px-2"
+                          className="h-7 text-[11px] px-2.5"
                           onClick={() => handleBulkSetState('off')}
                           disabled={refreshMutation.isPending || isToolsLoading}
                         >
@@ -506,7 +489,7 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="h-7 text-[11px] px-2"
+                          className="h-7 text-[11px] px-2.5"
                           onClick={() => handleBulkSetState('on')}
                           disabled={refreshMutation.isPending || isToolsLoading}
                         >
@@ -516,7 +499,7 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="h-7 text-[11px] px-2"
+                          className="h-7 text-[11px] px-2.5"
                           onClick={() => handleBulkSetState('direct')}
                           disabled={refreshMutation.isPending || isToolsLoading}
                         >
