@@ -7,7 +7,6 @@ import {
   MoreVertical,
   Plus,
   Trash2,
-  Zap,
   ShieldCheck,
   CheckCircle2,
   AlertCircle,
@@ -273,7 +272,6 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
         ) : (
           <div className="space-y-4">
             {servers.map((server) => {
-              const isDirectMode = server.config?.directTools
               const isAuthenticating = authenticatingServerId === server.id
               const needsAuth =
                 server.status === 'needs_auth' ||
@@ -292,15 +290,6 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
                     <h4 className="font-bold text-foreground flex items-center gap-2 min-w-0">
                       <Server className="w-4 h-4 text-muted-foreground shrink-0" />
                       <span className="truncate">{server.name}</span>
-                      {isDirectMode && (
-                        <Badge
-                          variant="outline"
-                          className="text-[10px] bg-primary/5 text-primary border-primary/20 shrink-0"
-                        >
-                          <Zap className="w-3 h-3 mr-0.5" />
-                          {m.mcp_direct_tools_mode()}
-                        </Badge>
-                      )}
                       <Badge variant="outline" className="text-[10px] uppercase shrink-0">
                         {server.transport}
                       </Badge>

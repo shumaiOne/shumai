@@ -12,7 +12,7 @@ import {
 import { Button } from '@/ui/components/ui/button'
 import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
-import { Switch } from '@/ui/components/ui/switch'
+import { ToggleGroup, ToggleGroupItem } from '@/ui/components/ui/toggle-group'
 import { Badge } from '@/ui/components/ui/badge'
 import { ScrollArea } from '@/ui/components/ui/scroll-area'
 import {
@@ -66,7 +66,7 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
   )
 
   // Config state
-  const [directTools, setDirectTools] = useState(false)
+  const [directTools, setDirectTools] = useState<string[]>([])
   const [excludedTools, setExcludedTools] = useState<string[]>([])
 
   // Tools inspector state
@@ -79,7 +79,7 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
       setTransport(server.transport || 'streamable_http')
       setPermission(server.permission || 'reviewer')
       setAuthType(server.authType || 'auto')
-      setDirectTools(server.config?.directTools ?? false)
+      setDirectTools(Array.isArray(server.config?.directTools) ? server.config.directTools : [])
       setExcludedTools(server.config?.excludeTools ?? [])
       setExpandedTools({})
       setIsInstructionsExpanded(false)
@@ -93,7 +93,7 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
       setClientSecret('')
       setScope('')
       setGrantType('authorization_code')
-      setDirectTools(false)
+      setDirectTools([])
       setExcludedTools([])
       setExpandedTools({})
       setIsInstructionsExpanded(false)
@@ -166,7 +166,7 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
   const saveMutation = useMutation({
     mutationFn: async () => {
       const config = {
-        directTools,
+        directTools: directTools.length > 0 ? directTools : undefined,
         excludeTools: excludedTools.length > 0 ? excludedTools : undefined,
       }
 
@@ -222,10 +222,37 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
 
   const tools = toolsData?.tools ?? []
 
-  const isToolExcluded = (toolName: string) => excludedTools.includes(toolName)
+  const getToolState = (toolName: string): 'off' | 'on' | 'direct' => {
+    if (excludedTools.includes(toolName)) return 'off'
+    if (directTools.includes(toolName)) return 'direct'
+    return 'on'
+  }
 
-  const toggleToolEnabled = (toolName: string, enabled: boolean) => {
-    setExcludedTools((prev) => (enabled ? prev.filter((n) => n !== toolName) : [...prev, toolName]))
+  const setToolState = (toolName: string, state: 'off' | 'on' | 'direct') => {
+    if (state === 'off') {
+      setExcludedTools((prev) => (prev.includes(toolName) ? prev : [...prev, toolName]))
+      setDirectTools((prev) => prev.filter((n) => n !== toolName))
+    } else if (state === 'on') {
+      setExcludedTools((prev) => prev.filter((n) => n !== toolName))
+      setDirectTools((prev) => prev.filter((n) => n !== toolName))
+    } else if (state === 'direct') {
+      setExcludedTools((prev) => prev.filter((n) => n !== toolName))
+      setDirectTools((prev) => (prev.includes(toolName) ? prev : [...prev, toolName]))
+    }
+  }
+
+  const handleBulkSetState = (state: 'off' | 'on' | 'direct') => {
+    const allToolNames = tools.map((t) => t.name)
+    if (state === 'off') {
+      setExcludedTools(allToolNames)
+      setDirectTools([])
+    } else if (state === 'on') {
+      setExcludedTools([])
+      setDirectTools([])
+    } else if (state === 'direct') {
+      setExcludedTools([])
+      setDirectTools(allToolNames)
+    }
   }
 
   const toggleExpand = (toolName: string) => {
@@ -309,29 +336,30 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
                 </div>
 
                 {/* Transport & Permission */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-xs font-semibold">{m.mcp_transport()}</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-border">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">{m.mcp_transport()}</Label>
                     <Select
                       value={transport}
-                      onValueChange={(val) => setTransport(val as McpTransport)}
+                      onValueChange={(val: McpTransport) => setTransport(val)}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="h-9 text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="streamable_http">Streamable HTTP (Default)</SelectItem>
+                        <SelectItem value="streamable_http">Streamable HTTP</SelectItem>
                         <SelectItem value="sse">Server-Sent Events (SSE)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs font-semibold">{m.skill_permission()}</Label>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">{m.skill_permission()}</Label>
                     <Select
                       value={permission}
-                      onValueChange={(val) => setPermission(val as McpServerPermission)}
+                      onValueChange={(val: McpServerPermission) => setPermission(val)}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="h-9 text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -343,51 +371,48 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
                   </div>
                 </div>
 
-                {/* Authentication Section */}
+                {/* Authentication Configuration */}
                 <div className="space-y-3 pt-3 border-t border-border">
-                  <Label className="text-xs font-semibold flex items-center justify-between">
-                    <span>{m.mcp_auth_type()}</span>
-                    <span className="text-[10px] text-muted-foreground font-normal">
-                      Configures server connection auth
-                    </span>
-                  </Label>
-
-                  <Select
-                    value={authType}
-                    onValueChange={(val) => setAuthType(val as McpServerAuthType | 'auto')}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="auto">{m.mcp_auth_auto()}</SelectItem>
-                      <SelectItem value="none">{m.mcp_auth_none()}</SelectItem>
-                      <SelectItem value="bearer">{m.mcp_auth_bearer()}</SelectItem>
-                      <SelectItem value="oauth">{m.mcp_auth_oauth()}</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">{m.mcp_auth_type()}</Label>
+                    <Select
+                      value={authType}
+                      onValueChange={(val: McpServerAuthType | 'auto') => setAuthType(val)}
+                    >
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="auto">{m.mcp_auth_auto()}</SelectItem>
+                        <SelectItem value="none">{m.mcp_auth_none()}</SelectItem>
+                        <SelectItem value="bearer">{m.mcp_auth_bearer()}</SelectItem>
+                        <SelectItem value="oauth">{m.mcp_auth_oauth()}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
                   {authType === 'bearer' && (
-                    <div className="space-y-2 pl-1 pt-1">
+                    <div className="space-y-1.5">
                       <Label className="text-xs">{m.mcp_bearer_token()}</Label>
                       <Input
+                        className="h-9 text-xs font-mono"
                         type="password"
                         value={bearerToken}
                         onChange={(e) => setBearerToken(e.target.value)}
-                        placeholder="Bearer token value"
+                        placeholder="Enter token string"
                       />
                     </div>
                   )}
 
                   {authType === 'oauth' && (
-                    <div className="space-y-3 pl-1 pt-1 border-l-2 border-primary/20 pl-3">
+                    <div className="p-3 bg-muted/20 border border-border rounded-lg space-y-3">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div className="space-y-1.5">
                           <Label className="text-xs">{m.mcp_oauth_grant_type()}</Label>
                           <Select
                             value={grantType}
-                            onValueChange={(val) =>
-                              setGrantType(val as 'authorization_code' | 'client_credentials')
+                            onValueChange={(val: 'authorization_code' | 'client_credentials') =>
+                              setGrantType(val)
                             }
                           >
                             <SelectTrigger className="h-9 text-xs">
@@ -399,14 +424,13 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
                             </SelectContent>
                           </Select>
                         </div>
-
                         <div className="space-y-1.5">
                           <Label className="text-xs">{m.mcp_oauth_client_id()}</Label>
                           <Input
                             className="h-9 text-xs"
                             value={clientId}
                             onChange={(e) => setClientId(e.target.value)}
-                            placeholder="Optional pre-registered Client ID"
+                            placeholder="Optional Client ID"
                           />
                         </div>
                       </div>
@@ -419,17 +443,16 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
                             type="password"
                             value={clientSecret}
                             onChange={(e) => setClientSecret(e.target.value)}
-                            placeholder="Optional Client Secret"
+                            placeholder="Optional Secret"
                           />
                         </div>
-
                         <div className="space-y-1.5">
                           <Label className="text-xs">{m.mcp_oauth_scope()}</Label>
                           <Input
                             className="h-9 text-xs"
                             value={scope}
                             onChange={(e) => setScope(e.target.value)}
-                            placeholder="Optional scope (e.g. read,write)"
+                            placeholder="Optional scope"
                           />
                         </div>
                       </div>
@@ -437,32 +460,53 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
                   )}
                 </div>
 
-                {/* Mode */}
+                {/* Tools list */}
                 <div className="space-y-3 pt-3 border-t border-border">
-                  <div className="p-3 bg-muted/20 border border-border rounded-lg space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-foreground">
-                        {m.mcp_direct_tools_mode()}
-                      </span>
-                      <Switch checked={directTools} onCheckedChange={setDirectTools} />
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div>
+                      <Label className="text-xs font-semibold flex items-center gap-1.5">
+                        <Wrench className="w-3.5 h-3.5" />
+                        {m.mcp_tools()}
+                      </Label>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {m.mcp_tools_count({ count: tools.length })} — {m.mcp_tools_hint()}
+                      </p>
                     </div>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      {m.mcp_direct_tools_desc()}
-                    </p>
+                    {tools.length > 0 && (
+                      <div className="flex items-center gap-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-[11px] px-2"
+                          onClick={() => handleBulkSetState('off')}
+                          disabled={refreshMutation.isPending || isToolsLoading}
+                        >
+                          {m.mcp_bulk_all_off()}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-[11px] px-2"
+                          onClick={() => handleBulkSetState('on')}
+                          disabled={refreshMutation.isPending || isToolsLoading}
+                        >
+                          {m.mcp_bulk_all_proxy()}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-[11px] px-2"
+                          onClick={() => handleBulkSetState('direct')}
+                          disabled={refreshMutation.isPending || isToolsLoading}
+                        >
+                          {m.mcp_bulk_all_direct()}
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                </div>
-
-                {/* Tools list (excludeTools management) */}
-                <div className="space-y-3 pt-3 border-t border-border">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold flex items-center gap-1.5">
-                      <Wrench className="w-3.5 h-3.5" />
-                      {m.mcp_tools()}
-                    </Label>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    {m.mcp_tools_count({ count: tools.length })} — {m.mcp_excluded_tools_hint()}
-                  </p>
 
                   <div className="space-y-2">
                     {isToolsLoading ? (
@@ -475,7 +519,7 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
                       </div>
                     ) : (
                       tools.map((tool) => {
-                        const enabled = !isToolExcluded(tool.name)
+                        const currentState = getToolState(tool.name)
                         const isExpanded = !!expandedTools[tool.name]
                         const schemaObj = tool.inputSchema as {
                           properties?: Record<string, { type?: string; description?: string }>
@@ -488,7 +532,7 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
                           <div
                             key={tool.name}
                             className={`border border-border rounded-lg p-3 transition-colors ${
-                              enabled ? 'bg-card' : 'bg-muted/30 opacity-70'
+                              currentState !== 'off' ? 'bg-card' : 'bg-muted/30 opacity-70'
                             }`}
                           >
                             <div className="flex items-start justify-between gap-3">
@@ -525,13 +569,26 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
                               </div>
 
                               <div className="flex items-center gap-2 shrink-0">
-                                <Switch
-                                  checked={enabled}
+                                <ToggleGroup
+                                  type="single"
+                                  value={currentState}
+                                  onValueChange={(val) => {
+                                    if (val) setToolState(tool.name, val as 'off' | 'on' | 'direct')
+                                  }}
+                                  size="sm"
+                                  variant="outline"
                                   disabled={refreshMutation.isPending || isToolsLoading}
-                                  onCheckedChange={(checked) =>
-                                    toggleToolEnabled(tool.name, checked)
-                                  }
-                                />
+                                >
+                                  <ToggleGroupItem value="off" className="text-[11px] px-2 h-7">
+                                    {m.mcp_tool_state_disabled()}
+                                  </ToggleGroupItem>
+                                  <ToggleGroupItem value="on" className="text-[11px] px-2 h-7">
+                                    {m.mcp_tool_state_proxy()}
+                                  </ToggleGroupItem>
+                                  <ToggleGroupItem value="direct" className="text-[11px] px-2 h-7">
+                                    {m.mcp_tool_state_direct()}
+                                  </ToggleGroupItem>
+                                </ToggleGroup>
                               </div>
                             </div>
 

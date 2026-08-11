@@ -259,7 +259,7 @@ describe.each(['local', 'temporal'] as const)('Workflow E2E - MCP tools (executo
 
   it('runs a chat with direct-tools mode (server-prefixed native tools)', async () => {
     const { team, project, agentUser, asset, regularUser } = await seedChatSetup()
-    await createMcpServerAndAssign(team.id, agentUser.id, { directTools: true })
+    await createMcpServerAndAssign(team.id, agentUser.id, { directTools: ['echo'] })
 
     // For direct mode the model would call `e2e_mcp_echo` directly; simulate
     // that by executing the direct tool on the harness.

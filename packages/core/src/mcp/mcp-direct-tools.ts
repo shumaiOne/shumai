@@ -68,11 +68,18 @@ export function buildDirectTools(
   config: PrismaJson.McpServerConfig | undefined,
   opts: DirectToolCallOptions,
 ): AgentTool[] {
-  if (config?.directTools !== true) return []
+  const directToolsSetting = config?.directTools
+  if (!directToolsSetting) return []
 
   const tools: AgentTool[] = []
   for (const tool of metadata) {
     if (!isToolAllowed(tool.name, tool.originalName, config)) continue
+
+    const isDirect = Array.isArray(directToolsSetting)
+      ? directToolsSetting.includes(tool.originalName) || directToolsSetting.includes(tool.name)
+      : (directToolsSetting as unknown) === true
+
+    if (!isDirect) continue
     const parameters = toToolParameters(tool.inputSchema)
     tools.push({
       name: tool.name,

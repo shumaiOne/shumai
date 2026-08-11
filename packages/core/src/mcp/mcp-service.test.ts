@@ -683,11 +683,11 @@ describe('McpService', () => {
     try {
       const assigned = await service.createServer(teamId, {
         url: assignedSrv.url,
-        config: { directTools: true },
+        config: { directTools: ['tavily_search'] },
       })
       const unassigned = await service.createServer(teamId, {
         url: unassignedSrv.url,
-        config: { directTools: true },
+        config: { directTools: ['search_records'] },
       })
       await service.refreshServer(assigned.id)
       await service.refreshServer(unassigned.id)
@@ -711,17 +711,25 @@ describe('McpService', () => {
     const agent = await seedAgentAndUser(teamId, 'Direct Agent')
     const server = await service.createServer(teamId, {
       url: srv.url,
-      config: { directTools: true },
+      config: { directTools: ['echo', 'add'] },
     })
     await service.refreshServer(server.id)
     await prisma.agentMcpServer.create({ data: { agentId: agent.id, mcpServerId: server.id } })
 
     const tools = await service.buildAgentTools(agent.id, teamId)
-    expect(tools.length).toBe(4) // proxy + 3 direct tools
+    expect(tools.length).toBe(3) // proxy + 2 direct tools ('echo', 'add')
     const names = tools.map((t) => t.name)
     expect(names).toContain('mcp')
     expect(names).toContain('test_mcp_server_echo')
     expect(names).toContain('test_mcp_server_add')
+    expect(names).not.toContain('test_mcp_server_list_sims') // kept as proxy tool only
+
+    // Dynamic proxy description shows direct summary and remaining proxy count.
+    const proxy = tools.find((t) => t.name === 'mcp')!
+    expect(proxy.description).toContain(
+      'Direct tools available (call as normal tools): test-mcp-server (2)',
+    )
+    expect(proxy.description).toContain('test-mcp-server (1 tools, status:')
 
     // Direct tool executes through callMcpTool.
     const echo = tools.find((t) => t.name === 'test_mcp_server_echo')!
@@ -738,7 +746,7 @@ describe('McpService', () => {
     const agent = await seedAgentAndUser(teamId, 'Filtered Agent')
     const server = await service.createServer(teamId, {
       url: srv.url,
-      config: { directTools: true, excludeTools: ['add'] },
+      config: { directTools: ['echo', 'add'], excludeTools: ['add'] },
     })
     await service.refreshServer(server.id)
     await prisma.agentMcpServer.create({ data: { agentId: agent.id, mcpServerId: server.id } })
@@ -746,7 +754,6 @@ describe('McpService', () => {
     const tools = await service.buildAgentTools(agent.id, teamId)
     const names = tools.map((t) => t.name)
     expect(names).toContain('test_mcp_server_echo')
-    expect(names).toContain('test_mcp_server_list_sims')
     expect(names).not.toContain('test_mcp_server_add')
   })
 

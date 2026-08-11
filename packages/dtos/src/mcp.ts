@@ -36,7 +36,7 @@ export const mcpServerConfigSchema = z.object({
   idleTimeoutMs: z.number().int().positive().optional(),
   keepAlive: z.boolean().optional(),
   protocolVersion: z.enum(['legacy', 'auto', '2026-07-28']).optional(),
-  directTools: z.boolean().optional(),
+  directTools: z.array(z.string()).optional(),
 })
 export type McpServerConfig = z.infer<typeof mcpServerConfigSchema>
 

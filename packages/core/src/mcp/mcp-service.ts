@@ -836,10 +836,19 @@ export class McpService {
     const proxyServers = servers.map((s) => {
       serverNameById.set(s.id, s.name)
       serverIdByName.set(s.name, s.id)
+      const directSetting = s.config?.directTools
+      const directToolCount = s.tools.filter((t) => {
+        if (Array.isArray(directSetting)) {
+          return directSetting.includes(t.name)
+        }
+        return (directSetting as unknown) === true
+      }).length
+
       return {
         id: s.id,
         name: s.name,
         toolCount: s.tools.length,
+        directToolCount,
         status: s.status,
         ...(s.instructions !== null && s.instructions !== undefined
           ? { instructions: s.instructions }
@@ -878,7 +887,7 @@ export class McpService {
     const tools: AgentTool[] = [buildProxyTool(ctx)]
 
     for (const server of servers) {
-      if (server.config?.directTools !== true) continue
+      if (!server.config?.directTools) continue
       const metadata: ToolMetadata[] = registry.getTools(server.id)
       tools.push(
         ...buildDirectTools(metadata, server.config, {

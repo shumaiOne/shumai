@@ -388,7 +388,7 @@ declare global {
       idleTimeoutMs?: number
       keepAlive?: boolean
       protocolVersion?: 'legacy' | 'auto' | '2026-07-28'
-      directTools?: boolean
+      directTools?: string[]
     }
 
     export interface McpToolInfo {
