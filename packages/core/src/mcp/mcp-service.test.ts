@@ -864,15 +864,24 @@ describe('McpService', () => {
 
   describe('Idle connection and in-flight tracking', () => {
     it('tracks in-flight requests and safely prunes idle connections', async () => {
-      let resolveSlowTool: () => void = () => {}
+      // Deterministic synchronization with the server-side handler: the handler
+      // signals when it starts executing and only then blocks on the release
+      // gate. This avoids wall-clock guessing about when the HTTP round trip
+      // has reached the server, which is slow and variable on CI.
+      let slowToolStarted!: () => void
+      const slowToolStartedPromise = new Promise<void>((resolve) => {
+        slowToolStarted = resolve
+      })
+      let releaseSlowTool: () => void = () => {}
       const slowServer = await startTestMcpServer({
         tools: [
           {
             name: 'slow_tool',
             description: 'Slow tool',
             handler: async () => {
+              slowToolStarted()
               await new Promise<void>((resolve) => {
-                resolveSlowTool = resolve
+                releaseSlowTool = resolve
               })
               return 'slow-done'
             },
@@ -894,8 +903,14 @@ describe('McpService', () => {
         // Start callTool in background
         const callPromise = service.callMcpTool(serverRecord.id, 'slow_tool', {})
 
-        // Give tool execution a tick to start
-        await new Promise((r) => setTimeout(r, 10))
+        // Wait until the tool handler is actually executing on the server so
+        // the request is guaranteed to be in-flight before we assert on it.
+        await Promise.race([
+          slowToolStartedPromise,
+          callPromise.then(() => {
+            throw new Error('slow_tool finished before its handler started')
+          }),
+        ])
 
         // Connection should NOT be idle while tool is in-flight
         const closedDuringCall = await service.closeIdleConnections(0)
@@ -903,7 +918,7 @@ describe('McpService', () => {
         expect(service.getConnectionCount(serverRecord.id)).toBe(1)
 
         // Complete tool execution
-        resolveSlowTool()
+        releaseSlowTool()
         const toolResult = await callPromise
         expect(toolResult.ok).toBe(true)
 
@@ -917,7 +932,7 @@ describe('McpService', () => {
       } finally {
         await slowServer.stop()
       }
-    })
+    }, 10000)
 
     it('respects keepAlive setting when closing idle connections', async () => {
       const keepAliveServer = await startTestMcpServer({
