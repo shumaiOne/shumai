@@ -461,17 +461,16 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
 
                 {/* Mode */}
                 <div className="space-y-3 pt-3 border-t border-border">
-                  <div className="flex items-center justify-between p-3 bg-muted/20 border border-border rounded-lg">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-semibold flex items-center gap-1.5">
+                  <div className="p-3 bg-muted/20 border border-border rounded-lg space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-foreground">
                         {m.mcp_direct_tools_mode()}
-                        <Info className="w-3.5 h-3.5 text-muted-foreground" />
                       </span>
-                      <span className="text-[11px] text-muted-foreground">
-                        {m.mcp_direct_tools_desc()}
-                      </span>
+                      <Switch checked={directTools} onCheckedChange={setDirectTools} />
                     </div>
-                    <Switch checked={directTools} onCheckedChange={setDirectTools} />
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      {m.mcp_direct_tools_desc()}
+                    </p>
                   </div>
                 </div>
 
