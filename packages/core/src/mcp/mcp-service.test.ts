@@ -749,5 +749,31 @@ describe('McpService', () => {
         await keepAliveServer.stop()
       }
     })
+
+    it('can run periodic idle cleanup background timer', async () => {
+      const timerServer = await startTestMcpServer({
+        tools: standardTestTools(),
+        serverInfo: { name: 'timer-mcp' },
+      })
+
+      try {
+        const serverRecord = await service.createServer(teamId, {
+          url: timerServer.url,
+        })
+        await service.discoverTools(serverRecord.id)
+        expect(service.getConnectionCount(serverRecord.id)).toBe(1)
+
+        // Start timer with very short interval (20ms) and 0ms idle timeout
+        service.startIdleCleanupTimer(20, 0)
+
+        // Wait for timer tick
+        await new Promise((r) => setTimeout(r, 60))
+
+        expect(service.getConnectionCount(serverRecord.id)).toBe(0)
+      } finally {
+        service.stopIdleCleanupTimer()
+        await timerServer.stop()
+      }
+    })
   })
 })
