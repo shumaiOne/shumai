@@ -35,13 +35,24 @@ export function createDownloadAssetTool(userId: string): AgentTool<typeof downlo
         id: assetId,
       })
 
-      const asset = await prisma.asset.findUnique({
+      let asset = await prisma.asset.findUnique({
         where: { id: assetId },
         include: { storageKey: true },
       })
 
       if (!asset) {
         throw new Error(`Asset with ID ${assetId} not found.`)
+      }
+
+      if (asset.type === 'version_stack') {
+        const latestVersion = await prisma.asset.findFirst({
+          where: { parentId: asset.id, isDeleted: false },
+          orderBy: { sortIndex: 'asc' },
+          include: { storageKey: true },
+        })
+        if (latestVersion) {
+          asset = latestVersion
+        }
       }
 
       let mediaKey = asset.storageKey?.key

@@ -56,12 +56,22 @@ export function createReadPdfPagesTool(
         id: targetAssetId,
       })
 
-      const asset = await prisma.asset.findUnique({
+      let asset = await prisma.asset.findUnique({
         where: { id: targetAssetId },
       })
 
       if (!asset) {
         throw new Error(`Asset with ID ${targetAssetId} not found.`)
+      }
+
+      if (asset.type === 'version_stack') {
+        const latestVersion = await prisma.asset.findFirst({
+          where: { parentId: asset.id, isDeleted: false },
+          orderBy: { sortIndex: 'asc' },
+        })
+        if (latestVersion) {
+          asset = latestVersion
+        }
       }
 
       const proxyType = (asset.media as PrismaJson.MediaInfo | null)?.proxyType
