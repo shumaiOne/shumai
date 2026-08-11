@@ -356,8 +356,6 @@ export * from "./mcp_oauth_client_id.js";
 export * from "./mcp_oauth_client_secret.js";
 export * from "./mcp_oauth_scope.js";
 export * from "./mcp_oauth_grant_type.js";
-export * from "./mcp_direct_tools_mode.js";
-export * from "./mcp_direct_tools_desc.js";
 export * from "./mcp_tools.js";
 export * from "./mcp_tools_count.js";
 export * from "./mcp_status_connected.js";

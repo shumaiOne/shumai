@@ -6,17 +6,17 @@ import { getLocale, experimentalStaticLocale } from '../runtime.js';
 /** @typedef {{}} Mcp_Tools_HintInputs */
 
 const en_mcp_tools_hint = /** @type {(inputs: Mcp_Tools_HintInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`Configure tools as Off (disabled), Proxy (via MCP proxy), or Direct (native tool).`)
+	return /** @type {LocalizedString} */ (`Off: Disabled. Proxy: Tools are accessed through the MCP proxy to keep LLM context small. Direct: Exposes tools directly as native agent tools for key or frequently used capabilities to improve tool discovery.`)
 };
 
 const zh_mcp_tools_hint = /** @type {(inputs: Mcp_Tools_HintInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`将工具配置为关闭（禁用）、代理（通过 mcp 代理调用）或直连（直接暴露给 Agent）。`)
+	return /** @type {LocalizedString} */ (`关闭：禁用该工具。代理：通过 MCP 代理调用，节省上下文消耗。直连：直接暴露为智能体原生工具，便于高频/关键工具快速感知与调用。`)
 };
 
 /**
 * | output |
 * | --- |
-* | "Configure tools as Off (disabled), Proxy (via MCP proxy), or Direct (native tool)." |
+* | "Off: Disabled. Proxy: Tools are accessed through the MCP proxy to keep LLM context small. Direct: Exposes tools directly as native agent tools for key or fre..." |
 *
 * @param {Mcp_Tools_HintInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options

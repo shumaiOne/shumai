@@ -313,27 +313,28 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
                       <span className="text-sm text-foreground">{server.description}</span>
                     </div>
                   )}
-                  {server.instructions && (
-                    <div className="flex flex-col">
-                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                        {m.mcp_server_instructions()}
-                      </span>
-                      <p
-                        onClick={() => setIsInstructionsExpanded((prev) => !prev)}
-                        className={`text-xs text-muted-foreground cursor-pointer transition-all ${
-                          isInstructionsExpanded ? '' : 'line-clamp-2'
-                        }`}
-                        title={isInstructionsExpanded ? undefined : server.instructions}
-                      >
-                        {server.instructions}
-                      </p>
-                    </div>
-                  )}
                   <span className="text-[10px] text-muted-foreground flex items-center gap-1.5">
                     <Info className="w-3 h-3" />
                     {m.mcp_server_auto_detected()}
                   </span>
                 </div>
+
+                {server.instructions && (
+                  <div className="p-3 bg-muted/20 border border-border rounded-lg space-y-1">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold block">
+                      {m.mcp_server_instructions()}
+                    </span>
+                    <p
+                      onClick={() => setIsInstructionsExpanded((prev) => !prev)}
+                      className={`text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed cursor-pointer transition-all ${
+                        isInstructionsExpanded ? '' : 'line-clamp-2'
+                      }`}
+                      title={isInstructionsExpanded ? undefined : 'Click to expand instructions'}
+                    >
+                      {server.instructions}
+                    </p>
+                  </div>
+                )}
 
                 {/* Transport & Permission */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-border">

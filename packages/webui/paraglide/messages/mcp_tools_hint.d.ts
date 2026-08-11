@@ -1,7 +1,7 @@
 /**
 * | output |
 * | --- |
-* | "Configure tools as Off (disabled), Proxy (via MCP proxy), or Direct (native tool)." |
+* | "Off: Disabled. Proxy: Tools are accessed through the MCP proxy to keep LLM context small. Direct: Exposes tools directly as native agent tools for key or fre..." |
 *
 * @param {Mcp_Tools_HintInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options
