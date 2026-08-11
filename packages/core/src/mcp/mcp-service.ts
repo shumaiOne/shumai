@@ -866,6 +866,11 @@ export class McpService {
     await this.manager.closeAll()
   }
 
+  /** Close idle connections across all active server connections. */
+  async closeIdleConnections(defaultTimeoutMs?: number): Promise<string[]> {
+    return this.manager.closeIdleConnections(defaultTimeoutMs)
+  }
+
   /** Number of live in-process connections (used by tests). */
   getConnectionCount(serverId: string): number {
     return this.manager.getConnection(serverId) ? 1 : 0
