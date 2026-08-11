@@ -863,8 +863,8 @@ export class McpService {
 
   private idleCleanupInterval?: ReturnType<typeof setInterval>
 
-  /** Start a periodic background timer to prune idle connections. */
-  startIdleCleanupTimer(intervalMs = 5 * 60 * 1000, defaultTimeoutMs?: number): void {
+  /** Start a periodic background timer to prune idle connections. Default check interval is 30 seconds. */
+  startIdleCleanupTimer(intervalMs = 30 * 1000, defaultTimeoutMs?: number): void {
     if (this.idleCleanupInterval) return
     this.idleCleanupInterval = setInterval(() => {
       this.closeIdleConnections(defaultTimeoutMs).catch((error) => {
