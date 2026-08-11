@@ -35,6 +35,45 @@ export function formatToolName(serverName: string, toolName: string): string {
   return serverPart ? `${serverPart}_${sanitized}` : sanitized
 }
 
+function globToRegExp(pattern: string): RegExp {
+  const escaped = pattern
+    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+    .replace(/\*/g, '.*')
+    .replace(/\?/g, '.')
+  return new RegExp(`^${escaped}$`)
+}
+
+function matchesToolPattern(name: string, patterns?: string[]): boolean {
+  if (!Array.isArray(patterns) || patterns.length === 0) return false
+  for (const pattern of patterns) {
+    if (!pattern) continue
+    if (!pattern.includes('*') && !pattern.includes('?') && name === pattern) return true
+    if ((pattern.includes('*') || pattern.includes('?')) && globToRegExp(pattern).test(name)) {
+      return true
+    }
+  }
+  return false
+}
+
+/**
+ * Decide whether a tool is allowed by excludeTools (matches prefixed or
+ * original name). Applied when building the per-agent registry so excluded
+ * tools are invisible to both the proxy tool and direct registration.
+ */
+export function isToolAllowed(
+  prefixedName: string,
+  originalName: string,
+  excludeTools?: string[],
+): boolean {
+  if (
+    matchesToolPattern(prefixedName, excludeTools) ||
+    matchesToolPattern(originalName, excludeTools)
+  ) {
+    return false
+  }
+  return true
+}
+
 const MIN_STEM_LENGTH = 4
 
 const FIELD_WEIGHTS = {
@@ -147,14 +186,27 @@ export function paginate<T>(
 export class McpToolRegistry {
   private readonly metadataByServer = new Map<string, ToolMetadata[]>()
 
-  /** Rebuild the metadata for one server from its discovered tools. */
-  setTools(serverId: string, serverName: string, tools: McpTool[]): void {
-    const metadata: ToolMetadata[] = tools.map((tool) => ({
-      name: formatToolName(serverName, tool.name),
-      originalName: tool.name,
-      description: tool.description ?? '',
-      ...(tool.inputSchema !== undefined ? { inputSchema: tool.inputSchema } : {}),
-    }))
+  /**
+   * Rebuild the metadata for one server from its discovered tools, skipping
+   * tools excluded via excludeTools so they are unreachable through the proxy.
+   */
+  setTools(
+    serverId: string,
+    serverName: string,
+    tools: McpTool[],
+    opts?: { excludeTools?: string[] },
+  ): void {
+    const metadata: ToolMetadata[] = []
+    for (const tool of tools) {
+      const name = formatToolName(serverName, tool.name)
+      if (!isToolAllowed(name, tool.name, opts?.excludeTools)) continue
+      metadata.push({
+        name,
+        originalName: tool.name,
+        description: tool.description ?? '',
+        ...(tool.inputSchema !== undefined ? { inputSchema: tool.inputSchema } : {}),
+      })
+    }
     metadata.sort((a, b) => a.name.localeCompare(b.name))
     this.metadataByServer.set(serverId, metadata)
   }

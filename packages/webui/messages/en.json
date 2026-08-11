@@ -393,7 +393,6 @@
   "add_mcp_server_to_get_started": "Add an MCP server to extend your AI agent tools.",
   "search_tools_placeholder": "Search tools by name or description...",
   "mcp_server_auto_detected": "Name and description are auto-detected from the server after connecting.",
-  "mcp_excluded_tools_hint": "Disable a tool to exclude it from this server's toolset.",
   "mcp_tool_state_disabled": "Off",
   "mcp_tool_state_proxy": "Proxy",
   "mcp_tool_state_direct": "Direct",

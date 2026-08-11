@@ -393,7 +393,6 @@
   "add_mcp_server_to_get_started": "添加 MCP 服务以扩展 AI Agent 的工具能力。",
   "search_tools_placeholder": "按名称或描述搜索工具...",
   "mcp_server_auto_detected": "连接后将自动从服务端获取名称和描述。",
-  "mcp_excluded_tools_hint": "关闭某个工具会将其从该服务的工具集中排除。",
   "mcp_tool_state_disabled": "关闭",
   "mcp_tool_state_proxy": "代理",
   "mcp_tool_state_direct": "直连",

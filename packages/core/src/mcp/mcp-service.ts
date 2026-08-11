@@ -14,7 +14,7 @@ import type {
 } from '@shumai/dtos'
 import { logger } from '@shumai/core/src/logger'
 import { mcpDbStore, type PendingAuth } from './mcp-db-store'
-import { buildDirectTools } from './mcp-direct-tools'
+import { buildDirectTools, isDirectTool } from './mcp-direct-tools'
 import { McpOauthProvider, type McpOauthConfig } from './mcp-oauth-provider'
 import { buildProxyTool, transformMcpContent, type McpProxyToolContext } from './mcp-proxy-tool'
 import {
@@ -427,7 +427,9 @@ export class McpService {
       const tools = this.toStoredTools(connection.tools)
       const metadata = this.serverMetadata(server, connection)
       const displayName = metadata.name ?? server.name
-      registry?.setTools(serverId, displayName, connection.tools)
+      registry?.setTools(serverId, displayName, connection.tools, {
+        excludeTools: server.config?.excludeTools,
+      })
       await this.updateStatus(serverId, 'connected', null, {
         tools,
         lastConnectedAt: new Date(),
@@ -816,6 +818,7 @@ export class McpService {
               description: t.description ?? '',
               ...(t.inputSchema !== undefined ? { inputSchema: t.inputSchema } : {}),
             })),
+            { excludeTools: s.config?.excludeTools },
           )
         }
         return {
@@ -826,7 +829,6 @@ export class McpService {
           transport: s.transport,
           authConfig: (s.authConfig ?? {}) as PrismaJson.McpServerAuthConfig,
           config: (s.config ?? {}) as PrismaJson.McpServerConfig,
-          tools: storedTools,
           status: s.status,
         }
       })
@@ -836,18 +838,18 @@ export class McpService {
     const proxyServers = servers.map((s) => {
       serverNameById.set(s.id, s.name)
       serverIdByName.set(s.name, s.id)
-      const directSetting = s.config?.directTools
-      const directToolCount = s.tools.filter((t) => {
-        if (Array.isArray(directSetting)) {
-          return directSetting.includes(t.name)
-        }
-        return (directSetting as unknown) === true
-      }).length
+      // Count direct tools from the same filtered registry metadata that
+      // buildDirectTools consumes, so the proxy description can never drift
+      // from what is actually registered as native tools.
+      const metadata = registry.getTools(s.id)
+      const directToolCount = metadata.filter((t) =>
+        isDirectTool(t.originalName, t.name, s.config?.directTools),
+      ).length
 
       return {
         id: s.id,
         name: s.name,
-        toolCount: s.tools.length,
+        toolCount: metadata.length,
         directToolCount,
         status: s.status,
         ...(s.instructions !== null && s.instructions !== undefined
@@ -887,7 +889,9 @@ export class McpService {
     const tools: AgentTool[] = [buildProxyTool(ctx)]
 
     for (const server of servers) {
-      if (!server.config?.directTools) continue
+      if (!Array.isArray(server.config?.directTools) || server.config.directTools.length === 0) {
+        continue
+      }
       const metadata: ToolMetadata[] = registry.getTools(server.id)
       tools.push(
         ...buildDirectTools(metadata, server.config, {
