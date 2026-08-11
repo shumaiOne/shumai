@@ -7,14 +7,13 @@ import {
   MoreVertical,
   Plus,
   Trash2,
-  Edit,
-  RefreshCw,
   Zap,
   ShieldCheck,
   CheckCircle2,
   AlertCircle,
   Clock,
   Key,
+  Wrench,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card'
 import { Button } from '@/ui/components/ui/button'
@@ -107,28 +106,6 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
 
   // Enable/Disable Mutation
   // (Removed: enable/disable now happens per-agent via AgentMcpServer assignment.)
-
-  // Test Server Mutation
-  const testMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await client.api.mcp.servers[':id'].test.$post({ param: { id } })
-      if (!res.ok) throw new Error('Failed to test server connection')
-      return await res.json()
-    },
-    onSuccess: (res) => {
-      if (res && typeof res === 'object' && 'success' in res && res.success) {
-        toast.success(m.mcp_test_success())
-      } else {
-        const errorMsg =
-          res && typeof res === 'object' && 'error' in res ? String(res.error) : m.mcp_test_failed()
-        toast.error(errorMsg)
-      }
-      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'mcp', 'servers'] })
-    },
-    onError: (err: Error) => {
-      toast.error(err.message)
-    },
-  })
 
   // Disconnect Auth Mutation
   const disconnectAuthMutation = useMutation({
@@ -336,31 +313,8 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setEditingServer(server)
-                            }}
-                          >
-                            <Edit className="w-4 h-4 mr-2" />
-                            {m.edit()}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              testMutation.mutate(server.id)
-                            }}
-                            disabled={testMutation.isPending}
-                          >
-                            <RefreshCw
-                              className={`w-4 h-4 mr-2 ${
-                                testMutation.isPending ? 'animate-spin' : ''
-                              }`}
-                            />
-                            {m.mcp_test_connection()}
-                          </DropdownMenuItem>
-
-                          {server.authType !== 'none' || server.hasCredential ? (
+                          {server.status !== 'connected' &&
+                          (server.authType !== 'none' || server.hasCredential) ? (
                             <DropdownMenuItem
                               onClick={(e) => {
                                 e.stopPropagation()
@@ -385,7 +339,9 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
                             </DropdownMenuItem>
                           )}
 
-                          <DropdownMenuSeparator />
+                          {((server.status !== 'connected' &&
+                            (server.authType !== 'none' || server.hasCredential)) ||
+                            server.hasCredential) && <DropdownMenuSeparator />}
                           <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation()
@@ -401,24 +357,11 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
                     )}
                   </div>
 
-                  {/* Row 2: description + instructions + url + lastError */}
+                  {/* Row 2: description + url + lastError */}
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground line-clamp-2">
                       {server.description || m.no_description_provided()}
                     </p>
-                    {server.instructions && (
-                      <div className="border-l-2 border-border pl-2">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-                          {m.mcp_server_instructions()}
-                        </p>
-                        <p
-                          className="text-xs text-muted-foreground/80 line-clamp-3"
-                          title={server.instructions}
-                        >
-                          {server.instructions}
-                        </p>
-                      </div>
-                    )}
                     <p className="font-mono text-[10px] text-muted-foreground/70 truncate">
                       {server.url}
                     </p>
@@ -433,6 +376,10 @@ export const McpConfigCard: React.FC<McpConfigCardProps> = ({ teamId }) => {
                   <div className="mt-4 flex items-center justify-between gap-2 pt-2 border-t border-border/50 text-xs">
                     <div className="flex items-center gap-2 min-w-0">
                       {renderStatusBadge(server)}
+                      <Badge variant="outline" className="text-[10px] gap-1 shrink-0">
+                        <Wrench className="w-3 h-3 text-muted-foreground" />
+                        {m.mcp_tools_count({ count: server.toolCount })}
+                      </Badge>
                       <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold whitespace-nowrap">
                         {m.updated_date()} {new Date(server.updatedAt).toLocaleDateString()}
                       </span>

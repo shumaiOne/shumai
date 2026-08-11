@@ -670,14 +670,16 @@ describe('McpService', () => {
 
   it('registers direct tools only for assigned servers', async () => {
     const agent = await seedAgentAndUser(teamId, 'Direct Assigned Only Agent')
-    const assignedSrv = await startTestMcpServer({
-      tools: TAVILY_TOOLS,
-      serverInfo: { name: 'tavily-mcp' },
-    })
-    const unassignedSrv = await startTestMcpServer({
-      tools: AIRTABLE_TOOLS,
-      serverInfo: { name: 'airtable-mcp-server' },
-    })
+    const [assignedSrv, unassignedSrv] = await Promise.all([
+      startTestMcpServer({
+        tools: TAVILY_TOOLS,
+        serverInfo: { name: 'tavily-mcp' },
+      }),
+      startTestMcpServer({
+        tools: AIRTABLE_TOOLS,
+        serverInfo: { name: 'airtable-mcp-server' },
+      }),
+    ])
     try {
       const assigned = await service.createServer(teamId, {
         url: assignedSrv.url,
@@ -699,7 +701,7 @@ describe('McpService', () => {
       await assignedSrv.stop()
       await unassignedSrv.stop()
     }
-  })
+  }, 15000)
 
   // --------------------------------------------------------------------------
   // Direct tools (D3/D7)
@@ -886,7 +888,7 @@ describe('McpService', () => {
         })
 
         // Connect to the server
-        await service.discoverTools(serverRecord.id)
+        await service.refreshServer(serverRecord.id)
         expect(service.getConnectionCount(serverRecord.id)).toBe(1)
 
         // Start callTool in background
@@ -929,7 +931,7 @@ describe('McpService', () => {
           config: { keepAlive: true },
         })
 
-        await service.discoverTools(serverRecord.id)
+        await service.refreshServer(serverRecord.id)
         expect(service.getConnectionCount(serverRecord.id)).toBe(1)
 
         // Wait a bit
@@ -954,7 +956,7 @@ describe('McpService', () => {
         const serverRecord = await service.createServer(teamId, {
           url: timerServer.url,
         })
-        await service.discoverTools(serverRecord.id)
+        await service.refreshServer(serverRecord.id)
         expect(service.getConnectionCount(serverRecord.id)).toBe(1)
 
         // Start timer with very short interval (20ms) and 0ms idle timeout

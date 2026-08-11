@@ -375,7 +375,7 @@
   "mcp_oauth_scope": "作用域 (Scope)",
   "mcp_oauth_grant_type": "授权模式 (Grant Type)",
   "mcp_direct_tools_mode": "直连工具模式",
-  "mcp_direct_tools_desc": "将服务的每个工具直接暴露在提示词中，而非通过代理工具复用。",
+  "mcp_direct_tools_desc": "将 MCP 工具直接作为智能体原生工具暴露，而非隐匿在 MCP 代理之后。这使得智能体能直接感知并调用选定的 MCP 工具，提高工具发现率并减少不必要的搜索。建议对于高频或关键工具开启此模式；大型 MCP 服务建议保持代理模式以避免增加上下文消耗。",
   "mcp_tools": "MCP 工具",
   "mcp_tools_count": "{count} 个工具",
   "mcp_status_connected": "已连接",

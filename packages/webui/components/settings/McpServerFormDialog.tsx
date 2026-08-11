@@ -22,16 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/ui/components/ui/select'
-import {
-  Loader2,
-  Server,
-  Info,
-  Search,
-  RefreshCw,
-  Wrench,
-  ChevronDown,
-  ChevronRight,
-} from 'lucide-react'
+import { Loader2, Server, Info, RefreshCw, Wrench, ChevronDown, ChevronRight } from 'lucide-react'
 import { m } from '@/ui/paraglide/messages.js'
 import { toast } from 'sonner'
 import {
@@ -79,8 +70,8 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
   const [excludedTools, setExcludedTools] = useState<string[]>([])
 
   // Tools inspector state
-  const [searchQuery, setSearchQuery] = useState('')
   const [expandedTools, setExpandedTools] = useState<Record<string, boolean>>({})
+  const [isInstructionsExpanded, setIsInstructionsExpanded] = useState(false)
 
   useEffect(() => {
     if (server) {
@@ -90,8 +81,8 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
       setAuthType(server.authType || 'auto')
       setDirectTools(server.config?.directTools ?? false)
       setExcludedTools(server.config?.excludeTools ?? [])
-      setSearchQuery('')
       setExpandedTools({})
+      setIsInstructionsExpanded(false)
     } else {
       setUrl('')
       setTransport('streamable_http')
@@ -104,8 +95,8 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
       setGrantType('authorization_code')
       setDirectTools(false)
       setExcludedTools([])
-      setSearchQuery('')
       setExpandedTools({})
+      setIsInstructionsExpanded(false)
     }
   }, [server, isOpen])
 
@@ -231,16 +222,6 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
 
   const tools = toolsData?.tools ?? []
 
-  const filteredTools = tools.filter((tool) => {
-    if (!searchQuery.trim()) return true
-    const q = searchQuery.toLowerCase()
-    return (
-      tool.name.toLowerCase().includes(q) ||
-      (tool.description && tool.description.toLowerCase().includes(q)) ||
-      (tool.title && tool.title.toLowerCase().includes(q))
-    )
-  })
-
   const isToolExcluded = (toolName: string) => excludedTools.includes(toolName)
 
   const toggleToolEnabled = (toolName: string, enabled: boolean) => {
@@ -259,6 +240,15 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
          * Mirrors the skill config dialog layout.
          * ------------------------------------------------------------------ */
         <DialogContent className="sm:max-w-2xl h-[85vh] flex flex-col p-0 overflow-hidden">
+          {refreshMutation.isPending && (
+            <div className="absolute inset-0 bg-background/60 backdrop-blur-[1px] flex flex-col items-center justify-center z-50 rounded-lg">
+              <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
+              <span className="text-xs font-medium text-muted-foreground">
+                {m.mcp_refresh_server()}...
+              </span>
+            </div>
+          )}
+
           <DialogHeader className="p-6 pb-4 border-b border-border flex-shrink-0">
             <DialogTitle className="flex items-center gap-2 text-xl font-bold">
               <Server className="w-5 h-5 text-primary" />
@@ -294,6 +284,22 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
                         {m.description()}
                       </span>
                       <span className="text-sm text-foreground">{server.description}</span>
+                    </div>
+                  )}
+                  {server.instructions && (
+                    <div className="flex flex-col">
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                        {m.mcp_server_instructions()}
+                      </span>
+                      <p
+                        onClick={() => setIsInstructionsExpanded((prev) => !prev)}
+                        className={`text-xs text-muted-foreground cursor-pointer transition-all ${
+                          isInstructionsExpanded ? '' : 'line-clamp-2'
+                        }`}
+                        title={isInstructionsExpanded ? undefined : server.instructions}
+                      >
+                        {server.instructions}
+                      </p>
                     </div>
                   )}
                   <span className="text-[10px] text-muted-foreground flex items-center gap-1.5">
@@ -433,17 +439,16 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
 
                 {/* Mode */}
                 <div className="space-y-3 pt-3 border-t border-border">
-                  <div className="flex items-center justify-between p-3 bg-muted/20 border border-border rounded-lg">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-semibold flex items-center gap-1.5">
+                  <div className="p-3 bg-muted/20 border border-border rounded-lg space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-foreground">
                         {m.mcp_direct_tools_mode()}
-                        <Info className="w-3.5 h-3.5 text-muted-foreground" />
                       </span>
-                      <span className="text-[11px] text-muted-foreground">
-                        {m.mcp_direct_tools_desc()}
-                      </span>
+                      <Switch checked={directTools} onCheckedChange={setDirectTools} />
                     </div>
-                    <Switch checked={directTools} onCheckedChange={setDirectTools} />
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      {m.mcp_direct_tools_desc()}
+                    </p>
                   </div>
                 </div>
 
@@ -459,27 +464,17 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
                     {m.mcp_tools_count({ count: tools.length })} — {m.mcp_excluded_tools_hint()}
                   </p>
 
-                  <div className="relative">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder={m.search_tools_placeholder()}
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9 text-xs"
-                    />
-                  </div>
-
                   <div className="space-y-2">
                     {isToolsLoading ? (
                       <div className="flex justify-center py-8">
                         <Loader2 className="w-6 h-6 animate-spin text-primary" />
                       </div>
-                    ) : filteredTools.length === 0 ? (
+                    ) : tools.length === 0 ? (
                       <div className="text-center py-6 text-muted-foreground text-xs">
                         {m.no_tools_found()}
                       </div>
                     ) : (
-                      filteredTools.map((tool) => {
+                      tools.map((tool) => {
                         const enabled = !isToolExcluded(tool.name)
                         const isExpanded = !!expandedTools[tool.name]
                         const schemaObj = tool.inputSchema as {
