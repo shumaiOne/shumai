@@ -22,16 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/ui/components/ui/select'
-import {
-  Loader2,
-  Server,
-  Info,
-  Search,
-  RefreshCw,
-  Wrench,
-  ChevronDown,
-  ChevronRight,
-} from 'lucide-react'
+import { Loader2, Server, Info, RefreshCw, Wrench, ChevronDown, ChevronRight } from 'lucide-react'
 import { m } from '@/ui/paraglide/messages.js'
 import { toast } from 'sonner'
 import {
@@ -79,7 +70,6 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
   const [excludedTools, setExcludedTools] = useState<string[]>([])
 
   // Tools inspector state
-  const [searchQuery, setSearchQuery] = useState('')
   const [expandedTools, setExpandedTools] = useState<Record<string, boolean>>({})
   const [isInstructionsExpanded, setIsInstructionsExpanded] = useState(false)
 
@@ -91,7 +81,6 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
       setAuthType(server.authType || 'auto')
       setDirectTools(server.config?.directTools ?? false)
       setExcludedTools(server.config?.excludeTools ?? [])
-      setSearchQuery('')
       setExpandedTools({})
       setIsInstructionsExpanded(false)
     } else {
@@ -106,7 +95,6 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
       setGrantType('authorization_code')
       setDirectTools(false)
       setExcludedTools([])
-      setSearchQuery('')
       setExpandedTools({})
       setIsInstructionsExpanded(false)
     }
@@ -233,16 +221,6 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
   }
 
   const tools = toolsData?.tools ?? []
-
-  const filteredTools = tools.filter((tool) => {
-    if (!searchQuery.trim()) return true
-    const q = searchQuery.toLowerCase()
-    return (
-      tool.name.toLowerCase().includes(q) ||
-      (tool.description && tool.description.toLowerCase().includes(q)) ||
-      (tool.title && tool.title.toLowerCase().includes(q))
-    )
-  })
 
   const isToolExcluded = (toolName: string) => excludedTools.includes(toolName)
 
@@ -486,27 +464,17 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
                     {m.mcp_tools_count({ count: tools.length })} — {m.mcp_excluded_tools_hint()}
                   </p>
 
-                  <div className="relative">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder={m.search_tools_placeholder()}
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9 text-xs"
-                    />
-                  </div>
-
                   <div className="space-y-2">
                     {isToolsLoading ? (
                       <div className="flex justify-center py-8">
                         <Loader2 className="w-6 h-6 animate-spin text-primary" />
                       </div>
-                    ) : filteredTools.length === 0 ? (
+                    ) : tools.length === 0 ? (
                       <div className="text-center py-6 text-muted-foreground text-xs">
                         {m.no_tools_found()}
                       </div>
                     ) : (
-                      filteredTools.map((tool) => {
+                      tools.map((tool) => {
                         const enabled = !isToolExcluded(tool.name)
                         const isExpanded = !!expandedTools[tool.name]
                         const schemaObj = tool.inputSchema as {
