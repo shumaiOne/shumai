@@ -1,7 +1,7 @@
 /**
 * | output |
 * | --- |
-* | "Expose each server tool directly in the prompt instead of multiplexing through the proxy tool." |
+* | "Exposes MCP tools as native agent tools instead of hiding them behind the MCP proxy. This lets the agent see and call selected MCP tools directly, improving ..." |
 *
 * @param {Mcp_Direct_Tools_DescInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options

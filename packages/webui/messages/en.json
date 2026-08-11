@@ -375,7 +375,7 @@
   "mcp_oauth_scope": "Scope",
   "mcp_oauth_grant_type": "Grant Type",
   "mcp_direct_tools_mode": "Direct Tools Mode",
-  "mcp_direct_tools_desc": "Expose each server tool directly in the prompt instead of multiplexing through the proxy tool.",
+  "mcp_direct_tools_desc": "Exposes MCP tools as native agent tools instead of hiding them behind the MCP proxy. This lets the agent see and call selected MCP tools directly, improving tool discovery and reducing unnecessary searches. Use it for frequently used or important tools; keep large MCP servers behind the proxy to avoid increasing context usage.",
   "mcp_tools": "MCP Tools",
   "mcp_tools_count": "{count} Tools",
   "mcp_status_connected": "Connected",
