@@ -81,6 +81,7 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
   // Tools inspector state
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedTools, setExpandedTools] = useState<Record<string, boolean>>({})
+  const [isInstructionsExpanded, setIsInstructionsExpanded] = useState(false)
 
   useEffect(() => {
     if (server) {
@@ -92,6 +93,7 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
       setExcludedTools(server.config?.excludeTools ?? [])
       setSearchQuery('')
       setExpandedTools({})
+      setIsInstructionsExpanded(false)
     } else {
       setUrl('')
       setTransport('streamable_http')
@@ -106,6 +108,7 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
       setExcludedTools([])
       setSearchQuery('')
       setExpandedTools({})
+      setIsInstructionsExpanded(false)
     }
   }, [server, isOpen])
 
@@ -259,6 +262,15 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
          * Mirrors the skill config dialog layout.
          * ------------------------------------------------------------------ */
         <DialogContent className="sm:max-w-2xl h-[85vh] flex flex-col p-0 overflow-hidden">
+          {refreshMutation.isPending && (
+            <div className="absolute inset-0 bg-background/60 backdrop-blur-[1px] flex flex-col items-center justify-center z-50 rounded-lg">
+              <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
+              <span className="text-xs font-medium text-muted-foreground">
+                {m.mcp_refresh_server()}...
+              </span>
+            </div>
+          )}
+
           <DialogHeader className="p-6 pb-4 border-b border-border flex-shrink-0">
             <DialogTitle className="flex items-center gap-2 text-xl font-bold">
               <Server className="w-5 h-5 text-primary" />
@@ -294,6 +306,22 @@ export const McpServerFormDialog: React.FC<McpServerFormDialogProps> = ({
                         {m.description()}
                       </span>
                       <span className="text-sm text-foreground">{server.description}</span>
+                    </div>
+                  )}
+                  {server.instructions && (
+                    <div className="flex flex-col">
+                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                        {m.mcp_server_instructions()}
+                      </span>
+                      <p
+                        onClick={() => setIsInstructionsExpanded((prev) => !prev)}
+                        className={`text-xs text-muted-foreground cursor-pointer transition-all ${
+                          isInstructionsExpanded ? '' : 'line-clamp-2'
+                        }`}
+                        title={isInstructionsExpanded ? undefined : server.instructions}
+                      >
+                        {server.instructions}
+                      </p>
                     </div>
                   )}
                   <span className="text-[10px] text-muted-foreground flex items-center gap-1.5">
