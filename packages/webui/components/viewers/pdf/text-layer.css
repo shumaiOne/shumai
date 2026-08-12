@@ -20,6 +20,13 @@
   word-spacing: normal;
   transform-origin: 0 0;
   caret-color: CanvasText;
+  /* The container itself must not be selectable: when a drag ends in empty
+     space Chromium would otherwise target the container as the caret
+     position and extend the selection across rows. Only the spans are
+     selectable (see below), so the caret clamps to the nearest text. */
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
   /* Above the page canvas (z-0) so the selection highlight is visible, but
      below the loading overlay (z-20). */
   z-index: 10;
