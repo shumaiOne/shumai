@@ -10,7 +10,7 @@ import { VideoControlBar, type PlayerState, type DisplayTranscode } from './vide
 import DrawingCanvas from '@/ui/components/drawing-canvas'
 import { useAnnotationStore } from '@/ui/stores/annotation-store'
 import { FileViewerProps, MediaController } from '../types'
-import { centeredPan, fitScale, isZoomed, zoomAtPoint } from '../pan-zoom'
+import { centeredPan, fitScale, zoomAtPoint } from '../pan-zoom'
 import { usePanZoomGestures } from '../use-pan-zoom'
 
 const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
@@ -673,7 +673,6 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
                   annotations={displayAnnotations}
                   scale={scale}
                   offset={pan}
-                  onPan={isZoomed(zoom, baseScale) ? setPan : undefined}
                   className="absolute inset-0"
                   // Play/pause is handled by the video-area div's onClick; a
                   // Konva-level onClick would double-toggle once the overlay

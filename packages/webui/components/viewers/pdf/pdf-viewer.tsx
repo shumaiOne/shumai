@@ -5,7 +5,7 @@ import * as pdfjsLib from 'pdfjs-dist'
 import React, { useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { FileViewerProps, MediaController } from '../types'
 import { PdfControlBar } from './pdf-control-bar'
-import { centeredPan, fitScale, isZoomed, zoomAtPoint } from '../pan-zoom'
+import { centeredPan, fitScale, zoomAtPoint } from '../pan-zoom'
 import { usePanZoomGestures } from '../use-pan-zoom'
 
 import pdfworker from '@/ui/public/pdf.worker.min.mjs' with { type: 'file' }
@@ -337,7 +337,6 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
                 annotations={displayAnnotations}
                 scale={zoom}
                 offset={pan}
-                onPan={isZoomed(zoom, baseScale) ? setPan : undefined}
                 className="absolute inset-0 z-0"
                 isDrawing={isDrawing}
                 currentTool={currentTool}
