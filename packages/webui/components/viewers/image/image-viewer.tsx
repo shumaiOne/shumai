@@ -1,11 +1,13 @@
 import { useScreenSize } from '@/ui/hooks/useScreenSize'
 import { client } from '@/ui/api/client'
 import { getBestTranscode } from '@/ui/lib/media'
-import React, { useCallback, useEffect, useRef, useState, useImperativeHandle } from 'react'
+import React, { useEffect, useRef, useState, useImperativeHandle } from 'react'
 import DrawingCanvas from '@/ui/components/drawing-canvas'
 import { ImageControlBar } from './image-control-bar'
 import { useAnnotationStore } from '@/ui/stores/annotation-store'
 import { FileViewerProps, MediaController } from '../types'
+import { centeredPan, fitScale, isZoomed, zoomAtPoint } from '../pan-zoom'
+import { usePanZoomGestures } from '../use-pan-zoom'
 
 export const ImageViewer = React.forwardRef<MediaController, FileViewerProps>(
   ({ file, annotations, shareId, children, allowDownload }, ref) => {
@@ -28,29 +30,25 @@ export const ImageViewer = React.forwardRef<MediaController, FileViewerProps>(
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
     const [zoom, setZoom] = useState(1)
     const [pan, setPan] = useState({ x: 0, y: 0 })
+    const [hasManuallyZoomed, setHasManuallyZoomed] = useState(false)
     const [copied, setCopied] = useState(false)
 
-    const observerRef = useRef<ResizeObserver | null>(null)
+    const containerRef = useRef<HTMLDivElement | null>(null)
 
-    const containerRef = useCallback((node: HTMLDivElement | null) => {
-      if (observerRef.current) {
-        observerRef.current.disconnect()
-        observerRef.current = null
-      }
-
-      if (node !== null) {
-        const observer = new ResizeObserver((entries) => {
-          const entry = entries[0]
-          if (entry) {
-            setContainerSize({
-              width: entry.contentRect.width,
-              height: entry.contentRect.height,
-            })
-          }
-        })
-        observer.observe(node)
-        observerRef.current = observer
-      }
+    useEffect(() => {
+      const node = containerRef.current
+      if (!node) return
+      const observer = new ResizeObserver((entries) => {
+        const entry = entries[0]
+        if (entry) {
+          setContainerSize({
+            width: entry.contentRect.width,
+            height: entry.contentRect.height,
+          })
+        }
+      })
+      observer.observe(node)
+      return () => observer.disconnect()
     }, [])
 
     const imgW = file.media?.metadata?.originalWidth ?? 1920
@@ -58,43 +56,42 @@ export const ImageViewer = React.forwardRef<MediaController, FileViewerProps>(
     const conW = containerSize.width
     const conH = containerSize.height
 
-    let baseScale = 1
+    const baseScale = fitScale(conW, conH, imgW, imgH)
 
-    if (conW > 0 && conH > 0) {
-      baseScale = Math.min(conW / imgW, conH / imgH)
-    }
-
-    // Reset/Fit logic
+    // Auto-fit when the container size changes, unless the user has manually
+    // zoomed (their view is preserved across resizes, e.g. sidebar toggles).
     useEffect(() => {
-      if (conW > 0 && conH > 0) {
-        setZoom(baseScale)
-        // Center
-        const x = (conW - imgW * baseScale) / 2
-        const y = (conH - imgH * baseScale) / 2
-        setPan({ x, y })
-      }
-    }, [file.id, conW, conH, baseScale, imgW, imgH])
+      if (conW <= 0 || conH <= 0) return
+      if (hasManuallyZoomed) return
+      setZoom(baseScale)
+      setPan(centeredPan(conW, conH, imgW, imgH, baseScale))
+    }, [conW, conH, baseScale, imgW, imgH, hasManuallyZoomed])
 
     const handleZoom = (factor: number) => {
-      const cx = conW / 2
-      const cy = conH / 2
-
-      const newZoom = zoom * factor
-      if (newZoom < 0.01 || newZoom > 50) return
-
-      const newPanX = cx - (cx - pan.x) * (newZoom / zoom)
-      const newPanY = cy - (cy - pan.y) * (newZoom / zoom)
-
-      setZoom(newZoom)
-      setPan({ x: newPanX, y: newPanY })
+      setHasManuallyZoomed(true)
+      const next = zoomAtPoint(zoom, pan, factor, conW / 2, conH / 2)
+      setZoom(next.zoom)
+      setPan(next.pan)
     }
 
     const handleFit = () => {
+      setHasManuallyZoomed(false)
       setZoom(baseScale)
-      const x = (conW - imgW * baseScale) / 2
-      const y = (conH - imgH * baseScale) / 2
-      setPan({ x, y })
+      setPan(centeredPan(conW, conH, imgW, imgH, baseScale))
     }
+
+    usePanZoomGestures({
+      containerRef,
+      zoom,
+      pan,
+      baseScale,
+      onZoomChange: (next) => {
+        setHasManuallyZoomed(true)
+        setZoom(next.zoom)
+        setPan(next.pan)
+      },
+      onPanChange: setPan,
+    })
 
     const bestUrl = getBestTranscode(file.media?.imageTranscodes, screenWidth)?.url ?? ''
 
@@ -178,7 +175,7 @@ export const ImageViewer = React.forwardRef<MediaController, FileViewerProps>(
       <div className="flex flex-col flex-1 h-full overflow-hidden bg-gray-100 dark:bg-gray-950 relative">
         <div className="flex-1 flex flex-col-reverse md:flex-row min-h-0 relative">
           {children}
-          <div ref={containerRef} className="flex-1 relative overflow-hidden">
+          <div ref={containerRef} className="flex-1 relative overflow-hidden touch-none">
             {bestUrl ? (
               <DrawingCanvas
                 width={conW}
@@ -191,7 +188,7 @@ export const ImageViewer = React.forwardRef<MediaController, FileViewerProps>(
                 annotations={displayAnnotations}
                 scale={zoom}
                 offset={pan}
-                onPan={setPan}
+                onPan={isZoomed(zoom, baseScale) ? setPan : undefined}
                 className="absolute inset-0 z-0"
                 isDrawing={isDrawing}
                 currentTool={currentTool}

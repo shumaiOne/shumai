@@ -10,6 +10,8 @@ import { VideoControlBar, type PlayerState, type DisplayTranscode } from './vide
 import DrawingCanvas from '@/ui/components/drawing-canvas'
 import { useAnnotationStore } from '@/ui/stores/annotation-store'
 import { FileViewerProps, MediaController } from '../types'
+import { centeredPan, fitScale, isZoomed, zoomAtPoint } from '../pan-zoom'
+import { usePanZoomGestures } from '../use-pan-zoom'
 
 const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
   (
@@ -121,16 +123,34 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
     const [videoHtmlEl, setVideoHtmlEl] = useState<HTMLVideoElement | undefined>(undefined)
     const videoRef = useRef<HTMLVideoElement | null>(null)
     const [zoom, setZoom] = useState(1)
+    const [pan, setPan] = useState({ x: 0, y: 0 })
     const [hasManuallyZoomed, setHasManuallyZoomed] = useState(false)
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
 
+    const vidW = data.media?.metadata?.originalWidth || 1920
+    const vidH = data.media?.metadata?.originalHeight || 1080
+    const baseScale = fitScale(containerSize.width, containerSize.height, vidW, vidH)
+
     const handleZoomChange = (newZoom: number) => {
-      setZoom(newZoom)
       setHasManuallyZoomed(true)
+      const next = zoomAtPoint(
+        zoom,
+        pan,
+        newZoom / zoom,
+        containerSize.width / 2,
+        containerSize.height / 2,
+      )
+      setZoom(next.zoom)
+      setPan(next.pan)
     }
 
     const handleZoomReset = () => {
       setHasManuallyZoomed(false)
+      if (containerSize.width > 0 && containerSize.height > 0) {
+        const scale = fitScale(containerSize.width, containerSize.height, vidW, vidH)
+        setZoom(scale)
+        setPan(centeredPan(containerSize.width, containerSize.height, vidW, vidH, scale))
+      }
     }
 
     // Store
@@ -161,17 +181,27 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
       return () => observer.disconnect()
     }, [])
 
-    // Fit to screen initial / responsive resize
+    // Fit to screen initial / responsive resize (preserves manual zoom)
     useEffect(() => {
-      if (containerSize.width > 0 && containerSize.height > 0) {
-        const vidW = data.media?.metadata?.originalWidth || 1920
-        const vidH = data.media?.metadata?.originalHeight || 1080
-        const scale = Math.min(containerSize.width / vidW, containerSize.height / vidH)
-        if (!hasManuallyZoomed) {
-          setZoom(scale)
-        }
-      }
-    }, [containerSize.width, containerSize.height, data.media?.metadata, hasManuallyZoomed])
+      if (containerSize.width <= 0 || containerSize.height <= 0) return
+      if (hasManuallyZoomed) return
+      const scale = fitScale(containerSize.width, containerSize.height, vidW, vidH)
+      setZoom(scale)
+      setPan(centeredPan(containerSize.width, containerSize.height, vidW, vidH, scale))
+    }, [containerSize.width, containerSize.height, vidW, vidH, hasManuallyZoomed])
+
+    usePanZoomGestures({
+      containerRef,
+      zoom,
+      pan,
+      baseScale,
+      onZoomChange: (next) => {
+        setHasManuallyZoomed(true)
+        setZoom(next.zoom)
+        setPan(next.pan)
+      },
+      onPanChange: setPan,
+    })
 
     // Cleanup ref when player is disposed
     useEffect(() => {
@@ -580,13 +610,8 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
       return () => document.removeEventListener('fullscreenchange', onFsChange)
     }, [])
 
-    // Calculate center pan
-    const vidW = data.media?.metadata?.originalWidth || 1920
-    const vidH = data.media?.metadata?.originalHeight || 1080
-
+    // Center pan is owned by `pan` state (set by auto-fit / gestures).
     const scale = zoom
-    const panX = (containerSize.width - vidW * scale) / 2
-    const panY = (containerSize.height - vidH * scale) / 2
 
     if (!hasMedia) {
       return (
@@ -615,7 +640,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
           <div
             ref={containerRef}
             className={cn(
-              'flex-1 bg-black cursor-pointer relative flex items-center justify-center overflow-hidden min-h-0',
+              'flex-1 bg-black cursor-pointer relative flex items-center justify-center overflow-hidden min-h-0 touch-none',
             )}
             onClick={togglePlay}
             data-vjs-player
@@ -647,9 +672,12 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
                   videoElement={videoHtmlEl}
                   annotations={displayAnnotations}
                   scale={scale}
-                  offset={{ x: panX, y: panY }}
+                  offset={pan}
+                  onPan={isZoomed(zoom, baseScale) ? setPan : undefined}
                   className="absolute inset-0"
-                  onClick={togglePlay}
+                  // Play/pause is handled by the video-area div's onClick; a
+                  // Konva-level onClick would double-toggle once the overlay
+                  // becomes interactive (zoomed).
                   // Drawing Props
                   isDrawing={isDrawing}
                   currentTool={currentTool}
