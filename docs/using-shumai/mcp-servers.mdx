@@ -39,6 +39,41 @@ After creating a server (the create dialog only requires a URL), open its edit d
 
 ---
 
+## Understanding Tool Configuration
+
+In the server's edit dialog, the **Tools** section lists every discovered tool with a three-state toggle (plus **All Off** / **All Proxy** / **All Direct** bulk actions):
+
+- **Off**: The tool is excluded and completely invisible to agents — it cannot be listed, searched, or called through the proxy, nor registered as a direct tool. Use this to hide noisy or dangerous tools.
+- **Proxy** (default): The tool is available through the single `mcp` proxy tool.
+- **Direct**: The tool is exposed to agents as a native top-level function with a `{server}_{tool}` prefixed name.
+
+### The `mcp` Proxy Tool
+
+The `mcp` proxy tool is a single function injected into an agent's context that multiplexes every MCP server assigned to that agent. Instead of loading each tool's full parameter schema up front, the agent interacts with servers on demand:
+
+- `mcp({})` — connection and auth status of all assigned servers
+- `mcp({ server: "name" })` — list a server's tools
+- `mcp({ search: "query" })` — search for tools across servers (schemas included by default)
+- `mcp({ describe: "tool" })` — view one tool's full parameter schema
+- `mcp({ instructions: "name" })` — view a server's usage instructions
+- `mcp({ server: "name", tool: "tool_name", args: {...} })` — call a tool (pass either the `{server}_{tool}` prefixed name or the original name)
+- `mcp({ action: "auth-start", server: "name" })` — start OAuth for a server
+
+Because only one compact tool (plus a short server/tool listing) occupies the context window, the proxy keeps token usage low even when a server exposes dozens of tools. The trade-off is an extra discovery round trip: the agent typically lists or searches tools first, then calls them.
+
+### Direct Tools
+
+Direct tools flip the trade-off in the other direction. A tool configured as **Direct** is registered as a native top-level function (e.g. `tavily_mcp_tavily_search`) that the agent can invoke immediately, exactly like any built-in tool.
+
+Why use direct tools:
+
+- **Faster, more reliable calls** for high-frequency actions: the full parameter schema is always in the context window, so the agent can call the tool in a single step without first discovering it through the proxy.
+- **Better tool discovery**: the model sees the tool and its description up front and is more likely to reach for it at the right moment.
+
+The cost: every direct tool permanently consumes context tokens for its schema, so reserve **Direct** for frequently used or critical tools and keep large MCP servers on **Proxy** to avoid unnecessary context overhead. Direct tools are still subject to the same role-based permission checks as proxy calls, and the `mcp` proxy tool remains available for discovery, auth, and status.
+
+---
+
 ## Authentication Modes
 
 Shumai supports several authentication strategies for securing access to MCP endpoints:
