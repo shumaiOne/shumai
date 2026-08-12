@@ -1,0 +1,115 @@
+---
+title: MCP Servers
+description: Connect your agents to external tools and APIs using Model Context Protocol.
+---
+
+Model Context Protocol (MCP) is an open standard that enables AI models to safely interface with external tools, microservices, and APIs. In Shumai, you can register remote MCP servers using standard HTTP transports (`Streamable HTTP` or `SSE`) and assign them to your AI agents.
+
+---
+
+## How MCP Works in Shumai
+
+Rather than overloading model context windows with dozens of complex parameter schemas, Shumai connects to MCP servers efficiently:
+
+- **Automatic Discovery & Metadata Caching**: When you add an MCP server, Shumai records it in your team's settings and connects to the endpoint to discover available tools, server-reported usage instructions, and description metadata. Discovery runs when you refresh the server, complete an OAuth flow, or the first time an agent calls one of its tools. These schemas are cached in your database for fast retrieval.
+- **Context-Efficient Proxy Tool (`mcp`)**: Assigned MCP servers are multiplexed through a single unified `mcp` proxy tool injected into your Chat Agents. The agent can dynamically inspect server status, search tools, view parameter schemas, and invoke functions as needed without wasting LLM tokens.
+- **Direct Tools Option**: For high-frequency actions, you can optionally configure specific tools as **Direct Tools** to expose them directly to the agent as top-level LLM functions alongside the `mcp` proxy.
+
+---
+
+## Adding an MCP Server
+
+To register a new MCP server in Shumai:
+
+1. Navigate to **Team Settings** and click the **MCP** tab.
+2. Click **Add MCP Server**.
+3. In the dialog box, enter your **Server Endpoint URL** (e.g. `https://mcp.example.com/sse` or `http://localhost:8080/mcp`).
+4. Click **Create**.
+
+> **Note:** Only the **Server Endpoint URL** is required. Shumai derives a placeholder server name from the URL immediately; the server's actual name, status, instructions, and tool inventory are discovered the first time the server is connected (via the Refresh button in the edit dialog or the first tool call by an agent).
+
+### Optional Server Configuration
+
+After creating a server (the create dialog only requires a URL), open its edit dialog to configure advanced settings:
+
+- **Transport**: Choose between `Streamable HTTP` (default) or `Server-Sent Events (SSE)`.
+- **Auth Strategy**: Select `Auto-detect` (default), `None`, `Bearer Token`, or `OAuth 2.0`.
+- **Minimum Permission Role**: Set the minimum team role required to invoke tools on this server (`Reviewer`, `Editor`, or `Owner`).
+- **Direct Tools**: Specify a list of tool names that should be exposed directly to agents as native LLM tools.
+
+---
+
+## Understanding Tool Configuration
+
+In the server's edit dialog, the **Tools** section lists every discovered tool with a three-state toggle (plus **All Off** / **All Proxy** / **All Direct** bulk actions):
+
+- **Off**: The tool is excluded and completely invisible to agents — it cannot be listed, searched, or called through the proxy, nor registered as a direct tool. Use this to hide noisy or dangerous tools.
+- **Proxy** (default): The tool is available through the single `mcp` proxy tool.
+- **Direct**: The tool is exposed to agents as a native top-level function with a `{server}_{tool}` prefixed name.
+
+### The `mcp` Proxy Tool
+
+The `mcp` proxy tool is a single function injected into an agent's context that multiplexes every MCP server assigned to that agent. Instead of loading each tool's full parameter schema up front, the agent interacts with servers on demand:
+
+- `mcp({})` — connection and auth status of all assigned servers
+- `mcp({ server: "name" })` — list a server's tools
+- `mcp({ search: "query" })` — search for tools across servers (schemas included by default)
+- `mcp({ describe: "tool" })` — view one tool's full parameter schema
+- `mcp({ instructions: "name" })` — view a server's usage instructions
+- `mcp({ server: "name", tool: "tool_name", args: {...} })` — call a tool (pass either the `{server}_{tool}` prefixed name or the original name)
+- `mcp({ action: "auth-start", server: "name" })` — start OAuth for a server
+
+Because only one compact tool (plus a short server/tool listing) occupies the context window, the proxy keeps token usage low even when a server exposes dozens of tools. The trade-off is an extra discovery round trip: the agent typically lists or searches tools first, then calls them.
+
+### Direct Tools
+
+Direct tools flip the trade-off in the other direction. A tool configured as **Direct** is registered as a native top-level function (e.g. `tavily_mcp_tavily_search`) that the agent can invoke immediately, exactly like any built-in tool.
+
+Why use direct tools:
+
+- **Faster, more reliable calls** for high-frequency actions: the full parameter schema is always in the context window, so the agent can call the tool in a single step without first discovering it through the proxy.
+- **Better tool discovery**: the model sees the tool and its description up front and is more likely to reach for it at the right moment.
+
+The cost: every direct tool permanently consumes context tokens for its schema, so reserve **Direct** for frequently used or critical tools and keep large MCP servers on **Proxy** to avoid unnecessary context overhead. Direct tools are still subject to the same role-based permission checks as proxy calls, and the `mcp` proxy tool remains available for discovery, auth, and status.
+
+---
+
+## Authentication Modes
+
+Shumai supports several authentication strategies for securing access to MCP endpoints:
+
+### 1. No Auth (`none`)
+
+Used for public or local MCP servers that do not require credentials.
+
+### 2. Bearer Token (`bearer`)
+
+Provide a static API token or key. Shumai attaches this token in the `Authorization: Bearer <token>` header for all transport requests.
+
+### 3. OAuth 2.0 (`oauth`)
+
+For MCP endpoints protected by OAuth identity providers:
+
+- **Authorization Code + PKCE**: Click **Connect** on the server card in Team Settings. Shumai opens a secure OAuth popup window directing you to the identity provider. After approving permissions, the browser automatically redirects back to Shumai, completes token exchange, and refreshes server tools.
+- **Client Credentials**: Provide a `Client ID` and `Client Secret` for automated server-to-server token acquisition.
+
+---
+
+## Assigning MCP Servers to Agents
+
+By default, newly added MCP servers are **not assigned to any agent**. To give an agent access to an MCP server:
+
+1. Navigate to **Team Settings** > **Agents**.
+2. Click on the target agent to open its configuration dialog.
+3. Scroll down to the **MCP Servers** section.
+4. Toggle the switch next to the MCP server(s) you want to authorize for this agent.
+5. Click **Save Changes**.
+
+---
+
+## Role-Based Access Control
+
+Each MCP server has a **Minimum Required Role** setting (`Reviewer`, `Editor`, or `Owner`):
+
+- When an agent attempts to call a tool on an MCP server, Shumai verifies the role of the user interacting with the agent.
+- If the user's role does not meet the minimum requirement, tool execution is blocked with a permission error message, preventing unauthorized actions.
