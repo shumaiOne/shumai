@@ -1,0 +1,80 @@
+---
+title: MCP Servers
+description: Connect your agents to external tools and APIs using Model Context Protocol.
+---
+
+Model Context Protocol (MCP) is an open standard that enables AI models to safely interface with external tools, microservices, and APIs. In Shumai, you can register remote MCP servers using standard HTTP transports (`Streamable HTTP` or `SSE`) and assign them to your AI agents.
+
+---
+
+## How MCP Works in Shumai
+
+Rather than overloading model context windows with dozens of complex parameter schemas, Shumai connects to MCP servers efficiently:
+
+- **Automatic Discovery & Metadata Caching**: When you add an MCP server, Shumai connects to the endpoint to discover available tools, server-reported usage instructions, and description metadata. These schemas are cached in your database for fast retrieval.
+- **Context-Efficient Proxy Tool (`mcp`)**: Assigned MCP servers are multiplexed through a single unified `mcp` proxy tool injected into your Chat Agents. The agent can dynamically inspect server status, search tools, view parameter schemas, and invoke functions as needed without wasting LLM tokens.
+- **Direct Tools Option**: For high-frequency actions, you can optionally configure specific tools as **Direct Tools** to expose them directly to the agent as top-level LLM functions alongside the `mcp` proxy.
+
+---
+
+## Adding an MCP Server
+
+To register a new MCP server in Shumai:
+
+1. Navigate to **Team Settings** and click the **MCP** tab.
+2. Click **Add MCP Server**.
+3. In the dialog box, enter your **Server Endpoint URL** (e.g. `https://mcp.example.com/sse` or `http://localhost:8080/mcp`).
+4. Click **Create**.
+
+> **Note:** Only the **Server Endpoint URL** is required. Shumai automatically derives the server name, status, instructions, and tool inventory upon the first connection.
+
+### Optional Server Configuration
+
+When creating or editing a server, you can expand advanced settings:
+
+- **Transport**: Choose between `Streamable HTTP` (default) or `Server-Sent Events (SSE)`.
+- **Auth Strategy**: Select `Auto-detect` (default), `None`, `Bearer Token`, or `OAuth 2.0`.
+- **Minimum Permission Role**: Set the minimum team role required to invoke tools on this server (`Reviewer`, `Editor`, or `Owner`).
+- **Direct Tools**: Specify a list of tool names that should be exposed directly to agents as native LLM tools.
+
+---
+
+## Authentication Modes
+
+Shumai supports several authentication strategies for securing access to MCP endpoints:
+
+### 1. No Auth (`none`)
+
+Used for public or local MCP servers that do not require credentials.
+
+### 2. Bearer Token (`bearer`)
+
+Provide a static API token or key. Shumai attaches this token in the `Authorization: Bearer <token>` header for all transport requests.
+
+### 3. OAuth 2.0 (`oauth`)
+
+For MCP endpoints protected by OAuth identity providers:
+
+- **Authorization Code + PKCE**: Click **Connect** on the server card in Team Settings. Shumai opens a secure OAuth popup window directing you to the identity provider. After approving permissions, the browser automatically redirects back to Shumai, completes token exchange, and refreshes server tools.
+- **Client Credentials**: Provide a `Client ID` and `Client Secret` for automated server-to-server token acquisition.
+
+---
+
+## Assigning MCP Servers to Agents
+
+By default, newly added MCP servers are **not assigned to any agent**. To give an agent access to an MCP server:
+
+1. Navigate to **Team Settings** > **Agents**.
+2. Click on the target agent to open its configuration dialog.
+3. Scroll down to the **MCP Servers** section.
+4. Check the box next to the MCP server(s) you want to authorize for this agent.
+5. Click **Save Changes**.
+
+---
+
+## Role-Based Access Control
+
+Each MCP server has a **Minimum Required Role** setting (`Reviewer`, `Editor`, or `Owner`):
+
+- When an agent attempts to call a tool on an MCP server, Shumai verifies the role of the user interacting with the agent.
+- If the user's role does not meet the minimum requirement, tool execution is blocked with a permission error message, preventing unauthorized actions.

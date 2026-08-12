@@ -33,6 +33,7 @@ But Shumai goes beyond being a Frame.io alternative. With modern models like GPT
 * **Agent as a Team Member**: Mention a context-aware AI agent with `@mentions` directly in asset comments, just like a real teammate.
 * **Agent as a One-to-One Assistant**: Chat privately with the agent and ask it to help with tasks.
 * **Custom Skills & Tools**: Extend the agent by registering custom scripts, tools, and automation skills.
+* **Model Context Protocol (MCP)**: Connect agents to external tools and APIs via remote MCP servers (HTTP/SSE), with support for OAuth 2.0 / PKCE authentication and per-agent tool assignments.
 * **Isolated Sandbox Execution**: Run agent-submitted scripts safely in a sandboxed environment.
 * **AI Metadata Autofill**: Automatically fill in custom metadata for new assets.
 * **Semantic Search**: Find assets by visual or conceptual meaning using vector embeddings (Gemini Embedding 2).

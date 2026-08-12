@@ -45,6 +45,7 @@
           "using-shumai/agents",
           "using-shumai/agent-skills",
           "using-shumai/agent-tools",
+          "using-shumai/mcp-servers",
           "using-shumai/agent-sandbox"
         ]
       },
