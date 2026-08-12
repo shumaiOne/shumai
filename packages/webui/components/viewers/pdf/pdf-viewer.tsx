@@ -426,6 +426,15 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
             <div
               ref={textLayerContainerRef}
               className="pdf-text-layer"
+              onMouseDown={(e) => {
+                // The container is user-select:none, so Chromium no longer
+                // clears the selection when clicking empty space (only text
+                // spans move the caret). Restore the expected behavior: a
+                // press on the container/br (not a text span) deselects.
+                if (e.target instanceof HTMLElement && e.target.tagName !== 'SPAN') {
+                  window.getSelection()?.removeAllRanges()
+                }
+              }}
               style={{
                 transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
                 transformOrigin: '0 0',
