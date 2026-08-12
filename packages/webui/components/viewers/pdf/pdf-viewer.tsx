@@ -2,9 +2,11 @@ import { client } from '@/ui/api/client'
 import DrawingCanvas from '@/ui/components/drawing-canvas'
 import { useAnnotationStore } from '@/ui/stores/annotation-store'
 import * as pdfjsLib from 'pdfjs-dist'
-import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import React, { useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { FileViewerProps, MediaController } from '../types'
 import { PdfControlBar } from './pdf-control-bar'
+import { centeredPan, fitScale, zoomAtPoint } from '../pan-zoom'
+import { usePanZoomGestures } from '../use-pan-zoom'
 
 import pdfworker from '@/ui/public/pdf.worker.min.mjs' with { type: 'file' }
 
@@ -121,28 +123,24 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
     const [zoom, setZoom] = useState(1)
     const [pan, setPan] = useState({ x: 0, y: 0 })
+    const [hasManuallyZoomed, setHasManuallyZoomed] = useState(false)
 
-    const observerRef = useRef<ResizeObserver | null>(null)
+    const containerRef = useRef<HTMLDivElement | null>(null)
 
-    const containerRef = useCallback((node: HTMLDivElement | null) => {
-      if (observerRef.current) {
-        observerRef.current.disconnect()
-        observerRef.current = null
-      }
-
-      if (node !== null) {
-        const observer = new ResizeObserver((entries) => {
-          const entry = entries[0]
-          if (entry) {
-            setContainerSize({
-              width: entry.contentRect.width,
-              height: entry.contentRect.height,
-            })
-          }
-        })
-        observer.observe(node)
-        observerRef.current = observer
-      }
+    useEffect(() => {
+      const node = containerRef.current
+      if (!node) return
+      const observer = new ResizeObserver((entries) => {
+        const entry = entries[0]
+        if (entry) {
+          setContainerSize({
+            width: entry.contentRect.width,
+            height: entry.contentRect.height,
+          })
+        }
+      })
+      observer.observe(node)
+      return () => observer.disconnect()
     }, [])
 
     const fileUrl = file.media?.pdfTranscode?.url
@@ -253,40 +251,42 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
     const pdfW = pageDimensions.width
     const pdfH = pageDimensions.height
 
-    let baseScale = 1
-    if (conW > 0 && conH > 0 && pdfW > 0 && pdfH > 0) {
-      baseScale = Math.min(conW / pdfW, conH / pdfH)
-    }
+    const baseScale = fitScale(conW, conH, pdfW, pdfH)
 
+    // Auto-fit when the container or page changes, unless the user has
+    // manually zoomed (their view is preserved across resizes / page flips).
     useEffect(() => {
-      if (conW > 0 && conH > 0 && pdfW > 0 && pdfH > 0) {
-        setZoom(baseScale)
-        const x = (conW - pdfW * baseScale) / 2
-        const y = (conH - pdfH * baseScale) / 2
-        setPan({ x, y })
-      }
-    }, [file.id, currentPage, conW, conH, baseScale, pdfW, pdfH])
+      if (conW <= 0 || conH <= 0 || pdfW <= 0 || pdfH <= 0) return
+      if (hasManuallyZoomed) return
+      setZoom(baseScale)
+      setPan(centeredPan(conW, conH, pdfW, pdfH, baseScale))
+    }, [conW, conH, baseScale, pdfW, pdfH, hasManuallyZoomed])
 
     const handleZoom = (factor: number) => {
-      const cx = conW / 2
-      const cy = conH / 2
-
-      const newZoom = zoom * factor
-      if (newZoom < 0.01 || newZoom > 50) return
-
-      const newPanX = cx - (cx - pan.x) * (newZoom / zoom)
-      const newPanY = cy - (cy - pan.y) * (newZoom / zoom)
-
-      setZoom(newZoom)
-      setPan({ x: newPanX, y: newPanY })
+      setHasManuallyZoomed(true)
+      const next = zoomAtPoint(zoom, pan, factor, conW / 2, conH / 2)
+      setZoom(next.zoom)
+      setPan(next.pan)
     }
 
     const handleFit = () => {
+      setHasManuallyZoomed(false)
       setZoom(baseScale)
-      const x = (conW - pdfW * baseScale) / 2
-      const y = (conH - pdfH * baseScale) / 2
-      setPan({ x, y })
+      setPan(centeredPan(conW, conH, pdfW, pdfH, baseScale))
     }
+
+    usePanZoomGestures({
+      containerRef,
+      zoom,
+      pan,
+      baseScale,
+      onZoomChange: (next) => {
+        setHasManuallyZoomed(true)
+        setZoom(next.zoom)
+        setPan(next.pan)
+      },
+      onPanChange: setPan,
+    })
 
     const handleDownload = async () => {
       const key = file.media?.original?.key
@@ -319,7 +319,7 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
       <div className="flex flex-col flex-1 h-full overflow-hidden bg-gray-100 dark:bg-gray-950 relative">
         <div className="flex-1 flex flex-col-reverse md:flex-row min-h-0 relative">
           {children}
-          <div ref={containerRef} className="flex-1 relative overflow-hidden">
+          <div ref={containerRef} className="flex-1 relative overflow-hidden touch-none">
             {loading ? (
               <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-20">
                 <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" />
@@ -337,7 +337,6 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
                 annotations={displayAnnotations}
                 scale={zoom}
                 offset={pan}
-                onPan={setPan}
                 className="absolute inset-0 z-0"
                 isDrawing={isDrawing}
                 currentTool={currentTool}

@@ -225,6 +225,15 @@ const DrawingCanvas = ({
         y: clientY - rect.top,
       }
 
+      // Multi-touch gestures (pinch / two-finger pan) are handled by the
+      // viewer's gesture layer. Don't apply single-pointer pan/draw while they
+      // are active, but keep lastPos in sync so a resumed single-finger pan
+      // doesn't jump.
+      if ('touches' in e && e.touches.length > 1) {
+        lastPos.current = stagePos
+        return
+      }
+
       const {
         isDrawing: activeDrawing,
         currentTool: tool,
@@ -269,7 +278,10 @@ const DrawingCanvas = ({
       }
     }
 
-    const handleGlobalUp = () => {
+    const handleGlobalUp = (e: MouseEvent | TouchEvent) => {
+      // Keep dragging while fingers remain down (e.g. a pinch releasing one
+      // finger); only finalize once every pointer is up.
+      if ('touches' in e && e.touches.length > 0) return
       finalizeDrawing()
     }
 
