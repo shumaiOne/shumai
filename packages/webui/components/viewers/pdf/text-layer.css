@@ -42,6 +42,16 @@
   user-select: text;
 }
 
+/* pdf.js appends a <br> after each line-ending text run; without explicit
+   left/top they sit at the container's top-left (static position) and would
+   paint a stray selection highlight when a range spans multiple rows. */
+.pdf-text-layer br::-moz-selection {
+  background: transparent;
+}
+.pdf-text-layer br::selection {
+  background: transparent;
+}
+
 .pdf-text-layer > :not(.markedContent),
 .pdf-text-layer .markedContent span:not(.markedContent) {
   z-index: 1;
