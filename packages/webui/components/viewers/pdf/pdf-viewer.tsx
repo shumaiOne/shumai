@@ -9,6 +9,15 @@ import { centeredPan, fitScale, zoomAtPoint } from '../pan-zoom'
 import { usePanZoomGestures } from '../use-pan-zoom'
 
 import pdfworker from '@/ui/public/pdf.worker.min.mjs' with { type: 'file' }
+import './text-layer.css'
+
+/**
+ * Cap on the page render canvas area (in device pixels) to bound memory usage
+ * when re-rasterizing at high zoom levels.
+ */
+const MAX_RENDER_PIXELS = 32_000_000
+/** Hard cap on the page render scale (device pixels per CSS pixel at zoom 1). */
+const MAX_RENDER_SCALE = 16
 
 if (typeof window !== 'undefined' && pdfjsLib.GlobalWorkerOptions) {
   const workerPath =
@@ -48,8 +57,11 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
       startTime && !isNaN(startTime) ? Math.max(1, Math.round(startTime)) : 1,
     )
     const [totalPages, setTotalPages] = useState(1)
-    const [pageImageUrl, setPageImageUrl] = useState<string>('')
+    const [pageCanvas, setPageCanvas] = useState<HTMLCanvasElement | null>(null)
     const [pageDimensions, setPageDimensions] = useState({ width: 800, height: 1000 })
+    /** Scale at which the active page is rasterized; tracks the current zoom. */
+    const [renderScale, setRenderScale] = useState(2)
+    const textLayerContainerRef = useRef<HTMLDivElement | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
@@ -183,7 +195,9 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
       }
     }, [fileUrl, startTime])
 
-    // Render active PDF page into image
+    // Render the active PDF page directly onto a canvas (vector output, not a
+    // frozen PNG). The scale tracks the current zoom so text stays crisp when
+    // zoomed in; re-rendering is debounced via `renderScale`.
     useEffect(() => {
       if (!pdfDoc) return
 
@@ -195,7 +209,6 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
         .then((page) => {
           if (!active) return
           const unscaledViewport = page.getViewport({ scale: 1.0 })
-          const renderScale = 2.0
           const viewport = page.getViewport({ scale: renderScale })
 
           const canvas = document.createElement('canvas')
@@ -214,7 +227,9 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
           renderTask.promise
             .then(() => {
               if (!active) return
-              setPageImageUrl(canvas.toDataURL('image/png'))
+              // Swap in the freshly rendered canvas only once complete, so the
+              // previous frame stays visible while re-rasterizing.
+              setPageCanvas(canvas)
               setPageDimensions({
                 width: unscaledViewport.width,
                 height: unscaledViewport.height,
@@ -244,7 +259,67 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
           renderTask.cancel()
         }
       }
+    }, [pdfDoc, currentPage, renderScale])
+
+    // Debounce zoom changes: once the user stops zooming, re-rasterize the
+    // vector page at a scale that yields 1:1 device pixels for the current
+    // zoom (capped to keep canvas memory bounded).
+    useEffect(() => {
+      const id = window.setTimeout(() => {
+        const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1
+        const pageArea = pageDimensions.width * pageDimensions.height
+        const maxByArea = pageArea > 0 ? Math.sqrt(MAX_RENDER_PIXELS / pageArea) : MAX_RENDER_SCALE
+        const next = Math.min(Math.max(0.5, zoom * dpr), maxByArea, MAX_RENDER_SCALE)
+        setRenderScale(next)
+      }, 150)
+      return () => window.clearTimeout(id)
+    }, [zoom, pageDimensions])
+
+    // Build the pdf.js TextLayer overlay for the current page: invisible,
+    // natively selectable text spans positioned exactly over the page canvas.
+    // The container sits below the Konva stage, which only receives pointer
+    // events while drawing is enabled (see DrawingCanvas), so left-drag
+    // selects text when not in draw mode and draws when in draw mode.
+    useEffect(() => {
+      const container = textLayerContainerRef.current
+      if (!pdfDoc || !container) return
+
+      let active = true
+      let textLayer: InstanceType<typeof pdfjsLib.TextLayer> | null = null
+
+      // Drop the previous page's text runs.
+      container.innerHTML = ''
+
+      pdfDoc
+        .getPage(currentPage)
+        .then((page) => {
+          if (!active) return
+          textLayer = new pdfjsLib.TextLayer({
+            textContentSource: page.streamTextContent(),
+            container,
+            viewport: page.getViewport({ scale: 1.0 }),
+          })
+          // Cancellation rejects the render promise; ignore it here.
+          textLayer.render().catch(() => {})
+        })
+        .catch((err) => {
+          if (!active) return
+          console.error('Failed to build text layer:', err)
+        })
+
+      return () => {
+        active = false
+        textLayer?.cancel()
+      }
     }, [pdfDoc, currentPage])
+
+    // Keep the text layer's DOM transform in lockstep with the Konva stage so
+    // the invisible text spans stay exactly over the rendered page.
+    useEffect(() => {
+      const el = textLayerContainerRef.current
+      if (!el) return
+      el.style.transform = `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`
+    }, [pan, zoom])
 
     const conW = containerSize.width
     const conH = containerSize.height
@@ -320,6 +395,17 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
         <div className="flex-1 flex flex-col-reverse md:flex-row min-h-0 relative">
           {children}
           <div ref={containerRef} className="flex-1 relative overflow-hidden touch-none">
+            {/* Invisible selectable text overlay, transformed to match the
+                Konva stage below it. Left-drag selects text when not in draw
+                mode; the stage only intercepts pointer events while drawing. */}
+            <div
+              ref={textLayerContainerRef}
+              className="pdf-text-layer"
+              style={{
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                transformOrigin: '0 0',
+              }}
+            />
             {loading ? (
               <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-20">
                 <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" />
@@ -333,7 +419,7 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
                 width={conW}
                 height={conH}
                 mediaDimensions={pageDimensions}
-                imageUrl={pageImageUrl}
+                canvasElement={pageCanvas}
                 annotations={displayAnnotations}
                 scale={zoom}
                 offset={pan}

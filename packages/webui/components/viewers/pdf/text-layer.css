@@ -1,0 +1,55 @@
+/*
+ * Minimal pdf.js text-layer styles, adapted from pdfjs-dist's viewer CSS.
+ *
+ * The pdf.js `TextLayer` class lays out invisible text runs by setting inline
+ * styles (left/top as percentages, font-family, --font-height, --scale-x,
+ * --rotate) on `<span>` elements. Without the rules below nothing is
+ * positioned or sized, so this subset is required for text selection to work.
+ *
+ * We render the text layer at viewport scale 1 and transform the whole
+ * container with the same translate/scale the Konva stage applies, hence
+ * `--total-scale-factor: 1` (the spans stay in page coordinates).
+ */
+.pdf-text-layer {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  text-align: initial;
+  line-height: 1;
+  letter-spacing: normal;
+  word-spacing: normal;
+  transform-origin: 0 0;
+  caret-color: CanvasText;
+  z-index: 0;
+  --total-scale-factor: 1;
+  --scale-round-x: 1px;
+  --scale-round-y: 1px;
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+}
+
+.pdf-text-layer :is(span, br) {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  user-select: text;
+}
+
+.pdf-text-layer > :not(.markedContent),
+.pdf-text-layer .markedContent span:not(.markedContent) {
+  z-index: 1;
+  --font-height: 0;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  --scale-x: 1;
+  --rotate: 0deg;
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+
+.pdf-text-layer .markedContent {
+  display: contents;
+}

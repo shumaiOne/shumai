@@ -17,6 +17,8 @@ interface DrawingCanvasProps {
   height: number
   mediaDimensions: { width: number; height: number }
   imageUrl?: string
+  /** A live canvas to draw instead of an image URL (e.g. a PDF.js page render). */
+  canvasElement?: HTMLCanvasElement | null
   videoElement?: HTMLVideoElement
   annotations: Annotation[]
   scale: number
@@ -37,6 +39,7 @@ const DrawingCanvas = ({
   height,
   mediaDimensions,
   imageUrl,
+  canvasElement,
   videoElement,
   annotations,
   scale,
@@ -59,6 +62,14 @@ const DrawingCanvas = ({
   const currentLineRef = useRef<Konva.Line>(null)
   const currentRectRef = useRef<Konva.Rect>(null)
   const currentArrowRef = useRef<Konva.Arrow>(null)
+
+  // Force a redraw whenever the live canvas source is swapped, so the layer
+  // picks up the new page raster (Konva redraws the source each batchDraw).
+  useEffect(() => {
+    if (canvasElement && imageRef.current) {
+      imageRef.current.getLayer()?.batchDraw()
+    }
+  }, [canvasElement])
 
   // Handle Video Redraw
   useEffect(() => {
@@ -465,7 +476,7 @@ const DrawingCanvas = ({
         <Layer>
           <KonvaImage
             ref={imageRef}
-            image={videoElement || loadedImage}
+            image={videoElement || canvasElement || loadedImage}
             width={mediaDimensions.width}
             height={mediaDimensions.height}
           />

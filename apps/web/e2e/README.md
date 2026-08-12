@@ -95,6 +95,7 @@ apps/web/e2e/
 | Upload an image file, wait for transcode, and create a comment with draw | `tests/file/image-draw-comment.spec.ts` |
 | Upload a video file, wait for transcode, and create a comment with draw at a non-zero timestamp | `tests/file/video-draw-comment.spec.ts` |
 | Upload an audio file, wait for transcode, and create a comment at a non-zero timestamp | `tests/file/audio-timestamp-comment.spec.ts` |
+| Upload a pdf, select its text in view mode, and verify draw mode routes drags to the canvas | `tests/file/pdf-text-select.spec.ts` |
 
 ## Conventions
 
