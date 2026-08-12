@@ -34,7 +34,7 @@ Shumai 是一个开源的 Frame.io 替代方案，专为创意团队打造，让
 * **Agent 就像团队成员**：你可以在素材评论区里直接用 `@` 提到 AI Agent，像拉一个真实同事进来一起看稿一样。
 * **Agent 也能当你的私聊助手**：你可以单独和它聊天，让它帮你查东西、做任务。
 * **自定义技能和工具**：你可以给 Agent 接上自己的脚本、工具和自动化能力。
-* **Model Context Protocol (MCP) 支持**：支持通过远程 MCP 服务端（HTTP/SSE）为 Agent 接入外部工具与 API，支持 OAuth 2.0 / PKCE 鉴权与按 Agent 独立分配工具。
+* **Model Context Protocol (MCP) 支持**：通过远程 MCP 服务端为 Agent 接入外部工具与 API，支持 OAuth 鉴权与按 Agent 独立分配访问权限。
 * **沙箱隔离执行**：Agent 生成的脚本会在隔离环境里运行，更安全。
 * **AI 自动补全元数据**：新素材上传后，系统可以自动帮你补一些元数据。
 * **语义搜索**：支持按画面内容或语义找素材，底层用的是向量 embedding（Gemini Embedding 2）。
