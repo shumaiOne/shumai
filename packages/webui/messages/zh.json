@@ -1,6 +1,6 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
-  "dashboard": "控制台",
+  "dashboard": "仪表板",
   "notifications": "通知",
   "uploads": "上传管理",
   "language": "语言",
