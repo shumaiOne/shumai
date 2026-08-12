@@ -20,7 +20,9 @@
   word-spacing: normal;
   transform-origin: 0 0;
   caret-color: CanvasText;
-  z-index: 0;
+  /* Above the page canvas (z-0) so the selection highlight is visible, but
+     below the loading overlay (z-20). */
+  z-index: 10;
   --total-scale-factor: 1;
   --scale-round-x: 1px;
   --scale-round-y: 1px;

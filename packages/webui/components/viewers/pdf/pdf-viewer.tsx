@@ -277,9 +277,9 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
 
     // Build the pdf.js TextLayer overlay for the current page: invisible,
     // natively selectable text spans positioned exactly over the page canvas.
-    // The container sits below the Konva stage, which only receives pointer
-    // events while drawing is enabled (see DrawingCanvas), so left-drag
-    // selects text when not in draw mode and draws when in draw mode.
+    // The overlay sits on top of the Konva stage so the selection highlight
+    // is visible; pointer events are gated on `isDrawing` (see the JSX), so
+    // left-drag selects text when not in draw mode and draws when in draw mode.
     useEffect(() => {
       const container = textLayerContainerRef.current
       if (!pdfDoc || !container) return
@@ -395,17 +395,6 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
         <div className="flex-1 flex flex-col-reverse md:flex-row min-h-0 relative">
           {children}
           <div ref={containerRef} className="flex-1 relative overflow-hidden touch-none">
-            {/* Invisible selectable text overlay, transformed to match the
-                Konva stage below it. Left-drag selects text when not in draw
-                mode; the stage only intercepts pointer events while drawing. */}
-            <div
-              ref={textLayerContainerRef}
-              className="pdf-text-layer"
-              style={{
-                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-                transformOrigin: '0 0',
-              }}
-            />
             {loading ? (
               <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-20">
                 <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" />
@@ -430,6 +419,19 @@ export const PdfViewer = React.forwardRef<MediaController, FileViewerProps>(
                 onAddAnnotation={addAnnotation}
               />
             )}
+            {/* Invisible selectable text overlay, transformed to match the Konva
+                stage. It sits ON TOP of the page canvas so the native selection
+                highlight is visible; pointer events are enabled only when not
+                drawing, so drags reach the stage below in draw mode. */}
+            <div
+              ref={textLayerContainerRef}
+              className="pdf-text-layer"
+              style={{
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                transformOrigin: '0 0',
+                pointerEvents: isDrawing ? 'none' : 'auto',
+              }}
+            />
           </div>
         </div>
         <PdfControlBar
