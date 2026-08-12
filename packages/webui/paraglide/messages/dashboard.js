@@ -10,7 +10,7 @@ const en_dashboard = /** @type {(inputs: DashboardInputs) => LocalizedString} */
 };
 
 const zh_dashboard = /** @type {(inputs: DashboardInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`控制台`)
+	return /** @type {LocalizedString} */ (`仪表板`)
 };
 
 /**
