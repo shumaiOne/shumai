@@ -11,7 +11,7 @@ Model Context Protocol (MCP) is an open standard that enables AI models to safel
 
 Rather than overloading model context windows with dozens of complex parameter schemas, Shumai connects to MCP servers efficiently:
 
-- **Automatic Discovery & Metadata Caching**: When you add an MCP server, Shumai connects to the endpoint to discover available tools, server-reported usage instructions, and description metadata. These schemas are cached in your database for fast retrieval.
+- **Automatic Discovery & Metadata Caching**: When you add an MCP server, Shumai records it in your team's settings and connects to the endpoint to discover available tools, server-reported usage instructions, and description metadata. Discovery runs when you refresh the server, complete an OAuth flow, or the first time an agent calls one of its tools. These schemas are cached in your database for fast retrieval.
 - **Context-Efficient Proxy Tool (`mcp`)**: Assigned MCP servers are multiplexed through a single unified `mcp` proxy tool injected into your Chat Agents. The agent can dynamically inspect server status, search tools, view parameter schemas, and invoke functions as needed without wasting LLM tokens.
 - **Direct Tools Option**: For high-frequency actions, you can optionally configure specific tools as **Direct Tools** to expose them directly to the agent as top-level LLM functions alongside the `mcp` proxy.
 
@@ -26,11 +26,11 @@ To register a new MCP server in Shumai:
 3. In the dialog box, enter your **Server Endpoint URL** (e.g. `https://mcp.example.com/sse` or `http://localhost:8080/mcp`).
 4. Click **Create**.
 
-> **Note:** Only the **Server Endpoint URL** is required. Shumai automatically derives the server name, status, instructions, and tool inventory upon the first connection.
+> **Note:** Only the **Server Endpoint URL** is required. Shumai derives a placeholder server name from the URL immediately; the server's actual name, status, instructions, and tool inventory are discovered the first time the server is connected (via the Refresh button in the edit dialog or the first tool call by an agent).
 
 ### Optional Server Configuration
 
-When creating or editing a server, you can expand advanced settings:
+After creating a server (the create dialog only requires a URL), open its edit dialog to configure advanced settings:
 
 - **Transport**: Choose between `Streamable HTTP` (default) or `Server-Sent Events (SSE)`.
 - **Auth Strategy**: Select `Auto-detect` (default), `None`, `Bearer Token`, or `OAuth 2.0`.
@@ -67,7 +67,7 @@ By default, newly added MCP servers are **not assigned to any agent**. To give a
 1. Navigate to **Team Settings** > **Agents**.
 2. Click on the target agent to open its configuration dialog.
 3. Scroll down to the **MCP Servers** section.
-4. Check the box next to the MCP server(s) you want to authorize for this agent.
+4. Toggle the switch next to the MCP server(s) you want to authorize for this agent.
 5. Click **Save Changes**.
 
 ---
