@@ -419,6 +419,7 @@ export function FileCard({
                 </label>
                 <div className="min-h-[28px]">
                   <FieldRenderer
+                    fieldId={field.id}
                     config={field.config}
                     value={itemFieldValueMap[field.id!]?.value}
                     onSave={canEdit ? (val) => onSaveField(field.id!, val) : undefined}

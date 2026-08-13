@@ -731,6 +731,9 @@
   "visible_count": "({count} visible)",
   "option_name_placeholder": "Option name",
   "unknown_field_type": "Unknown Field Type",
+  "search_options_placeholder": "Search options...",
+  "add_option_with_name": "Add options: {name}",
+  "no_options_found": "No options found",
 
   "settings_updated": "Settings updated",
   "failed_update_settings": "Failed to update settings",

@@ -731,6 +731,9 @@
   "visible_count": "（{count} 个可见）",
   "option_name_placeholder": "选项名称",
   "unknown_field_type": "未知字段类型",
+  "search_options_placeholder": "搜索选项...",
+  "add_option_with_name": "添加选项：{name}",
+  "no_options_found": "未找到选项",
 
   "settings_updated": "设置已更新",
   "failed_update_settings": "更新设置失败",
