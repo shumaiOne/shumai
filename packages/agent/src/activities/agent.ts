@@ -896,7 +896,7 @@ export async function getAgentChatContextActivity(params: {
   const sandbox = await prisma.sandbox.findUnique({
     where: { teamId: params.teamId },
   })
-  const allowedDomains = sandbox?.allowedDomains || []
+  const allowedDomains = sandbox?.networkSandboxEnabled ? sandbox.allowedDomains : ['*']
 
   return {
     agent,
@@ -980,7 +980,7 @@ export async function getAgentAutofillContextActivity(params: {
   const sandbox = await prisma.sandbox.findUnique({
     where: { teamId: params.teamId },
   })
-  const allowedDomains = sandbox?.allowedDomains || []
+  const allowedDomains = sandbox?.networkSandboxEnabled ? sandbox.allowedDomains : ['*']
 
   return {
     agent: agentWithDetails,

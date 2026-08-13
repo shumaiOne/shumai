@@ -28,6 +28,7 @@ export type AggregateSandbox = {
 
 export type SandboxMinAggregateOutputType = {
   id: string | null
+  networkSandboxEnabled: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
   teamId: string | null
@@ -35,6 +36,7 @@ export type SandboxMinAggregateOutputType = {
 
 export type SandboxMaxAggregateOutputType = {
   id: string | null
+  networkSandboxEnabled: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
   teamId: string | null
@@ -42,6 +44,7 @@ export type SandboxMaxAggregateOutputType = {
 
 export type SandboxCountAggregateOutputType = {
   id: number
+  networkSandboxEnabled: number
   allowedDomains: number
   pendingDomains: number
   createdAt: number
@@ -53,6 +56,7 @@ export type SandboxCountAggregateOutputType = {
 
 export type SandboxMinAggregateInputType = {
   id?: true
+  networkSandboxEnabled?: true
   createdAt?: true
   updatedAt?: true
   teamId?: true
@@ -60,6 +64,7 @@ export type SandboxMinAggregateInputType = {
 
 export type SandboxMaxAggregateInputType = {
   id?: true
+  networkSandboxEnabled?: true
   createdAt?: true
   updatedAt?: true
   teamId?: true
@@ -67,6 +72,7 @@ export type SandboxMaxAggregateInputType = {
 
 export type SandboxCountAggregateInputType = {
   id?: true
+  networkSandboxEnabled?: true
   allowedDomains?: true
   pendingDomains?: true
   createdAt?: true
@@ -149,6 +155,7 @@ export type SandboxGroupByArgs<ExtArgs extends runtime.Types.Extensions.Internal
 
 export type SandboxGroupByOutputType = {
   id: string
+  networkSandboxEnabled: boolean
   allowedDomains: string[]
   pendingDomains: string[]
   createdAt: Date
@@ -179,6 +186,7 @@ export type SandboxWhereInput = {
   OR?: Prisma.SandboxWhereInput[]
   NOT?: Prisma.SandboxWhereInput | Prisma.SandboxWhereInput[]
   id?: Prisma.StringFilter<"Sandbox"> | string
+  networkSandboxEnabled?: Prisma.BoolFilter<"Sandbox"> | boolean
   allowedDomains?: Prisma.StringNullableListFilter<"Sandbox">
   pendingDomains?: Prisma.StringNullableListFilter<"Sandbox">
   createdAt?: Prisma.DateTimeFilter<"Sandbox"> | Date | string
@@ -189,6 +197,7 @@ export type SandboxWhereInput = {
 
 export type SandboxOrderByWithRelationInput = {
   id?: Prisma.SortOrder
+  networkSandboxEnabled?: Prisma.SortOrder
   allowedDomains?: Prisma.SortOrder
   pendingDomains?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -203,6 +212,7 @@ export type SandboxWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.SandboxWhereInput | Prisma.SandboxWhereInput[]
   OR?: Prisma.SandboxWhereInput[]
   NOT?: Prisma.SandboxWhereInput | Prisma.SandboxWhereInput[]
+  networkSandboxEnabled?: Prisma.BoolFilter<"Sandbox"> | boolean
   allowedDomains?: Prisma.StringNullableListFilter<"Sandbox">
   pendingDomains?: Prisma.StringNullableListFilter<"Sandbox">
   createdAt?: Prisma.DateTimeFilter<"Sandbox"> | Date | string
@@ -212,6 +222,7 @@ export type SandboxWhereUniqueInput = Prisma.AtLeast<{
 
 export type SandboxOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
+  networkSandboxEnabled?: Prisma.SortOrder
   allowedDomains?: Prisma.SortOrder
   pendingDomains?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -227,6 +238,7 @@ export type SandboxScalarWhereWithAggregatesInput = {
   OR?: Prisma.SandboxScalarWhereWithAggregatesInput[]
   NOT?: Prisma.SandboxScalarWhereWithAggregatesInput | Prisma.SandboxScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"Sandbox"> | string
+  networkSandboxEnabled?: Prisma.BoolWithAggregatesFilter<"Sandbox"> | boolean
   allowedDomains?: Prisma.StringNullableListFilter<"Sandbox">
   pendingDomains?: Prisma.StringNullableListFilter<"Sandbox">
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Sandbox"> | Date | string
@@ -236,6 +248,7 @@ export type SandboxScalarWhereWithAggregatesInput = {
 
 export type SandboxCreateInput = {
   id?: string
+  networkSandboxEnabled?: boolean
   allowedDomains?: Prisma.SandboxCreateallowedDomainsInput | string[]
   pendingDomains?: Prisma.SandboxCreatependingDomainsInput | string[]
   createdAt?: Date | string
@@ -245,6 +258,7 @@ export type SandboxCreateInput = {
 
 export type SandboxUncheckedCreateInput = {
   id?: string
+  networkSandboxEnabled?: boolean
   allowedDomains?: Prisma.SandboxCreateallowedDomainsInput | string[]
   pendingDomains?: Prisma.SandboxCreatependingDomainsInput | string[]
   createdAt?: Date | string
@@ -254,6 +268,7 @@ export type SandboxUncheckedCreateInput = {
 
 export type SandboxUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  networkSandboxEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allowedDomains?: Prisma.SandboxUpdateallowedDomainsInput | string[]
   pendingDomains?: Prisma.SandboxUpdatependingDomainsInput | string[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -263,6 +278,7 @@ export type SandboxUpdateInput = {
 
 export type SandboxUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  networkSandboxEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allowedDomains?: Prisma.SandboxUpdateallowedDomainsInput | string[]
   pendingDomains?: Prisma.SandboxUpdatependingDomainsInput | string[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -272,6 +288,7 @@ export type SandboxUncheckedUpdateInput = {
 
 export type SandboxCreateManyInput = {
   id?: string
+  networkSandboxEnabled?: boolean
   allowedDomains?: Prisma.SandboxCreateallowedDomainsInput | string[]
   pendingDomains?: Prisma.SandboxCreatependingDomainsInput | string[]
   createdAt?: Date | string
@@ -281,6 +298,7 @@ export type SandboxCreateManyInput = {
 
 export type SandboxUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  networkSandboxEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allowedDomains?: Prisma.SandboxUpdateallowedDomainsInput | string[]
   pendingDomains?: Prisma.SandboxUpdatependingDomainsInput | string[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -289,6 +307,7 @@ export type SandboxUpdateManyMutationInput = {
 
 export type SandboxUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  networkSandboxEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allowedDomains?: Prisma.SandboxUpdateallowedDomainsInput | string[]
   pendingDomains?: Prisma.SandboxUpdatependingDomainsInput | string[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -311,6 +330,7 @@ export type StringNullableListFilter<$PrismaModel = never> = {
 
 export type SandboxCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  networkSandboxEnabled?: Prisma.SortOrder
   allowedDomains?: Prisma.SortOrder
   pendingDomains?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -320,6 +340,7 @@ export type SandboxCountOrderByAggregateInput = {
 
 export type SandboxMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  networkSandboxEnabled?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   teamId?: Prisma.SortOrder
@@ -327,6 +348,7 @@ export type SandboxMaxOrderByAggregateInput = {
 
 export type SandboxMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  networkSandboxEnabled?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   teamId?: Prisma.SortOrder
@@ -384,6 +406,7 @@ export type SandboxUpdatependingDomainsInput = {
 
 export type SandboxCreateWithoutTeamInput = {
   id?: string
+  networkSandboxEnabled?: boolean
   allowedDomains?: Prisma.SandboxCreateallowedDomainsInput | string[]
   pendingDomains?: Prisma.SandboxCreatependingDomainsInput | string[]
   createdAt?: Date | string
@@ -392,6 +415,7 @@ export type SandboxCreateWithoutTeamInput = {
 
 export type SandboxUncheckedCreateWithoutTeamInput = {
   id?: string
+  networkSandboxEnabled?: boolean
   allowedDomains?: Prisma.SandboxCreateallowedDomainsInput | string[]
   pendingDomains?: Prisma.SandboxCreatependingDomainsInput | string[]
   createdAt?: Date | string
@@ -416,6 +440,7 @@ export type SandboxUpdateToOneWithWhereWithoutTeamInput = {
 
 export type SandboxUpdateWithoutTeamInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  networkSandboxEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allowedDomains?: Prisma.SandboxUpdateallowedDomainsInput | string[]
   pendingDomains?: Prisma.SandboxUpdatependingDomainsInput | string[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -424,6 +449,7 @@ export type SandboxUpdateWithoutTeamInput = {
 
 export type SandboxUncheckedUpdateWithoutTeamInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  networkSandboxEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   allowedDomains?: Prisma.SandboxUpdateallowedDomainsInput | string[]
   pendingDomains?: Prisma.SandboxUpdatependingDomainsInput | string[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -434,6 +460,7 @@ export type SandboxUncheckedUpdateWithoutTeamInput = {
 
 export type SandboxSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  networkSandboxEnabled?: boolean
   allowedDomains?: boolean
   pendingDomains?: boolean
   createdAt?: boolean
@@ -444,6 +471,7 @@ export type SandboxSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
 
 export type SandboxSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  networkSandboxEnabled?: boolean
   allowedDomains?: boolean
   pendingDomains?: boolean
   createdAt?: boolean
@@ -454,6 +482,7 @@ export type SandboxSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
 
 export type SandboxSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  networkSandboxEnabled?: boolean
   allowedDomains?: boolean
   pendingDomains?: boolean
   createdAt?: boolean
@@ -464,6 +493,7 @@ export type SandboxSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
 
 export type SandboxSelectScalar = {
   id?: boolean
+  networkSandboxEnabled?: boolean
   allowedDomains?: boolean
   pendingDomains?: boolean
   createdAt?: boolean
@@ -471,7 +501,7 @@ export type SandboxSelectScalar = {
   teamId?: boolean
 }
 
-export type SandboxOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "allowedDomains" | "pendingDomains" | "createdAt" | "updatedAt" | "teamId", ExtArgs["result"]["sandbox"]>
+export type SandboxOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "networkSandboxEnabled" | "allowedDomains" | "pendingDomains" | "createdAt" | "updatedAt" | "teamId", ExtArgs["result"]["sandbox"]>
 export type SandboxInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
 }
@@ -489,6 +519,7 @@ export type $SandboxPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
+    networkSandboxEnabled: boolean
     allowedDomains: string[]
     pendingDomains: string[]
     createdAt: Date
@@ -919,6 +950,7 @@ export interface Prisma__SandboxClient<T, Null = never, ExtArgs extends runtime.
  */
 export interface SandboxFieldRefs {
   readonly id: Prisma.FieldRef<"Sandbox", 'String'>
+  readonly networkSandboxEnabled: Prisma.FieldRef<"Sandbox", 'Boolean'>
   readonly allowedDomains: Prisma.FieldRef<"Sandbox", 'String[]'>
   readonly pendingDomains: Prisma.FieldRef<"Sandbox", 'String[]'>
   readonly createdAt: Prisma.FieldRef<"Sandbox", 'DateTime'>

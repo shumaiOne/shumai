@@ -292,6 +292,7 @@ describe('team api', () => {
 
   it('GET /teams/:teamId/sandbox returns sandbox settings', async () => {
     mockGetSandboxSettings.mockResolvedValue({
+      networkSandboxEnabled: false,
       allowedDomains: ['example.com'],
       pendingDomains: ['pending.com'],
     })
@@ -300,6 +301,7 @@ describe('team api', () => {
 
     expect(res.status).toBe(200)
     const data = await res.json()
+    expect(data.networkSandboxEnabled).toBe(false)
     expect(data.allowedDomains).toEqual(['example.com'])
     expect(data.pendingDomains).toEqual(['pending.com'])
     expect(authzService.hasPermission).toHaveBeenCalledWith(
@@ -314,6 +316,7 @@ describe('team api', () => {
 
   it('PUT /teams/:teamId/sandbox updates sandbox settings', async () => {
     mockUpdateSandboxSettings.mockResolvedValue({
+      networkSandboxEnabled: true,
       allowedDomains: ['new.com'],
       pendingDomains: ['new-pending.com'],
     })
@@ -321,11 +324,16 @@ describe('team api', () => {
     const res = await app.request('/teams/t1/sandbox', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ allowedDomains: ['new.com'], pendingDomains: ['new-pending.com'] }),
+      body: JSON.stringify({
+        networkSandboxEnabled: true,
+        allowedDomains: ['new.com'],
+        pendingDomains: ['new-pending.com'],
+      }),
     })
 
     expect(res.status).toBe(200)
     const data = await res.json()
+    expect(data.networkSandboxEnabled).toBe(true)
     expect(data.allowedDomains).toEqual(['new.com'])
     expect(data.pendingDomains).toEqual(['new-pending.com'])
     expect(authzService.hasPermission).toHaveBeenCalledWith(
@@ -336,6 +344,7 @@ describe('team api', () => {
       }),
     )
     expect(mockUpdateSandboxSettings).toHaveBeenCalledWith('t1', {
+      networkSandboxEnabled: true,
       allowedDomains: ['new.com'],
       pendingDomains: ['new-pending.com'],
     })

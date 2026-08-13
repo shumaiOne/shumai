@@ -6,17 +6,17 @@ import { getLocale, experimentalStaticLocale } from '../runtime.js';
 /** @typedef {{}} Network_Sandbox_DescriptionInputs */
 
 const en_network_sandbox_description = /** @type {(inputs: Network_Sandbox_DescriptionInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`Configure allowed domains for the sandboxed agent. By default, only essential domains are allowed.`)
+	return /** @type {LocalizedString} */ (`Configure domain access controls for the sandboxed agent.`)
 };
 
 const zh_network_sandbox_description = /** @type {(inputs: Network_Sandbox_DescriptionInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`配置沙箱智能体的允许域名。默认情况下，仅允许必要域名。`)
+	return /** @type {LocalizedString} */ (`配置沙箱智能体的域名访问控制。`)
 };
 
 /**
 * | output |
 * | --- |
-* | "Configure allowed domains for the sandboxed agent. By default, only essential domains are allowed." |
+* | "Configure domain access controls for the sandboxed agent." |
 *
 * @param {Network_Sandbox_DescriptionInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options

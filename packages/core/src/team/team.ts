@@ -16,6 +16,7 @@ import {
   GetMeResponse,
   UserInfo,
   SandboxSettings,
+  UpdateSandboxSettingsRequest,
 } from '@shumai/dtos'
 
 export class TeamService {
@@ -330,25 +331,38 @@ export class TeamService {
       where: { teamId },
     })
     return {
+      networkSandboxEnabled: sandbox?.networkSandboxEnabled ?? false,
       allowedDomains: sandbox?.allowedDomains || [],
       pendingDomains: sandbox?.pendingDomains || [],
     }
   }
 
-  async updateSandboxSettings(teamId: string, settings: SandboxSettings): Promise<SandboxSettings> {
+  async updateSandboxSettings(
+    teamId: string,
+    settings: UpdateSandboxSettingsRequest,
+  ): Promise<SandboxSettings> {
     const sandbox = await prisma.sandbox.upsert({
       where: { teamId },
       create: {
         teamId,
-        allowedDomains: settings.allowedDomains,
-        pendingDomains: settings.pendingDomains,
+        networkSandboxEnabled: settings.networkSandboxEnabled ?? false,
+        allowedDomains: settings.allowedDomains ?? [],
+        pendingDomains: settings.pendingDomains ?? [],
       },
       update: {
-        allowedDomains: settings.allowedDomains,
-        pendingDomains: settings.pendingDomains,
+        ...(settings.networkSandboxEnabled !== undefined && {
+          networkSandboxEnabled: settings.networkSandboxEnabled,
+        }),
+        ...(settings.allowedDomains !== undefined && {
+          allowedDomains: settings.allowedDomains,
+        }),
+        ...(settings.pendingDomains !== undefined && {
+          pendingDomains: settings.pendingDomains,
+        }),
       },
     })
     return {
+      networkSandboxEnabled: sandbox.networkSandboxEnabled,
       allowedDomains: sandbox.allowedDomains,
       pendingDomains: sandbox.pendingDomains,
     }
