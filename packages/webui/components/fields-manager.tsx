@@ -1,5 +1,6 @@
 import {
   FieldType,
+  AutofillSource,
   type FieldInfo,
   type FieldInfo as MetadataFieldInfo,
   type SelectOption,
@@ -24,8 +25,32 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/ui/popo
 import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
 import { Switch } from '@/ui/components/ui/switch'
+import { ToggleGroup, ToggleGroupItem } from '@/ui/components/ui/toggle-group'
 import { reorderFieldSubset } from '@/ui/lib/dnd-utils'
 import { PointerActivationConstraints } from '@dnd-kit/dom'
+import {
+  AlignLeft,
+  Calendar,
+  ChevronDown,
+  GripVertical,
+  Hash,
+  List,
+  Plus,
+  Search,
+  Settings,
+  Sparkles,
+  Bot,
+  Star,
+  Tags,
+  ToggleLeft,
+  Type,
+  X,
+  User,
+  Users,
+} from 'lucide-react'
+import { useMemo, useState, useEffect } from 'react'
+
+import { AutofillSourceHelpTrigger } from '@/ui/components/autofill-source-help-dialog'
 
 export const PREDEFINED_COLORS = ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'gray']
 
@@ -80,26 +105,6 @@ export function getRandomUnusedColor(existingOptions: SelectOption[] = []): stri
   }
   return PREDEFINED_COLORS[Math.floor(Math.random() * PREDEFINED_COLORS.length)]
 }
-import {
-  AlignLeft,
-  Calendar,
-  ChevronDown,
-  GripVertical,
-  Hash,
-  List,
-  Plus,
-  Search,
-  Settings,
-  Sparkles,
-  Star,
-  Tags,
-  ToggleLeft,
-  Type,
-  X,
-  User,
-  Users,
-} from 'lucide-react'
-import { useMemo, useState, useEffect } from 'react'
 
 export const FIELD_TYPE_ICONS: Record<FieldType, React.ComponentType<{ className?: string }>> = {
   [FieldType.text]: Type,
@@ -135,7 +140,12 @@ function SortableFieldItem({ field, index, onVisibilityChange }: SortableFieldIt
           <GripVertical className="h-4 w-4 text-muted-foreground" />
         </div>
         {Icon && <Icon className="h-4 w-4 text-muted-foreground shrink-0" />}
-        {field.aiAutofill && <Sparkles className="h-4 w-4 text-muted-foreground shrink-0" />}
+        {field.config?.autofillSource === AutofillSource.CONTENT && (
+          <Sparkles className="h-4 w-4 text-muted-foreground shrink-0" />
+        )}
+        {field.config?.autofillSource === AutofillSource.CREATION_CONTEXT && (
+          <Bot className="h-4 w-4 text-muted-foreground shrink-0" />
+        )}
         <span className="text-sm truncate">{field.config?.name}</span>
       </div>
       <Switch
@@ -158,7 +168,7 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
   const [view, setView] = useState<'list' | 'create'>('list')
   const [newFieldName, setNewFieldName] = useState('')
   const [newFieldType, setNewFieldType] = useState<FieldType | ''>('')
-  const [newAiAutofill, setNewAiAutofill] = useState(false)
+  const [newAutofillSource, setNewAutofillSource] = useState<AutofillSource>(AutofillSource.NONE)
   const [newDescription, setNewDescription] = useState('')
   const [newOptions, setNewOptions] = useState<SelectOption[]>([])
 
@@ -265,10 +275,10 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
         config: {
           name: newFieldName,
           type: newFieldType,
+          autofillSource: newAutofillSource,
           ...typeConfig,
         },
         label: newFieldName,
-        aiAutofill: newAiAutofill,
         description: newDescription,
       },
     })
@@ -333,9 +343,38 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
             />
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Switch id="ai-autofill" checked={newAiAutofill} onCheckedChange={setNewAiAutofill} />
-            <Label htmlFor="ai-autofill">{m.ai_autofill()}</Label>
+          <div className="space-y-2">
+            <div className="flex items-center gap-1">
+              <Label>{m.autofill_source()}</Label>
+              <AutofillSourceHelpTrigger />
+            </div>
+            <ToggleGroup
+              type="single"
+              value={newAutofillSource}
+              onValueChange={(val: string) => {
+                if (val) setNewAutofillSource(val as AutofillSource)
+              }}
+              className="w-full grid grid-cols-3 border rounded-md p-1 gap-1"
+            >
+              <ToggleGroupItem
+                value={AutofillSource.NONE}
+                className="text-[11px] leading-tight py-1 px-1 h-auto min-h-[32px] w-full text-center justify-center whitespace-normal font-medium"
+              >
+                {m.autofill_source_none()}
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value={AutofillSource.CONTENT}
+                className="text-[11px] leading-tight py-1 px-1 h-auto min-h-[32px] w-full text-center justify-center whitespace-normal font-medium"
+              >
+                {m.autofill_source_content()}
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value={AutofillSource.CREATION_CONTEXT}
+                className="text-[11px] leading-tight py-1 px-1 h-auto min-h-[32px] w-full text-center justify-center whitespace-normal font-medium"
+              >
+                {m.autofill_source_creation_context()}
+              </ToggleGroupItem>
+            </ToggleGroup>
           </div>
 
           {(newFieldType === FieldType.select || newFieldType === FieldType.selectMulti) && (
@@ -424,7 +463,7 @@ export function FieldsManager({ projectId, onManageFields, onSave }: FieldsManag
                 setView('list')
                 setNewFieldName('')
                 setNewFieldType('')
-                setNewAiAutofill(false)
+                setNewAutofillSource(AutofillSource.NONE)
                 setNewDescription('')
                 setNewOptions([])
               }}

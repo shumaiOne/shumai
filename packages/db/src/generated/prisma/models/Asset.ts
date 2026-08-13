@@ -47,7 +47,6 @@ export type AssetMinAggregateOutputType = {
   sizeByte: bigint | null
   status: $Enums.AssetStatus | null
   transcodeTaskId: string | null
-  autofillContext: string | null
   isDeleted: boolean | null
   deletedAt: Date | null
   sortIndex: string | null
@@ -70,7 +69,6 @@ export type AssetMaxAggregateOutputType = {
   sizeByte: bigint | null
   status: $Enums.AssetStatus | null
   transcodeTaskId: string | null
-  autofillContext: string | null
   isDeleted: boolean | null
   deletedAt: Date | null
   sortIndex: string | null
@@ -95,7 +93,6 @@ export type AssetCountAggregateOutputType = {
   status: number
   transcodeTaskId: number
   media:PrismaJson.MediaInfo
-  autofillContext: number
   isDeleted: number
   deletedAt: number
   sortIndex: number
@@ -130,7 +127,6 @@ export type AssetMinAggregateInputType = {
   sizeByte?: true
   status?: true
   transcodeTaskId?: true
-  autofillContext?: true
   isDeleted?: true
   deletedAt?: true
   sortIndex?: true
@@ -153,7 +149,6 @@ export type AssetMaxAggregateInputType = {
   sizeByte?: true
   status?: true
   transcodeTaskId?: true
-  autofillContext?: true
   isDeleted?: true
   deletedAt?: true
   sortIndex?: true
@@ -178,7 +173,6 @@ export type AssetCountAggregateInputType = {
   status?: true
   transcodeTaskId?: true
   media?: true
-  autofillContext?: true
   isDeleted?: true
   deletedAt?: true
   sortIndex?: true
@@ -290,7 +284,6 @@ export type AssetGroupByOutputType = {
   status: $Enums.AssetStatus
   transcodeTaskId: string | null
   media:PrismaJson.MediaInfo | null
-  autofillContext: string | null
   isDeleted: boolean
   deletedAt: Date | null
   sortIndex: string | null
@@ -338,7 +331,6 @@ export type AssetWhereInput = {
   status?: Prisma.EnumAssetStatusFilter<"Asset"> | $Enums.AssetStatus
   transcodeTaskId?: Prisma.StringNullableFilter<"Asset"> | string | null
   media?: Prisma.JsonNullableFilter<"Asset">
-  autofillContext?: Prisma.StringNullableFilter<"Asset"> | string | null
   isDeleted?: Prisma.BoolFilter<"Asset"> | boolean
   deletedAt?: Prisma.DateTimeNullableFilter<"Asset"> | Date | string | null
   sortIndex?: Prisma.StringNullableFilter<"Asset"> | string | null
@@ -382,7 +374,6 @@ export type AssetOrderByWithRelationInput = {
   status?: Prisma.SortOrder
   transcodeTaskId?: Prisma.SortOrderInput | Prisma.SortOrder
   media?: Prisma.SortOrderInput | Prisma.SortOrder
-  autofillContext?: Prisma.SortOrderInput | Prisma.SortOrder
   isDeleted?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   sortIndex?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -430,7 +421,6 @@ export type AssetWhereUniqueInput = Prisma.AtLeast<{
   status?: Prisma.EnumAssetStatusFilter<"Asset"> | $Enums.AssetStatus
   transcodeTaskId?: Prisma.StringNullableFilter<"Asset"> | string | null
   media?: Prisma.JsonNullableFilter<"Asset">
-  autofillContext?: Prisma.StringNullableFilter<"Asset"> | string | null
   isDeleted?: Prisma.BoolFilter<"Asset"> | boolean
   deletedAt?: Prisma.DateTimeNullableFilter<"Asset"> | Date | string | null
   sortIndex?: Prisma.StringNullableFilter<"Asset"> | string | null
@@ -474,7 +464,6 @@ export type AssetOrderByWithAggregationInput = {
   status?: Prisma.SortOrder
   transcodeTaskId?: Prisma.SortOrderInput | Prisma.SortOrder
   media?: Prisma.SortOrderInput | Prisma.SortOrder
-  autofillContext?: Prisma.SortOrderInput | Prisma.SortOrder
   isDeleted?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   sortIndex?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -507,7 +496,6 @@ export type AssetScalarWhereWithAggregatesInput = {
   status?: Prisma.EnumAssetStatusWithAggregatesFilter<"Asset"> | $Enums.AssetStatus
   transcodeTaskId?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
   media?: Prisma.JsonNullableWithAggregatesFilter<"Asset">
-  autofillContext?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
   isDeleted?: Prisma.BoolWithAggregatesFilter<"Asset"> | boolean
   deletedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Asset"> | Date | string | null
   sortIndex?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
@@ -532,7 +520,6 @@ export type AssetCreateInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -570,7 +557,6 @@ export type AssetUncheckedCreateInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -608,7 +594,6 @@ export type AssetUpdateInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -646,7 +631,6 @@ export type AssetUncheckedUpdateInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -684,7 +668,6 @@ export type AssetCreateManyInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -709,7 +692,6 @@ export type AssetUpdateManyMutationInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -728,7 +710,6 @@ export type AssetUncheckedUpdateManyInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -778,7 +759,6 @@ export type AssetCountOrderByAggregateInput = {
   status?: Prisma.SortOrder
   transcodeTaskId?: Prisma.SortOrder
   media?: Prisma.SortOrder
-  autofillContext?: Prisma.SortOrder
   isDeleted?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   sortIndex?: Prisma.SortOrder
@@ -806,7 +786,6 @@ export type AssetMaxOrderByAggregateInput = {
   sizeByte?: Prisma.SortOrder
   status?: Prisma.SortOrder
   transcodeTaskId?: Prisma.SortOrder
-  autofillContext?: Prisma.SortOrder
   isDeleted?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   sortIndex?: Prisma.SortOrder
@@ -829,7 +808,6 @@ export type AssetMinOrderByAggregateInput = {
   sizeByte?: Prisma.SortOrder
   status?: Prisma.SortOrder
   transcodeTaskId?: Prisma.SortOrder
-  autofillContext?: Prisma.SortOrder
   isDeleted?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   sortIndex?: Prisma.SortOrder
@@ -1340,7 +1318,6 @@ export type AssetCreateWithoutCreatorInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -1377,7 +1354,6 @@ export type AssetUncheckedCreateWithoutCreatorInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -1443,7 +1419,6 @@ export type AssetScalarWhereInput = {
   status?: Prisma.EnumAssetStatusFilter<"Asset"> | $Enums.AssetStatus
   transcodeTaskId?: Prisma.StringNullableFilter<"Asset"> | string | null
   media?: Prisma.JsonNullableFilter<"Asset">
-  autofillContext?: Prisma.StringNullableFilter<"Asset"> | string | null
   isDeleted?: Prisma.BoolFilter<"Asset"> | boolean
   deletedAt?: Prisma.DateTimeNullableFilter<"Asset"> | Date | string | null
   sortIndex?: Prisma.StringNullableFilter<"Asset"> | string | null
@@ -1468,7 +1443,6 @@ export type AssetCreateWithoutTeamRootFolderInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -1505,7 +1479,6 @@ export type AssetUncheckedCreateWithoutTeamRootFolderInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -1558,7 +1531,6 @@ export type AssetUpdateWithoutTeamRootFolderInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1595,7 +1567,6 @@ export type AssetUncheckedUpdateWithoutTeamRootFolderInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1632,7 +1603,6 @@ export type AssetCreateWithoutProjectRootFolderInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -1669,7 +1639,6 @@ export type AssetUncheckedCreateWithoutProjectRootFolderInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -1711,7 +1680,6 @@ export type AssetCreateWithoutProjectShareRootInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -1748,7 +1716,6 @@ export type AssetUncheckedCreateWithoutProjectShareRootInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -1790,7 +1757,6 @@ export type AssetCreateWithoutProjectInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -1827,7 +1793,6 @@ export type AssetUncheckedCreateWithoutProjectInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -1885,7 +1850,6 @@ export type AssetUpdateWithoutProjectRootFolderInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1922,7 +1886,6 @@ export type AssetUncheckedUpdateWithoutProjectRootFolderInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1970,7 +1933,6 @@ export type AssetUpdateWithoutProjectShareRootInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2007,7 +1969,6 @@ export type AssetUncheckedUpdateWithoutProjectShareRootInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2060,7 +2021,6 @@ export type AssetCreateWithoutShareLinkRootFolderInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -2097,7 +2057,6 @@ export type AssetUncheckedCreateWithoutShareLinkRootFolderInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -2150,7 +2109,6 @@ export type AssetUpdateWithoutShareLinkRootFolderInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2187,7 +2145,6 @@ export type AssetUncheckedUpdateWithoutShareLinkRootFolderInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2224,7 +2181,6 @@ export type AssetCreateWithoutWatermarkFilesInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -2261,7 +2217,6 @@ export type AssetUncheckedCreateWithoutWatermarkFilesInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -2314,7 +2269,6 @@ export type AssetUpdateWithoutWatermarkFilesInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2351,7 +2305,6 @@ export type AssetUncheckedUpdateWithoutWatermarkFilesInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2388,7 +2341,6 @@ export type AssetCreateWithoutChildrenInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -2425,7 +2377,6 @@ export type AssetUncheckedCreateWithoutChildrenInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -2467,7 +2418,6 @@ export type AssetCreateWithoutParentInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -2504,7 +2454,6 @@ export type AssetUncheckedCreateWithoutParentInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -2551,7 +2500,6 @@ export type AssetCreateWithoutSymlinksInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -2588,7 +2536,6 @@ export type AssetUncheckedCreateWithoutSymlinksInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -2630,7 +2577,6 @@ export type AssetCreateWithoutTargetInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -2667,7 +2613,6 @@ export type AssetUncheckedCreateWithoutTargetInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -2725,7 +2670,6 @@ export type AssetUpdateWithoutChildrenInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2762,7 +2706,6 @@ export type AssetUncheckedUpdateWithoutChildrenInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2826,7 +2769,6 @@ export type AssetUpdateWithoutSymlinksInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2863,7 +2805,6 @@ export type AssetUncheckedUpdateWithoutSymlinksInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2916,7 +2857,6 @@ export type AssetCreateWithoutStorageKeyInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -2953,7 +2893,6 @@ export type AssetUncheckedCreateWithoutStorageKeyInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -3016,7 +2955,6 @@ export type AssetCreateWithoutMetadataValuesInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -3053,7 +2991,6 @@ export type AssetUncheckedCreateWithoutMetadataValuesInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -3106,7 +3043,6 @@ export type AssetUpdateWithoutMetadataValuesInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3143,7 +3079,6 @@ export type AssetUncheckedUpdateWithoutMetadataValuesInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3180,7 +3115,6 @@ export type AssetCreateWithoutCommentsInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -3217,7 +3151,6 @@ export type AssetUncheckedCreateWithoutCommentsInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -3270,7 +3203,6 @@ export type AssetUpdateWithoutCommentsInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3307,7 +3239,6 @@ export type AssetUncheckedUpdateWithoutCommentsInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3344,7 +3275,6 @@ export type AssetCreateWithoutCommentAttachmentsInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -3381,7 +3311,6 @@ export type AssetUncheckedCreateWithoutCommentAttachmentsInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -3434,7 +3363,6 @@ export type AssetUpdateWithoutCommentAttachmentsInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3471,7 +3399,6 @@ export type AssetUncheckedUpdateWithoutCommentAttachmentsInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3508,7 +3435,6 @@ export type AssetCreateWithoutEmbeddingsInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -3545,7 +3471,6 @@ export type AssetUncheckedCreateWithoutEmbeddingsInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -3598,7 +3523,6 @@ export type AssetUpdateWithoutEmbeddingsInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3635,7 +3559,6 @@ export type AssetUncheckedUpdateWithoutEmbeddingsInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3672,7 +3595,6 @@ export type AssetCreateWithoutNotificationsInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -3709,7 +3631,6 @@ export type AssetUncheckedCreateWithoutNotificationsInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -3762,7 +3683,6 @@ export type AssetUpdateWithoutNotificationsInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3799,7 +3719,6 @@ export type AssetUncheckedUpdateWithoutNotificationsInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3836,7 +3755,6 @@ export type AssetCreateWithoutTaskInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -3873,7 +3791,6 @@ export type AssetUncheckedCreateWithoutTaskInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -3936,7 +3853,6 @@ export type AssetCreateWithoutAgentSessionsInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -3973,7 +3889,6 @@ export type AssetUncheckedCreateWithoutAgentSessionsInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -4026,7 +3941,6 @@ export type AssetUpdateWithoutAgentSessionsInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4063,7 +3977,6 @@ export type AssetUncheckedUpdateWithoutAgentSessionsInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4100,7 +4013,6 @@ export type AssetCreateManyCreatorInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -4124,7 +4036,6 @@ export type AssetUpdateWithoutCreatorInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4161,7 +4072,6 @@ export type AssetUncheckedUpdateWithoutCreatorInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4198,7 +4108,6 @@ export type AssetUncheckedUpdateManyWithoutCreatorInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4222,7 +4131,6 @@ export type AssetCreateManyProjectInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -4246,7 +4154,6 @@ export type AssetUpdateWithoutProjectInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4283,7 +4190,6 @@ export type AssetUncheckedUpdateWithoutProjectInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4320,7 +4226,6 @@ export type AssetUncheckedUpdateManyWithoutProjectInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4344,7 +4249,6 @@ export type AssetCreateManyParentInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -4368,7 +4272,6 @@ export type AssetCreateManyTargetInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -4392,7 +4295,6 @@ export type AssetUpdateWithoutParentInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4429,7 +4331,6 @@ export type AssetUncheckedUpdateWithoutParentInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4466,7 +4367,6 @@ export type AssetUncheckedUpdateManyWithoutParentInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4490,7 +4390,6 @@ export type AssetUpdateWithoutTargetInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4527,7 +4426,6 @@ export type AssetUncheckedUpdateWithoutTargetInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4564,7 +4462,6 @@ export type AssetUncheckedUpdateManyWithoutTargetInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4588,7 +4485,6 @@ export type AssetCreateManyStorageKeyInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -4612,7 +4508,6 @@ export type AssetUpdateWithoutStorageKeyInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4649,7 +4544,6 @@ export type AssetUncheckedUpdateWithoutStorageKeyInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4686,7 +4580,6 @@ export type AssetUncheckedUpdateManyWithoutStorageKeyInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4710,7 +4603,6 @@ export type AssetCreateManyTaskInput = {
   status: $Enums.AssetStatus
   transcodeTaskId?: string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: string | null
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
@@ -4734,7 +4626,6 @@ export type AssetUpdateWithoutTaskInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4771,7 +4662,6 @@ export type AssetUncheckedUpdateWithoutTaskInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4808,7 +4698,6 @@ export type AssetUncheckedUpdateManyWithoutTaskInput = {
   status?: Prisma.EnumAssetStatusFieldUpdateOperationsInput | $Enums.AssetStatus
   transcodeTaskId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   media?:PrismaJson.MediaInfo | Prisma.NullableJsonNullValueInput
-  autofillContext?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4935,7 +4824,6 @@ export type AssetSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   status?: boolean
   transcodeTaskId?: boolean
   media?: boolean
-  autofillContext?: boolean
   isDeleted?: boolean
   deletedAt?: boolean
   sortIndex?: boolean
@@ -4980,7 +4868,6 @@ export type AssetSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   status?: boolean
   transcodeTaskId?: boolean
   media?: boolean
-  autofillContext?: boolean
   isDeleted?: boolean
   deletedAt?: boolean
   sortIndex?: boolean
@@ -5011,7 +4898,6 @@ export type AssetSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   status?: boolean
   transcodeTaskId?: boolean
   media?: boolean
-  autofillContext?: boolean
   isDeleted?: boolean
   deletedAt?: boolean
   sortIndex?: boolean
@@ -5042,7 +4928,6 @@ export type AssetSelectScalar = {
   status?: boolean
   transcodeTaskId?: boolean
   media?: boolean
-  autofillContext?: boolean
   isDeleted?: boolean
   deletedAt?: boolean
   sortIndex?: boolean
@@ -5056,7 +4941,7 @@ export type AssetSelectScalar = {
   projectId?: boolean
 }
 
-export type AssetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "nameNgram" | "type" | "mediaType" | "fileCount" | "sizeByte" | "status" | "transcodeTaskId" | "media" | "autofillContext" | "isDeleted" | "deletedAt" | "sortIndex" | "createdAt" | "updatedAt" | "parentId" | "targetId" | "storageKeyId" | "creatorId" | "taskId" | "projectId", ExtArgs["result"]["asset"]>
+export type AssetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "nameNgram" | "type" | "mediaType" | "fileCount" | "sizeByte" | "status" | "transcodeTaskId" | "media" | "isDeleted" | "deletedAt" | "sortIndex" | "createdAt" | "updatedAt" | "parentId" | "targetId" | "storageKeyId" | "creatorId" | "taskId" | "projectId", ExtArgs["result"]["asset"]>
 export type AssetInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   parent?: boolean | Prisma.Asset$parentArgs<ExtArgs>
   children?: boolean | Prisma.Asset$childrenArgs<ExtArgs>
@@ -5133,7 +5018,6 @@ export type $AssetPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
      * [MediaInfo]
      */
     media:PrismaJson.MediaInfo | null
-    autofillContext: string | null
     isDeleted: boolean
     deletedAt: Date | null
     sortIndex: string | null
@@ -5597,7 +5481,6 @@ export interface AssetFieldRefs {
   readonly status: Prisma.FieldRef<"Asset", 'AssetStatus'>
   readonly transcodeTaskId: Prisma.FieldRef<"Asset", 'String'>
   readonly media: Prisma.FieldRef<"Asset", 'Json'>
-  readonly autofillContext: Prisma.FieldRef<"Asset", 'String'>
   readonly isDeleted: Prisma.FieldRef<"Asset", 'Boolean'>
   readonly deletedAt: Prisma.FieldRef<"Asset", 'DateTime'>
   readonly sortIndex: Prisma.FieldRef<"Asset", 'String'>

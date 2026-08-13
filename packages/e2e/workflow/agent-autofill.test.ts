@@ -20,7 +20,6 @@ describe.each(['local', 'temporal'] as const)(
 
     let agentWorkerPromise: Promise<void> | null = null
     let transcodeWorkerPromise: Promise<void> | null = null
-    let lastAutofillPrompt = ''
 
     beforeAll(async () => {
       // Set bucket environment
@@ -36,11 +35,7 @@ describe.each(['local', 'temporal'] as const)(
       // Spy on the harness prompt method to intercept the LLM call while running real activities & tools
       vi.spyOn(AgentHarness.prototype, 'prompt').mockImplementation(async function (
         this: AgentHarness,
-        ...args: unknown[]
       ) {
-        // Capture the prompt to verify agent-provided context is propagated
-        lastAutofillPrompt = typeof args[0] === 'string' ? args[0] : ''
-
         // Find the real autofill_metadata tool configured on the harness
         const tools = this.getTools()
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Tool execution mock for E2E harness test
@@ -119,54 +114,50 @@ describe.each(['local', 'temporal'] as const)(
         data: { name: 'E2E Test Project', teamId: team.id },
       })
 
-      // Create Metadata Field (aiAutofill = true, text)
+      // Create Metadata Field (autofillSource = CONTENT, text)
       await prisma.metadataField.create({
         data: {
           key: 'title',
           scope: 'PROJECT',
           projectId: project.id,
           teamId: team.id,
-          config: { name: 'Title', type: 'text' },
-          aiAutofill: true,
+          config: { name: 'Title', type: 'text', autofillSource: 'CONTENT' },
           description: 'Auto-extracted title',
         },
       })
 
-      // Create Metadata Field (aiAutofill = true, number)
+      // Create Metadata Field (autofillSource = CONTENT, number)
       await prisma.metadataField.create({
         data: {
           key: 'confidence',
           scope: 'PROJECT',
           projectId: project.id,
           teamId: team.id,
-          config: { name: 'Confidence', type: 'number' },
-          aiAutofill: true,
+          config: { name: 'Confidence', type: 'number', autofillSource: 'CONTENT' },
           description: 'AI extraction confidence',
         },
       })
 
-      // Create Metadata Field (aiAutofill = true, boolean)
+      // Create Metadata Field (autofillSource = CONTENT, boolean)
       await prisma.metadataField.create({
         data: {
           key: 'completed',
           scope: 'PROJECT',
           projectId: project.id,
           teamId: team.id,
-          config: { name: 'Completed', type: 'toggle' },
-          aiAutofill: true,
+          config: { name: 'Completed', type: 'toggle', autofillSource: 'CONTENT' },
           description: 'Completed flag',
         },
       })
 
-      // Create Metadata Field (aiAutofill = false, text)
+      // Create Metadata Field (autofillSource = NONE, text)
       await prisma.metadataField.create({
         data: {
           key: 'manual_notes',
           scope: 'PROJECT',
           projectId: project.id,
           teamId: team.id,
-          config: { name: 'Manual Notes', type: 'text' },
-          aiAutofill: false,
+          config: { name: 'Manual Notes', type: 'text', autofillSource: 'NONE' },
           description: 'Manual notes (should not be auto-filled)',
         },
       })
@@ -244,7 +235,6 @@ describe.each(['local', 'temporal'] as const)(
           mediaType: 'image/png',
           // eslint-disable-next-line @typescript-eslint/no-explicit-any -- partial MediaInfo mock for testing
           media: { proxyType: 'image' } as any,
-          autofillContext: 'Generated using gemini',
           projectId: project.id,
           storageKeyId: storageKey.id,
         },
@@ -283,10 +273,6 @@ describe.each(['local', 'temporal'] as const)(
 
       // 5. Verification
       expect(completedTask.status).toBe('completed')
-
-      // Verify the agent-provided autofill context was included in the LLM prompt
-      expect(lastAutofillPrompt).toContain('Generated using gemini')
-      expect(lastAutofillPrompt).toContain('<context>')
 
       // Verify placeholder comment is updated correctly
       const comments = await prisma.assetComment.findMany({

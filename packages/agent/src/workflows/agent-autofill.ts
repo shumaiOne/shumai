@@ -15,7 +15,6 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
     extractAiMetadataActivity,
     getProjectAutofillFieldsActivity,
     getAgentAutofillContextActivity,
-    getAssetAutofillContextActivity,
     autofillAiActivity,
     updateTaskUsageActivity,
     updateAssetMetadataActivity,
@@ -132,13 +131,6 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
       teamId,
     })
 
-    // 3c. Fetch Agent-Provided Autofill Context (from create_file/create_version)
-    const agentContext = await executeActivity(
-      agentWorkerQueue,
-      getAssetAutofillContextActivity,
-      asset.id,
-    )
-
     // 4. Call AI Service
     const aiResult = await executeActivity(agentWorkerQueue, autofillAiActivity, {
       teamId,
@@ -151,7 +143,6 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
         }),
       ),
       context,
-      ...(agentContext ? { agentContext } : {}),
     })
 
     if (aiResult.usage) {

@@ -104,7 +104,7 @@ shumai has its own cloud file system. If a user asks you to perform file system 
 
 If you need to create files in the local filesystem (for example, a temporary file for uploading), only the '.pi' folder in the current directory has write permissions. Do NOT attempt to create files in any other directories.
 
-When creating a file or version, first use 'list_autofill_fields' to inspect the project's AI-autofillable metadata fields. If relevant metadata depends on information unavailable from the file content (for example, the AI model or prompt used to generate the asset), include a context in the 'context' field of 'create_file' or 'create_version'. Keep the context short and only include information relevant to those fields.`
+When creating a file or version, first use 'list_autofill_fields' to inspect the project's CREATION_CONTEXT metadata fields. If relevant metadata depends on information unavailable from the file content (for example, the AI model or prompt used to generate the asset), pass those field keys and their values in the 'metadata' dictionary parameter of 'create_file' or 'create_version'. Only include keys returned by 'list_autofill_fields', and keep values short and relevant to those fields.`
 
   if (agent.soul) {
     systemPrompt = `${systemPrompt}\n\nAgent Personality and Core Instructions:\n${agent.soul}`
@@ -422,17 +422,10 @@ export interface AutofillAiParams {
   images: string[]
   fields: AutofillField[]
   context: AgentExecutionContext
-  agentContext?: string
 }
 
 export async function autofillAiActivity(params: AutofillAiParams) {
-  let prompt = 'Analyze the provided images and extract metadata.'
-  if (params.agentContext && params.agentContext.trim()) {
-    prompt +=
-      '\n\nAdditional context about this file, provided during creation:\n' +
-      `<context>\n${params.agentContext.trim()}\n</context>\n` +
-      'Use this context to inform your answers, especially for fields that cannot be determined from the images alone (e.g. generation model/source).'
-  }
+  const prompt = 'Analyze the provided images and extract metadata.'
   const toolSchema = fieldsToTypeBoxSchema(params.fields)
   let capturedData: Record<string, unknown> | null = null
 
@@ -1043,15 +1036,7 @@ export async function getCommentActivity(commentId: string) {
 
 export async function getProjectAutofillFieldsActivity(projectId: string) {
   const fields = await metadataService.listProjectFields('', projectId)
-  return fields.filter((f) => f.field.aiAutofill).map((f) => f.field)
-}
-
-export async function getAssetAutofillContextActivity(assetId: string): Promise<string | null> {
-  const asset = await prisma.asset.findUnique({
-    where: { id: assetId },
-    select: { autofillContext: true },
-  })
-  return asset?.autofillContext ?? null
+  return fields.filter((f) => f.field.config?.autofillSource === 'CONTENT').map((f) => f.field)
 }
 
 export async function updateAssetMetadataActivity(params: {
@@ -1100,7 +1085,36 @@ export interface ExecuteAgentToolParams {
   userId?: string
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+/**
+ * Validates that every metadata key provided by the agent is a defined
+ * CREATION_CONTEXT field of the project. Unknown keys are rejected with a
+ * non-retryable failure so Temporal does not retry expected validation errors.
+ */
+async function validateCreationContextMetadata(
+  userId: string,
+  projectId: string,
+  metadata: Record<string, unknown> | undefined,
+): Promise<void> {
+  if (!metadata || Object.keys(metadata).length === 0) return
+
+  const fields = await metadataService.listProjectFields(userId, projectId)
+  const allowedKeys = new Set(
+    fields
+      .filter((f) => f.field.config?.autofillSource === 'CREATION_CONTEXT')
+      .map((f) => f.field.key),
+  )
+  const invalidKeys = Object.keys(metadata).filter((key) => !allowedKeys.has(key))
+  if (invalidKeys.length > 0) {
+    throw ApplicationFailure.create({
+      message:
+        `metadata contains keys that are not CREATION_CONTEXT fields of this project: ${invalidKeys.join(', ')}. ` +
+        'Use list_autofill_fields to see the available keys.',
+      nonRetryable: true,
+    })
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Activity return type is a union of tool result shapes
 export async function executeAgentToolActivity(params: ExecuteAgentToolParams): Promise<any> {
   const { toolName, args, userId } = params
   if (!userId) {
@@ -1254,7 +1268,10 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
       const name = args.name as string
       const fileSize = args.size as number
       const mimeType = args.contentType as string
-      const context = typeof args.context === 'string' ? args.context : undefined
+      const metadata =
+        typeof args.metadata === 'object' && args.metadata !== null
+          ? (args.metadata as Record<string, unknown>)
+          : undefined
       if (!parent || !s3Key || !name || fileSize === undefined || !mimeType) {
         throw ApplicationFailure.create({
           message: 'parent, s3Key, name, size, and contentType parameters are required',
@@ -1288,6 +1305,9 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
         })
       }
 
+      // Validate that any provided metadata keys are defined CREATION_CONTEXT fields
+      await validateCreationContextMetadata(userId, parentAsset.projectId, metadata)
+
       // Create asset via assetService
       const newFile = await assetService.createAsset({
         name,
@@ -1304,12 +1324,12 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await assetService.updateAncestorsSize(tx as any, parent, fileSize)
 
-        // Persist autofill context provided by the agent (used by the autofill workflow)
-        if (context) {
-          await tx.asset.update({
-            where: { id: newFile.id },
-            data: { autofillContext: context },
-          })
+        // Persist creation context metadata provided by the agent
+        if (metadata) {
+          const metadataUpdates = Object.entries(metadata).map(([key, value]) => ({ key, value }))
+          if (metadataUpdates.length > 0) {
+            await metadataService.updateAssetMetadataInTx(tx, newFile.id, metadataUpdates)
+          }
         }
 
         // Trigger post-upload transcode and AI workflows
@@ -1335,7 +1355,10 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
       const name = args.name as string
       const fileSize = args.size as number
       const mimeType = args.contentType as string
-      const context = typeof args.context === 'string' ? args.context : undefined
+      const metadata =
+        typeof args.metadata === 'object' && args.metadata !== null
+          ? (args.metadata as Record<string, unknown>)
+          : undefined
       if (!parent || !s3Key || !name || fileSize === undefined || !mimeType) {
         throw ApplicationFailure.create({
           message: 'parent, s3Key, name, size, and contentType parameters are required',
@@ -1360,6 +1383,9 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
           nonRetryable: true,
         })
       }
+
+      // Validate that any provided metadata keys are defined CREATION_CONTEXT fields
+      await validateCreationContextMetadata(userId, parentFile.projectId, metadata)
 
       // Authz check: verify Edit permission on the parent file (resource ID is parent file id)
       await authzService.hasPermission({
@@ -1400,12 +1426,12 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
             where: { id: newFile.id },
             data: { sortIndex: newSortIndex },
           })
-          // Persist autofill context provided by the agent (used by the autofill workflow)
-          if (context) {
-            await tx.asset.update({
-              where: { id: newFile.id },
-              data: { autofillContext: context },
-            })
+          // Persist creation context metadata provided by the agent
+          if (metadata) {
+            const metadataUpdates = Object.entries(metadata).map(([key, value]) => ({ key, value }))
+            if (metadataUpdates.length > 0) {
+              await metadataService.updateAssetMetadataInTx(tx, newFile.id, metadataUpdates)
+            }
           }
           // Increment stack's size (fileCount is incremented by createAsset already)
           const updatedStack = await tx.asset.update({
@@ -1465,12 +1491,12 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
             projectId: parentFile.projectId!,
             creatorId: userId,
           })
-          // Persist autofill context provided by the agent (used by the autofill workflow)
-          if (context) {
-            await tx.asset.update({
-              where: { id: newFile.id },
-              data: { autofillContext: context },
-            })
+          // Persist creation context metadata provided by the agent
+          if (metadata) {
+            const metadataUpdates = Object.entries(metadata).map(([key, value]) => ({ key, value }))
+            if (metadataUpdates.length > 0) {
+              await metadataService.updateAssetMetadataInTx(tx, newFile.id, metadataUpdates)
+            }
           }
           // Update ancestors' size (add size of the new file version)
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1522,8 +1548,9 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
 
       const fields = await metadataService.listProjectFields(userId, projectId)
       const autofillFields = fields
-        .filter((f) => f.field.aiAutofill)
+        .filter((f) => f.field.config?.autofillSource === 'CREATION_CONTEXT')
         .map((f) => ({
+          key: f.field.key,
           name: f.field.config?.name,
           type: f.field.config?.type,
           description: f.field.description,

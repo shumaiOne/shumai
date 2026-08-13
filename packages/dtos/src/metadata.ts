@@ -18,6 +18,14 @@ export const FieldType = {
 
 export type FieldType = (typeof FieldType)[keyof typeof FieldType]
 
+export const AutofillSource = {
+  NONE: 'NONE',
+  CONTENT: 'CONTENT',
+  CREATION_CONTEXT: 'CREATION_CONTEXT',
+} as const
+
+export type AutofillSource = (typeof AutofillSource)[keyof typeof AutofillSource]
+
 export const selectOptionSchema = z.object({
   id: z.string(),
   displayName: z.string(),
@@ -39,6 +47,7 @@ export const fieldConfigSchema = z.object({
     'user',
     'userMulti',
   ]),
+  autofillSource: z.nativeEnum(AutofillSource).optional(),
   text: z.any().optional(),
   longText: z.any().optional(),
   select: z.any().optional(),
@@ -56,7 +65,6 @@ export const createFieldRequestSchema = z.object({
   label: z.string().optional(),
   scope: z.string().optional(),
   config: fieldConfigSchema,
-  aiAutofill: z.boolean().default(false),
   description: z.string().default(''),
 })
 export type CreateFieldRequest = z.infer<typeof createFieldRequestSchema>
@@ -64,7 +72,6 @@ export type CreateFieldRequest = z.infer<typeof createFieldRequestSchema>
 export const updateFieldRequestSchema = z.object({
   label: z.string().optional(),
   config: fieldConfigSchema,
-  aiAutofill: z.boolean().optional(),
   description: z.string().optional(),
 })
 export type UpdateFieldRequest = z.infer<typeof updateFieldRequestSchema>
@@ -93,6 +100,5 @@ export const fieldInfoSchema = z.object({
   readOnly: z.boolean(),
   visible: z.boolean(),
   description: z.string(),
-  aiAutofill: z.boolean(),
 })
 export type FieldInfo = z.infer<typeof fieldInfoSchema>

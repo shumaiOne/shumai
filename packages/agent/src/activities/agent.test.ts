@@ -9,7 +9,6 @@ import {
   updateCommentActivity,
   getAgentChatContextActivity,
   getAgentAutofillContextActivity,
-  getAssetAutofillContextActivity,
   getAssetActivity,
   getCommentActivity,
   getProjectAutofillFieldsActivity,
@@ -460,58 +459,7 @@ describe('Agent Activities', () => {
     expect(res.usage.inputTokens).toBe(5)
   })
 
-  it('should include agentContext in the autofill prompt when provided', async () => {
-    const mockHarness = {
-      subscribe: vi.fn(),
-      prompt: vi.fn().mockResolvedValue({
-        content: [{ type: 'text', text: 'Captured' }],
-        usage: { input: 5, output: 5 },
-      }),
-    }
-    const mockSession = {
-      getEntries: vi.fn().mockResolvedValue([]),
-      getStorage: vi.fn().mockReturnValue({ sessionId: 'mock-session-id' }),
-    }
-
-    vi.mocked(piAgent.createAgentSession).mockImplementation(async (config: unknown) => {
-      const params = config as {
-        customTools: Array<{
-          name: string
-          execute: (id: string, args: Record<string, unknown>) => Promise<unknown>
-        }>
-      }
-      const tool = params.customTools.find((t) => t.name === 'autofill_metadata')
-      if (tool) {
-        await tool.execute('1', { f1: 'val' })
-      }
-      return {
-        session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
-        harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
-      }
-    })
-
-    const context = {
-      agent: { id: 'b1', provider: { name: 'google' }, modelRef: { modelId: 'gemini' } },
-      dbProviders: [],
-      teamSkills: [],
-      allowedDomains: [],
-    } as unknown as AgentExecutionContext
-
-    await autofillAiActivity({
-      teamId: 't1',
-      images: [],
-      fields: [{ id: 'f1', config: { name: 'F1', type: 'text' } }],
-      context,
-      agentContext: 'Generated using gemini',
-    })
-
-    const capturedPrompt = mockHarness.prompt.mock.calls[0]?.[0] ?? ''
-    expect(capturedPrompt).toContain('Generated using gemini')
-    expect(capturedPrompt).toContain('<context>')
-  })
-
-  it('should not include agentContext in the autofill prompt when absent', async () => {
+  it('should use the base autofill prompt without any creation-context injection', async () => {
     const mockHarness = {
       subscribe: vi.fn(),
       prompt: vi.fn().mockResolvedValue({
@@ -557,6 +505,7 @@ describe('Agent Activities', () => {
     })
 
     const capturedPrompt = mockHarness.prompt.mock.calls[0]?.[0] ?? ''
+    expect(capturedPrompt).toContain('Analyze the provided images and extract metadata.')
     expect(capturedPrompt).not.toContain('<context>')
   })
 })
@@ -1342,8 +1291,7 @@ describe('Agent Database Activities Integration', () => {
           key: 'field_key_1',
           scope: 'TEAM',
           teamId: team.id,
-          aiAutofill: true,
-          config: { name: 'Title Extractor', type: 'text' },
+          config: { name: 'Title Extractor', type: 'text', autofillSource: 'CONTENT' },
         },
       })
 
@@ -1360,37 +1308,6 @@ describe('Agent Database Activities Integration', () => {
         where: { assetId: asset.id, fieldKey: 'field_key_1' },
       })
       expect(updatedVal?.stringValue).toBe('Hello Web')
-    })
-  })
-
-  describe('getAssetAutofillContextActivity', () => {
-    it('should return the stored autofill context for an asset', async () => {
-      const withContext = await prisma.asset.create({
-        data: {
-          name: 'ctx.png',
-          type: AssetType.file,
-          status: AssetStatus.uploaded,
-          projectId: project.id,
-          autofillContext: 'Generated using gemini',
-        },
-      })
-
-      const ctx = await getAssetAutofillContextActivity(withContext.id)
-      expect(ctx).toBe('Generated using gemini')
-    })
-
-    it('should return null when the asset has no autofill context', async () => {
-      const noContext = await prisma.asset.create({
-        data: {
-          name: 'plain.png',
-          type: AssetType.file,
-          status: AssetStatus.uploaded,
-          projectId: project.id,
-        },
-      })
-
-      const ctx = await getAssetAutofillContextActivity(noContext.id)
-      expect(ctx).toBeNull()
     })
   })
 
@@ -1553,7 +1470,17 @@ describe('Agent Database Activities Integration', () => {
         expect(uploadService.triggerPostUploadWorkflows).toHaveBeenCalled()
       })
 
-      it('should persist autofillContext on the created file when context is provided', async () => {
+      it('should persist metadata on the created file when metadata map is provided', async () => {
+        await prisma.metadataField.create({
+          data: {
+            key: 'prompt',
+            scope: 'PROJECT',
+            projectId: project.id,
+            teamId: team.id,
+            config: { name: 'Prompt', type: 'text', autofillSource: 'CREATION_CONTEXT' },
+          },
+        })
+
         const folder = await prisma.asset.create({
           data: {
             name: 'WorkspaceFolder',
@@ -1574,16 +1501,18 @@ describe('Agent Database Activities Integration', () => {
             name: 'ctx.txt',
             size: 100,
             contentType: 'text/plain',
-            context: 'Generated using gemini',
+            metadata: { prompt: 'Generated using gemini' },
           },
           userId: user.id,
         })
 
-        const created = await prisma.asset.findUnique({ where: { id: res.id } })
-        expect(created?.autofillContext).toBe('Generated using gemini')
+        const val = await prisma.assetMetadataValue.findFirst({
+          where: { assetId: res.id, fieldKey: 'prompt' },
+        })
+        expect(val?.stringValue).toBe('Generated using gemini')
       })
 
-      it('should not set autofillContext when context is not provided', async () => {
+      it('should reject metadata with keys that are not CREATION_CONTEXT fields', async () => {
         const folder = await prisma.asset.create({
           data: {
             name: 'WorkspaceFolder',
@@ -1595,21 +1524,27 @@ describe('Agent Database Activities Integration', () => {
           },
         })
 
-        const res = await executeAgentToolActivity({
-          taskId: 'task-1',
-          toolName: 'create_file',
-          args: {
-            parent: folder.id,
-            s3Key: 'uploads/plain.txt',
-            name: 'plain.txt',
-            size: 100,
-            contentType: 'text/plain',
-          },
-          userId: user.id,
-        })
+        await expect(
+          executeAgentToolActivity({
+            taskId: 'task-1',
+            toolName: 'create_file',
+            args: {
+              parent: folder.id,
+              s3Key: 'uploads/ctx.txt',
+              name: 'ctx.txt',
+              size: 100,
+              contentType: 'text/plain',
+              metadata: { prompt: 'ok', unknownKey: 'not allowed' },
+            },
+            userId: user.id,
+          }),
+        ).rejects.toThrow(/not CREATION_CONTEXT fields/)
 
-        const created = await prisma.asset.findUnique({ where: { id: res.id } })
-        expect(created?.autofillContext).toBeNull()
+        // No metadata value should have been written for the unknown key
+        const val = await prisma.assetMetadataValue.findFirst({
+          where: { fieldKey: 'unknownKey' },
+        })
+        expect(val).toBeNull()
       })
     })
 
@@ -1720,7 +1655,17 @@ describe('Agent Database Activities Integration', () => {
         expect(Number(updatedStack?.sizeByte)).toBe(350)
       })
 
-      it('should persist autofillContext when creating a new version stack', async () => {
+      it('should persist metadata on the created version when metadata map is provided', async () => {
+        await prisma.metadataField.create({
+          data: {
+            key: 'prompt',
+            scope: 'PROJECT',
+            projectId: project.id,
+            teamId: team.id,
+            config: { name: 'Prompt', type: 'text', autofillSource: 'CREATION_CONTEXT' },
+          },
+        })
+
         const folder = await prisma.asset.create({
           data: {
             name: 'WorkspaceFolder',
@@ -1752,69 +1697,20 @@ describe('Agent Database Activities Integration', () => {
             name: 'v2.txt',
             size: 300,
             contentType: 'text/plain',
-            context: 'Generated using seedance',
+            metadata: { prompt: 'Generated using seedance' },
           },
           userId: user.id,
         })
 
-        const created = await prisma.asset.findUnique({ where: { id: res.id } })
-        expect(created?.autofillContext).toBe('Generated using seedance')
-      })
-
-      it('should persist autofillContext when adding to an existing version stack', async () => {
-        const folder = await prisma.asset.create({
-          data: {
-            name: 'WorkspaceFolder',
-            type: AssetType.folder,
-            status: AssetStatus.uploaded,
-            projectId: project.id,
-          },
+        const val = await prisma.assetMetadataValue.findFirst({
+          where: { assetId: res.id, fieldKey: 'prompt' },
         })
-
-        const stack = await prisma.asset.create({
-          data: {
-            name: 'VersionStack',
-            type: AssetType.version_stack,
-            status: AssetStatus.uploaded,
-            projectId: project.id,
-            parentId: folder.id,
-            fileCount: 1,
-            sizeByte: 100,
-          },
-        })
-
-        const existingFileVersion = await prisma.asset.create({
-          data: {
-            name: 'v1.txt',
-            type: AssetType.file,
-            status: AssetStatus.uploaded,
-            projectId: project.id,
-            parentId: stack.id,
-            sizeByte: 100,
-          },
-        })
-
-        const res = await executeAgentToolActivity({
-          taskId: 'task-1',
-          toolName: 'create_version',
-          args: {
-            parent: existingFileVersion.id,
-            s3Key: 'uploads/v2.txt',
-            name: 'v2.txt',
-            size: 250,
-            contentType: 'text/plain',
-            context: 'Generated using sora2',
-          },
-          userId: user.id,
-        })
-
-        const created = await prisma.asset.findUnique({ where: { id: res.id } })
-        expect(created?.autofillContext).toBe('Generated using sora2')
+        expect(val?.stringValue).toBe('Generated using seedance')
       })
     })
 
     describe('list_autofill_fields', () => {
-      it('should return only aiAutofill fields with their options', async () => {
+      it('should return only CREATION_CONTEXT fields with their options', async () => {
         const folder = await prisma.asset.create({
           data: {
             name: 'WorkspaceFolder',
@@ -1830,10 +1726,10 @@ describe('Agent Database Activities Integration', () => {
             scope: 'PROJECT',
             projectId: project.id,
             teamId: team.id,
-            aiAutofill: true,
             config: {
               name: 'Source',
               type: 'select',
+              autofillSource: 'CREATION_CONTEXT',
               select: {
                 options: [
                   { id: 'gemini', displayName: 'Gemini', color: '#ffffff' },
@@ -1846,12 +1742,11 @@ describe('Agent Database Activities Integration', () => {
         })
         await prisma.metadataField.create({
           data: {
-            key: 'title',
+            key: 'prompt',
             scope: 'PROJECT',
             projectId: project.id,
             teamId: team.id,
-            aiAutofill: true,
-            config: { name: 'Title', type: 'text' },
+            config: { name: 'Prompt', type: 'text', autofillSource: 'CREATION_CONTEXT' },
           },
         })
         await prisma.metadataField.create({
@@ -1860,8 +1755,7 @@ describe('Agent Database Activities Integration', () => {
             scope: 'PROJECT',
             projectId: project.id,
             teamId: team.id,
-            aiAutofill: false,
-            config: { name: 'Manual Notes', type: 'text' },
+            config: { name: 'Manual Notes', type: 'text', autofillSource: 'NONE' },
           },
         })
 
@@ -1874,6 +1768,7 @@ describe('Agent Database Activities Integration', () => {
 
         expect(res.fields).toHaveLength(2)
         const source = res.fields.find((f: { name: string }) => f.name === 'Source')
+        expect(source?.key).toBe('source')
         expect(source?.name).toBe('Source')
         expect(source?.type).toBe('select')
         expect(source?.description).toBe('Generation source')
@@ -1905,8 +1800,7 @@ describe('Agent Database Activities Integration', () => {
             scope: 'PROJECT',
             projectId: project.id,
             teamId: team.id,
-            aiAutofill: true,
-            config: { name: 'Title 2', type: 'text' },
+            config: { name: 'Title 2', type: 'text', autofillSource: 'CREATION_CONTEXT' },
           },
         })
 

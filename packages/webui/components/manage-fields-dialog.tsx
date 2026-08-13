@@ -8,6 +8,7 @@ import { DragDropProvider, KeyboardSensor, PointerSensor, type DragEndEvent } fr
 import { isSortable, useSortable } from '@dnd-kit/react/sortable'
 import {
   FieldType,
+  AutofillSource,
   type FieldInfo,
   type FieldInfo as MetadataFieldInfo,
   type SelectOption,
@@ -22,6 +23,7 @@ import {
   Plus,
   Settings,
   Sparkles,
+  Bot,
   X,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
@@ -44,8 +46,9 @@ import {
 } from '@/ui/components/ui/dropdown-menu'
 import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
-import { Switch } from '@/ui/components/ui/switch'
+import { ToggleGroup, ToggleGroupItem } from '@/ui/components/ui/toggle-group'
 import { cn } from '@/ui/lib/utils'
+import { AutofillSourceHelpTrigger } from '@/ui/components/autofill-source-help-dialog'
 
 type ManageFieldsDialogProps = {
   projectId: string
@@ -111,7 +114,12 @@ function SortableFieldRow({
       )}
       {!isSortable && <div className="w-4" />} {/* Spacer */}
       {Icon && <Icon className="h-4 w-4 text-muted-foreground shrink-0" />}
-      {field.aiAutofill && <Sparkles className="h-4 w-4 text-muted-foreground shrink-0" />}
+      {field.config?.autofillSource === AutofillSource.CONTENT && (
+        <Sparkles className="h-4 w-4 text-muted-foreground shrink-0" />
+      )}
+      {field.config?.autofillSource === AutofillSource.CREATION_CONTEXT && (
+        <Bot className="h-4 w-4 text-muted-foreground shrink-0" />
+      )}
       <div className="flex-1 text-sm font-medium truncate">{field.config?.name}</div>
     </div>
   )
@@ -134,13 +142,13 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
   const [editLabel, setEditLabel] = useState('')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [editConfig, setEditConfig] = useState<any>({})
-  const [editAiAutofill, setEditAiAutofill] = useState(false)
+  const [editAutofillSource, setEditAutofillSource] = useState<AutofillSource>(AutofillSource.NONE)
   const [editDescription, setEditDescription] = useState('')
 
   // Creator State
   const [newName, setNewName] = useState('')
   const [newType, setNewType] = useState<FieldType | ''>('')
-  const [newAiAutofill, setNewAiAutofill] = useState(false)
+  const [newAutofillSource, setNewAutofillSource] = useState<AutofillSource>(AutofillSource.NONE)
   const [newDescription, setNewDescription] = useState('')
   const [newOptions, setNewOptions] = useState<SelectOption[]>([])
 
@@ -251,12 +259,12 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
     if (field) {
       setEditLabel(field.config?.name || '') // Using name as label for now if label missing
       setEditConfig(field.config || {})
-      setEditAiAutofill(field.aiAutofill || false)
+      setEditAutofillSource(field.config?.autofillSource ?? AutofillSource.NONE)
       setEditDescription(field.description || '')
     } else {
       setEditLabel('')
       setEditConfig({})
-      setEditAiAutofill(false)
+      setEditAutofillSource(AutofillSource.NONE)
       setEditDescription('')
     }
   }
@@ -272,7 +280,7 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
     setSelectedFieldId(null)
     setNewName('')
     setNewType('')
-    setNewAiAutofill(false)
+    setNewAutofillSource(AutofillSource.NONE)
     setNewDescription('')
     setNewOptions([])
   }
@@ -312,11 +320,11 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
         config: {
           name: newName,
           type: newType,
+          autofillSource: newAutofillSource,
           ...typeConfig,
         },
         label: newName,
         scope: selectedGroup === SCOPE_GROUPS.PROJECT ? undefined : selectedGroup,
-        aiAutofill: newAiAutofill,
         description: newDescription,
       },
     })
@@ -331,8 +339,8 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
           ...selectedField.config,
           ...editConfig,
           name: editLabel,
+          autofillSource: editAutofillSource,
         },
-        aiAutofill: editAiAutofill,
         description: editDescription,
       },
     })
@@ -396,9 +404,38 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
               placeholder={m.description_optional_placeholder()}
             />
           </div>
-          <div className="flex items-center space-x-2">
-            <Switch checked={newAiAutofill} onCheckedChange={setNewAiAutofill} />
-            <Label>{m.ai_autofill()}</Label>
+          <div className="space-y-2">
+            <div className="flex items-center gap-1">
+              <Label>{m.autofill_source()}</Label>
+              <AutofillSourceHelpTrigger />
+            </div>
+            <ToggleGroup
+              type="single"
+              value={newAutofillSource}
+              onValueChange={(val: string) => {
+                if (val) setNewAutofillSource(val as AutofillSource)
+              }}
+              className="w-full grid grid-cols-3 border rounded-md p-1 gap-1"
+            >
+              <ToggleGroupItem
+                value={AutofillSource.NONE}
+                className="text-[11px] leading-tight py-1 px-1 h-auto min-h-[32px] w-full text-center justify-center whitespace-normal font-medium"
+              >
+                {m.autofill_source_none()}
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value={AutofillSource.CONTENT}
+                className="text-[11px] leading-tight py-1 px-1 h-auto min-h-[32px] w-full text-center justify-center whitespace-normal font-medium"
+              >
+                {m.autofill_source_content()}
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value={AutofillSource.CREATION_CONTEXT}
+                className="text-[11px] leading-tight py-1 px-1 h-auto min-h-[32px] w-full text-center justify-center whitespace-normal font-medium"
+              >
+                {m.autofill_source_creation_context()}
+              </ToggleGroupItem>
+            </ToggleGroup>
           </div>
 
           {(newType === FieldType.select || newType === FieldType.selectMulti) && (
@@ -518,13 +555,42 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
           />
         </div>
 
-        <div className="flex items-center space-x-2">
-          <Switch
-            checked={editAiAutofill}
-            onCheckedChange={setEditAiAutofill}
+        <div className="space-y-2">
+          <div className="flex items-center gap-1">
+            <Label>{m.autofill_source()}</Label>
+            <AutofillSourceHelpTrigger />
+          </div>
+          <ToggleGroup
+            type="single"
+            value={isCreating ? newAutofillSource : editAutofillSource}
+            onValueChange={(val) => {
+              if (val) {
+                if (isCreating) setNewAutofillSource(val as AutofillSource)
+                else setEditAutofillSource(val as AutofillSource)
+              }
+            }}
             disabled={isReadOnly}
-          />
-          <Label>{m.ai_autofill()}</Label>
+            className="w-full grid grid-cols-3 border rounded-md p-1 gap-1"
+          >
+            <ToggleGroupItem
+              value={AutofillSource.NONE}
+              className="text-[11px] leading-tight py-1 px-1 h-auto min-h-[32px] w-full text-center justify-center whitespace-normal font-medium"
+            >
+              {m.autofill_source_none()}
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value={AutofillSource.CONTENT}
+              className="text-[11px] leading-tight py-1 px-1 h-auto min-h-[32px] w-full text-center justify-center whitespace-normal font-medium"
+            >
+              {m.autofill_source_content()}
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value={AutofillSource.CREATION_CONTEXT}
+              className="text-[11px] leading-tight py-1 px-1 h-auto min-h-[32px] w-full text-center justify-center whitespace-normal font-medium"
+            >
+              {m.autofill_source_creation_context()}
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
 
         {/* TODO: Add specific option editors here */}

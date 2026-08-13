@@ -46,10 +46,9 @@ describe('metadata api', () => {
     const mockField = {
       key: 'field1',
       scope: 'TEAM',
-      config: { name: 'Test Field', type: 'text' },
+      config: { name: 'Test Field', type: 'text', autofillSource: 'CONTENT' },
       readOnly: false,
       description: 'desc',
-      aiAutofill: true,
     }
 
     // Using any here because mocking complex service return types or Hono context is overly verbose for this test.
@@ -62,7 +61,7 @@ describe('metadata api', () => {
     expect(json).toHaveLength(1)
     expect(json[0].id).toBe('field1')
     expect(json[0].config.name).toBe('Test Field')
-    expect(json[0].aiAutofill).toBe(true)
+    expect(json[0].config.autofillSource).toBe('CONTENT')
     expect(authzService.hasPermission).toHaveBeenCalledWith({
       user: expect.anything(),
       permission: Permission.Read,
@@ -75,10 +74,9 @@ describe('metadata api', () => {
     const mockField = {
       key: 'newfield',
       scope: 'TEAM',
-      config: { name: 'New Field', type: 'text' },
+      config: { name: 'New Field', type: 'text', autofillSource: 'CONTENT' },
       readOnly: false,
       description: 'desc',
-      aiAutofill: true,
     }
 
     // Using any here because mocking complex service return types or Hono context is overly verbose for this test.
@@ -88,8 +86,7 @@ describe('metadata api', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        config: { name: 'New Field', type: 'text' },
-        aiAutofill: true,
+        config: { name: 'New Field', type: 'text', autofillSource: 'CONTENT' },
         description: 'desc',
       }),
     })
@@ -115,10 +112,9 @@ describe('metadata api', () => {
     const mockField = {
       key: 'field1',
       scope: 'PROJECT',
-      config: { name: 'Project Field', type: 'text' },
+      config: { name: 'Project Field', type: 'text', autofillSource: 'NONE' },
       readOnly: false,
       description: 'desc',
-      aiAutofill: false,
     }
 
     vi.mocked(metadataService.listProjectFields).mockResolvedValue([
@@ -198,10 +194,9 @@ describe('metadata api', () => {
     const mockField = {
       key: 'f1',
       scope: 'TEAM',
-      config: { name: 'Updated Field', type: 'text' },
+      config: { name: 'Updated Field', type: 'text', autofillSource: 'CONTENT' },
       readOnly: false,
       description: 'desc',
-      aiAutofill: true,
       teamId: 't1',
     }
 
@@ -214,8 +209,7 @@ describe('metadata api', () => {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        config: { name: 'Updated Field', type: 'text' },
-        aiAutofill: true,
+        config: { name: 'Updated Field', type: 'text', autofillSource: 'CONTENT' },
         description: 'desc',
       }),
     })
