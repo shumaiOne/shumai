@@ -198,6 +198,7 @@ export type TeamScalarFieldEnum = (typeof TeamScalarFieldEnum)[keyof typeof Team
 
 export const SandboxScalarFieldEnum = {
   id: 'id',
+  networkSandboxEnabled: 'networkSandboxEnabled',
   allowedDomains: 'allowedDomains',
   pendingDomains: 'pendingDomains',
   createdAt: 'createdAt',

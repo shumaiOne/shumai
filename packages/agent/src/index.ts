@@ -190,6 +190,9 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
       const sandbox = await prisma.sandbox.findUnique({
         where: { teamId },
       })
+      if (sandbox && !sandbox.networkSandboxEnabled) {
+        return true
+      }
       const pendingDomains = sandbox?.pendingDomains || []
       if (!pendingDomains.includes(host)) {
         await prisma.sandbox.upsert({

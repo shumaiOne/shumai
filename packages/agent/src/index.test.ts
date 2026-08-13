@@ -91,9 +91,15 @@ describe('Sandbox Network isolation integration', () => {
   setupTestDbHooks()
 
   it('should register callback that pushes blocked hosts to database and propagates to bash tool', async () => {
-    // 1. Create a team
+    // 1. Create a team and enabled sandbox
     const team = await prisma.team.create({
       data: { name: 'Test Sandbox Team' },
+    })
+    await prisma.sandbox.create({
+      data: {
+        teamId: team.id,
+        networkSandboxEnabled: true,
+      },
     })
 
     // Ensure agent user and agent exist in database to avoid foreign key violation
@@ -200,6 +206,12 @@ describe('Sandbox Network isolation integration', () => {
     const team2 = await prisma.team.create({
       data: { name: 'Team 2' },
     })
+    await prisma.sandbox.create({
+      data: { teamId: team1.id, networkSandboxEnabled: true },
+    })
+    await prisma.sandbox.create({
+      data: { teamId: team2.id, networkSandboxEnabled: true },
+    })
 
     // Ensure agent user and agents exist in database
     await prisma.user.create({
@@ -290,6 +302,64 @@ describe('Sandbox Network isolation integration', () => {
       initializeSpy.mockRestore()
       resetSpy.mockRestore()
     }
+  })
+
+  it('should bypass domain blocking and pending domain recording when networkSandboxEnabled is false', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'Disabled Sandbox Team' },
+    })
+    await prisma.sandbox.create({
+      data: { teamId: team.id, networkSandboxEnabled: false },
+    })
+
+    await prisma.user.create({
+      data: {
+        id: 'agent-disabled',
+        name: 'Ai Agent Disabled',
+        email: 'disabled@shumai.ai',
+        type: 'agent',
+      },
+    })
+    await prisma.agent.create({
+      data: {
+        id: 'agent-disabled',
+        teamId: team.id,
+        type: 'chat',
+        config: { provider: 'openai', model: 'gpt-4' },
+      },
+    })
+
+    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
+    vi.spyOn(SandboxManager, 'wrapWithSandbox').mockImplementation(async (cmd) => cmd)
+
+    await createAgentSession({
+      teamId: team.id,
+      agentId: 'agent-disabled',
+      providerName: 'google',
+      modelId: 'gemini',
+      systemPrompt: 'prompt',
+      teamSkills: [],
+      allowedDomains: ['*'],
+      providers: mockProviders,
+    })
+
+    expect(initializeSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        network: expect.objectContaining({
+          allowedDomains: ['*'],
+        }),
+      }),
+      expect.any(Function),
+    )
+
+    const callback = initializeSpy.mock.calls[0][1]
+    const res = await callback!({ host: 'any-external-domain.com', port: 443 })
+    expect(res).toBe(true)
+
+    const sandbox = await prisma.sandbox.findUnique({
+      where: { teamId: team.id },
+    })
+    expect(sandbox?.pendingDomains).toEqual([])
   })
 
   it('should pass thinkingLevel to AgentHarness and default to off', async () => {

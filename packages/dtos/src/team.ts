@@ -83,12 +83,17 @@ export const updateTeamSettingsRequestSchema = z.union([
 export type UpdateTeamSettingsRequest = z.infer<typeof updateTeamSettingsRequestSchema>
 
 export const sandboxSettingsSchema = z.object({
+  networkSandboxEnabled: z.boolean(),
   allowedDomains: z.array(z.string()),
   pendingDomains: z.array(z.string()).default([]),
 })
 export type SandboxSettings = z.infer<typeof sandboxSettingsSchema>
 
-export const updateSandboxSettingsRequestSchema = sandboxSettingsSchema
+export const updateSandboxSettingsRequestSchema = z.object({
+  networkSandboxEnabled: z.boolean().optional(),
+  allowedDomains: z.array(z.string()).optional(),
+  pendingDomains: z.array(z.string()).optional(),
+})
 export type UpdateSandboxSettingsRequest = z.infer<typeof updateSandboxSettingsRequestSchema>
 
 export const updateTeamMemberRoleRequestSchema = z.object({

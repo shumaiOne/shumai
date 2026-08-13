@@ -296,31 +296,36 @@ describe('TeamService', () => {
       name: 'Settings Team',
     })
 
-    // Should have default settings
+    // Should have default settings (networkSandboxEnabled is false by default for new teams)
     const settings = await teamService.getSandboxSettings(team.id)
+    expect(settings.networkSandboxEnabled).toBe(false)
     expect(settings.allowedDomains).toContain('github.com')
     expect(settings.pendingDomains).toEqual([])
 
     // Should update settings
     const updated = await teamService.updateSandboxSettings(team.id, {
+      networkSandboxEnabled: true,
       allowedDomains: ['example.com'],
       pendingDomains: ['pending.com'],
     })
+    expect(updated.networkSandboxEnabled).toBe(true)
     expect(updated.allowedDomains).toEqual(['example.com'])
     expect(updated.pendingDomains).toEqual(['pending.com'])
 
     // Should persist to DB
     const persisted = await teamService.getSandboxSettings(team.id)
+    expect(persisted.networkSandboxEnabled).toBe(true)
     expect(persisted.allowedDomains).toEqual(['example.com'])
     expect(persisted.pendingDomains).toEqual(['pending.com'])
   })
 
-  it('should return empty allowedDomains if sandbox is missing for old team', async () => {
+  it('should return default settings if sandbox is missing for old team', async () => {
     const team = await prisma.team.create({
       data: { name: 'Old Team' },
     })
 
     const settings = await teamService.getSandboxSettings(team.id)
+    expect(settings.networkSandboxEnabled).toBe(false)
     expect(settings.allowedDomains).toEqual([])
     expect(settings.pendingDomains).toEqual([])
   })

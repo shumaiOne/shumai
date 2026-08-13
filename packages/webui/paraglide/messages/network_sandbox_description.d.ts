@@ -1,7 +1,7 @@
 /**
 * | output |
 * | --- |
-* | "Configure allowed domains for the sandboxed agent. By default, only essential domains are allowed." |
+* | "Configure domain access controls for the sandboxed agent." |
 *
 * @param {Network_Sandbox_DescriptionInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options

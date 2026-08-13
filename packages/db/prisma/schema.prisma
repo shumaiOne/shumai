@@ -263,11 +263,12 @@ model Team {
 }
 
 model Sandbox {
-  id             String   @id @default(ulid())
-  allowedDomains String[] @default(["npmjs.org", "*.npmjs.org", "registry.npmjs.org", "registry.yarnpkg.com", "pypi.org", "*.pypi.org", "github.com", "*.github.com", "api.github.com", "raw.githubusercontent.com"])
-  pendingDomains String[] @default([]) @map("pending_domains")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id                    String   @id @default(ulid())
+  networkSandboxEnabled Boolean  @default(false) @map("network_sandbox_enabled")
+  allowedDomains        String[] @default(["npmjs.org", "*.npmjs.org", "registry.npmjs.org", "registry.yarnpkg.com", "pypi.org", "*.pypi.org", "github.com", "*.github.com", "api.github.com", "raw.githubusercontent.com"])
+  pendingDomains        String[] @default([]) @map("pending_domains")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
 
   teamId String @unique @map("team_id")
   team   Team   @relation("TeamToSandbox", fields: [teamId], references: [id], onDelete: Cascade)
