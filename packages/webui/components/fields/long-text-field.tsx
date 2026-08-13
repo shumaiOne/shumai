@@ -73,7 +73,7 @@ const LongTextField: React.FC<FieldProps<string>> = ({ value, onSave, readOnly }
       {/* Placeholder */}
       <div
         onClick={handlePlaceholderClick}
-        className={`w-full text-foreground rounded border border-transparent transition-all px-2 py-1 line-clamp-2 max-h-[3rem] overflow-hidden ${
+        className={`w-full text-foreground rounded border border-transparent transition-all px-2 py-1 h-[48px] line-clamp-2 whitespace-pre-wrap overflow-hidden ${
           !readOnly ? 'cursor-pointer hover:bg-accent hover:border-border' : 'cursor-pointer'
         }`}
         title="Click to expand"
