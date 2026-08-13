@@ -67,31 +67,31 @@ describe('createCreateVersionTool', () => {
     expect(result.details).toEqual({ id: 'file-1', name: 'v2', type: 'file' })
   })
 
-  it('should forward the optional context to the agent tool workflow when provided', async () => {
-    const filePath = createTempFile('# Hello from disk', 'create-version-context.md')
+  it('should forward the optional metadata to the agent tool workflow when provided', async () => {
+    const filePath = createTempFile('# Hello from disk', 'create-version-metadata.md')
 
     const tool = createCreateVersionTool('user-1')
     await tool.execute('call-1', {
       parent: 'file-1',
       path: filePath,
-      context: 'Generated using gemini',
+      metadata: { prompt: 'Generated using gemini' },
     })
 
     expect(executeAgentToolWorkflow).toHaveBeenCalledWith(
       expect.objectContaining({
-        args: expect.objectContaining({ context: 'Generated using gemini' }),
+        args: expect.objectContaining({ metadata: { prompt: 'Generated using gemini' } }),
       }),
     )
   })
 
-  it('should not include context in args when not provided', async () => {
-    const filePath = createTempFile('# Hello from disk', 'create-version-no-context.md')
+  it('should not include metadata in args when not provided', async () => {
+    const filePath = createTempFile('# Hello from disk', 'create-version-no-metadata.md')
 
     const tool = createCreateVersionTool('user-1')
     await tool.execute('call-1', { parent: 'file-1', path: filePath })
 
     const callArgs = vi.mocked(executeAgentToolWorkflow).mock.calls[0][0].args
-    expect(callArgs).not.toHaveProperty('context')
+    expect(callArgs).not.toHaveProperty('metadata')
   })
 
   it('should throw when the local file does not exist', async () => {

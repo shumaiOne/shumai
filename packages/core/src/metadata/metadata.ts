@@ -43,7 +43,6 @@ export class MetadataService {
         scope: 'TEAM',
         teamId: teamId,
         config: req.config,
-        aiAutofill: req.aiAutofill,
         description: req.description,
       },
     })
@@ -89,7 +88,6 @@ export class MetadataService {
       where: { id: field.id },
       data: {
         config: req.config,
-        aiAutofill: req.aiAutofill ?? field.aiAutofill,
         description: req.description ?? field.description,
       },
     })
@@ -125,7 +123,6 @@ export class MetadataService {
         projectId: projectId,
         teamId: p.teamId,
         config: req.config,
-        aiAutofill: req.aiAutofill,
         description: req.description,
       },
     })
@@ -239,7 +236,6 @@ export class MetadataService {
       where: { id: field.id },
       data: {
         config: req.config,
-        aiAutofill: req.aiAutofill ?? field.aiAutofill,
         description: req.description ?? field.description,
       },
     })

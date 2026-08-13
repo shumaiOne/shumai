@@ -331,7 +331,6 @@ export const AssetScalarFieldEnum = {
   status: 'status',
   transcodeTaskId: 'transcodeTaskId',
   media: 'media',
-  autofillContext: 'autofillContext',
   isDeleted: 'isDeleted',
   deletedAt: 'deletedAt',
   sortIndex: 'sortIndex',
@@ -435,7 +434,6 @@ export const MetadataFieldScalarFieldEnum = {
   scope: 'scope',
   config: 'config',
   readOnly: 'readOnly',
-  aiAutofill: 'aiAutofill',
   description: 'description',
   teamId: 'teamId',
   projectId: 'projectId'

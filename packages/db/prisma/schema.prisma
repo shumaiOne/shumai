@@ -450,7 +450,6 @@ model Asset {
   transcodeTaskId   String?      @map("transcode_task_id")
   /// [MediaInfo]
   media             Json?
-  autofillContext   String?      @map("autofill_context")
   isDeleted         Boolean      @default(false) @map("is_deleted")
   deletedAt         DateTime?    @map("deleted_at")
   sortIndex         String?      @map("sort_index")
@@ -622,9 +621,8 @@ model MetadataField {
   scope       MetadataFieldScope?
   /// [FieldConfig]
   config      Json?
-  readOnly    Boolean            @default(false) @map("read_only")
-  aiAutofill  Boolean            @default(false) @map("ai_autofill")
-  description String             @default("")
+  readOnly       Boolean            @default(false) @map("read_only")
+  description    String             @default("")
 
   teamId      String?            @map("team_id")
   team        Team?              @relation("TeamToMetadataField", fields: [teamId], references: [id])

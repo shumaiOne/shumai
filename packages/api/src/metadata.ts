@@ -27,7 +27,6 @@ function toFieldInfo(
     readOnly: f.readOnly,
     visible: visible,
     description: f.description,
-    aiAutofill: f.aiAutofill,
   }
 }
 

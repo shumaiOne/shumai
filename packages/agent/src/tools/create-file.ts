@@ -30,13 +30,11 @@ const createFileSchema = Type.Object({
       }),
     }),
   ),
-  context: Type.Optional(
-    Type.String({
+  metadata: Type.Optional(
+    Type.Record(Type.String(), Type.Any(), {
       description:
-        'Optional context passed to the AI metadata autofill workflow for fields that cannot be inferred from file content alone ' +
-        '(e.g. the model or prompt used to generate the asset). ' +
-        'Use list_autofill_fields first to check which fields can be autofilled. ' +
-        'Keep the context short and only include information relevant to those fields.',
+        'Key-value map of CREATION_CONTEXT metadata field keys and their values (e.g. prompt, model, provider). ' +
+        'Use list_autofill_fields first to inspect available CREATION_CONTEXT fields.',
     }),
   ),
 })
@@ -104,7 +102,7 @@ export function createCreateFileTool(userId: string): AgentTool<typeof createFil
           name,
           size,
           contentType: mimeType,
-          ...(params.context ? { context: params.context } : {}),
+          ...(params.metadata ? { metadata: params.metadata } : {}),
         },
         userId,
         assetId: params.parent,

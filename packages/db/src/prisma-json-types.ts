@@ -220,6 +220,7 @@ declare global {
     export interface FieldConfig {
       name: string
       type: FieldType
+      autofillSource?: 'NONE' | 'CONTENT' | 'CREATION_CONTEXT'
       text?: TextConfig
       longText?: LongTextConfig
       select?: SelectConfig

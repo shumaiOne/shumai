@@ -87,7 +87,7 @@ describe('MetadataService', () => {
     expect(projectFields[2].visible).toBe(false)
   })
 
-  it('AIAutofillAndDescription', async () => {
+  it('AutofillSourceAndDescription', async () => {
     const team = await prisma.team.create({
       data: { name: 'test-team' },
     })
@@ -103,24 +103,22 @@ describe('MetadataService', () => {
         key: 'teamfield1',
         scope: 'TEAM',
         team: { connect: { id: team.id } },
-        config: { name: 'Test Team Field', type: 'text' },
-        aiAutofill: true,
+        config: { name: 'Test Team Field', type: 'text', autofillSource: 'CONTENT' },
         description: desc,
       },
     })
 
     const newDesc = 'Updated description'
     const updatedTeamField = await metadataService.updateTeamField(team.id, teamField.key, {
-      config: { name: 'Test Team Field', type: 'text' },
-      aiAutofill: false,
+      config: { name: 'Test Team Field', type: 'text', autofillSource: 'NONE' },
       description: newDesc,
     })
-    expect(updatedTeamField.aiAutofill).toBe(false)
+    expect(updatedTeamField.config?.autofillSource).toBe('NONE')
     expect(updatedTeamField.description).toBe(newDesc)
     // IDOR test
     await expect(
       metadataService.updateTeamField('wrong-team-id', teamField.key, {
-        config: { name: 'Hack', type: 'text' },
+        config: { name: 'Hack', type: 'text', autofillSource: 'NONE' },
       }),
     ).rejects.toThrow('Field does not belong to this team')
   })

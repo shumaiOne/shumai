@@ -1043,15 +1043,7 @@ export async function getCommentActivity(commentId: string) {
 
 export async function getProjectAutofillFieldsActivity(projectId: string) {
   const fields = await metadataService.listProjectFields('', projectId)
-  return fields.filter((f) => f.field.aiAutofill).map((f) => f.field)
-}
-
-export async function getAssetAutofillContextActivity(assetId: string): Promise<string | null> {
-  const asset = await prisma.asset.findUnique({
-    where: { id: assetId },
-    select: { autofillContext: true },
-  })
-  return asset?.autofillContext ?? null
+  return fields.filter((f) => f.field.config?.autofillSource === 'CONTENT').map((f) => f.field)
 }
 
 export async function updateAssetMetadataActivity(params: {
@@ -1254,7 +1246,10 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
       const name = args.name as string
       const fileSize = args.size as number
       const mimeType = args.contentType as string
-      const context = typeof args.context === 'string' ? args.context : undefined
+      const metadata =
+        typeof args.metadata === 'object' && args.metadata !== null
+          ? (args.metadata as Record<string, unknown>)
+          : undefined
       if (!parent || !s3Key || !name || fileSize === undefined || !mimeType) {
         throw ApplicationFailure.create({
           message: 'parent, s3Key, name, size, and contentType parameters are required',
@@ -1304,12 +1299,12 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await assetService.updateAncestorsSize(tx as any, parent, fileSize)
 
-        // Persist autofill context provided by the agent (used by the autofill workflow)
-        if (context) {
-          await tx.asset.update({
-            where: { id: newFile.id },
-            data: { autofillContext: context },
-          })
+        // Persist creation context metadata provided by the agent
+        if (metadata) {
+          const metadataUpdates = Object.entries(metadata).map(([key, value]) => ({ key, value }))
+          if (metadataUpdates.length > 0) {
+            await metadataService.updateAssetMetadata(newFile.id, metadataUpdates)
+          }
         }
 
         // Trigger post-upload transcode and AI workflows
@@ -1335,7 +1330,10 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
       const name = args.name as string
       const fileSize = args.size as number
       const mimeType = args.contentType as string
-      const context = typeof args.context === 'string' ? args.context : undefined
+      const metadata =
+        typeof args.metadata === 'object' && args.metadata !== null
+          ? (args.metadata as Record<string, unknown>)
+          : undefined
       if (!parent || !s3Key || !name || fileSize === undefined || !mimeType) {
         throw ApplicationFailure.create({
           message: 'parent, s3Key, name, size, and contentType parameters are required',
@@ -1400,12 +1398,12 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
             where: { id: newFile.id },
             data: { sortIndex: newSortIndex },
           })
-          // Persist autofill context provided by the agent (used by the autofill workflow)
-          if (context) {
-            await tx.asset.update({
-              where: { id: newFile.id },
-              data: { autofillContext: context },
-            })
+          // Persist creation context metadata provided by the agent
+          if (metadata) {
+            const metadataUpdates = Object.entries(metadata).map(([key, value]) => ({ key, value }))
+            if (metadataUpdates.length > 0) {
+              await metadataService.updateAssetMetadata(newFile.id, metadataUpdates)
+            }
           }
           // Increment stack's size (fileCount is incremented by createAsset already)
           const updatedStack = await tx.asset.update({
@@ -1465,12 +1463,12 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
             projectId: parentFile.projectId!,
             creatorId: userId,
           })
-          // Persist autofill context provided by the agent (used by the autofill workflow)
-          if (context) {
-            await tx.asset.update({
-              where: { id: newFile.id },
-              data: { autofillContext: context },
-            })
+          // Persist creation context metadata provided by the agent
+          if (metadata) {
+            const metadataUpdates = Object.entries(metadata).map(([key, value]) => ({ key, value }))
+            if (metadataUpdates.length > 0) {
+              await metadataService.updateAssetMetadata(newFile.id, metadataUpdates)
+            }
           }
           // Update ancestors' size (add size of the new file version)
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1522,8 +1520,9 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
 
       const fields = await metadataService.listProjectFields(userId, projectId)
       const autofillFields = fields
-        .filter((f) => f.field.aiAutofill)
+        .filter((f) => f.field.config?.autofillSource === 'CREATION_CONTEXT')
         .map((f) => ({
+          key: f.field.key,
           name: f.field.config?.name,
           type: f.field.config?.type,
           description: f.field.description,

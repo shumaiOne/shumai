@@ -31,7 +31,6 @@ export type MetadataFieldMinAggregateOutputType = {
   key: string | null
   scope: $Enums.MetadataFieldScope | null
   readOnly: boolean | null
-  aiAutofill: boolean | null
   description: string | null
   teamId: string | null
   projectId: string | null
@@ -42,7 +41,6 @@ export type MetadataFieldMaxAggregateOutputType = {
   key: string | null
   scope: $Enums.MetadataFieldScope | null
   readOnly: boolean | null
-  aiAutofill: boolean | null
   description: string | null
   teamId: string | null
   projectId: string | null
@@ -54,7 +52,6 @@ export type MetadataFieldCountAggregateOutputType = {
   scope: number
   config:PrismaJson.FieldConfig
   readOnly: number
-  aiAutofill: number
   description: number
   teamId: number
   projectId: number
@@ -67,7 +64,6 @@ export type MetadataFieldMinAggregateInputType = {
   key?: true
   scope?: true
   readOnly?: true
-  aiAutofill?: true
   description?: true
   teamId?: true
   projectId?: true
@@ -78,7 +74,6 @@ export type MetadataFieldMaxAggregateInputType = {
   key?: true
   scope?: true
   readOnly?: true
-  aiAutofill?: true
   description?: true
   teamId?: true
   projectId?: true
@@ -90,7 +85,6 @@ export type MetadataFieldCountAggregateInputType = {
   scope?: true
   config?: true
   readOnly?: true
-  aiAutofill?: true
   description?: true
   teamId?: true
   projectId?: true
@@ -175,7 +169,6 @@ export type MetadataFieldGroupByOutputType = {
   scope: $Enums.MetadataFieldScope | null
   config:PrismaJson.FieldConfig | null
   readOnly: boolean
-  aiAutofill: boolean
   description: string
   teamId: string | null
   projectId: string | null
@@ -208,7 +201,6 @@ export type MetadataFieldWhereInput = {
   scope?: Prisma.EnumMetadataFieldScopeNullableFilter<"MetadataField"> | $Enums.MetadataFieldScope | null
   config?: Prisma.JsonNullableFilter<"MetadataField">
   readOnly?: Prisma.BoolFilter<"MetadataField"> | boolean
-  aiAutofill?: Prisma.BoolFilter<"MetadataField"> | boolean
   description?: Prisma.StringFilter<"MetadataField"> | string
   teamId?: Prisma.StringNullableFilter<"MetadataField"> | string | null
   projectId?: Prisma.StringNullableFilter<"MetadataField"> | string | null
@@ -222,7 +214,6 @@ export type MetadataFieldOrderByWithRelationInput = {
   scope?: Prisma.SortOrderInput | Prisma.SortOrder
   config?: Prisma.SortOrderInput | Prisma.SortOrder
   readOnly?: Prisma.SortOrder
-  aiAutofill?: Prisma.SortOrder
   description?: Prisma.SortOrder
   teamId?: Prisma.SortOrderInput | Prisma.SortOrder
   projectId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -239,7 +230,6 @@ export type MetadataFieldWhereUniqueInput = Prisma.AtLeast<{
   scope?: Prisma.EnumMetadataFieldScopeNullableFilter<"MetadataField"> | $Enums.MetadataFieldScope | null
   config?: Prisma.JsonNullableFilter<"MetadataField">
   readOnly?: Prisma.BoolFilter<"MetadataField"> | boolean
-  aiAutofill?: Prisma.BoolFilter<"MetadataField"> | boolean
   description?: Prisma.StringFilter<"MetadataField"> | string
   teamId?: Prisma.StringNullableFilter<"MetadataField"> | string | null
   projectId?: Prisma.StringNullableFilter<"MetadataField"> | string | null
@@ -253,7 +243,6 @@ export type MetadataFieldOrderByWithAggregationInput = {
   scope?: Prisma.SortOrderInput | Prisma.SortOrder
   config?: Prisma.SortOrderInput | Prisma.SortOrder
   readOnly?: Prisma.SortOrder
-  aiAutofill?: Prisma.SortOrder
   description?: Prisma.SortOrder
   teamId?: Prisma.SortOrderInput | Prisma.SortOrder
   projectId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -271,7 +260,6 @@ export type MetadataFieldScalarWhereWithAggregatesInput = {
   scope?: Prisma.EnumMetadataFieldScopeNullableWithAggregatesFilter<"MetadataField"> | $Enums.MetadataFieldScope | null
   config?: Prisma.JsonNullableWithAggregatesFilter<"MetadataField">
   readOnly?: Prisma.BoolWithAggregatesFilter<"MetadataField"> | boolean
-  aiAutofill?: Prisma.BoolWithAggregatesFilter<"MetadataField"> | boolean
   description?: Prisma.StringWithAggregatesFilter<"MetadataField"> | string
   teamId?: Prisma.StringNullableWithAggregatesFilter<"MetadataField"> | string | null
   projectId?: Prisma.StringNullableWithAggregatesFilter<"MetadataField"> | string | null
@@ -283,7 +271,6 @@ export type MetadataFieldCreateInput = {
   scope?: $Enums.MetadataFieldScope | null
   config?:PrismaJson.FieldConfig | Prisma.NullableJsonNullValueInput
   readOnly?: boolean
-  aiAutofill?: boolean
   description?: string
   team?: Prisma.TeamCreateNestedOneWithoutMetadataFieldsInput
   project?: Prisma.ProjectCreateNestedOneWithoutMetadataFieldsInput
@@ -295,7 +282,6 @@ export type MetadataFieldUncheckedCreateInput = {
   scope?: $Enums.MetadataFieldScope | null
   config?:PrismaJson.FieldConfig | Prisma.NullableJsonNullValueInput
   readOnly?: boolean
-  aiAutofill?: boolean
   description?: string
   teamId?: string | null
   projectId?: string | null
@@ -307,7 +293,6 @@ export type MetadataFieldUpdateInput = {
   scope?: Prisma.NullableEnumMetadataFieldScopeFieldUpdateOperationsInput | $Enums.MetadataFieldScope | null
   config?:PrismaJson.FieldConfig | Prisma.NullableJsonNullValueInput
   readOnly?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  aiAutofill?: Prisma.BoolFieldUpdateOperationsInput | boolean
   description?: Prisma.StringFieldUpdateOperationsInput | string
   team?: Prisma.TeamUpdateOneWithoutMetadataFieldsNestedInput
   project?: Prisma.ProjectUpdateOneWithoutMetadataFieldsNestedInput
@@ -319,7 +304,6 @@ export type MetadataFieldUncheckedUpdateInput = {
   scope?: Prisma.NullableEnumMetadataFieldScopeFieldUpdateOperationsInput | $Enums.MetadataFieldScope | null
   config?:PrismaJson.FieldConfig | Prisma.NullableJsonNullValueInput
   readOnly?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  aiAutofill?: Prisma.BoolFieldUpdateOperationsInput | boolean
   description?: Prisma.StringFieldUpdateOperationsInput | string
   teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -331,7 +315,6 @@ export type MetadataFieldCreateManyInput = {
   scope?: $Enums.MetadataFieldScope | null
   config?:PrismaJson.FieldConfig | Prisma.NullableJsonNullValueInput
   readOnly?: boolean
-  aiAutofill?: boolean
   description?: string
   teamId?: string | null
   projectId?: string | null
@@ -343,7 +326,6 @@ export type MetadataFieldUpdateManyMutationInput = {
   scope?: Prisma.NullableEnumMetadataFieldScopeFieldUpdateOperationsInput | $Enums.MetadataFieldScope | null
   config?:PrismaJson.FieldConfig | Prisma.NullableJsonNullValueInput
   readOnly?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  aiAutofill?: Prisma.BoolFieldUpdateOperationsInput | boolean
   description?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
@@ -353,7 +335,6 @@ export type MetadataFieldUncheckedUpdateManyInput = {
   scope?: Prisma.NullableEnumMetadataFieldScopeFieldUpdateOperationsInput | $Enums.MetadataFieldScope | null
   config?:PrismaJson.FieldConfig | Prisma.NullableJsonNullValueInput
   readOnly?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  aiAutofill?: Prisma.BoolFieldUpdateOperationsInput | boolean
   description?: Prisma.StringFieldUpdateOperationsInput | string
   teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -375,7 +356,6 @@ export type MetadataFieldCountOrderByAggregateInput = {
   scope?: Prisma.SortOrder
   config?: Prisma.SortOrder
   readOnly?: Prisma.SortOrder
-  aiAutofill?: Prisma.SortOrder
   description?: Prisma.SortOrder
   teamId?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
@@ -386,7 +366,6 @@ export type MetadataFieldMaxOrderByAggregateInput = {
   key?: Prisma.SortOrder
   scope?: Prisma.SortOrder
   readOnly?: Prisma.SortOrder
-  aiAutofill?: Prisma.SortOrder
   description?: Prisma.SortOrder
   teamId?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
@@ -397,7 +376,6 @@ export type MetadataFieldMinOrderByAggregateInput = {
   key?: Prisma.SortOrder
   scope?: Prisma.SortOrder
   readOnly?: Prisma.SortOrder
-  aiAutofill?: Prisma.SortOrder
   description?: Prisma.SortOrder
   teamId?: Prisma.SortOrder
   projectId?: Prisma.SortOrder
@@ -497,7 +475,6 @@ export type MetadataFieldCreateWithoutTeamInput = {
   scope?: $Enums.MetadataFieldScope | null
   config?:PrismaJson.FieldConfig | Prisma.NullableJsonNullValueInput
   readOnly?: boolean
-  aiAutofill?: boolean
   description?: string
   project?: Prisma.ProjectCreateNestedOneWithoutMetadataFieldsInput
 }
@@ -508,7 +485,6 @@ export type MetadataFieldUncheckedCreateWithoutTeamInput = {
   scope?: $Enums.MetadataFieldScope | null
   config?:PrismaJson.FieldConfig | Prisma.NullableJsonNullValueInput
   readOnly?: boolean
-  aiAutofill?: boolean
   description?: string
   projectId?: string | null
 }
@@ -548,7 +524,6 @@ export type MetadataFieldScalarWhereInput = {
   scope?: Prisma.EnumMetadataFieldScopeNullableFilter<"MetadataField"> | $Enums.MetadataFieldScope | null
   config?: Prisma.JsonNullableFilter<"MetadataField">
   readOnly?: Prisma.BoolFilter<"MetadataField"> | boolean
-  aiAutofill?: Prisma.BoolFilter<"MetadataField"> | boolean
   description?: Prisma.StringFilter<"MetadataField"> | string
   teamId?: Prisma.StringNullableFilter<"MetadataField"> | string | null
   projectId?: Prisma.StringNullableFilter<"MetadataField"> | string | null
@@ -560,7 +535,6 @@ export type MetadataFieldCreateWithoutProjectInput = {
   scope?: $Enums.MetadataFieldScope | null
   config?:PrismaJson.FieldConfig | Prisma.NullableJsonNullValueInput
   readOnly?: boolean
-  aiAutofill?: boolean
   description?: string
   team?: Prisma.TeamCreateNestedOneWithoutMetadataFieldsInput
 }
@@ -571,7 +545,6 @@ export type MetadataFieldUncheckedCreateWithoutProjectInput = {
   scope?: $Enums.MetadataFieldScope | null
   config?:PrismaJson.FieldConfig | Prisma.NullableJsonNullValueInput
   readOnly?: boolean
-  aiAutofill?: boolean
   description?: string
   teamId?: string | null
 }
@@ -608,7 +581,6 @@ export type MetadataFieldCreateManyTeamInput = {
   scope?: $Enums.MetadataFieldScope | null
   config?:PrismaJson.FieldConfig | Prisma.NullableJsonNullValueInput
   readOnly?: boolean
-  aiAutofill?: boolean
   description?: string
   projectId?: string | null
 }
@@ -619,7 +591,6 @@ export type MetadataFieldUpdateWithoutTeamInput = {
   scope?: Prisma.NullableEnumMetadataFieldScopeFieldUpdateOperationsInput | $Enums.MetadataFieldScope | null
   config?:PrismaJson.FieldConfig | Prisma.NullableJsonNullValueInput
   readOnly?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  aiAutofill?: Prisma.BoolFieldUpdateOperationsInput | boolean
   description?: Prisma.StringFieldUpdateOperationsInput | string
   project?: Prisma.ProjectUpdateOneWithoutMetadataFieldsNestedInput
 }
@@ -630,7 +601,6 @@ export type MetadataFieldUncheckedUpdateWithoutTeamInput = {
   scope?: Prisma.NullableEnumMetadataFieldScopeFieldUpdateOperationsInput | $Enums.MetadataFieldScope | null
   config?:PrismaJson.FieldConfig | Prisma.NullableJsonNullValueInput
   readOnly?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  aiAutofill?: Prisma.BoolFieldUpdateOperationsInput | boolean
   description?: Prisma.StringFieldUpdateOperationsInput | string
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
@@ -641,7 +611,6 @@ export type MetadataFieldUncheckedUpdateManyWithoutTeamInput = {
   scope?: Prisma.NullableEnumMetadataFieldScopeFieldUpdateOperationsInput | $Enums.MetadataFieldScope | null
   config?:PrismaJson.FieldConfig | Prisma.NullableJsonNullValueInput
   readOnly?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  aiAutofill?: Prisma.BoolFieldUpdateOperationsInput | boolean
   description?: Prisma.StringFieldUpdateOperationsInput | string
   projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
@@ -652,7 +621,6 @@ export type MetadataFieldCreateManyProjectInput = {
   scope?: $Enums.MetadataFieldScope | null
   config?:PrismaJson.FieldConfig | Prisma.NullableJsonNullValueInput
   readOnly?: boolean
-  aiAutofill?: boolean
   description?: string
   teamId?: string | null
 }
@@ -663,7 +631,6 @@ export type MetadataFieldUpdateWithoutProjectInput = {
   scope?: Prisma.NullableEnumMetadataFieldScopeFieldUpdateOperationsInput | $Enums.MetadataFieldScope | null
   config?:PrismaJson.FieldConfig | Prisma.NullableJsonNullValueInput
   readOnly?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  aiAutofill?: Prisma.BoolFieldUpdateOperationsInput | boolean
   description?: Prisma.StringFieldUpdateOperationsInput | string
   team?: Prisma.TeamUpdateOneWithoutMetadataFieldsNestedInput
 }
@@ -674,7 +641,6 @@ export type MetadataFieldUncheckedUpdateWithoutProjectInput = {
   scope?: Prisma.NullableEnumMetadataFieldScopeFieldUpdateOperationsInput | $Enums.MetadataFieldScope | null
   config?:PrismaJson.FieldConfig | Prisma.NullableJsonNullValueInput
   readOnly?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  aiAutofill?: Prisma.BoolFieldUpdateOperationsInput | boolean
   description?: Prisma.StringFieldUpdateOperationsInput | string
   teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
@@ -685,7 +651,6 @@ export type MetadataFieldUncheckedUpdateManyWithoutProjectInput = {
   scope?: Prisma.NullableEnumMetadataFieldScopeFieldUpdateOperationsInput | $Enums.MetadataFieldScope | null
   config?:PrismaJson.FieldConfig | Prisma.NullableJsonNullValueInput
   readOnly?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  aiAutofill?: Prisma.BoolFieldUpdateOperationsInput | boolean
   description?: Prisma.StringFieldUpdateOperationsInput | string
   teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
@@ -698,7 +663,6 @@ export type MetadataFieldSelect<ExtArgs extends runtime.Types.Extensions.Interna
   scope?: boolean
   config?: boolean
   readOnly?: boolean
-  aiAutofill?: boolean
   description?: boolean
   teamId?: boolean
   projectId?: boolean
@@ -712,7 +676,6 @@ export type MetadataFieldSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   scope?: boolean
   config?: boolean
   readOnly?: boolean
-  aiAutofill?: boolean
   description?: boolean
   teamId?: boolean
   projectId?: boolean
@@ -726,7 +689,6 @@ export type MetadataFieldSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   scope?: boolean
   config?: boolean
   readOnly?: boolean
-  aiAutofill?: boolean
   description?: boolean
   teamId?: boolean
   projectId?: boolean
@@ -740,13 +702,12 @@ export type MetadataFieldSelectScalar = {
   scope?: boolean
   config?: boolean
   readOnly?: boolean
-  aiAutofill?: boolean
   description?: boolean
   teamId?: boolean
   projectId?: boolean
 }
 
-export type MetadataFieldOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "key" | "scope" | "config" | "readOnly" | "aiAutofill" | "description" | "teamId" | "projectId", ExtArgs["result"]["metadataField"]>
+export type MetadataFieldOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "key" | "scope" | "config" | "readOnly" | "description" | "teamId" | "projectId", ExtArgs["result"]["metadataField"]>
 export type MetadataFieldInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   team?: boolean | Prisma.MetadataField$teamArgs<ExtArgs>
   project?: boolean | Prisma.MetadataField$projectArgs<ExtArgs>
@@ -775,7 +736,6 @@ export type $MetadataFieldPayload<ExtArgs extends runtime.Types.Extensions.Inter
      */
     config:PrismaJson.FieldConfig | null
     readOnly: boolean
-    aiAutofill: boolean
     description: string
     teamId: string | null
     projectId: string | null
@@ -1209,7 +1169,6 @@ export interface MetadataFieldFieldRefs {
   readonly scope: Prisma.FieldRef<"MetadataField", 'MetadataFieldScope'>
   readonly config: Prisma.FieldRef<"MetadataField", 'Json'>
   readonly readOnly: Prisma.FieldRef<"MetadataField", 'Boolean'>
-  readonly aiAutofill: Prisma.FieldRef<"MetadataField", 'Boolean'>
   readonly description: Prisma.FieldRef<"MetadataField", 'String'>
   readonly teamId: Prisma.FieldRef<"MetadataField", 'String'>
   readonly projectId: Prisma.FieldRef<"MetadataField", 'String'>
