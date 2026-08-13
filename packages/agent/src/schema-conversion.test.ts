@@ -1,5 +1,21 @@
 import { describe, it, expect } from 'vitest'
+import { type TSchema } from 'typebox'
+import { Value } from 'typebox/value'
 import { fieldsToTypeBoxSchema, type AutofillField } from './index'
+
+interface AnyOfFieldSchema {
+  type?: string
+  enum?: string[]
+  const?: string
+  description?: string
+  items?: { enum?: string[]; type?: string }
+  anyOf?: AnyOfFieldSchema[]
+}
+
+function propsOf(schema: TSchema): Record<string, { anyOf?: AnyOfFieldSchema[] }> {
+  return (schema as unknown as { properties: Record<string, { anyOf?: AnyOfFieldSchema[] }> })
+    .properties
+}
 
 describe('fieldsToTypeBoxSchema', () => {
   it('converts text fields', () => {
@@ -8,10 +24,12 @@ describe('fieldsToTypeBoxSchema', () => {
       { id: 'f2', config: { name: 'Desc', type: 'longText' } },
     ]
     const schema = fieldsToTypeBoxSchema(fields)
-    expect(schema.properties.f1.type).toBe('string')
-    expect(schema.properties.f1.description).toBe("The field 'Title' represents The title.")
-    expect(schema.properties.f2.type).toBe('string')
-    expect(schema.properties.f2.description).toBe("The field 'Desc' represents Desc.")
+    const props = propsOf(schema)
+    expect(props.f1.anyOf![0].type).toBe('string')
+    expect(props.f1.anyOf![1].type).toBe('null')
+    expect(props.f1.anyOf![0].description).toBe("The field 'Title' represents The title.")
+    expect(props.f2.anyOf![0].type).toBe('string')
+    expect(props.f2.anyOf![0].description).toBe("The field 'Desc' represents Desc.")
   })
 
   it('converts numeric fields', () => {
@@ -20,14 +38,15 @@ describe('fieldsToTypeBoxSchema', () => {
       { id: 'f2', config: { name: 'Rating', type: 'rating' } },
     ]
     const schema = fieldsToTypeBoxSchema(fields)
-    expect(schema.properties.f1.type).toBe('number')
-    expect(schema.properties.f2.type).toBe('number')
+    const props = propsOf(schema)
+    expect(props.f1.anyOf![0].type).toBe('number')
+    expect(props.f2.anyOf![0].type).toBe('number')
   })
 
   it('converts toggle fields', () => {
     const fields: AutofillField[] = [{ id: 'f1', config: { name: 'Active', type: 'toggle' } }]
     const schema = fieldsToTypeBoxSchema(fields)
-    expect(schema.properties.f1.type).toBe('boolean')
+    expect(propsOf(schema).f1.anyOf![0].type).toBe('boolean')
   })
 
   it('converts select fields with enums and option descriptions', () => {
@@ -48,11 +67,16 @@ describe('fieldsToTypeBoxSchema', () => {
       },
     ]
     const schema = fieldsToTypeBoxSchema(fields)
-    expect(schema.properties.f1.type).toBe('string')
-    expect(schema.properties.f1.enum).toEqual(['opt1', 'opt2'])
-    expect(schema.properties.f1.description).toBe(
+    const selectSchema = propsOf(schema).f1.anyOf![0]
+    expect(selectSchema.type).toBe('string')
+    expect(selectSchema.enum).toEqual(['opt1', 'opt2'])
+    expect(selectSchema.description).toBe(
       "The field 'Species' represents Species of animal.\nSelect one option and return the option ID as the value.\n\nAvailable options:\n- Option 1 => opt1\n- Option 2 => opt2",
     )
+    // Only the declared option IDs are valid (enforced by the typebox validator)
+    expect(Value.Check(schema, { f1: 'opt1' })).toBe(true)
+    expect(Value.Check(schema, { f1: null })).toBe(true)
+    expect(Value.Check(schema, { f1: 'not-an-option' })).toBe(false)
   })
 
   it('converts selectMulti fields with array enums and option descriptions', () => {
@@ -72,11 +96,15 @@ describe('fieldsToTypeBoxSchema', () => {
       },
     ]
     const schema = fieldsToTypeBoxSchema(fields)
-    expect(schema.properties.f1.type).toBe('array')
-    expect(schema.properties.f1.items.enum).toEqual(['opt1', 'opt2'])
-    expect(schema.properties.f1.description).toBe(
+    const selectMultiSchema = propsOf(schema).f1.anyOf![0]
+    expect(selectMultiSchema.type).toBe('array')
+    expect(selectMultiSchema.items!.enum).toEqual(['opt1', 'opt2'])
+    expect(selectMultiSchema.description).toBe(
       "The field 'Tags' represents Tags.\nSelect applicable options and return the option IDs as the value.\n\nAvailable options:\n- Tag 1 => opt1\n- Tag 2 => opt2",
     )
+    expect(Value.Check(schema, { f1: ['opt1', 'opt2'] })).toBe(true)
+    expect(Value.Check(schema, { f1: null })).toBe(true)
+    expect(Value.Check(schema, { f1: ['opt1', 'bad'] })).toBe(false)
   })
 
   it('defaults to string for unknown types', () => {
@@ -85,6 +113,22 @@ describe('fieldsToTypeBoxSchema', () => {
       { id: 'f1', config: { name: 'Unknown', type: 'invalid' } },
     ]
     const schema = fieldsToTypeBoxSchema(fields)
-    expect(schema.properties.f1.type).toBe('string')
+    expect(propsOf(schema).f1.anyOf![0].type).toBe('string')
+  })
+
+  it('marks every property required (nullable) and rejects unknown keys', () => {
+    const fields: AutofillField[] = [
+      { id: 'f1', config: { name: 'Title', type: 'text' } },
+      { id: 'f2', config: { name: 'Rating', type: 'rating' } },
+    ]
+    const schema = fieldsToTypeBoxSchema(fields)
+    const props = propsOf(schema)
+    // typebox v1 objects are strict by default: unknown keys are rejected
+    expect(props.f1.anyOf![0].type).toBe('string')
+    expect(props.f1.anyOf![1].type).toBe('null')
+    expect(Value.Check(schema, { f1: 'x', f2: null })).toBe(true)
+    expect(Value.Check(schema, { f1: null, f2: 3 })).toBe(true)
+    expect(Value.Check(schema, { f1: 'x' })).toBe(false)
+    expect(Value.Check(schema, { f1: 'x', f2: null, extra: 1 })).toBe(false)
   })
 })

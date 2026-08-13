@@ -2,67 +2,78 @@ import { type AgentTool } from '@earendil-works/pi-agent-core'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { getFileMimeType, readFileMimeType } from '@shumai/core/src/utils/file-mime'
 import { sanitizeFilename } from '@shumai/core/src/utils/filename'
-import { Type } from '@sinclair/typebox'
+import { Type, type TSchema } from 'typebox'
 import * as fs from 'fs'
 import * as path from 'path'
 import { ulid } from 'ulid'
 import { executeAgentToolWorkflow } from './utils'
 
-const createFileSchema = Type.Object({
-  parent: Type.String({
-    description: 'The parent folder ID under which to create the file. This parameter is required.',
-  }),
-  path: Type.Optional(
-    Type.String({
-      description:
-        'The absolute or relative local path to an existing file on disk. Provide either this or "data", but not both.',
-    }),
-  ),
-  data: Type.Optional(
-    Type.Object({
-      name: Type.String({
-        minLength: 1,
-        description:
-          'The desired name for the new file, including its extension (e.g. "notes.md").',
-      }),
-      content: Type.String({
-        description: 'The full content of the file as a plain string.',
-      }),
-    }),
-  ),
-  metadata: Type.Optional(
-    Type.Record(Type.String(), Type.Any(), {
-      description:
-        'Key-value map of metadata field keys and their values. Use the "key" field from list_autofill_fields data as the map key.' +
-        'Use list_autofill_fields first to inspect available fields.',
-    }),
-  ),
-})
+interface CreateFileToolParams {
+  parent: string
+  path: string | null
+  data: { name: string; content: string } | null
+  metadata?: Record<string, unknown> | null
+}
 
-function assertExactlyOneSource(params: {
-  path?: string
-  data?: { name: string; content: string }
-}) {
-  const hasPath = params.path !== undefined
-  const hasData = params.data !== undefined
+function assertExactlyOneSource(params: CreateFileToolParams) {
+  const hasPath = params.path !== null
+  const hasData = params.data !== null
   if (hasPath === hasData) {
     throw new Error('Provide exactly one of "path" (a local file) or "data" (name and content).')
   }
   return hasPath ? params.path! : params.data!
 }
 
-export function createCreateFileTool(userId: string): AgentTool<typeof createFileSchema> {
-  return {
+export function createCreateFileTool(userId: string, metadataSchema?: TSchema): AgentTool {
+  const createFileSchema = Type.Object(
+    {
+      parent: Type.String({
+        description:
+          'The parent folder ID under which to create the file. This parameter is required.',
+      }),
+      path: Type.Union([
+        Type.String({
+          description:
+            'The absolute or relative local path to an existing file on disk. Provide a value here OR in "data", but not both. Use null if you are providing "data".',
+        }),
+        Type.Null(),
+      ]),
+      data: Type.Union([
+        Type.Object(
+          {
+            name: Type.String({
+              minLength: 1,
+              description:
+                'The desired name for the new file, including its extension (e.g. "notes.md").',
+            }),
+            content: Type.String({
+              description: 'The full content of the file as a plain string.',
+            }),
+          },
+          { additionalProperties: false },
+        ),
+        Type.Null(),
+      ]),
+      ...(metadataSchema ? { metadata: Type.Union([metadataSchema, Type.Null()]) } : {}),
+    },
+    { additionalProperties: false },
+  )
+
+  const tool: AgentTool = {
     name: 'create_file',
     label: 'Create File',
     description:
       'Create a new file under a folder. You MUST choose exactly ONE creation method: ' +
       '(1) provide "path" to upload an existing local file, OR ' +
       '(2) provide "data" with name and content to create a new text file. ' +
-      'Never provide both "path" and "data" together. Never omit both.',
+      'Set the unused parameter to null. ' +
+      'The optional "metadata" parameter accepts only the CREATION_CONTEXT fields declared in its schema; never invent field keys, and use null for fields you do not know.',
     parameters: createFileSchema,
     execute: async (_toolCallId, params) => {
-      const source = assertExactlyOneSource(params)
+      // The harness validates tool args against `createFileSchema` before calling
+      // execute, so `params` is guaranteed to match this shape.
+      const p = params as CreateFileToolParams
+      const source = assertExactlyOneSource(p)
 
       let name: string
       let size: number
@@ -97,15 +108,15 @@ export function createCreateFileTool(userId: string): AgentTool<typeof createFil
       const result = await executeAgentToolWorkflow({
         toolName: 'create_file',
         args: {
-          parent: params.parent,
+          parent: p.parent,
           s3Key,
           name,
           size,
           contentType: mimeType,
-          ...(params.metadata ? { metadata: params.metadata } : {}),
+          ...(p.metadata ? { metadata: p.metadata } : {}),
         },
         userId,
-        assetId: params.parent,
+        assetId: p.parent,
       })
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
@@ -113,4 +124,5 @@ export function createCreateFileTool(userId: string): AgentTool<typeof createFil
       }
     },
   }
+  return tool
 }
