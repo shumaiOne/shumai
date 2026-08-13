@@ -116,7 +116,9 @@ const SelectMultiField: React.FC<FieldProps<string[]>> = ({
         const updatedField = (await res.json()) as FieldInfo
         const currentFields = useFieldStore.getState().fields
         const newFields = currentFields.map((f) =>
-          f.id === updatedField.id ? { ...f, ...(updatedField as FieldInfo) } : f,
+          f.id === updatedField.id
+            ? { ...f, ...(updatedField as FieldInfo), visible: f.visible }
+            : f,
         )
         useFieldStore.getState().updateFields(newFields)
       } catch {
@@ -200,12 +202,14 @@ const SelectMultiField: React.FC<FieldProps<string[]>> = ({
         </PopoverTrigger>
 
         <PopoverContent
+          side="bottom"
+          align="start"
+          sideOffset={4}
           className={`p-1.5 bg-popover border rounded-lg shadow-xl max-h-72 flex flex-col ${
             expanded && !isEditing
               ? 'w-[--radix-popover-trigger-width] min-w-[200px] flex flex-wrap gap-1 border-ring min-h-[32px] h-auto cursor-pointer overflow-auto'
               : 'w-64 border-border'
           }`}
-          align="start"
           onClick={expanded && !isEditing ? handleOverlayClick : undefined}
         >
           {expanded && !isEditing ? (
@@ -240,7 +244,7 @@ const SelectMultiField: React.FC<FieldProps<string[]>> = ({
                 />
               </div>
 
-              <div className="overflow-y-auto max-h-48 space-y-0.5">
+              <div className="overflow-y-auto max-h-48 min-h-[120px] space-y-0.5">
                 {filteredOptions.map((option: SelectOption) => {
                   const isSelected = (value || []).includes(option.id)
                   return (
