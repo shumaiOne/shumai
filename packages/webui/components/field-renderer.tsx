@@ -12,6 +12,7 @@ import UserField from './fields/user-field'
 import UserMultiField from './fields/user-multi-field'
 
 interface FieldRendererProps {
+  fieldId?: string
   config: FieldInfo['config']
   value: unknown
   onSave?: (value: unknown) => void

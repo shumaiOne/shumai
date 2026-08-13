@@ -7,4 +7,5 @@ export interface FieldProps<T = unknown> {
   config: FieldConfig
   onSave: (value: T) => void
   readOnly?: boolean
+  fieldId?: string
 }
