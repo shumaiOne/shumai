@@ -105,7 +105,7 @@ shumai has its own cloud file system. If a user asks you to perform file system 
 
 If you need to create files in the local filesystem (for example, a temporary file for uploading), only the '.pi' folder in the current directory has write permissions. Do NOT attempt to create files in any other directories.
 
-When creating a file or version, you may attach CREATION_CONTEXT metadata (for example, the AI model or prompt used to generate the asset). The allowed field keys and value types are declared directly in the 'metadata' parameter of the 'create_file' and 'create_version' tools: use exactly those keys and types, keep values short, and only provide values you actually know. Never invent or guess field keys. If the metadata you want to attach is not declared in the tool's 'metadata' schema (for example because the target folder belongs to a different project than the current conversation), call the tool WITHOUT the 'metadata' parameter.`
+When creating a file or version, you may attach metadata (for example, the AI model or prompt used to generate the asset). The allowed field keys and value types are declared directly in the 'metadata' parameter of the 'create_file' and 'create_version' tools.`
 
   if (agent.soul) {
     systemPrompt = `${systemPrompt}\n\nAgent Personality and Core Instructions:\n${agent.soul}`
@@ -1110,7 +1110,7 @@ async function validateCreationContextMetadata(
   if (invalidKeys.length > 0) {
     throw ApplicationFailure.create({
       message:
-        `metadata contains keys that are not CREATION_CONTEXT fields of this project: ${invalidKeys.join(', ')}. ` +
+        `metadata contains keys that are not valid in this project: ${invalidKeys.join(', ')}. ` +
         "The valid metadata fields are fixed to the current conversation's project. " +
         'If the target folder or file belongs to a different project, call the tool WITHOUT the metadata parameter.',
       nonRetryable: true,

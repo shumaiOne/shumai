@@ -1512,7 +1512,7 @@ describe('Agent Database Activities Integration', () => {
         expect(val?.stringValue).toBe('Generated using gemini')
       })
 
-      it('should reject metadata with keys that are not CREATION_CONTEXT fields', async () => {
+      it('should reject metadata with keys that are not valid in this project', async () => {
         const folder = await prisma.asset.create({
           data: {
             name: 'WorkspaceFolder',
@@ -1538,7 +1538,7 @@ describe('Agent Database Activities Integration', () => {
             },
             userId: user.id,
           }),
-        ).rejects.toThrow(/not CREATION_CONTEXT fields/)
+        ).rejects.toThrow(/not valid in this project/)
 
         // No metadata value should have been written for the unknown key
         const val = await prisma.assetMetadataValue.findFirst({
