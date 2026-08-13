@@ -1512,7 +1512,7 @@ describe('Agent Database Activities Integration', () => {
         expect(val?.stringValue).toBe('Generated using gemini')
       })
 
-      it('should reject metadata with keys that are not CREATION_CONTEXT fields', async () => {
+      it('should reject metadata with keys that are not valid in this project', async () => {
         const folder = await prisma.asset.create({
           data: {
             name: 'WorkspaceFolder',
@@ -1538,7 +1538,7 @@ describe('Agent Database Activities Integration', () => {
             },
             userId: user.id,
           }),
-        ).rejects.toThrow(/not CREATION_CONTEXT fields/)
+        ).rejects.toThrow(/not valid in this project/)
 
         // No metadata value should have been written for the unknown key
         const val = await prisma.assetMetadataValue.findFirst({
@@ -1706,123 +1706,6 @@ describe('Agent Database Activities Integration', () => {
           where: { assetId: res.id, fieldKey: 'prompt' },
         })
         expect(val?.stringValue).toBe('Generated using seedance')
-      })
-    })
-
-    describe('list_autofill_fields', () => {
-      it('should return only CREATION_CONTEXT fields with their options', async () => {
-        const folder = await prisma.asset.create({
-          data: {
-            name: 'WorkspaceFolder',
-            type: AssetType.folder,
-            status: AssetStatus.uploaded,
-            projectId: project.id,
-          },
-        })
-
-        await prisma.metadataField.create({
-          data: {
-            key: 'source',
-            scope: 'PROJECT',
-            projectId: project.id,
-            teamId: team.id,
-            config: {
-              name: 'Source',
-              type: 'select',
-              autofillSource: 'CREATION_CONTEXT',
-              select: {
-                options: [
-                  { id: 'gemini', displayName: 'Gemini', color: '#ffffff' },
-                  { id: 'seedance', displayName: 'Seedance', color: '#ffffff' },
-                ],
-              },
-            },
-            description: 'Generation source',
-          },
-        })
-        await prisma.metadataField.create({
-          data: {
-            key: 'prompt',
-            scope: 'PROJECT',
-            projectId: project.id,
-            teamId: team.id,
-            config: { name: 'Prompt', type: 'text', autofillSource: 'CREATION_CONTEXT' },
-          },
-        })
-        await prisma.metadataField.create({
-          data: {
-            key: 'manual_notes',
-            scope: 'PROJECT',
-            projectId: project.id,
-            teamId: team.id,
-            config: { name: 'Manual Notes', type: 'text', autofillSource: 'NONE' },
-          },
-        })
-
-        const res = await executeAgentToolActivity({
-          taskId: 'task-1',
-          toolName: 'list_autofill_fields',
-          args: { parent: folder.id },
-          userId: user.id,
-        })
-
-        expect(res.fields).toHaveLength(2)
-        const source = res.fields.find((f: { name: string }) => f.name === 'Source')
-        expect(source?.key).toBe('source')
-        expect(source?.name).toBe('Source')
-        expect(source?.type).toBe('select')
-        expect(source?.description).toBe('Generation source')
-        expect(source?.options).toEqual([{ displayName: 'Gemini' }, { displayName: 'Seedance' }])
-        expect(res.fields.find((f: { name: string }) => f.name === 'Manual Notes')).toBeUndefined()
-      })
-
-      it('should resolve the project through the ancestor chain', async () => {
-        const rootFolder = await prisma.asset.create({
-          data: {
-            name: 'Root',
-            type: AssetType.folder,
-            status: AssetStatus.uploaded,
-            projectId: project.id,
-          },
-        })
-        const subFolder = await prisma.asset.create({
-          data: {
-            name: 'Sub',
-            type: AssetType.folder,
-            status: AssetStatus.uploaded,
-            parentId: rootFolder.id,
-          },
-        })
-
-        await prisma.metadataField.create({
-          data: {
-            key: 'title_2',
-            scope: 'PROJECT',
-            projectId: project.id,
-            teamId: team.id,
-            config: { name: 'Title 2', type: 'text', autofillSource: 'CREATION_CONTEXT' },
-          },
-        })
-
-        const res = await executeAgentToolActivity({
-          taskId: 'task-1',
-          toolName: 'list_autofill_fields',
-          args: { parent: subFolder.id },
-          userId: user.id,
-        })
-
-        expect(res.fields.length).toBeGreaterThan(0)
-      })
-
-      it('should fail when parent is missing', async () => {
-        await expect(
-          executeAgentToolActivity({
-            taskId: 'task-1',
-            toolName: 'list_autofill_fields',
-            args: {},
-            userId: user.id,
-          }),
-        ).rejects.toThrow('parent parameter is required')
       })
     })
   })

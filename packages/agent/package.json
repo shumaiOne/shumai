@@ -14,12 +14,12 @@
     "@shumai/db": "workspace:*",
     "@shumai/dtos": "workspace:*",
     "@shumai/workflow-core": "workspace:*",
-    "@sinclair/typebox": "0.34.49",
     "@temporalio/activity": "1.17.2",
     "@temporalio/worker": "1.17.2",
     "@temporalio/workflow": "1.17.2",
     "adm-zip": "0.5.17",
     "jittered-fractional-indexing": "1.0.1",
+    "typebox": "1.1.38",
     "ulid": "3.0.2",
     "zod": "4.4.3"
   },

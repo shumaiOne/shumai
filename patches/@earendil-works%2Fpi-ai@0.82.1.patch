@@ -1,0 +1,17 @@
+diff --git a/dist/utils/validation.js b/dist/utils/validation.js
+index 6cffb0855554b0f53d9ca76eba3bd1641dcc19ef..bcd7991bb59163e6f2f2819827790227f8b69e8c 100644
+--- a/dist/utils/validation.js
++++ b/dist/utils/validation.js
+@@ -150,6 +150,12 @@ function applySchemaArrayCoercion(value, schema) {
+     }
+ }
+ function coerceWithUnionSchema(value, schemas) {
++    for (const schema of schemas) {
++        const validator = getSubSchemaValidator(schema);
++        if (validator?.Check(value)) {
++            return value;
++        }
++    }
+     for (const schema of schemas) {
+         const candidate = structuredClone(value);
+         const coerced = coerceWithJsonSchema(candidate, schema);

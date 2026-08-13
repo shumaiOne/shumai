@@ -8,6 +8,7 @@ WORKDIR /app
 COPY package.json bun.lock ./
 COPY --parents packages/*/package.json ./
 COPY --parents apps/*/package.json ./
+COPY patches/ ./patches/
 
 # Install dependencies (including devDependencies for build tools)
 RUN bun install --frozen-lockfile

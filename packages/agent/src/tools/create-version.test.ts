@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createCreateVersionTool } from './create-version'
+import { fieldsToTypeBoxSchema } from '../index'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { executeAgentToolWorkflow } from './utils'
+import { Value } from 'typebox/value'
 import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
@@ -67,10 +69,13 @@ describe('createCreateVersionTool', () => {
     expect(result.details).toEqual({ id: 'file-1', name: 'v2', type: 'file' })
   })
 
-  it('should forward the optional metadata to the agent tool workflow when provided', async () => {
+  it('should forward the metadata to the agent tool workflow when provided', async () => {
     const filePath = createTempFile('# Hello from disk', 'create-version-metadata.md')
+    const metadataSchema = fieldsToTypeBoxSchema([
+      { id: 'prompt', config: { name: 'Prompt', type: 'text' } },
+    ])
 
-    const tool = createCreateVersionTool('user-1')
+    const tool = createCreateVersionTool('user-1', metadataSchema)
     await tool.execute('call-1', {
       parent: 'file-1',
       path: filePath,
@@ -84,11 +89,14 @@ describe('createCreateVersionTool', () => {
     )
   })
 
-  it('should not include metadata in args when not provided', async () => {
+  it('should not include metadata in args when metadata is null', async () => {
     const filePath = createTempFile('# Hello from disk', 'create-version-no-metadata.md')
+    const metadataSchema = fieldsToTypeBoxSchema([
+      { id: 'prompt', config: { name: 'Prompt', type: 'text' } },
+    ])
 
-    const tool = createCreateVersionTool('user-1')
-    await tool.execute('call-1', { parent: 'file-1', path: filePath })
+    const tool = createCreateVersionTool('user-1', metadataSchema)
+    await tool.execute('call-1', { parent: 'file-1', path: filePath, metadata: null })
 
     const callArgs = vi.mocked(executeAgentToolWorkflow).mock.calls[0][0].args
     expect(callArgs).not.toHaveProperty('metadata')
@@ -101,5 +109,35 @@ describe('createCreateVersionTool', () => {
     ).rejects.toThrow('Local file not found at path: /nonexistent/file.md')
     expect(s3Service.uploadFileToKey).not.toHaveBeenCalled()
     expect(executeAgentToolWorkflow).not.toHaveBeenCalled()
+  })
+
+  it('should expose a strict, all-required (nullable) metadata schema when fields are provided', () => {
+    const metadataSchema = fieldsToTypeBoxSchema([
+      { id: 'prompt', config: { name: 'Prompt', type: 'text' } },
+      { id: 'toggle', config: { name: 'Active', type: 'toggle' } },
+    ])
+
+    const tool = createCreateVersionTool('user-1', metadataSchema)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- inspecting the runtime schema shape of the dynamically-built tool
+    const meta = (tool.parameters as any).properties.metadata
+    // `metadata` is a nullable union: [strict object, null]
+    const metaObject = meta.anyOf[0]
+
+    expect(meta).toBeDefined()
+    expect(metaObject.required).toEqual(['prompt', 'toggle'])
+    expect(metaObject.additionalProperties).toBe(false)
+    expect(metaObject.properties.prompt.anyOf[0].type).toBe('string')
+    expect(metaObject.properties.prompt.anyOf[1].type).toBe('null')
+    expect(metaObject.properties.toggle.anyOf[0].type).toBe('boolean')
+
+    expect(Value.Check(meta, { prompt: 'p', toggle: true })).toBe(true)
+    expect(Value.Check(meta, { prompt: null, toggle: null })).toBe(true)
+    expect(Value.Check(meta, { prompt: 'p', toggle: null, unknownKey: 'x' })).toBe(false)
+  })
+
+  it('should omit the metadata parameter when no schema is provided', () => {
+    const tool = createCreateVersionTool('user-1')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- inspecting the runtime schema shape of the dynamically-built tool
+    expect((tool.parameters as any).properties.metadata).toBeUndefined()
   })
 })

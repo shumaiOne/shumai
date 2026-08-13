@@ -1,4 +1,4 @@
-import { Type } from '@sinclair/typebox'
+import { Type } from 'typebox'
 import { type AgentTool } from '@earendil-works/pi-agent-core'
 import { prisma, type User } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'

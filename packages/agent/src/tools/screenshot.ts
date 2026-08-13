@@ -1,4 +1,4 @@
-import { Type } from '@sinclair/typebox'
+import { Type } from 'typebox'
 import { type AgentTool } from '@earendil-works/pi-agent-core'
 import { type ImageContent } from '@earendil-works/pi-ai'
 import { prisma, WorkflowTaskType, WorkflowTaskStatus, type User } from '@shumai/db'

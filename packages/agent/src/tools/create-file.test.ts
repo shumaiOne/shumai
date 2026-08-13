@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createCreateFileTool } from './create-file'
+import { fieldsToTypeBoxSchema } from '../index'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { executeAgentToolWorkflow } from './utils'
+import { Value } from 'typebox/value'
 import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
@@ -44,7 +46,7 @@ describe('createCreateFileTool', () => {
     const filePath = createTempFile('# Hello from disk', 'create-file-test.md')
 
     const tool = createCreateFileTool('user-1')
-    const result = await tool.execute('call-1', { parent: 'folder-1', path: filePath })
+    const result = await tool.execute('call-1', { parent: 'folder-1', path: filePath, data: null })
 
     expect(s3Service.uploadFileToKey).toHaveBeenCalledTimes(1)
     expect(s3Service.putObject).not.toHaveBeenCalled()
@@ -70,13 +72,17 @@ describe('createCreateFileTool', () => {
     expect(result.details).toEqual({ id: 'file-1', name: 'test', type: 'file' })
   })
 
-  it('should forward the optional metadata to the agent tool workflow when provided', async () => {
+  it('should forward the metadata to the agent tool workflow when provided', async () => {
     const filePath = createTempFile('# Hello from disk', 'create-file-metadata.md')
+    const metadataSchema = fieldsToTypeBoxSchema([
+      { id: 'prompt', config: { name: 'Prompt', type: 'text' } },
+    ])
 
-    const tool = createCreateFileTool('user-1')
+    const tool = createCreateFileTool('user-1', metadataSchema)
     await tool.execute('call-1', {
       parent: 'folder-1',
       path: filePath,
+      data: null,
       metadata: { prompt: 'Generated using gemini' },
     })
 
@@ -87,11 +93,19 @@ describe('createCreateFileTool', () => {
     )
   })
 
-  it('should not include metadata in args when not provided', async () => {
+  it('should not include metadata in args when metadata is null', async () => {
     const filePath = createTempFile('# Hello from disk', 'create-file-no-metadata.md')
+    const metadataSchema = fieldsToTypeBoxSchema([
+      { id: 'prompt', config: { name: 'Prompt', type: 'text' } },
+    ])
 
-    const tool = createCreateFileTool('user-1')
-    await tool.execute('call-1', { parent: 'folder-1', path: filePath })
+    const tool = createCreateFileTool('user-1', metadataSchema)
+    await tool.execute('call-1', {
+      parent: 'folder-1',
+      path: filePath,
+      data: null,
+      metadata: null,
+    })
 
     const callArgs = vi.mocked(executeAgentToolWorkflow).mock.calls[0][0].args
     expect(callArgs).not.toHaveProperty('metadata')
@@ -100,7 +114,7 @@ describe('createCreateFileTool', () => {
   it('should throw when the local file does not exist', async () => {
     const tool = createCreateFileTool('user-1')
     await expect(
-      tool.execute('call-1', { parent: 'folder-1', path: '/nonexistent/file.md' }),
+      tool.execute('call-1', { parent: 'folder-1', path: '/nonexistent/file.md', data: null }),
     ).rejects.toThrow('Local file not found at path: /nonexistent/file.md')
     expect(s3Service.uploadFileToKey).not.toHaveBeenCalled()
     expect(executeAgentToolWorkflow).not.toHaveBeenCalled()
@@ -110,6 +124,7 @@ describe('createCreateFileTool', () => {
     const tool = createCreateFileTool('user-1')
     const result = await tool.execute('call-1', {
       parent: 'folder-1',
+      path: null,
       data: { name: 'notes.md', content: '# Notes\n\nHello' },
     })
 
@@ -145,6 +160,7 @@ describe('createCreateFileTool', () => {
     const tool = createCreateFileTool('user-1')
     await tool.execute('call-1', {
       parent: 'folder-1',
+      path: null,
       data: { name: 'script.ts', content: 'const x = 1' },
     })
 
@@ -162,6 +178,7 @@ describe('createCreateFileTool', () => {
     const tool = createCreateFileTool('user-1')
     await tool.execute('call-1', {
       parent: 'folder-1',
+      path: null,
       data: { name: 'my/notes.md', content: 'hello' },
     })
 
@@ -183,9 +200,9 @@ describe('createCreateFileTool', () => {
 
   it('should throw when neither "path" nor "data" is provided', async () => {
     const tool = createCreateFileTool('user-1')
-    await expect(tool.execute('call-1', { parent: 'folder-1' })).rejects.toThrow(
-      'Provide exactly one of "path" (a local file) or "data" (name and content).',
-    )
+    await expect(
+      tool.execute('call-1', { parent: 'folder-1', path: null, data: null }),
+    ).rejects.toThrow('Provide exactly one of "path" (a local file) or "data" (name and content).')
   })
 
   it('should throw when both "path" and "data" are provided', async () => {
@@ -200,5 +217,52 @@ describe('createCreateFileTool', () => {
     expect(s3Service.uploadFileToKey).not.toHaveBeenCalled()
     expect(s3Service.putObject).not.toHaveBeenCalled()
     expect(executeAgentToolWorkflow).not.toHaveBeenCalled()
+  })
+
+  it('should expose a strict, all-required (nullable) metadata schema when fields are provided', () => {
+    const metadataSchema = fieldsToTypeBoxSchema([
+      { id: 'prompt', config: { name: 'Prompt', type: 'text' } },
+      {
+        id: 'source',
+        config: {
+          name: 'Source',
+          type: 'select',
+          select: { options: [{ id: 'gemini', displayName: 'Gemini', color: '#ffffff' }] },
+        },
+      },
+      { id: 'rating', config: { name: 'Rating', type: 'rating' } },
+    ])
+
+    const tool = createCreateFileTool('user-1', metadataSchema)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- inspecting the runtime schema shape of the dynamically-built tool
+    const meta = (tool.parameters as any).properties.metadata
+    // `metadata` is a nullable union: [strict object, null]
+    const metaObject = meta.anyOf[0]
+
+    expect(meta).toBeDefined()
+    expect(metaObject.required).toEqual(['prompt', 'source', 'rating'])
+    expect(metaObject.additionalProperties).toBe(false)
+    expect(metaObject.properties.prompt.anyOf[0].type).toBe('string')
+    expect(metaObject.properties.prompt.anyOf[1].type).toBe('null')
+    expect(metaObject.properties.source.anyOf[0].enum).toEqual(['gemini'])
+    expect(metaObject.properties.rating.anyOf[0].type).toBe('number')
+
+    // Every field must be present (use null when unknown); unknown keys and bad enums are rejected
+    expect(Value.Check(meta, { prompt: 'hello', source: 'gemini', rating: 5 })).toBe(true)
+    expect(Value.Check(meta, { prompt: null, source: null, rating: null })).toBe(true)
+    expect(Value.Check(meta, { prompt: 'hello', source: null, rating: null })).toBe(true)
+    expect(Value.Check(meta, { prompt: 'hello' })).toBe(false)
+    expect(
+      Value.Check(meta, { prompt: 'hello', source: 'gemini', rating: 5, unknownKey: 'x' }),
+    ).toBe(false)
+    expect(Value.Check(meta, { prompt: 'hello', source: 'not-an-option', rating: null })).toBe(
+      false,
+    )
+  })
+
+  it('should omit the metadata parameter when no schema is provided', () => {
+    const tool = createCreateFileTool('user-1')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- inspecting the runtime schema shape of the dynamically-built tool
+    expect((tool.parameters as any).properties.metadata).toBeUndefined()
   })
 })

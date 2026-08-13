@@ -10,14 +10,14 @@ import { createModels, InMemoryCredentialStore } from '@earendil-works/pi-ai'
 import { builtinProviders } from '@earendil-works/pi-ai/providers/all'
 import { agentService } from '@shumai/core/src/agent/agent'
 import { prisma, type TeamMemberRole } from '@shumai/db'
-import { Type, type TSchema } from '@sinclair/typebox'
+import { Type, type TSchema } from 'typebox'
 import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
 import { DatabaseSessionStorage } from './database-session-storage'
+import { metadataService } from '@shumai/core/src/metadata/metadata'
 import { createAnalyzeImageTool } from './tools/analyze-image'
 import { createCreateFileTool } from './tools/create-file'
-import { createListAutofillFieldsTool } from './tools/list-autofill-fields'
 import { createCreateFolderTool } from './tools/create-folder'
 import { createCreateVersionTool } from './tools/create-version'
 import { createDownloadAssetTool } from './tools/download-asset'
@@ -102,6 +102,7 @@ export interface CreateAgentSessionParams {
   allowedDomains: string[]
   sessionId?: string
   userId?: string
+  projectId?: string
   userCommentId?: string | null
   customTools?: AgentTool[]
   thinkingLevel?: string
@@ -150,6 +151,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     allowedDomains,
     sessionId,
     userId,
+    projectId,
     userCommentId: passedUserCommentId,
     customTools = [],
     thinkingLevel,
@@ -324,13 +326,13 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
 
   const systemTools: AgentTool[] = []
   if (userId) {
+    const metadataSchema = await buildProjectMetadataSchema(projectId)
     systemTools.push(
       createListAssetsTool(userId),
       createCreateFolderTool(userId),
-      createCreateFileTool(userId),
-      createCreateVersionTool(userId),
+      createCreateFileTool(userId, metadataSchema),
+      createCreateVersionTool(userId, metadataSchema),
       createDownloadAssetTool(userId),
-      createListAutofillFieldsTool(userId),
     )
   }
 
@@ -415,53 +417,79 @@ export function fieldsToTypeBoxSchema(fields: AutofillField[]) {
     let schema: TSchema
     const fieldName = f.config.name
     const fieldDesc = f.description || fieldName
+    const baseDescription = `The field '${fieldName}' represents ${fieldDesc}.`
     switch (f.config.type) {
       case 'text':
       case 'longText':
-        schema = Type.String()
+        schema = Type.String({ description: baseDescription })
         break
       case 'number':
       case 'rating':
-        schema = Type.Number()
+        schema = Type.Number({ description: baseDescription })
         break
       case 'toggle':
-        schema = Type.Boolean()
+        schema = Type.Boolean({ description: baseDescription })
         break
       case 'select': {
         const options = f.config.select?.options || []
+        const description =
+          options.length > 0
+            ? `${baseDescription}\nSelect one option and return the option ID as the value.\n\nAvailable options:\n${options.map((o) => `- ${o.displayName} => ${o.id}`).join('\n')}`
+            : baseDescription
         schema = Type.String({
           enum: options.map((o) => o.id),
+          description,
         })
-        if (options.length > 0) {
-          const optionLines = options.map((o) => `- ${o.displayName} => ${o.id}`).join('\n')
-          schema.description = `The field '${fieldName}' represents ${fieldDesc}.\nSelect one option and return the option ID as the value.\n\nAvailable options:\n${optionLines}`
-        }
         break
       }
       case 'selectMulti': {
         const options = f.config.selectMulti?.options || []
+        const description =
+          options.length > 0
+            ? `${baseDescription}\nSelect applicable options and return the option IDs as the value.\n\nAvailable options:\n${options.map((o) => `- ${o.displayName} => ${o.id}`).join('\n')}`
+            : baseDescription
         schema = Type.Array(
           Type.String({
             enum: options.map((o) => o.id),
           }),
+          { description },
         )
-        if (options.length > 0) {
-          const optionLines = options.map((o) => `- ${o.displayName} => ${o.id}`).join('\n')
-          schema.description = `The field '${fieldName}' represents ${fieldDesc}.\nSelect applicable options and return the option IDs as the value.\n\nAvailable options:\n${optionLines}`
-        }
         break
       }
       default:
-        schema = Type.String()
+        schema = Type.String({ description: baseDescription })
     }
-
-    if (!schema.description) {
-      schema.description = `The field '${fieldName}' represents ${fieldDesc}.`
-    }
-    properties[f.id] = schema
+    // Every field is required but nullable: the agent must return each field key,
+    // using `null` for values it does not know. Nulls are skipped when persisting.
+    // This matches the OpenAI structured-outputs strict-mode convention (all
+    // properties required, optionality expressed via `null`).
+    properties[f.id] = Type.Union([schema, Type.Null()])
   }
 
-  return Type.Object(properties)
+  return Type.Object(properties, { additionalProperties: false })
+}
+
+/**
+ * Builds the strict, all-optional metadata schema for the project's CREATION_CONTEXT
+ * fields (the same field set the agent may attach when creating files/versions).
+ * Returns undefined when no project is known or the project defines no fields, in
+ * which case the `metadata` parameter is omitted from the tools entirely.
+ */
+async function buildProjectMetadataSchema(projectId?: string): Promise<TSchema | undefined> {
+  if (!projectId) return undefined
+  const fields = await metadataService.listProjectFields('', projectId)
+  const creationFields: AutofillField[] = []
+  for (const f of fields) {
+    const config = f.field.config
+    if (!config || config.autofillSource !== 'CREATION_CONTEXT') continue
+    creationFields.push({
+      id: f.field.key,
+      config,
+      description: f.field.description,
+    })
+  }
+  if (creationFields.length === 0) return undefined
+  return fieldsToTypeBoxSchema(creationFields)
 }
 
 function escapeXml(str: string): string {

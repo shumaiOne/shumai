@@ -157,10 +157,12 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
 
     // 6. Update Asset Metadata
     const result = JSON.parse(aiResult.text)
-    const metadataUpdates = Object.entries(result).map(([key, value]) => ({
-      key,
-      value,
-    }))
+    const metadataUpdates = Object.entries(result)
+      .filter(([, value]) => value !== null)
+      .map(([key, value]) => ({
+        key,
+        value,
+      }))
 
     if (metadataUpdates.length > 0) {
       await executeActivity(agentWorkerQueue, updateAssetMetadataActivity, {

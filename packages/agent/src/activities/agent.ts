@@ -74,6 +74,7 @@ async function executeAgentPrompt(params: {
   agentsInstruction: string
   sessionId?: string
   userId?: string
+  projectId?: string
   userCommentId?: string | null
   tools?: AgentTool[]
   context: AgentExecutionContext
@@ -104,7 +105,7 @@ shumai has its own cloud file system. If a user asks you to perform file system 
 
 If you need to create files in the local filesystem (for example, a temporary file for uploading), only the '.pi' folder in the current directory has write permissions. Do NOT attempt to create files in any other directories.
 
-When creating a file or version, first use 'list_autofill_fields' to inspect the project's CREATION_CONTEXT metadata fields. If relevant metadata depends on information unavailable from the file content (for example, the AI model or prompt used to generate the asset), pass those field keys and their values in the 'metadata' dictionary parameter of 'create_file' or 'create_version'. Only include keys returned by 'list_autofill_fields', and keep values short and relevant to those fields.`
+When creating a file or version, you may attach metadata (for example, the AI model or prompt used to generate the asset). The allowed field keys and value types are declared directly in the 'metadata' parameter of the 'create_file' and 'create_version' tools.`
 
   if (agent.soul) {
     systemPrompt = `${systemPrompt}\n\nAgent Personality and Core Instructions:\n${agent.soul}`
@@ -144,6 +145,7 @@ When creating a file or version, first use 'list_autofill_fields' to inspect the
     allowedDomains,
     sessionId: params.sessionId,
     userId: params.userId,
+    projectId: params.projectId,
     userCommentId: params.userCommentId,
     customTools: [...(params.tools || []), ...mcpTools],
     providers: dbProviders.map((p) => ({
@@ -411,6 +413,7 @@ export async function agentChatActivity(params: AgentChatParams) {
     agentsInstruction: params.agentsInstruction || '',
     sessionId,
     userId: params.userId,
+    projectId: params.projectId,
     userCommentId: params.userCommentId,
     context: params.context,
     attachedAssets: params.attachedAssets,
@@ -1107,8 +1110,9 @@ async function validateCreationContextMetadata(
   if (invalidKeys.length > 0) {
     throw ApplicationFailure.create({
       message:
-        `metadata contains keys that are not CREATION_CONTEXT fields of this project: ${invalidKeys.join(', ')}. ` +
-        'Use list_autofill_fields to see the available keys.',
+        `metadata contains keys that are not valid in this project: ${invalidKeys.join(', ')}. ` +
+        "The valid metadata fields are fixed to the current conversation's project. " +
+        'If the target folder or file belongs to a different project, call the tool WITHOUT the metadata parameter.',
       nonRetryable: true,
     })
   }
@@ -1326,7 +1330,9 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
 
         // Persist creation context metadata provided by the agent
         if (metadata) {
-          const metadataUpdates = Object.entries(metadata).map(([key, value]) => ({ key, value }))
+          const metadataUpdates = Object.entries(metadata)
+            .filter(([, value]) => value !== null)
+            .map(([key, value]) => ({ key, value }))
           if (metadataUpdates.length > 0) {
             await metadataService.updateAssetMetadataInTx(tx, newFile.id, metadataUpdates)
           }
@@ -1428,7 +1434,9 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
           })
           // Persist creation context metadata provided by the agent
           if (metadata) {
-            const metadataUpdates = Object.entries(metadata).map(([key, value]) => ({ key, value }))
+            const metadataUpdates = Object.entries(metadata)
+              .filter(([, value]) => value !== null)
+              .map(([key, value]) => ({ key, value }))
             if (metadataUpdates.length > 0) {
               await metadataService.updateAssetMetadataInTx(tx, newFile.id, metadataUpdates)
             }
@@ -1493,7 +1501,9 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
           })
           // Persist creation context metadata provided by the agent
           if (metadata) {
-            const metadataUpdates = Object.entries(metadata).map(([key, value]) => ({ key, value }))
+            const metadataUpdates = Object.entries(metadata)
+              .filter(([, value]) => value !== null)
+              .map(([key, value]) => ({ key, value }))
             if (metadataUpdates.length > 0) {
               await metadataService.updateAssetMetadataInTx(tx, newFile.id, metadataUpdates)
             }
@@ -1520,71 +1530,12 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
       }
     }
 
-    case 'list_autofill_fields': {
-      const parent = args.parent
-      if (!parent) {
-        throw ApplicationFailure.create({
-          message: 'parent parameter is required',
-          nonRetryable: true,
-        })
-      }
-
-      // Authz check
-      await authzService.hasPermission({
-        user,
-        permission: Permission.Read,
-        type: ResourceType.Asset,
-        id: parent,
-      })
-
-      // Resolve projectId from the parent asset (climb ancestor chain if needed)
-      const projectId = await resolveAssetProjectId(parent)
-      if (!projectId) {
-        throw ApplicationFailure.create({
-          message: `Could not resolve project for parent: ${parent}`,
-          nonRetryable: true,
-        })
-      }
-
-      const fields = await metadataService.listProjectFields(userId, projectId)
-      const autofillFields = fields
-        .filter((f) => f.field.config?.autofillSource === 'CREATION_CONTEXT')
-        .map((f) => ({
-          key: f.field.key,
-          name: f.field.config?.name,
-          type: f.field.config?.type,
-          description: f.field.description,
-          options: (
-            f.field.config?.select?.options ??
-            f.field.config?.selectMulti?.options ??
-            []
-          ).map((o) => ({ displayName: o.displayName })),
-        }))
-
-      return { fields: autofillFields }
-    }
-
     default:
       throw ApplicationFailure.create({
         message: `Unsupported tool name: ${toolName}`,
         nonRetryable: true,
       })
   }
-}
-
-async function resolveAssetProjectId(assetId: string): Promise<string | null> {
-  let currentId: string | null = assetId
-  while (currentId) {
-    /* prettier-ignore */
-    const assetNode = (await prisma.asset.findUnique({
-      where: { id: currentId },
-      select: { id: true, projectId: true, parentId: true },
-    })) as { id: string; projectId: string | null; parentId: string | null } | null
-    if (!assetNode) break
-    if (assetNode.projectId) return assetNode.projectId
-    currentId = assetNode.parentId
-  }
-  return null
 }
 
 export interface GenerateSessionNameParams {

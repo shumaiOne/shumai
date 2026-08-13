@@ -10,6 +10,8 @@ import { createSandboxedBashTool } from './tools/sandboxed-bash'
 import { SandboxManager, type SandboxAskCallback } from '@anthropic-ai/sandbox-runtime'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
+import { type TSchema } from 'typebox'
+import { Value } from 'typebox/value'
 import * as path from 'path'
 import * as childProcess from 'node:child_process'
 import * as fs from 'fs'
@@ -811,6 +813,149 @@ describe('createAgentSession bash restriction for non-owner users', () => {
     // @ts-expect-error accessing private property for verification
     const prompt = await harness.systemPrompt()
     expect(prompt).not.toContain('# Restricted User Context')
+  })
+})
+
+describe('createAgentSession typed metadata schema', () => {
+  setupTestDbHooks()
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  async function setupSessionWithProject(opts: { withCreationFields: boolean }) {
+    const team = await prisma.team.create({ data: { name: 'Typed Metadata Team' } })
+    const project = await prisma.project.create({
+      data: { name: 'Typed Metadata Project', teamId: team.id },
+    })
+    const user = await prisma.user.create({
+      data: { name: 'Typed Metadata User', email: 'typed-metadata@shumai.ai' },
+    })
+    await prisma.teamMember.create({
+      data: { teamId: team.id, userId: user.id, role: 'owner' },
+    })
+    await prisma.user.create({
+      data: {
+        id: 'typed-metadata-agent',
+        name: 'Ai Agent Typed Metadata',
+        email: 'typed-metadata-agent@shumai.ai',
+        type: 'agent',
+      },
+    })
+    await prisma.agent.create({
+      data: {
+        id: 'typed-metadata-agent',
+        teamId: team.id,
+        type: 'chat',
+        config: { provider: 'google', model: 'gemini' },
+      },
+    })
+
+    if (opts.withCreationFields) {
+      await prisma.metadataField.create({
+        data: {
+          key: 'prompt',
+          scope: 'PROJECT',
+          projectId: project.id,
+          teamId: team.id,
+          config: { name: 'Prompt', type: 'text', autofillSource: 'CREATION_CONTEXT' },
+        },
+      })
+      await prisma.metadataField.create({
+        data: {
+          key: 'source',
+          scope: 'PROJECT',
+          projectId: project.id,
+          teamId: team.id,
+          config: {
+            name: 'Source',
+            type: 'select',
+            autofillSource: 'CREATION_CONTEXT',
+            select: {
+              options: [{ id: 'gemini', displayName: 'Gemini', color: '#ffffff' }],
+            },
+          },
+        },
+      })
+      await prisma.metadataField.create({
+        data: {
+          key: 'manualNotes',
+          scope: 'PROJECT',
+          projectId: project.id,
+          teamId: team.id,
+          config: { name: 'Manual Notes', type: 'text', autofillSource: 'NONE' },
+        },
+      })
+    }
+
+    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
+    try {
+      const { harness } = await createAgentSession({
+        teamId: team.id,
+        agentId: 'typed-metadata-agent',
+        providerName: 'google',
+        modelId: 'gemini',
+        systemPrompt: 'prompt',
+        teamSkills: [],
+        allowedDomains: [],
+        providers: mockProviders,
+        userId: user.id,
+        projectId: project.id,
+      })
+      return { harness }
+    } finally {
+      initializeSpy.mockRestore()
+    }
+  }
+
+  it('should build create_file/create_version with the project CREATION_CONTEXT fields', async () => {
+    const { harness } = await setupSessionWithProject({ withCreationFields: true })
+    const tools = harness.getTools()
+
+    expect(tools.some((t) => t.name === 'list_autofill_fields')).toBe(false)
+
+    const createFile = tools.find((t) => t.name === 'create_file')
+    const createVersion = tools.find((t) => t.name === 'create_version')
+    expect(createFile).toBeDefined()
+    expect(createVersion).toBeDefined()
+
+    const checkFile = (args: Record<string, unknown>) =>
+      Value.Check(createFile!.parameters as unknown as TSchema, {
+        parent: 'f1',
+        path: '/tmp/x.md',
+        data: null,
+        ...args,
+      })
+    const checkVersion = (args: Record<string, unknown>) =>
+      Value.Check(createVersion!.parameters as unknown as TSchema, {
+        parent: 'f1',
+        path: '/tmp/x.md',
+        ...args,
+      })
+
+    for (const check of [checkFile, checkVersion]) {
+      // Declared CREATION_CONTEXT fields (all-required, nullable) validate; other keys do not
+      expect(check({ metadata: { prompt: 'hello', source: null } })).toBe(true)
+      expect(check({ metadata: { prompt: null, source: 'gemini' } })).toBe(true)
+      expect(check({ metadata: null })).toBe(true)
+      expect(check({ metadata: { prompt: null, source: null, manualNotes: 'no' } })).toBe(false)
+      expect(check({ metadata: { prompt: null, source: null, bogus: 1 } })).toBe(false)
+      expect(check({ metadata: { prompt: 'hello' } })).toBe(false)
+    }
+  })
+
+  it('should omit the metadata parameter when the project has no CREATION_CONTEXT fields', async () => {
+    const { harness } = await setupSessionWithProject({ withCreationFields: false })
+    const createFile = harness.getTools().find((t) => t.name === 'create_file')
+    const createVersion = harness.getTools().find((t) => t.name === 'create_version')
+    expect(createFile).toBeDefined()
+    expect(createVersion).toBeDefined()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- inspecting the runtime schema shape of the dynamically-built tool
+    const fileProps = (createFile!.parameters as any).properties
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- inspecting the runtime schema shape of the dynamically-built tool
+    const versionProps = (createVersion!.parameters as any).properties
+    expect('metadata' in fileProps).toBe(false)
+    expect('metadata' in versionProps).toBe(false)
   })
 })
 
