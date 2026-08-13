@@ -33,8 +33,8 @@ const createFileSchema = Type.Object({
   metadata: Type.Optional(
     Type.Record(Type.String(), Type.Any(), {
       description:
-        'Key-value map of CREATION_CONTEXT metadata field keys and their values (e.g. prompt, model, provider). ' +
-        'Use list_autofill_fields first to inspect available CREATION_CONTEXT fields.',
+        'Key-value map of metadata field keys and their values. Use the "key" field from list_autofill_fields data as the map key.' +
+        'Use list_autofill_fields first to inspect available fields.',
     }),
   ),
 })

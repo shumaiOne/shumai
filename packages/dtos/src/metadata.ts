@@ -47,7 +47,7 @@ export const fieldConfigSchema = z.object({
     'user',
     'userMulti',
   ]),
-  autofillSource: z.enum(['NONE', 'CONTENT', 'CREATION_CONTEXT']).optional(),
+  autofillSource: z.nativeEnum(AutofillSource).optional(),
   text: z.any().optional(),
   longText: z.any().optional(),
   select: z.any().optional(),

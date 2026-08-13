@@ -48,6 +48,7 @@ import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
 import { ToggleGroup, ToggleGroupItem } from '@/ui/components/ui/toggle-group'
 import { cn } from '@/ui/lib/utils'
+import { AutofillSourceHelpTrigger } from '@/ui/components/autofill-source-help-dialog'
 
 type ManageFieldsDialogProps = {
   projectId: string
@@ -404,24 +405,33 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
             />
           </div>
           <div className="space-y-2">
-            <Label>{m.autofill_source()}</Label>
+            <div className="flex items-center gap-1">
+              <Label>{m.autofill_source()}</Label>
+              <AutofillSourceHelpTrigger />
+            </div>
             <ToggleGroup
               type="single"
               value={newAutofillSource}
               onValueChange={(val: string) => {
                 if (val) setNewAutofillSource(val as AutofillSource)
               }}
-              className="justify-start border rounded-md p-1"
+              className="w-full grid grid-cols-3 border rounded-md p-1 gap-1"
             >
-              <ToggleGroupItem value={AutofillSource.NONE} className="text-xs px-2.5 py-1">
+              <ToggleGroupItem
+                value={AutofillSource.NONE}
+                className="text-[11px] leading-tight py-1 px-1 h-auto min-h-[32px] w-full text-center justify-center whitespace-normal font-medium"
+              >
                 {m.autofill_source_none()}
               </ToggleGroupItem>
-              <ToggleGroupItem value={AutofillSource.CONTENT} className="text-xs px-2.5 py-1">
+              <ToggleGroupItem
+                value={AutofillSource.CONTENT}
+                className="text-[11px] leading-tight py-1 px-1 h-auto min-h-[32px] w-full text-center justify-center whitespace-normal font-medium"
+              >
                 {m.autofill_source_content()}
               </ToggleGroupItem>
               <ToggleGroupItem
                 value={AutofillSource.CREATION_CONTEXT}
-                className="text-xs px-2.5 py-1"
+                className="text-[11px] leading-tight py-1 px-1 h-auto min-h-[32px] w-full text-center justify-center whitespace-normal font-medium"
               >
                 {m.autofill_source_creation_context()}
               </ToggleGroupItem>
@@ -546,7 +556,10 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
         </div>
 
         <div className="space-y-2">
-          <Label>{m.autofill_source()}</Label>
+          <div className="flex items-center gap-1">
+            <Label>{m.autofill_source()}</Label>
+            <AutofillSourceHelpTrigger />
+          </div>
           <ToggleGroup
             type="single"
             value={isCreating ? newAutofillSource : editAutofillSource}
@@ -557,17 +570,23 @@ export function ManageFieldsDialog({ projectId, open, onOpenChange }: ManageFiel
               }
             }}
             disabled={isReadOnly}
-            className="justify-start border rounded-md p-1"
+            className="w-full grid grid-cols-3 border rounded-md p-1 gap-1"
           >
-            <ToggleGroupItem value={AutofillSource.NONE} className="text-xs px-2.5 py-1">
+            <ToggleGroupItem
+              value={AutofillSource.NONE}
+              className="text-[11px] leading-tight py-1 px-1 h-auto min-h-[32px] w-full text-center justify-center whitespace-normal font-medium"
+            >
               {m.autofill_source_none()}
             </ToggleGroupItem>
-            <ToggleGroupItem value={AutofillSource.CONTENT} className="text-xs px-2.5 py-1">
+            <ToggleGroupItem
+              value={AutofillSource.CONTENT}
+              className="text-[11px] leading-tight py-1 px-1 h-auto min-h-[32px] w-full text-center justify-center whitespace-normal font-medium"
+            >
               {m.autofill_source_content()}
             </ToggleGroupItem>
             <ToggleGroupItem
               value={AutofillSource.CREATION_CONTEXT}
-              className="text-xs px-2.5 py-1"
+              className="text-[11px] leading-tight py-1 px-1 h-auto min-h-[32px] w-full text-center justify-center whitespace-normal font-medium"
             >
               {m.autofill_source_creation_context()}
             </ToggleGroupItem>

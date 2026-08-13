@@ -259,83 +259,105 @@ export class MetadataService {
     reqs: UpdateAssetMetadataRequest[],
     allowReadOnly = false,
   ): Promise<void> {
+    await this.client.$transaction(async (tx) => {
+      await this.updateAssetMetadataInternal(tx, assetId, reqs, allowReadOnly)
+    })
+  }
+
+  /**
+   * Same as {@link updateAssetMetadata} but runs inside the caller's transaction,
+   * keeping the metadata write atomic with the surrounding changes.
+   */
+  async updateAssetMetadataInTx(
+    tx: Prisma.TransactionClient,
+    assetId: string,
+    reqs: UpdateAssetMetadataRequest[],
+    allowReadOnly = false,
+  ): Promise<void> {
+    await this.updateAssetMetadataInternal(tx, assetId, reqs, allowReadOnly)
+  }
+
+  private async updateAssetMetadataInternal(
+    client: Prisma.TransactionClient | typeof prisma,
+    assetId: string,
+    reqs: UpdateAssetMetadataRequest[],
+    allowReadOnly: boolean,
+  ): Promise<void> {
     const resolvedAssetId = await assetService.resolveLatestVersionId(assetId)
 
-    await this.client.$transaction(async (tx) => {
-      for (const req of reqs) {
-        const field = await tx.metadataField.findUnique({
-          where: { key: req.key },
-        })
-        if (field?.readOnly && !allowReadOnly) {
-          throw new Error(`Field ${field.key} is read-only`)
-        }
-
-        const value = req.value
-        let stringValue: string | null = null
-        let numberValue: number | null = null
-        let booleanValue: boolean | null = null
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let jsonValue: any = null
-        let dateValue: Date | null = null
-
-        if (typeof value === 'string') {
-          // Check if it's a valid ISO date string
-          const date = new Date(value)
-          if (!isNaN(date.getTime()) && value.includes('T') && value.includes('-')) {
-            dateValue = date
-          } else {
-            stringValue = value
-          }
-        } else if (typeof value === 'number') {
-          numberValue = value
-        } else if (typeof value === 'boolean') {
-          booleanValue = value
-        } else if (value instanceof Date) {
-          dateValue = value
-        } else if (Array.isArray(value)) {
-          jsonValue = value
-        } else if (value === null) {
-          // all null
-        } else if (typeof value === 'object') {
-          jsonValue = value
-        } else {
-          stringValue = String(value)
-        }
-
-        await tx.assetMetadataValue.upsert({
-          where: {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            assetId_fieldKey: {
-              assetId: resolvedAssetId,
-              fieldKey: req.key,
-            },
-          },
-          create: {
-            assetId: resolvedAssetId,
-            fieldKey: req.key,
-            stringValue,
-            numberValue,
-            booleanValue,
-            jsonValue,
-            dateValue,
-          },
-          update: {
-            stringValue,
-            numberValue,
-            booleanValue,
-            jsonValue,
-            dateValue,
-          },
-        })
+    for (const req of reqs) {
+      const field = await client.metadataField.findUnique({
+        where: { key: req.key },
+      })
+      if (field?.readOnly && !allowReadOnly) {
+        throw new Error(`Field ${field.key} is read-only`)
       }
 
-      // Touch asset
-      await tx.asset.update({
-        where: { id: resolvedAssetId },
-        data: {
-          updatedAt: new Date(),
+      const value = req.value
+      let stringValue: string | null = null
+      let numberValue: number | null = null
+      let booleanValue: boolean | null = null
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let jsonValue: any = null
+      let dateValue: Date | null = null
+
+      if (typeof value === 'string') {
+        // Check if it's a valid ISO date string
+        const date = new Date(value)
+        if (!isNaN(date.getTime()) && value.includes('T') && value.includes('-')) {
+          dateValue = date
+        } else {
+          stringValue = value
+        }
+      } else if (typeof value === 'number') {
+        numberValue = value
+      } else if (typeof value === 'boolean') {
+        booleanValue = value
+      } else if (value instanceof Date) {
+        dateValue = value
+      } else if (Array.isArray(value)) {
+        jsonValue = value
+      } else if (value === null) {
+        // all null
+      } else if (typeof value === 'object') {
+        jsonValue = value
+      } else {
+        stringValue = String(value)
+      }
+
+      await client.assetMetadataValue.upsert({
+        where: {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          assetId_fieldKey: {
+            assetId: resolvedAssetId,
+            fieldKey: req.key,
+          },
+        },
+        create: {
+          assetId: resolvedAssetId,
+          fieldKey: req.key,
+          stringValue,
+          numberValue,
+          booleanValue,
+          jsonValue,
+          dateValue,
+        },
+        update: {
+          stringValue,
+          numberValue,
+          booleanValue,
+          jsonValue,
+          dateValue,
         },
       })
+    }
+
+    // Touch asset
+    await client.asset.update({
+      where: { id: resolvedAssetId },
+      data: {
+        updatedAt: new Date(),
+      },
     })
   }
 }

@@ -459,58 +459,7 @@ describe('Agent Activities', () => {
     expect(res.usage.inputTokens).toBe(5)
   })
 
-  it('should include agentContext in the autofill prompt when provided', async () => {
-    const mockHarness = {
-      subscribe: vi.fn(),
-      prompt: vi.fn().mockResolvedValue({
-        content: [{ type: 'text', text: 'Captured' }],
-        usage: { input: 5, output: 5 },
-      }),
-    }
-    const mockSession = {
-      getEntries: vi.fn().mockResolvedValue([]),
-      getStorage: vi.fn().mockReturnValue({ sessionId: 'mock-session-id' }),
-    }
-
-    vi.mocked(piAgent.createAgentSession).mockImplementation(async (config: unknown) => {
-      const params = config as {
-        customTools: Array<{
-          name: string
-          execute: (id: string, args: Record<string, unknown>) => Promise<unknown>
-        }>
-      }
-      const tool = params.customTools.find((t) => t.name === 'autofill_metadata')
-      if (tool) {
-        await tool.execute('1', { f1: 'val' })
-      }
-      return {
-        session: mockSession as unknown as Session<DatabaseSessionMetadata>,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
-        harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
-      }
-    })
-
-    const context = {
-      agent: { id: 'b1', provider: { name: 'google' }, modelRef: { modelId: 'gemini' } },
-      dbProviders: [],
-      teamSkills: [],
-      allowedDomains: [],
-    } as unknown as AgentExecutionContext
-
-    await autofillAiActivity({
-      teamId: 't1',
-      images: [],
-      fields: [{ id: 'f1', config: { name: 'F1', type: 'text' } }],
-      context,
-      agentContext: 'Generated using gemini',
-    })
-
-    const capturedPrompt = mockHarness.prompt.mock.calls[0]?.[0] ?? ''
-    expect(capturedPrompt).toContain('Generated using gemini')
-    expect(capturedPrompt).toContain('<context>')
-  })
-
-  it('should not include agentContext in the autofill prompt when absent', async () => {
+  it('should use the base autofill prompt without any creation-context injection', async () => {
     const mockHarness = {
       subscribe: vi.fn(),
       prompt: vi.fn().mockResolvedValue({
@@ -556,6 +505,7 @@ describe('Agent Activities', () => {
     })
 
     const capturedPrompt = mockHarness.prompt.mock.calls[0]?.[0] ?? ''
+    expect(capturedPrompt).toContain('Analyze the provided images and extract metadata.')
     expect(capturedPrompt).not.toContain('<context>')
   })
 })
@@ -1521,6 +1471,16 @@ describe('Agent Database Activities Integration', () => {
       })
 
       it('should persist metadata on the created file when metadata map is provided', async () => {
+        await prisma.metadataField.create({
+          data: {
+            key: 'prompt',
+            scope: 'PROJECT',
+            projectId: project.id,
+            teamId: team.id,
+            config: { name: 'Prompt', type: 'text', autofillSource: 'CREATION_CONTEXT' },
+          },
+        })
+
         const folder = await prisma.asset.create({
           data: {
             name: 'WorkspaceFolder',
@@ -1550,6 +1510,41 @@ describe('Agent Database Activities Integration', () => {
           where: { assetId: res.id, fieldKey: 'prompt' },
         })
         expect(val?.stringValue).toBe('Generated using gemini')
+      })
+
+      it('should reject metadata with keys that are not CREATION_CONTEXT fields', async () => {
+        const folder = await prisma.asset.create({
+          data: {
+            name: 'WorkspaceFolder',
+            type: AssetType.folder,
+            status: AssetStatus.uploaded,
+            projectId: project.id,
+            fileCount: 0,
+            sizeByte: 0,
+          },
+        })
+
+        await expect(
+          executeAgentToolActivity({
+            taskId: 'task-1',
+            toolName: 'create_file',
+            args: {
+              parent: folder.id,
+              s3Key: 'uploads/ctx.txt',
+              name: 'ctx.txt',
+              size: 100,
+              contentType: 'text/plain',
+              metadata: { prompt: 'ok', unknownKey: 'not allowed' },
+            },
+            userId: user.id,
+          }),
+        ).rejects.toThrow(/not CREATION_CONTEXT fields/)
+
+        // No metadata value should have been written for the unknown key
+        const val = await prisma.assetMetadataValue.findFirst({
+          where: { fieldKey: 'unknownKey' },
+        })
+        expect(val).toBeNull()
       })
     })
 
@@ -1661,6 +1656,16 @@ describe('Agent Database Activities Integration', () => {
       })
 
       it('should persist metadata on the created version when metadata map is provided', async () => {
+        await prisma.metadataField.create({
+          data: {
+            key: 'prompt',
+            scope: 'PROJECT',
+            projectId: project.id,
+            teamId: team.id,
+            config: { name: 'Prompt', type: 'text', autofillSource: 'CREATION_CONTEXT' },
+          },
+        })
+
         const folder = await prisma.asset.create({
           data: {
             name: 'WorkspaceFolder',
