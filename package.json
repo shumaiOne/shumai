@@ -65,5 +65,8 @@
     "typescript-eslint": "8.60.1",
     "vite-tsconfig-paths": "6.1.1",
     "vitest": "4.1.8"
+  },
+  "patchedDependencies": {
+    "@earendil-works/pi-ai@0.82.1": "patches/@earendil-works%2Fpi-ai@0.82.1.patch"
   }
 }
