@@ -1,5 +1,5 @@
 import { prisma } from '@shumai/db'
-import { Type } from '@sinclair/typebox'
+import { Type } from 'typebox'
 import { type AgentTool } from '@earendil-works/pi-agent-core'
 import { agentService } from '@shumai/core/src/agent/agent'
 
