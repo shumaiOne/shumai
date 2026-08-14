@@ -10,6 +10,36 @@ import { ulid } from 'ulid'
 import { assetService } from '../asset/asset'
 import { systemFields } from './system_fields'
 
+export const FIELD_COLORS = [
+  '#f43f5e', // rose
+  '#ec4899', // pink
+  '#d946ef', // fuchsia
+  '#a855f7', // purple
+  '#8b5cf6', // violet
+  '#6366f1', // indigo
+  '#3b82f6', // blue
+  '#0ea5e9', // sky
+  '#06b6d4', // cyan
+  '#14b8a6', // teal
+  '#10b981', // emerald
+  '#22c55e', // green
+  '#84cc16', // lime
+  '#eab308', // yellow
+  '#f59e0b', // amber
+  '#f97316', // orange
+  '#71717a', // zinc
+  '#64748b', // slate
+]
+
+export function getNextOptionColor(existingOptions: PrismaJson.SelectOption[] = []): string {
+  const usedColors = new Set(existingOptions.map((o) => o.color))
+  const available = FIELD_COLORS.filter((c) => !usedColors.has(c))
+  if (available.length > 0) {
+    return available[0]
+  }
+  return FIELD_COLORS[existingOptions.length % FIELD_COLORS.length]
+}
+
 export class MetadataService {
   constructor(private client: typeof prisma = prisma) {}
   async syncSystemFields(): Promise<void> {
@@ -277,6 +307,84 @@ export class MetadataService {
     await this.updateAssetMetadataInternal(tx, assetId, reqs, allowReadOnly)
   }
 
+  private async resolveOrCreateOption(
+    client: Prisma.TransactionClient | typeof prisma,
+    field: Prisma.MetadataFieldGetPayload<Record<string, never>>,
+    rawOption: unknown,
+  ): Promise<string> {
+    if (
+      typeof rawOption !== 'object' ||
+      rawOption === null ||
+      !('newOption' in rawOption) ||
+      typeof (rawOption as { newOption?: unknown }).newOption !== 'object' ||
+      (rawOption as { newOption?: unknown }).newOption === null
+    ) {
+      throw new Error(`Invalid newOption object for field ${field.key}`)
+    }
+
+    const value = (rawOption as { newOption: { value?: unknown } }).newOption.value
+    if (typeof value !== 'string' || !value.trim()) {
+      throw new Error(
+        `Invalid newOption value for field ${field.key}: value must be a non-empty string`,
+      )
+    }
+
+    const trimmedValue = value.trim()
+    const config = (field.config ?? {}) as PrismaJson.FieldConfig
+    const isMulti = config.type === 'selectMulti'
+    const existingOptions: PrismaJson.SelectOption[] =
+      (isMulti ? config.selectMulti?.options : config.select?.options) ?? []
+
+    // 1. Check for case-insensitive match against existing options (id or displayName)
+    const existing = existingOptions.find(
+      (opt) =>
+        opt.id.toLowerCase() === trimmedValue.toLowerCase() ||
+        opt.displayName.toLowerCase() === trimmedValue.toLowerCase(),
+    )
+    if (existing) {
+      return existing.id
+    }
+
+    // 2. Generate slug id
+    let baseId = trimmedValue.toLowerCase().replace(/\s+/g, '-')
+    if (!baseId) {
+      baseId = ulid().toLowerCase()
+    }
+
+    let candidateId = baseId
+    let suffix = 1
+    while (existingOptions.some((opt) => opt.id === candidateId)) {
+      candidateId = `${baseId}-${suffix}`
+      suffix++
+    }
+
+    const newOption: PrismaJson.SelectOption = {
+      id: candidateId,
+      displayName: trimmedValue,
+      color: getNextOptionColor(existingOptions),
+    }
+
+    const updatedOptions = [...existingOptions, newOption]
+    const updatedConfig: PrismaJson.FieldConfig = {
+      ...config,
+      name: config.name ?? field.key,
+      type: config.type ?? (isMulti ? 'selectMulti' : 'select'),
+      ...(isMulti
+        ? { selectMulti: { ...(config.selectMulti ?? {}), options: updatedOptions } }
+        : { select: { ...(config.select ?? {}), options: updatedOptions } }),
+    }
+
+    await client.metadataField.update({
+      where: { key: field.key },
+      data: { config: updatedConfig },
+    })
+
+    // Update in-memory field.config for subsequent iterations in the same transaction
+    field.config = updatedConfig
+
+    return candidateId
+  }
+
   private async updateAssetMetadataInternal(
     client: Prisma.TransactionClient | typeof prisma,
     assetId: string,
@@ -293,7 +401,30 @@ export class MetadataService {
         throw new Error(`Field ${field.key} is read-only`)
       }
 
-      const value = req.value
+      let value = req.value
+      const config = field?.config as PrismaJson.FieldConfig | null
+
+      if (
+        field &&
+        config?.type === 'select' &&
+        typeof value === 'object' &&
+        value !== null &&
+        'newOption' in value
+      ) {
+        value = await this.resolveOrCreateOption(client, field, value)
+      } else if (field && config?.type === 'selectMulti' && Array.isArray(value)) {
+        const resolvedList: string[] = []
+        for (const item of value) {
+          if (typeof item === 'object' && item !== null && 'newOption' in item) {
+            const resolvedId = await this.resolveOrCreateOption(client, field, item)
+            resolvedList.push(resolvedId)
+          } else if (typeof item === 'string') {
+            resolvedList.push(item)
+          }
+        }
+        value = resolvedList
+      }
+
       let stringValue: string | null = null
       let numberValue: number | null = null
       let booleanValue: boolean | null = null

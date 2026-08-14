@@ -259,4 +259,174 @@ describe('MetadataService', () => {
     const multiVal = values.find((v) => v.fieldKey === userMultiField.key)
     expect(multiVal?.jsonValue).toEqual(multiUserIds)
   })
+
+  it('should dynamically create new options for select fields and store option id', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'test-team' },
+    })
+    const project = await prisma.project.create({
+      data: { name: 'test-project', teamId: team.id },
+    })
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'test-asset',
+        project: { connect: { id: project.id } },
+        type: 'file',
+        status: 'uploaded',
+        sizeByte: 100,
+      },
+    })
+
+    const selectField = await prisma.metadataField.create({
+      data: {
+        key: 'ai_provider',
+        scope: 'PROJECT',
+        project: { connect: { id: project.id } },
+        config: {
+          name: 'AI Provider',
+          type: 'select',
+          select: {
+            options: [
+              { id: 'openai', displayName: 'OpenAI', color: '#f43f5e' },
+              { id: 'google', displayName: 'Google', color: '#3b82f6' },
+            ],
+          },
+        },
+      },
+    })
+
+    // 1. Add new option 'Kling AI'
+    await metadataService.updateAssetMetadata(asset.id, [
+      { key: selectField.key, value: { newOption: { value: 'Kling AI' } } },
+    ])
+
+    // Verify option added to field config
+    const updatedField = await prisma.metadataField.findUnique({
+      where: { key: selectField.key },
+    })
+    const options = (updatedField?.config as PrismaJson.FieldConfig)?.select?.options || []
+    expect(options).toHaveLength(3)
+    const klingOpt = options.find((o) => o.displayName === 'Kling AI')
+    expect(klingOpt).toBeDefined()
+    expect(klingOpt?.id).toBe('kling-ai')
+    expect(klingOpt?.color).toBeDefined()
+
+    // Verify asset metadata value stores the option ID
+    const val = await prisma.assetMetadataValue.findUnique({
+      where: {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        assetId_fieldKey: {
+          assetId: asset.id,
+          fieldKey: selectField.key,
+        },
+      },
+    })
+    expect(val?.stringValue).toBe('kling-ai')
+
+    // 2. Deduplication: passing 'kling ai' case-insensitively should reuse existing 'kling-ai'
+    await metadataService.updateAssetMetadata(asset.id, [
+      { key: selectField.key, value: { newOption: { value: 'kling ai' } } },
+    ])
+    const updatedField2 = await prisma.metadataField.findUnique({
+      where: { key: selectField.key },
+    })
+    const options2 = (updatedField2?.config as PrismaJson.FieldConfig)?.select?.options || []
+    expect(options2).toHaveLength(3) // Not 4!
+  })
+
+  it('should dynamically create new options for selectMulti fields and store array of option ids', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'test-team' },
+    })
+    const project = await prisma.project.create({
+      data: { name: 'test-project', teamId: team.id },
+    })
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'test-asset',
+        project: { connect: { id: project.id } },
+        type: 'file',
+        status: 'uploaded',
+        sizeByte: 100,
+      },
+    })
+
+    const selectMultiField = await prisma.metadataField.create({
+      data: {
+        key: 'tags',
+        scope: 'PROJECT',
+        project: { connect: { id: project.id } },
+        config: {
+          name: 'Tags',
+          type: 'selectMulti',
+          selectMulti: {
+            options: [{ id: 'tag1', displayName: 'Tag 1', color: '#f43f5e' }],
+          },
+        },
+      },
+    })
+
+    // Pass mixed existing and new option
+    await metadataService.updateAssetMetadata(asset.id, [
+      {
+        key: selectMultiField.key,
+        value: ['tag1', { newOption: { value: 'Tag 2' } }],
+      },
+    ])
+
+    // Verify option added to field config
+    const updatedField = await prisma.metadataField.findUnique({
+      where: { key: selectMultiField.key },
+    })
+    const options = (updatedField?.config as PrismaJson.FieldConfig)?.selectMulti?.options || []
+    expect(options).toHaveLength(2)
+    const tag2Opt = options.find((o) => o.displayName === 'Tag 2')
+    expect(tag2Opt).toBeDefined()
+    expect(tag2Opt?.id).toBe('tag-2')
+
+    // Verify asset metadata value stores array of IDs
+    const val = await prisma.assetMetadataValue.findUnique({
+      where: {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        assetId_fieldKey: {
+          assetId: asset.id,
+          fieldKey: selectMultiField.key,
+        },
+      },
+    })
+    expect(val?.jsonValue).toEqual(['tag1', 'tag-2'])
+  })
+
+  it('should reject invalid newOption value format', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'test-team' },
+    })
+    const project = await prisma.project.create({
+      data: { name: 'test-project', teamId: team.id },
+    })
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'test-asset',
+        project: { connect: { id: project.id } },
+        type: 'file',
+        status: 'uploaded',
+        sizeByte: 100,
+      },
+    })
+
+    const selectField = await prisma.metadataField.create({
+      data: {
+        key: 'field_opt',
+        scope: 'PROJECT',
+        project: { connect: { id: project.id } },
+        config: { name: 'Field Opt', type: 'select' },
+      },
+    })
+
+    await expect(
+      metadataService.updateAssetMetadata(asset.id, [
+        { key: selectField.key, value: { newOption: { value: '   ' } } },
+      ]),
+    ).rejects.toThrow('value must be a non-empty string')
+  })
 })

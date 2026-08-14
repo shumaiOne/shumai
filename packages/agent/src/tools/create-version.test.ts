@@ -89,6 +89,49 @@ describe('createCreateVersionTool', () => {
     )
   })
 
+  it('should forward select and selectMulti newOption metadata', async () => {
+    const filePath = createTempFile('# Hello from disk', 'create-version-new-option.md')
+    const metadataSchema = fieldsToTypeBoxSchema([
+      {
+        id: 'provider',
+        config: {
+          name: 'Provider',
+          type: 'select',
+          select: { options: [{ id: 'openai', displayName: 'OpenAI', color: '#f43f5e' }] },
+        },
+      },
+      {
+        id: 'tags',
+        config: {
+          name: 'Tags',
+          type: 'selectMulti',
+          selectMulti: { options: [{ id: 'tag1', displayName: 'Tag 1', color: '#3b82f6' }] },
+        },
+      },
+    ])
+
+    const tool = createCreateVersionTool('user-1', metadataSchema)
+    await tool.execute('call-1', {
+      parent: 'file-1',
+      path: filePath,
+      metadata: {
+        provider: { newOption: { value: 'Kling' } },
+        tags: ['tag1', { newOption: { value: 'Tag 2' } }],
+      },
+    })
+
+    expect(executeAgentToolWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        args: expect.objectContaining({
+          metadata: {
+            provider: { newOption: { value: 'Kling' } },
+            tags: ['tag1', { newOption: { value: 'Tag 2' } }],
+          },
+        }),
+      }),
+    )
+  })
+
   it('should not include metadata in args when metadata is null', async () => {
     const filePath = createTempFile('# Hello from disk', 'create-version-no-metadata.md')
     const metadataSchema = fieldsToTypeBoxSchema([

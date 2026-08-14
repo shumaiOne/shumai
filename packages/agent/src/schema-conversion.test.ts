@@ -49,7 +49,7 @@ describe('fieldsToTypeBoxSchema', () => {
     expect(propsOf(schema).f1.anyOf![0].type).toBe('boolean')
   })
 
-  it('converts select fields with enums and option descriptions', () => {
+  it('converts select fields with enums, newOption support and option descriptions', () => {
     const fields: AutofillField[] = [
       {
         id: 'f1',
@@ -68,18 +68,40 @@ describe('fieldsToTypeBoxSchema', () => {
     ]
     const schema = fieldsToTypeBoxSchema(fields)
     const selectSchema = propsOf(schema).f1.anyOf![0]
-    expect(selectSchema.type).toBe('string')
-    expect(selectSchema.enum).toEqual(['opt1', 'opt2'])
+    expect(selectSchema.anyOf![0].type).toBe('string')
+    expect(selectSchema.anyOf![0].enum).toEqual(['opt1', 'opt2'])
+    expect(selectSchema.anyOf![1].type).toBe('object')
     expect(selectSchema.description).toBe(
-      "The field 'Species' represents Species of animal.\nSelect one option and return the option ID as the value.\n\nAvailable options:\n- Option 1 => opt1\n- Option 2 => opt2",
+      'The field \'Species\' represents Species of animal.\nSelect one existing option ID or provide {"newOption": {"value": "..."}} to create a new option.\n\nAvailable options:\n- Option 1 => opt1\n- Option 2 => opt2',
     )
-    // Only the declared option IDs are valid (enforced by the typebox validator)
+    // Declared option IDs, newOption objects, and null are valid
     expect(Value.Check(schema, { f1: 'opt1' })).toBe(true)
+    expect(Value.Check(schema, { f1: 'opt2' })).toBe(true)
+    expect(Value.Check(schema, { f1: { newOption: { value: 'kling' } } })).toBe(true)
     expect(Value.Check(schema, { f1: null })).toBe(true)
+    // Arbitrary strings or invalid objects are rejected
     expect(Value.Check(schema, { f1: 'not-an-option' })).toBe(false)
+    expect(Value.Check(schema, { f1: { newOption: { foo: 'bar' } } })).toBe(false)
   })
 
-  it('converts selectMulti fields with array enums and option descriptions', () => {
+  it('converts select fields with empty options to newOption schema only', () => {
+    const fields: AutofillField[] = [
+      {
+        id: 'f1',
+        config: {
+          name: 'Provider',
+          type: 'select',
+          select: { options: [] },
+        },
+      },
+    ]
+    const schema = fieldsToTypeBoxSchema(fields)
+    expect(Value.Check(schema, { f1: { newOption: { value: 'kling' } } })).toBe(true)
+    expect(Value.Check(schema, { f1: null })).toBe(true)
+    expect(Value.Check(schema, { f1: 'any-string' })).toBe(false)
+  })
+
+  it('converts selectMulti fields with array enums, newOption support and option descriptions', () => {
     const fields: AutofillField[] = [
       {
         id: 'f1',
@@ -98,13 +120,33 @@ describe('fieldsToTypeBoxSchema', () => {
     const schema = fieldsToTypeBoxSchema(fields)
     const selectMultiSchema = propsOf(schema).f1.anyOf![0]
     expect(selectMultiSchema.type).toBe('array')
-    expect(selectMultiSchema.items!.enum).toEqual(['opt1', 'opt2'])
     expect(selectMultiSchema.description).toBe(
-      "The field 'Tags' represents Tags.\nSelect applicable options and return the option IDs as the value.\n\nAvailable options:\n- Tag 1 => opt1\n- Tag 2 => opt2",
+      'The field \'Tags\' represents Tags.\nSelect applicable option IDs or provide {"newOption": {"value": "..."}} objects for new options (e.g. ["opt1", {"newOption": {"value": "new_name"}}]).\n\nAvailable options:\n- Tag 1 => opt1\n- Tag 2 => opt2',
     )
     expect(Value.Check(schema, { f1: ['opt1', 'opt2'] })).toBe(true)
+    expect(Value.Check(schema, { f1: [{ newOption: { value: 'Tag 3' } }] })).toBe(true)
+    expect(Value.Check(schema, { f1: ['opt1', { newOption: { value: 'Tag 3' } }] })).toBe(true)
     expect(Value.Check(schema, { f1: null })).toBe(true)
     expect(Value.Check(schema, { f1: ['opt1', 'bad'] })).toBe(false)
+    expect(Value.Check(schema, { f1: ['opt1', { newOption: { bad: 'value' } }] })).toBe(false)
+  })
+
+  it('converts selectMulti fields with empty options to array of newOption schema', () => {
+    const fields: AutofillField[] = [
+      {
+        id: 'f1',
+        config: {
+          name: 'Tags',
+          type: 'selectMulti',
+          selectMulti: { options: [] },
+        },
+      },
+    ]
+    const schema = fieldsToTypeBoxSchema(fields)
+    expect(Value.Check(schema, { f1: [{ newOption: { value: 'Tag 1' } }] })).toBe(true)
+    expect(Value.Check(schema, { f1: [] })).toBe(true)
+    expect(Value.Check(schema, { f1: null })).toBe(true)
+    expect(Value.Check(schema, { f1: ['tag1'] })).toBe(false)
   })
 
   it('defaults to string for unknown types', () => {
