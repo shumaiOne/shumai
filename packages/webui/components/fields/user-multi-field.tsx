@@ -12,7 +12,6 @@ const UserMultiField: React.FC<FieldProps<string[]>> = ({ value = [], onSave, re
   const { members, fetchMembers } = useMemberStore()
   const containerRef = useRef<HTMLDivElement>(null)
   const [isEditing, setIsEditing] = useState(false)
-  const [expanded, setExpanded] = useState(false)
   const [visibleCount, setVisibleCount] = useState(value.length)
 
   useEffect(() => {
@@ -34,45 +33,46 @@ const UserMultiField: React.FC<FieldProps<string[]>> = ({ value = [], onSave, re
 
   // Dynamic calculation for how many items fit in one line
   useLayoutEffect(() => {
-    if (isEditing || expanded) {
+    if (isEditing) {
       setVisibleCount(selectedUsers.length)
       return
     }
 
     if (containerRef.current) {
-      const containerWidth = containerRef.current.offsetWidth
+      const innerWidth = containerRef.current.clientWidth - 8 // account for px-1 (8px padding)
       const canvas = document.createElement('canvas')
       const context = canvas.getContext('2d')
-      if (context) {
-        context.font = '12px ui-sans-serif, system-ui, sans-serif'
+      if (context && innerWidth > 0) {
+        context.font = '500 12px ui-sans-serif, system-ui, sans-serif'
+        const gap = 4
+        const badgeWidths = selectedUsers.map((user) => {
+          const textWidth = Math.min(100, Math.ceil(context.measureText(user.name).width))
+          // 16px padding + 2px border + 16px avatar + 6px gap = 40px
+          return textWidth + 40
+        })
+        const totalAllWidth =
+          badgeWidths.reduce((a, b) => a + b, 0) + Math.max(0, badgeWidths.length - 1) * gap
 
+        if (totalAllWidth <= innerWidth) {
+          setVisibleCount(selectedUsers.length)
+          return
+        }
+
+        const moreBadgeWidth = 32
+        const maxAvailableWidth = innerWidth - moreBadgeWidth - gap
         let currentWidth = 0
         let count = 0
-        const moreBadgeWidth = 28
-        const maxAvailableWidth = containerWidth - moreBadgeWidth
 
-        for (let i = 0; i < selectedUsers.length; i++) {
-          const textWidth = context.measureText(selectedUsers[i].name).width
-          // 16px padding + 16px avatar + 6px gap + 4px extra gap
-          const badgeWidth = textWidth + 42
-
-          if (currentWidth + badgeWidth > maxAvailableWidth && i < selectedUsers.length - 1) {
-            break
-          }
-          if (i === selectedUsers.length - 1) {
-            if (currentWidth + badgeWidth <= containerWidth) {
-              count++
-            }
-            break
-          }
-
-          currentWidth += badgeWidth
+        for (let i = 0; i < badgeWidths.length; i++) {
+          const widthWithGap = count > 0 ? currentWidth + gap + badgeWidths[i] : badgeWidths[i]
+          if (widthWithGap > maxAvailableWidth) break
+          currentWidth = widthWithGap
           count++
         }
         setVisibleCount(count)
       }
     }
-  }, [selectedUsers, isEditing, expanded, value])
+  }, [selectedUsers, isEditing, value])
 
   const toggleUser = (userId: string) => {
     const currentVal = value || []
@@ -87,34 +87,16 @@ const UserMultiField: React.FC<FieldProps<string[]>> = ({ value = [], onSave, re
 
   const handlePlaceholderClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (isEditing) return
-
-    const hiddenCount = selectedUsers.length - visibleCount
-    if (!expanded && hiddenCount > 0) {
-      setExpanded(true)
-    } else {
-      if (!readOnly) {
-        setIsEditing(true)
-      }
-    }
-  }
-
-  const handleOverlayClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
     if (!readOnly) {
       setIsEditing(true)
     }
   }
 
   const hiddenCount = selectedUsers.length - visibleCount
-  const isOpen = (expanded && !isEditing) || isEditing
 
   const handleOpenChange = (open: boolean) => {
     if (readOnly) return
-    if (!open) {
-      setExpanded(false)
-      setIsEditing(false)
-    }
+    setIsEditing(open)
   }
 
   const renderUserBadge = (user: UserInfo) => {
@@ -136,7 +118,7 @@ const UserMultiField: React.FC<FieldProps<string[]>> = ({ value = [], onSave, re
 
   return (
     <div className="relative w-full" onClick={(e) => e.stopPropagation()}>
-      <Popover open={!readOnly && isOpen} onOpenChange={handleOpenChange}>
+      <Popover open={!readOnly && isEditing} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <div
             ref={containerRef}
@@ -162,44 +144,30 @@ const UserMultiField: React.FC<FieldProps<string[]>> = ({ value = [], onSave, re
         </PopoverTrigger>
 
         <PopoverContent
-          className={`p-1 bg-popover border rounded-lg shadow-xl max-h-60 overflow-auto ${
-            expanded && !isEditing
-              ? 'w-[--radix-popover-trigger-width] min-w-[200px] flex flex-wrap gap-1 border-ring min-h-[32px] h-auto cursor-pointer'
-              : 'w-64 border-border'
-          }`}
+          className="p-1 w-[--radix-popover-trigger-width] min-w-[200px] max-h-60 overflow-auto bg-popover border border-border rounded-lg shadow-lg"
           align="start"
-          onClick={expanded && !isEditing ? handleOverlayClick : undefined}
         >
-          {expanded && !isEditing ? (
-            <>
-              {selectedUsers.length === 0 && (
-                <span className="text-muted-foreground text-sm italic px-1 pt-0.5">Empty</span>
-              )}
-              {selectedUsers.map(renderUserBadge)}
-            </>
-          ) : (
-            members.map((user) => {
-              const isSelected = (value || []).includes(user.id)
-              return (
-                <div
-                  key={user.id}
-                  onClick={() => toggleUser(user.id)}
-                  className="px-3 py-2 hover:bg-accent cursor-pointer flex items-center justify-between rounded-sm"
-                >
-                  <div className="flex items-center gap-2">
-                    <Avatar className="w-5 h-5">
-                      <AvatarImage src={user.image} alt={user.name} className="object-cover" />
-                      <AvatarFallback className="text-[10px] bg-rose-400 text-black font-semibold">
-                        {getInitials(user.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm font-medium text-foreground">{user.name}</span>
-                  </div>
-                  {isSelected && <Check className="w-4 h-4 text-primary" />}
+          {members.map((user) => {
+            const isSelected = (value || []).includes(user.id)
+            return (
+              <div
+                key={user.id}
+                onClick={() => toggleUser(user.id)}
+                className="px-3 py-2 hover:bg-accent cursor-pointer flex items-center justify-between rounded-sm"
+              >
+                <div className="flex items-center gap-2">
+                  <Avatar className="w-5 h-5">
+                    <AvatarImage src={user.image} alt={user.name} className="object-cover" />
+                    <AvatarFallback className="text-[10px] bg-rose-400 text-black font-semibold">
+                      {getInitials(user.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm font-medium text-foreground">{user.name}</span>
                 </div>
-              )
-            })
-          )}
+                {isSelected && <Check className="w-4 h-4 text-primary" />}
+              </div>
+            )
+          })}
         </PopoverContent>
       </Popover>
     </div>
