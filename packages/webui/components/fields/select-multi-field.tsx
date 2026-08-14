@@ -32,7 +32,9 @@ const SelectMultiField: React.FC<FieldProps<string[]>> = ({
     opt.displayName.toLowerCase().includes(trimmedSearch.toLowerCase()),
   )
   const hasExactMatch = options.some(
-    (opt: SelectOption) => opt.displayName.trim().toLowerCase() === trimmedSearch.toLowerCase(),
+    (opt: SelectOption) =>
+      opt.displayName.trim().toLowerCase() === trimmedSearch.toLowerCase() ||
+      opt.id.toLowerCase() === trimmedSearch.toLowerCase(),
   )
 
   // Dynamic calculation for how many items fit in one line

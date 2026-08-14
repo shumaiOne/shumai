@@ -415,6 +415,22 @@ export interface AutofillField {
 }
 
 export function fieldsToTypeBoxSchema(fields: AutofillField[]) {
+  const newOptionSchema = Type.Object(
+    {
+      newOption: Type.Object(
+        {
+          value: Type.String({
+            minLength: 1,
+            description:
+              'The new option display name/value to create and select if none of the existing options match.',
+          }),
+        },
+        { additionalProperties: false },
+      ),
+    },
+    { additionalProperties: false },
+  )
+
   const properties: Record<string, TSchema> = {}
   for (const f of fields) {
     let schema: TSchema
@@ -437,26 +453,42 @@ export function fieldsToTypeBoxSchema(fields: AutofillField[]) {
         const options = f.config.select?.options || []
         const description =
           options.length > 0
-            ? `${baseDescription}\nSelect one option and return the option ID as the value.\n\nAvailable options:\n${options.map((o) => `- ${o.displayName} => ${o.id}`).join('\n')}`
-            : baseDescription
-        schema = Type.String({
-          enum: options.map((o) => o.id),
-          description,
-        })
+            ? `${baseDescription}\nSelect one existing option ID or provide {"newOption": {"value": "..."}} to create a new option.\n\nAvailable options:\n${options.map((o) => `- ${o.displayName} => ${o.id}`).join('\n')}`
+            : `${baseDescription}\nProvide {"newOption": {"value": "..."}} with the desired option name.`
+        if (options.length > 0) {
+          schema = Type.Union(
+            [
+              Type.String({
+                enum: options.map((o) => o.id),
+              }),
+              newOptionSchema,
+            ],
+            { description },
+          )
+        } else {
+          schema = Type.Object(newOptionSchema.properties, {
+            additionalProperties: false,
+            description,
+          })
+        }
         break
       }
       case 'selectMulti': {
         const options = f.config.selectMulti?.options || []
         const description =
           options.length > 0
-            ? `${baseDescription}\nSelect applicable options and return the option IDs as the value.\n\nAvailable options:\n${options.map((o) => `- ${o.displayName} => ${o.id}`).join('\n')}`
-            : baseDescription
-        schema = Type.Array(
-          Type.String({
-            enum: options.map((o) => o.id),
-          }),
-          { description },
-        )
+            ? `${baseDescription}\nSelect applicable option IDs or provide {"newOption": {"value": "..."}} objects for new options (e.g. ["opt1", {"newOption": {"value": "new_name"}}]).\n\nAvailable options:\n${options.map((o) => `- ${o.displayName} => ${o.id}`).join('\n')}`
+            : `${baseDescription}\nProvide an array of {"newOption": {"value": "..."}} objects for new options.`
+        const itemSchema =
+          options.length > 0
+            ? Type.Union([
+                Type.String({
+                  enum: options.map((o) => o.id),
+                }),
+                newOptionSchema,
+              ])
+            : newOptionSchema
+        schema = Type.Array(itemSchema, { description })
         break
       }
       default:

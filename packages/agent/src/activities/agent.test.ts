@@ -1512,6 +1512,92 @@ describe('Agent Database Activities Integration', () => {
         expect(val?.stringValue).toBe('Generated using gemini')
       })
 
+      it('should persist select and selectMulti metadata with dynamic newOption', async () => {
+        const selectField = await prisma.metadataField.create({
+          data: {
+            key: 'provider',
+            scope: 'PROJECT',
+            project: { connect: { id: project.id } },
+            config: {
+              name: 'Provider',
+              type: 'select',
+              autofillSource: 'CREATION_CONTEXT',
+              select: { options: [{ id: 'openai', displayName: 'OpenAI', color: '#f43f5e' }] },
+            },
+          },
+        })
+
+        const multiField = await prisma.metadataField.create({
+          data: {
+            key: 'tags',
+            scope: 'PROJECT',
+            project: { connect: { id: project.id } },
+            config: {
+              name: 'Tags',
+              type: 'selectMulti',
+              autofillSource: 'CREATION_CONTEXT',
+              selectMulti: { options: [{ id: 'tag1', displayName: 'Tag 1', color: '#3b82f6' }] },
+            },
+          },
+        })
+
+        const folder = await prisma.asset.create({
+          data: {
+            name: 'WorkspaceFolder',
+            type: AssetType.folder,
+            status: AssetStatus.uploaded,
+            projectId: project.id,
+            fileCount: 0,
+            sizeByte: 0,
+          },
+        })
+
+        const res = await executeAgentToolActivity({
+          taskId: 'task-1',
+          toolName: 'create_file',
+          args: {
+            parent: folder.id,
+            s3Key: 'uploads/new_opt.txt',
+            name: 'new_opt.txt',
+            size: 100,
+            contentType: 'text/plain',
+            metadata: {
+              provider: { newOption: { value: 'Kling' } },
+              tags: ['tag1', { newOption: { value: 'Tag 2' } }],
+            },
+          },
+          userId: user.id,
+        })
+
+        // Verify select field
+        const providerVal = await prisma.assetMetadataValue.findFirst({
+          where: { assetId: res.id, fieldKey: selectField.key },
+        })
+        expect(providerVal?.stringValue).toBe('kling')
+
+        // Verify select field config was updated with new option
+        const updatedSelectField = await prisma.metadataField.findUnique({
+          where: { key: selectField.key },
+        })
+        const selectOpts =
+          (updatedSelectField?.config as PrismaJson.FieldConfig)?.select?.options || []
+        expect(selectOpts.some((o) => o.displayName === 'Kling' && o.id === 'kling')).toBe(true)
+
+        // Verify selectMulti field
+        const tagsVal = await prisma.assetMetadataValue.findFirst({
+          where: { assetId: res.id, fieldKey: multiField.key },
+        })
+        expect(tagsVal?.jsonValue).toEqual(['tag1', 'tag-2'])
+
+        // Verify selectMulti field config was updated with new option
+        const updatedMultiField = await prisma.metadataField.findUnique({
+          where: { key: multiField.key },
+        })
+        const multiOpts =
+          (updatedMultiField?.config as PrismaJson.FieldConfig)?.selectMulti?.options || []
+        expect(multiOpts.some((o) => o.displayName === 'Tag 2' && o.id === 'tag-2')).toBe(true)
+      })
+
       it('should reject metadata with keys that are not valid in this project', async () => {
         const folder = await prisma.asset.create({
           data: {
@@ -1706,6 +1792,71 @@ describe('Agent Database Activities Integration', () => {
           where: { assetId: res.id, fieldKey: 'prompt' },
         })
         expect(val?.stringValue).toBe('Generated using seedance')
+      })
+
+      it('should persist select and selectMulti newOption metadata in create_version', async () => {
+        const selectField = await prisma.metadataField.create({
+          data: {
+            key: 'versionProvider',
+            scope: 'PROJECT',
+            project: { connect: { id: project.id } },
+            config: {
+              name: 'Version Provider',
+              type: 'select',
+              autofillSource: 'CREATION_CONTEXT',
+              select: { options: [{ id: 'openai', displayName: 'OpenAI', color: '#f43f5e' }] },
+            },
+          },
+        })
+
+        const folder = await prisma.asset.create({
+          data: {
+            name: 'WorkspaceFolder',
+            type: AssetType.folder,
+            status: AssetStatus.uploaded,
+            projectId: project.id,
+            fileCount: 1,
+            sizeByte: 200,
+          },
+        })
+
+        const fileAsset = await prisma.asset.create({
+          data: {
+            name: 'v1.txt',
+            type: AssetType.file,
+            status: AssetStatus.uploaded,
+            projectId: project.id,
+            parentId: folder.id,
+            sizeByte: 200,
+          },
+        })
+
+        const res = await executeAgentToolActivity({
+          taskId: 'task-1',
+          toolName: 'create_version',
+          args: {
+            parent: fileAsset.id,
+            s3Key: 'uploads/v2.txt',
+            name: 'v2.txt',
+            size: 300,
+            contentType: 'text/plain',
+            metadata: {
+              versionProvider: { newOption: { value: 'Midjourney' } },
+            },
+          },
+          userId: user.id,
+        })
+
+        const val = await prisma.assetMetadataValue.findFirst({
+          where: { assetId: res.id, fieldKey: selectField.key },
+        })
+        expect(val?.stringValue).toBe('midjourney')
+
+        const updatedField = await prisma.metadataField.findUnique({
+          where: { key: selectField.key },
+        })
+        const opts = (updatedField?.config as PrismaJson.FieldConfig)?.select?.options || []
+        expect(opts.some((o) => o.displayName === 'Midjourney' && o.id === 'midjourney')).toBe(true)
       })
     })
   })

@@ -93,6 +93,50 @@ describe('createCreateFileTool', () => {
     )
   })
 
+  it('should forward select and selectMulti newOption metadata', async () => {
+    const filePath = createTempFile('# Hello from disk', 'create-file-new-option.md')
+    const metadataSchema = fieldsToTypeBoxSchema([
+      {
+        id: 'provider',
+        config: {
+          name: 'Provider',
+          type: 'select',
+          select: { options: [{ id: 'openai', displayName: 'OpenAI', color: '#f43f5e' }] },
+        },
+      },
+      {
+        id: 'tags',
+        config: {
+          name: 'Tags',
+          type: 'selectMulti',
+          selectMulti: { options: [{ id: 'tag1', displayName: 'Tag 1', color: '#3b82f6' }] },
+        },
+      },
+    ])
+
+    const tool = createCreateFileTool('user-1', metadataSchema)
+    await tool.execute('call-1', {
+      parent: 'folder-1',
+      path: filePath,
+      data: null,
+      metadata: {
+        provider: { newOption: { value: 'Kling' } },
+        tags: ['tag1', { newOption: { value: 'Tag 2' } }],
+      },
+    })
+
+    expect(executeAgentToolWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        args: expect.objectContaining({
+          metadata: {
+            provider: { newOption: { value: 'Kling' } },
+            tags: ['tag1', { newOption: { value: 'Tag 2' } }],
+          },
+        }),
+      }),
+    )
+  })
+
   it('should not include metadata in args when metadata is null', async () => {
     const filePath = createTempFile('# Hello from disk', 'create-file-no-metadata.md')
     const metadataSchema = fieldsToTypeBoxSchema([
@@ -244,11 +288,18 @@ describe('createCreateFileTool', () => {
     expect(metaObject.additionalProperties).toBe(false)
     expect(metaObject.properties.prompt.anyOf[0].type).toBe('string')
     expect(metaObject.properties.prompt.anyOf[1].type).toBe('null')
-    expect(metaObject.properties.source.anyOf[0].enum).toEqual(['gemini'])
+    expect(metaObject.properties.source.anyOf[0].anyOf[0].enum).toEqual(['gemini'])
     expect(metaObject.properties.rating.anyOf[0].type).toBe('number')
 
     // Every field must be present (use null when unknown); unknown keys and bad enums are rejected
     expect(Value.Check(meta, { prompt: 'hello', source: 'gemini', rating: 5 })).toBe(true)
+    expect(
+      Value.Check(meta, {
+        prompt: 'hello',
+        source: { newOption: { value: 'kling' } },
+        rating: 5,
+      }),
+    ).toBe(true)
     expect(Value.Check(meta, { prompt: null, source: null, rating: null })).toBe(true)
     expect(Value.Check(meta, { prompt: 'hello', source: null, rating: null })).toBe(true)
     expect(Value.Check(meta, { prompt: 'hello' })).toBe(false)
