@@ -74,12 +74,7 @@ export function SortControl({ fields, sort, onSortChange, disabled }: SortContro
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button
-          variant={sort ? 'secondary' : 'ghost'}
-          size="sm"
-          className="h-8"
-          disabled={disabled}
-        >
+        <Button variant={sort ? 'secondary' : 'ghost'} size="sm" disabled={disabled}>
           {sort ? m.sorted_by({ field: currentField.label }) : m.sort_by()}
         </Button>
       </PopoverTrigger>

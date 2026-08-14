@@ -241,11 +241,9 @@ export function FileBrowserToolbar({
       <div className="flex items-center gap-2 h-full">
         <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
           <PopoverTrigger asChild>
-            <div>
-              <Button variant="ghost" size="sm">
-                {m.field()}
-              </Button>
-            </div>
+            <Button variant="ghost" size="sm">
+              {m.field()}
+            </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
             <FieldsManager
@@ -270,11 +268,7 @@ export function FileBrowserToolbar({
           <>
             <Popover open={isFolderSelectorOpen} onOpenChange={setIsFolderSelectorOpen}>
               <PopoverTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="inline-flex items-center gap-2 px-3 py-2 hover:bg-primary/10 font-semibold rounded-xl cursor-pointer h-8 text-muted-foreground"
-                >
+                <Button variant="ghost" size="sm" className="text-muted-foreground">
                   <span className="truncate max-w-[150px]">{folderInfo?.name || 'Loading...'}</span>
                 </Button>
               </PopoverTrigger>
@@ -311,11 +305,7 @@ export function FileBrowserToolbar({
 
             <Popover>
               <PopoverTrigger asChild>
-                <Button
-                  variant={activeFiltersCount > 0 ? 'secondary' : 'ghost'}
-                  size="sm"
-                  className="inline-flex items-center gap-2 px-4 py-2 hover:bg-primary/10 font-semibold rounded-xl cursor-pointer h-8"
-                >
+                <Button variant={activeFiltersCount > 0 ? 'secondary' : 'ghost'} size="sm">
                   <span>Filter</span>
                   {activeFiltersCount > 0 && (
                     <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/50 border border-primary-foreground/20">
@@ -355,7 +345,6 @@ export function FileBrowserToolbar({
               disabled={isRecentlyDeleted}
               variant={activeFiltersCount > 0 ? 'secondary' : 'ghost'}
               size="sm"
-              className="inline-flex items-center gap-2 px-4 py-2 hover:bg-primary/10 font-semibold rounded-xl cursor-pointer h-8"
             >
               <span>{m.search()}</span>
               {activeFiltersCount > 0 && (
@@ -368,13 +357,15 @@ export function FileBrowserToolbar({
             {!isRecentlyDeleted && (
               <>
                 <Separator orientation="vertical" />
-                <Button
-                  onClick={handleOpenAgentsMd}
-                  variant="ghost"
-                  size="sm"
-                  className="inline-flex items-center gap-1.5 px-3 py-2 hover:bg-primary/10 font-semibold rounded-xl cursor-pointer h-8"
-                  title="AGENTS.md"
-                >
+                <Button onClick={handleOpenAgentsMd} variant="ghost" size="sm" title="AGENTS.md">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 -960 960 960"
+                    className="size-4"
+                    fill="currentColor"
+                  >
+                    <path d="m176-120-56-56 301-302-181-45 198-123-17-234 179 151 216-88-87 217 151 178-234-16-124 198-45-181-301 301Zm24-520-80-80 80-80 80 80-80 80Zm520 520-80-80 80-80 80 80-80 80Z" />
+                  </svg>
                   <span>{m.agents_md()}</span>
                   {folderInfo?.hasAgentsMd && (
                     <span className="h-1.5 w-1.5 rounded-full bg-primary" />
