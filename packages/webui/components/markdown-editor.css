@@ -1,142 +1,220 @@
-.editor-container {
+.shumai-editor-wrapper {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border, #e2e8f0);
   border-radius: 8px;
-  background: transparent;
-  color: inherit;
+  background-color: var(--background, #ffffff);
+  color: var(--foreground, #0f172a);
   position: relative;
-  line-height: 1.5;
-  font-weight: 400;
-  text-align: left;
-  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  font-family: inherit;
 }
 
-.editor-inner {
+.shumai-editor-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+  background-color: var(--muted, #f8fafc);
+  user-select: none;
+}
+
+.shumai-editor-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: none;
   background: transparent;
+  color: var(--muted-foreground, #64748b);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.shumai-editor-toolbar button:hover:not(:disabled) {
+  background-color: var(--accent, #e2e8f0);
+  color: var(--accent-foreground, #0f172a);
+}
+
+.shumai-editor-toolbar button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.shumai-editor-toolbar button.active {
+  background-color: var(--primary, #0f172a);
+  color: var(--primary-foreground, #ffffff);
+}
+
+.shumai-editor-toolbar select {
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border, #e2e8f0);
+  background-color: var(--background, #ffffff);
+  color: var(--foreground, #0f172a);
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+}
+
+.shumai-editor-toolbar .toolbar-divider {
+  width: 1px;
+  height: 20px;
+  background-color: var(--border, #e2e8f0);
+  margin: 0 4px;
+}
+
+.shumai-editor-content-area {
   position: relative;
-  height: 100%;
+  min-height: 240px;
+  flex: 1;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .editor-input {
-  height: 100%;
-  min-height: 150px;
-  resize: none;
+  min-height: 240px;
+  padding: 16px;
+  outline: none;
   font-size: 15px;
-  caret-color: inherit;
-  position: relative;
-  tab-size: 1;
-  outline: 0;
-  padding: 15px 10px;
-  overflow-y: auto;
+  line-height: 1.7;
+  color: inherit;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .editor-placeholder {
-  color: #999;
-  overflow: hidden;
   position: absolute;
-  text-overflow: ellipsis;
-  top: 15px;
-  left: 10px;
-  font-size: 15px;
-  user-select: none;
-  display: inline-block;
+  top: 16px;
+  left: 16px;
+  color: var(--muted-foreground, #94a3b8);
   pointer-events: none;
+  user-select: none;
+  font-size: 15px;
 }
 
+/* Typography styles in WYSIWYG mode */
 .editor-paragraph {
-  margin: 0 0 15px 0;
+  margin: 0 0 12px 0;
   position: relative;
 }
 
-.editor-paragraph:last-child {
-  margin-bottom: 0;
-}
-
 .editor-heading-h1 {
-  font-size: 24px;
+  display: block;
+  font-size: 26px;
+  font-weight: 700;
+  margin: 20px 0 12px 0;
+  line-height: 1.3;
   color: inherit;
-  font-weight: 400;
-  margin: 0;
-  padding: 0;
 }
 
 .editor-heading-h2 {
-  font-size: 15px;
+  display: block;
+  font-size: 20px;
+  font-weight: 600;
+  margin: 18px 0 10px 0;
+  line-height: 1.35;
   color: inherit;
-  font-weight: 700;
-  margin: 0;
-  padding: 0;
-  text-transform: uppercase;
+}
+
+.editor-heading-h3 {
+  display: block;
+  font-size: 17px;
+  font-weight: 600;
+  margin: 14px 0 8px 0;
+  line-height: 1.4;
+  color: inherit;
 }
 
 .editor-quote {
-  margin: 0;
-  margin-left: 20px;
-  font-size: 15px;
-  color: inherit;
-  border-left-color: #cecece;
-  border-left-width: 4px;
-  border-left-style: solid;
-  padding-left: 16px;
-}
-
-.editor-list-ol {
-  padding: 0;
-  margin: 0;
-  margin-left: 16px;
+  display: block;
+  margin: 12px 0;
+  padding: 8px 16px;
+  border-left: 4px solid var(--primary, #3b82f6);
+  background-color: var(--muted, rgba(0, 0, 0, 0.03));
+  border-radius: 0 6px 6px 0;
+  color: var(--muted-foreground, #64748b);
+  font-style: italic;
 }
 
 .editor-list-ul {
-  padding: 0;
-  margin: 0;
-  margin-left: 16px;
+  padding: 0 0 0 24px;
+  margin: 8px 0 12px 0;
+  list-style-type: disc;
+}
+
+.editor-list-ol {
+  padding: 0 0 0 24px;
+  margin: 8px 0 12px 0;
+  list-style-type: decimal;
 }
 
 .editor-listitem {
-  margin: 8px 32px 8px 32px;
+  margin: 4px 0;
 }
 
 .editor-nested-listitem {
   list-style-type: none;
-}
-
-pre {
-  line-height: 1.5;
-}
-
-.editor-code {
-  background-color: rgba(0, 0, 0, 0.05);
-  font-family: Menlo, Consolas, Monaco, monospace;
-  display: block;
-  padding: 8px 8px 8px 52px;
-  line-height: 1.53;
-  font-size: 13px;
   margin: 0;
-  margin-top: 8px;
-  margin-bottom: 8px;
-  tab-size: 2;
-  overflow-x: auto;
+}
+
+/* Checklist / Task list */
+.editor-checklist {
+  list-style-type: none;
+  padding-left: 0;
+  margin: 8px 0 12px 0;
+}
+
+.editor-listitem-checked,
+.editor-listitem-unchecked {
   position: relative;
+  list-style-type: none;
+  padding-left: 28px;
+  margin: 6px 0;
+  outline: none;
+  cursor: default;
 }
 
-.dark .editor-code {
-  background-color: rgba(255, 255, 255, 0.05);
-}
-
-.editor-code:before {
-  content: attr(data-gutter);
+.editor-listitem-checked:before,
+.editor-listitem-unchecked:before {
+  content: '';
   position: absolute;
-  background-color: transparent;
-  left: 0;
-  top: 0;
-  border-right: 1px solid transparent;
-  padding: 8px;
-  color: #777;
-  white-space: pre-wrap;
-  text-align: right;
-  min-width: 25px;
+  left: 4px;
+  top: 4px;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--border, #cbd5e1);
+  border-radius: 4px;
+  background-color: var(--background, #ffffff);
+  cursor: pointer;
+  box-sizing: border-box;
 }
 
+.editor-listitem-checked:before {
+  background-color: var(--primary, #2563eb);
+  border-color: var(--primary, #2563eb);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3E%3C/svg%3E");
+  background-size: 12px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.editor-listitem-checked {
+  text-decoration: line-through;
+  opacity: 0.75;
+}
+
+/* Inline text formats */
 .editor-text-bold {
-  font-weight: bold;
+  font-weight: 600;
 }
 
 .editor-text-italic {
@@ -151,26 +229,47 @@ pre {
   text-decoration: line-through;
 }
 
-.editor-text-underlineStrikethrough {
-  text-decoration: underline line-through;
+.editor-text-code {
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  font-size: 0.9em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: var(--muted, #f1f5f9);
+  border: 1px solid var(--border, #e2e8f0);
 }
 
-.editor-text-code {
-  background-color: rgba(0, 0, 0, 0.05);
-  padding: 1px 0.25rem;
-  font-family: Menlo, Consolas, Monaco, monospace;
-  font-size: 94%;
-}
-.dark .editor-text-code {
-  background-color: rgba(255, 255, 255, 0.05);
+/* Code block (full-row block display) */
+code.editor-code-block,
+.editor-code-block {
+  display: block !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  font-size: 13.5px;
+  line-height: 1.6;
+  background-color: var(--muted, #f1f5f9);
+  color: var(--foreground, #0f172a);
+  border: 1px solid var(--border, #e2e8f0);
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin: 12px 0;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  tab-size: 2;
+  position: relative;
 }
 
 .editor-link {
-  color: rgb(33, 111, 219);
-  text-decoration: none;
+  color: var(--primary, #2563eb);
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .editor-link:hover {
-  text-decoration: underline;
-  cursor: pointer;
+  opacity: 0.8;
 }
