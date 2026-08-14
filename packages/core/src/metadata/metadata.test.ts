@@ -429,4 +429,124 @@ describe('MetadataService', () => {
       ]),
     ).rejects.toThrow('value must be a non-empty string')
   })
+
+  it('should handle ID collisions by appending numeric suffix', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'test-team' },
+    })
+    const project = await prisma.project.create({
+      data: { name: 'test-project', teamId: team.id },
+    })
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'test-asset',
+        project: { connect: { id: project.id } },
+        type: 'file',
+        status: 'uploaded',
+        sizeByte: 100,
+      },
+    })
+
+    const selectField = await prisma.metadataField.create({
+      data: {
+        key: 'collision_test',
+        scope: 'PROJECT',
+        project: { connect: { id: project.id } },
+        config: {
+          name: 'Collision Test',
+          type: 'select',
+          select: {
+            options: [
+              { id: 'kling-ai', displayName: 'Old Kling AI', color: '#f43f5e' },
+              { id: 'kling-ai-1', displayName: 'Old Kling AI Suffix 1', color: '#3b82f6' },
+            ],
+          },
+        },
+      },
+    })
+
+    // Now adding a new option with different displayName whose slug collides with 'kling-ai'
+    await metadataService.updateAssetMetadata(asset.id, [
+      { key: selectField.key, value: { newOption: { value: 'Kling AI Unique' } } },
+    ])
+
+    const updatedField = await prisma.metadataField.findUnique({
+      where: { key: selectField.key },
+    })
+    const options = (updatedField?.config as PrismaJson.FieldConfig)?.select?.options || []
+    const newOpt = options.find((o) => o.displayName === 'Kling AI Unique')
+    expect(newOpt).toBeDefined()
+    expect(newOpt?.id).toBe('kling-ai-unique')
+
+    // Test when baseId and candidateId-1 exist, next should be candidateId-2
+    const collisionField = await prisma.metadataField.create({
+      data: {
+        key: 'collision_base',
+        scope: 'PROJECT',
+        project: { connect: { id: project.id } },
+        config: {
+          name: 'Collision Base',
+          type: 'select',
+          select: {
+            options: [
+              { id: 'custom-tool', displayName: 'First Tool', color: '#f43f5e' },
+              { id: 'custom-tool-1', displayName: 'Second Tool', color: '#3b82f6' },
+            ],
+          },
+        },
+      },
+    })
+
+    // displayName is 'Custom Tool' which has baseId 'custom-tool' (not matching display names 'First Tool' / 'Second Tool')
+    await metadataService.updateAssetMetadata(asset.id, [
+      { key: collisionField.key, value: { newOption: { value: 'Custom Tool' } } },
+    ])
+
+    const updatedCollisionField = await prisma.metadataField.findUnique({
+      where: { key: collisionField.key },
+    })
+    const collisionOpts =
+      (updatedCollisionField?.config as PrismaJson.FieldConfig)?.select?.options || []
+    const resolvedNewOpt = collisionOpts.find((o) => o.displayName === 'Custom Tool')
+    expect(resolvedNewOpt).toBeDefined()
+    expect(resolvedNewOpt?.id).toBe('custom-tool-2')
+  })
+
+  it('should reject non-string and non-newOption items in selectMulti array', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'test-team' },
+    })
+    const project = await prisma.project.create({
+      data: { name: 'test-project', teamId: team.id },
+    })
+    const asset = await prisma.asset.create({
+      data: {
+        name: 'test-asset',
+        project: { connect: { id: project.id } },
+        type: 'file',
+        status: 'uploaded',
+        sizeByte: 100,
+      },
+    })
+
+    const selectMultiField = await prisma.metadataField.create({
+      data: {
+        key: 'tags_invalid_items',
+        scope: 'PROJECT',
+        project: { connect: { id: project.id } },
+        config: {
+          name: 'Tags',
+          type: 'selectMulti',
+        },
+      },
+    })
+
+    // Passing invalid items like number or null
+    await expect(
+      metadataService.updateAssetMetadata(asset.id, [
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        { key: selectMultiField.key, value: ['tag1', 123 as any] },
+      ]),
+    ).rejects.toThrow('expected string or {newOption}')
+  })
 })

@@ -420,6 +420,7 @@ export function fieldsToTypeBoxSchema(fields: AutofillField[]) {
       newOption: Type.Object(
         {
           value: Type.String({
+            minLength: 1,
             description:
               'The new option display name/value to create and select if none of the existing options match.',
           }),
@@ -466,7 +467,7 @@ export function fieldsToTypeBoxSchema(fields: AutofillField[]) {
           )
         } else {
           schema = Type.Object(newOptionSchema.properties, {
-            ...newOptionSchema,
+            additionalProperties: false,
             description,
           })
         }

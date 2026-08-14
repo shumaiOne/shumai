@@ -420,6 +420,10 @@ export class MetadataService {
             resolvedList.push(resolvedId)
           } else if (typeof item === 'string') {
             resolvedList.push(item)
+          } else {
+            throw new Error(
+              `Invalid option value for field ${field.key}: expected string or {newOption}`,
+            )
           }
         }
         value = resolvedList
