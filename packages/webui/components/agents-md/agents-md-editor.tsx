@@ -53,6 +53,8 @@ export function AgentsMdEditor({ projectId, assetId, rootFolderId, isRoot }: Age
     }
   }, [data, isInitialized])
 
+  const [isClosing, setIsClosing] = useState(false)
+
   const saveMutation = useMutation({
     mutationFn: async (newContent: string) => {
       const res = await client.api.folders[':folderId'].agentsmd.$patch({
@@ -84,13 +86,13 @@ export function AgentsMdEditor({ projectId, assetId, rootFolderId, isRoot }: Age
 
   const enqueueSave = useCallback(
     (textToSave: string) => {
-      if (!canAdmin) return
+      if (!canAdmin) return Promise.resolve()
       if (lastSavedContentRef.current === textToSave) {
         setSaveStatus('saved')
-        return
+        return Promise.resolve()
       }
       setSaveStatus('saving')
-      saveChainRef.current = saveChainRef.current
+      const p = saveChainRef.current
         .then(async () => {
           await saveMutationRef.current(textToSave)
         })
@@ -98,6 +100,8 @@ export function AgentsMdEditor({ projectId, assetId, rootFolderId, isRoot }: Age
           // Swallow so a failed save does not break the chain for later saves.
           // The mutation's onError handler already surfaces the failure.
         })
+      saveChainRef.current = p
+      return p
     },
     [canAdmin],
   )
@@ -116,7 +120,7 @@ export function AgentsMdEditor({ projectId, assetId, rootFolderId, isRoot }: Age
       saveTimeoutRef.current = setTimeout(() => {
         saveTimeoutRef.current = null
         enqueueSave(newMarkdown)
-      }, 750)
+      }, 1000)
     },
     [canAdmin, enqueueSave],
   )
@@ -127,8 +131,9 @@ export function AgentsMdEditor({ projectId, assetId, rootFolderId, isRoot }: Age
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current)
       saveTimeoutRef.current = null
-      enqueueSave(latestContentRef.current)
+      return enqueueSave(latestContentRef.current)
     }
+    return saveChainRef.current
   }, [enqueueSave])
 
   useEffect(() => {
@@ -140,18 +145,25 @@ export function AgentsMdEditor({ projectId, assetId, rootFolderId, isRoot }: Age
     }
   }, [flushPendingSave])
 
-  const handleClose = () => {
-    flushPendingSave()
-    if (isRoot || assetId === rootFolderId) {
-      navigate({
-        to: '/projects/$projectId',
-        params: { projectId },
-      })
-    } else {
-      navigate({
-        to: '/projects/$projectId/folders/$folderId',
-        params: { projectId, folderId: assetId },
-      })
+  const handleClose = async () => {
+    setIsClosing(true)
+    try {
+      flushPendingSave()
+      await saveChainRef.current
+    } catch {
+      // Proceed with navigation even if error occurs
+    } finally {
+      if (isRoot || assetId === rootFolderId) {
+        navigate({
+          to: '/projects/$projectId',
+          params: { projectId },
+        })
+      } else {
+        navigate({
+          to: '/projects/$projectId/folders/$folderId',
+          params: { projectId, folderId: assetId },
+        })
+      }
     }
   }
 
@@ -159,19 +171,19 @@ export function AgentsMdEditor({ projectId, assetId, rootFolderId, isRoot }: Age
     <div className="flex items-center gap-2 shrink-0">
       {canAdmin ? (
         <div className="flex items-center gap-1.5 text-xs shrink-0">
-          {saveStatus === 'saving' && (
+          {(saveStatus === 'saving' || isClosing) && (
             <span className="inline-flex items-center gap-1 text-muted-foreground animate-pulse whitespace-nowrap">
               <Save className="h-3.5 w-3.5 shrink-0" />
               <span>{m.saving_ellipsis()}</span>
             </span>
           )}
-          {saveStatus === 'saved' && (
+          {saveStatus === 'saved' && !isClosing && (
             <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium whitespace-nowrap">
               <Check className="h-3.5 w-3.5 shrink-0" />
               <span>{m.saved()}</span>
             </span>
           )}
-          {saveStatus === 'error' && (
+          {saveStatus === 'error' && !isClosing && (
             <span className="inline-flex items-center gap-1 text-destructive font-medium whitespace-nowrap">
               <AlertCircle className="h-3.5 w-3.5 shrink-0" />
               <span>{m.agents_md_save_failed()}</span>
@@ -194,6 +206,7 @@ export function AgentsMdEditor({ projectId, assetId, rootFolderId, isRoot }: Age
         variant="ghost"
         size="sm"
         onClick={handleClose}
+        disabled={isClosing}
         className="h-7 px-2.5 hover:bg-muted text-muted-foreground hover:text-foreground shrink-0"
         title={m.close()}
       >
