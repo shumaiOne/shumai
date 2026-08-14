@@ -83,7 +83,6 @@ describe('SelectField Component', () => {
     expect(screen.getByText('abc')).toBeTruthy()
     // "Add options: abc" button should be hidden
     expect(screen.queryByText('Add options: abc')).toBeNull()
-
     // Type "foo" -> exact match with option id "foo" / displayName "Foo"
     fireEvent.change(searchInput, { target: { value: 'foo' } })
     expect(screen.queryByText('Add options: foo')).toBeNull()
