@@ -1,51 +1,5 @@
-import React, { useEffect, useRef, useCallback, useState } from 'react'
-import { LexicalComposer, type InitialConfigType } from '@lexical/react/LexicalComposer'
-import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
-import { ContentEditable } from '@lexical/react/LexicalContentEditable'
-import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin'
-import { ListPlugin } from '@lexical/react/LexicalListPlugin'
-import { CheckListPlugin } from '@lexical/react/LexicalCheckListPlugin'
-import { TabIndentationPlugin } from '@lexical/react/LexicalTabIndentationPlugin'
-import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
-import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin'
-import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin'
-import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin'
-import { LexicalErrorBoundary } from '@lexical/react/LexicalErrorBoundary'
+import React, { useCallback, useEffect, useState } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
-
-import {
-  $convertFromMarkdownString,
-  $convertToMarkdownString,
-  CHECK_LIST,
-  ELEMENT_TRANSFORMERS,
-  MULTILINE_ELEMENT_TRANSFORMERS,
-  TEXT_FORMAT_TRANSFORMERS,
-  TEXT_MATCH_TRANSFORMERS,
-  type Transformer,
-} from '@lexical/markdown'
-
-import {
-  HeadingNode,
-  QuoteNode,
-  $createHeadingNode,
-  $createQuoteNode,
-  $isHeadingNode,
-  type HeadingTagType,
-} from '@lexical/rich-text'
-import {
-  ListNode,
-  ListItemNode,
-  $isListNode,
-  INSERT_ORDERED_LIST_COMMAND,
-  INSERT_UNORDERED_LIST_COMMAND,
-  INSERT_CHECK_LIST_COMMAND,
-  REMOVE_LIST_COMMAND,
-} from '@lexical/list'
-import { CodeNode, $createCodeNode } from '@lexical/code'
-import { TableNode, TableCellNode, TableRowNode } from '@lexical/table'
-import { AutoLinkNode, LinkNode, $isLinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link'
-import { $isAtNodeEnd, $setBlocksType } from '@lexical/selection'
-import { $getNearestNodeOfType } from '@lexical/utils'
 import {
   $getSelection,
   $isRangeSelection,
@@ -61,9 +15,25 @@ import {
   type RangeSelection,
   type TextNode,
   type ElementNode,
-  type EditorThemeClasses,
 } from 'lexical'
-
+import {
+  $isListNode,
+  ListNode,
+  INSERT_ORDERED_LIST_COMMAND,
+  INSERT_UNORDERED_LIST_COMMAND,
+  INSERT_CHECK_LIST_COMMAND,
+  REMOVE_LIST_COMMAND,
+} from '@lexical/list'
+import {
+  $createHeadingNode,
+  $createQuoteNode,
+  $isHeadingNode,
+  type HeadingTagType,
+} from '@lexical/rich-text'
+import { $createCodeNode } from '@lexical/code'
+import { $isLinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link'
+import { $isAtNodeEnd, $setBlocksType } from '@lexical/selection'
+import { $getNearestNodeOfType } from '@lexical/utils'
 import {
   Bold,
   Italic,
@@ -82,47 +52,6 @@ import {
   Undo2,
   Redo2,
 } from 'lucide-react'
-
-import './markdown-editor.css'
-
-export const EDITOR_TRANSFORMERS: Transformer[] = [
-  CHECK_LIST,
-  ...ELEMENT_TRANSFORMERS,
-  ...MULTILINE_ELEMENT_TRANSFORMERS,
-  ...TEXT_FORMAT_TRANSFORMERS,
-  ...TEXT_MATCH_TRANSFORMERS,
-]
-
-export const editorTheme: EditorThemeClasses = {
-  paragraph: 'editor-paragraph',
-  quote: 'editor-quote',
-  heading: {
-    h1: 'editor-heading-h1',
-    h2: 'editor-heading-h2',
-    h3: 'editor-heading-h3',
-  },
-  list: {
-    checklist: 'editor-checklist',
-    listitem: 'editor-listitem',
-    listitemChecked: 'editor-listitem-checked',
-    listitemUnchecked: 'editor-listitem-unchecked',
-    nested: {
-      listitem: 'editor-nested-listitem',
-    },
-    ol: 'editor-list-ol',
-    ul: 'editor-list-ul',
-  },
-  link: 'editor-link',
-  text: {
-    bold: 'editor-text-bold',
-    italic: 'editor-text-italic',
-    underline: 'editor-text-underline',
-    strikethrough: 'editor-text-strikethrough',
-    underlineStrikethrough: 'editor-text-underlineStrikethrough',
-    code: 'editor-text-code',
-  },
-  code: 'editor-code-block',
-}
 
 const blockTypes = {
   paragraph: 'Normal',
@@ -154,7 +83,7 @@ function getSelectedNode(selection: RangeSelection): TextNode | ElementNode {
   }
 }
 
-function ToolbarPlugin() {
+export function ToolbarPlugin() {
   const [editor] = useLexicalComposerContext()
   const [canUndo, setCanUndo] = useState(false)
   const [canRedo, setCanRedo] = useState(false)
@@ -558,126 +487,3 @@ function ToolbarPlugin() {
     </div>
   )
 }
-
-function MarkdownSyncPlugin({
-  value,
-  initialContent = '',
-  onChange,
-}: {
-  value?: string
-  initialContent?: string
-  onChange?: (markdown: string) => void
-}) {
-  const [editor] = useLexicalComposerContext()
-  const isInitializedRef = useRef(false)
-  const lastEmittedMarkdownRef = useRef<string>('')
-
-  useEffect(() => {
-    if (!isInitializedRef.current) {
-      isInitializedRef.current = true
-      const startingContent = value !== undefined ? value : initialContent
-      if (startingContent) {
-        editor.update(() => {
-          $convertFromMarkdownString(startingContent, EDITOR_TRANSFORMERS)
-        })
-        lastEmittedMarkdownRef.current = startingContent
-      }
-    }
-  }, [editor, initialContent, value])
-
-  useEffect(() => {
-    if (
-      isInitializedRef.current &&
-      value !== undefined &&
-      value !== lastEmittedMarkdownRef.current
-    ) {
-      editor.update(() => {
-        $convertFromMarkdownString(value, EDITOR_TRANSFORMERS)
-      })
-      lastEmittedMarkdownRef.current = value
-    }
-  }, [editor, value])
-
-  return (
-    <OnChangePlugin
-      ignoreSelectionChange
-      onChange={(editorState) => {
-        editorState.read(() => {
-          const markdown = $convertToMarkdownString(EDITOR_TRANSFORMERS)
-          if (markdown !== lastEmittedMarkdownRef.current) {
-            lastEmittedMarkdownRef.current = markdown
-            onChange?.(markdown)
-          }
-        })
-      }}
-    />
-  )
-}
-
-export interface MarkdownEditorProps {
-  initialContent?: string
-  value?: string
-  onChange?: (markdown: string) => void
-  placeholder?: string
-  readOnly?: boolean
-  autoFocus?: boolean
-  className?: string
-  hideToolbar?: boolean
-}
-
-export function MarkdownEditor({
-  initialContent = '',
-  value,
-  onChange,
-  placeholder = 'Write your markdown content here...',
-  readOnly = false,
-  autoFocus = false,
-  className = '',
-  hideToolbar = false,
-}: MarkdownEditorProps) {
-  const initialConfig: InitialConfigType = {
-    namespace: 'ShumaiWysiwygMarkdownEditor',
-    theme: editorTheme,
-    editable: !readOnly,
-    onError: (error: Error) => {
-      console.error('[MarkdownEditor] Error:', error)
-    },
-    nodes: [
-      HeadingNode,
-      QuoteNode,
-      ListNode,
-      ListItemNode,
-      CodeNode,
-      TableNode,
-      TableCellNode,
-      TableRowNode,
-      AutoLinkNode,
-      LinkNode,
-    ],
-  }
-
-  return (
-    <div className={`shumai-editor-wrapper ${readOnly ? 'read-only' : ''} ${className}`}>
-      <LexicalComposer initialConfig={initialConfig}>
-        {!readOnly && !hideToolbar && <ToolbarPlugin />}
-        <div className="shumai-editor-content-area">
-          <RichTextPlugin
-            contentEditable={<ContentEditable className="editor-input" />}
-            placeholder={<div className="editor-placeholder">{placeholder}</div>}
-            ErrorBoundary={LexicalErrorBoundary}
-          />
-          <HistoryPlugin />
-          <ListPlugin />
-          <CheckListPlugin />
-          <TabIndentationPlugin />
-          <LinkPlugin />
-          <MarkdownShortcutPlugin transformers={EDITOR_TRANSFORMERS} />
-          <MarkdownSyncPlugin value={value} initialContent={initialContent} onChange={onChange} />
-          {autoFocus && <AutoFocusPlugin />}
-        </div>
-      </LexicalComposer>
-    </div>
-  )
-}
-
-export default MarkdownEditor
