@@ -45,8 +45,21 @@ describe('SelectField Component', () => {
   }
 
   it('renders selected option badge correctly', () => {
-    render(<SelectField value="foo" config={sampleConfig} onSave={vi.fn()} />)
-    expect(screen.getByText('Foo')).toBeTruthy()
+    const { container } = render(<SelectField value="foo" config={sampleConfig} onSave={vi.fn()} />)
+    const badge = screen.getByText('Foo')
+    expect(badge).toBeTruthy()
+    expect(badge.className).toContain('h-[22px]')
+    const trigger = container.querySelector('div[class*="h-[28px]"]')
+    expect(trigger).toBeTruthy()
+  })
+
+  it('renders placeholder with text-sm styling', () => {
+    const { container } = render(<SelectField value="" config={sampleConfig} onSave={vi.fn()} />)
+    const placeholder = screen.getByText('Select an option')
+    expect(placeholder).toBeTruthy()
+    expect(placeholder.className).toContain('text-sm')
+    const trigger = container.querySelector('div[class*="h-[28px]"]')
+    expect(trigger).toBeTruthy()
   })
 
   it('filters options based on search query', () => {

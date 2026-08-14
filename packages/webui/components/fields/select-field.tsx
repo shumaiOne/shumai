@@ -99,10 +99,11 @@ const SelectField: React.FC<FieldProps<string>> = ({
   }
 
   const renderOptionBadge = (option: SelectOption | undefined) => {
-    if (!option) return <span className="text-muted-foreground italic">Select an option</span>
+    if (!option)
+      return <span className="text-muted-foreground italic text-sm">Select an option</span>
     return (
       <span
-        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium h-[22px]"
         style={getOptionStyle(option.color)}
       >
         {option.displayName}
@@ -116,7 +117,7 @@ const SelectField: React.FC<FieldProps<string>> = ({
         <PopoverTrigger asChild>
           <div
             onClick={handleStartEdit}
-            className={`flex items-center justify-between w-full min-h-[28px] px-2 py-1 rounded border border-transparent transition-colors ${
+            className={`flex items-center justify-between w-full h-[28px] px-2 rounded border border-transparent transition-colors ${
               !readOnly ? 'cursor-pointer hover:bg-accent hover:border-border group' : ''
             }`}
           >
