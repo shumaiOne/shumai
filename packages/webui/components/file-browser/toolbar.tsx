@@ -18,6 +18,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { Button } from '../ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { Separator } from '../ui/separator'
+import { cn } from '@/ui/lib/utils'
 
 type FileBrowserToolbarProps = {
   teamId: string
@@ -357,19 +358,27 @@ export function FileBrowserToolbar({
             {!isRecentlyDeleted && (
               <>
                 <Separator orientation="vertical" />
-                <Button onClick={handleOpenAgentsMd} variant="ghost" size="sm" title="AGENTS.md">
+                <Button
+                  onClick={handleOpenAgentsMd}
+                  variant="ghost"
+                  size="sm"
+                  title="AGENTS.md"
+                  className={cn(
+                    folderInfo?.hasAgentsMd ? 'text-foreground' : 'text-muted-foreground',
+                  )}
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 -960 960 960"
-                    className="size-4"
+                    className={cn(
+                      'size-4',
+                      folderInfo?.hasAgentsMd ? 'text-primary' : 'text-muted-foreground',
+                    )}
                     fill="currentColor"
                   >
                     <path d="m176-120-56-56 301-302-181-45 198-123-17-234 179 151 216-88-87 217 151 178-234-16-124 198-45-181-301 301Zm24-520-80-80 80-80 80 80-80 80Zm520 520-80-80 80-80 80 80-80 80Z" />
                   </svg>
                   <span>{m.agents_md()}</span>
-                  {folderInfo?.hasAgentsMd && (
-                    <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                  )}
                 </Button>
               </>
             )}
