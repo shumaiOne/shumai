@@ -23,7 +23,7 @@
   user-select: none;
 }
 
-.shumai-editor-toolbar button {
+.shumai-editor-toolbar-left button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -38,17 +38,17 @@
   padding: 0;
 }
 
-.shumai-editor-toolbar button:hover:not(:disabled) {
+.shumai-editor-toolbar-left button:hover:not(:disabled) {
   background-color: var(--accent, #e2e8f0);
   color: var(--accent-foreground, #0f172a);
 }
 
-.shumai-editor-toolbar button:disabled {
+.shumai-editor-toolbar-left button:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }
 
-.shumai-editor-toolbar button.active {
+.shumai-editor-toolbar-left button.active {
   background-color: var(--primary, #0f172a);
   color: var(--primary-foreground, #ffffff);
 }
