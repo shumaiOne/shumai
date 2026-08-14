@@ -53,6 +53,7 @@ interface BreadcrumbNavProps {
     proxyType?: 'image' | 'video' | 'audio' | 'pdf' | null
   }
   isRootFolder: boolean
+  customTerminalBreadcrumb?: string
   displayStyle?: 'card' | 'list'
   onDisplayStyleChange?: (style: 'card' | 'list') => void
   isLeftSidebarCollapsed?: boolean
@@ -95,6 +96,7 @@ export function BreadcrumbNav({
   ancestorFolders,
   currentAsset,
   isRootFolder,
+  customTerminalBreadcrumb,
   displayStyle,
   onDisplayStyleChange,
   isLeftSidebarCollapsed,
@@ -219,7 +221,14 @@ export function BreadcrumbNav({
             )}
           </div>
         ))}
-        {!isRootFolder && !compareMode && (
+        {customTerminalBreadcrumb ? (
+          <div className="flex items-center gap-1">
+            <span className="text-muted-foreground">/</span>
+            <span className="truncate rounded px-2 py-1 text-sm font-medium text-foreground">
+              {customTerminalBreadcrumb}
+            </span>
+          </div>
+        ) : !isRootFolder && !compareMode ? (
           <div className="flex items-center gap-1">
             <span className="text-muted-foreground">/</span>
             {currentAsset.type === 'folder' ? (
@@ -385,7 +394,7 @@ export function BreadcrumbNav({
               </DropdownMenu>
             )}
           </div>
-        )}
+        ) : null}
       </div>
 
       <div className="flex items-center gap-2">

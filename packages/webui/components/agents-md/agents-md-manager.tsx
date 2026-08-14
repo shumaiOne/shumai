@@ -5,7 +5,7 @@ import { ResizeHandle } from '@/ui/components/resize-handle'
 import { useChatbotStore } from '@/ui/stores/chatbot'
 import { useTopNavStore } from '@/ui/stores/top-nav'
 import { useUiStore } from '@/ui/stores/ui'
-import type { AssetInfo } from '@shumai/dtos'
+import type { AncestorFolder, AssetInfo } from '@shumai/dtos'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
@@ -52,13 +52,21 @@ export default function AgentsMdManager({
   const { setProjectState, clearProjectState } = useTopNavStore()
 
   useEffect(() => {
+    const isRootFolder = isRoot || assetId === rootFolderId
+    const ancestors: AncestorFolder[] = isRootFolder
+      ? []
+      : folderInfo?.name
+        ? [{ id: assetId, name: folderInfo.name }, ...(folderInfo?.ancestorFolders ?? [])]
+        : (folderInfo?.ancestorFolders ?? [])
+
     setProjectState({
       teamId,
       projectId,
       projectName,
-      ancestorFolders: folderInfo?.ancestorFolders ?? [],
+      ancestorFolders: ancestors,
       currentAsset: { name: folderInfo?.name, type: 'folder' },
-      isRootFolder: isRoot || assetId === rootFolderId,
+      isRootFolder: true,
+      customTerminalBreadcrumb: 'AGENTS.md',
       onFolderClick: (id: string) => {
         navigate({
           to: '/projects/$projectId/folders/$folderId',
