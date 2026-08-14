@@ -1,6 +1,6 @@
 {
   "name": "@shumai/agent",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
