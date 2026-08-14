@@ -226,14 +226,14 @@ export function AgentsMdEditor({ projectId, assetId, rootFolderId, isRoot }: Age
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden">
+    <div className="flex-1 flex flex-col h-full min-h-0 overflow-hidden">
       <MarkdownEditor
         value={content}
         onChange={handleContentChange}
         placeholder={m.agents_md_placeholder()}
         readOnly={!canAdmin}
         rightToolbarContent={rightToolbarContent}
-        className="flex-1 flex flex-col h-full border rounded-lg shadow-sm"
+        className="flex-1 flex flex-col h-full min-h-0 border rounded-lg shadow-sm"
       />
     </div>
   )

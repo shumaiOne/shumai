@@ -24,6 +24,7 @@ import { AutoLinkNode, LinkNode } from '@lexical/link'
 import { ToolbarPlugin } from './toolbar'
 import { editorTheme } from './theme'
 import { EDITOR_TRANSFORMERS } from './transformers'
+import { ScrollArea } from '@/ui/components/ui/scroll-area'
 import './markdown-editor.css'
 
 function MarkdownSyncPlugin({
@@ -135,12 +136,14 @@ export function MarkdownEditor({
             {rightToolbarContent}
           </div>
         ) : null}
-        <div className="shumai-editor-content-area">
-          <RichTextPlugin
-            contentEditable={<ContentEditable className="editor-input" />}
-            placeholder={<div className="editor-placeholder">{placeholder}</div>}
-            ErrorBoundary={LexicalErrorBoundary}
-          />
+        <ScrollArea className="shumai-editor-content-area flex-1 min-h-0 w-full">
+          <div className="relative min-h-full">
+            <RichTextPlugin
+              contentEditable={<ContentEditable className="editor-input" />}
+              placeholder={<div className="editor-placeholder">{placeholder}</div>}
+              ErrorBoundary={LexicalErrorBoundary}
+            />
+          </div>
           <HistoryPlugin />
           <ListPlugin />
           <CheckListPlugin />
@@ -149,7 +152,7 @@ export function MarkdownEditor({
           <MarkdownShortcutPlugin transformers={EDITOR_TRANSFORMERS} />
           <MarkdownSyncPlugin value={value} initialContent={initialContent} onChange={onChange} />
           {autoFocus && <AutoFocusPlugin />}
-        </div>
+        </ScrollArea>
       </LexicalComposer>
     </div>
   )

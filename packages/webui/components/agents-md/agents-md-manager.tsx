@@ -127,7 +127,7 @@ export default function AgentsMdManager({
           </>
         )}
 
-        <div className="flex-1 flex flex-col min-w-0 bg-background overflow-hidden p-3">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-background overflow-hidden p-3">
           <AgentsMdEditor
             projectId={projectId}
             assetId={assetId}
