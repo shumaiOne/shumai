@@ -76,12 +76,12 @@ export function FileBrowserToolbar({
   const handleOpenAgentsMd = () => {
     if (assetId === rootFolderId) {
       navigate({
-        to: '/projects/$projectId/agents/md',
+        to: '/projects/$projectId/agentsmd',
         params: { projectId },
       })
     } else {
       navigate({
-        to: '/projects/$projectId/folders/$folderId/agents/md',
+        to: '/projects/$projectId/folders/$folderId/agentsmd',
         params: { projectId, folderId: assetId },
       })
     }

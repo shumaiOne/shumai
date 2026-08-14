@@ -5,10 +5,10 @@ import { useTeamContextStore } from '@/ui/stores/team-context'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { createLazyFileRoute } from '@tanstack/react-router'
 import { useEffect } from 'react'
-import { projectInfoQueryOptions } from './agents.md'
+import { projectInfoQueryOptions } from './$folderId_.agentsmd'
 
-function ProjectAgentsMdPage() {
-  const { projectId } = Route.useParams()
+function FolderAgentsMdPage() {
+  const { projectId, folderId } = Route.useParams()
   const { teamId, ensureTeamIdForProject } = useTeamContextStore()
 
   useEffect(() => {
@@ -40,13 +40,13 @@ function ProjectAgentsMdPage() {
       teamId={teamId}
       projectId={projectId}
       projectName={projectInfo.name ?? ''}
-      assetId={rootFolderId}
+      assetId={folderId}
       rootFolderId={rootFolderId}
-      isRoot={true}
+      isRoot={false}
     />
   )
 }
 
-export const Route = createLazyFileRoute('/projects/$projectId/agents/md')({
-  component: ProjectAgentsMdPage,
+export const Route = createLazyFileRoute('/projects/$projectId/folders/$folderId_/agentsmd')({
+  component: FolderAgentsMdPage,
 })

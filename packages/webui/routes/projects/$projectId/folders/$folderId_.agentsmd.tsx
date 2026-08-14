@@ -13,7 +13,7 @@ export const projectInfoQueryOptions = (projectId: string) => ({
   },
 })
 
-export const Route = createFileRoute('/projects/$projectId/folders/$folderId/agents/md')({
+export const Route = createFileRoute('/projects/$projectId/folders/$folderId_/agentsmd')({
   loader: ({ context: { queryClient }, params: { projectId } }) =>
     queryClient.ensureQueryData(projectInfoQueryOptions(projectId)),
   pendingComponent: () => <ProjectFolderSkeleton />,
