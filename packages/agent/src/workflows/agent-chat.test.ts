@@ -150,6 +150,7 @@ describe('Agent Chat Workflow', () => {
         agentsInstruction: expectedInstruction1,
         sessionId: 'session-123',
         folderId: 'parent-folder-id',
+        assetId: 'a1',
       }),
     )
 

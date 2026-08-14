@@ -2969,5 +2969,38 @@ describe('AssetService — natural sort by name', () => {
         },
       ])
     })
+
+    it('rejects get/update agentsmd on non-folder assets', async () => {
+      const team = await prisma.team.create({
+        data: { name: 'Team_AgentsMd_Type_' + Date.now() },
+      })
+      const project = await prisma.project.create({
+        data: { name: 'Project_AgentsMd_Type', teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'Root',
+          type: AssetType.root,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+      const fileAsset = await prisma.asset.create({
+        data: {
+          name: 'doc.pdf',
+          type: AssetType.file,
+          parentId: rootFolder.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      await expect(assetService.getAgentsMd(fileAsset.id)).rejects.toThrow(
+        'AGENTS.md can only be stored on folders',
+      )
+      await expect(assetService.updateAgentsMd(fileAsset.id, '# Nope')).rejects.toThrow(
+        'AGENTS.md can only be stored on folders',
+      )
+    })
   })
 })

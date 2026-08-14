@@ -2169,18 +2169,24 @@ export class AssetService {
   async getAgentsMd(assetId: string): Promise<string | null> {
     const asset = await this.prismaClient.asset.findUnique({
       where: { id: assetId },
-      select: { agentmd: true },
+      select: { agentmd: true, type: true },
     })
     if (!asset) throw new Error('Asset not found')
+    if (asset.type !== AssetType.folder && asset.type !== AssetType.root) {
+      throw new Error('AGENTS.md can only be stored on folders')
+    }
     return asset.agentmd ?? null
   }
 
   async updateAgentsMd(assetId: string, content: string): Promise<{ content: string }> {
     const asset = await this.prismaClient.asset.findUnique({
       where: { id: assetId },
-      select: { id: true },
+      select: { id: true, type: true },
     })
     if (!asset) throw new Error('Asset not found')
+    if (asset.type !== AssetType.folder && asset.type !== AssetType.root) {
+      throw new Error('AGENTS.md can only be stored on folders')
+    }
     const updated = await this.prismaClient.asset.update({
       where: { id: assetId },
       data: { agentmd: content },

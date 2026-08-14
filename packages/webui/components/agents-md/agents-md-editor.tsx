@@ -10,7 +10,6 @@ import { Button } from '../ui/button'
 import { Separator } from '../ui/separator'
 
 export interface AgentsMdEditorProps {
-  teamId: string
   projectId: string
   assetId: string
   rootFolderId: string
@@ -39,6 +38,9 @@ export function AgentsMdEditor({ projectId, assetId, rootFolderId, isRoot }: Age
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const clearSavedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const latestContentRef = useRef<string>('')
+  // Serializes autosaves so a newer write can never be overwritten by an older
+  // in-flight request completing out of order.
+  const saveChainRef = useRef<Promise<unknown>>(Promise.resolve())
 
   useEffect(() => {
     if (!isInitialized && data !== undefined) {
@@ -74,11 +76,16 @@ export function AgentsMdEditor({ projectId, assetId, rootFolderId, isRoot }: Age
     },
   })
 
-  const triggerSave = useCallback(
+  const enqueueSave = useCallback(
     (textToSave: string) => {
       if (!canAdmin) return
       setSaveStatus('saving')
-      saveMutation.mutate(textToSave)
+      saveChainRef.current = saveChainRef.current
+        .then(() => saveMutation.mutateAsync(textToSave))
+        .catch(() => {
+          // Swallow so a failed save does not break the chain for later saves.
+          // The mutation's onError handler already surfaces the failure.
+        })
     },
     [canAdmin, saveMutation],
   )
@@ -95,24 +102,34 @@ export function AgentsMdEditor({ projectId, assetId, rootFolderId, isRoot }: Age
 
       setSaveStatus('saving')
       saveTimeoutRef.current = setTimeout(() => {
-        triggerSave(newMarkdown)
+        saveTimeoutRef.current = null
+        enqueueSave(newMarkdown)
       }, 750)
     },
-    [canAdmin, triggerSave],
+    [canAdmin, enqueueSave],
   )
+
+  // Flushes any pending debounced edits so they are not lost when the editor
+  // unmounts (close button, folder-tree navigation, or route change).
+  const flushPendingSave = useCallback(() => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current)
+      saveTimeoutRef.current = null
+      enqueueSave(latestContentRef.current)
+    }
+  }, [enqueueSave])
 
   useEffect(() => {
     return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current)
-      }
+      flushPendingSave()
       if (clearSavedTimeoutRef.current) {
         clearTimeout(clearSavedTimeoutRef.current)
       }
     }
-  }, [])
+  }, [flushPendingSave])
 
   const handleClose = () => {
+    flushPendingSave()
     if (isRoot || assetId === rootFolderId) {
       navigate({
         to: '/projects/$projectId',
@@ -145,7 +162,7 @@ export function AgentsMdEditor({ projectId, assetId, rootFolderId, isRoot }: Age
           {saveStatus === 'error' && (
             <span className="inline-flex items-center gap-1 text-destructive font-medium">
               <AlertCircle className="h-3.5 w-3.5" />
-              <span>Failed to save</span>
+              <span>{m.agents_md_save_failed()}</span>
             </span>
           )}
         </div>
@@ -178,7 +195,7 @@ export function AgentsMdEditor({ projectId, assetId, rootFolderId, isRoot }: Age
     return (
       <div className="flex-1 flex items-center justify-center p-8 text-sm text-muted-foreground">
         <Save className="h-4 w-4 animate-pulse mr-2" />
-        <span>Loading AGENTS.md...</span>
+        <span>{m.agents_md_loading()}</span>
       </div>
     )
   }

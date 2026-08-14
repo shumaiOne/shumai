@@ -1040,5 +1040,7 @@
   "read_only": "只读",
   "agents_md": "AGENTS.md",
   "agents_md_placeholder": "在此处为 AI Agent 编写项目或文件夹指引...",
-  "agents_md_readonly_hint": "只有项目所有者可以编辑 AGENTS.md 指引。"
+  "agents_md_readonly_hint": "只有项目所有者可以编辑 AGENTS.md 指引。",
+  "agents_md_save_failed": "保存失败",
+  "agents_md_loading": "正在加载 AGENTS.md..."
 }

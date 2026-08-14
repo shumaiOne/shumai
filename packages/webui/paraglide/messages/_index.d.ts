@@ -985,4 +985,6 @@ export * from "./read_only.js";
 export * from "./agents_md.js";
 export * from "./agents_md_placeholder.js";
 export * from "./agents_md_readonly_hint.js";
+export * from "./agents_md_save_failed.js";
+export * from "./agents_md_loading.js";
 export type LocalizedString = import("../runtime.js").LocalizedString;

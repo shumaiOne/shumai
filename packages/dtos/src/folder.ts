@@ -21,17 +21,7 @@ export const restoreFoldersRequestSchema = z.object({
 })
 export type RestoreFoldersRequest = z.infer<typeof restoreFoldersRequestSchema>
 
-export const getAgentsMdResponseSchema = z.object({
-  content: z.string().nullable(),
-})
-export type GetAgentsMdResponse = z.infer<typeof getAgentsMdResponseSchema>
-
 export const updateAgentsMdRequestSchema = z.object({
-  content: z.string(),
+  content: z.string().max(100_000),
 })
 export type UpdateAgentsMdRequest = z.infer<typeof updateAgentsMdRequestSchema>
-
-export const updateAgentsMdResponseSchema = z.object({
-  content: z.string(),
-})
-export type UpdateAgentsMdResponse = z.infer<typeof updateAgentsMdResponseSchema>

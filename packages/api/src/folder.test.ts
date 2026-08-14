@@ -352,4 +352,17 @@ describe('folder api', () => {
     })
     expect(assetService.updateAgentsMd).toHaveBeenCalledWith('test-id', '# Updated Guidelines')
   })
+
+  it('PATCH /folders/:folderId/agentsmd rejects oversized content', async () => {
+    const mockUpdate = vi.spyOn(assetService, 'updateAgentsMd').mockResolvedValue({ content: '' })
+    const app = new Hono().use('*', authMiddleware).route('/', folderRoute)
+    const res = await app.request('/folders/test-id/agentsmd', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: 'x'.repeat(100_001) }),
+    })
+
+    expect(res.status).toBe(400)
+    expect(mockUpdate).not.toHaveBeenCalled()
+  })
 })
