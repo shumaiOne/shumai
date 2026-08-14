@@ -108,6 +108,11 @@ export type StorageKey = Prisma.StorageKeyModel
  */
 export type AssetMetadataValue = Prisma.AssetMetadataValueModel
 /**
+ * Model AssetAgentMd
+ * 
+ */
+export type AssetAgentMd = Prisma.AssetAgentMdModel
+/**
  * Model AssetComment
  * 
  */

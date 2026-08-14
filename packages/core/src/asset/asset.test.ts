@@ -2852,7 +2852,7 @@ describe('AssetService — natural sort by name', () => {
       expect(content).toBeNull()
     })
 
-    it('updateAgentsMd updates and getAgentsMd retrieves agentmd', async () => {
+    it('updateAgentsMd updates and getAgentsMd retrieves agentmd, and empty deletes', async () => {
       const team = await prisma.team.create({
         data: { name: 'Team_AgentsMd2_' + Date.now() },
       })
@@ -2873,6 +2873,19 @@ describe('AssetService — natural sort by name', () => {
 
       const content = await assetService.getAgentsMd(folder.id)
       expect(content).toBe('# Custom Guidelines')
+
+      let folderInfo = await assetService.getAsset({ assetId: folder.id })
+      expect(folderInfo?.hasAgentsMd).toBe(true)
+
+      // Empty string deletes the record
+      const clearResult = await assetService.updateAgentsMd(folder.id, '   ')
+      expect(clearResult).toEqual({ content: '' })
+
+      const emptyContent = await assetService.getAgentsMd(folder.id)
+      expect(emptyContent).toBeNull()
+
+      folderInfo = await assetService.getAsset({ assetId: folder.id })
+      expect(folderInfo?.hasAgentsMd).toBe(false)
     })
 
     it('getNestedAgentsMd traverses hierarchy from root to leaf and formats virtual paths', async () => {
@@ -2890,7 +2903,12 @@ describe('AssetService — natural sort by name', () => {
           type: AssetType.root,
           projectId: project.id,
           status: AssetStatus.uploaded,
-          agentmd: '# Root Instructions\nFollow global rules.',
+        },
+      })
+      await prisma.assetAgentMd.create({
+        data: {
+          assetId: rootFolder.id,
+          content: '# Root Instructions\nFollow global rules.',
         },
       })
 
@@ -2902,11 +2920,16 @@ describe('AssetService — natural sort by name', () => {
           parentId: rootFolder.id,
           projectId: project.id,
           status: AssetStatus.uploaded,
-          agentmd: '# Marketing Instructions\nTone must be upbeat.',
+        },
+      })
+      await prisma.assetAgentMd.create({
+        data: {
+          assetId: marketingFolder.id,
+          content: '# Marketing Instructions\nTone must be upbeat.',
         },
       })
 
-      // 3. Subfolder 2: campaigns (empty agentmd)
+      // 3. Subfolder 2: campaigns (no agentmd)
       const campaignsFolder = await prisma.asset.create({
         data: {
           name: 'campaigns',
@@ -2914,7 +2937,6 @@ describe('AssetService — natural sort by name', () => {
           parentId: marketingFolder.id,
           projectId: project.id,
           status: AssetStatus.uploaded,
-          agentmd: '   ',
         },
       })
 
@@ -2926,7 +2948,12 @@ describe('AssetService — natural sort by name', () => {
           parentId: campaignsFolder.id,
           projectId: project.id,
           status: AssetStatus.uploaded,
-          agentmd: '# Video Ads Instructions\nInclude resolution tags.',
+        },
+      })
+      await prisma.assetAgentMd.create({
+        data: {
+          assetId: videoAdsFolder.id,
+          content: '# Video Ads Instructions\nInclude resolution tags.',
         },
       })
 

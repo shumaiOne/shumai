@@ -1592,6 +1592,15 @@ export class AssetService {
       }
     }
 
+    const agentMdRecords =
+      assets.length > 0
+        ? await this.prismaClient.assetAgentMd.findMany({
+            where: { assetId: { in: assets.map((a) => a.id) } },
+            select: { assetId: true },
+          })
+        : []
+    const hasAgentMdSet = new Set(agentMdRecords.map((r) => r.assetId))
+
     const result: AssetInfo[] = []
     for (const a of assets) {
       let latestVersion:
@@ -1753,7 +1762,7 @@ export class AssetService {
         creator,
         fieldValues,
         sortIndex: a.sortIndex,
-        hasAgentsMd: Boolean(a.agentmd && a.agentmd.trim().length > 0),
+        hasAgentsMd: hasAgentMdSet.has(a.id),
         media: media as unknown as AssetInfo['media'],
         versionStack,
       })
@@ -2169,13 +2178,17 @@ export class AssetService {
   async getAgentsMd(assetId: string): Promise<string | null> {
     const asset = await this.prismaClient.asset.findUnique({
       where: { id: assetId },
-      select: { agentmd: true, type: true },
+      select: { type: true },
     })
     if (!asset) throw new Error('Asset not found')
     if (asset.type !== AssetType.folder && asset.type !== AssetType.root) {
       throw new Error('AGENTS.md can only be stored on folders')
     }
-    return asset.agentmd ?? null
+    const record = await this.prismaClient.assetAgentMd.findUnique({
+      where: { assetId },
+      select: { content: true },
+    })
+    return record?.content ?? null
   }
 
   async updateAgentsMd(assetId: string, content: string): Promise<{ content: string }> {
@@ -2187,12 +2200,20 @@ export class AssetService {
     if (asset.type !== AssetType.folder && asset.type !== AssetType.root) {
       throw new Error('AGENTS.md can only be stored on folders')
     }
-    const updated = await this.prismaClient.asset.update({
-      where: { id: assetId },
-      data: { agentmd: content },
-      select: { agentmd: true },
+    const trimmed = content.trim()
+    if (trimmed.length === 0) {
+      await this.prismaClient.assetAgentMd.deleteMany({
+        where: { assetId },
+      })
+      return { content: '' }
+    }
+    const record = await this.prismaClient.assetAgentMd.upsert({
+      where: { assetId },
+      create: { assetId, content },
+      update: { content },
+      select: { content: true },
     })
-    return { content: updated.agentmd ?? '' }
+    return { content: record.content }
   }
 
   async getNestedAgentsMd(assetId: string): Promise<Array<{ path: string; content: string }>> {
@@ -2202,7 +2223,6 @@ export class AssetService {
       name: string
       type: AssetType
       parentId: string | null
-      agentmd: string | null
     }> = []
 
     while (currentId) {
@@ -2211,10 +2231,9 @@ export class AssetService {
         name: string
         type: AssetType
         parentId: string | null
-        agentmd: string | null
       } | null = await this.prismaClient.asset.findUnique({
         where: { id: currentId },
-        select: { id: true, name: true, type: true, parentId: true, agentmd: true },
+        select: { id: true, name: true, type: true, parentId: true },
       })
       if (!node) break
       nodes.unshift(node)
@@ -2222,6 +2241,12 @@ export class AssetService {
     }
 
     if (nodes.length === 0) return []
+
+    const agentMds = await this.prismaClient.assetAgentMd.findMany({
+      where: { assetId: { in: nodes.map((n) => n.id) } },
+      select: { assetId: true, content: true },
+    })
+    const agentMdMap = new Map(agentMds.map((m) => [m.assetId, m.content]))
 
     const results: Array<{ path: string; content: string }> = []
     let currentFolderPath = ''
@@ -2240,10 +2265,11 @@ export class AssetService {
         virtualPath = `${currentFolderPath}/AGENTS.md`
       }
 
-      if (node.agentmd && node.agentmd.trim().length > 0) {
+      const content = agentMdMap.get(node.id)
+      if (content && content.trim().length > 0) {
         results.push({
           path: virtualPath,
-          content: node.agentmd.trim(),
+          content: content.trim(),
         })
       }
     }

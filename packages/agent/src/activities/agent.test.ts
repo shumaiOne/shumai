@@ -2073,7 +2073,12 @@ describe('Agent Database Activities Integration', () => {
           type: AssetType.root,
           projectId: project.id,
           status: AssetStatus.uploaded,
-          agentmd: '# Root Policy',
+        },
+      })
+      await prisma.assetAgentMd.create({
+        data: {
+          assetId: rootFolder.id,
+          content: '# Root Policy',
         },
       })
       const subfolder = await prisma.asset.create({
@@ -2083,7 +2088,12 @@ describe('Agent Database Activities Integration', () => {
           parentId: rootFolder.id,
           projectId: project.id,
           status: AssetStatus.uploaded,
-          agentmd: '# Subfolder Policy',
+        },
+      })
+      await prisma.assetAgentMd.create({
+        data: {
+          assetId: subfolder.id,
+          content: '# Subfolder Policy',
         },
       })
 
