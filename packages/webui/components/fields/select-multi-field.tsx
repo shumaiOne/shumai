@@ -20,7 +20,6 @@ const SelectMultiField: React.FC<FieldProps<string[]>> = ({
   const options: SelectOption[] = selectConfig?.options || []
   const containerRef = useRef<HTMLDivElement>(null)
   const [isEditing, setIsEditing] = useState(false)
-  const [expanded, setExpanded] = useState(false)
   const [visibleCount, setVisibleCount] = useState(value.length)
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -39,44 +38,44 @@ const SelectMultiField: React.FC<FieldProps<string[]>> = ({
 
   // Dynamic calculation for how many items fit in one line
   useLayoutEffect(() => {
-    if (isEditing || expanded) {
+    if (isEditing) {
       setVisibleCount(selectedOptions.length)
       return
     }
 
     if (containerRef.current) {
-      const containerWidth = containerRef.current.offsetWidth
+      const innerWidth = containerRef.current.clientWidth - 8 // account for px-1 (8px padding)
       const canvas = document.createElement('canvas')
       const context = canvas.getContext('2d')
-      if (context) {
-        context.font = '12px ui-sans-serif, system-ui, sans-serif'
+      if (context && innerWidth > 0) {
+        context.font = '500 12px ui-sans-serif, system-ui, sans-serif'
+        const gap = 4
+        const badgeWidths = selectedOptions.map(
+          (opt) => Math.ceil(context.measureText(opt.displayName).width) + 18,
+        )
+        const totalAllWidth =
+          badgeWidths.reduce((a, b) => a + b, 0) + Math.max(0, badgeWidths.length - 1) * gap
 
+        if (totalAllWidth <= innerWidth) {
+          setVisibleCount(selectedOptions.length)
+          return
+        }
+
+        const moreBadgeWidth = 32
+        const maxAvailableWidth = innerWidth - moreBadgeWidth - gap
         let currentWidth = 0
         let count = 0
-        const moreBadgeWidth = 28
-        const maxAvailableWidth = containerWidth - moreBadgeWidth
 
-        for (let i = 0; i < selectedOptions.length; i++) {
-          const textWidth = context.measureText(selectedOptions[i].displayName).width
-          const badgeWidth = textWidth + 16 + 4
-
-          if (currentWidth + badgeWidth > maxAvailableWidth && i < selectedOptions.length - 1) {
-            break
-          }
-          if (i === selectedOptions.length - 1) {
-            if (currentWidth + badgeWidth <= containerWidth) {
-              count++
-            }
-            break
-          }
-
-          currentWidth += badgeWidth
+        for (let i = 0; i < badgeWidths.length; i++) {
+          const widthWithGap = count > 0 ? currentWidth + gap + badgeWidths[i] : badgeWidths[i]
+          if (widthWithGap > maxAvailableWidth) break
+          currentWidth = widthWithGap
           count++
         }
         setVisibleCount(count)
       }
     }
-  }, [selectedOptions, isEditing, expanded, value])
+  }, [selectedOptions, isEditing, value])
 
   const toggleOption = (optionId: string) => {
     const currentVal = value || []
@@ -135,40 +134,24 @@ const SelectMultiField: React.FC<FieldProps<string[]>> = ({
 
   const handlePlaceholderClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (isEditing) return
-
-    const hiddenCount = selectedOptions.length - visibleCount
-    if (!expanded && hiddenCount > 0) {
-      setExpanded(true)
-    } else {
-      if (!readOnly) {
-        setIsEditing(true)
-      }
-    }
-  }
-
-  const handleOverlayClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
     if (!readOnly) {
       setIsEditing(true)
     }
   }
 
   const hiddenCount = selectedOptions.length - visibleCount
-  const isOpen = (expanded && !isEditing) || isEditing
 
   const handleOpenChange = (open: boolean) => {
     if (readOnly) return
+    setIsEditing(open)
     if (!open) {
-      setExpanded(false)
-      setIsEditing(false)
       setSearchQuery('')
     }
   }
 
   return (
     <div className="relative w-full" onClick={(e) => e.stopPropagation()}>
-      <Popover open={!readOnly && isOpen} onOpenChange={handleOpenChange}>
+      <Popover open={!readOnly && isEditing} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           {/* Placeholder Display Mode */}
           <div
@@ -207,87 +190,61 @@ const SelectMultiField: React.FC<FieldProps<string[]>> = ({
           side="bottom"
           align="start"
           sideOffset={4}
-          className={`p-1.5 bg-popover border rounded-lg shadow-xl max-h-72 flex flex-col ${
-            expanded && !isEditing
-              ? 'w-[--radix-popover-trigger-width] min-w-[200px] flex flex-wrap gap-1 border-ring min-h-[32px] h-auto cursor-pointer overflow-auto'
-              : 'w-64 border-border'
-          }`}
-          onClick={expanded && !isEditing ? handleOverlayClick : undefined}
+          className="p-1.5 w-64 max-h-72 flex flex-col bg-popover border border-border rounded-lg shadow-lg"
         >
-          {expanded && !isEditing ? (
-            <>
-              {selectedOptions.length === 0 && (
-                <span className="text-muted-foreground text-sm italic px-1 pt-0.5">Empty</span>
-              )}
-              {selectedOptions.map((option: SelectOption) => (
-                <span
+          <div
+            className="relative pb-1.5 border-b border-border mb-1"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Search className="w-3.5 h-3.5 absolute left-2 top-2 text-muted-foreground" />
+            <input
+              type="text"
+              className="w-full pl-7 pr-2 py-1 text-xs bg-muted/50 border border-input rounded-md focus:outline-none focus:ring-1 focus:ring-ring text-foreground"
+              placeholder={m.search_options_placeholder()}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              autoFocus
+            />
+          </div>
+
+          <div className="overflow-y-auto max-h-48 min-h-[120px] space-y-0.5">
+            {filteredOptions.map((option: SelectOption) => {
+              const isSelected = (value || []).includes(option.id)
+              return (
+                <div
                   key={option.id}
-                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border border-transparent whitespace-nowrap h-[22px]"
-                  style={getOptionStyle(option.color)}
+                  onClick={() => toggleOption(option.id)}
+                  className={`px-2.5 py-1.5 hover:bg-accent rounded cursor-pointer flex items-center justify-between text-xs ${
+                    isSelected ? 'bg-accent/30 font-medium' : ''
+                  }`}
                 >
-                  {option.displayName}
-                </span>
-              ))}
-            </>
-          ) : (
-            <>
-              <div
-                className="relative pb-1.5 border-b border-border mb-1"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Search className="w-3.5 h-3.5 absolute left-2 top-2 text-muted-foreground" />
-                <input
-                  type="text"
-                  className="w-full pl-7 pr-2 py-1 text-xs bg-muted/50 border border-input rounded-md focus:outline-none focus:ring-1 focus:ring-ring text-foreground"
-                  placeholder={m.search_options_placeholder()}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  autoFocus
-                />
-              </div>
-
-              <div className="overflow-y-auto max-h-48 min-h-[120px] space-y-0.5">
-                {filteredOptions.map((option: SelectOption) => {
-                  const isSelected = (value || []).includes(option.id)
-                  return (
-                    <div
-                      key={option.id}
-                      onClick={() => toggleOption(option.id)}
-                      className={`px-2.5 py-1.5 hover:bg-accent rounded cursor-pointer flex items-center justify-between text-xs ${
-                        isSelected ? 'bg-accent/30 font-medium' : ''
-                      }`}
-                    >
-                      <span
-                        className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
-                        style={getOptionStyle(option.color)}
-                      >
-                        {option.displayName}
-                      </span>
-                      {isSelected && <Check className="w-3.5 h-3.5 text-primary" />}
-                    </div>
-                  )
-                })}
-
-                {filteredOptions.length === 0 && !trimmedSearch && (
-                  <div className="px-2.5 py-2 text-xs text-muted-foreground italic text-center">
-                    {m.no_options_found()}
-                  </div>
-                )}
-
-                {trimmedSearch !== '' && !hasExactMatch && (
-                  <div
-                    onClick={handleAddOption}
-                    className="px-2.5 py-1.5 text-xs text-primary hover:bg-accent rounded cursor-pointer flex items-center gap-1.5 font-medium border-t border-border mt-1 pt-1.5"
+                  <span
+                    className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                    style={getOptionStyle(option.color)}
                   >
-                    <Plus className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">
-                      {m.add_option_with_name({ name: trimmedSearch })}
-                    </span>
-                  </div>
-                )}
+                    {option.displayName}
+                  </span>
+                  {isSelected && <Check className="w-3.5 h-3.5 text-primary" />}
+                </div>
+              )
+            })}
+
+            {filteredOptions.length === 0 && !trimmedSearch && (
+              <div className="px-2.5 py-2 text-xs text-muted-foreground italic text-center">
+                {m.no_options_found()}
               </div>
-            </>
-          )}
+            )}
+
+            {trimmedSearch !== '' && !hasExactMatch && (
+              <div
+                onClick={handleAddOption}
+                className="px-2.5 py-1.5 text-xs text-primary hover:bg-accent rounded cursor-pointer flex items-center gap-1.5 font-medium border-t border-border mt-1 pt-1.5"
+              >
+                <Plus className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{m.add_option_with_name({ name: trimmedSearch })}</span>
+              </div>
+            )}
+          </div>
         </PopoverContent>
       </Popover>
     </div>

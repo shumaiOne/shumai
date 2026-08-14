@@ -121,4 +121,15 @@ describe('SelectMultiField Component', () => {
       expect(onSave).toHaveBeenCalledWith(['foo', 'new-multi-option'])
     })
   })
+
+  it('opens search input directly on first click even when multiple items are selected', () => {
+    render(<SelectMultiField value={['foo', 'bar']} config={sampleConfig} onSave={vi.fn()} />)
+
+    const trigger = screen.getByText('Foo')
+    fireEvent.click(trigger)
+
+    const searchInput = screen.getByPlaceholderText('Search options...')
+    expect(searchInput).toBeTruthy()
+    expect(screen.getByText('abc')).toBeTruthy()
+  })
 })
