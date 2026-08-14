@@ -1035,5 +1035,10 @@
   "preview_backdrop": "预览背景",
   "dark_grid": "深色网格",
   "light_grid": "浅色网格",
-  "sample_backdrop": "示例媒体"
+  "sample_backdrop": "示例媒体",
+  "saved": "已保存",
+  "read_only": "只读",
+  "agents_md": "AGENTS.md",
+  "agents_md_placeholder": "在此处为 AI Agent 编写项目或文件夹指引...",
+  "agents_md_readonly_hint": "只有项目所有者可以编辑 AGENTS.md 指引。"
 }

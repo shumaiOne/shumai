@@ -50,6 +50,7 @@ export type AssetMinAggregateOutputType = {
   isDeleted: boolean | null
   deletedAt: Date | null
   sortIndex: string | null
+  agentmd: string | null
   createdAt: Date | null
   updatedAt: Date | null
   parentId: string | null
@@ -72,6 +73,7 @@ export type AssetMaxAggregateOutputType = {
   isDeleted: boolean | null
   deletedAt: Date | null
   sortIndex: string | null
+  agentmd: string | null
   createdAt: Date | null
   updatedAt: Date | null
   parentId: string | null
@@ -96,6 +98,7 @@ export type AssetCountAggregateOutputType = {
   isDeleted: number
   deletedAt: number
   sortIndex: number
+  agentmd: number
   createdAt: number
   updatedAt: number
   parentId: number
@@ -130,6 +133,7 @@ export type AssetMinAggregateInputType = {
   isDeleted?: true
   deletedAt?: true
   sortIndex?: true
+  agentmd?: true
   createdAt?: true
   updatedAt?: true
   parentId?: true
@@ -152,6 +156,7 @@ export type AssetMaxAggregateInputType = {
   isDeleted?: true
   deletedAt?: true
   sortIndex?: true
+  agentmd?: true
   createdAt?: true
   updatedAt?: true
   parentId?: true
@@ -176,6 +181,7 @@ export type AssetCountAggregateInputType = {
   isDeleted?: true
   deletedAt?: true
   sortIndex?: true
+  agentmd?: true
   createdAt?: true
   updatedAt?: true
   parentId?: true
@@ -287,6 +293,7 @@ export type AssetGroupByOutputType = {
   isDeleted: boolean
   deletedAt: Date | null
   sortIndex: string | null
+  agentmd: string | null
   createdAt: Date
   updatedAt: Date
   parentId: string | null
@@ -334,6 +341,7 @@ export type AssetWhereInput = {
   isDeleted?: Prisma.BoolFilter<"Asset"> | boolean
   deletedAt?: Prisma.DateTimeNullableFilter<"Asset"> | Date | string | null
   sortIndex?: Prisma.StringNullableFilter<"Asset"> | string | null
+  agentmd?: Prisma.StringNullableFilter<"Asset"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Asset"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Asset"> | Date | string
   parentId?: Prisma.StringNullableFilter<"Asset"> | string | null
@@ -377,6 +385,7 @@ export type AssetOrderByWithRelationInput = {
   isDeleted?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   sortIndex?: Prisma.SortOrderInput | Prisma.SortOrder
+  agentmd?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   parentId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -424,6 +433,7 @@ export type AssetWhereUniqueInput = Prisma.AtLeast<{
   isDeleted?: Prisma.BoolFilter<"Asset"> | boolean
   deletedAt?: Prisma.DateTimeNullableFilter<"Asset"> | Date | string | null
   sortIndex?: Prisma.StringNullableFilter<"Asset"> | string | null
+  agentmd?: Prisma.StringNullableFilter<"Asset"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Asset"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Asset"> | Date | string
   parentId?: Prisma.StringNullableFilter<"Asset"> | string | null
@@ -467,6 +477,7 @@ export type AssetOrderByWithAggregationInput = {
   isDeleted?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   sortIndex?: Prisma.SortOrderInput | Prisma.SortOrder
+  agentmd?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   parentId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -499,6 +510,7 @@ export type AssetScalarWhereWithAggregatesInput = {
   isDeleted?: Prisma.BoolWithAggregatesFilter<"Asset"> | boolean
   deletedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Asset"> | Date | string | null
   sortIndex?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
+  agentmd?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Asset"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Asset"> | Date | string
   parentId?: Prisma.StringNullableWithAggregatesFilter<"Asset"> | string | null
@@ -523,6 +535,7 @@ export type AssetCreateInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parent?: Prisma.AssetCreateNestedOneWithoutChildrenInput
@@ -560,6 +573,7 @@ export type AssetUncheckedCreateInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
@@ -597,6 +611,7 @@ export type AssetUpdateInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parent?: Prisma.AssetUpdateOneWithoutChildrenNestedInput
@@ -634,6 +649,7 @@ export type AssetUncheckedUpdateInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -671,6 +687,7 @@ export type AssetCreateManyInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
@@ -695,6 +712,7 @@ export type AssetUpdateManyMutationInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -713,6 +731,7 @@ export type AssetUncheckedUpdateManyInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -762,6 +781,7 @@ export type AssetCountOrderByAggregateInput = {
   isDeleted?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   sortIndex?: Prisma.SortOrder
+  agentmd?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   parentId?: Prisma.SortOrder
@@ -789,6 +809,7 @@ export type AssetMaxOrderByAggregateInput = {
   isDeleted?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   sortIndex?: Prisma.SortOrder
+  agentmd?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   parentId?: Prisma.SortOrder
@@ -811,6 +832,7 @@ export type AssetMinOrderByAggregateInput = {
   isDeleted?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   sortIndex?: Prisma.SortOrder
+  agentmd?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   parentId?: Prisma.SortOrder
@@ -1321,6 +1343,7 @@ export type AssetCreateWithoutCreatorInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parent?: Prisma.AssetCreateNestedOneWithoutChildrenInput
@@ -1357,6 +1380,7 @@ export type AssetUncheckedCreateWithoutCreatorInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
@@ -1422,6 +1446,7 @@ export type AssetScalarWhereInput = {
   isDeleted?: Prisma.BoolFilter<"Asset"> | boolean
   deletedAt?: Prisma.DateTimeNullableFilter<"Asset"> | Date | string | null
   sortIndex?: Prisma.StringNullableFilter<"Asset"> | string | null
+  agentmd?: Prisma.StringNullableFilter<"Asset"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Asset"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Asset"> | Date | string
   parentId?: Prisma.StringNullableFilter<"Asset"> | string | null
@@ -1446,6 +1471,7 @@ export type AssetCreateWithoutTeamRootFolderInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parent?: Prisma.AssetCreateNestedOneWithoutChildrenInput
@@ -1482,6 +1508,7 @@ export type AssetUncheckedCreateWithoutTeamRootFolderInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
@@ -1534,6 +1561,7 @@ export type AssetUpdateWithoutTeamRootFolderInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parent?: Prisma.AssetUpdateOneWithoutChildrenNestedInput
@@ -1570,6 +1598,7 @@ export type AssetUncheckedUpdateWithoutTeamRootFolderInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1606,6 +1635,7 @@ export type AssetCreateWithoutProjectRootFolderInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parent?: Prisma.AssetCreateNestedOneWithoutChildrenInput
@@ -1642,6 +1672,7 @@ export type AssetUncheckedCreateWithoutProjectRootFolderInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
@@ -1683,6 +1714,7 @@ export type AssetCreateWithoutProjectShareRootInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parent?: Prisma.AssetCreateNestedOneWithoutChildrenInput
@@ -1719,6 +1751,7 @@ export type AssetUncheckedCreateWithoutProjectShareRootInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
@@ -1760,6 +1793,7 @@ export type AssetCreateWithoutProjectInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parent?: Prisma.AssetCreateNestedOneWithoutChildrenInput
@@ -1796,6 +1830,7 @@ export type AssetUncheckedCreateWithoutProjectInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
@@ -1853,6 +1888,7 @@ export type AssetUpdateWithoutProjectRootFolderInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parent?: Prisma.AssetUpdateOneWithoutChildrenNestedInput
@@ -1889,6 +1925,7 @@ export type AssetUncheckedUpdateWithoutProjectRootFolderInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1936,6 +1973,7 @@ export type AssetUpdateWithoutProjectShareRootInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parent?: Prisma.AssetUpdateOneWithoutChildrenNestedInput
@@ -1972,6 +2010,7 @@ export type AssetUncheckedUpdateWithoutProjectShareRootInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2024,6 +2063,7 @@ export type AssetCreateWithoutShareLinkRootFolderInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parent?: Prisma.AssetCreateNestedOneWithoutChildrenInput
@@ -2060,6 +2100,7 @@ export type AssetUncheckedCreateWithoutShareLinkRootFolderInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
@@ -2112,6 +2153,7 @@ export type AssetUpdateWithoutShareLinkRootFolderInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parent?: Prisma.AssetUpdateOneWithoutChildrenNestedInput
@@ -2148,6 +2190,7 @@ export type AssetUncheckedUpdateWithoutShareLinkRootFolderInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2184,6 +2227,7 @@ export type AssetCreateWithoutWatermarkFilesInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parent?: Prisma.AssetCreateNestedOneWithoutChildrenInput
@@ -2220,6 +2264,7 @@ export type AssetUncheckedCreateWithoutWatermarkFilesInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
@@ -2272,6 +2317,7 @@ export type AssetUpdateWithoutWatermarkFilesInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parent?: Prisma.AssetUpdateOneWithoutChildrenNestedInput
@@ -2308,6 +2354,7 @@ export type AssetUncheckedUpdateWithoutWatermarkFilesInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2344,6 +2391,7 @@ export type AssetCreateWithoutChildrenInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parent?: Prisma.AssetCreateNestedOneWithoutChildrenInput
@@ -2380,6 +2428,7 @@ export type AssetUncheckedCreateWithoutChildrenInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
@@ -2421,6 +2470,7 @@ export type AssetCreateWithoutParentInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   children?: Prisma.AssetCreateNestedManyWithoutParentInput
@@ -2457,6 +2507,7 @@ export type AssetUncheckedCreateWithoutParentInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   targetId?: string | null
@@ -2503,6 +2554,7 @@ export type AssetCreateWithoutSymlinksInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parent?: Prisma.AssetCreateNestedOneWithoutChildrenInput
@@ -2539,6 +2591,7 @@ export type AssetUncheckedCreateWithoutSymlinksInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
@@ -2580,6 +2633,7 @@ export type AssetCreateWithoutTargetInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parent?: Prisma.AssetCreateNestedOneWithoutChildrenInput
@@ -2616,6 +2670,7 @@ export type AssetUncheckedCreateWithoutTargetInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
@@ -2673,6 +2728,7 @@ export type AssetUpdateWithoutChildrenInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parent?: Prisma.AssetUpdateOneWithoutChildrenNestedInput
@@ -2709,6 +2765,7 @@ export type AssetUncheckedUpdateWithoutChildrenInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2772,6 +2829,7 @@ export type AssetUpdateWithoutSymlinksInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parent?: Prisma.AssetUpdateOneWithoutChildrenNestedInput
@@ -2808,6 +2866,7 @@ export type AssetUncheckedUpdateWithoutSymlinksInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2860,6 +2919,7 @@ export type AssetCreateWithoutStorageKeyInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parent?: Prisma.AssetCreateNestedOneWithoutChildrenInput
@@ -2896,6 +2956,7 @@ export type AssetUncheckedCreateWithoutStorageKeyInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
@@ -2958,6 +3019,7 @@ export type AssetCreateWithoutMetadataValuesInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parent?: Prisma.AssetCreateNestedOneWithoutChildrenInput
@@ -2994,6 +3056,7 @@ export type AssetUncheckedCreateWithoutMetadataValuesInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
@@ -3046,6 +3109,7 @@ export type AssetUpdateWithoutMetadataValuesInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parent?: Prisma.AssetUpdateOneWithoutChildrenNestedInput
@@ -3082,6 +3146,7 @@ export type AssetUncheckedUpdateWithoutMetadataValuesInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3118,6 +3183,7 @@ export type AssetCreateWithoutCommentsInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parent?: Prisma.AssetCreateNestedOneWithoutChildrenInput
@@ -3154,6 +3220,7 @@ export type AssetUncheckedCreateWithoutCommentsInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
@@ -3206,6 +3273,7 @@ export type AssetUpdateWithoutCommentsInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parent?: Prisma.AssetUpdateOneWithoutChildrenNestedInput
@@ -3242,6 +3310,7 @@ export type AssetUncheckedUpdateWithoutCommentsInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3278,6 +3347,7 @@ export type AssetCreateWithoutCommentAttachmentsInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parent?: Prisma.AssetCreateNestedOneWithoutChildrenInput
@@ -3314,6 +3384,7 @@ export type AssetUncheckedCreateWithoutCommentAttachmentsInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
@@ -3366,6 +3437,7 @@ export type AssetUpdateWithoutCommentAttachmentsInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parent?: Prisma.AssetUpdateOneWithoutChildrenNestedInput
@@ -3402,6 +3474,7 @@ export type AssetUncheckedUpdateWithoutCommentAttachmentsInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3438,6 +3511,7 @@ export type AssetCreateWithoutEmbeddingsInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parent?: Prisma.AssetCreateNestedOneWithoutChildrenInput
@@ -3474,6 +3548,7 @@ export type AssetUncheckedCreateWithoutEmbeddingsInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
@@ -3526,6 +3601,7 @@ export type AssetUpdateWithoutEmbeddingsInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parent?: Prisma.AssetUpdateOneWithoutChildrenNestedInput
@@ -3562,6 +3638,7 @@ export type AssetUncheckedUpdateWithoutEmbeddingsInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3598,6 +3675,7 @@ export type AssetCreateWithoutNotificationsInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parent?: Prisma.AssetCreateNestedOneWithoutChildrenInput
@@ -3634,6 +3712,7 @@ export type AssetUncheckedCreateWithoutNotificationsInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
@@ -3686,6 +3765,7 @@ export type AssetUpdateWithoutNotificationsInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parent?: Prisma.AssetUpdateOneWithoutChildrenNestedInput
@@ -3722,6 +3802,7 @@ export type AssetUncheckedUpdateWithoutNotificationsInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -3758,6 +3839,7 @@ export type AssetCreateWithoutTaskInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parent?: Prisma.AssetCreateNestedOneWithoutChildrenInput
@@ -3794,6 +3876,7 @@ export type AssetUncheckedCreateWithoutTaskInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
@@ -3856,6 +3939,7 @@ export type AssetCreateWithoutAgentSessionsInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parent?: Prisma.AssetCreateNestedOneWithoutChildrenInput
@@ -3892,6 +3976,7 @@ export type AssetUncheckedCreateWithoutAgentSessionsInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
@@ -3944,6 +4029,7 @@ export type AssetUpdateWithoutAgentSessionsInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parent?: Prisma.AssetUpdateOneWithoutChildrenNestedInput
@@ -3980,6 +4066,7 @@ export type AssetUncheckedUpdateWithoutAgentSessionsInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4016,6 +4103,7 @@ export type AssetCreateManyCreatorInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
@@ -4039,6 +4127,7 @@ export type AssetUpdateWithoutCreatorInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parent?: Prisma.AssetUpdateOneWithoutChildrenNestedInput
@@ -4075,6 +4164,7 @@ export type AssetUncheckedUpdateWithoutCreatorInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4111,6 +4201,7 @@ export type AssetUncheckedUpdateManyWithoutCreatorInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4134,6 +4225,7 @@ export type AssetCreateManyProjectInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
@@ -4157,6 +4249,7 @@ export type AssetUpdateWithoutProjectInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parent?: Prisma.AssetUpdateOneWithoutChildrenNestedInput
@@ -4193,6 +4286,7 @@ export type AssetUncheckedUpdateWithoutProjectInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4229,6 +4323,7 @@ export type AssetUncheckedUpdateManyWithoutProjectInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4252,6 +4347,7 @@ export type AssetCreateManyParentInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   targetId?: string | null
@@ -4275,6 +4371,7 @@ export type AssetCreateManyTargetInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
@@ -4298,6 +4395,7 @@ export type AssetUpdateWithoutParentInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   children?: Prisma.AssetUpdateManyWithoutParentNestedInput
@@ -4334,6 +4432,7 @@ export type AssetUncheckedUpdateWithoutParentInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4370,6 +4469,7 @@ export type AssetUncheckedUpdateManyWithoutParentInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4393,6 +4493,7 @@ export type AssetUpdateWithoutTargetInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parent?: Prisma.AssetUpdateOneWithoutChildrenNestedInput
@@ -4429,6 +4530,7 @@ export type AssetUncheckedUpdateWithoutTargetInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4465,6 +4567,7 @@ export type AssetUncheckedUpdateManyWithoutTargetInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4488,6 +4591,7 @@ export type AssetCreateManyStorageKeyInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
@@ -4511,6 +4615,7 @@ export type AssetUpdateWithoutStorageKeyInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parent?: Prisma.AssetUpdateOneWithoutChildrenNestedInput
@@ -4547,6 +4652,7 @@ export type AssetUncheckedUpdateWithoutStorageKeyInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4583,6 +4689,7 @@ export type AssetUncheckedUpdateManyWithoutStorageKeyInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4606,6 +4713,7 @@ export type AssetCreateManyTaskInput = {
   isDeleted?: boolean
   deletedAt?: Date | string | null
   sortIndex?: string | null
+  agentmd?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   parentId?: string | null
@@ -4629,6 +4737,7 @@ export type AssetUpdateWithoutTaskInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parent?: Prisma.AssetUpdateOneWithoutChildrenNestedInput
@@ -4665,6 +4774,7 @@ export type AssetUncheckedUpdateWithoutTaskInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4701,6 +4811,7 @@ export type AssetUncheckedUpdateManyWithoutTaskInput = {
   isDeleted?: Prisma.BoolFieldUpdateOperationsInput | boolean
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  agentmd?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -4827,6 +4938,7 @@ export type AssetSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   isDeleted?: boolean
   deletedAt?: boolean
   sortIndex?: boolean
+  agentmd?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   parentId?: boolean
@@ -4871,6 +4983,7 @@ export type AssetSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   isDeleted?: boolean
   deletedAt?: boolean
   sortIndex?: boolean
+  agentmd?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   parentId?: boolean
@@ -4901,6 +5014,7 @@ export type AssetSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   isDeleted?: boolean
   deletedAt?: boolean
   sortIndex?: boolean
+  agentmd?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   parentId?: boolean
@@ -4931,6 +5045,7 @@ export type AssetSelectScalar = {
   isDeleted?: boolean
   deletedAt?: boolean
   sortIndex?: boolean
+  agentmd?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   parentId?: boolean
@@ -4941,7 +5056,7 @@ export type AssetSelectScalar = {
   projectId?: boolean
 }
 
-export type AssetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "nameNgram" | "type" | "mediaType" | "fileCount" | "sizeByte" | "status" | "transcodeTaskId" | "media" | "isDeleted" | "deletedAt" | "sortIndex" | "createdAt" | "updatedAt" | "parentId" | "targetId" | "storageKeyId" | "creatorId" | "taskId" | "projectId", ExtArgs["result"]["asset"]>
+export type AssetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "nameNgram" | "type" | "mediaType" | "fileCount" | "sizeByte" | "status" | "transcodeTaskId" | "media" | "isDeleted" | "deletedAt" | "sortIndex" | "agentmd" | "createdAt" | "updatedAt" | "parentId" | "targetId" | "storageKeyId" | "creatorId" | "taskId" | "projectId", ExtArgs["result"]["asset"]>
 export type AssetInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   parent?: boolean | Prisma.Asset$parentArgs<ExtArgs>
   children?: boolean | Prisma.Asset$childrenArgs<ExtArgs>
@@ -5021,6 +5136,7 @@ export type $AssetPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     isDeleted: boolean
     deletedAt: Date | null
     sortIndex: string | null
+    agentmd: string | null
     createdAt: Date
     updatedAt: Date
     parentId: string | null
@@ -5484,6 +5600,7 @@ export interface AssetFieldRefs {
   readonly isDeleted: Prisma.FieldRef<"Asset", 'Boolean'>
   readonly deletedAt: Prisma.FieldRef<"Asset", 'DateTime'>
   readonly sortIndex: Prisma.FieldRef<"Asset", 'String'>
+  readonly agentmd: Prisma.FieldRef<"Asset", 'String'>
   readonly createdAt: Prisma.FieldRef<"Asset", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Asset", 'DateTime'>
   readonly parentId: Prisma.FieldRef<"Asset", 'String'>

@@ -1753,6 +1753,7 @@ export class AssetService {
         creator,
         fieldValues,
         sortIndex: a.sortIndex,
+        hasAgentsMd: Boolean(a.agentmd && a.agentmd.trim().length > 0),
         media: media as unknown as AssetInfo['media'],
         versionStack,
       })
@@ -2163,6 +2164,85 @@ export class AssetService {
       isCompleted: c.isCompleted,
       completionLastChangedBy,
     }
+  }
+
+  async getAgentsMd(assetId: string): Promise<string | null> {
+    const asset = await this.prismaClient.asset.findUnique({
+      where: { id: assetId },
+      select: { agentmd: true },
+    })
+    if (!asset) throw new Error('Asset not found')
+    return asset.agentmd ?? null
+  }
+
+  async updateAgentsMd(assetId: string, content: string): Promise<{ content: string }> {
+    const asset = await this.prismaClient.asset.findUnique({
+      where: { id: assetId },
+      select: { id: true },
+    })
+    if (!asset) throw new Error('Asset not found')
+    const updated = await this.prismaClient.asset.update({
+      where: { id: assetId },
+      data: { agentmd: content },
+      select: { agentmd: true },
+    })
+    return { content: updated.agentmd ?? '' }
+  }
+
+  async getNestedAgentsMd(assetId: string): Promise<Array<{ path: string; content: string }>> {
+    let currentId: string | null = assetId
+    const nodes: Array<{
+      id: string
+      name: string
+      type: AssetType
+      parentId: string | null
+      agentmd: string | null
+    }> = []
+
+    while (currentId) {
+      const node: {
+        id: string
+        name: string
+        type: AssetType
+        parentId: string | null
+        agentmd: string | null
+      } | null = await this.prismaClient.asset.findUnique({
+        where: { id: currentId },
+        select: { id: true, name: true, type: true, parentId: true, agentmd: true },
+      })
+      if (!node) break
+      nodes.unshift(node)
+      currentId = node.parentId
+    }
+
+    if (nodes.length === 0) return []
+
+    const results: Array<{ path: string; content: string }> = []
+    let currentFolderPath = ''
+
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i]
+      let virtualPath: string
+
+      if (node.type === AssetType.root || i === 0) {
+        currentFolderPath = ''
+        virtualPath = '/AGENTS.md'
+      } else {
+        currentFolderPath = currentFolderPath
+          ? `${currentFolderPath}/${node.name}`
+          : `/${node.name}`
+        virtualPath = `${currentFolderPath}/AGENTS.md`
+      }
+
+      if (node.agentmd && node.agentmd.trim().length > 0) {
+        results.push({
+          path: virtualPath,
+          content: node.agentmd.trim(),
+        })
+      }
+    }
+
+    return results
   }
 }
 

@@ -454,6 +454,7 @@ model Asset {
   isDeleted         Boolean      @default(false) @map("is_deleted")
   deletedAt         DateTime?    @map("deleted_at")
   sortIndex         String?      @map("sort_index")
+  agentmd           String?      @map("agentmd") @db.Text
   createdAt         DateTime     @default(now()) @map("created_at")
   updatedAt         DateTime     @updatedAt @map("updated_at")
 

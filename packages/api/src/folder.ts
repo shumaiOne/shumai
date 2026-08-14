@@ -8,6 +8,7 @@ import {
   updateFolderRequestSchema,
   deleteFoldersRequestSchema,
   restoreFoldersRequestSchema,
+  updateAgentsMdRequestSchema,
 } from '@shumai/dtos'
 import { listChildrenRequestSchema, updateAssetOrderRequestSchema, AuditAction } from '@shumai/dtos'
 import { searchRequestSchema } from '@shumai/dtos'
@@ -189,5 +190,48 @@ const route = new Hono<{ Variables: { user: User } }>()
     const result = await searchService.search(folderId, req)
     return c.json(result)
   })
+  .get('/folders/:folderId/agentsmd', async (c) => {
+    const folderId = c.req.param('folderId')
+    const user = c.get('user')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Asset,
+      id: folderId,
+    })
+
+    const content = await assetService.getAgentsMd(folderId)
+    return c.json({ content })
+  })
+  .patch(
+    '/folders/:folderId/agentsmd',
+    zValidator('json', updateAgentsMdRequestSchema),
+    async (c) => {
+      const folderId = c.req.param('folderId')
+      const user = c.get('user')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Admin,
+        type: ResourceType.Asset,
+        id: folderId,
+      })
+
+      const res = await assetService.updateAgentsMd(folderId, req.content)
+
+      const ctx = await assetService.getAssetContext(folderId)
+      await auditLogService.logAction({
+        action: AuditAction.folder_update,
+        teamId: ctx.teamId,
+        userId: user.id,
+        projectId: ctx.projectId,
+        itemId: folderId,
+      })
+
+      return c.json(res)
+    },
+  )
 
 export default route

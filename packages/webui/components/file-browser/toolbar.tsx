@@ -4,6 +4,7 @@ import { m } from '@/ui/paraglide/messages.js'
 import type { AssetInfo, CollectionInfo, SearchCondition, SearchSort } from '@shumai/dtos'
 import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
 import type { InferRequestType, InferResponseType } from 'hono/client'
 import { useState } from 'react'
 import { FieldsManager } from '../fields-manager'
@@ -55,6 +56,7 @@ export function FileBrowserToolbar({
   const [isMembersDialogOpen, setIsMembersDialogOpen] = useState(false)
   const [isFolderSelectorOpen, setIsFolderSelectorOpen] = useState(false)
 
+  const navigate = useNavigate()
   const activeFiltersCount = filterConditions.length
   const isCollection = !!collection
   const queryClient = useQueryClient()
@@ -68,8 +70,22 @@ export function FileBrowserToolbar({
       if (!res.ok) throw new Error('failed to fetch folder')
       return (await res.json()) as unknown as AssetInfo
     },
-    enabled: isCollection && !!assetId,
+    enabled: !!assetId && !isRecentlyDeleted,
   })
+
+  const handleOpenAgentsMd = () => {
+    if (assetId === rootFolderId) {
+      navigate({
+        to: '/projects/$projectId/agents/md',
+        params: { projectId },
+      })
+    } else {
+      navigate({
+        to: '/projects/$projectId/folders/$folderId/agents/md',
+        params: { projectId, folderId: assetId },
+      })
+    }
+  }
 
   const { data: members, refetch: refetchProjectMembers } = useQuery({
     queryKey: ['projects', projectId, 'members'],
@@ -333,20 +349,40 @@ export function FileBrowserToolbar({
             </Popover>
           </>
         ) : (
-          <Button
-            onClick={() => setSearchDialogOpen(true)}
-            disabled={isRecentlyDeleted}
-            variant={activeFiltersCount > 0 ? 'secondary' : 'ghost'}
-            size="sm"
-            className="inline-flex items-center gap-2 px-4 py-2 hover:bg-primary/10 font-semibold rounded-xl cursor-pointer h-8"
-          >
-            <span>{m.search()}</span>
-            {activeFiltersCount > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/50 border border-primary-foreground/20">
-                {activeFiltersCount}
-              </span>
+          <>
+            <Button
+              onClick={() => setSearchDialogOpen(true)}
+              disabled={isRecentlyDeleted}
+              variant={activeFiltersCount > 0 ? 'secondary' : 'ghost'}
+              size="sm"
+              className="inline-flex items-center gap-2 px-4 py-2 hover:bg-primary/10 font-semibold rounded-xl cursor-pointer h-8"
+            >
+              <span>{m.search()}</span>
+              {activeFiltersCount > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/50 border border-primary-foreground/20">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </Button>
+
+            {!isRecentlyDeleted && (
+              <>
+                <Separator orientation="vertical" />
+                <Button
+                  onClick={handleOpenAgentsMd}
+                  variant="ghost"
+                  size="sm"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 hover:bg-primary/10 font-semibold rounded-xl cursor-pointer h-8"
+                  title="AGENTS.md"
+                >
+                  <span>{m.agents_md()}</span>
+                  {folderInfo?.hasAgentsMd && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  )}
+                </Button>
+              </>
             )}
-          </Button>
+          </>
         )}
       </div>
 

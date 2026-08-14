@@ -202,6 +202,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
       imageUrls: attachmentImageUrls,
       projectId: payload.projectId,
       folderId,
+      assetId: asset.id,
       agentsInstruction: instruction,
       sessionId,
       userId: payload.agent?.userId,

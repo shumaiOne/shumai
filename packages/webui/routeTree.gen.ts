@@ -27,6 +27,8 @@ import { Route as ProjectsProjectIdSharesShareIdRouteImport } from './routes/pro
 import { Route as ProjectsProjectIdFoldersFolderIdRouteImport } from './routes/projects/$projectId/folders/$folderId'
 import { Route as ProjectsProjectIdFilesFileIdRouteImport } from './routes/projects/$projectId/files/$fileId'
 import { Route as ProjectsProjectIdCollectionsCollectionIdRouteImport } from './routes/projects/$projectId/collections/$collectionId'
+import { Route as ProjectsProjectIdAgentsMdRouteImport } from './routes/projects/$projectId/agents.md'
+import { Route as ProjectsProjectIdFoldersFolderIdAgentsMdRouteImport } from './routes/projects/$projectId/folders/$folderId.agents.md'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -129,6 +131,19 @@ const ProjectsProjectIdCollectionsCollectionIdRoute =
   } as any).lazy(() =>
     import('./routes/projects/$projectId/collections/$collectionId.lazy').then((d) => d.Route),
   )
+const ProjectsProjectIdAgentsMdRoute = ProjectsProjectIdAgentsMdRouteImport.update({
+  id: '/projects/$projectId/agents/md',
+  path: '/projects/$projectId/agents/md',
+  getParentRoute: () => rootRouteImport,
+} as any).lazy(() => import('./routes/projects/$projectId/agents.md.lazy').then((d) => d.Route))
+const ProjectsProjectIdFoldersFolderIdAgentsMdRoute =
+  ProjectsProjectIdFoldersFolderIdAgentsMdRouteImport.update({
+    id: '/agents/md',
+    path: '/agents/md',
+    getParentRoute: () => ProjectsProjectIdFoldersFolderIdRoute,
+  } as any).lazy(() =>
+    import('./routes/projects/$projectId/folders/$folderId.agents.md.lazy').then((d) => d.Route),
+  )
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -141,14 +156,16 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
   '/share/$shareId/': typeof ShareShareIdIndexRoute
   '/teams/$teamId/': typeof TeamsTeamIdIndexRoute
+  '/projects/$projectId/agents/md': typeof ProjectsProjectIdAgentsMdRoute
   '/projects/$projectId/collections/$collectionId': typeof ProjectsProjectIdCollectionsCollectionIdRoute
   '/projects/$projectId/files/$fileId': typeof ProjectsProjectIdFilesFileIdRoute
-  '/projects/$projectId/folders/$folderId': typeof ProjectsProjectIdFoldersFolderIdRoute
+  '/projects/$projectId/folders/$folderId': typeof ProjectsProjectIdFoldersFolderIdRouteWithChildren
   '/projects/$projectId/shares/$shareId': typeof ProjectsProjectIdSharesShareIdRoute
   '/share/$shareId/files/$fileId': typeof ShareShareIdFilesFileIdRoute
   '/share/$shareId/folders/$folderId': typeof ShareShareIdFoldersFolderIdRoute
   '/projects/$projectId/collections/': typeof ProjectsProjectIdCollectionsIndexRoute
   '/projects/$projectId/shares/': typeof ProjectsProjectIdSharesIndexRoute
+  '/projects/$projectId/folders/$folderId/agents/md': typeof ProjectsProjectIdFoldersFolderIdAgentsMdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -160,14 +177,16 @@ export interface FileRoutesByTo {
   '/projects/$projectId': typeof ProjectsProjectIdIndexRoute
   '/share/$shareId': typeof ShareShareIdIndexRoute
   '/teams/$teamId': typeof TeamsTeamIdIndexRoute
+  '/projects/$projectId/agents/md': typeof ProjectsProjectIdAgentsMdRoute
   '/projects/$projectId/collections/$collectionId': typeof ProjectsProjectIdCollectionsCollectionIdRoute
   '/projects/$projectId/files/$fileId': typeof ProjectsProjectIdFilesFileIdRoute
-  '/projects/$projectId/folders/$folderId': typeof ProjectsProjectIdFoldersFolderIdRoute
+  '/projects/$projectId/folders/$folderId': typeof ProjectsProjectIdFoldersFolderIdRouteWithChildren
   '/projects/$projectId/shares/$shareId': typeof ProjectsProjectIdSharesShareIdRoute
   '/share/$shareId/files/$fileId': typeof ShareShareIdFilesFileIdRoute
   '/share/$shareId/folders/$folderId': typeof ShareShareIdFoldersFolderIdRoute
   '/projects/$projectId/collections': typeof ProjectsProjectIdCollectionsIndexRoute
   '/projects/$projectId/shares': typeof ProjectsProjectIdSharesIndexRoute
+  '/projects/$projectId/folders/$folderId/agents/md': typeof ProjectsProjectIdFoldersFolderIdAgentsMdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -181,14 +200,16 @@ export interface FileRoutesById {
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
   '/share/$shareId/': typeof ShareShareIdIndexRoute
   '/teams/$teamId/': typeof TeamsTeamIdIndexRoute
+  '/projects/$projectId/agents/md': typeof ProjectsProjectIdAgentsMdRoute
   '/projects/$projectId/collections/$collectionId': typeof ProjectsProjectIdCollectionsCollectionIdRoute
   '/projects/$projectId/files/$fileId': typeof ProjectsProjectIdFilesFileIdRoute
-  '/projects/$projectId/folders/$folderId': typeof ProjectsProjectIdFoldersFolderIdRoute
+  '/projects/$projectId/folders/$folderId': typeof ProjectsProjectIdFoldersFolderIdRouteWithChildren
   '/projects/$projectId/shares/$shareId': typeof ProjectsProjectIdSharesShareIdRoute
   '/share/$shareId/files/$fileId': typeof ShareShareIdFilesFileIdRoute
   '/share/$shareId/folders/$folderId': typeof ShareShareIdFoldersFolderIdRoute
   '/projects/$projectId/collections/': typeof ProjectsProjectIdCollectionsIndexRoute
   '/projects/$projectId/shares/': typeof ProjectsProjectIdSharesIndexRoute
+  '/projects/$projectId/folders/$folderId/agents/md': typeof ProjectsProjectIdFoldersFolderIdAgentsMdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -203,6 +224,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/'
     | '/share/$shareId/'
     | '/teams/$teamId/'
+    | '/projects/$projectId/agents/md'
     | '/projects/$projectId/collections/$collectionId'
     | '/projects/$projectId/files/$fileId'
     | '/projects/$projectId/folders/$folderId'
@@ -211,6 +233,7 @@ export interface FileRouteTypes {
     | '/share/$shareId/folders/$folderId'
     | '/projects/$projectId/collections/'
     | '/projects/$projectId/shares/'
+    | '/projects/$projectId/folders/$folderId/agents/md'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -222,6 +245,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId'
     | '/share/$shareId'
     | '/teams/$teamId'
+    | '/projects/$projectId/agents/md'
     | '/projects/$projectId/collections/$collectionId'
     | '/projects/$projectId/files/$fileId'
     | '/projects/$projectId/folders/$folderId'
@@ -230,6 +254,7 @@ export interface FileRouteTypes {
     | '/share/$shareId/folders/$folderId'
     | '/projects/$projectId/collections'
     | '/projects/$projectId/shares'
+    | '/projects/$projectId/folders/$folderId/agents/md'
   id:
     | '__root__'
     | '/'
@@ -242,6 +267,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/'
     | '/share/$shareId/'
     | '/teams/$teamId/'
+    | '/projects/$projectId/agents/md'
     | '/projects/$projectId/collections/$collectionId'
     | '/projects/$projectId/files/$fileId'
     | '/projects/$projectId/folders/$folderId'
@@ -250,6 +276,7 @@ export interface FileRouteTypes {
     | '/share/$shareId/folders/$folderId'
     | '/projects/$projectId/collections/'
     | '/projects/$projectId/shares/'
+    | '/projects/$projectId/folders/$folderId/agents/md'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -262,9 +289,10 @@ export interface RootRouteChildren {
   TeamsTeamIdSettingsRoute: typeof TeamsTeamIdSettingsRoute
   ProjectsProjectIdIndexRoute: typeof ProjectsProjectIdIndexRoute
   TeamsTeamIdIndexRoute: typeof TeamsTeamIdIndexRoute
+  ProjectsProjectIdAgentsMdRoute: typeof ProjectsProjectIdAgentsMdRoute
   ProjectsProjectIdCollectionsCollectionIdRoute: typeof ProjectsProjectIdCollectionsCollectionIdRoute
   ProjectsProjectIdFilesFileIdRoute: typeof ProjectsProjectIdFilesFileIdRoute
-  ProjectsProjectIdFoldersFolderIdRoute: typeof ProjectsProjectIdFoldersFolderIdRoute
+  ProjectsProjectIdFoldersFolderIdRoute: typeof ProjectsProjectIdFoldersFolderIdRouteWithChildren
   ProjectsProjectIdSharesShareIdRoute: typeof ProjectsProjectIdSharesShareIdRoute
   ProjectsProjectIdCollectionsIndexRoute: typeof ProjectsProjectIdCollectionsIndexRoute
   ProjectsProjectIdSharesIndexRoute: typeof ProjectsProjectIdSharesIndexRoute
@@ -398,6 +426,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdCollectionsCollectionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projects/$projectId/agents/md': {
+      id: '/projects/$projectId/agents/md'
+      path: '/projects/$projectId/agents/md'
+      fullPath: '/projects/$projectId/agents/md'
+      preLoaderRoute: typeof ProjectsProjectIdAgentsMdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/$projectId/folders/$folderId/agents/md': {
+      id: '/projects/$projectId/folders/$folderId/agents/md'
+      path: '/agents/md'
+      fullPath: '/projects/$projectId/folders/$folderId/agents/md'
+      preLoaderRoute: typeof ProjectsProjectIdFoldersFolderIdAgentsMdRouteImport
+      parentRoute: typeof ProjectsProjectIdFoldersFolderIdRoute
+    }
   }
 }
 
@@ -415,6 +457,20 @@ const ShareShareIdRouteChildren: ShareShareIdRouteChildren = {
 
 const ShareShareIdRouteWithChildren = ShareShareIdRoute._addFileChildren(ShareShareIdRouteChildren)
 
+interface ProjectsProjectIdFoldersFolderIdRouteChildren {
+  ProjectsProjectIdFoldersFolderIdAgentsMdRoute: typeof ProjectsProjectIdFoldersFolderIdAgentsMdRoute
+}
+
+const ProjectsProjectIdFoldersFolderIdRouteChildren: ProjectsProjectIdFoldersFolderIdRouteChildren =
+  {
+    ProjectsProjectIdFoldersFolderIdAgentsMdRoute: ProjectsProjectIdFoldersFolderIdAgentsMdRoute,
+  }
+
+const ProjectsProjectIdFoldersFolderIdRouteWithChildren =
+  ProjectsProjectIdFoldersFolderIdRoute._addFileChildren(
+    ProjectsProjectIdFoldersFolderIdRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
@@ -425,9 +481,10 @@ const rootRouteChildren: RootRouteChildren = {
   TeamsTeamIdSettingsRoute: TeamsTeamIdSettingsRoute,
   ProjectsProjectIdIndexRoute: ProjectsProjectIdIndexRoute,
   TeamsTeamIdIndexRoute: TeamsTeamIdIndexRoute,
+  ProjectsProjectIdAgentsMdRoute: ProjectsProjectIdAgentsMdRoute,
   ProjectsProjectIdCollectionsCollectionIdRoute: ProjectsProjectIdCollectionsCollectionIdRoute,
   ProjectsProjectIdFilesFileIdRoute: ProjectsProjectIdFilesFileIdRoute,
-  ProjectsProjectIdFoldersFolderIdRoute: ProjectsProjectIdFoldersFolderIdRoute,
+  ProjectsProjectIdFoldersFolderIdRoute: ProjectsProjectIdFoldersFolderIdRouteWithChildren,
   ProjectsProjectIdSharesShareIdRoute: ProjectsProjectIdSharesShareIdRoute,
   ProjectsProjectIdCollectionsIndexRoute: ProjectsProjectIdCollectionsIndexRoute,
   ProjectsProjectIdSharesIndexRoute: ProjectsProjectIdSharesIndexRoute,

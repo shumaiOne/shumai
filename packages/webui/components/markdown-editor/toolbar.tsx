@@ -83,7 +83,7 @@ function getSelectedNode(selection: RangeSelection): TextNode | ElementNode {
   }
 }
 
-export function ToolbarPlugin() {
+export function ToolbarPlugin({ rightContent }: { rightContent?: React.ReactNode } = {}) {
   const [editor] = useLexicalComposerContext()
   const [canUndo, setCanUndo] = useState(false)
   const [canRedo, setCanRedo] = useState(false)
@@ -296,194 +296,200 @@ export function ToolbarPlugin() {
   }
 
   return (
-    <div className="shumai-editor-toolbar">
-      {/* Undo / Redo */}
-      <button
-        type="button"
-        disabled={!canUndo}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={() => editor.dispatchCommand(UNDO_COMMAND, undefined)}
-        title="Undo"
-        aria-label="Undo"
-      >
-        <Undo2 className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        disabled={!canRedo}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={() => editor.dispatchCommand(REDO_COMMAND, undefined)}
-        title="Redo"
-        aria-label="Redo"
-      >
-        <Redo2 className="h-4 w-4" />
-      </button>
+    <div className="shumai-editor-toolbar flex items-center justify-between">
+      <div className="flex items-center flex-wrap gap-1">
+        {/* Undo / Redo */}
+        <button
+          type="button"
+          disabled={!canUndo}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor.dispatchCommand(UNDO_COMMAND, undefined)}
+          title="Undo"
+          aria-label="Undo"
+        >
+          <Undo2 className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          disabled={!canRedo}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor.dispatchCommand(REDO_COMMAND, undefined)}
+          title="Redo"
+          aria-label="Redo"
+        >
+          <Redo2 className="h-4 w-4" />
+        </button>
 
-      <div className="toolbar-divider" />
+        <div className="toolbar-divider" />
 
-      {/* Block Type Dropdown */}
-      <select value={blockType} onChange={handleBlockTypeChange} aria-label="Block formatting">
-        <option value="paragraph">Normal</option>
-        <option value="h1">Heading 1</option>
-        <option value="h2">Heading 2</option>
-        <option value="h3">Heading 3</option>
-        <option value="bullet">Bullet List</option>
-        <option value="number">Numbered List</option>
-        <option value="check">Check List</option>
-        <option value="quote">Quote</option>
-        <option value="code">Code Block</option>
-      </select>
+        {/* Block Type Dropdown */}
+        <select value={blockType} onChange={handleBlockTypeChange} aria-label="Block formatting">
+          <option value="paragraph">Normal</option>
+          <option value="h1">Heading 1</option>
+          <option value="h2">Heading 2</option>
+          <option value="h3">Heading 3</option>
+          <option value="bullet">Bullet List</option>
+          <option value="number">Numbered List</option>
+          <option value="check">Check List</option>
+          <option value="quote">Quote</option>
+          <option value="code">Code Block</option>
+        </select>
 
-      <div className="toolbar-divider" />
+        <div className="toolbar-divider" />
 
-      {/* Inline Styles */}
-      <button
-        type="button"
-        className={isBold ? 'active' : ''}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold')}
-        title="Bold (Ctrl+B)"
-        aria-label="Bold"
-      >
-        <Bold className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        className={isItalic ? 'active' : ''}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic')}
-        title="Italic (Ctrl+I)"
-        aria-label="Italic"
-      >
-        <Italic className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        className={isUnderline ? 'active' : ''}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline')}
-        title="Underline (Ctrl+U)"
-        aria-label="Underline"
-      >
-        <Underline className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        className={isStrikethrough ? 'active' : ''}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough')}
-        title="Strikethrough"
-        aria-label="Strikethrough"
-      >
-        <Strikethrough className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        className={isCode ? 'active' : ''}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'code')}
-        title="Inline Code"
-        aria-label="Inline Code"
-      >
-        <Code className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        className={isLink ? 'active' : ''}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={insertLink}
-        title="Insert Link"
-        aria-label="Link"
-      >
-        <LinkIcon className="h-4 w-4" />
-      </button>
+        {/* Inline Styles */}
+        <button
+          type="button"
+          className={isBold ? 'active' : ''}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold')}
+          title="Bold (Ctrl+B)"
+          aria-label="Bold"
+        >
+          <Bold className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          className={isItalic ? 'active' : ''}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic')}
+          title="Italic (Ctrl+I)"
+          aria-label="Italic"
+        >
+          <Italic className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          className={isUnderline ? 'active' : ''}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline')}
+          title="Underline (Ctrl+U)"
+          aria-label="Underline"
+        >
+          <Underline className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          className={isStrikethrough ? 'active' : ''}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough')}
+          title="Strikethrough"
+          aria-label="Strikethrough"
+        >
+          <Strikethrough className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          className={isCode ? 'active' : ''}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'code')}
+          title="Inline Code"
+          aria-label="Inline Code"
+        >
+          <Code className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          className={isLink ? 'active' : ''}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={insertLink}
+          title="Insert Link"
+          aria-label="Link"
+        >
+          <LinkIcon className="h-4 w-4" />
+        </button>
 
-      <div className="toolbar-divider" />
+        <div className="toolbar-divider" />
 
-      {/* Quick Insert / Block shortcuts */}
-      <button
-        type="button"
-        className={blockType === 'h1' ? 'active' : ''}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={() => formatHeading('h1')}
-        title="H1"
-        aria-label="Heading 1"
-      >
-        <Heading1 className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        className={blockType === 'h2' ? 'active' : ''}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={() => formatHeading('h2')}
-        title="H2"
-        aria-label="Heading 2"
-      >
-        <Heading2 className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        className={blockType === 'h3' ? 'active' : ''}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={() => formatHeading('h3')}
-        title="H3"
-        aria-label="Heading 3"
-      >
-        <Heading3 className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        className={blockType === 'bullet' ? 'active' : ''}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={formatBulletList}
-        title="Bullet List"
-        aria-label="Bullet List"
-      >
-        <List className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        className={blockType === 'number' ? 'active' : ''}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={formatNumberedList}
-        title="Numbered List"
-        aria-label="Numbered List"
-      >
-        <ListOrdered className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        className={blockType === 'check' ? 'active' : ''}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={formatCheckList}
-        title="Check List"
-        aria-label="Check List"
-      >
-        <ListTodo className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        className={blockType === 'quote' ? 'active' : ''}
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={formatQuote}
-        title="Quote"
-        aria-label="Quote"
-      >
-        <Quote className="h-4 w-4" />
-      </button>
+        {/* Quick Insert / Block shortcuts */}
+        <button
+          type="button"
+          className={blockType === 'h1' ? 'active' : ''}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => formatHeading('h1')}
+          title="H1"
+          aria-label="Heading 1"
+        >
+          <Heading1 className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          className={blockType === 'h2' ? 'active' : ''}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => formatHeading('h2')}
+          title="H2"
+          aria-label="Heading 2"
+        >
+          <Heading2 className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          className={blockType === 'h3' ? 'active' : ''}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => formatHeading('h3')}
+          title="H3"
+          aria-label="Heading 3"
+        >
+          <Heading3 className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          className={blockType === 'bullet' ? 'active' : ''}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={formatBulletList}
+          title="Bullet List"
+          aria-label="Bullet List"
+        >
+          <List className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          className={blockType === 'number' ? 'active' : ''}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={formatNumberedList}
+          title="Numbered List"
+          aria-label="Numbered List"
+        >
+          <ListOrdered className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          className={blockType === 'check' ? 'active' : ''}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={formatCheckList}
+          title="Check List"
+          aria-label="Check List"
+        >
+          <ListTodo className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          className={blockType === 'quote' ? 'active' : ''}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={formatQuote}
+          title="Quote"
+          aria-label="Quote"
+        >
+          <Quote className="h-4 w-4" />
+        </button>
 
-      <div className="toolbar-divider" />
+        <div className="toolbar-divider" />
 
-      {/* Clear formatting */}
-      <button
-        type="button"
-        onMouseDown={(e) => e.preventDefault()}
-        onClick={clearFormatting}
-        title="Clear Formatting"
-        aria-label="Clear Formatting"
-      >
-        <RemoveFormatting className="h-4 w-4" />
-      </button>
+        {/* Clear formatting */}
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={clearFormatting}
+          title="Clear Formatting"
+          aria-label="Clear Formatting"
+        >
+          <RemoveFormatting className="h-4 w-4" />
+        </button>
+      </div>
+
+      {rightContent && (
+        <div className="flex items-center gap-2 ml-auto flex-shrink-0">{rightContent}</div>
+      )}
     </div>
   )
 }

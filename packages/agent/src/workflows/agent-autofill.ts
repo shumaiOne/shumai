@@ -135,6 +135,8 @@ export async function agentAutofillMedia(task: WorkflowTask): Promise<void> {
     const aiResult = await executeActivity(agentWorkerQueue, autofillAiActivity, {
       teamId,
       images: generatedFiles,
+      assetId: asset.id,
+      projectId: asset.projectId ?? undefined,
       fields: fields.map(
         (f: { key: string; config: Record<string, unknown>; description?: string | null }) => ({
           id: f.key,

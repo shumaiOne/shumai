@@ -90,6 +90,7 @@ export interface MarkdownEditorProps {
   autoFocus?: boolean
   className?: string
   hideToolbar?: boolean
+  rightToolbarContent?: React.ReactNode
 }
 
 export function MarkdownEditor({
@@ -101,6 +102,7 @@ export function MarkdownEditor({
   autoFocus = false,
   className = '',
   hideToolbar = false,
+  rightToolbarContent,
 }: MarkdownEditorProps) {
   const initialConfig: InitialConfigType = {
     namespace: 'ShumaiWysiwygMarkdownEditor',
@@ -126,7 +128,13 @@ export function MarkdownEditor({
   return (
     <div className={`shumai-editor-wrapper ${readOnly ? 'read-only' : ''} ${className}`}>
       <LexicalComposer initialConfig={initialConfig}>
-        {!readOnly && !hideToolbar && <ToolbarPlugin />}
+        {!readOnly && !hideToolbar ? (
+          <ToolbarPlugin rightContent={rightToolbarContent} />
+        ) : rightToolbarContent ? (
+          <div className="shumai-editor-toolbar flex items-center justify-end px-3 py-1.5 border-b">
+            {rightToolbarContent}
+          </div>
+        ) : null}
         <div className="shumai-editor-content-area">
           <RichTextPlugin
             contentEditable={<ContentEditable className="editor-input" />}

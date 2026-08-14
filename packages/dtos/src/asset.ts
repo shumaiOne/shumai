@@ -74,6 +74,7 @@ export const assetInfoSchema = z.object({
   sortIndex: z.string().optional().nullable(),
   startTime: z.number().optional().nullable(),
   endTime: z.number().optional().nullable(),
+  hasAgentsMd: z.boolean().optional(),
 
   media: z
     .object({

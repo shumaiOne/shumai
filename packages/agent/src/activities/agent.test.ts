@@ -18,6 +18,7 @@ import {
   generateSessionNameActivity,
   type GenerateSessionNameParams,
   getUserTeamInfoActivity,
+  formatProjectContextPrompt,
 } from './agent'
 import * as piAgent from '../index'
 import { type AgentHarness, type Session } from '@earendil-works/pi-agent-core'
@@ -2039,6 +2040,105 @@ describe('Agent Database Activities Integration', () => {
       })
 
       expect(piAgent.createAgentSession).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('Nested AGENTS.md prompt injection', () => {
+    it('formatProjectContextPrompt formats context files into XML project_context block', () => {
+      expect(formatProjectContextPrompt([])).toBe('')
+
+      const formatted = formatProjectContextPrompt([
+        { path: '/AGENTS.md', content: 'Root rules' },
+        { path: '/subfolder/AGENTS.md', content: 'Subfolder rules' },
+      ])
+
+      expect(formatted).toBe(
+        '\n\n<project_context>\n\nProject-specific instructions and guidelines:\n\n<project_instructions path="/AGENTS.md">\nRoot rules\n</project_instructions>\n\n<project_instructions path="/subfolder/AGENTS.md">\nSubfolder rules\n</project_instructions>\n\n</project_context>',
+      )
+    })
+
+    it('agentChatActivity injects nested AGENTS.md instructions into systemPrompt', async () => {
+      const user = await prisma.user.create({
+        data: { name: 'User_Chat_Md', email: `chat-md-${Date.now()}@example.com` },
+      })
+      const team = await prisma.team.create({
+        data: { name: 'Team_Chat_Md_' + Date.now() },
+      })
+      const project = await prisma.project.create({
+        data: { name: 'Project_Chat_Md', teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'Root',
+          type: AssetType.root,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+          agentmd: '# Root Policy',
+        },
+      })
+      const subfolder = await prisma.asset.create({
+        data: {
+          name: 'subfolder',
+          type: AssetType.folder,
+          parentId: rootFolder.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+          agentmd: '# Subfolder Policy',
+        },
+      })
+
+      const mockHarness = {
+        subscribe: vi.fn(),
+        prompt: vi.fn().mockResolvedValue({
+          content: [{ type: 'text', text: 'Chat reply' }],
+          usage: { input: 10, output: 20 },
+        }),
+      }
+      const mockSession = {
+        getEntries: vi.fn().mockResolvedValue([]),
+        getStorage: vi.fn().mockReturnValue({ sessionId: 'mock-session-id' }),
+      }
+
+      vi.mocked(piAgent.createAgentSession).mockResolvedValue({
+        session: mockSession as unknown as Session<DatabaseSessionMetadata>,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock AgentHarness instance for activity test
+        harness: mockHarness as unknown as AgentHarness<any, any, any, any>,
+      })
+
+      const context = {
+        agent: { id: 'agent-1', provider: { name: 'google' }, modelRef: { modelId: 'gemini' } },
+        dbProviders: [],
+        teamSkills: [],
+        allowedDomains: [],
+      } as unknown as AgentExecutionContext
+
+      await agentChatActivity({
+        teamId: team.id,
+        agentId: 'agent-1',
+        message: 'Hello',
+        imageUrls: [],
+        projectId: project.id,
+        folderId: subfolder.id,
+        assetId: subfolder.id,
+        sessionId: 'mock-session-id',
+        userId: user.id,
+        context,
+      })
+
+      expect(piAgent.createAgentSession).toHaveBeenCalledWith(
+        expect.objectContaining({
+          systemPrompt: expect.stringContaining('<project_context>'),
+        }),
+      )
+
+      const lastCall = vi.mocked(piAgent.createAgentSession).mock.calls.at(-1)
+      const systemPromptArg = lastCall?.[0].systemPrompt as string
+      expect(systemPromptArg).toContain(
+        '<project_instructions path="/AGENTS.md">\n# Root Policy\n</project_instructions>',
+      )
+      expect(systemPromptArg).toContain(
+        '<project_instructions path="/subfolder/AGENTS.md">\n# Subfolder Policy\n</project_instructions>',
+      )
     })
   })
 })

@@ -3742,6 +3742,7 @@ export const AssetScalarFieldEnum = {
   isDeleted: 'isDeleted',
   deletedAt: 'deletedAt',
   sortIndex: 'sortIndex',
+  agentmd: 'agentmd',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   parentId: 'parentId',
