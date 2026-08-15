@@ -310,4 +310,59 @@ describe('folder api', () => {
       beforeIndex: 'index-1',
     })
   })
+
+  it('GET /folders/:folderId/agentsmd', async () => {
+    vi.spyOn(assetService, 'getAgentsMd').mockResolvedValue('# Folder Guidelines')
+
+    const app = new Hono().use('*', authMiddleware).route('/', folderRoute)
+    const res = await app.request('/folders/test-id/agentsmd')
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.content).toBe('# Folder Guidelines')
+
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: { id: 'user1', name: 'Test User' },
+      permission: Permission.Read,
+      type: ResourceType.Asset,
+      id: 'test-id',
+    })
+    expect(assetService.getAgentsMd).toHaveBeenCalledWith('test-id')
+  })
+
+  it('PATCH /folders/:folderId/agentsmd', async () => {
+    vi.spyOn(assetService, 'updateAgentsMd').mockResolvedValue({ content: '# Updated Guidelines' })
+
+    const app = new Hono().use('*', authMiddleware).route('/', folderRoute)
+    const res = await app.request('/folders/test-id/agentsmd', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: '# Updated Guidelines' }),
+    })
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.content).toBe('# Updated Guidelines')
+
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: { id: 'user1', name: 'Test User' },
+      permission: Permission.Admin,
+      type: ResourceType.Asset,
+      id: 'test-id',
+    })
+    expect(assetService.updateAgentsMd).toHaveBeenCalledWith('test-id', '# Updated Guidelines')
+  })
+
+  it('PATCH /folders/:folderId/agentsmd rejects oversized content', async () => {
+    const mockUpdate = vi.spyOn(assetService, 'updateAgentsMd').mockResolvedValue({ content: '' })
+    const app = new Hono().use('*', authMiddleware).route('/', folderRoute)
+    const res = await app.request('/folders/test-id/agentsmd', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: 'x'.repeat(100_001) }),
+    })
+
+    expect(res.status).toBe(400)
+    expect(mockUpdate).not.toHaveBeenCalled()
+  })
 })

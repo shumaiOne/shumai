@@ -1035,5 +1035,12 @@
   "preview_backdrop": "Preview Background",
   "dark_grid": "Dark Grid",
   "light_grid": "Light Grid",
-  "sample_backdrop": "Sample Media"
+  "sample_backdrop": "Sample Media",
+  "saved": "Saved",
+  "read_only": "Read-only",
+  "agents_md": "AGENTS.md",
+  "agents_md_placeholder": "Write guidelines and instructions for AI agents here...",
+  "agents_md_readonly_hint": "Only project owners can edit AGENTS.md instructions.",
+  "agents_md_save_failed": "Failed to save",
+  "agents_md_loading": "Loading AGENTS.md..."
 }

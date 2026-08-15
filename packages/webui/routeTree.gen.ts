@@ -19,6 +19,7 @@ import { Route as ProjectsProjectIdIndexRouteImport } from './routes/projects/$p
 import { Route as TeamsTeamIdSettingsRouteImport } from './routes/teams/$teamId/settings'
 import { Route as TeamsTeamIdDashboardRouteImport } from './routes/teams/$teamId/dashboard'
 import { Route as ProjectsProjectIdRecentlyDeletedRouteImport } from './routes/projects/$projectId/recently-deleted'
+import { Route as ProjectsProjectIdAgentsmdRouteImport } from './routes/projects/$projectId/agentsmd'
 import { Route as ProjectsProjectIdSharesIndexRouteImport } from './routes/projects/$projectId/shares/index'
 import { Route as ProjectsProjectIdCollectionsIndexRouteImport } from './routes/projects/$projectId/collections/index'
 import { Route as ShareShareIdFoldersFolderIdRouteImport } from './routes/share/$shareId/folders/$folderId'
@@ -27,6 +28,7 @@ import { Route as ProjectsProjectIdSharesShareIdRouteImport } from './routes/pro
 import { Route as ProjectsProjectIdFoldersFolderIdRouteImport } from './routes/projects/$projectId/folders/$folderId'
 import { Route as ProjectsProjectIdFilesFileIdRouteImport } from './routes/projects/$projectId/files/$fileId'
 import { Route as ProjectsProjectIdCollectionsCollectionIdRouteImport } from './routes/projects/$projectId/collections/$collectionId'
+import { Route as ProjectsProjectIdFoldersFolderIdAgentsmdRouteImport } from './routes/projects/$projectId/folders/$folderId_.agentsmd'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -80,6 +82,11 @@ const ProjectsProjectIdRecentlyDeletedRoute = ProjectsProjectIdRecentlyDeletedRo
 } as any).lazy(() =>
   import('./routes/projects/$projectId/recently-deleted.lazy').then((d) => d.Route),
 )
+const ProjectsProjectIdAgentsmdRoute = ProjectsProjectIdAgentsmdRouteImport.update({
+  id: '/projects/$projectId/agentsmd',
+  path: '/projects/$projectId/agentsmd',
+  getParentRoute: () => rootRouteImport,
+} as any).lazy(() => import('./routes/projects/$projectId/agentsmd.lazy').then((d) => d.Route))
 const ProjectsProjectIdSharesIndexRoute = ProjectsProjectIdSharesIndexRouteImport.update({
   id: '/projects/$projectId/shares/',
   path: '/projects/$projectId/shares/',
@@ -129,12 +136,21 @@ const ProjectsProjectIdCollectionsCollectionIdRoute =
   } as any).lazy(() =>
     import('./routes/projects/$projectId/collections/$collectionId.lazy').then((d) => d.Route),
   )
+const ProjectsProjectIdFoldersFolderIdAgentsmdRoute =
+  ProjectsProjectIdFoldersFolderIdAgentsmdRouteImport.update({
+    id: '/projects/$projectId/folders/$folderId_/agentsmd',
+    path: '/projects/$projectId/folders/$folderId/agentsmd',
+    getParentRoute: () => rootRouteImport,
+  } as any).lazy(() =>
+    import('./routes/projects/$projectId/folders/$folderId_.agentsmd.lazy').then((d) => d.Route),
+  )
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/share/$shareId': typeof ShareShareIdRouteWithChildren
+  '/projects/$projectId/agentsmd': typeof ProjectsProjectIdAgentsmdRoute
   '/projects/$projectId/recently-deleted': typeof ProjectsProjectIdRecentlyDeletedRoute
   '/teams/$teamId/dashboard': typeof TeamsTeamIdDashboardRoute
   '/teams/$teamId/settings': typeof TeamsTeamIdSettingsRoute
@@ -149,11 +165,13 @@ export interface FileRoutesByFullPath {
   '/share/$shareId/folders/$folderId': typeof ShareShareIdFoldersFolderIdRoute
   '/projects/$projectId/collections/': typeof ProjectsProjectIdCollectionsIndexRoute
   '/projects/$projectId/shares/': typeof ProjectsProjectIdSharesIndexRoute
+  '/projects/$projectId/folders/$folderId/agentsmd': typeof ProjectsProjectIdFoldersFolderIdAgentsmdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
+  '/projects/$projectId/agentsmd': typeof ProjectsProjectIdAgentsmdRoute
   '/projects/$projectId/recently-deleted': typeof ProjectsProjectIdRecentlyDeletedRoute
   '/teams/$teamId/dashboard': typeof TeamsTeamIdDashboardRoute
   '/teams/$teamId/settings': typeof TeamsTeamIdSettingsRoute
@@ -168,6 +186,7 @@ export interface FileRoutesByTo {
   '/share/$shareId/folders/$folderId': typeof ShareShareIdFoldersFolderIdRoute
   '/projects/$projectId/collections': typeof ProjectsProjectIdCollectionsIndexRoute
   '/projects/$projectId/shares': typeof ProjectsProjectIdSharesIndexRoute
+  '/projects/$projectId/folders/$folderId/agentsmd': typeof ProjectsProjectIdFoldersFolderIdAgentsmdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -175,6 +194,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/share/$shareId': typeof ShareShareIdRouteWithChildren
+  '/projects/$projectId/agentsmd': typeof ProjectsProjectIdAgentsmdRoute
   '/projects/$projectId/recently-deleted': typeof ProjectsProjectIdRecentlyDeletedRoute
   '/teams/$teamId/dashboard': typeof TeamsTeamIdDashboardRoute
   '/teams/$teamId/settings': typeof TeamsTeamIdSettingsRoute
@@ -189,6 +209,7 @@ export interface FileRoutesById {
   '/share/$shareId/folders/$folderId': typeof ShareShareIdFoldersFolderIdRoute
   '/projects/$projectId/collections/': typeof ProjectsProjectIdCollectionsIndexRoute
   '/projects/$projectId/shares/': typeof ProjectsProjectIdSharesIndexRoute
+  '/projects/$projectId/folders/$folderId_/agentsmd': typeof ProjectsProjectIdFoldersFolderIdAgentsmdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -197,6 +218,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/share/$shareId'
+    | '/projects/$projectId/agentsmd'
     | '/projects/$projectId/recently-deleted'
     | '/teams/$teamId/dashboard'
     | '/teams/$teamId/settings'
@@ -211,11 +233,13 @@ export interface FileRouteTypes {
     | '/share/$shareId/folders/$folderId'
     | '/projects/$projectId/collections/'
     | '/projects/$projectId/shares/'
+    | '/projects/$projectId/folders/$folderId/agentsmd'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/signup'
+    | '/projects/$projectId/agentsmd'
     | '/projects/$projectId/recently-deleted'
     | '/teams/$teamId/dashboard'
     | '/teams/$teamId/settings'
@@ -230,12 +254,14 @@ export interface FileRouteTypes {
     | '/share/$shareId/folders/$folderId'
     | '/projects/$projectId/collections'
     | '/projects/$projectId/shares'
+    | '/projects/$projectId/folders/$folderId/agentsmd'
   id:
     | '__root__'
     | '/'
     | '/login'
     | '/signup'
     | '/share/$shareId'
+    | '/projects/$projectId/agentsmd'
     | '/projects/$projectId/recently-deleted'
     | '/teams/$teamId/dashboard'
     | '/teams/$teamId/settings'
@@ -250,6 +276,7 @@ export interface FileRouteTypes {
     | '/share/$shareId/folders/$folderId'
     | '/projects/$projectId/collections/'
     | '/projects/$projectId/shares/'
+    | '/projects/$projectId/folders/$folderId_/agentsmd'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -257,6 +284,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
   ShareShareIdRoute: typeof ShareShareIdRouteWithChildren
+  ProjectsProjectIdAgentsmdRoute: typeof ProjectsProjectIdAgentsmdRoute
   ProjectsProjectIdRecentlyDeletedRoute: typeof ProjectsProjectIdRecentlyDeletedRoute
   TeamsTeamIdDashboardRoute: typeof TeamsTeamIdDashboardRoute
   TeamsTeamIdSettingsRoute: typeof TeamsTeamIdSettingsRoute
@@ -268,6 +296,7 @@ export interface RootRouteChildren {
   ProjectsProjectIdSharesShareIdRoute: typeof ProjectsProjectIdSharesShareIdRoute
   ProjectsProjectIdCollectionsIndexRoute: typeof ProjectsProjectIdCollectionsIndexRoute
   ProjectsProjectIdSharesIndexRoute: typeof ProjectsProjectIdSharesIndexRoute
+  ProjectsProjectIdFoldersFolderIdAgentsmdRoute: typeof ProjectsProjectIdFoldersFolderIdAgentsmdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -342,6 +371,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdRecentlyDeletedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projects/$projectId/agentsmd': {
+      id: '/projects/$projectId/agentsmd'
+      path: '/projects/$projectId/agentsmd'
+      fullPath: '/projects/$projectId/agentsmd'
+      preLoaderRoute: typeof ProjectsProjectIdAgentsmdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/projects/$projectId/shares/': {
       id: '/projects/$projectId/shares/'
       path: '/projects/$projectId/shares'
@@ -398,6 +434,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdCollectionsCollectionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projects/$projectId/folders/$folderId_/agentsmd': {
+      id: '/projects/$projectId/folders/$folderId_/agentsmd'
+      path: '/projects/$projectId/folders/$folderId/agentsmd'
+      fullPath: '/projects/$projectId/folders/$folderId/agentsmd'
+      preLoaderRoute: typeof ProjectsProjectIdFoldersFolderIdAgentsmdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -420,6 +463,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
   ShareShareIdRoute: ShareShareIdRouteWithChildren,
+  ProjectsProjectIdAgentsmdRoute: ProjectsProjectIdAgentsmdRoute,
   ProjectsProjectIdRecentlyDeletedRoute: ProjectsProjectIdRecentlyDeletedRoute,
   TeamsTeamIdDashboardRoute: TeamsTeamIdDashboardRoute,
   TeamsTeamIdSettingsRoute: TeamsTeamIdSettingsRoute,
@@ -431,6 +475,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectsProjectIdSharesShareIdRoute: ProjectsProjectIdSharesShareIdRoute,
   ProjectsProjectIdCollectionsIndexRoute: ProjectsProjectIdCollectionsIndexRoute,
   ProjectsProjectIdSharesIndexRoute: ProjectsProjectIdSharesIndexRoute,
+  ProjectsProjectIdFoldersFolderIdAgentsmdRoute: ProjectsProjectIdFoldersFolderIdAgentsmdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

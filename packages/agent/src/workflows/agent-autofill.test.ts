@@ -64,6 +64,7 @@ describe('Agent Autofill Workflow', () => {
     mockActivities.createCommentActivity.mockResolvedValue({ id: 'comment-placeholder-id' })
     mockActivities.getAssetActivity.mockResolvedValue({
       id: 'a1',
+      projectId: 'p1',
       storageKey: { key: 'asset-key' },
       project: { id: 'p1', teamId: 't1' },
       mediaType: 'image/png',
@@ -117,6 +118,9 @@ describe('Agent Autofill Workflow', () => {
       status: 'processing',
     })
 
+    // Verify asset fetched
+    expect(mockActivities.getAssetActivity).toHaveBeenCalledWith('a1')
+
     // Verify placeholder comment created
     expect(mockActivities.createCommentActivity).toHaveBeenCalledWith({
       assetId: 'a1',
@@ -143,6 +147,8 @@ describe('Agent Autofill Workflow', () => {
     // Verify AI autofill called with mapped fields
     expect(mockActivities.autofillAiActivity).toHaveBeenCalledWith({
       teamId: 't1',
+      assetId: 'a1',
+      projectId: 'p1',
       images: ['/tmp/test-dir/1.webp'],
       fields: [
         {

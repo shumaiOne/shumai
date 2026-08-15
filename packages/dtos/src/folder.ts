@@ -20,3 +20,8 @@ export const restoreFoldersRequestSchema = z.object({
   ids: z.array(z.string()),
 })
 export type RestoreFoldersRequest = z.infer<typeof restoreFoldersRequestSchema>
+
+export const updateAgentsMdRequestSchema = z.object({
+  content: z.string().max(100_000),
+})
+export type UpdateAgentsMdRequest = z.infer<typeof updateAgentsMdRequestSchema>

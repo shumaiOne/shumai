@@ -69,6 +69,7 @@ export const ModelName = {
   Asset: 'Asset',
   StorageKey: 'StorageKey',
   AssetMetadataValue: 'AssetMetadataValue',
+  AssetAgentMd: 'AssetAgentMd',
   AssetComment: 'AssetComment',
   AssetCommentAttachment: 'AssetCommentAttachment',
   AssetEmbedding: 'AssetEmbedding',
@@ -371,6 +372,16 @@ export const AssetMetadataValueScalarFieldEnum = {
 } as const
 
 export type AssetMetadataValueScalarFieldEnum = (typeof AssetMetadataValueScalarFieldEnum)[keyof typeof AssetMetadataValueScalarFieldEnum]
+
+
+export const AssetAgentMdScalarFieldEnum = {
+  assetId: 'assetId',
+  content: 'content',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AssetAgentMdScalarFieldEnum = (typeof AssetAgentMdScalarFieldEnum)[keyof typeof AssetAgentMdScalarFieldEnum]
 
 
 export const AssetCommentScalarFieldEnum = {

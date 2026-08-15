@@ -65,6 +65,18 @@ export interface AgentExecutionContext {
   allowedDomains: string[]
 }
 
+export function formatProjectContextPrompt(
+  contextFiles: Array<{ path: string; content: string }>,
+): string {
+  if (contextFiles.length === 0) return ''
+  let prompt = '\n\n<project_context>\n\nProject-specific instructions and guidelines:\n\n'
+  for (const { path: filePath, content } of contextFiles) {
+    prompt += `<project_instructions path="${filePath}">\n${content}\n</project_instructions>\n\n`
+  }
+  prompt += '</project_context>'
+  return prompt
+}
+
 async function executeAgentPrompt(params: {
   taskId?: string
   teamId: string
@@ -75,6 +87,7 @@ async function executeAgentPrompt(params: {
   sessionId?: string
   userId?: string
   projectId?: string
+  assetId?: string
   userCommentId?: string | null
   tools?: AgentTool[]
   context: AgentExecutionContext
@@ -113,6 +126,40 @@ When creating a file or version, you may attach metadata (for example, the AI mo
 
   // Note: params.agentsInstruction is no longer appended to systemPrompt here.
   // Instead, it is persisted as a custom message session entry in the conversation history below.
+
+  let targetAssetId = params.assetId
+  if (!targetAssetId) {
+    if (params.userCommentId) {
+      const comment = await prisma.assetComment.findUnique({
+        where: { id: params.userCommentId },
+        select: { assetId: true },
+      })
+      if (comment?.assetId) {
+        targetAssetId = comment.assetId
+      }
+    } else if (params.taskId) {
+      const task = await prisma.workflowTask.findUnique({
+        where: { id: params.taskId },
+        select: { assetId: true },
+      })
+      if (task?.assetId) {
+        targetAssetId = task.assetId
+      }
+    } else if (params.projectId) {
+      const project = await prisma.project.findUnique({
+        where: { id: params.projectId },
+        select: { rootFolderId: true },
+      })
+      if (project?.rootFolderId) {
+        targetAssetId = project.rootFolderId
+      }
+    }
+  }
+
+  const contextFiles = targetAssetId ? await assetService.getNestedAgentsMd(targetAssetId) : []
+  if (contextFiles.length > 0) {
+    systemPrompt += formatProjectContextPrompt(contextFiles)
+  }
 
   const modelConfig = agent.modelRef?.config
   if (modelConfig?.input) {
@@ -349,6 +396,7 @@ export interface AgentChatParams {
   imageUrls: string[]
   projectId: string
   folderId: string
+  assetId?: string
   agentsInstruction?: string
   sessionId: string
   userId?: string
@@ -414,6 +462,7 @@ export async function agentChatActivity(params: AgentChatParams) {
     sessionId,
     userId: params.userId,
     projectId: params.projectId,
+    assetId: params.assetId || params.folderId,
     userCommentId: params.userCommentId,
     context: params.context,
     attachedAssets: params.attachedAssets,
@@ -425,6 +474,8 @@ export interface AutofillAiParams {
   images: string[]
   fields: AutofillField[]
   context: AgentExecutionContext
+  assetId?: string
+  projectId?: string
 }
 
 export async function autofillAiActivity(params: AutofillAiParams) {
@@ -458,6 +509,8 @@ export async function autofillAiActivity(params: AutofillAiParams) {
     agentsInstruction: '',
     sessionId: undefined,
     userId: undefined,
+    projectId: params.projectId,
+    assetId: params.assetId,
     tools: [autofillTool],
     context: params.context,
   })

@@ -1,6 +1,8 @@
 .shumai-editor-wrapper {
   display: flex;
   flex-direction: column;
+  height: 100%;
+  min-height: 0;
   border: 1px solid var(--border, #e2e8f0);
   border-radius: 8px;
   background-color: var(--background, #ffffff);
@@ -23,7 +25,7 @@
   user-select: none;
 }
 
-.shumai-editor-toolbar button {
+.shumai-editor-toolbar-left button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -38,17 +40,17 @@
   padding: 0;
 }
 
-.shumai-editor-toolbar button:hover:not(:disabled) {
+.shumai-editor-toolbar-left button:hover:not(:disabled) {
   background-color: var(--accent, #e2e8f0);
   color: var(--accent-foreground, #0f172a);
 }
 
-.shumai-editor-toolbar button:disabled {
+.shumai-editor-toolbar-left button:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }
 
-.shumai-editor-toolbar button.active {
+.shumai-editor-toolbar-left button.active {
   background-color: var(--primary, #0f172a);
   color: var(--primary-foreground, #ffffff);
 }
@@ -74,14 +76,14 @@
 
 .shumai-editor-content-area {
   position: relative;
-  min-height: 240px;
+  min-height: 0;
   flex: 1;
   width: 100%;
   box-sizing: border-box;
 }
 
 .editor-input {
-  min-height: 240px;
+  min-height: 100%;
   padding: 16px;
   outline: none;
   font-size: 15px;

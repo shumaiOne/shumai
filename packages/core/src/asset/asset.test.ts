@@ -2830,4 +2830,204 @@ describe('AssetService — natural sort by name', () => {
       )
     })
   })
+
+  describe('AGENTS.md methods', () => {
+    it('getAgentsMd returns null when no agentmd is set', async () => {
+      const team = await prisma.team.create({
+        data: { name: 'Team_AgentsMd_' + Date.now() },
+      })
+      const project = await prisma.project.create({
+        data: { name: 'Project_AgentsMd', teamId: team.id },
+      })
+      const folder = await prisma.asset.create({
+        data: {
+          name: 'Folder_No_Md',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      const content = await assetService.getAgentsMd(folder.id)
+      expect(content).toBeNull()
+    })
+
+    it('updateAgentsMd updates and getAgentsMd retrieves agentmd, and empty deletes', async () => {
+      const team = await prisma.team.create({
+        data: { name: 'Team_AgentsMd2_' + Date.now() },
+      })
+      const project = await prisma.project.create({
+        data: { name: 'Project_AgentsMd2', teamId: team.id },
+      })
+      const folder = await prisma.asset.create({
+        data: {
+          name: 'Folder_With_Md',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      const updateResult = await assetService.updateAgentsMd(folder.id, '# Custom Guidelines')
+      expect(updateResult).toEqual({ content: '# Custom Guidelines' })
+
+      const content = await assetService.getAgentsMd(folder.id)
+      expect(content).toBe('# Custom Guidelines')
+
+      let folderInfo = await assetService.getAsset({ assetId: folder.id })
+      expect(folderInfo?.hasAgentsMd).toBe(true)
+
+      // Empty string deletes the record
+      const clearResult = await assetService.updateAgentsMd(folder.id, '   ')
+      expect(clearResult).toEqual({ content: '' })
+
+      const emptyContent = await assetService.getAgentsMd(folder.id)
+      expect(emptyContent).toBeNull()
+
+      folderInfo = await assetService.getAsset({ assetId: folder.id })
+      expect(folderInfo?.hasAgentsMd).toBe(false)
+    })
+
+    it('getNestedAgentsMd traverses hierarchy from root to leaf and formats virtual paths', async () => {
+      const team = await prisma.team.create({
+        data: { name: 'Team_NestedMd_' + Date.now() },
+      })
+      const project = await prisma.project.create({
+        data: { name: 'Project_NestedMd', teamId: team.id },
+      })
+
+      // 1. Root folder
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'Root Folder',
+          type: AssetType.root,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+      await prisma.assetAgentMd.create({
+        data: {
+          assetId: rootFolder.id,
+          content: '# Root Instructions\nFollow global rules.',
+        },
+      })
+
+      // 2. Subfolder 1: marketing (has agentmd)
+      const marketingFolder = await prisma.asset.create({
+        data: {
+          name: 'marketing',
+          type: AssetType.folder,
+          parentId: rootFolder.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+      await prisma.assetAgentMd.create({
+        data: {
+          assetId: marketingFolder.id,
+          content: '# Marketing Instructions\nTone must be upbeat.',
+        },
+      })
+
+      // 3. Subfolder 2: campaigns (no agentmd)
+      const campaignsFolder = await prisma.asset.create({
+        data: {
+          name: 'campaigns',
+          type: AssetType.folder,
+          parentId: marketingFolder.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      // 4. Subfolder 3: video-ads (has agentmd)
+      const videoAdsFolder = await prisma.asset.create({
+        data: {
+          name: 'video-ads',
+          type: AssetType.folder,
+          parentId: campaignsFolder.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+      await prisma.assetAgentMd.create({
+        data: {
+          assetId: videoAdsFolder.id,
+          content: '# Video Ads Instructions\nInclude resolution tags.',
+        },
+      })
+
+      // 5. File inside video-ads
+      const fileAsset = await prisma.asset.create({
+        data: {
+          name: 'ad_clip.mp4',
+          type: AssetType.file,
+          parentId: videoAdsFolder.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      const nestedFromLeaf = await assetService.getNestedAgentsMd(fileAsset.id)
+      expect(nestedFromLeaf).toEqual([
+        {
+          path: '/AGENTS.md',
+          content: '# Root Instructions\nFollow global rules.',
+        },
+        {
+          path: '/marketing/AGENTS.md',
+          content: '# Marketing Instructions\nTone must be upbeat.',
+        },
+        {
+          path: '/marketing/campaigns/video-ads/AGENTS.md',
+          content: '# Video Ads Instructions\nInclude resolution tags.',
+        },
+      ])
+
+      const nestedFromMarketing = await assetService.getNestedAgentsMd(marketingFolder.id)
+      expect(nestedFromMarketing).toEqual([
+        {
+          path: '/AGENTS.md',
+          content: '# Root Instructions\nFollow global rules.',
+        },
+        {
+          path: '/marketing/AGENTS.md',
+          content: '# Marketing Instructions\nTone must be upbeat.',
+        },
+      ])
+    })
+
+    it('rejects get/update agentsmd on non-folder assets', async () => {
+      const team = await prisma.team.create({
+        data: { name: 'Team_AgentsMd_Type_' + Date.now() },
+      })
+      const project = await prisma.project.create({
+        data: { name: 'Project_AgentsMd_Type', teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'Root',
+          type: AssetType.root,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+      const fileAsset = await prisma.asset.create({
+        data: {
+          name: 'doc.pdf',
+          type: AssetType.file,
+          parentId: rootFolder.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      await expect(assetService.getAgentsMd(fileAsset.id)).rejects.toThrow(
+        'AGENTS.md can only be stored on folders',
+      )
+      await expect(assetService.updateAgentsMd(fileAsset.id, '# Nope')).rejects.toThrow(
+        'AGENTS.md can only be stored on folders',
+      )
+    })
+  })
 })

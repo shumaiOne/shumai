@@ -4,6 +4,7 @@ import { m } from '@/ui/paraglide/messages.js'
 import type { AssetInfo, CollectionInfo, SearchCondition, SearchSort } from '@shumai/dtos'
 import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
 import type { InferRequestType, InferResponseType } from 'hono/client'
 import { useState } from 'react'
 import { FieldsManager } from '../fields-manager'
@@ -17,6 +18,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { Button } from '../ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { Separator } from '../ui/separator'
+import { cn } from '@/ui/lib/utils'
 
 type FileBrowserToolbarProps = {
   teamId: string
@@ -55,6 +57,7 @@ export function FileBrowserToolbar({
   const [isMembersDialogOpen, setIsMembersDialogOpen] = useState(false)
   const [isFolderSelectorOpen, setIsFolderSelectorOpen] = useState(false)
 
+  const navigate = useNavigate()
   const activeFiltersCount = filterConditions.length
   const isCollection = !!collection
   const queryClient = useQueryClient()
@@ -68,8 +71,22 @@ export function FileBrowserToolbar({
       if (!res.ok) throw new Error('failed to fetch folder')
       return (await res.json()) as unknown as AssetInfo
     },
-    enabled: isCollection && !!assetId,
+    enabled: !!assetId && !isRecentlyDeleted,
   })
+
+  const handleOpenAgentsMd = () => {
+    if (assetId === rootFolderId) {
+      navigate({
+        to: '/projects/$projectId/agentsmd',
+        params: { projectId },
+      })
+    } else {
+      navigate({
+        to: '/projects/$projectId/folders/$folderId/agentsmd',
+        params: { projectId, folderId: assetId },
+      })
+    }
+  }
 
   const { data: members, refetch: refetchProjectMembers } = useQuery({
     queryKey: ['projects', projectId, 'members'],
@@ -225,11 +242,9 @@ export function FileBrowserToolbar({
       <div className="flex items-center gap-2 h-full">
         <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
           <PopoverTrigger asChild>
-            <div>
-              <Button variant="ghost" size="sm">
-                {m.field()}
-              </Button>
-            </div>
+            <Button variant="ghost" size="sm">
+              {m.field()}
+            </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
             <FieldsManager
@@ -254,11 +269,7 @@ export function FileBrowserToolbar({
           <>
             <Popover open={isFolderSelectorOpen} onOpenChange={setIsFolderSelectorOpen}>
               <PopoverTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="inline-flex items-center gap-2 px-3 py-2 hover:bg-primary/10 font-semibold rounded-xl cursor-pointer h-8 text-muted-foreground"
-                >
+                <Button variant="ghost" size="sm" className="text-muted-foreground">
                   <span className="truncate max-w-[150px]">{folderInfo?.name || 'Loading...'}</span>
                 </Button>
               </PopoverTrigger>
@@ -295,11 +306,7 @@ export function FileBrowserToolbar({
 
             <Popover>
               <PopoverTrigger asChild>
-                <Button
-                  variant={activeFiltersCount > 0 ? 'secondary' : 'ghost'}
-                  size="sm"
-                  className="inline-flex items-center gap-2 px-4 py-2 hover:bg-primary/10 font-semibold rounded-xl cursor-pointer h-8"
-                >
+                <Button variant={activeFiltersCount > 0 ? 'secondary' : 'ghost'} size="sm">
                   <span>Filter</span>
                   {activeFiltersCount > 0 && (
                     <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/50 border border-primary-foreground/20">
@@ -333,20 +340,49 @@ export function FileBrowserToolbar({
             </Popover>
           </>
         ) : (
-          <Button
-            onClick={() => setSearchDialogOpen(true)}
-            disabled={isRecentlyDeleted}
-            variant={activeFiltersCount > 0 ? 'secondary' : 'ghost'}
-            size="sm"
-            className="inline-flex items-center gap-2 px-4 py-2 hover:bg-primary/10 font-semibold rounded-xl cursor-pointer h-8"
-          >
-            <span>{m.search()}</span>
-            {activeFiltersCount > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/50 border border-primary-foreground/20">
-                {activeFiltersCount}
-              </span>
+          <>
+            <Button
+              onClick={() => setSearchDialogOpen(true)}
+              disabled={isRecentlyDeleted}
+              variant={activeFiltersCount > 0 ? 'secondary' : 'ghost'}
+              size="sm"
+            >
+              <span>{m.search()}</span>
+              {activeFiltersCount > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary/50 border border-primary-foreground/20">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </Button>
+
+            {!isRecentlyDeleted && (
+              <>
+                <Separator orientation="vertical" />
+                <Button
+                  onClick={handleOpenAgentsMd}
+                  variant="ghost"
+                  size="sm"
+                  title="AGENTS.md"
+                  className={cn(
+                    folderInfo?.hasAgentsMd ? 'text-foreground' : 'text-muted-foreground',
+                  )}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 -960 960 960"
+                    className={cn(
+                      'size-4',
+                      folderInfo?.hasAgentsMd ? 'text-primary' : 'text-muted-foreground',
+                    )}
+                    fill="currentColor"
+                  >
+                    <path d="m176-120-56-56 301-302-181-45 198-123-17-234 179 151 216-88-87 217 151 178-234-16-124 198-45-181-301 301Zm24-520-80-80 80-80 80 80-80 80Zm520 520-80-80 80-80 80 80-80 80Z" />
+                  </svg>
+                  <span>{m.agents_md()}</span>
+                </Button>
+              </>
             )}
-          </Button>
+          </>
         )}
       </div>
 

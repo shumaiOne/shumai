@@ -1592,6 +1592,15 @@ export class AssetService {
       }
     }
 
+    const agentMdRecords =
+      assets.length > 0
+        ? await this.prismaClient.assetAgentMd.findMany({
+            where: { assetId: { in: assets.map((a) => a.id) } },
+            select: { assetId: true },
+          })
+        : []
+    const hasAgentMdSet = new Set(agentMdRecords.map((r) => r.assetId))
+
     const result: AssetInfo[] = []
     for (const a of assets) {
       let latestVersion:
@@ -1753,6 +1762,7 @@ export class AssetService {
         creator,
         fieldValues,
         sortIndex: a.sortIndex,
+        hasAgentsMd: hasAgentMdSet.has(a.id),
         media: media as unknown as AssetInfo['media'],
         versionStack,
       })
@@ -2163,6 +2173,108 @@ export class AssetService {
       isCompleted: c.isCompleted,
       completionLastChangedBy,
     }
+  }
+
+  async getAgentsMd(assetId: string): Promise<string | null> {
+    const asset = await this.prismaClient.asset.findUnique({
+      where: { id: assetId },
+      select: { type: true },
+    })
+    if (!asset) throw new Error('Asset not found')
+    if (asset.type !== AssetType.folder && asset.type !== AssetType.root) {
+      throw new Error('AGENTS.md can only be stored on folders')
+    }
+    const record = await this.prismaClient.assetAgentMd.findUnique({
+      where: { assetId },
+      select: { content: true },
+    })
+    return record?.content ?? null
+  }
+
+  async updateAgentsMd(assetId: string, content: string): Promise<{ content: string }> {
+    const asset = await this.prismaClient.asset.findUnique({
+      where: { id: assetId },
+      select: { id: true, type: true },
+    })
+    if (!asset) throw new Error('Asset not found')
+    if (asset.type !== AssetType.folder && asset.type !== AssetType.root) {
+      throw new Error('AGENTS.md can only be stored on folders')
+    }
+    const trimmed = content.trim()
+    if (trimmed.length === 0) {
+      await this.prismaClient.assetAgentMd.deleteMany({
+        where: { assetId },
+      })
+      return { content: '' }
+    }
+    const record = await this.prismaClient.assetAgentMd.upsert({
+      where: { assetId },
+      create: { assetId, content },
+      update: { content },
+      select: { content: true },
+    })
+    return { content: record.content }
+  }
+
+  async getNestedAgentsMd(assetId: string): Promise<Array<{ path: string; content: string }>> {
+    let currentId: string | null = assetId
+    const nodes: Array<{
+      id: string
+      name: string
+      type: AssetType
+      parentId: string | null
+    }> = []
+
+    while (currentId) {
+      const node: {
+        id: string
+        name: string
+        type: AssetType
+        parentId: string | null
+      } | null = await this.prismaClient.asset.findUnique({
+        where: { id: currentId },
+        select: { id: true, name: true, type: true, parentId: true },
+      })
+      if (!node) break
+      nodes.unshift(node)
+      currentId = node.parentId
+    }
+
+    if (nodes.length === 0) return []
+
+    const agentMds = await this.prismaClient.assetAgentMd.findMany({
+      where: { assetId: { in: nodes.map((n) => n.id) } },
+      select: { assetId: true, content: true },
+    })
+    const agentMdMap = new Map(agentMds.map((m) => [m.assetId, m.content]))
+
+    const results: Array<{ path: string; content: string }> = []
+    let currentFolderPath = ''
+
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i]
+      let virtualPath: string
+
+      if (node.type === AssetType.root || i === 0) {
+        currentFolderPath = ''
+        virtualPath = '/AGENTS.md'
+      } else {
+        currentFolderPath = currentFolderPath
+          ? `${currentFolderPath}/${node.name}`
+          : `/${node.name}`
+        virtualPath = `${currentFolderPath}/AGENTS.md`
+      }
+
+      const content = agentMdMap.get(node.id)
+      if (content && content.trim().length > 0) {
+        results.push({
+          path: virtualPath,
+          content: content.trim(),
+        })
+      }
+    }
+
+    return results
   }
 }
 

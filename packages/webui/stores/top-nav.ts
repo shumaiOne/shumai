@@ -13,6 +13,7 @@ export interface TopNavProjectState {
     proxyType?: 'image' | 'video' | 'audio' | 'pdf' | null
   }
   isRootFolder: boolean
+  customTerminalBreadcrumb?: string
   fileId?: string
   downloadInfo?: {
     originalKey?: string

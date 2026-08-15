@@ -20,6 +20,7 @@ export function TopNav() {
     ancestorFolders,
     currentAsset,
     isRootFolder,
+    customTerminalBreadcrumb,
     fileId,
     downloadInfo,
     versions,
@@ -35,6 +36,7 @@ export function TopNav() {
   } = projectState
 
   const isFileView = !!fileId
+  const isAgentsMd = !!customTerminalBreadcrumb
 
   const isShareConfig = !!shareId && !isFileView
 
@@ -105,8 +107,11 @@ export function TopNav() {
       ancestorFolders={ancestorFolders}
       currentAsset={currentAsset}
       isRootFolder={isRootFolder}
-      displayStyle={isFileView || isShareConfig ? undefined : displayStyle}
-      onDisplayStyleChange={isFileView || isShareConfig ? undefined : onDisplayStyleChange}
+      customTerminalBreadcrumb={customTerminalBreadcrumb}
+      displayStyle={isFileView || isShareConfig || isAgentsMd ? undefined : displayStyle}
+      onDisplayStyleChange={
+        isFileView || isShareConfig || isAgentsMd ? undefined : onDisplayStyleChange
+      }
       isLeftSidebarCollapsed={isLeftSidebarCollapsed}
       onLeftSidebarToggle={onLeftSidebarToggle}
       isRightSidebarCollapsed={isRightSidebarCollapsed}

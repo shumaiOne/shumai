@@ -490,6 +490,7 @@ model Asset {
   shareLinkRootFolder  ShareLink?   @relation("ShareLinkToRootFolder")
   agentSessions        AgentSession[] @relation("AssetToAgentSession")
   watermarkFiles       WatermarkFile[] @relation("AssetToWatermarkFile")
+  agentMd              AssetAgentMd?   @relation("AssetToAgentMd")
 
   @@map("assets")
   @@index([type])
@@ -535,6 +536,17 @@ model AssetMetadataValue {
   @@index([dateValue])
   @@index([jsonValue], type: Gin)
   @@map("asset_metadata_values")
+}
+
+model AssetAgentMd {
+  assetId   String   @id @map("asset_id")
+  content   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  asset     Asset    @relation("AssetToAgentMd", fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@map("asset_agentmd")
 }
 
 model AssetComment {

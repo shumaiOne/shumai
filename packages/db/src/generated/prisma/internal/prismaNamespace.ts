@@ -402,6 +402,7 @@ export const ModelName = {
   Asset: 'Asset',
   StorageKey: 'StorageKey',
   AssetMetadataValue: 'AssetMetadataValue',
+  AssetAgentMd: 'AssetAgentMd',
   AssetComment: 'AssetComment',
   AssetCommentAttachment: 'AssetCommentAttachment',
   AssetEmbedding: 'AssetEmbedding',
@@ -440,7 +441,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "sandbox" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "watermarkConfig" | "watermarkTemplate" | "watermarkFile" | "asset" | "storageKey" | "assetMetadataValue" | "assetComment" | "assetCommentAttachment" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "mcpServer" | "agentMcpServer" | "mcpServerCredential" | "agentSession" | "agentSessionEntry" | "userMetadata" | "model" | "provider" | "collection" | "apiToken" | "aiUsage" | "auditLog"
+    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "sandbox" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "watermarkConfig" | "watermarkTemplate" | "watermarkFile" | "asset" | "storageKey" | "assetMetadataValue" | "assetAgentMd" | "assetComment" | "assetCommentAttachment" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "mcpServer" | "agentMcpServer" | "mcpServerCredential" | "agentSession" | "agentSessionEntry" | "userMetadata" | "model" | "provider" | "collection" | "apiToken" | "aiUsage" | "auditLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1773,6 +1774,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.AssetMetadataValueCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.AssetMetadataValueCountAggregateOutputType> | number
+        }
+      }
+    }
+    AssetAgentMd: {
+      payload: Prisma.$AssetAgentMdPayload<ExtArgs>
+      fields: Prisma.AssetAgentMdFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AssetAgentMdFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetAgentMdPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AssetAgentMdFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetAgentMdPayload>
+        }
+        findFirst: {
+          args: Prisma.AssetAgentMdFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetAgentMdPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AssetAgentMdFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetAgentMdPayload>
+        }
+        findMany: {
+          args: Prisma.AssetAgentMdFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetAgentMdPayload>[]
+        }
+        create: {
+          args: Prisma.AssetAgentMdCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetAgentMdPayload>
+        }
+        createMany: {
+          args: Prisma.AssetAgentMdCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AssetAgentMdCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetAgentMdPayload>[]
+        }
+        delete: {
+          args: Prisma.AssetAgentMdDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetAgentMdPayload>
+        }
+        update: {
+          args: Prisma.AssetAgentMdUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetAgentMdPayload>
+        }
+        deleteMany: {
+          args: Prisma.AssetAgentMdDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AssetAgentMdUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AssetAgentMdUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetAgentMdPayload>[]
+        }
+        upsert: {
+          args: Prisma.AssetAgentMdUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssetAgentMdPayload>
+        }
+        aggregate: {
+          args: Prisma.AssetAgentMdAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAssetAgentMd>
+        }
+        groupBy: {
+          args: Prisma.AssetAgentMdGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AssetAgentMdGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AssetAgentMdCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AssetAgentMdCountAggregateOutputType> | number
         }
       }
     }
@@ -3780,6 +3855,16 @@ export const AssetMetadataValueScalarFieldEnum = {
 export type AssetMetadataValueScalarFieldEnum = (typeof AssetMetadataValueScalarFieldEnum)[keyof typeof AssetMetadataValueScalarFieldEnum]
 
 
+export const AssetAgentMdScalarFieldEnum = {
+  assetId: 'assetId',
+  content: 'content',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AssetAgentMdScalarFieldEnum = (typeof AssetAgentMdScalarFieldEnum)[keyof typeof AssetAgentMdScalarFieldEnum]
+
+
 export const AssetCommentScalarFieldEnum = {
   id: 'id',
   message: 'message',
@@ -4652,6 +4737,7 @@ export type GlobalOmitConfig = {
   asset?: Prisma.AssetOmit
   storageKey?: Prisma.StorageKeyOmit
   assetMetadataValue?: Prisma.AssetMetadataValueOmit
+  assetAgentMd?: Prisma.AssetAgentMdOmit
   assetComment?: Prisma.AssetCommentOmit
   assetCommentAttachment?: Prisma.AssetCommentAttachmentOmit
   assetEmbedding?: Prisma.AssetEmbeddingOmit
