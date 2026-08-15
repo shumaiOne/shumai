@@ -955,9 +955,42 @@ export class AssetService {
   }
 
   async updateAssetName(req: UpdateAssetNameRequest): Promise<AssetInfo> {
-    const asset = await this.prismaClient.asset.update({
+    const existing = await this.prismaClient.asset.findUnique({
       where: { id: req.id },
-      data: { name: req.name },
+      include: { target: true },
+    })
+    if (!existing) throw new Error('Asset not found')
+
+    let targetType = existing.type
+    let targetId = existing.id
+
+    if (existing.type === AssetType.symlink && existing.target) {
+      targetType = existing.target.type
+      targetId = existing.target.id
+    }
+
+    if (targetType === AssetType.version_stack) {
+      const latestChild = await this.prismaClient.asset.findFirst({
+        where: { parentId: targetId, isDeleted: false },
+        orderBy: { sortIndex: 'asc' },
+        select: { id: true },
+      })
+      if (!latestChild) {
+        throw new Error('No active version found in stack to rename')
+      }
+      await this.prismaClient.asset.update({
+        where: { id: latestChild.id },
+        data: { name: req.name },
+      })
+    } else {
+      await this.prismaClient.asset.update({
+        where: { id: req.id },
+        data: { name: req.name },
+      })
+    }
+
+    const asset = await this.prismaClient.asset.findUnique({
+      where: { id: req.id },
       include: {
         creator: true,
         metadataValues: true,
@@ -983,6 +1016,8 @@ export class AssetService {
         storageKey: true,
       },
     })
+    if (!asset) throw new Error('Asset not found')
+
     const infos = await this.toAssetInfos([asset as unknown as AssetWithIncludes])
     return infos[0]
   }
