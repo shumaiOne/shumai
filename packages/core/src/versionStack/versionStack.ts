@@ -1,7 +1,12 @@
 import { generateKeyBetween } from 'jittered-fractional-indexing'
 import { prisma } from '@shumai/db'
 import { type Asset, AssetType } from '@shumai/db'
-import { ChangeStackFileVersionParams, CreateVersionStackParams } from '@shumai/dtos'
+import {
+  ChangeStackFileVersionParams,
+  CreateVersionStackParams,
+  RemoveStackVersionParams,
+} from '@shumai/dtos'
+import { dedupeSymlinksToTarget } from '../asset/symlink'
 
 function generateSortIndex(previous?: string | null): string {
   if (!previous) return generateKeyBetween(null, null)
@@ -95,6 +100,9 @@ export class VersionStackService {
         },
       })
 
+      // Update existing symlinks pointing to any of the stacked files
+      await dedupeSymlinksToTarget(tx, { targetIds: fileIds, newTargetId: stack.id })
+
       return stack
     })
   }
@@ -127,7 +135,7 @@ export class VersionStackService {
 
       if (beforeId === '-1') {
         const lastFile = await tx.asset.findFirst({
-          where: { parentId: stackId },
+          where: { parentId: stackId, id: { not: fileId } },
           orderBy: { sortIndex: 'desc' },
         })
         newSortIndex = generateKeyBetween(lastFile?.sortIndex || null, null)
@@ -145,6 +153,7 @@ export class VersionStackService {
         const prevFile = await tx.asset.findFirst({
           where: {
             parentId: stackId,
+            id: { not: fileId },
             sortIndex: {
               lt: beforeFile.sortIndex!,
             },
@@ -166,6 +175,123 @@ export class VersionStackService {
           sortIndex: newSortIndex,
         },
       })
+    })
+  }
+
+  async removeVersionFromStack(params: RemoveStackVersionParams): Promise<void> {
+    const { stackId, fileId } = params
+
+    await this.prismaClient.$transaction(async (tx) => {
+      const stack = await tx.asset.findUnique({
+        where: { id: stackId },
+      })
+      if (!stack) {
+        throw new Error('stack not found')
+      }
+      if (stack.type !== AssetType.version_stack) {
+        throw new Error('asset is not a version stack')
+      }
+      if (!stack.parentId) {
+        throw new Error('stack has no parent')
+      }
+
+      const fileToRemove = await tx.asset.findUnique({
+        where: { id: fileId },
+      })
+      if (!fileToRemove) {
+        throw new Error('file not found')
+      }
+      if (fileToRemove.parentId !== stackId) {
+        throw new Error('file is not in the stack')
+      }
+
+      // Find next sibling in parent folder after the stack to insert the removed file adjacent to the stack
+      const nextSibling = await tx.asset.findFirst({
+        where: {
+          parentId: stack.parentId,
+          id: { not: stack.id },
+          sortIndex: {
+            gt: stack.sortIndex || '',
+          },
+        },
+        orderBy: { sortIndex: 'asc' },
+      })
+
+      let newSortIndex: string
+      try {
+        newSortIndex = generateKeyBetween(stack.sortIndex || null, nextSibling?.sortIndex || null)
+      } catch {
+        newSortIndex = generateKeyBetween(null, null)
+      }
+
+      await tx.asset.update({
+        where: { id: fileId },
+        data: {
+          parentId: stack.parentId,
+          sortIndex: newSortIndex,
+        },
+      })
+
+      // Increment parent folder fileCount for the newly standalone file
+      await tx.asset.update({
+        where: { id: stack.parentId },
+        data: {
+          fileCount: { increment: 1 },
+        },
+      })
+
+      // Remaining files in stack
+      const remainingFiles = await tx.asset.findMany({
+        where: { parentId: stackId, isDeleted: false, id: { not: fileId } },
+        orderBy: { sortIndex: 'asc' },
+      })
+
+      if (remainingFiles.length > 1) {
+        let totalSize = 0
+        for (const f of remainingFiles) {
+          totalSize += Number(f.sizeByte)
+        }
+        await tx.asset.update({
+          where: { id: stack.id },
+          data: {
+            fileCount: remainingFiles.length,
+            sizeByte: totalSize,
+          },
+        })
+      } else if (remainingFiles.length === 1) {
+        const lastChild = remainingFiles[0]
+
+        // Update symlinks pointing to stack.id to point to the single remaining child
+        await tx.asset.updateMany({
+          where: { targetId: stack.id, type: AssetType.symlink },
+          data: { targetId: lastChild.id, name: lastChild.name },
+        })
+
+        // Reparent the single remaining child to stack.parentId, keeping stack's sortIndex
+        await tx.asset.update({
+          where: { id: lastChild.id },
+          data: {
+            parentId: stack.parentId,
+            sortIndex: stack.sortIndex,
+          },
+        })
+
+        // Delete the stack asset (parent folder file count is unchanged: -1 stack, +1 remaining child)
+        await tx.asset.delete({
+          where: { id: stack.id },
+        })
+      } else {
+        await tx.asset.deleteMany({
+          where: { targetId: stack.id, type: AssetType.symlink },
+        })
+        await tx.asset.delete({
+          where: { id: stack.id },
+        })
+        await tx.asset.update({
+          where: { id: stack.parentId },
+          data: { fileCount: { decrement: 1 } },
+        })
+      }
     })
   }
 }

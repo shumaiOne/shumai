@@ -22,6 +22,7 @@ import { HTTPException } from 'hono/http-exception'
 import { logger } from '@shumai/core/src/logger'
 import { PaginatedData, paginateQuery, PaginationParams } from '@shumai/core/src/pagination'
 import { s3Service } from '@shumai/core/src/s3/s3'
+import { dedupeSymlinksToTarget } from './symlink'
 import { watermarkService } from '@shumai/core/src/watermark/watermark'
 import { generateKeyBetween } from 'jittered-fractional-indexing'
 import { getAvatarUrl } from '@shumai/core/src/user/avatar'
@@ -160,6 +161,9 @@ export class AssetService {
     const count = await tx.asset.count({ where: { parentId: stack.id } })
 
     if (count === 0) {
+      await tx.asset.deleteMany({
+        where: { targetId: stack.id, type: AssetType.symlink },
+      })
       if (stack.parentId) {
         await tx.asset.update({
           where: { id: stack.parentId },
@@ -174,9 +178,14 @@ export class AssetService {
       if (!lastChild) return
       if (!stack.parentId) throw new Error('Stack has no parent')
 
+      await tx.asset.updateMany({
+        where: { targetId: stack.id, type: AssetType.symlink },
+        data: { targetId: lastChild.id, name: lastChild.name },
+      })
+
       await tx.asset.update({
         where: { id: lastChild.id },
-        data: { parentId: stack.parentId, sortIndex: null },
+        data: { parentId: stack.parentId, sortIndex: stack.sortIndex },
       })
       await tx.asset.delete({ where: { id: stack.id } })
     }
@@ -271,6 +280,14 @@ export class AssetService {
           data: { parentId: newParent.id, sortIndex: newSortIndex },
         })
         firstSortIndex = newSortIndex
+      }
+
+      if (newParent.type === AssetType.version_stack) {
+        await dedupeSymlinksToTarget(tx, {
+          targetIds: req.assetIds,
+          newTargetId: newParent.id,
+          name: '',
+        })
       }
 
       const oldParent = await tx.asset.findUnique({
@@ -577,6 +594,12 @@ export class AssetService {
         fileCount: isUploading ? 1 : 2,
         sizeByte: isUploading ? destFile.sizeByte : destFile.sizeByte + sourceAsset.sizeByte,
       },
+    })
+
+    // Update existing symlinks pointing to destFile or sourceAsset
+    await dedupeSymlinksToTarget(tx, {
+      targetIds: [destFile.id, sourceAsset.id],
+      newTargetId: stack.id,
     })
 
     const oldParent = await tx.asset.findUnique({ where: { id: oldParentId } })
@@ -1629,6 +1652,7 @@ export class AssetService {
                   id: v.id,
                   name: v.name,
                   previewUrl: preview?.thumbnailUrl || null,
+                  createdAt: v.createdAt.toISOString(),
                   creator: v.creator
                     ? {
                         id: v.creator.id,
@@ -1744,9 +1768,12 @@ export class AssetService {
       result.push({
         id: a.id,
         name:
-          a.type === AssetType.version_stack && (a.name === '' || !a.name)
+          a.type === AssetType.version_stack ||
+          (a.type === AssetType.symlink && a.target?.type === AssetType.version_stack)
             ? latestVersion.name
-            : a.name,
+            : a.type === AssetType.symlink
+              ? a.name || latestVersion.name || a.target?.name || ''
+              : a.name,
         sizeByte: Number(latestVersion.sizeByte),
         fileCount: latestVersion.fileCount,
         type: a.type,
@@ -1776,7 +1803,8 @@ export class AssetService {
       version: number
       name: string
       previewUrl: string | null
-      creator: { id: string; name: string | null } | null
+      createdAt: string
+      creator: { id: string; name: string | null; image?: string | null } | null
     }>
   > {
     const versions = await this.prismaClient.asset.findMany({
@@ -1797,6 +1825,7 @@ export class AssetService {
           version: versions.length - i,
           name: v.name,
           previewUrl: preview?.thumbnailUrl || null,
+          createdAt: v.createdAt.toISOString(),
           creator: v.creator
             ? {
                 id: v.creator.id,

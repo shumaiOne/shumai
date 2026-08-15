@@ -22,3 +22,25 @@ export interface ChangeStackFileVersionParams {
   fileId: string
   beforeId: string
 }
+
+export interface RemoveStackVersionParams {
+  stackId: string
+  fileId: string
+}
+
+export const stackVersionInfoSchema = z.object({
+  id: z.string(),
+  version: z.number(),
+  name: z.string().optional().nullable(),
+  previewUrl: z.string().optional().nullable(),
+  createdAt: z.string().optional().nullable(),
+  creator: z
+    .object({
+      id: z.string(),
+      name: z.string().nullable(),
+      image: z.string().optional().nullable(),
+    })
+    .nullable()
+    .optional(),
+})
+export type StackVersionInfo = z.infer<typeof stackVersionInfoSchema>

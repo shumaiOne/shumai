@@ -120,10 +120,12 @@ export const assetInfoSchema = z.object({
           id: z.string(),
           name: z.string().optional().nullable(),
           previewUrl: z.string().optional().nullable(),
+          createdAt: z.string().optional().nullable(),
           creator: z
             .object({
               id: z.string(),
               name: z.string().nullable(),
+              image: z.string().optional().nullable(),
             })
             .nullable()
             .optional(),

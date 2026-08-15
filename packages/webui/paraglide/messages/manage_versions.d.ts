@@ -1,7 +1,7 @@
 /**
 * | output |
 * | --- |
-* | "Manage versions..." |
+* | "Manage versions" |
 *
 * @param {Manage_VersionsInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options

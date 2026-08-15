@@ -80,6 +80,10 @@ apps/web/e2e/
 | Owner drags a file into a folder and a folder into another folder | `tests/project/move-folder-file.spec.ts` |
 | Owner drags a file onto a file to create a version stack | `tests/project/version-stack-create.spec.ts` |
 | Owner drags a file onto a version stack to add a new version | `tests/project/version-stack-add-version.spec.ts` |
+| Owner manages version stack: removes version from 3-version stack | `tests/project/version-stack-manage.spec.ts` |
+| Owner removes version from 2-version stack which dissolves into standalone files | `tests/project/version-stack-manage.spec.ts` |
+| Dissolving a shared version stack renders the remaining standalone file name on the share page | `tests/project/version-stack-manage.spec.ts` |
+| Moving a shared file into a shared version stack leaves only 1 stack card on the share page | `tests/project/version-stack-manage.spec.ts` |
 | Owner searches the file list by an English name keyword | `tests/project/search-file-list.spec.ts` |
 | Owner searches the file list by Chinese, Japanese, and Korean name keywords | `tests/project/search-file-list.spec.ts` |
 | Owner searches the file list with a keyword and a filter condition | `tests/project/search-file-list.spec.ts` |
