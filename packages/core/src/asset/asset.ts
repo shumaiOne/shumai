@@ -22,6 +22,7 @@ import { HTTPException } from 'hono/http-exception'
 import { logger } from '@shumai/core/src/logger'
 import { PaginatedData, paginateQuery, PaginationParams } from '@shumai/core/src/pagination'
 import { s3Service } from '@shumai/core/src/s3/s3'
+import { dedupeSymlinksToTarget } from './symlink'
 import { watermarkService } from '@shumai/core/src/watermark/watermark'
 import { generateKeyBetween } from 'jittered-fractional-indexing'
 import { getAvatarUrl } from '@shumai/core/src/user/avatar'
@@ -282,34 +283,11 @@ export class AssetService {
       }
 
       if (newParent.type === AssetType.version_stack) {
-        const existingSymlinks = await tx.asset.findMany({
-          where: { targetId: { in: req.assetIds }, type: AssetType.symlink },
+        await dedupeSymlinksToTarget(tx, {
+          targetIds: req.assetIds,
+          newTargetId: newParent.id,
+          name: '',
         })
-        if (existingSymlinks.length > 0) {
-          const stackSymlinks = await tx.asset.findMany({
-            where: { targetId: newParent.id, type: AssetType.symlink },
-          })
-          const parentsWithStackSymlink = new Set(
-            stackSymlinks.map((s) => s.parentId).filter((id): id is string => !!id),
-          )
-
-          for (const symlink of existingSymlinks) {
-            if (!symlink.parentId) continue
-            if (parentsWithStackSymlink.has(symlink.parentId)) {
-              await tx.asset.delete({ where: { id: symlink.id } })
-              await tx.asset.update({
-                where: { id: symlink.parentId },
-                data: { fileCount: { decrement: 1 } },
-              })
-            } else {
-              parentsWithStackSymlink.add(symlink.parentId)
-              await tx.asset.update({
-                where: { id: symlink.id },
-                data: { targetId: newParent.id, name: '' },
-              })
-            }
-          }
-        }
       }
 
       const oldParent = await tx.asset.findUnique({
@@ -619,26 +597,10 @@ export class AssetService {
     })
 
     // Update existing symlinks pointing to destFile or sourceAsset
-    const existingSymlinks = await tx.asset.findMany({
-      where: { targetId: { in: [destFile.id, sourceAsset.id] }, type: AssetType.symlink },
+    await dedupeSymlinksToTarget(tx, {
+      targetIds: [destFile.id, sourceAsset.id],
+      newTargetId: stack.id,
     })
-    const processedParentIds = new Set<string>()
-    for (const symlink of existingSymlinks) {
-      if (!symlink.parentId) continue
-      if (processedParentIds.has(symlink.parentId)) {
-        await tx.asset.delete({ where: { id: symlink.id } })
-        await tx.asset.update({
-          where: { id: symlink.parentId },
-          data: { fileCount: { decrement: 1 } },
-        })
-      } else {
-        processedParentIds.add(symlink.parentId)
-        await tx.asset.update({
-          where: { id: symlink.id },
-          data: { targetId: stack.id },
-        })
-      }
-    }
 
     const oldParent = await tx.asset.findUnique({ where: { id: oldParentId } })
     if (oldParent) {

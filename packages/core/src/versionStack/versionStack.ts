@@ -6,6 +6,7 @@ import {
   CreateVersionStackParams,
   RemoveStackVersionParams,
 } from '@shumai/dtos'
+import { dedupeSymlinksToTarget } from '../asset/symlink'
 
 function generateSortIndex(previous?: string | null): string {
   if (!previous) return generateKeyBetween(null, null)
@@ -100,26 +101,7 @@ export class VersionStackService {
       })
 
       // Update existing symlinks pointing to any of the stacked files
-      const existingSymlinks = await tx.asset.findMany({
-        where: { targetId: { in: fileIds }, type: AssetType.symlink },
-      })
-      const processedParentIds = new Set<string>()
-      for (const symlink of existingSymlinks) {
-        if (!symlink.parentId) continue
-        if (processedParentIds.has(symlink.parentId)) {
-          await tx.asset.delete({ where: { id: symlink.id } })
-          await tx.asset.update({
-            where: { id: symlink.parentId },
-            data: { fileCount: { decrement: 1 } },
-          })
-        } else {
-          processedParentIds.add(symlink.parentId)
-          await tx.asset.update({
-            where: { id: symlink.id },
-            data: { targetId: stack.id },
-          })
-        }
-      }
+      await dedupeSymlinksToTarget(tx, { targetIds: fileIds, newTargetId: stack.id })
 
       return stack
     })
