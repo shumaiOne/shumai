@@ -3244,4 +3244,201 @@ describe('AssetService — natural sort by name', () => {
       expect(result.data[0].name).toBe(fileB.name) // fileB is the latest version
     })
   })
+
+  describe('updateAssetName', () => {
+    it('renames the latest version child file and returns updated AssetInfo when given a version stack ID', async () => {
+      const team = await prisma.team.create({ data: { name: 'Test Team ' + Date.now() } })
+      const project = await prisma.project.create({
+        data: { name: 'Test Project', teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'Root',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      const stack = await prisma.asset.create({
+        data: {
+          name: '',
+          type: AssetType.version_stack,
+          parentId: rootFolder.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+          fileCount: 2,
+          sizeByte: 300,
+        },
+      })
+
+      const fileV1 = await prisma.asset.create({
+        data: {
+          name: 'v1.mp4',
+          type: AssetType.file,
+          parentId: stack.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+          sizeByte: 100,
+          sortIndex: 'b0',
+        },
+      })
+
+      const fileV2 = await prisma.asset.create({
+        data: {
+          name: 'v2.mp4',
+          type: AssetType.file,
+          parentId: stack.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+          sizeByte: 200,
+          sortIndex: 'a0', // latest version
+        },
+      })
+
+      const updated = await assetService.updateAssetName({
+        id: stack.id,
+        name: 'v2-renamed.mp4',
+      })
+
+      expect(updated.id).toBe(stack.id)
+      expect(updated.name).toBe('v2-renamed.mp4')
+      expect(updated.versionStack?.versions[0]?.name).toBe('v2-renamed.mp4')
+
+      const dbFileV2 = await prisma.asset.findUnique({ where: { id: fileV2.id } })
+      expect(dbFileV2?.name).toBe('v2-renamed.mp4')
+
+      const dbFileV1 = await prisma.asset.findUnique({ where: { id: fileV1.id } })
+      expect(dbFileV1?.name).toBe('v1.mp4')
+
+      const dbStack = await prisma.asset.findUnique({ where: { id: stack.id } })
+      expect(dbStack?.name).toBe('')
+    })
+
+    it('preserves the renamed filename when a version stack dissolves', async () => {
+      const team = await prisma.team.create({ data: { name: 'Test Team ' + Date.now() } })
+      const project = await prisma.project.create({
+        data: { name: 'Test Project', teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'Root',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      const stack = await prisma.asset.create({
+        data: {
+          name: '',
+          type: AssetType.version_stack,
+          parentId: rootFolder.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+          fileCount: 2,
+          sizeByte: 300,
+          sortIndex: 's0',
+        },
+      })
+
+      const fileV1 = await prisma.asset.create({
+        data: {
+          name: 'v1.mp4',
+          type: AssetType.file,
+          parentId: stack.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+          sizeByte: 100,
+          sortIndex: 'b0',
+        },
+      })
+
+      const fileV2 = await prisma.asset.create({
+        data: {
+          name: 'v2.mp4',
+          type: AssetType.file,
+          parentId: stack.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+          sizeByte: 200,
+          sortIndex: 'a0',
+        },
+      })
+
+      await assetService.updateAssetName({
+        id: stack.id,
+        name: 'v2-renamed.mp4',
+      })
+
+      // Remove v1 from stack -> stack dissolves and v2 becomes standalone file
+      const { versionStackService } = await import('../versionStack/versionStack')
+      await versionStackService.removeVersionFromStack({
+        stackId: stack.id,
+        fileId: fileV1.id,
+      })
+
+      const remainingFile = await prisma.asset.findUnique({ where: { id: fileV2.id } })
+      expect(remainingFile?.parentId).toBe(rootFolder.id)
+      expect(remainingFile?.name).toBe('v2-renamed.mp4')
+    })
+
+    it('throws an error if version stack has no active versions to rename', async () => {
+      const team = await prisma.team.create({ data: { name: 'Test Team ' + Date.now() } })
+      const project = await prisma.project.create({
+        data: { name: 'Test Project', teamId: team.id },
+      })
+      const emptyStack = await prisma.asset.create({
+        data: {
+          name: '',
+          type: AssetType.version_stack,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      await expect(
+        assetService.updateAssetName({
+          id: emptyStack.id,
+          name: 'new-name.mp4',
+        }),
+      ).rejects.toThrow('No active version found in stack to rename')
+    })
+
+    it('renames a regular file and folder correctly', async () => {
+      const team = await prisma.team.create({ data: { name: 'Test Team ' + Date.now() } })
+      const project = await prisma.project.create({
+        data: { name: 'Test Project', teamId: team.id },
+      })
+      const folder = await prisma.asset.create({
+        data: {
+          name: 'Original Folder',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+      const file = await prisma.asset.create({
+        data: {
+          name: 'original.png',
+          type: AssetType.file,
+          parentId: folder.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      const updatedFolder = await assetService.updateAssetName({
+        id: folder.id,
+        name: 'Renamed Folder',
+      })
+      expect(updatedFolder.name).toBe('Renamed Folder')
+
+      const updatedFile = await assetService.updateAssetName({
+        id: file.id,
+        name: 'renamed.png',
+      })
+      expect(updatedFile.name).toBe('renamed.png')
+    })
+  })
 })

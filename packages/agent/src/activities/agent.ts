@@ -1245,9 +1245,7 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
         { first: limit, after },
       )
 
-      const stackIds = assets
-        .filter((a) => a.type === AssetType.version_stack && (!a.name || a.name === ''))
-        .map((a) => a.id)
+      const stackIds = assets.filter((a) => a.type === AssetType.version_stack).map((a) => a.id)
 
       const latestVersionsMap = new Map<string, Prisma.AssetGetPayload<Record<string, never>>>()
 
@@ -1268,10 +1266,7 @@ export async function executeAgentToolActivity(params: ExecuteAgentToolParams): 
         const latestVersion = latestVersionsMap.get(a.id)
         return {
           id: a.id,
-          name:
-            a.type === AssetType.version_stack && (!a.name || a.name === '')
-              ? (latestVersion?.name ?? a.name)
-              : a.name,
+          name: a.type === AssetType.version_stack ? (latestVersion?.name ?? a.name) : a.name,
           type: a.type,
           size:
             a.type === AssetType.version_stack && latestVersion
