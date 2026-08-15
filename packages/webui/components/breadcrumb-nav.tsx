@@ -382,7 +382,7 @@ export function BreadcrumbNav({
                             <DropdownMenuSeparator />
                             <div className="p-1">
                               <button
-                                className="w-full text-center text-xs font-medium py-2 px-3 rounded-md bg-muted/80 hover:bg-muted text-foreground transition-colors"
+                                className="w-full text-center text-xs font-medium py-2 px-3 rounded-md bg-muted/80 hover:bg-muted text-foreground transition-colors cursor-pointer"
                                 onClick={() => setIsManageVersionsOpen(true)}
                               >
                                 {m.manage_versions()}

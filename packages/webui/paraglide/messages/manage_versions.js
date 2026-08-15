@@ -6,17 +6,17 @@ import { getLocale, experimentalStaticLocale } from '../runtime.js';
 /** @typedef {{}} Manage_VersionsInputs */
 
 const en_manage_versions = /** @type {(inputs: Manage_VersionsInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`Manage versions...`)
+	return /** @type {LocalizedString} */ (`Manage versions`)
 };
 
 const zh_manage_versions = /** @type {(inputs: Manage_VersionsInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`管理版本...`)
+	return /** @type {LocalizedString} */ (`管理版本`)
 };
 
 /**
 * | output |
 * | --- |
-* | "Manage versions..." |
+* | "Manage versions" |
 *
 * @param {Manage_VersionsInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options

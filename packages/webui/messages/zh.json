@@ -516,7 +516,7 @@
   "auth_community_cta": "加入我们的开发者和设计师社区。",
 
   "versions": "版本",
-  "manage_versions": "管理版本...",
+  "manage_versions": "管理版本",
   "manage_versions_title": "管理版本",
   "remove_from_stack": "从版本堆栈中移除",
   "version_removed_successfully": "已从版本堆栈中移除版本",

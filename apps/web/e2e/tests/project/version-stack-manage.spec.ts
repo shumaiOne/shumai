@@ -39,7 +39,7 @@ test('owner manages versions: removes a version from a 3-version stack', async (
   // Hover or click on Versions sub-menu trigger
   await page.getByRole('menuitem', { name: 'Versions', exact: true }).hover()
   // Click "Manage versions..."
-  await page.getByRole('button', { name: /manage versions\.\.\./i }).click()
+  await page.getByRole('button', { name: /manage versions$/i }).click()
 
   // 4. Verify Manage versions dialog is visible with all 3 versions
   const dialog = page.getByRole('dialog')
@@ -97,7 +97,7 @@ test('owner removes version from 2-version stack dissolving the stack into stand
   // Open breadcrumb menu and click "Manage versions..."
   await page.getByRole('button', { name: new RegExp(fileB.name) }).click()
   await page.getByRole('menuitem', { name: 'Versions', exact: true }).hover()
-  await page.getByRole('button', { name: /manage versions\.\.\./i }).click()
+  await page.getByRole('button', { name: /manage versions$/i }).click()
 
   const dialog = page.getByRole('dialog')
   await expect(dialog).toBeVisible()

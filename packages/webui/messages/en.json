@@ -516,7 +516,7 @@
   "auth_community_cta": "Join our community of developers and designers.",
 
   "versions": "Versions",
-  "manage_versions": "Manage versions...",
+  "manage_versions": "Manage versions",
   "manage_versions_title": "Manage versions",
   "remove_from_stack": "Remove from stack",
   "version_removed_successfully": "Version removed from stack",
