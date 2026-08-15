@@ -1,0 +1,53 @@
+---
+title: AGENTS.md Context & Instructions
+description: Provide hierarchical, folder-specific instructions and context to AI agents.
+---
+
+In addition to global agent system prompts and skills, Shumai allows you to define project-level and folder-level instructions using **`AGENTS.md`**.
+
+When an AI agent (such as a Chat Agent or Autofill Agent) operates within a project or folder, Shumai automatically loads the corresponding `AGENTS.md` files to provide context, operational rules, and project-specific knowledge.
+
+---
+
+## Hierarchical Traversal & Inheritance
+
+Shumai uses a hierarchical context model for `AGENTS.md`:
+
+- **Upward Traversal**: When an agent works on a file or folder, Shumai traverses the folder tree upwards from the current folder all the way to the **project root level**.
+- **Combined Context**: All `AGENTS.md` files found along this path are loaded into the agent's context in order (from the project root down to the current folder).
+- **Layered Rules**: This lets you define broad, project-wide rules and guidelines at the project root `AGENTS.md`, while adding specific rules, vocabulary, or autofill hints in nested subfolder `AGENTS.md` files.
+
+---
+
+## What to Include in AGENTS.md
+
+You can use `AGENTS.md` to define any instructions you want the agent to follow when working in that folder or project:
+
+- **Project & Folder Overview**: Describe what assets are stored in the folder and how they relate to the broader project.
+- **Agent Behavioral Rules**: Specify guardrails, tone, required formats, or things the agent should and shouldn't do when answering queries or leaving comments.
+- **Terminology & Domain Knowledge**: Define specialized vocabulary, acronyms, brand naming conventions, or project-specific jargon.
+- **Metadata & Autofill Instructions**: Guide the **Autofill Agent** on how to summarize assets, generate tags, or populate specific custom metadata fields for files in this folder.
+
+---
+
+## Accessing and Editing AGENTS.md
+
+### Opening the Editor
+
+To view or edit `AGENTS.md`:
+
+1. Open any project or folder in the Shumai web application.
+2. Click the **`AGENTS.md`** button in the top navigation toolbar, or right-click any folder in the file browser and choose **AGENTS.md**.
+3. A dedicated WYSIWYG Markdown editor opens with full formatting support (headings, lists, code blocks, bold/italics, and links).
+
+### Auto-Save
+
+As you make changes in the editor, Shumai automatically saves your edits in the background with visual save status indicators (`Saving...`, `Saved`).
+
+---
+
+## Permissions & Read-Only Mode
+
+- **Viewing**: All team members who have read access to the project can view `AGENTS.md`.
+- **Editing**: **Only Team Owners** are permitted to create, edit, or delete `AGENTS.md` files.
+- **Read-Only State**: Non-owner members will see a clear read-only indicator in the toolbar explaining that only team owners can edit instructions for the file.

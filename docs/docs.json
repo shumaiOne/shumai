@@ -43,6 +43,7 @@
         "pages": [
           "using-shumai/agent-providers",
           "using-shumai/agents",
+          "using-shumai/agents-md",
           "using-shumai/agent-skills",
           "using-shumai/agent-tools",
           "using-shumai/mcp-servers",
