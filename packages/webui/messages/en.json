@@ -1039,8 +1039,8 @@
   "saved": "Saved",
   "read_only": "Read-only",
   "agents_md": "AGENTS.md",
-  "agents_md_placeholder": "Write guidelines and instructions for AI agents here...",
-  "agents_md_readonly_hint": "Only project owners can edit AGENTS.md instructions.",
+  "agents_md_placeholder": "Give AI agents instructions and context for this project or folder.\n\nShumai automatically loads this file, along with AGENTS.md files from parent folders up to the project level, whenever an agent works here.\n\nUse it to define things like:\n- What this project or folder contains\n- Rules the agent should follow\n- Terminology, style, or workflow\n- How metadata and autofill should be generated",
+  "agents_md_readonly_hint": "Only team owners can edit this file.",
   "agents_md_save_failed": "Failed to save",
   "agents_md_loading": "Loading AGENTS.md..."
 }

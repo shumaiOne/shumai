@@ -6,17 +6,33 @@ import { getLocale, experimentalStaticLocale } from '../runtime.js';
 /** @typedef {{}} Agents_Md_PlaceholderInputs */
 
 const en_agents_md_placeholder = /** @type {(inputs: Agents_Md_PlaceholderInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`Write guidelines and instructions for AI agents here...`)
+	return /** @type {LocalizedString} */ (`Give AI agents instructions and context for this project or folder.
+
+Shumai automatically loads this file, along with AGENTS.md files from parent folders up to the project level, whenever an agent works here.
+
+Use it to define things like:
+- What this project or folder contains
+- Rules the agent should follow
+- Terminology, style, or workflow
+- How metadata and autofill should be generated`)
 };
 
 const zh_agents_md_placeholder = /** @type {(inputs: Agents_Md_PlaceholderInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`在此处为 AI Agent 编写项目或文件夹指引...`)
+	return /** @type {LocalizedString} */ (`为在此项目或文件夹中工作的 AI Agent 提供指引和上下文。
+
+当 Agent 在此处工作时，Shumai 会自动加载此文件以及向上追溯至项目根目录各级父文件夹中的 AGENTS.md 文件。
+
+您可以用它来定义：
+- 此项目或文件夹包含的内容
+- Agent 应当遵守的规则
+- 术语、风格或工作流规范
+- 元数据和自动填充的生成方式`)
 };
 
 /**
 * | output |
 * | --- |
-* | "Write guidelines and instructions for AI agents here..." |
+* | "Give AI agents instructions and context for this project or folder. Shumai automatically loads this file, along with AGENTS.md files from parent folders up t..." |
 *
 * @param {Agents_Md_PlaceholderInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options

@@ -6,17 +6,17 @@ import { getLocale, experimentalStaticLocale } from '../runtime.js';
 /** @typedef {{}} Agents_Md_Readonly_HintInputs */
 
 const en_agents_md_readonly_hint = /** @type {(inputs: Agents_Md_Readonly_HintInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`Only project owners can edit AGENTS.md instructions.`)
+	return /** @type {LocalizedString} */ (`Only team owners can edit this file.`)
 };
 
 const zh_agents_md_readonly_hint = /** @type {(inputs: Agents_Md_Readonly_HintInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`只有项目所有者可以编辑 AGENTS.md 指引。`)
+	return /** @type {LocalizedString} */ (`只有团队所有者可以修改此文件。`)
 };
 
 /**
 * | output |
 * | --- |
-* | "Only project owners can edit AGENTS.md instructions." |
+* | "Only team owners can edit this file." |
 *
 * @param {Agents_Md_Readonly_HintInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options

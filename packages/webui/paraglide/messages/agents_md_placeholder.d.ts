@@ -1,7 +1,7 @@
 /**
 * | output |
 * | --- |
-* | "Write guidelines and instructions for AI agents here..." |
+* | "Give AI agents instructions and context for this project or folder. Shumai automatically loads this file, along with AGENTS.md files from parent folders up t..." |
 *
 * @param {Agents_Md_PlaceholderInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options

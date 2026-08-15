@@ -132,7 +132,7 @@ export function MarkdownEditor({
         {!readOnly && !hideToolbar ? (
           <ToolbarPlugin rightContent={rightToolbarContent} />
         ) : rightToolbarContent ? (
-          <div className="shumai-editor-toolbar flex items-center justify-end px-3 py-1.5 border-b">
+          <div className="shumai-editor-toolbar flex items-center justify-between px-3 py-1.5 border-b">
             {rightToolbarContent}
           </div>
         ) : null}

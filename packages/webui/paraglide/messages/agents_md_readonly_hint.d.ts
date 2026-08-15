@@ -1,7 +1,7 @@
 /**
 * | output |
 * | --- |
-* | "Only project owners can edit AGENTS.md instructions." |
+* | "Only team owners can edit this file." |
 *
 * @param {Agents_Md_Readonly_HintInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options

@@ -168,7 +168,7 @@ export function AgentsMdEditor({ projectId, assetId, rootFolderId, isRoot }: Age
   }
 
   const rightToolbarContent = (
-    <div className="flex items-center gap-2 shrink-0">
+    <div className="flex items-center justify-between w-full gap-2 shrink-0">
       {canAdmin ? (
         <div className="flex items-center gap-1.5 text-xs shrink-0">
           {(saveStatus === 'saving' || isClosing) && (
@@ -192,27 +192,29 @@ export function AgentsMdEditor({ projectId, assetId, rootFolderId, isRoot }: Age
         </div>
       ) : (
         <div
-          className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-md shrink-0"
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-md shrink-0"
           title={m.agents_md_readonly_hint()}
         >
-          <Lock className="h-3 w-3 shrink-0" />
-          <span>{m.read_only()}</span>
+          <Lock className="h-3.5 w-3.5 shrink-0" />
+          <span>{m.agents_md_readonly_hint()}</span>
         </div>
       )}
 
-      <Separator orientation="vertical" className="h-4 shrink-0" />
+      <div className="flex items-center gap-2 shrink-0">
+        {canAdmin && <Separator orientation="vertical" className="h-4 shrink-0" />}
 
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={handleClose}
-        disabled={isClosing}
-        className="h-7 px-2.5 hover:bg-muted text-muted-foreground hover:text-foreground shrink-0"
-        title={m.close()}
-      >
-        <X className="h-4 w-4 mr-1 shrink-0" />
-        <span>{m.close()}</span>
-      </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleClose}
+          disabled={isClosing}
+          className="h-7 px-2.5 hover:bg-muted text-muted-foreground hover:text-foreground shrink-0"
+          title={m.close()}
+        >
+          <X className="h-4 w-4 mr-1 shrink-0" />
+          <span>{m.close()}</span>
+        </Button>
+      </div>
     </div>
   )
 
