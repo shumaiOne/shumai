@@ -40,6 +40,8 @@ import {
   LayoutGrid,
   List,
 } from 'lucide-react'
+import { useState } from 'react'
+import { ManageVersionsDialog } from './manage-versions-dialog'
 
 interface BreadcrumbNavProps {
   teamId: string
@@ -120,6 +122,7 @@ export function BreadcrumbNav({
 }: BreadcrumbNavProps) {
   const navigate = useNavigate()
   const { canEdit } = usePermissions(projectId)
+  const [isManageVersionsOpen, setIsManageVersionsOpen] = useState(false)
 
   const isChatbotDisabled = false
 
@@ -236,7 +239,7 @@ export function BreadcrumbNav({
                 {currentAsset.name}
               </span>
             ) : (
-              <DropdownMenu>
+              <DropdownMenu modal={false}>
                 <DropdownMenuTrigger className="flex items-center gap-1 truncate rounded px-2 py-1 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground">
                   <span>{currentAsset.name}</span>
                   {currentAsset.version !== undefined && (
@@ -380,9 +383,9 @@ export function BreadcrumbNav({
                             <div className="p-1">
                               <button
                                 className="w-full text-center text-xs font-medium py-2 px-3 rounded-md bg-muted/80 hover:bg-muted text-foreground transition-colors"
-                                onClick={() => console.log('Manage versions')}
+                                onClick={() => setIsManageVersionsOpen(true)}
                               >
-                                Manage versions...
+                                {m.manage_versions()}
                               </button>
                             </div>
                           </DropdownMenuSubContent>
@@ -395,6 +398,40 @@ export function BreadcrumbNav({
             )}
           </div>
         ) : null}
+
+        {fileId && versions && versions.length > 0 && (
+          <ManageVersionsDialog
+            open={isManageVersionsOpen}
+            onOpenChange={setIsManageVersionsOpen}
+            stackId={fileId}
+            canEdit={canEdit}
+            onStackDissolved={(remainingFileId) => {
+              setIsManageVersionsOpen(false)
+              navigate({
+                to: '/projects/$projectId/files/$fileId',
+                params: { projectId, fileId: remainingFileId },
+              })
+            }}
+            onVersionRemoved={(removedVersionId, remainingVersions) => {
+              const currentVersionId = currentAsset.version
+                ? versions.find((v) => v.version === currentAsset.version)?.id
+                : undefined
+              if (currentVersionId === removedVersionId) {
+                const topVersion = remainingVersions[0]
+                if (topVersion) {
+                  navigate({
+                    to: '/projects/$projectId/files/$fileId',
+                    params: { projectId, fileId },
+                    search: (prev: Record<string, unknown>) => ({
+                      ...prev,
+                      version: topVersion.id,
+                    }),
+                  })
+                }
+              }
+            }}
+          />
+        )}
       </div>
 
       <div className="flex items-center gap-2">

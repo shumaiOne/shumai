@@ -32,12 +32,14 @@ vi.mock('./middleware/auth', () => ({
 describe('versionStack api', () => {
   let mockCreateVersionStack: any // eslint-disable-line @typescript-eslint/no-explicit-any
   let mockChangeStackFileVersion: any // eslint-disable-line @typescript-eslint/no-explicit-any
+  let mockRemoveVersionFromStack: any // eslint-disable-line @typescript-eslint/no-explicit-any
   let mockGetAsset: any // eslint-disable-line @typescript-eslint/no-explicit-any
   let mockGetStackVersions: any // eslint-disable-line @typescript-eslint/no-explicit-any
 
   beforeEach(() => {
     mockCreateVersionStack = vi.spyOn(versionStackService, 'createVersionStack')
     mockChangeStackFileVersion = vi.spyOn(versionStackService, 'changeStackFileVersion')
+    mockRemoveVersionFromStack = vi.spyOn(versionStackService, 'removeVersionFromStack')
     mockGetAsset = vi.spyOn(assetService, 'getAsset')
     mockGetStackVersions = vi.spyOn(assetService, 'getStackVersions')
     vi.mocked(authzService.hasPermission).mockResolvedValue(undefined)
@@ -144,6 +146,32 @@ describe('versionStack api', () => {
         }),
       )
       expect(mockGetStackVersions).toHaveBeenCalledWith('stack1')
+    })
+  })
+
+  describe('DELETE /version_stacks/:stackId/versions/:versionId', () => {
+    it('should remove version from stack and return 200', async () => {
+      mockRemoveVersionFromStack.mockResolvedValue()
+
+      const app = new Hono().use('*', authMiddleware).route('/', versionStackRoute)
+
+      const res = await app.request('/version_stacks/stack1/versions/v1', {
+        method: 'DELETE',
+      })
+
+      expect(res.status).toBe(200)
+
+      expect(authzService.hasPermission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: ResourceType.Asset,
+          id: 'stack1',
+          permission: Permission.Edit,
+        }),
+      )
+      expect(mockRemoveVersionFromStack).toHaveBeenCalledWith({
+        stackId: 'stack1',
+        fileId: 'v1',
+      })
     })
   })
 })

@@ -75,5 +75,24 @@ const route = app
     const versions = await assetService.getStackVersions(stackId)
     return c.json(versions)
   })
+  .delete('/version_stacks/:stackId/versions/:versionId', async (c) => {
+    const stackId = c.req.param('stackId')
+    const versionId = c.req.param('versionId')
+    const user = c.get('user')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Edit,
+      type: ResourceType.Asset,
+      id: stackId,
+    })
+
+    await versionStackService.removeVersionFromStack({
+      stackId,
+      fileId: versionId,
+    })
+
+    return new Response(null, { status: 200 })
+  })
 
 export default route

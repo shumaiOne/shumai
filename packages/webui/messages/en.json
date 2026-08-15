@@ -517,6 +517,13 @@
 
   "versions": "Versions",
   "manage_versions": "Manage versions...",
+  "manage_versions_title": "Manage versions",
+  "remove_from_stack": "Remove from stack",
+  "version_removed_successfully": "Version removed from stack",
+  "failed_to_remove_version": "Failed to remove version",
+  "version_reordered_successfully": "Version order updated",
+  "failed_to_reorder_versions": "Failed to reorder versions",
+  "no_versions_found": "No versions found",
   "compare_versions": "Compare Versions",
   "exit_compare": "Exit compare",
   "switch_version": "Switch version",

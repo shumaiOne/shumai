@@ -160,6 +160,9 @@ export class AssetService {
     const count = await tx.asset.count({ where: { parentId: stack.id } })
 
     if (count === 0) {
+      await tx.asset.deleteMany({
+        where: { targetId: stack.id, type: AssetType.symlink },
+      })
       if (stack.parentId) {
         await tx.asset.update({
           where: { id: stack.parentId },
@@ -174,9 +177,14 @@ export class AssetService {
       if (!lastChild) return
       if (!stack.parentId) throw new Error('Stack has no parent')
 
+      await tx.asset.updateMany({
+        where: { targetId: stack.id, type: AssetType.symlink },
+        data: { targetId: lastChild.id },
+      })
+
       await tx.asset.update({
         where: { id: lastChild.id },
-        data: { parentId: stack.parentId, sortIndex: null },
+        data: { parentId: stack.parentId, sortIndex: stack.sortIndex },
       })
       await tx.asset.delete({ where: { id: stack.id } })
     }
@@ -578,6 +586,28 @@ export class AssetService {
         sizeByte: isUploading ? destFile.sizeByte : destFile.sizeByte + sourceAsset.sizeByte,
       },
     })
+
+    // Update existing symlinks pointing to destFile or sourceAsset
+    const existingSymlinks = await tx.asset.findMany({
+      where: { targetId: { in: [destFile.id, sourceAsset.id] }, type: AssetType.symlink },
+    })
+    const processedParentIds = new Set<string>()
+    for (const symlink of existingSymlinks) {
+      if (!symlink.parentId) continue
+      if (processedParentIds.has(symlink.parentId)) {
+        await tx.asset.delete({ where: { id: symlink.id } })
+        await tx.asset.update({
+          where: { id: symlink.parentId },
+          data: { fileCount: { decrement: 1 } },
+        })
+      } else {
+        processedParentIds.add(symlink.parentId)
+        await tx.asset.update({
+          where: { id: symlink.id },
+          data: { targetId: stack.id },
+        })
+      }
+    }
 
     const oldParent = await tx.asset.findUnique({ where: { id: oldParentId } })
     if (oldParent) {
@@ -1629,6 +1659,7 @@ export class AssetService {
                   id: v.id,
                   name: v.name,
                   previewUrl: preview?.thumbnailUrl || null,
+                  createdAt: v.createdAt.toISOString(),
                   creator: v.creator
                     ? {
                         id: v.creator.id,
@@ -1776,7 +1807,8 @@ export class AssetService {
       version: number
       name: string
       previewUrl: string | null
-      creator: { id: string; name: string | null } | null
+      createdAt: string
+      creator: { id: string; name: string | null; image?: string | null } | null
     }>
   > {
     const versions = await this.prismaClient.asset.findMany({
@@ -1797,6 +1829,7 @@ export class AssetService {
           version: versions.length - i,
           name: v.name,
           previewUrl: preview?.thumbnailUrl || null,
+          createdAt: v.createdAt.toISOString(),
           creator: v.creator
             ? {
                 id: v.creator.id,
