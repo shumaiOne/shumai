@@ -1039,8 +1039,8 @@
   "saved": "已保存",
   "read_only": "只读",
   "agents_md": "AGENTS.md",
-  "agents_md_placeholder": "在此处为 AI Agent 编写项目或文件夹指引...",
-  "agents_md_readonly_hint": "只有项目所有者可以编辑 AGENTS.md 指引。",
+  "agents_md_placeholder": "为在此项目或文件夹中工作的 AI Agent 提供指引和上下文。\n\n当 Agent 在此处工作时，Shumai 会自动加载此文件以及向上追溯至项目根目录各级父文件夹中的 AGENTS.md 文件。\n\n您可以用它来定义：\n- 此项目或文件夹包含的内容\n- Agent 应当遵守的规则\n- 术语、风格或工作流规范\n- 元数据和自动填充的生成方式",
+  "agents_md_readonly_hint": "只有团队所有者可以修改此文件。",
   "agents_md_save_failed": "保存失败",
   "agents_md_loading": "正在加载 AGENTS.md..."
 }

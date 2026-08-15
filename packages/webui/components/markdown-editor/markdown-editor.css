@@ -97,10 +97,13 @@
   position: absolute;
   top: 16px;
   left: 16px;
+  right: 16px;
   color: var(--muted-foreground, #94a3b8);
   pointer-events: none;
   user-select: none;
   font-size: 15px;
+  line-height: 1.7;
+  white-space: pre-wrap;
 }
 
 /* Typography styles in WYSIWYG mode */
