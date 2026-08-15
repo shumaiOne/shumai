@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { VersionStackService } from './versionStack'
+import { assetService } from '../asset/asset'
 import { AssetType } from '@shumai/db'
 
 describe('VersionStackService', () => {
@@ -488,9 +489,18 @@ describe('VersionStackService', () => {
         fileId: file2.id,
       })
 
-      // Symlink in share link should now point directly to file1.id
+      // Symlink in share link should now point directly to file1.id and have file1's name
       const symlinkAfterDissolve = await prisma.asset.findUnique({ where: { id: symlink.id } })
       expect(symlinkAfterDissolve?.targetId).toBe(file1.id)
+      expect(symlinkAfterDissolve?.name).toBe(file1.name)
+
+      // Listing share link files returns file1 with correct name
+      const shareFiles = await assetService.listChildren({
+        assetId: shareLink.rootFolderId,
+        assetType: AssetType.file,
+      })
+      expect(shareFiles.data).toHaveLength(1)
+      expect(shareFiles.data[0].name).toBe(file1.name)
     })
   })
 })

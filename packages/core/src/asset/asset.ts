@@ -179,7 +179,7 @@ export class AssetService {
 
       await tx.asset.updateMany({
         where: { targetId: stack.id, type: AssetType.symlink },
-        data: { targetId: lastChild.id },
+        data: { targetId: lastChild.id, name: lastChild.name },
       })
 
       await tx.asset.update({
@@ -279,6 +279,37 @@ export class AssetService {
           data: { parentId: newParent.id, sortIndex: newSortIndex },
         })
         firstSortIndex = newSortIndex
+      }
+
+      if (newParent.type === AssetType.version_stack) {
+        const existingSymlinks = await tx.asset.findMany({
+          where: { targetId: { in: req.assetIds }, type: AssetType.symlink },
+        })
+        if (existingSymlinks.length > 0) {
+          const stackSymlinks = await tx.asset.findMany({
+            where: { targetId: newParent.id, type: AssetType.symlink },
+          })
+          const parentsWithStackSymlink = new Set(
+            stackSymlinks.map((s) => s.parentId).filter((id): id is string => !!id),
+          )
+
+          for (const symlink of existingSymlinks) {
+            if (!symlink.parentId) continue
+            if (parentsWithStackSymlink.has(symlink.parentId)) {
+              await tx.asset.delete({ where: { id: symlink.id } })
+              await tx.asset.update({
+                where: { id: symlink.parentId },
+                data: { fileCount: { decrement: 1 } },
+              })
+            } else {
+              parentsWithStackSymlink.add(symlink.parentId)
+              await tx.asset.update({
+                where: { id: symlink.id },
+                data: { targetId: newParent.id, name: '' },
+              })
+            }
+          }
+        }
       }
 
       const oldParent = await tx.asset.findUnique({
@@ -1775,9 +1806,12 @@ export class AssetService {
       result.push({
         id: a.id,
         name:
-          a.type === AssetType.version_stack && (a.name === '' || !a.name)
+          a.type === AssetType.version_stack ||
+          (a.type === AssetType.symlink && a.target?.type === AssetType.version_stack)
             ? latestVersion.name
-            : a.name,
+            : a.type === AssetType.symlink
+              ? a.name || latestVersion.name || a.target?.name || ''
+              : a.name,
         sizeByte: Number(latestVersion.sizeByte),
         fileCount: latestVersion.fileCount,
         type: a.type,

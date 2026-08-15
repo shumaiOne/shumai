@@ -3030,4 +3030,218 @@ describe('AssetService — natural sort by name', () => {
       )
     })
   })
+
+  describe('reparentAssets into version_stack with sharelink symlinks', () => {
+    it('deduplicates symlinks when both Stack A and File B are in the sharelink and File B is moved into Stack A', async () => {
+      const team = await prisma.team.create({ data: { name: 'Test Team ' + Date.now() } })
+      const project = await prisma.project.create({
+        data: { name: 'Test Project', teamId: team.id },
+      })
+      const user = await prisma.user.create({
+        data: { name: 'Test User', email: `test-${Date.now()}@example.com` },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'Root',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+      const shareRoot = await prisma.asset.create({
+        data: {
+          name: 'ShareRoot',
+          type: AssetType.share_root,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+          fileCount: 2,
+        },
+      })
+
+      const fileA1 = await prisma.asset.create({
+        data: {
+          name: 'fileA1.txt',
+          type: AssetType.file,
+          parentId: rootFolder.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+          sizeByte: 100,
+          sortIndex: 'a0',
+        },
+      })
+      const fileA2 = await prisma.asset.create({
+        data: {
+          name: 'fileA2.txt',
+          type: AssetType.file,
+          parentId: rootFolder.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+          sizeByte: 100,
+          sortIndex: 'a1',
+        },
+      })
+      const fileB = await prisma.asset.create({
+        data: {
+          name: 'fileB.txt',
+          type: AssetType.file,
+          parentId: rootFolder.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+          sizeByte: 200,
+          sortIndex: 'a2',
+        },
+      })
+
+      // Create Stack A from fileA1 and fileA2
+      const stackA = await prisma.asset.create({
+        data: {
+          name: '',
+          type: AssetType.version_stack,
+          parentId: rootFolder.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+          fileCount: 2,
+          sizeByte: 200,
+        },
+      })
+      await prisma.asset.update({ where: { id: fileA1.id }, data: { parentId: stackA.id } })
+      await prisma.asset.update({ where: { id: fileA2.id }, data: { parentId: stackA.id } })
+
+      // Create symlinks in shareRoot for both Stack A and File B
+      const symlinkStackA = await prisma.asset.create({
+        data: {
+          name: '',
+          type: AssetType.symlink,
+          parentId: shareRoot.id,
+          targetId: stackA.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+      const symlinkFileB = await prisma.asset.create({
+        data: {
+          name: fileB.name,
+          type: AssetType.symlink,
+          parentId: shareRoot.id,
+          targetId: fileB.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      // Move File B into Stack A
+      await assetService.reparentAssets({
+        newParentId: stackA.id,
+        assetIds: [fileB.id],
+        creatorId: user.id,
+      })
+
+      // Verify: File B's symlink was deleted, only Stack A's symlink remains
+      expect(await prisma.asset.findUnique({ where: { id: symlinkFileB.id } })).toBeNull()
+      const remainingSymlinks = await prisma.asset.findMany({
+        where: { parentId: shareRoot.id, type: AssetType.symlink },
+      })
+      expect(remainingSymlinks).toHaveLength(1)
+      expect(remainingSymlinks[0].id).toBe(symlinkStackA.id)
+      expect(remainingSymlinks[0].targetId).toBe(stackA.id)
+
+      // ShareRoot fileCount was decremented from 2 to 1
+      const updatedShareRoot = await prisma.asset.findUnique({ where: { id: shareRoot.id } })
+      expect(updatedShareRoot?.fileCount).toBe(1)
+    })
+
+    it('repoints symlink to Stack A when only File B is in sharelink and File B is moved into Stack A', async () => {
+      const team = await prisma.team.create({ data: { name: 'Test Team ' + Date.now() } })
+      const project = await prisma.project.create({
+        data: { name: 'Test Project', teamId: team.id },
+      })
+      const user = await prisma.user.create({
+        data: { name: 'Test User', email: `test-${Date.now()}@example.com` },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: {
+          name: 'Root',
+          type: AssetType.folder,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+      const shareRoot = await prisma.asset.create({
+        data: {
+          name: 'ShareRoot',
+          type: AssetType.share_root,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+          fileCount: 1,
+        },
+      })
+
+      const fileA1 = await prisma.asset.create({
+        data: {
+          name: 'fileA1.txt',
+          type: AssetType.file,
+          parentId: rootFolder.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+          sizeByte: 100,
+          sortIndex: 'a0',
+        },
+      })
+      const stackA = await prisma.asset.create({
+        data: {
+          name: '',
+          type: AssetType.version_stack,
+          parentId: rootFolder.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+          fileCount: 1,
+          sizeByte: 100,
+        },
+      })
+      await prisma.asset.update({ where: { id: fileA1.id }, data: { parentId: stackA.id } })
+
+      const fileB = await prisma.asset.create({
+        data: {
+          name: 'fileB.txt',
+          type: AssetType.file,
+          parentId: rootFolder.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+          sizeByte: 200,
+          sortIndex: 'a1',
+        },
+      })
+
+      // Create symlink for File B only
+      const symlinkFileB = await prisma.asset.create({
+        data: {
+          name: fileB.name,
+          type: AssetType.symlink,
+          parentId: shareRoot.id,
+          targetId: fileB.id,
+          projectId: project.id,
+          status: AssetStatus.uploaded,
+        },
+      })
+
+      // Move File B into Stack A
+      await assetService.reparentAssets({
+        newParentId: stackA.id,
+        assetIds: [fileB.id],
+        creatorId: user.id,
+      })
+
+      // Verify: symlinkFileB now points to stackA.id
+      const updatedSymlink = await prisma.asset.findUnique({ where: { id: symlinkFileB.id } })
+      expect(updatedSymlink?.targetId).toBe(stackA.id)
+
+      // Listing assets for shareRoot returns Stack A with latest version name
+      const result = await assetService.listChildren({
+        assetId: shareRoot.id,
+        assetType: AssetType.file,
+      })
+      expect(result.data).toHaveLength(1)
+      expect(result.data[0].name).toBe(fileB.name) // fileB is the latest version
+    })
+  })
 })

@@ -282,7 +282,7 @@ export class VersionStackService {
         // Update symlinks pointing to stack.id to point to the single remaining child
         await tx.asset.updateMany({
           where: { targetId: stack.id, type: AssetType.symlink },
-          data: { targetId: lastChild.id },
+          data: { targetId: lastChild.id, name: lastChild.name },
         })
 
         // Reparent the single remaining child to stack.parentId, keeping stack's sortIndex
