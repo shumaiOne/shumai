@@ -184,6 +184,115 @@ describe('TeamService', () => {
     expect(allMembers).toHaveLength(2)
   })
 
+  it('should filter included agents by agent permission and requester role', async () => {
+    const owner = await prisma.user.create({
+      data: { name: 'Owner', email: `owner-${Date.now()}@example.com`, password: 'pw' },
+    })
+    const team = await teamService.createTeam(owner, { name: 'Permission Team' })
+
+    const editor = await prisma.user.create({
+      data: { name: 'Editor', email: `editor-${Date.now()}@example.com`, password: 'pw' },
+    })
+    await prisma.teamMember.create({
+      data: { teamId: team.id, userId: editor.id, role: 'editor' },
+    })
+
+    const reviewer = await prisma.user.create({
+      data: { name: 'Reviewer', email: `reviewer-${Date.now()}@example.com`, password: 'pw' },
+    })
+    await prisma.teamMember.create({
+      data: { teamId: team.id, userId: reviewer.id, role: 'reviewer' },
+    })
+
+    // Create 3 agents with different permissions
+    const botReviewer = await prisma.user.create({
+      data: {
+        name: 'Bot All Users',
+        email: `bot-rev-${Date.now()}@shumai.ai`,
+        type: 'agent',
+        agent: {
+          create: {
+            teamId: team.id,
+            type: 'chat',
+            permission: 'reviewer',
+            enabled: true,
+            config: { provider: 'p', model: 'm' },
+          },
+        },
+      },
+    })
+    await teamService.joinTeam({ teamId: team.id, userId: botReviewer.id })
+
+    const botEditor = await prisma.user.create({
+      data: {
+        name: 'Bot Editor Only',
+        email: `bot-ed-${Date.now()}@shumai.ai`,
+        type: 'agent',
+        agent: {
+          create: {
+            teamId: team.id,
+            type: 'chat',
+            permission: 'editor',
+            enabled: true,
+            config: { provider: 'p', model: 'm' },
+          },
+        },
+      },
+    })
+    await teamService.joinTeam({ teamId: team.id, userId: botEditor.id })
+
+    const botOwner = await prisma.user.create({
+      data: {
+        name: 'Bot Owner Only',
+        email: `bot-own-${Date.now()}@shumai.ai`,
+        type: 'agent',
+        agent: {
+          create: {
+            teamId: team.id,
+            type: 'chat',
+            permission: 'owner',
+            enabled: true,
+            config: { provider: 'p', model: 'm' },
+          },
+        },
+      },
+    })
+    await teamService.joinTeam({ teamId: team.id, userId: botOwner.id })
+
+    // Reviewer should only see botReviewer among agents
+    const reviewerMembers = await teamService.getTeamMembers({
+      teamId: team.id,
+      userId: reviewer.id,
+      includeAgents: true,
+    })
+    const reviewerAgentIds = reviewerMembers.filter((m) => m.type === 'agent').map((m) => m.id)
+    expect(reviewerAgentIds).toEqual([botReviewer.id])
+
+    // Editor should see botReviewer and botEditor
+    const editorMembers = await teamService.getTeamMembers({
+      teamId: team.id,
+      userId: editor.id,
+      includeAgents: true,
+    })
+    const editorAgentIds = editorMembers.filter((m) => m.type === 'agent').map((m) => m.id)
+    expect(editorAgentIds).toHaveLength(2)
+    expect(editorAgentIds).toContain(botReviewer.id)
+    expect(editorAgentIds).toContain(botEditor.id)
+    expect(editorAgentIds).not.toContain(botOwner.id)
+
+    // Owner should see all 3 agents
+    const ownerMembers = await teamService.getTeamMembers({
+      teamId: team.id,
+      userId: owner.id,
+      includeAgents: true,
+    })
+    const ownerAgentIds = ownerMembers.filter((m) => m.type === 'agent').map((m) => m.id)
+    expect(ownerAgentIds).toHaveLength(3)
+    expect(ownerAgentIds).toContain(botReviewer.id)
+    expect(ownerAgentIds).toContain(botEditor.id)
+    expect(ownerAgentIds).toContain(botOwner.id)
+  })
+
   it('should filter members for project-scoped members', async () => {
     const owner = await prisma.user.create({
       data: { name: 'Owner', email: `owner-${Date.now()}@example.com`, password: 'pw' },

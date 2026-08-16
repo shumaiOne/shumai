@@ -30,6 +30,7 @@ export type AgentMinAggregateOutputType = {
   id: string | null
   type: $Enums.AgentType | null
   enabled: boolean | null
+  permission: $Enums.TeamMemberRole | null
   soul: string | null
   providerId: string | null
   modelId: string | null
@@ -42,6 +43,7 @@ export type AgentMaxAggregateOutputType = {
   id: string | null
   type: $Enums.AgentType | null
   enabled: boolean | null
+  permission: $Enums.TeamMemberRole | null
   soul: string | null
   providerId: string | null
   modelId: string | null
@@ -54,6 +56,7 @@ export type AgentCountAggregateOutputType = {
   id: number
   type: number
   enabled: number
+  permission: number
   soul: number
   providerId: number
   modelId: number
@@ -69,6 +72,7 @@ export type AgentMinAggregateInputType = {
   id?: true
   type?: true
   enabled?: true
+  permission?: true
   soul?: true
   providerId?: true
   modelId?: true
@@ -81,6 +85,7 @@ export type AgentMaxAggregateInputType = {
   id?: true
   type?: true
   enabled?: true
+  permission?: true
   soul?: true
   providerId?: true
   modelId?: true
@@ -93,6 +98,7 @@ export type AgentCountAggregateInputType = {
   id?: true
   type?: true
   enabled?: true
+  permission?: true
   soul?: true
   providerId?: true
   modelId?: true
@@ -179,6 +185,7 @@ export type AgentGroupByOutputType = {
   id: string
   type: $Enums.AgentType
   enabled: boolean
+  permission: $Enums.TeamMemberRole
   soul: string | null
   providerId: string | null
   modelId: string | null
@@ -213,6 +220,7 @@ export type AgentWhereInput = {
   id?: Prisma.StringFilter<"Agent"> | string
   type?: Prisma.EnumAgentTypeFilter<"Agent"> | $Enums.AgentType
   enabled?: Prisma.BoolFilter<"Agent"> | boolean
+  permission?: Prisma.EnumTeamMemberRoleFilter<"Agent"> | $Enums.TeamMemberRole
   soul?: Prisma.StringNullableFilter<"Agent"> | string | null
   providerId?: Prisma.StringNullableFilter<"Agent"> | string | null
   modelId?: Prisma.StringNullableFilter<"Agent"> | string | null
@@ -233,6 +241,7 @@ export type AgentOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   type?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
+  permission?: Prisma.SortOrder
   soul?: Prisma.SortOrderInput | Prisma.SortOrder
   providerId?: Prisma.SortOrderInput | Prisma.SortOrder
   modelId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -256,6 +265,7 @@ export type AgentWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.AgentWhereInput | Prisma.AgentWhereInput[]
   type?: Prisma.EnumAgentTypeFilter<"Agent"> | $Enums.AgentType
   enabled?: Prisma.BoolFilter<"Agent"> | boolean
+  permission?: Prisma.EnumTeamMemberRoleFilter<"Agent"> | $Enums.TeamMemberRole
   soul?: Prisma.StringNullableFilter<"Agent"> | string | null
   providerId?: Prisma.StringNullableFilter<"Agent"> | string | null
   modelId?: Prisma.StringNullableFilter<"Agent"> | string | null
@@ -276,6 +286,7 @@ export type AgentOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   type?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
+  permission?: Prisma.SortOrder
   soul?: Prisma.SortOrderInput | Prisma.SortOrder
   providerId?: Prisma.SortOrderInput | Prisma.SortOrder
   modelId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -295,6 +306,7 @@ export type AgentScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"Agent"> | string
   type?: Prisma.EnumAgentTypeWithAggregatesFilter<"Agent"> | $Enums.AgentType
   enabled?: Prisma.BoolWithAggregatesFilter<"Agent"> | boolean
+  permission?: Prisma.EnumTeamMemberRoleWithAggregatesFilter<"Agent"> | $Enums.TeamMemberRole
   soul?: Prisma.StringNullableWithAggregatesFilter<"Agent"> | string | null
   providerId?: Prisma.StringNullableWithAggregatesFilter<"Agent"> | string | null
   modelId?: Prisma.StringNullableWithAggregatesFilter<"Agent"> | string | null
@@ -307,6 +319,7 @@ export type AgentScalarWhereWithAggregatesInput = {
 export type AgentCreateInput = {
   type: $Enums.AgentType
   enabled?: boolean
+  permission?: $Enums.TeamMemberRole
   soul?: string | null
   config:PrismaJson.AgentConfig
   createdAt?: Date | string
@@ -324,6 +337,7 @@ export type AgentUncheckedCreateInput = {
   id: string
   type: $Enums.AgentType
   enabled?: boolean
+  permission?: $Enums.TeamMemberRole
   soul?: string | null
   providerId?: string | null
   modelId?: string | null
@@ -339,6 +353,7 @@ export type AgentUncheckedCreateInput = {
 export type AgentUpdateInput = {
   type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   config?:PrismaJson.AgentConfig
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -356,6 +371,7 @@ export type AgentUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   providerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -372,6 +388,7 @@ export type AgentCreateManyInput = {
   id: string
   type: $Enums.AgentType
   enabled?: boolean
+  permission?: $Enums.TeamMemberRole
   soul?: string | null
   providerId?: string | null
   modelId?: string | null
@@ -384,6 +401,7 @@ export type AgentCreateManyInput = {
 export type AgentUpdateManyMutationInput = {
   type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   config?:PrismaJson.AgentConfig
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -394,6 +412,7 @@ export type AgentUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   providerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -422,6 +441,7 @@ export type AgentCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   type?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
+  permission?: Prisma.SortOrder
   soul?: Prisma.SortOrder
   providerId?: Prisma.SortOrder
   modelId?: Prisma.SortOrder
@@ -435,6 +455,7 @@ export type AgentMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   type?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
+  permission?: Prisma.SortOrder
   soul?: Prisma.SortOrder
   providerId?: Prisma.SortOrder
   modelId?: Prisma.SortOrder
@@ -447,6 +468,7 @@ export type AgentMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   type?: Prisma.SortOrder
   enabled?: Prisma.SortOrder
+  permission?: Prisma.SortOrder
   soul?: Prisma.SortOrder
   providerId?: Prisma.SortOrder
   modelId?: Prisma.SortOrder
@@ -667,6 +689,7 @@ export type AgentUncheckedUpdateManyWithoutProviderNestedInput = {
 export type AgentCreateWithoutUserInput = {
   type: $Enums.AgentType
   enabled?: boolean
+  permission?: $Enums.TeamMemberRole
   soul?: string | null
   config:PrismaJson.AgentConfig
   createdAt?: Date | string
@@ -682,6 +705,7 @@ export type AgentCreateWithoutUserInput = {
 export type AgentUncheckedCreateWithoutUserInput = {
   type: $Enums.AgentType
   enabled?: boolean
+  permission?: $Enums.TeamMemberRole
   soul?: string | null
   providerId?: string | null
   modelId?: string | null
@@ -713,6 +737,7 @@ export type AgentUpdateToOneWithWhereWithoutUserInput = {
 export type AgentUpdateWithoutUserInput = {
   type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   config?:PrismaJson.AgentConfig
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -728,6 +753,7 @@ export type AgentUpdateWithoutUserInput = {
 export type AgentUncheckedUpdateWithoutUserInput = {
   type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   providerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -743,6 +769,7 @@ export type AgentUncheckedUpdateWithoutUserInput = {
 export type AgentCreateWithoutTeamInput = {
   type: $Enums.AgentType
   enabled?: boolean
+  permission?: $Enums.TeamMemberRole
   soul?: string | null
   config:PrismaJson.AgentConfig
   createdAt?: Date | string
@@ -759,6 +786,7 @@ export type AgentUncheckedCreateWithoutTeamInput = {
   id: string
   type: $Enums.AgentType
   enabled?: boolean
+  permission?: $Enums.TeamMemberRole
   soul?: string | null
   providerId?: string | null
   modelId?: string | null
@@ -803,6 +831,7 @@ export type AgentScalarWhereInput = {
   id?: Prisma.StringFilter<"Agent"> | string
   type?: Prisma.EnumAgentTypeFilter<"Agent"> | $Enums.AgentType
   enabled?: Prisma.BoolFilter<"Agent"> | boolean
+  permission?: Prisma.EnumTeamMemberRoleFilter<"Agent"> | $Enums.TeamMemberRole
   soul?: Prisma.StringNullableFilter<"Agent"> | string | null
   providerId?: Prisma.StringNullableFilter<"Agent"> | string | null
   modelId?: Prisma.StringNullableFilter<"Agent"> | string | null
@@ -815,6 +844,7 @@ export type AgentScalarWhereInput = {
 export type AgentCreateWithoutSkillsInput = {
   type: $Enums.AgentType
   enabled?: boolean
+  permission?: $Enums.TeamMemberRole
   soul?: string | null
   config:PrismaJson.AgentConfig
   createdAt?: Date | string
@@ -831,6 +861,7 @@ export type AgentUncheckedCreateWithoutSkillsInput = {
   id: string
   type: $Enums.AgentType
   enabled?: boolean
+  permission?: $Enums.TeamMemberRole
   soul?: string | null
   providerId?: string | null
   modelId?: string | null
@@ -861,6 +892,7 @@ export type AgentUpdateToOneWithWhereWithoutSkillsInput = {
 export type AgentUpdateWithoutSkillsInput = {
   type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   config?:PrismaJson.AgentConfig
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -877,6 +909,7 @@ export type AgentUncheckedUpdateWithoutSkillsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   providerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -891,6 +924,7 @@ export type AgentUncheckedUpdateWithoutSkillsInput = {
 export type AgentCreateWithoutMcpServersInput = {
   type: $Enums.AgentType
   enabled?: boolean
+  permission?: $Enums.TeamMemberRole
   soul?: string | null
   config:PrismaJson.AgentConfig
   createdAt?: Date | string
@@ -907,6 +941,7 @@ export type AgentUncheckedCreateWithoutMcpServersInput = {
   id: string
   type: $Enums.AgentType
   enabled?: boolean
+  permission?: $Enums.TeamMemberRole
   soul?: string | null
   providerId?: string | null
   modelId?: string | null
@@ -937,6 +972,7 @@ export type AgentUpdateToOneWithWhereWithoutMcpServersInput = {
 export type AgentUpdateWithoutMcpServersInput = {
   type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   config?:PrismaJson.AgentConfig
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -953,6 +989,7 @@ export type AgentUncheckedUpdateWithoutMcpServersInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   providerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -967,6 +1004,7 @@ export type AgentUncheckedUpdateWithoutMcpServersInput = {
 export type AgentCreateWithoutAgentSessionsInput = {
   type: $Enums.AgentType
   enabled?: boolean
+  permission?: $Enums.TeamMemberRole
   soul?: string | null
   config:PrismaJson.AgentConfig
   createdAt?: Date | string
@@ -983,6 +1021,7 @@ export type AgentUncheckedCreateWithoutAgentSessionsInput = {
   id: string
   type: $Enums.AgentType
   enabled?: boolean
+  permission?: $Enums.TeamMemberRole
   soul?: string | null
   providerId?: string | null
   modelId?: string | null
@@ -1013,6 +1052,7 @@ export type AgentUpdateToOneWithWhereWithoutAgentSessionsInput = {
 export type AgentUpdateWithoutAgentSessionsInput = {
   type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   config?:PrismaJson.AgentConfig
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1029,6 +1069,7 @@ export type AgentUncheckedUpdateWithoutAgentSessionsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   providerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1043,6 +1084,7 @@ export type AgentUncheckedUpdateWithoutAgentSessionsInput = {
 export type AgentCreateWithoutModelRefInput = {
   type: $Enums.AgentType
   enabled?: boolean
+  permission?: $Enums.TeamMemberRole
   soul?: string | null
   config:PrismaJson.AgentConfig
   createdAt?: Date | string
@@ -1059,6 +1101,7 @@ export type AgentUncheckedCreateWithoutModelRefInput = {
   id: string
   type: $Enums.AgentType
   enabled?: boolean
+  permission?: $Enums.TeamMemberRole
   soul?: string | null
   providerId?: string | null
   teamId: string
@@ -1099,6 +1142,7 @@ export type AgentUpdateManyWithWhereWithoutModelRefInput = {
 export type AgentCreateWithoutProviderInput = {
   type: $Enums.AgentType
   enabled?: boolean
+  permission?: $Enums.TeamMemberRole
   soul?: string | null
   config:PrismaJson.AgentConfig
   createdAt?: Date | string
@@ -1115,6 +1159,7 @@ export type AgentUncheckedCreateWithoutProviderInput = {
   id: string
   type: $Enums.AgentType
   enabled?: boolean
+  permission?: $Enums.TeamMemberRole
   soul?: string | null
   modelId?: string | null
   teamId: string
@@ -1156,6 +1201,7 @@ export type AgentCreateManyTeamInput = {
   id: string
   type: $Enums.AgentType
   enabled?: boolean
+  permission?: $Enums.TeamMemberRole
   soul?: string | null
   providerId?: string | null
   modelId?: string | null
@@ -1167,6 +1213,7 @@ export type AgentCreateManyTeamInput = {
 export type AgentUpdateWithoutTeamInput = {
   type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   config?:PrismaJson.AgentConfig
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1183,6 +1230,7 @@ export type AgentUncheckedUpdateWithoutTeamInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   providerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1198,6 +1246,7 @@ export type AgentUncheckedUpdateManyWithoutTeamInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   providerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1210,6 +1259,7 @@ export type AgentCreateManyModelRefInput = {
   id: string
   type: $Enums.AgentType
   enabled?: boolean
+  permission?: $Enums.TeamMemberRole
   soul?: string | null
   providerId?: string | null
   teamId: string
@@ -1221,6 +1271,7 @@ export type AgentCreateManyModelRefInput = {
 export type AgentUpdateWithoutModelRefInput = {
   type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   config?:PrismaJson.AgentConfig
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1237,6 +1288,7 @@ export type AgentUncheckedUpdateWithoutModelRefInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   providerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1252,6 +1304,7 @@ export type AgentUncheckedUpdateManyWithoutModelRefInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   providerId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1264,6 +1317,7 @@ export type AgentCreateManyProviderInput = {
   id: string
   type: $Enums.AgentType
   enabled?: boolean
+  permission?: $Enums.TeamMemberRole
   soul?: string | null
   modelId?: string | null
   teamId: string
@@ -1275,6 +1329,7 @@ export type AgentCreateManyProviderInput = {
 export type AgentUpdateWithoutProviderInput = {
   type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   config?:PrismaJson.AgentConfig
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1291,6 +1346,7 @@ export type AgentUncheckedUpdateWithoutProviderInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1306,6 +1362,7 @@ export type AgentUncheckedUpdateManyWithoutProviderInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumAgentTypeFieldUpdateOperationsInput | $Enums.AgentType
   enabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  permission?: Prisma.EnumTeamMemberRoleFieldUpdateOperationsInput | $Enums.TeamMemberRole
   soul?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   modelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   teamId?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1367,6 +1424,7 @@ export type AgentSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   id?: boolean
   type?: boolean
   enabled?: boolean
+  permission?: boolean
   soul?: boolean
   providerId?: boolean
   modelId?: boolean
@@ -1388,6 +1446,7 @@ export type AgentSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   id?: boolean
   type?: boolean
   enabled?: boolean
+  permission?: boolean
   soul?: boolean
   providerId?: boolean
   modelId?: boolean
@@ -1405,6 +1464,7 @@ export type AgentSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   id?: boolean
   type?: boolean
   enabled?: boolean
+  permission?: boolean
   soul?: boolean
   providerId?: boolean
   modelId?: boolean
@@ -1422,6 +1482,7 @@ export type AgentSelectScalar = {
   id?: boolean
   type?: boolean
   enabled?: boolean
+  permission?: boolean
   soul?: boolean
   providerId?: boolean
   modelId?: boolean
@@ -1431,7 +1492,7 @@ export type AgentSelectScalar = {
   updatedAt?: boolean
 }
 
-export type AgentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "type" | "enabled" | "soul" | "providerId" | "modelId" | "teamId" | "config" | "createdAt" | "updatedAt", ExtArgs["result"]["agent"]>
+export type AgentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "type" | "enabled" | "permission" | "soul" | "providerId" | "modelId" | "teamId" | "config" | "createdAt" | "updatedAt", ExtArgs["result"]["agent"]>
 export type AgentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   provider?: boolean | Prisma.Agent$providerArgs<ExtArgs>
@@ -1470,6 +1531,7 @@ export type $AgentPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     id: string
     type: $Enums.AgentType
     enabled: boolean
+    permission: $Enums.TeamMemberRole
     soul: string | null
     providerId: string | null
     modelId: string | null
@@ -1913,6 +1975,7 @@ export interface AgentFieldRefs {
   readonly id: Prisma.FieldRef<"Agent", 'String'>
   readonly type: Prisma.FieldRef<"Agent", 'AgentType'>
   readonly enabled: Prisma.FieldRef<"Agent", 'Boolean'>
+  readonly permission: Prisma.FieldRef<"Agent", 'TeamMemberRole'>
   readonly soul: Prisma.FieldRef<"Agent", 'String'>
   readonly providerId: Prisma.FieldRef<"Agent", 'String'>
   readonly modelId: Prisma.FieldRef<"Agent", 'String'>

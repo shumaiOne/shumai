@@ -26,6 +26,7 @@ import { dedupeSymlinksToTarget } from './symlink'
 import { watermarkService } from '@shumai/core/src/watermark/watermark'
 import { generateKeyBetween } from 'jittered-fractional-indexing'
 import { getAvatarUrl } from '@shumai/core/src/user/avatar'
+import { getAgentRequiredLevel, getRoleLevel } from '@shumai/core/src/agent/permissions'
 
 type AssetWithIncludes = Prisma.AssetGetPayload<{
   include: {
@@ -1377,30 +1378,49 @@ export class AssetService {
       const mentionedAgentIds = new Set(botMentionMatches.map((match) => match[1]))
       const handledAgentIds = new Set<string>()
 
+      const member = a.project?.team
+        ? await tx.teamMember.findUnique({
+            where: {
+              teamIdUserId: {
+                teamId: a.project.team.id,
+                userId: req.userId,
+              },
+            },
+            select: { role: true },
+          })
+        : null
+
+      const userLevel = getRoleLevel(member?.role)
+
       if (parentComment && a.project) {
         const rootSessionId = parentComment.sessionId
         const isRootAgent = !!rootSessionId || parentComment.creator?.type === 'agent'
         const rootAgentId = parentComment.creatorId
 
         if (isRootAgent && rootAgentId && mentionedAgentIds.has(rootAgentId)) {
-          await tx.workflowTask.create({
-            data: {
-              assetId: a.id,
-              type: 'chat',
-              status: 'pending',
-              teamId: a.project.team.id,
-              projectId: a.project.id,
-              payload: {
+          const rootAgent = await tx.agent.findUnique({ where: { id: rootAgentId } })
+          const requiredLevel = getAgentRequiredLevel(rootAgent?.permission)
+
+          if (userLevel >= requiredLevel) {
+            await tx.workflowTask.create({
+              data: {
+                assetId: a.id,
+                type: 'chat',
+                status: 'pending',
+                teamId: a.project.team.id,
                 projectId: a.project.id,
-                agent: {
-                  userCommentId: comment.id,
-                  agentId: rootAgentId,
-                  sessionId: rootSessionId || undefined,
-                  userId: req.userId,
+                payload: {
+                  projectId: a.project.id,
+                  agent: {
+                    userCommentId: comment.id,
+                    agentId: rootAgentId,
+                    sessionId: rootSessionId || undefined,
+                    userId: req.userId,
+                  },
                 },
               },
-            },
-          })
+            })
+          }
           handledAgentIds.add(rootAgentId)
         }
       }
@@ -1414,7 +1434,12 @@ export class AssetService {
           foundAgent = true
         } else {
           const agent = await tx.agent.findUnique({ where: { id: agentId } })
-          if (agent) foundAgent = true
+          if (agent) {
+            const requiredLevel = getAgentRequiredLevel(agent.permission)
+            if (userLevel >= requiredLevel) {
+              foundAgent = true
+            }
+          }
         }
 
         if (foundAgent && a.project) {

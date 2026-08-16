@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { HTTPException } from 'hono/http-exception'
 import { agentService } from '@shumai/core/src/agent/agent'
 import { authzService } from '@shumai/core/src/authz/authz'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
@@ -180,6 +181,63 @@ describe('Agent API', () => {
         userId: undefined,
         itemId: 'agent1',
       })
+    })
+  })
+
+  describe('PATCH /agents/:agentId/permission', () => {
+    it('updates agent permission when user is admin', async () => {
+      const mockAgent = {
+        id: 'agent1',
+        teamId: 'team1',
+        user: { name: 'Bot 1', image: 'avatar1' },
+        type: 'chat',
+        enabled: true,
+        permission: 'owner',
+        config: {
+          provider: 'prov1',
+          model: 'model1',
+        },
+        skills: [],
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.mocked(agentService.updateAgentPermission).mockResolvedValue(mockAgent as any)
+
+      const res = await app.request('/agents/agent1/permission', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ permission: 'owner' }),
+      })
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data.permission).toBe('owner')
+      expect(authzService.hasPermission).toHaveBeenCalledWith({
+        user: undefined,
+        permission: 'Admin',
+        type: 'agent',
+        id: 'agent1',
+      })
+      expect(agentService.updateAgentPermission).toHaveBeenCalledWith('agent1', 'owner')
+      expect(auditLogService.logAction).toHaveBeenCalledWith({
+        action: 'agent_update',
+        teamId: 'team1',
+        userId: undefined,
+        itemId: 'agent1',
+      })
+    })
+
+    it('denies access when user is not admin', async () => {
+      vi.mocked(authzService.hasPermission).mockRejectedValue(
+        new HTTPException(403, { message: 'Forbidden' }),
+      )
+
+      const res = await app.request('/agents/agent1/permission', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ permission: 'owner' }),
+      })
+
+      expect(res.status).toBe(403)
     })
   })
 

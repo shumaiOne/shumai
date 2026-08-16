@@ -7,6 +7,9 @@ export const agentTypeSchema = z.nativeEnum(AgentType)
 export const thinkingLevelSchema = z.enum(['off', 'minimal', 'low', 'medium', 'high', 'xhigh'])
 export type ThinkingLevel = z.infer<typeof thinkingLevelSchema>
 
+export const agentPermissionSchema = z.enum(['owner', 'editor', 'reviewer'])
+export type AgentPermission = z.infer<typeof agentPermissionSchema>
+
 export const agentSkillSchema = z.object({
   id: z.string().optional(),
   skillId: z.string(),
@@ -24,6 +27,7 @@ export const agentInfoSchema = z.object({
   name: z.string(),
   type: agentTypeSchema,
   enabled: z.boolean(),
+  permission: agentPermissionSchema.optional().default('reviewer'),
   avatar: z.string().optional(),
   providerId: z.string().optional(),
   modelId: z.string().optional(),
@@ -40,6 +44,7 @@ const baseAgentRequest = z.object({
   name: z.string().min(1),
   type: agentTypeSchema,
   enabled: z.boolean().optional().default(true),
+  permission: agentPermissionSchema.optional(),
   avatar: z.string().optional(),
   providerId: z.string().optional(),
   modelId: z.string().optional(),
@@ -91,6 +96,11 @@ export const updateAgentRequestSchema = baseAgentRequest.superRefine((data, ctx)
 })
 export type UpdateAgentRequest = z.infer<typeof updateAgentRequestSchema>
 
+export const updateAgentPermissionRequestSchema = z.object({
+  permission: agentPermissionSchema,
+})
+export type UpdateAgentPermissionRequest = z.infer<typeof updateAgentPermissionRequestSchema>
+
 export interface CreateAgentParams extends CreateAgentRequest {
   teamId: string
 }
@@ -105,6 +115,7 @@ export interface DeleteAgentParams {
 
 export interface ListAgentsParams {
   teamId: string
+  userId?: string
 }
 
 export const agentSessionEntrySchema = z.object({

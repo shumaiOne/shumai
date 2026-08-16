@@ -6,6 +6,7 @@ import type { ChatRequest, ChatSessionInfo, ChatMessage } from '@shumai/dtos'
 import type { SessionTreeEntry } from '@earendil-works/pi-agent-core'
 import { workflowService } from '@shumai/workflow-core'
 import { agentService } from '@shumai/core/src/agent/agent'
+import { getAgentRequiredLevel, getRoleLevel } from '@shumai/core/src/agent/permissions'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -281,12 +282,36 @@ export class ChatService {
       let activeSessionId = passedSessionId
 
       // Ensure AI agent configuration exists
-      const agent = await tx.agent.findUnique({ where: { id: agentId } })
+      const agent = await tx.agent.findUnique({
+        where: { id: agentId },
+        include: { user: true },
+      })
       if (!agent) {
         throw new Error(`Agent with ID "${agentId}" not found`)
       }
       if (agent.teamId !== teamId) {
         throw new Error(`Agent does not belong to the specified team`)
+      }
+
+      // Check user's permission to use this agent
+      const member = await tx.teamMember.findUnique({
+        where: {
+          teamIdUserId: {
+            teamId,
+            userId: user.id,
+          },
+        },
+      })
+      if (!member) {
+        throw new Error('User is not a member of the team')
+      }
+
+      const userLevel = getRoleLevel(member.role)
+      const requiredLevel = getAgentRequiredLevel(agent.permission)
+      if (userLevel < requiredLevel) {
+        throw new Error(
+          `Permission denied: Insufficient role to use agent "${agent.user.name}". Minimum required role is "${agent.permission}".`,
+        )
       }
 
       if (activeSessionId) {

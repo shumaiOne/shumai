@@ -140,6 +140,14 @@ describe.each(['local', 'temporal'] as const)('Workflow E2E - agentChat (executo
       },
     })
 
+    await prisma.teamMember.create({
+      data: {
+        teamId: team.id,
+        userId: regularUser.id,
+        role: 'owner',
+      },
+    })
+
     // Create AgentSession first
     await prisma.agentSession.create({
       data: {
@@ -284,6 +292,14 @@ describe.each(['local', 'temporal'] as const)('Workflow E2E - agentChat (executo
       },
     })
 
+    await prisma.teamMember.create({
+      data: {
+        teamId: team.id,
+        userId: regularUser.id,
+        role: 'owner',
+      },
+    })
+
     // Create AgentSession first
     await prisma.agentSession.create({
       data: {
@@ -415,6 +431,14 @@ describe.each(['local', 'temporal'] as const)('Workflow E2E - agentChat (executo
         name: 'Regular User 3',
         email: 'user3@example.com',
         type: 'human',
+      },
+    })
+
+    await prisma.teamMember.create({
+      data: {
+        teamId: team.id,
+        userId: regularUser.id,
+        role: 'owner',
       },
     })
 

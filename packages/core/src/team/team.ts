@@ -5,6 +5,7 @@ import { ProviderService, providerService } from '@shumai/core/src/provider/prov
 import { notificationService } from '@shumai/core/src/notification/notification'
 import { getAvatarUrl } from '@shumai/core/src/user/avatar'
 import { HTTPException } from 'hono/http-exception'
+import { getAllowedAgentRoles } from '@shumai/core/src/agent/permissions'
 import {
   ServiceCreateTeamRequest,
   ServiceGetUserTeamsRequest,
@@ -188,6 +189,8 @@ export class TeamService {
       throw new HTTPException(403, { message: 'Requester is not a team member' })
     }
 
+    const allowedAgentRoles = getAllowedAgentRoles(requester.role)
+
     const members = await prisma.teamMember.findMany({
       where: {
         teamId: req.teamId,
@@ -201,6 +204,7 @@ export class TeamService {
                     agent: {
                       type: 'chat',
                       enabled: true,
+                      permission: { in: allowedAgentRoles },
                     },
                   },
                 ],

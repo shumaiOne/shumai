@@ -13,6 +13,7 @@ import { encodeCursor, paginateQuery } from '@shumai/core/src/pagination'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { uploadService } from '@shumai/core/src/upload/upload'
 import { VersionStackService } from '@shumai/core/src/versionStack/versionStack'
+import { getAgentRequiredLevel, getRoleLevel } from '@shumai/core/src/agent/permissions'
 import { AssetType, prisma, Prisma, type Skill } from '@shumai/db'
 import { registerLocalCancelHandler, unregisterLocalCancelHandler } from '@shumai/workflow-core'
 import { ApplicationFailure, Context } from '@temporalio/activity'
@@ -886,6 +887,7 @@ export async function updateCommentActivity(params: {
 export async function getAgentChatContextActivity(params: {
   teamId: string
   agentId: string
+  userId?: string
 }): Promise<AgentExecutionContext> {
   const team = await prisma.team.findUnique({
     where: { id: params.teamId },
@@ -911,6 +913,26 @@ export async function getAgentChatContextActivity(params: {
       message: `agent ${params.agentId} not found`,
       nonRetryable: true,
     })
+  }
+
+  if (params.userId) {
+    const member = await prisma.teamMember.findUnique({
+      where: {
+        teamIdUserId: {
+          teamId: params.teamId,
+          userId: params.userId,
+        },
+      },
+      select: { role: true },
+    })
+    const userLevel = getRoleLevel(member?.role)
+    const requiredLevel = getAgentRequiredLevel(agent.permission)
+    if (userLevel < requiredLevel) {
+      throw ApplicationFailure.create({
+        message: `Permission denied: Insufficient role to use agent "${params.agentId}". Minimum required role is "${agent.permission}".`,
+        nonRetryable: true,
+      })
+    }
   }
 
   if (!agent.provider) {

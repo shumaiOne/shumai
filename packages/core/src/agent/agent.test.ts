@@ -421,4 +421,123 @@ describe('AgentService', () => {
       expect(result).toBeNull()
     })
   })
+
+  describe('agent permissions', () => {
+    test('createAgent with custom permission and updateAgentPermission', async () => {
+      const db = prisma
+      const svc = new AgentService()
+      const { team, provider, model } = await setupTestData(db)
+
+      const agent = await svc.createAgent({
+        teamId: team.id,
+        name: 'Owner Only Agent',
+        type: 'chat',
+        enabled: true,
+        thinkingLevel: 'off',
+        permission: 'owner',
+        providerId: provider.id,
+        modelId: model.id,
+      })
+
+      expect(agent?.permission).toBe('owner')
+
+      const updated = await svc.updateAgentPermission(agent!.id, 'editor')
+      expect(updated.permission).toBe('editor')
+
+      const updatedViaUpdateAgent = await svc.updateAgent({
+        agentId: agent!.id,
+        name: 'Owner Only Agent Updated',
+        type: 'chat',
+        enabled: true,
+        thinkingLevel: 'off',
+        permission: 'reviewer',
+        providerId: provider.id,
+        modelId: model.id,
+      })
+      expect(updatedViaUpdateAgent.permission).toBe('reviewer')
+    })
+
+    test('listAgents filters chat agents by requester role when userId is provided', async () => {
+      const db = prisma
+      const svc = new AgentService()
+      const { team, provider, model } = await setupTestData(db)
+
+      // Create 3 chat agents with different permissions
+      const reviewerAgent = await svc.createAgent({
+        teamId: team.id,
+        name: 'All Users Agent',
+        type: 'chat',
+        enabled: true,
+        thinkingLevel: 'off',
+        permission: 'reviewer',
+        providerId: provider.id,
+        modelId: model.id,
+      })
+
+      const editorAgent = await svc.createAgent({
+        teamId: team.id,
+        name: 'Editor Agent',
+        type: 'chat',
+        enabled: true,
+        thinkingLevel: 'off',
+        permission: 'editor',
+        providerId: provider.id,
+        modelId: model.id,
+      })
+
+      const ownerAgent = await svc.createAgent({
+        teamId: team.id,
+        name: 'Owner Agent',
+        type: 'chat',
+        enabled: true,
+        thinkingLevel: 'off',
+        permission: 'owner',
+        providerId: provider.id,
+        modelId: model.id,
+      })
+
+      // Create 3 test users with different roles in the team
+      const reviewerUser = await db.user.create({
+        data: { name: 'Reviewer User', email: 'rev@shumai.ai' },
+      })
+      await db.teamMember.create({
+        data: { teamId: team.id, userId: reviewerUser.id, role: 'reviewer' },
+      })
+
+      const editorUser = await db.user.create({
+        data: { name: 'Editor User', email: 'ed@shumai.ai' },
+      })
+      await db.teamMember.create({
+        data: { teamId: team.id, userId: editorUser.id, role: 'editor' },
+      })
+
+      const ownerUser = await db.user.create({
+        data: { name: 'Owner User', email: 'own@shumai.ai' },
+      })
+      await db.teamMember.create({
+        data: { teamId: team.id, userId: ownerUser.id, role: 'owner' },
+      })
+
+      // Reviewer should only see reviewerAgent
+      const reviewerList = await svc.listAgents({ teamId: team.id, userId: reviewerUser.id })
+      const reviewerAgentIds = reviewerList.map((a) => a.id)
+      expect(reviewerAgentIds).toContain(reviewerAgent!.id)
+      expect(reviewerAgentIds).not.toContain(editorAgent!.id)
+      expect(reviewerAgentIds).not.toContain(ownerAgent!.id)
+
+      // Editor should see reviewerAgent and editorAgent
+      const editorList = await svc.listAgents({ teamId: team.id, userId: editorUser.id })
+      const editorAgentIds = editorList.map((a) => a.id)
+      expect(editorAgentIds).toContain(reviewerAgent!.id)
+      expect(editorAgentIds).toContain(editorAgent!.id)
+      expect(editorAgentIds).not.toContain(ownerAgent!.id)
+
+      // Owner should see all agents
+      const ownerList = await svc.listAgents({ teamId: team.id, userId: ownerUser.id })
+      const ownerAgentIds = ownerList.map((a) => a.id)
+      expect(ownerAgentIds).toContain(reviewerAgent!.id)
+      expect(ownerAgentIds).toContain(editorAgent!.id)
+      expect(ownerAgentIds).toContain(ownerAgent!.id)
+    })
+  })
 })

@@ -14,6 +14,7 @@ import {
 import '@shumai/db/src/prisma-json-types'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { getAvatarUrl } from '@shumai/core/src/user/avatar'
+import { getAllowedAgentRoles } from './permissions'
 import AdmZip from 'adm-zip'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -114,6 +115,7 @@ export class AgentService {
       name,
       type,
       enabled,
+      permission,
       avatar,
       providerId,
       modelId,
@@ -179,6 +181,7 @@ export class AgentService {
           teamId,
           type,
           enabled: enabled ?? true,
+          permission: permission || 'reviewer',
           providerId: providerId || null,
           modelId: modelId || null,
           soul,
@@ -224,6 +227,7 @@ export class AgentService {
       name,
       type,
       enabled,
+      permission,
       avatar,
       providerId,
       modelId,
@@ -300,6 +304,7 @@ export class AgentService {
         data: {
           type,
           enabled: enabled ?? true,
+          ...(permission ? { permission } : {}),
           providerId: providerId || null,
           modelId: modelId || null,
           soul,
@@ -327,6 +332,29 @@ export class AgentService {
     })
   }
 
+  async updateAgentPermission(agentId: string, permission: 'owner' | 'editor' | 'reviewer') {
+    const existing = await this.prismaClient.agent.findUnique({
+      where: { id: agentId },
+    })
+    if (!existing) throw new Error('agent not found')
+
+    return this.prismaClient.agent.update({
+      where: { id: agentId },
+      data: { permission },
+      include: {
+        user: true,
+        provider: true,
+        modelRef: true,
+        skills: {
+          include: {
+            skill: true,
+          },
+        },
+        mcpServers: true,
+      },
+    })
+  }
+
   async getAgent(params: { agentId: string }) {
     return this.prismaClient.agent.findUnique({
       where: { id: params.agentId },
@@ -349,9 +377,36 @@ export class AgentService {
   }
 
   async listAgents(params: ListAgentsParams) {
+    const allowedRoles = params.userId
+      ? getAllowedAgentRoles(
+          (
+            await this.prismaClient.teamMember.findUnique({
+              where: {
+                teamIdUserId: {
+                  teamId: params.teamId,
+                  userId: params.userId,
+                },
+              },
+              select: { role: true },
+            })
+          )?.role,
+        )
+      : null
+
     return this.prismaClient.agent.findMany({
       where: {
         teamId: params.teamId,
+        ...(allowedRoles
+          ? {
+              OR: [
+                { type: { not: 'chat' } },
+                {
+                  type: 'chat',
+                  permission: { in: allowedRoles },
+                },
+              ],
+            }
+          : {}),
       },
       orderBy: {
         id: 'desc',

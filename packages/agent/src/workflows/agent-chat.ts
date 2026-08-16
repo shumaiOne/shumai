@@ -114,6 +114,7 @@ export async function agentChat(task: WorkflowTask): Promise<void> {
     const context = await executeActivity(agentWorkerQueue, getAgentChatContextActivity, {
       teamId,
       agentId: agentId,
+      userId: payload.agent?.userId,
     })
 
     const pathContext = await executeActivity(
