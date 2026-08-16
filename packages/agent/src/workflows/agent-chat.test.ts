@@ -118,6 +118,15 @@ describe('Agent Chat Workflow', () => {
     // Verify comment context fetched
     expect(mockActivities.getCommentActivity).toHaveBeenCalledWith('c1')
 
+    // Verify agent context fetched with the project context forwarded
+    // (required for project-aware role enforcement in the activity)
+    expect(mockActivities.getAgentChatContextActivity).toHaveBeenCalledWith({
+      teamId: 't1',
+      agentId: 'b1',
+      userId: undefined,
+      projectId: 'p1',
+    })
+
     // Verify placeholder comment created
     expect(mockActivities.createCommentActivity).toHaveBeenCalledWith({
       assetId: 'a1',
