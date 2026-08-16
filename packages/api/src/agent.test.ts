@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { HTTPException } from 'hono/http-exception'
 import { agentService } from '@shumai/core/src/agent/agent'
 import { authzService } from '@shumai/core/src/authz/authz'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
@@ -226,7 +227,9 @@ describe('Agent API', () => {
     })
 
     it('denies access when user is not admin', async () => {
-      vi.mocked(authzService.hasPermission).mockRejectedValue(new Error('Forbidden'))
+      vi.mocked(authzService.hasPermission).mockRejectedValue(
+        new HTTPException(403, { message: 'Forbidden' }),
+      )
 
       const res = await app.request('/agents/agent1/permission', {
         method: 'PATCH',
@@ -234,7 +237,7 @@ describe('Agent API', () => {
         body: JSON.stringify({ permission: 'owner' }),
       })
 
-      expect(res.status).toBe(500)
+      expect(res.status).toBe(403)
     })
   })
 

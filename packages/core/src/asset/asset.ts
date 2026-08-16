@@ -26,6 +26,7 @@ import { dedupeSymlinksToTarget } from './symlink'
 import { watermarkService } from '@shumai/core/src/watermark/watermark'
 import { generateKeyBetween } from 'jittered-fractional-indexing'
 import { getAvatarUrl } from '@shumai/core/src/user/avatar'
+import { getAgentRequiredLevel, getRoleLevel } from '@shumai/core/src/agent/permissions'
 
 type AssetWithIncludes = Prisma.AssetGetPayload<{
   include: {
@@ -1389,12 +1390,7 @@ export class AssetService {
           })
         : null
 
-      const roleHierarchy: Record<string, number> = {
-        owner: 3,
-        editor: 2,
-        reviewer: 1,
-      }
-      const userLevel = member ? roleHierarchy[member.role] || 0 : 0
+      const userLevel = getRoleLevel(member?.role)
 
       if (parentComment && a.project) {
         const rootSessionId = parentComment.sessionId
@@ -1403,7 +1399,7 @@ export class AssetService {
 
         if (isRootAgent && rootAgentId && mentionedAgentIds.has(rootAgentId)) {
           const rootAgent = await tx.agent.findUnique({ where: { id: rootAgentId } })
-          const requiredLevel = rootAgent ? roleHierarchy[rootAgent.permission] || 1 : 1
+          const requiredLevel = getAgentRequiredLevel(rootAgent?.permission)
 
           if (userLevel >= requiredLevel) {
             await tx.workflowTask.create({
@@ -1439,7 +1435,7 @@ export class AssetService {
         } else {
           const agent = await tx.agent.findUnique({ where: { id: agentId } })
           if (agent) {
-            const requiredLevel = roleHierarchy[agent.permission] || 1
+            const requiredLevel = getAgentRequiredLevel(agent.permission)
             if (userLevel >= requiredLevel) {
               foundAgent = true
             }

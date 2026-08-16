@@ -13,6 +13,7 @@ import { encodeCursor, paginateQuery } from '@shumai/core/src/pagination'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { uploadService } from '@shumai/core/src/upload/upload'
 import { VersionStackService } from '@shumai/core/src/versionStack/versionStack'
+import { getAgentRequiredLevel, getRoleLevel } from '@shumai/core/src/agent/permissions'
 import { AssetType, prisma, Prisma, type Skill } from '@shumai/db'
 import { registerLocalCancelHandler, unregisterLocalCancelHandler } from '@shumai/workflow-core'
 import { ApplicationFailure, Context } from '@temporalio/activity'
@@ -924,13 +925,8 @@ export async function getAgentChatContextActivity(params: {
       },
       select: { role: true },
     })
-    const roleHierarchy: Record<string, number> = {
-      owner: 3,
-      editor: 2,
-      reviewer: 1,
-    }
-    const userLevel = member ? roleHierarchy[member.role] || 0 : 0
-    const requiredLevel = roleHierarchy[agent.permission] || 1
+    const userLevel = getRoleLevel(member?.role)
+    const requiredLevel = getAgentRequiredLevel(agent.permission)
     if (userLevel < requiredLevel) {
       throw ApplicationFailure.create({
         message: `Permission denied: Insufficient role to use agent "${params.agentId}". Minimum required role is "${agent.permission}".`,

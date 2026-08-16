@@ -6,6 +6,7 @@ import type { ChatRequest, ChatSessionInfo, ChatMessage } from '@shumai/dtos'
 import type { SessionTreeEntry } from '@earendil-works/pi-agent-core'
 import { workflowService } from '@shumai/workflow-core'
 import { agentService } from '@shumai/core/src/agent/agent'
+import { getAgentRequiredLevel, getRoleLevel } from '@shumai/core/src/agent/permissions'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -305,13 +306,8 @@ export class ChatService {
         throw new Error('User is not a member of the team')
       }
 
-      const roleHierarchy: Record<string, number> = {
-        owner: 3,
-        editor: 2,
-        reviewer: 1,
-      }
-      const userLevel = roleHierarchy[member.role] || 0
-      const requiredLevel = roleHierarchy[agent.permission] || 1
+      const userLevel = getRoleLevel(member.role)
+      const requiredLevel = getAgentRequiredLevel(agent.permission)
       if (userLevel < requiredLevel) {
         throw new Error(
           `Permission denied: Insufficient role to use agent "${agent.user.name}". Minimum required role is "${agent.permission}".`,
