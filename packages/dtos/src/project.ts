@@ -105,6 +105,7 @@ export interface ServiceAddProjectMemberRequest {
 export interface ServiceListProjectMembersRequest {
   projectId: string
   includeAgents?: boolean
+  requesterUserId?: string
 }
 
 export interface ServiceUpdateProjectMemberRoleRequest {

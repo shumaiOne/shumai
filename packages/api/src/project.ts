@@ -241,6 +241,7 @@ const route = new Hono<{ Variables: { user: User } }>()
     const members = await projectService.listProjectMembers({
       projectId,
       includeAgents: includeAgents,
+      requesterUserId: user.id,
     })
     return c.json(members)
   })

@@ -325,6 +325,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     onEnvsAdded,
     restricted ? onSkillLoaded : undefined,
     enabledSkillIds,
+    projectId,
   )
 
   const systemTools: AgentTool[] = []

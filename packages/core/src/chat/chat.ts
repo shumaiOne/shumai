@@ -1,6 +1,11 @@
 import { prisma } from '@shumai/db'
 import type { Prisma } from '@shumai/db'
-import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import {
+  authzService,
+  Permission,
+  ResourceType,
+  resolveEffectiveRole,
+} from '@shumai/core/src/authz/authz'
 import { paginateQuery, type PaginatedData } from '@shumai/core/src/pagination'
 import type { ChatRequest, ChatSessionInfo, ChatMessage } from '@shumai/dtos'
 import type { SessionTreeEntry } from '@earendil-works/pi-agent-core'
@@ -293,7 +298,9 @@ export class ChatService {
         throw new Error(`Agent does not belong to the specified team`)
       }
 
-      // Check user's permission to use this agent
+      // Check user's permission to use this agent, resolving the effective
+      // role for the project context (projectMember.role takes precedence over
+      // the team role; project-scoped members without project access are denied).
       const member = await tx.teamMember.findUnique({
         where: {
           teamIdUserId: {
@@ -306,7 +313,14 @@ export class ChatService {
         throw new Error('User is not a member of the team')
       }
 
-      const userLevel = getRoleLevel(member.role)
+      const effectiveRole = await resolveEffectiveRole(teamId, projectId, user.id, tx)
+      if (!effectiveRole) {
+        throw new Error(
+          `Permission denied: Insufficient role to use agent "${agent.user.name}". Minimum required role is "${agent.permission}".`,
+        )
+      }
+
+      const userLevel = getRoleLevel(effectiveRole)
       const requiredLevel = getAgentRequiredLevel(agent.permission)
       if (userLevel < requiredLevel) {
         throw new Error(

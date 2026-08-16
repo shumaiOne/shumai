@@ -5,7 +5,12 @@ import {
 } from '@earendil-works/pi-agent-core'
 import { type ImageContent } from '@earendil-works/pi-ai'
 import { assetService } from '@shumai/core/src/asset/asset'
-import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
+import {
+  authzService,
+  Permission,
+  ResourceType,
+  resolveEffectiveRole,
+} from '@shumai/core/src/authz/authz'
 import { logger } from '@shumai/core/src/logger'
 import { mcpService } from '@shumai/core/src/mcp/mcp-service'
 import { metadataService } from '@shumai/core/src/metadata/metadata'
@@ -174,7 +179,12 @@ When creating a file or version, you may attach metadata (for example, the AI mo
   // sessions never receive MCP tools even if a server is assigned.
   const mcpTools =
     agent.type === 'chat'
-      ? await mcpService.buildAgentTools(params.agentId, params.teamId, params.userId)
+      ? await mcpService.buildAgentTools(
+          params.agentId,
+          params.teamId,
+          params.userId,
+          params.projectId,
+        )
       : []
 
   const { session, harness } = await createAgentSession({
@@ -888,6 +898,7 @@ export async function getAgentChatContextActivity(params: {
   teamId: string
   agentId: string
   userId?: string
+  projectId?: string
 }): Promise<AgentExecutionContext> {
   const team = await prisma.team.findUnique({
     where: { id: params.teamId },
@@ -916,16 +927,8 @@ export async function getAgentChatContextActivity(params: {
   }
 
   if (params.userId) {
-    const member = await prisma.teamMember.findUnique({
-      where: {
-        teamIdUserId: {
-          teamId: params.teamId,
-          userId: params.userId,
-        },
-      },
-      select: { role: true },
-    })
-    const userLevel = getRoleLevel(member?.role)
+    const effectiveRole = await resolveEffectiveRole(params.teamId, params.projectId, params.userId)
+    const userLevel = getRoleLevel(effectiveRole)
     const requiredLevel = getAgentRequiredLevel(agent.permission)
     if (userLevel < requiredLevel) {
       throw ApplicationFailure.create({
@@ -956,10 +959,22 @@ export async function getAgentChatContextActivity(params: {
     include: { models: true },
   })
 
-  // Only advertise skills that are explicitly enabled for this agent (agent_skills).
-  // Disabled skills must not be listed in the system prompt nor loadable via read_skill.
+  // Only advertise skills that are explicitly enabled for this agent (agent_skills)
+  // AND permitted for the requesting user's effective role. Disabled or
+  // un-permitted skills must not be listed in the system prompt nor loadable
+  // via read_skill (read_skill keeps its own permission check as a backstop).
   const enabledSkills = (agent.skills ?? []).map((as) => as.skill)
-  const enabledSkillIds = enabledSkills.map((s) => s.id)
+  let permittedSkills = enabledSkills
+  if (params.userId) {
+    const effectiveRole = await resolveEffectiveRole(params.teamId, params.projectId, params.userId)
+    if (!effectiveRole) {
+      permittedSkills = []
+    } else {
+      const userLevel = getRoleLevel(effectiveRole)
+      permittedSkills = enabledSkills.filter((s) => (getRoleLevel(s.permission) || 1) <= userLevel)
+    }
+  }
+  const enabledSkillIds = permittedSkills.map((s) => s.id)
 
   // Fetch the agent's assigned MCP servers
   const assignments = await prisma.agentMcpServer.findMany({
@@ -976,7 +991,7 @@ export async function getAgentChatContextActivity(params: {
   return {
     agent,
     dbProviders,
-    teamSkills: enabledSkills,
+    teamSkills: permittedSkills,
     mcpServers,
     enabledSkillIds,
     allowedDomains,

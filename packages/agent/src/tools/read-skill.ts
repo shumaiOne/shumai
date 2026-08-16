@@ -2,6 +2,7 @@ import { prisma } from '@shumai/db'
 import { Type } from 'typebox'
 import { type AgentTool } from '@earendil-works/pi-agent-core'
 import { agentService } from '@shumai/core/src/agent/agent'
+import { resolveEffectiveRole } from '@shumai/core/src/authz/authz'
 
 const readSkillSchema = Type.Object({
   skillId: Type.String({ description: 'The ID of the skill to read' }),
@@ -18,6 +19,7 @@ export const createReadSkillTool = (
   onEnvsAdded: (envs: Record<string, string>) => void,
   onSkillLoaded?: () => Promise<void> | void,
   enabledSkillIds?: string[],
+  projectId?: string,
 ): AgentTool<typeof readSkillSchema, { skillId: string }> => ({
   name: 'read_skill',
   label: 'Read Agent Skill',
@@ -41,15 +43,10 @@ export const createReadSkillTool = (
     const requiredLevel = ROLE_HIERARCHY[skill.permission] || 1
 
     if (userId) {
-      const member = await prisma.teamMember.findUnique({
-        where: {
-          teamIdUserId: {
-            teamId: skill.teamId,
-            userId,
-          },
-        },
-      })
-      const userLevel = member ? ROLE_HIERARCHY[member.role] || 0 : 0
+      // Resolve the user's effective role for the project context (project
+      // override wins; project-scoped members without project access are denied).
+      const effectiveRole = await resolveEffectiveRole(skill.teamId, projectId, userId)
+      const userLevel = effectiveRole ? ROLE_HIERARCHY[effectiveRole] || 0 : 0
       if (userLevel < requiredLevel) {
         throw new Error(
           `Permission denied: Insufficient role to load skill "${skill.name}". Minimum required role is "${skill.permission}".`,

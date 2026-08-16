@@ -3,6 +3,7 @@ import { HTTPException } from 'hono/http-exception'
 import { agentService } from '@shumai/core/src/agent/agent'
 import { authzService } from '@shumai/core/src/authz/authz'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
+import type { AgentInfo } from '@shumai/dtos'
 import app from './agent'
 
 vi.mock('@shumai/core/src/agent/agent')
@@ -13,6 +14,24 @@ vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
   },
 }))
 
+/**
+ * Shape of the agent rows returned by the (mocked) service methods. Mirrors
+ * the real AgentInfoSource consumed by AgentService.toAgentInfo.
+ */
+interface MockAgentRow {
+  id: string
+  user: { name: string; image?: string | null }
+  type: string
+  enabled?: boolean
+  permission?: string
+  providerId?: string | null
+  modelId?: string | null
+  soul?: string | null
+  config?: { thinkingLevel?: string; systemPrompt?: string; deniedTools?: string[] }
+  skills?: Array<{ id: string; skillId: string; skill?: { id: string; name: string } }>
+  mcpServers?: Array<{ mcpServerId: string }>
+}
+
 describe('Agent API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -21,6 +40,32 @@ describe('Agent API', () => {
       id: 'agent1',
       teamId: 'team1',
     } as unknown as Awaited<ReturnType<typeof agentService.getAgent>>)
+
+    // The route delegates AgentInfo mapping to the service; replicate the real
+    // mapping so response assertions keep working.
+    vi.mocked(agentService.toAgentInfo).mockImplementation(async (agent) => {
+      const config = agent.config as MockAgentRow['config']
+      return {
+        id: agent.id,
+        name: agent.user.name,
+        type: agent.type,
+        enabled: agent.enabled ?? true,
+        permission: agent.permission ?? 'reviewer',
+        avatar: agent.user.image || undefined,
+        providerId: agent.providerId || undefined,
+        modelId: agent.modelId || undefined,
+        thinkingLevel: config?.thinkingLevel || 'off',
+        systemPrompt: config?.systemPrompt,
+        soul: agent.soul || undefined,
+        skills: (agent.skills || []).map((s) => ({
+          id: s.id,
+          skillId: s.skillId,
+          skill: s.skill,
+        })),
+        mcpServerIds: (agent.mcpServers || []).map((m) => m.mcpServerId),
+        deniedTools: config?.deniedTools || [],
+      } as unknown as AgentInfo
+    })
   })
 
   describe('GET /teams/:teamId/agents', () => {
@@ -314,6 +359,55 @@ describe('Agent API', () => {
         type: 'team',
         id: 'team1',
       })
+    })
+  })
+
+  describe('GET /projects/:projectId/chat-agents', () => {
+    it('returns project-scoped chat agents for the user', async () => {
+      const mockAgents = [
+        {
+          id: 'agent1',
+          name: 'Chat Bot',
+          type: 'chat',
+          enabled: true,
+          permission: 'reviewer',
+          skills: [],
+          mcpServerIds: [],
+          deniedTools: [],
+        },
+      ]
+      vi.mocked(agentService.listProjectChatAgents).mockResolvedValue(
+        mockAgents as unknown as Awaited<ReturnType<typeof agentService.listProjectChatAgents>>,
+      )
+
+      const res = await app.request('/projects/project1/chat-agents', {
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      expect(res.status).toBe(200)
+      const data = await res.json()
+      expect(data).toHaveLength(1)
+      expect(data[0].name).toBe('Chat Bot')
+      expect(authzService.hasPermission).toHaveBeenCalledWith({
+        user: undefined,
+        permission: 'Read',
+        type: 'project',
+        id: 'project1',
+      })
+      expect(agentService.listProjectChatAgents).toHaveBeenCalledWith('project1', undefined)
+    })
+
+    it('denies access when the user has no project access', async () => {
+      vi.mocked(authzService.hasPermission).mockRejectedValue(
+        new HTTPException(403, { message: 'Forbidden' }),
+      )
+
+      const res = await app.request('/projects/project1/chat-agents', {
+        headers: { 'Content-Type': 'application/json' },
+      })
+
+      expect(res.status).toBe(403)
+      expect(agentService.listProjectChatAgents).not.toHaveBeenCalled()
     })
   })
 })

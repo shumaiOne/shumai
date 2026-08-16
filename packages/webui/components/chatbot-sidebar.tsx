@@ -66,16 +66,16 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
   }, [projectId, ensureTeamIdForProject])
 
   const { data: agents = [] } = useQuery({
-    queryKey: ['agents', teamId],
+    queryKey: ['chat-agents', projectId],
     queryFn: async () => {
-      if (!teamId) return []
-      const res = await client.api.teams[':teamId'].agents.$get({
-        param: { teamId },
+      if (!projectId) return []
+      const res = await client.api.projects[':projectId']['chat-agents'].$get({
+        param: { projectId },
       })
       if (!res.ok) throw new Error('failed to fetch agents')
       return res.json()
     },
-    enabled: !!teamId,
+    enabled: !!projectId,
   })
 
   const chatAgents = agents.filter((a) => a.type === 'chat' && a.enabled)

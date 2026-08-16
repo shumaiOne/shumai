@@ -536,6 +536,109 @@ describe('McpService', () => {
     expect(allowed.ok).toBe(true)
   })
 
+  it('uses the effective project role for MCP permission checks', async () => {
+    const server = await service.createServer(teamId, {
+      url: srv.url,
+      permission: 'editor',
+    })
+    const project = await prisma.project.create({
+      data: { name: 'MCP Proj', teamId },
+    })
+
+    // Team editor demoted to project reviewer: denied inside the project
+    const demoted = await prisma.user.create({
+      data: { name: 'Demoted MCP', email: `dem-mcp-${Date.now()}@shumai.ai`, type: 'human' },
+    })
+    const demotedTm = await prisma.teamMember.create({
+      data: { teamId, userId: demoted.id, role: 'editor', scope: 'team' },
+    })
+    await prisma.projectMember.create({
+      data: { projectId: project.id, teamMemberId: demotedTm.id, role: 'reviewer' },
+    })
+
+    const denied = await service.callMcpTool(
+      server.id,
+      'echo',
+      { text: 'x' },
+      { teamId, userId: demoted.id, projectId: project.id },
+    )
+    expect(denied.ok).toBe(false)
+    expect((denied.content[0] as { text?: string }).text).toContain('Permission denied')
+
+    // Project-scoped member invited as editor: allowed
+    const projEditor = await prisma.user.create({
+      data: { name: 'PE MCP', email: `pe-mcp-${Date.now()}@shumai.ai`, type: 'human' },
+    })
+    const peTm = await prisma.teamMember.create({
+      data: { teamId, userId: projEditor.id, role: 'reviewer', scope: 'project' },
+    })
+    await prisma.projectMember.create({
+      data: { projectId: project.id, teamMemberId: peTm.id, role: 'editor' },
+    })
+
+    const allowed = await service.callMcpTool(
+      server.id,
+      'echo',
+      { text: 'ok' },
+      { teamId, userId: projEditor.id, projectId: project.id },
+    )
+    expect(allowed.ok).toBe(true)
+  })
+
+  it('filters assigned MCP servers by the user effective role when building agent tools', async () => {
+    const agent = await seedAgentAndUser(teamId, 'Filtered MCP Agent')
+    const project = await prisma.project.create({
+      data: { name: 'MCP Filter Proj', teamId },
+    })
+
+    const reviewerSrv = await startTestMcpServer({
+      tools: standardTestTools(),
+      serverInfo: { name: 'reviewer-only-mcp' },
+    })
+    const editorSrv = await startTestMcpServer({
+      tools: standardTestTools(),
+      serverInfo: { name: 'editor-only-mcp' },
+    })
+    const reviewerServer = await service.createServer(teamId, {
+      url: reviewerSrv.url,
+      permission: 'reviewer',
+    })
+    const editorServer = await service.createServer(teamId, {
+      url: editorSrv.url,
+      permission: 'editor',
+    })
+    await service.refreshServer(reviewerServer.id)
+    await service.refreshServer(editorServer.id)
+    await prisma.agentMcpServer.create({
+      data: { agentId: agent.id, mcpServerId: reviewerServer.id },
+    })
+    await prisma.agentMcpServer.create({
+      data: { agentId: agent.id, mcpServerId: editorServer.id },
+    })
+
+    // Project-scoped member invited as reviewer: only the reviewer server's
+    // tools are attached; the editor server's tools are not even registered.
+    const reviewer = await prisma.user.create({
+      data: { name: 'Filter Reviewer', email: `fr-${Date.now()}@shumai.ai`, type: 'human' },
+    })
+    const reviewerTm = await prisma.teamMember.create({
+      data: { teamId, userId: reviewer.id, role: 'reviewer', scope: 'project' },
+    })
+    await prisma.projectMember.create({
+      data: { projectId: project.id, teamMemberId: reviewerTm.id, role: 'reviewer' },
+    })
+
+    const tools = await service.buildAgentTools(agent.id, teamId, reviewer.id, project.id)
+    const descriptions = tools
+      .map((t) => (t.description ?? '') + (t.name === 'mcp' ? JSON.stringify(t.parameters) : ''))
+      .join('\n')
+    expect(descriptions).toContain('reviewer-only-mcp')
+    expect(descriptions).not.toContain('editor-only-mcp')
+
+    await reviewerSrv.stop()
+    await editorSrv.stop()
+  })
+
   // --------------------------------------------------------------------------
   // Per-agent assignment (D6)
   // --------------------------------------------------------------------------

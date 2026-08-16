@@ -1,10 +1,12 @@
-import { prisma, type Prisma } from '@shumai/db'
+import { prisma, type Prisma, type TeamMemberRole } from '@shumai/db'
 import {
   CreateAgentParams,
   DeleteAgentParams,
   ListAgentsParams,
   UpdateAgentParams,
   AgentSessionInfo,
+  AgentInfo,
+  AgentType,
 } from '@shumai/dtos'
 import {
   paginateQuery,
@@ -14,10 +16,34 @@ import {
 import '@shumai/db/src/prisma-json-types'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { getAvatarUrl } from '@shumai/core/src/user/avatar'
+import { resolveEffectiveRole } from '@shumai/core/src/authz/authz'
 import { getAllowedAgentRoles } from './permissions'
 import AdmZip from 'adm-zip'
 import * as fs from 'fs'
 import * as path from 'path'
+
+const agentInclude = {
+  user: true,
+  provider: true,
+  modelRef: true,
+  skills: { include: { skill: true } },
+  mcpServers: true,
+} satisfies Prisma.AgentInclude
+
+/** Structural shape consumed by `toAgentInfo` (works with any standard include). */
+interface AgentInfoSource {
+  id: string
+  type: AgentType
+  enabled: boolean
+  permission: TeamMemberRole
+  providerId: string | null
+  modelId: string | null
+  config: unknown
+  soul: string | null
+  user: { name: string; image: string | null }
+  skills: Array<{ id: string; skillId: string; skill: { id: string; name: string } }>
+  mcpServers: Array<{ mcpServerId: string }>
+}
 
 function extractS3Key(urlOrKey?: string | null): string | null | undefined {
   if (!urlOrKey) return urlOrKey
@@ -374,6 +400,65 @@ export class AgentService {
     await this.prismaClient.user.delete({
       where: { id: agentId },
     })
+  }
+
+  /**
+   * Map an agent (with the standard relations include) to the AgentInfo DTO.
+   * Shared by the team-level agent list and the project-scoped chat-agent list.
+   */
+  async toAgentInfo(agent: AgentInfoSource): Promise<AgentInfo> {
+    const config = agent.config as unknown as PrismaJson.AgentConfig
+    return {
+      id: agent.id,
+      name: agent.user.name,
+      type: agent.type as AgentType,
+      enabled: agent.enabled,
+      permission: agent.permission,
+      avatar: (await getAvatarUrl(agent.user.image)) || undefined,
+      providerId: agent.providerId || undefined,
+      modelId: agent.modelId || undefined,
+      thinkingLevel: config.thinkingLevel || 'off',
+      systemPrompt: config.systemPrompt,
+      soul: agent.soul || undefined,
+      skills: agent.skills.map((s) => ({
+        id: s.id,
+        skillId: s.skillId,
+        skill: s.skill,
+      })),
+      mcpServerIds: (agent.mcpServers || []).map((m) => m.mcpServerId),
+      deniedTools: config.deniedTools || [],
+    }
+  }
+
+  /**
+   * List the chat agents available to a user inside a specific project,
+   * resolved against the user's effective project role (project override wins;
+   * restricted users get an empty list). Used by the one-to-one chat selector.
+   */
+  async listProjectChatAgents(projectId: string, userId: string): Promise<AgentInfo[]> {
+    const project = await this.prismaClient.project.findUnique({
+      where: { id: projectId },
+      select: { teamId: true },
+    })
+    if (!project) return []
+
+    const effectiveRole = await resolveEffectiveRole(project.teamId, projectId, userId)
+    if (!effectiveRole) return []
+
+    const allowedRoles = getAllowedAgentRoles(effectiveRole)
+
+    const agents = await this.prismaClient.agent.findMany({
+      where: {
+        teamId: project.teamId,
+        type: 'chat',
+        enabled: true,
+        permission: { in: allowedRoles },
+      },
+      orderBy: { id: 'desc' },
+      include: agentInclude,
+    })
+
+    return Promise.all(agents.map((agent) => this.toAgentInfo(agent)))
   }
 
   async listAgents(params: ListAgentsParams) {
