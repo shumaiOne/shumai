@@ -776,4 +776,129 @@ describe('ChatService', () => {
       )
     })
   })
+
+  describe('project-aware agent permission checks', () => {
+    async function setupProjectRoles() {
+      const team = await prisma.team.create({
+        data: {
+          name: 'Team Roles',
+          settings: { transcode: { videoStrategy: 'best_match' }, chatbotAgentId: 'test-agent-id' },
+          sandbox: { create: {} },
+        },
+      })
+      const project = await prisma.project.create({
+        data: { name: 'Proj Roles', teamId: team.id },
+      })
+      const rootFolder = await prisma.asset.create({
+        data: { name: 'root', type: 'root', status: 'processed', projectId: project.id },
+      })
+      await prisma.project.update({
+        where: { id: project.id },
+        data: { rootFolderId: rootFolder.id },
+      })
+
+      const createAgent = async (name: string, permission: 'owner' | 'editor' | 'reviewer') => {
+        const agentUser = await prisma.user.create({
+          data: { name, email: `${name}-${Date.now()}@shumai.ai`, type: 'agent' },
+        })
+        return prisma.agent.create({
+          data: {
+            id: agentUser.id,
+            teamId: team.id,
+            type: 'chat',
+            permission,
+            config: { provider: 'openai', model: 'gpt-4' },
+          },
+        })
+      }
+
+      const editorAgent = await createAgent('Editor Agent', 'editor')
+      const ownerAgent = await createAgent('Owner Agent', 'owner')
+
+      // Team editor demoted to project reviewer
+      const demoted = await prisma.user.create({
+        data: { name: 'Demoted', email: `dem-${Date.now()}@x.com`, password: 'pw' },
+      })
+      const demotedTm = await prisma.teamMember.create({
+        data: { teamId: team.id, userId: demoted.id, role: 'editor', scope: 'team' },
+      })
+      await prisma.projectMember.create({
+        data: { projectId: project.id, teamMemberId: demotedTm.id, role: 'reviewer' },
+      })
+
+      // Project-scoped member invited as editor
+      const projEditor = await prisma.user.create({
+        data: { name: 'Proj Editor', email: `pe-${Date.now()}@x.com`, password: 'pw' },
+      })
+      const projEditorTm = await prisma.teamMember.create({
+        data: { teamId: team.id, userId: projEditor.id, role: 'reviewer', scope: 'project' },
+      })
+      await prisma.projectMember.create({
+        data: { projectId: project.id, teamMemberId: projEditorTm.id, role: 'editor' },
+      })
+
+      // Team reviewer promoted to project owner
+      const promoted = await prisma.user.create({
+        data: { name: 'Promoted', email: `pro-${Date.now()}@x.com`, password: 'pw' },
+      })
+      const promotedTm = await prisma.teamMember.create({
+        data: { teamId: team.id, userId: promoted.id, role: 'reviewer', scope: 'team' },
+      })
+      await prisma.projectMember.create({
+        data: { projectId: project.id, teamMemberId: promotedTm.id, role: 'owner' },
+      })
+
+      // Plain team reviewer (no project override)
+      const reviewer = await prisma.user.create({
+        data: { name: 'Reviewer', email: `rev-${Date.now()}@x.com`, password: 'pw' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: reviewer.id, role: 'reviewer', scope: 'team' },
+      })
+
+      return { team, project, editorAgent, ownerAgent, demoted, projEditor, promoted, reviewer }
+    }
+
+    it('denies an editor agent to a team editor demoted to project reviewer', async () => {
+      const { team, project, editorAgent, demoted } = await setupProjectRoles()
+      await expect(
+        chatService.startOrContinueChat(demoted, team.id, {
+          agentId: editorAgent.id,
+          textPrompt: 'hello',
+          projectId: project.id,
+        }),
+      ).rejects.toThrow(/Insufficient role/)
+    })
+
+    it('allows an editor agent to a project-scoped member invited as editor', async () => {
+      const { team, project, editorAgent, projEditor } = await setupProjectRoles()
+      const { sessionId } = await chatService.startOrContinueChat(projEditor, team.id, {
+        agentId: editorAgent.id,
+        textPrompt: 'hello',
+        projectId: project.id,
+      })
+      expect(sessionId).toBeDefined()
+    })
+
+    it('allows an owner agent to a team reviewer promoted to project owner', async () => {
+      const { team, project, ownerAgent, promoted } = await setupProjectRoles()
+      const { sessionId } = await chatService.startOrContinueChat(promoted, team.id, {
+        agentId: ownerAgent.id,
+        textPrompt: 'hello',
+        projectId: project.id,
+      })
+      expect(sessionId).toBeDefined()
+    })
+
+    it('denies an editor agent to a plain team reviewer', async () => {
+      const { team, project, editorAgent, reviewer } = await setupProjectRoles()
+      await expect(
+        chatService.startOrContinueChat(reviewer, team.id, {
+          agentId: editorAgent.id,
+          textPrompt: 'hello',
+          projectId: project.id,
+        }),
+      ).rejects.toThrow(/Insufficient role/)
+    })
+  })
 })

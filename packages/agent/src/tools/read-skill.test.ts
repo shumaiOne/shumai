@@ -307,6 +307,77 @@ describe('readSkillTool', () => {
         reviewerTool.execute('1', { skillId: ownerSkill.id }, undefined, undefined),
       ).rejects.toThrow('Permission denied')
     })
+
+    it('uses the effective project role for skill permission checks', async () => {
+      const team = await prisma.team.create({ data: { name: 'Project Skill Team' } })
+      const project = await prisma.project.create({ data: { name: 'Skill Proj', teamId: team.id } })
+      const editorSkill = await prisma.skill.create({
+        data: {
+          name: 'Editor Project Skill',
+          assetId: 'asset1',
+          hash: 'proj-editor-hash',
+          teamId: team.id,
+          permission: 'editor',
+        },
+      })
+
+      // Team editor demoted to project reviewer: denied inside the project
+      const demoted = await prisma.user.create({
+        data: { name: 'Demoted Skill', email: 'dem-skill@test.com' },
+      })
+      const demotedTm = await prisma.teamMember.create({
+        data: { teamId: team.id, userId: demoted.id, role: 'editor', scope: 'team' },
+      })
+      await prisma.projectMember.create({
+        data: { projectId: project.id, teamMemberId: demotedTm.id, role: 'reviewer' },
+      })
+
+      const demotedTool = createReadSkillTool(
+        demoted.id,
+        () => {},
+        undefined,
+        undefined,
+        project.id,
+      )
+      await expect(
+        demotedTool.execute('1', { skillId: editorSkill.id }, undefined, undefined),
+      ).rejects.toThrow('Permission denied')
+
+      // Project-scoped member invited as editor: allowed
+      const projEditor = await prisma.user.create({
+        data: { name: 'PE Skill', email: 'pe-skill@test.com' },
+      })
+      const projEditorTm = await prisma.teamMember.create({
+        data: { teamId: team.id, userId: projEditor.id, role: 'reviewer', scope: 'project' },
+      })
+      await prisma.projectMember.create({
+        data: { projectId: project.id, teamMemberId: projEditorTm.id, role: 'editor' },
+      })
+
+      vi.spyOn(fs, 'existsSync').mockReturnValue(true)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mocking node fs calls
+      vi.spyOn(fs, 'readFileSync').mockImplementation((path: any) => {
+        if (path.toString().endsWith('.hash')) return 'proj-editor-hash'
+        if (path.toString().endsWith('SKILL.md')) return '# Editor Project Skill Content'
+        return ''
+      })
+
+      const projEditorTool = createReadSkillTool(
+        projEditor.id,
+        () => {},
+        undefined,
+        undefined,
+        project.id,
+      )
+      const result = await projEditorTool.execute(
+        '1',
+        { skillId: editorSkill.id },
+        undefined,
+        undefined,
+      )
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((result.content[0] as any).text).toBe('# Editor Project Skill Content')
+    })
   })
 
   describe('onSkillLoaded callback', () => {

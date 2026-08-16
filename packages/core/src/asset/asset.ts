@@ -27,6 +27,7 @@ import { watermarkService } from '@shumai/core/src/watermark/watermark'
 import { generateKeyBetween } from 'jittered-fractional-indexing'
 import { getAvatarUrl } from '@shumai/core/src/user/avatar'
 import { getAgentRequiredLevel, getRoleLevel } from '@shumai/core/src/agent/permissions'
+import { resolveEffectiveRole } from '@shumai/core/src/authz/authz'
 
 type AssetWithIncludes = Prisma.AssetGetPayload<{
   include: {
@@ -1378,19 +1379,13 @@ export class AssetService {
       const mentionedAgentIds = new Set(botMentionMatches.map((match) => match[1]))
       const handledAgentIds = new Set<string>()
 
-      const member = a.project?.team
-        ? await tx.teamMember.findUnique({
-            where: {
-              teamIdUserId: {
-                teamId: a.project.team.id,
-                userId: req.userId,
-              },
-            },
-            select: { role: true },
-          })
+      // Effective role for the project context (project override wins; project-
+      // scoped members without project access resolve to null and are denied).
+      const effectiveRole = a.project?.team
+        ? await resolveEffectiveRole(a.project.team.id, a.project.id, req.userId, tx)
         : null
 
-      const userLevel = getRoleLevel(member?.role)
+      const userLevel = getRoleLevel(effectiveRole)
 
       if (parentComment && a.project) {
         const rootSessionId = parentComment.sessionId

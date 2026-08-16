@@ -1,4 +1,4 @@
-import { prisma } from '@shumai/db'
+import { prisma, type TeamMemberRole } from '@shumai/db'
 import type { Prisma } from '@shumai/db'
 import { HTTPException } from 'hono/http-exception'
 
@@ -33,13 +33,70 @@ export interface AuthzRequest {
   id: string
 }
 
+type RoleDb = typeof prisma | Prisma.TransactionClient
+
+/**
+ * Resolve a user's effective role for a team/project context, mirroring the
+ * precedence rules enforced by `AuthzService.hasPermission`:
+ *
+ * 1. Project membership (`projectMember.role`) takes precedence inside a project.
+ * 2. Team-scoped members fall back to their team role when no project override exists.
+ * 3. Project-scoped members without a matching project record (or without a
+ *    project context) are restricted (`null`).
+ *
+ * Returns `null` for non-members as well, so callers can fail closed.
+ */
+export async function resolveEffectiveRole(
+  teamId: string,
+  projectId: string | undefined,
+  userId: string,
+  db: RoleDb = prisma,
+): Promise<TeamMemberRole | null> {
+  const member = await db.teamMember.findUnique({
+    where: {
+      teamIdUserId: {
+        teamId,
+        userId,
+      },
+    },
+  })
+  if (!member) return null
+
+  // Project membership takes precedence when operating inside a project.
+  if (projectId) {
+    const pm = await db.projectMember.findUnique({
+      where: {
+        projectIdTeamMemberId: {
+          projectId,
+          teamMemberId: member.id,
+        },
+      },
+    })
+    if (pm) return pm.role
+  }
+
+  // Team-scoped members fall back to their team role.
+  if (member.scope === 'team') return member.role
+
+  // Project-scoped members without a matching project record are restricted.
+  return null
+}
+
 export class AuthzService {
   async hasPermission(req: AuthzRequest): Promise<void> {
     if (!req.user) throw new HTTPException(401, { message: 'User is required' })
 
     const { teamId, projectId } = await this.resolveContext(req.type, req.id)
 
-    // 1. Check Team Membership
+    // Resolve the user's effective role using the shared precedence rules
+    // (project override -> team role for team-scoped members -> restricted).
+    const role = await resolveEffectiveRole(teamId, projectId, req.user.id)
+    if (role) {
+      return this.checkRole(role, req.permission)
+    }
+
+    // No effective role: either not a team member, or a project-scoped member
+    // without access to the resolved project context.
     const member = await prisma.teamMember.findUnique({
       where: {
         teamIdUserId: {
@@ -48,36 +105,12 @@ export class AuthzService {
         },
       },
     })
-
     if (!member) throw new HTTPException(403, { message: 'User is not a member of the team' })
 
-    // 2. Check Project Membership first if project context is available
-    if (projectId) {
-      const pm = await prisma.projectMember.findUnique({
-        where: {
-          projectIdTeamMemberId: {
-            projectId: projectId,
-            teamMemberId: member.id,
-          },
-        },
-      })
-      if (pm) {
-        return this.checkRole(pm.role, req.permission)
-      }
-    }
-
-    // 3. Fall back to Team scope checks
-    if (member.scope === 'team') {
-      return this.checkRole(member.role, req.permission)
-    }
-
-    // 4. Scope is Project, and no project-level record exists (or no project context was provided)
-    if (!projectId) {
-      // User has project scope but no project context provided (e.g. Team-level resource)
-      // If it's a team-level resource, project-scoped users can access Read (like ListProjects).
-      if (req.permission === Permission.Read) {
-        return
-      }
+    // Project-scoped member on a team-level resource (no project context):
+    // allow Read (e.g. listing), deny Edit/Admin.
+    if (!projectId && req.permission === Permission.Read) {
+      return
     }
     throw new HTTPException(403, { message: 'User has only project scope' })
   }

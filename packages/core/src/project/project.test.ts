@@ -196,6 +196,53 @@ describe('ProjectService', () => {
       expect(allMembers).toHaveLength(2)
     })
 
+    it('filters agent bots by the requester effective project role', async () => {
+      const team = await prisma.team.create({ data: { name: 'Team Bot Filter' } })
+      const project = await prisma.project.create({ data: { name: 'P2', teamId: team.id } })
+
+      const createChatAgent = async (name: string, permission: 'owner' | 'editor' | 'reviewer') => {
+        const bot = await prisma.user.create({
+          data: { name, email: `${name}-${Date.now()}@example.com`, password: 'pw', type: 'agent' },
+        })
+        await prisma.teamMember.create({
+          data: { teamId: team.id, userId: bot.id, role: 'editor', scope: 'team' },
+        })
+        await prisma.agent.create({
+          data: {
+            id: bot.id,
+            teamId: team.id,
+            type: 'chat',
+            enabled: true,
+            permission,
+            config: { provider: 'google', model: 'gemini' },
+          },
+        })
+      }
+
+      await createChatAgent('Reviewer Bot', 'reviewer')
+      await createChatAgent('Editor Bot', 'editor')
+
+      // Project-scoped requester invited as reviewer: sees only reviewer bots
+      const requester = await prisma.user.create({
+        data: { name: 'Req', email: `req-${Date.now()}@example.com`, password: 'pw' },
+      })
+      const requesterTm = await prisma.teamMember.create({
+        data: { teamId: team.id, userId: requester.id, role: 'reviewer', scope: 'project' },
+      })
+      await prisma.projectMember.create({
+        data: { projectId: project.id, teamMemberId: requesterTm.id, role: 'reviewer' },
+      })
+
+      const members = await projectService.listProjectMembers({
+        projectId: project.id,
+        includeAgents: true,
+        requesterUserId: requester.id,
+      })
+      const agentNames = members.filter((m) => m.id !== requester.id).map((m) => m.name)
+      expect(agentNames).toContain('Reviewer Bot')
+      expect(agentNames).not.toContain('Editor Bot')
+    })
+
     it('should allow upserting custom role override for team-scoped members via updateMemberRole', async () => {
       const team = await prisma.team.create({ data: { name: 'Team Scope Test' } })
       const project = await prisma.project.create({ data: { name: 'Project A', teamId: team.id } })

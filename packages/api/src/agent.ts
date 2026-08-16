@@ -2,14 +2,12 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { agentService } from '@shumai/core/src/agent/agent'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
-import { getAvatarUrl } from '@shumai/core/src/user/avatar'
 import {
   createAgentRequestSchema,
   updateAgentRequestSchema,
   updateAgentPermissionRequestSchema,
   paginationParamsSchema,
   AgentInfo,
-  AgentType,
   AuditAction,
 } from '@shumai/dtos'
 
@@ -33,32 +31,24 @@ const route = new Hono<{ Variables: { user: User } }>()
     const agents = await agentService.listAgents({ teamId, userId: userReq?.id })
 
     const res: AgentInfo[] = await Promise.all(
-      agents.map(async (agent) => {
-        const config = agent.config as unknown as PrismaJson.AgentConfig
-        return {
-          id: agent.id,
-          name: agent.user.name,
-          type: agent.type as AgentType,
-          enabled: agent.enabled,
-          permission: agent.permission,
-          avatar: (await getAvatarUrl(agent.user.image)) || undefined,
-          providerId: agent.providerId || undefined,
-          modelId: agent.modelId || undefined,
-          thinkingLevel: config.thinkingLevel || 'off',
-          systemPrompt: config.systemPrompt,
-          soul: agent.soul || undefined,
-          skills: agent.skills.map((s) => ({
-            id: s.id,
-            skillId: s.skillId,
-            skill: s.skill,
-          })),
-          mcpServerIds: (agent.mcpServers || []).map((m) => m.mcpServerId),
-          deniedTools: config.deniedTools || [],
-        }
-      }),
+      agents.map((agent) => agentService.toAgentInfo(agent)),
     )
 
     return c.json(res, 200)
+  })
+  .get('/projects/:projectId/chat-agents', async (c) => {
+    const projectId = c.req.param('projectId')
+    const userReq = c.get('user')
+
+    await authzService.hasPermission({
+      user: userReq,
+      permission: Permission.Read,
+      type: ResourceType.Project,
+      id: projectId,
+    })
+
+    const agents = await agentService.listProjectChatAgents(projectId, userReq?.id)
+    return c.json(agents, 200)
   })
   .post('/teams/:teamId/agents', zValidator('json', createAgentRequestSchema), async (c) => {
     const teamId = c.req.param('teamId')
@@ -79,27 +69,7 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     if (!agent) throw new Error('failed to create agent')
 
-    const config = agent.config as unknown as PrismaJson.AgentConfig
-    const info: AgentInfo = {
-      id: agent.id,
-      name: agent.user.name,
-      type: agent.type as AgentType,
-      enabled: agent.enabled,
-      permission: agent.permission,
-      avatar: (await getAvatarUrl(agent.user.image)) || undefined,
-      providerId: agent.providerId || undefined,
-      modelId: agent.modelId || undefined,
-      thinkingLevel: config.thinkingLevel || 'off',
-      systemPrompt: config.systemPrompt,
-      soul: agent.soul || undefined,
-      skills: agent.skills.map((s) => ({
-        id: s.id,
-        skillId: s.skillId,
-        skill: s.skill,
-      })),
-      mcpServerIds: (agent.mcpServers || []).map((m) => m.mcpServerId),
-      deniedTools: config.deniedTools || [],
-    }
+    const info = await agentService.toAgentInfo(agent)
 
     await auditLogService.logAction({
       action: AuditAction.agent_create,
@@ -134,27 +104,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       itemId: agent.id,
     })
 
-    const config = agent.config as unknown as PrismaJson.AgentConfig
-    const info: AgentInfo = {
-      id: agent.id,
-      name: agent.user.name,
-      type: agent.type as AgentType,
-      enabled: agent.enabled,
-      permission: agent.permission,
-      avatar: (await getAvatarUrl(agent.user.image)) || undefined,
-      providerId: agent.providerId || undefined,
-      modelId: agent.modelId || undefined,
-      thinkingLevel: config.thinkingLevel || 'off',
-      systemPrompt: config.systemPrompt,
-      soul: agent.soul || undefined,
-      skills: agent.skills.map((s) => ({
-        id: s.id,
-        skillId: s.skillId,
-        skill: s.skill,
-      })),
-      mcpServerIds: (agent.mcpServers || []).map((m) => m.mcpServerId),
-      deniedTools: config.deniedTools || [],
-    }
+    const info = await agentService.toAgentInfo(agent)
 
     return c.json(info, 200)
   })
@@ -182,27 +132,7 @@ const route = new Hono<{ Variables: { user: User } }>()
         itemId: agent.id,
       })
 
-      const config = agent.config as unknown as PrismaJson.AgentConfig
-      const info: AgentInfo = {
-        id: agent.id,
-        name: agent.user.name,
-        type: agent.type as AgentType,
-        enabled: agent.enabled,
-        permission: agent.permission,
-        avatar: (await getAvatarUrl(agent.user.image)) || undefined,
-        providerId: agent.providerId || undefined,
-        modelId: agent.modelId || undefined,
-        thinkingLevel: config.thinkingLevel || 'off',
-        systemPrompt: config.systemPrompt,
-        soul: agent.soul || undefined,
-        skills: agent.skills.map((s) => ({
-          id: s.id,
-          skillId: s.skillId,
-          skill: s.skill,
-        })),
-        mcpServerIds: (agent.mcpServers || []).map((m) => m.mcpServerId),
-        deniedTools: config.deniedTools || [],
-      }
+      const info = await agentService.toAgentInfo(agent)
 
       return c.json(info, 200)
     },

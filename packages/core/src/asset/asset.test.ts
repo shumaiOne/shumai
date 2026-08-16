@@ -1296,6 +1296,90 @@ describe('AssetService', () => {
     expect(tasks.length).toBe(0)
   })
 
+  it('uses the effective project role for bot mention permission checks', async () => {
+    const { project } = await setupBasicAssets()
+    const file = await prisma.asset.create({
+      data: {
+        name: 'perm-file-2',
+        type: AssetType.file,
+        projectId: project.id,
+        status: 'uploaded',
+      },
+    })
+
+    // Editor-permission chat agent
+    const editorBotUser = await prisma.user.create({
+      data: {
+        name: 'Editor Bot Agent',
+        type: 'agent',
+        email: `editor-bot-${Date.now()}@shumai.ai`,
+      },
+    })
+    const editorAgent = await prisma.agent.create({
+      data: {
+        id: editorBotUser.id,
+        teamId: project.teamId,
+        type: 'chat',
+        permission: 'editor',
+        config: { provider: 'p', model: 'm' },
+      },
+    })
+
+    // Team editor, demoted to project reviewer in this project
+    const demoted = await prisma.user.create({
+      data: { name: 'Demoted Member', email: `dem-${Date.now()}@shumai.ai`, password: 'pw' },
+    })
+    const demotedTm = await prisma.teamMember.create({
+      data: { teamId: project.teamId, userId: demoted.id, role: 'editor', scope: 'team' },
+    })
+    await prisma.projectMember.create({
+      data: { projectId: project.id, teamMemberId: demotedTm.id, role: 'reviewer' },
+    })
+
+    // Project-scoped member invited as editor
+    const projEditor = await prisma.user.create({
+      data: { name: 'Proj Editor', email: `pe-${Date.now()}@shumai.ai`, password: 'pw' },
+    })
+    const projEditorTm = await prisma.teamMember.create({
+      data: { teamId: project.teamId, userId: projEditor.id, role: 'reviewer', scope: 'project' },
+    })
+    await prisma.projectMember.create({
+      data: { projectId: project.id, teamMemberId: projEditorTm.id, role: 'editor' },
+    })
+
+    // Demoted team editor (project reviewer) mentioning the editor agent: no workflow
+    const demotedComment = await assetService.createComment({
+      assetId: file.id,
+      userId: demoted.id,
+      message: `Hello <@${editorAgent.id}>`,
+      attachmentIds: [],
+    })
+    const demotedTasks = await prisma.workflowTask.findMany({
+      where: {
+        assetId: file.id,
+        payload: { path: ['agent', 'userCommentId'], equals: demotedComment.id },
+      },
+    })
+    expect(demotedTasks.length).toBe(0)
+
+    // Project-scoped editor mentioning the editor agent: workflow created
+    const peComment = await assetService.createComment({
+      assetId: file.id,
+      userId: projEditor.id,
+      message: `Hello <@${editorAgent.id}>`,
+      attachmentIds: [],
+    })
+    const peTasks = await prisma.workflowTask.findMany({
+      where: {
+        assetId: file.id,
+        payload: { path: ['agent', 'userCommentId'], equals: peComment.id },
+      },
+    })
+    expect(peTasks.length).toBe(1)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((peTasks[0].payload as any)?.agent?.userId).toBe(projEditor.id)
+  })
+
   it('updates asset order correctly', async () => {
     const { user, project } = await setupBasicAssets()
 

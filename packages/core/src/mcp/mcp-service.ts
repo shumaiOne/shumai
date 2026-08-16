@@ -13,6 +13,7 @@ import type {
   UpdateMcpServerRequest,
 } from '@shumai/dtos'
 import { logger } from '@shumai/core/src/logger'
+import { resolveEffectiveRole } from '@shumai/core/src/authz/authz'
 import { mcpDbStore, type PendingAuth } from './mcp-db-store'
 import { buildDirectTools, isDirectTool } from './mcp-direct-tools'
 import { McpOauthProvider, type McpOauthConfig } from './mcp-oauth-provider'
@@ -34,6 +35,7 @@ const ROLE_HIERARCHY: Record<string, number> = {
 export interface McpToolCallContext {
   teamId: string
   userId?: string
+  projectId?: string
 }
 
 export type McpToolCallContent = AgentToolResult<Record<string, unknown>>['content']
@@ -468,16 +470,10 @@ export class McpService {
     const requiredLevel = ROLE_HIERARCHY[server.permission] || 1
 
     if (ctx?.userId) {
-      const member = await prisma.teamMember.findUnique({
-        where: {
-          teamIdUserId: {
-            teamId: server.teamId,
-            userId: ctx.userId,
-          },
-        },
-        select: { role: true },
-      })
-      const userLevel = member ? ROLE_HIERARCHY[member.role] || 0 : 0
+      // Resolve the user's effective role for the project context (project
+      // override wins; project-scoped members without project access are denied).
+      const effectiveRole = await resolveEffectiveRole(server.teamId, ctx.projectId, ctx.userId)
+      const userLevel = effectiveRole ? ROLE_HIERARCHY[effectiveRole] || 0 : 0
       if (userLevel < requiredLevel) {
         return `Permission denied: Insufficient role to use MCP server "${server.name}". Minimum required role is "${server.permission}".`
       }
@@ -791,13 +787,33 @@ export class McpService {
    * Build the agent's MCP AgentTools: the single `mcp` proxy tool plus direct
    * tools for assigned servers in direct-tools mode. Returns [] when the agent
    * has no assigned servers (no proxy tool — don't waste LLM context).
+   *
+   * When a user context is provided, servers whose `permission` exceeds the
+   * user's effective project role are filtered out up front, so the model never
+   * sees tools it is not allowed to call (call-time checks remain as a backstop).
    */
-  async buildAgentTools(agentId: string, teamId: string, userId?: string): Promise<AgentTool[]> {
+  async buildAgentTools(
+    agentId: string,
+    teamId: string,
+    userId?: string,
+    projectId?: string,
+  ): Promise<AgentTool[]> {
     const assignments = await prisma.agentMcpServer.findMany({
       where: { agentId },
       include: { mcpServer: true },
     })
     if (assignments.length === 0) return []
+
+    let assignedServers = assignments.map((a) => a.mcpServer)
+    if (userId) {
+      const effectiveRole = await resolveEffectiveRole(teamId, projectId, userId)
+      if (!effectiveRole) return []
+      const userLevel = ROLE_HIERARCHY[effectiveRole] || 0
+      assignedServers = assignedServers.filter(
+        (s) => (ROLE_HIERARCHY[s.permission] || 1) <= userLevel,
+      )
+    }
+    if (assignedServers.length === 0) return []
 
     // Per-agent tool registry: built fresh for this agent from the persisted
     // discovery cache (McpServer.tools). It only ever contains the agent's
@@ -805,33 +821,31 @@ export class McpService {
     // nor called — no global mutable state to leak through.
     const registry = new McpToolRegistry()
 
-    const servers = assignments
-      .map((a) => a.mcpServer)
-      .map((s) => {
-        const storedTools = (s.tools ?? []) as PrismaJson.McpToolInfo[]
-        if (storedTools.length > 0) {
-          registry.setTools(
-            s.id,
-            s.name,
-            storedTools.map((t) => ({
-              name: t.name,
-              description: t.description ?? '',
-              ...(t.inputSchema !== undefined ? { inputSchema: t.inputSchema } : {}),
-            })),
-            { excludeTools: s.config?.excludeTools },
-          )
-        }
-        return {
-          id: s.id,
-          name: s.name,
-          instructions: s.instructions ?? null,
-          url: s.url,
-          transport: s.transport,
-          authConfig: (s.authConfig ?? {}) as PrismaJson.McpServerAuthConfig,
-          config: (s.config ?? {}) as PrismaJson.McpServerConfig,
-          status: s.status,
-        }
-      })
+    const servers = assignedServers.map((s) => {
+      const storedTools = (s.tools ?? []) as PrismaJson.McpToolInfo[]
+      if (storedTools.length > 0) {
+        registry.setTools(
+          s.id,
+          s.name,
+          storedTools.map((t) => ({
+            name: t.name,
+            description: t.description ?? '',
+            ...(t.inputSchema !== undefined ? { inputSchema: t.inputSchema } : {}),
+          })),
+          { excludeTools: s.config?.excludeTools },
+        )
+      }
+      return {
+        id: s.id,
+        name: s.name,
+        instructions: s.instructions ?? null,
+        url: s.url,
+        transport: s.transport,
+        authConfig: (s.authConfig ?? {}) as PrismaJson.McpServerAuthConfig,
+        config: (s.config ?? {}) as PrismaJson.McpServerConfig,
+        status: s.status,
+      }
+    })
 
     const serverNameById = new Map<string, string>()
     const serverIdByName = new Map<string, string>()
@@ -880,7 +894,7 @@ export class McpService {
       },
       ensureConnected: (serverId) => this.ensureConnected(serverId, registry),
       callTool: (serverId, toolName, args) =>
-        this.callMcpTool(serverId, toolName, args, { teamId, userId }),
+        this.callMcpTool(serverId, toolName, args, { teamId, userId, projectId }),
       authStatus: (serverId) => this.getAuthStatus(serverId),
       startAuth: (serverId) => this.startAuth(serverId),
       getInstructions: (serverId) => this.getServerInstructions(serverId),
@@ -898,7 +912,7 @@ export class McpService {
           serverId: server.id,
           serverName: server.name,
           callTool: (serverId, toolName, args) =>
-            this.callMcpTool(serverId, toolName, args, { teamId, userId }),
+            this.callMcpTool(serverId, toolName, args, { teamId, userId, projectId }),
         }),
       )
     }

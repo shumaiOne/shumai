@@ -3,6 +3,8 @@ import { Prisma } from '@shumai/db'
 import { s3Service } from '@shumai/core/src/s3/s3'
 import { paginateQuery, PaginatedData } from '@shumai/core/src/pagination'
 import { getAvatarUrl } from '@shumai/core/src/user/avatar'
+import { getAllowedAgentRoles } from '@shumai/core/src/agent/permissions'
+import { resolveEffectiveRole } from '@shumai/core/src/authz/authz'
 import {
   ServiceCreateProjectRequest,
   ServiceUpdateProjectRequest,
@@ -226,17 +228,35 @@ export class ProjectService {
     })
     if (!project) throw new Error('Project not found')
 
+    // When agents are requested, only include the chat agents the requester's
+    // effective project role permits (project override wins; restricted
+    // requesters see no agents at all). Without a requester context, fall back
+    // to including all enabled chat agents (legacy behavior).
+    let agentFilter: Prisma.AgentWhereInput | undefined
+    if (req.includeAgents) {
+      if (req.requesterUserId) {
+        const effectiveRole = await resolveEffectiveRole(
+          project.teamId,
+          req.projectId,
+          req.requesterUserId,
+        )
+        if (effectiveRole) {
+          agentFilter = {
+            type: 'chat' as const,
+            enabled: true,
+            permission: { in: getAllowedAgentRoles(effectiveRole) },
+          }
+        }
+      } else {
+        agentFilter = { type: 'chat' as const, enabled: true }
+      }
+    }
+
     const userTypeFilter = req.includeAgents
       ? {
           OR: [
             { type: 'human' as const },
-            {
-              type: 'agent' as const,
-              agent: {
-                type: 'chat' as const,
-                enabled: true,
-              },
-            },
+            ...(agentFilter ? [{ type: 'agent' as const, agent: agentFilter }] : []),
           ],
         }
       : { type: { not: 'agent' as const } }
