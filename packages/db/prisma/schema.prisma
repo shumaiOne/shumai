@@ -687,6 +687,16 @@ model SystemSettings {
   @@index([key])
 }
 
+model RateLimitState {
+  // Key-value store keyed by the caller-supplied rate limit key (e.g. "user:<id>:api").
+  // The single mutable state is the unix-nanos timestamp of the next permitted request.
+  key                     String    @id
+  nextPermissionTimeNanos BigInt?   @map("next_permission_time_nanos") // null = uninitialized
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+
+  @@map("rate_limit_state")
+}
+
 model Task {
   id          String     @id @default(ulid())
   type        TaskType?

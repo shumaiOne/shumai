@@ -77,6 +77,7 @@ export const ModelName = {
   MetadataField: 'MetadataField',
   Notification: 'Notification',
   SystemSettings: 'SystemSettings',
+  RateLimitState: 'RateLimitState',
   Task: 'Task',
   WorkflowTask: 'WorkflowTask',
   Agent: 'Agent',
@@ -479,6 +480,15 @@ export const SystemSettingsScalarFieldEnum = {
 } as const
 
 export type SystemSettingsScalarFieldEnum = (typeof SystemSettingsScalarFieldEnum)[keyof typeof SystemSettingsScalarFieldEnum]
+
+
+export const RateLimitStateScalarFieldEnum = {
+  key: 'key',
+  nextPermissionTimeNanos: 'nextPermissionTimeNanos',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RateLimitStateScalarFieldEnum = (typeof RateLimitStateScalarFieldEnum)[keyof typeof RateLimitStateScalarFieldEnum]
 
 
 export const TaskScalarFieldEnum = {

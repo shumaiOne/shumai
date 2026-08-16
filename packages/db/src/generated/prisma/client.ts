@@ -172,6 +172,11 @@ export type Notification = Prisma.NotificationModel
  */
 export type SystemSettings = Prisma.SystemSettingsModel
 /**
+ * Model RateLimitState
+ * 
+ */
+export type RateLimitState = Prisma.RateLimitStateModel
+/**
  * Model Task
  * 
  */

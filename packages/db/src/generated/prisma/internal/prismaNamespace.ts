@@ -410,6 +410,7 @@ export const ModelName = {
   MetadataField: 'MetadataField',
   Notification: 'Notification',
   SystemSettings: 'SystemSettings',
+  RateLimitState: 'RateLimitState',
   Task: 'Task',
   WorkflowTask: 'WorkflowTask',
   Agent: 'Agent',
@@ -441,7 +442,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "sandbox" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "watermarkConfig" | "watermarkTemplate" | "watermarkFile" | "asset" | "storageKey" | "assetMetadataValue" | "assetAgentMd" | "assetComment" | "assetCommentAttachment" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "mcpServer" | "agentMcpServer" | "mcpServerCredential" | "agentSession" | "agentSessionEntry" | "userMetadata" | "model" | "provider" | "collection" | "apiToken" | "aiUsage" | "auditLog"
+    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "sandbox" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "watermarkConfig" | "watermarkTemplate" | "watermarkFile" | "asset" | "storageKey" | "assetMetadataValue" | "assetAgentMd" | "assetComment" | "assetCommentAttachment" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "rateLimitState" | "task" | "workflowTask" | "agent" | "agentSkill" | "mcpServer" | "agentMcpServer" | "mcpServerCredential" | "agentSession" | "agentSessionEntry" | "userMetadata" | "model" | "provider" | "collection" | "apiToken" | "aiUsage" | "auditLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2369,6 +2370,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    RateLimitState: {
+      payload: Prisma.$RateLimitStatePayload<ExtArgs>
+      fields: Prisma.RateLimitStateFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.RateLimitStateFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RateLimitStatePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.RateLimitStateFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RateLimitStatePayload>
+        }
+        findFirst: {
+          args: Prisma.RateLimitStateFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RateLimitStatePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.RateLimitStateFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RateLimitStatePayload>
+        }
+        findMany: {
+          args: Prisma.RateLimitStateFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RateLimitStatePayload>[]
+        }
+        create: {
+          args: Prisma.RateLimitStateCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RateLimitStatePayload>
+        }
+        createMany: {
+          args: Prisma.RateLimitStateCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.RateLimitStateCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RateLimitStatePayload>[]
+        }
+        delete: {
+          args: Prisma.RateLimitStateDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RateLimitStatePayload>
+        }
+        update: {
+          args: Prisma.RateLimitStateUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RateLimitStatePayload>
+        }
+        deleteMany: {
+          args: Prisma.RateLimitStateDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.RateLimitStateUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.RateLimitStateUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RateLimitStatePayload>[]
+        }
+        upsert: {
+          args: Prisma.RateLimitStateUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RateLimitStatePayload>
+        }
+        aggregate: {
+          args: Prisma.RateLimitStateAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRateLimitState>
+        }
+        groupBy: {
+          args: Prisma.RateLimitStateGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RateLimitStateGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.RateLimitStateCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RateLimitStateCountAggregateOutputType> | number
+        }
+      }
+    }
     Task: {
       payload: Prisma.$TaskPayload<ExtArgs>
       fields: Prisma.TaskFieldRefs
@@ -3962,6 +4037,15 @@ export const SystemSettingsScalarFieldEnum = {
 export type SystemSettingsScalarFieldEnum = (typeof SystemSettingsScalarFieldEnum)[keyof typeof SystemSettingsScalarFieldEnum]
 
 
+export const RateLimitStateScalarFieldEnum = {
+  key: 'key',
+  nextPermissionTimeNanos: 'nextPermissionTimeNanos',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RateLimitStateScalarFieldEnum = (typeof RateLimitStateScalarFieldEnum)[keyof typeof RateLimitStateScalarFieldEnum]
+
+
 export const TaskScalarFieldEnum = {
   id: 'id',
   type: 'type',
@@ -4746,6 +4830,7 @@ export type GlobalOmitConfig = {
   metadataField?: Prisma.MetadataFieldOmit
   notification?: Prisma.NotificationOmit
   systemSettings?: Prisma.SystemSettingsOmit
+  rateLimitState?: Prisma.RateLimitStateOmit
   task?: Prisma.TaskOmit
   workflowTask?: Prisma.WorkflowTaskOmit
   agent?: Prisma.AgentOmit
