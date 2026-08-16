@@ -1,6 +1,6 @@
 import type { AssetInfo, AttachmentInfo, CommentInfo, FieldValueInfo } from '@shumai/dtos'
 import { type FieldInfo as MetadataFieldInfo } from '@shumai/dtos'
-import type { UserInfo } from '@shumai/dtos'
+import type { MemberInfo } from '@/ui/stores/members'
 import { client } from '@/ui/api/client'
 import { usePermissions } from '@/ui/hooks/use-permissions'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tabs'
@@ -23,7 +23,7 @@ interface FileViewerRightSidebarProps {
   projectId: string
   file: AssetInfo | null
   onSaveField: (fieldId: string, value: unknown) => void
-  members: UserInfo[]
+  members: MemberInfo[]
   onCommentSelect?: (comment: CommentInfo) => void
   hideAnnotationControl?: boolean
   readOnly?: boolean
@@ -280,7 +280,7 @@ export function FileViewerRightSidebar({
     }
   }
 
-  const getUser = (id: string): UserInfo => {
+  const getUser = (id: string): MemberInfo => {
     const member = members.find((m) => m.id === id)
     if (member) {
       return member

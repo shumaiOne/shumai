@@ -1,14 +1,17 @@
-import type { CommentInfo, PostAttachmentRequest, PostAttachmentResponse } from '@shumai/dtos'
+import type {
+  CommentInfo,
+  PostAttachmentRequest,
+  PostAttachmentResponse,
+  BotInfo,
+} from '@shumai/dtos'
 import { m } from '@/ui/paraglide/messages.js'
-import type { BotInfo } from '@shumai/dtos'
-import type { UserInfo } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
 import { useAnnotationStore } from '@/ui/stores/annotation-store'
 import type { Annotation } from '@/ui/types'
 import { useMutation } from '@tanstack/react-query'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { Skeleton } from '../ui/skeleton'
-import { useMemberStore } from '@/ui/stores/members'
+import { useMemberStore, type MemberInfo } from '@/ui/stores/members'
 import { useTeamContextStore } from '@/ui/stores/team-context'
 import {
   ArrowLeft,
@@ -74,7 +77,7 @@ const PREDEFINED_COLORS = [
   '#ffffff', // White
 ]
 
-type MentionEntity = { type: 'user'; data: UserInfo } | { type: 'bot'; data: BotInfo }
+type MentionEntity = { type: 'user'; data: MemberInfo } | { type: 'bot'; data: BotInfo }
 
 export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
   (
@@ -111,7 +114,12 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
     }, [currentTime, frameRate, videoTimeDisplayMode, startTimecode, formatTimestamp])
 
     const { teamId, ensureTeamIdForProject } = useTeamContextStore()
-    const { members: storeMembers, loading: membersLoading, fetchMembers } = useMemberStore()
+    const {
+      members: storeMembers,
+      loading: membersLoading,
+      fetchMembers,
+      fetchProjectMembers,
+    } = useMemberStore()
 
     useEffect(() => {
       if (projectId && !teamId) {
@@ -290,7 +298,9 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
               setMentionQuery(query)
               setShowMentionList(true)
 
-              if (teamId) {
+              if (projectId) {
+                fetchProjectMembers(projectId, true, true)
+              } else if (teamId) {
                 fetchMembers(teamId, true, true)
               }
 

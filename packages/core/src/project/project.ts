@@ -321,6 +321,7 @@ export class ProjectService {
         id: m.user.id,
         name: m.user.name,
         role: m.role as ProjectUserInfo['role'],
+        type: m.user.type || undefined,
         image: await getAvatarUrl(m.user.image),
         scope: m.scope,
         hasCustomRole: m.hasCustomRole,
