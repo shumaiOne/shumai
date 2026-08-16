@@ -514,6 +514,11 @@ describe('Agent Activities', () => {
 describe('Agent Database Activities Integration', () => {
   setupTestDbHooks()
 
+  // Space out comment creations: ULID ids have 1ms timestamp granularity, so
+  // back-to-back creates landing in the same millisecond sort by random suffix
+  // and can break the id-ordered DAG spine in initializeAgentSessionActivity.
+  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
   let team: Team
   let user: User
   let project: Project
@@ -571,6 +576,7 @@ describe('Agent Database Activities Integration', () => {
         },
       })
 
+      await sleep(2)
       // Create second comment that user responds with, triggering session initialization
       const userComment = await prisma.assetComment.create({
         data: {
@@ -618,11 +624,13 @@ describe('Agent Database Activities Integration', () => {
       const mainComment1 = await prisma.assetComment.create({
         data: { assetId: asset.id, message: 'Main Comment 1', creatorId: user.id },
       })
+      await sleep(2)
       const mainComment2 = await prisma.assetComment.create({
         data: { assetId: asset.id, message: 'Main Comment 2', creatorId: user.id },
       })
 
       // 2. Thread reply under mainComment1
+      await sleep(2)
       const threadReply1 = await prisma.assetComment.create({
         data: {
           assetId: asset.id,
@@ -731,10 +739,12 @@ describe('Agent Database Activities Integration', () => {
       const msg1 = await prisma.assetComment.create({
         data: { assetId: asset.id, message: 'msg1', creatorId: user.id },
       })
+      await sleep(2)
       // msg2 (top level)
       const msg2 = await prisma.assetComment.create({
         data: { assetId: asset.id, message: 'msg2', creatorId: user.id },
       })
+      await sleep(2)
       // msg3 (top level asking agent)
       const msg3 = await prisma.assetComment.create({
         data: { assetId: asset.id, message: '[ask agent] msg3', creatorId: user.id },
@@ -749,6 +759,7 @@ describe('Agent Database Activities Integration', () => {
       })
 
       // agent response msg4
+      await sleep(2)
       const msg4 = await prisma.assetComment.create({
         data: {
           assetId: asset.id,
@@ -760,6 +771,7 @@ describe('Agent Database Activities Integration', () => {
       })
 
       // msg5 (top level asking agent)
+      await sleep(2)
       const msg5 = await prisma.assetComment.create({
         data: { assetId: asset.id, message: '[ask agent] msg5', creatorId: user.id },
       })
@@ -783,6 +795,7 @@ describe('Agent Database Activities Integration', () => {
       expect(session3Id).not.toBe(session5Id)
 
       // msg7 (reply to msg3 asking agent again)
+      await sleep(2)
       const msg7 = await prisma.assetComment.create({
         data: {
           assetId: asset.id,
@@ -831,10 +844,12 @@ describe('Agent Database Activities Integration', () => {
       const msg1 = await prisma.assetComment.create({
         data: { assetId: asset.id, message: 'msg1', creatorId: user.id },
       })
+      await sleep(2)
       // msg2 (top level)
       const msg2 = await prisma.assetComment.create({
         data: { assetId: asset.id, message: 'msg2', creatorId: user.id },
       })
+      await sleep(2)
       // msg3 (top level asking agent)
       const msg3 = await prisma.assetComment.create({
         data: { assetId: asset.id, message: '<@shumai-x1> what did i say', creatorId: user.id },
@@ -869,10 +884,12 @@ describe('Agent Database Activities Integration', () => {
       const msg1 = await prisma.assetComment.create({
         data: { assetId: asset.id, message: 'msg1', creatorId: user.id },
       })
+      await sleep(2)
       // msg2 (top level)
       const msg2 = await prisma.assetComment.create({
         data: { assetId: asset.id, message: 'msg2', creatorId: user.id },
       })
+      await sleep(2)
       // msg3 (top level asking agent)
       const msg3 = await prisma.assetComment.create({
         data: { assetId: asset.id, message: '<@shumai-x1> what did i say', creatorId: user.id },

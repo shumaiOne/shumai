@@ -1,51 +1,51 @@
 import { client } from '@/ui/api/client'
-import { Card, CardContent } from '@/ui/components/ui/card'
-import { Button } from '@/ui/components/ui/button'
-import { Badge } from '@/ui/components/ui/badge'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  Loader2,
-  Plus,
-  Trash2,
-  Bot,
-  MoreVertical,
-  MessageSquare,
-  Zap,
-  Cpu,
-  Puzzle,
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/ui/components/ui/alert-dialog'
+import { Badge } from '@/ui/components/ui/badge'
+import { Button } from '@/ui/components/ui/button'
+import { Card, CardContent } from '@/ui/components/ui/card'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/ui/components/ui/dropdown-menu'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/ui/components/ui/select'
+import { Switch } from '@/ui/components/ui/switch'
+import { usePermissions } from '@/ui/hooks/use-permissions'
+import { cn } from '@/ui/lib/utils'
+import { m } from '@/ui/paraglide/messages.js'
+import { AgentInfo, AgentPermission, AgentType, ThinkingLevel } from '@shumai/dtos'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+    Bot,
+    ChevronDown,
+    Cpu,
+    Loader2,
+    MessageSquare,
+    MoreVertical,
+    Plus,
+    Puzzle,
+    Trash2,
+    Zap,
 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { AgentInfo, AgentType, ThinkingLevel, AgentPermission } from '@shumai/dtos'
 import { AgentFormDialog } from './AgentFormDialog'
-import { usePermissions } from '@/ui/hooks/use-permissions'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/ui/components/ui/select'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/ui/components/ui/dropdown-menu'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/ui/components/ui/alert-dialog'
-import { cn } from '@/ui/lib/utils'
-import { ChevronDown } from 'lucide-react'
-import { Switch } from '@/ui/components/ui/switch'
-import { m } from '@/ui/paraglide/messages.js'
 
 interface AgentsSettingsProps {
   teamId: string
@@ -311,7 +311,7 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
                       {typeAgents.map((agent) => (
                         <Card
                           key={agent.id}
-                          className="group relative overflow-hidden border-border hover:border-primary/50 transition-all duration-200 cursor-pointer"
+                          className="group relative overflow-hidden border-border hover:border-primary/50 transition-all duration-200 cursor-pointer pb-1 pt-1"
                           onClick={() => setAgentToEdit(agent)}
                         >
                           <CardContent className="p-4 flex flex-col gap-3">
