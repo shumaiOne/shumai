@@ -86,6 +86,8 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
       if (!exists) {
         setSelectedAgentId(chatAgents[0].id)
       }
+    } else if (selectedAgentId !== null) {
+      setSelectedAgentId(null)
     }
   }, [chatAgents, selectedAgentId, setSelectedAgentId])
 

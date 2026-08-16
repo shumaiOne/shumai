@@ -6,6 +6,7 @@ import { getAvatarUrl } from '@shumai/core/src/user/avatar'
 import {
   createAgentRequestSchema,
   updateAgentRequestSchema,
+  updateAgentPermissionRequestSchema,
   paginationParamsSchema,
   AgentInfo,
   AgentType,
@@ -29,7 +30,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: teamId,
     })
 
-    const agents = await agentService.listAgents({ teamId })
+    const agents = await agentService.listAgents({ teamId, userId: userReq?.id })
 
     const res: AgentInfo[] = await Promise.all(
       agents.map(async (agent) => {
@@ -39,6 +40,7 @@ const route = new Hono<{ Variables: { user: User } }>()
           name: agent.user.name,
           type: agent.type as AgentType,
           enabled: agent.enabled,
+          permission: agent.permission,
           avatar: (await getAvatarUrl(agent.user.image)) || undefined,
           providerId: agent.providerId || undefined,
           modelId: agent.modelId || undefined,
@@ -83,6 +85,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       name: agent.user.name,
       type: agent.type as AgentType,
       enabled: agent.enabled,
+      permission: agent.permission,
       avatar: (await getAvatarUrl(agent.user.image)) || undefined,
       providerId: agent.providerId || undefined,
       modelId: agent.modelId || undefined,
@@ -137,6 +140,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       name: agent.user.name,
       type: agent.type as AgentType,
       enabled: agent.enabled,
+      permission: agent.permission,
       avatar: (await getAvatarUrl(agent.user.image)) || undefined,
       providerId: agent.providerId || undefined,
       modelId: agent.modelId || undefined,
@@ -154,6 +158,55 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     return c.json(info, 200)
   })
+  .patch(
+    '/agents/:agentId/permission',
+    zValidator('json', updateAgentPermissionRequestSchema),
+    async (c) => {
+      const agentId = c.req.param('agentId')
+      const userReq = c.get('user')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user: userReq,
+        permission: Permission.Admin,
+        type: ResourceType.Agent,
+        id: agentId,
+      })
+
+      const agent = await agentService.updateAgentPermission(agentId, req.permission)
+
+      await auditLogService.logAction({
+        action: AuditAction.agent_update,
+        teamId: agent.teamId,
+        userId: userReq?.id,
+        itemId: agent.id,
+      })
+
+      const config = agent.config as unknown as PrismaJson.AgentConfig
+      const info: AgentInfo = {
+        id: agent.id,
+        name: agent.user.name,
+        type: agent.type as AgentType,
+        enabled: agent.enabled,
+        permission: agent.permission,
+        avatar: (await getAvatarUrl(agent.user.image)) || undefined,
+        providerId: agent.providerId || undefined,
+        modelId: agent.modelId || undefined,
+        thinkingLevel: config.thinkingLevel || 'off',
+        systemPrompt: config.systemPrompt,
+        soul: agent.soul || undefined,
+        skills: agent.skills.map((s) => ({
+          id: s.id,
+          skillId: s.skillId,
+          skill: s.skill,
+        })),
+        mcpServerIds: (agent.mcpServers || []).map((m) => m.mcpServerId),
+        deniedTools: config.deniedTools || [],
+      }
+
+      return c.json(info, 200)
+    },
+  )
   .delete('/agents/:agentId', async (c) => {
     const agentId = c.req.param('agentId')
     const userReq = c.get('user')

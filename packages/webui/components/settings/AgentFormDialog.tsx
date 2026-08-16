@@ -46,6 +46,7 @@ interface AgentFormDialogProps {
 const agentFormSchema = z.object({
   name: z.string().min(1, m.name_is_required()),
   type: z.enum(['chat', 'autofill', 'embedding']),
+  permission: z.enum(['owner', 'editor', 'reviewer']),
   avatar: z.string().optional(),
   providerId: z.string().optional(),
   modelId: z.string().optional(),
@@ -186,6 +187,7 @@ export function AgentFormDialog({
     defaultValues: {
       name: initialValues?.name || '',
       type: initialValues?.type || type || 'chat',
+      permission: initialValues?.permission || 'reviewer',
       avatar: initialValues?.avatar || AVAILABLE_AVATARS[0],
       providerId: initialValues?.providerId || '',
       modelId: initialValues?.modelId || '',
@@ -272,6 +274,7 @@ export function AgentFormDialog({
 
   const agentType = useStore(form.store, (s) => s.values.type)
   const isAiType = agentType === 'chat' || agentType === 'autofill'
+  const isChatType = agentType === 'chat'
 
   const mapErrors = (errors: unknown[]) => {
     return errors.map((e) => {
@@ -344,6 +347,35 @@ export function AgentFormDialog({
                     </Field>
                   )}
                 />
+
+                {isChatType && (
+                  <form.Field
+                    name="permission"
+                    children={(field) => (
+                      <Field>
+                        <FieldLabel>{m.skill_permission()}</FieldLabel>
+                        <Select
+                          value={field.state.value || 'reviewer'}
+                          onValueChange={(val) =>
+                            field.handleChange(val as 'owner' | 'editor' | 'reviewer')
+                          }
+                          disabled={!canAdmin}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="reviewer">{m.permission_all_users()}</SelectItem>
+                            <SelectItem value="editor">
+                              {m.permission_owner_and_editor()}
+                            </SelectItem>
+                            <SelectItem value="owner">{m.permission_owner_only()}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    )}
+                  />
+                )}
 
                 <form.Field
                   name="avatar"

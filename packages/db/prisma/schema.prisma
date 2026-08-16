@@ -751,6 +751,7 @@ model Agent {
   user       User      @relation(fields: [id], references: [id], onDelete: Cascade)
   type       AgentType
   enabled    Boolean   @default(true)
+  permission TeamMemberRole @default(reviewer)
   soul       String?   @db.Text
   providerId String?   @map("provider_id")
   provider   Provider? @relation("ProviderToAgent", fields: [providerId], references: [id], onDelete: SetNull)

@@ -886,6 +886,7 @@ export async function updateCommentActivity(params: {
 export async function getAgentChatContextActivity(params: {
   teamId: string
   agentId: string
+  userId?: string
 }): Promise<AgentExecutionContext> {
   const team = await prisma.team.findUnique({
     where: { id: params.teamId },
@@ -911,6 +912,31 @@ export async function getAgentChatContextActivity(params: {
       message: `agent ${params.agentId} not found`,
       nonRetryable: true,
     })
+  }
+
+  if (params.userId) {
+    const member = await prisma.teamMember.findUnique({
+      where: {
+        teamIdUserId: {
+          teamId: params.teamId,
+          userId: params.userId,
+        },
+      },
+      select: { role: true },
+    })
+    const roleHierarchy: Record<string, number> = {
+      owner: 3,
+      editor: 2,
+      reviewer: 1,
+    }
+    const userLevel = member ? roleHierarchy[member.role] || 0 : 0
+    const requiredLevel = roleHierarchy[agent.permission] || 1
+    if (userLevel < requiredLevel) {
+      throw ApplicationFailure.create({
+        message: `Permission denied: Insufficient role to use agent "${params.agentId}". Minimum required role is "${agent.permission}".`,
+        nonRetryable: true,
+      })
+    }
   }
 
   if (!agent.provider) {

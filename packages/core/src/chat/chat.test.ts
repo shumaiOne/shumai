@@ -255,6 +255,61 @@ describe('ChatService', () => {
     expect(taskPayload?.agent?.imageUrls).toContain('doc_s3_key')
   })
 
+  it('should enforce agent permissions in startOrContinueChat', async () => {
+    const { team, project } = await setupBasicData()
+
+    // Create an owner-only agent
+    const ownerAgentUser = await prisma.user.create({
+      data: {
+        name: 'Owner Agent User',
+        email: `owner-agent-${Date.now()}@shumai.ai`,
+        type: 'agent',
+      },
+    })
+    const ownerAgent = await prisma.agent.create({
+      data: {
+        id: ownerAgentUser.id,
+        teamId: team.id,
+        type: 'chat',
+        permission: 'owner',
+        config: { provider: 'p', model: 'm' },
+      },
+    })
+
+    // Create an editor user and a reviewer user
+    const editorUser = await prisma.user.create({
+      data: { name: 'Editor User', email: `ed-${Date.now()}@shumai.ai`, password: 'pw' },
+    })
+    await prisma.teamMember.create({
+      data: { teamId: team.id, userId: editorUser.id, role: 'editor' },
+    })
+
+    const reviewerUser = await prisma.user.create({
+      data: { name: 'Reviewer User', email: `rev-${Date.now()}@shumai.ai`, password: 'pw' },
+    })
+    await prisma.teamMember.create({
+      data: { teamId: team.id, userId: reviewerUser.id, role: 'reviewer' },
+    })
+
+    // Editor trying to chat with owner-only agent should fail
+    await expect(
+      chatService.startOrContinueChat(editorUser, team.id, {
+        agentId: ownerAgent.id,
+        textPrompt: 'test',
+        projectId: project.id,
+      }),
+    ).rejects.toThrow('Permission denied')
+
+    // Reviewer trying to chat with owner-only agent should fail
+    await expect(
+      chatService.startOrContinueChat(reviewerUser, team.id, {
+        agentId: ownerAgent.id,
+        textPrompt: 'test',
+        projectId: project.id,
+      }),
+    ).rejects.toThrow('Permission denied')
+  })
+
   it('should list sessions of a user and only return chat type sessions', async () => {
     const { user, team, project } = await setupBasicData()
 
@@ -687,6 +742,9 @@ describe('ChatService', () => {
       const { team, project } = await setupBasicData()
       const otherUser = await prisma.user.create({
         data: { name: 'Other User', email: `other-${Date.now()}@example.com`, password: 'pw' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: otherUser.id, role: 'reviewer' },
       })
       const { sessionId } = await chatService.startOrContinueChat(otherUser, team.id, {
         agentId: 'test-agent-id',

@@ -4003,6 +4003,7 @@ export const AgentScalarFieldEnum = {
   id: 'id',
   type: 'type',
   enabled: 'enabled',
+  permission: 'permission',
   soul: 'soul',
   providerId: 'providerId',
   modelId: 'modelId',

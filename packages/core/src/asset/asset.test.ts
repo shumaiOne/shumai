@@ -41,6 +41,13 @@ describe('AssetService', () => {
     const team = await prisma.team.create({
       data: { name: 'TestTeam_Asset_' + Date.now() },
     })
+    await prisma.teamMember.create({
+      data: {
+        teamId: team.id,
+        userId: user.id,
+        role: 'owner',
+      },
+    })
     const project = await prisma.project.create({
       data: { name: 'TestProject_Asset', teamId: team.id },
     })
@@ -734,15 +741,6 @@ describe('AssetService', () => {
       attachmentIds: [],
     })
 
-    // 2. Add user as a team member with owner role (team owner)
-    await prisma.teamMember.create({
-      data: {
-        teamId: project.teamId,
-        userId: user.id,
-        role: 'owner',
-      },
-    })
-
     // Create another user
     const otherUser = await prisma.user.create({
       data: {
@@ -813,16 +811,7 @@ describe('AssetService', () => {
   it('deleteComment cleans up S3 attachment files and database records', async () => {
     const { user, project, assets } = await setupBasicAssets()
 
-    // 1. Add user as team owner
-    await prisma.teamMember.create({
-      data: {
-        teamId: project.teamId,
-        userId: user.id,
-        role: 'owner',
-      },
-    })
-
-    // 2. Create StorageKey and Asset for attachment
+    // 1. Create StorageKey and Asset for attachment
     const storageKey = await prisma.storageKey.create({
       data: {
         key: 'attachments/test-attachment-file.png',
@@ -1243,6 +1232,68 @@ describe('AssetService', () => {
     expect(p3b?.agent?.agentId).toBe(botUser.id)
     expect(p3b?.agent?.sessionId).toBe('test-session-rule3')
     expect(p3b?.agent?.userId).toBe(user.id)
+  })
+
+  it('silently skips triggering agent workflow when comment creator lacks permission', async () => {
+    const { project } = await setupBasicAssets()
+    const file = await prisma.asset.create({
+      data: {
+        name: 'perm-file',
+        type: AssetType.file,
+        projectId: project.id,
+        status: 'uploaded',
+      },
+    })
+
+    // Create owner-only bot agent
+    const ownerBotUser = await prisma.user.create({
+      data: {
+        name: 'Owner Bot Agent',
+        type: 'agent',
+        email: `owner-bot-${Date.now()}@shumai.ai`,
+      },
+    })
+    const ownerAgent = await prisma.agent.create({
+      data: {
+        id: ownerBotUser.id,
+        teamId: project.teamId,
+        type: 'chat',
+        permission: 'owner',
+        config: { provider: 'p', model: 'm' },
+      },
+    })
+
+    // Create a reviewer user
+    const reviewerUser = await prisma.user.create({
+      data: {
+        name: 'Reviewer Member',
+        email: `rev-comment-${Date.now()}@shumai.ai`,
+        password: 'pw',
+      },
+    })
+    await prisma.teamMember.create({
+      data: { teamId: project.teamId, userId: reviewerUser.id, role: 'reviewer' },
+    })
+
+    // Reviewer mentions owner-only agent
+    const comment = await assetService.createComment({
+      assetId: file.id,
+      userId: reviewerUser.id,
+      message: `Hello <@${ownerAgent.id}>`,
+      attachmentIds: [],
+    })
+
+    // Comment was saved successfully
+    expect(comment.id).toBeDefined()
+
+    // But no workflow task was created for ownerAgent
+    const tasks = await prisma.workflowTask.findMany({
+      where: {
+        assetId: file.id,
+        payload: { path: ['agent', 'userCommentId'], equals: comment.id },
+      },
+    })
+    expect(tasks.length).toBe(0)
   })
 
   it('updates asset order correctly', async () => {

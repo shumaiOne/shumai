@@ -281,12 +281,41 @@ export class ChatService {
       let activeSessionId = passedSessionId
 
       // Ensure AI agent configuration exists
-      const agent = await tx.agent.findUnique({ where: { id: agentId } })
+      const agent = await tx.agent.findUnique({
+        where: { id: agentId },
+        include: { user: true },
+      })
       if (!agent) {
         throw new Error(`Agent with ID "${agentId}" not found`)
       }
       if (agent.teamId !== teamId) {
         throw new Error(`Agent does not belong to the specified team`)
+      }
+
+      // Check user's permission to use this agent
+      const member = await tx.teamMember.findUnique({
+        where: {
+          teamIdUserId: {
+            teamId,
+            userId: user.id,
+          },
+        },
+      })
+      if (!member) {
+        throw new Error('User is not a member of the team')
+      }
+
+      const roleHierarchy: Record<string, number> = {
+        owner: 3,
+        editor: 2,
+        reviewer: 1,
+      }
+      const userLevel = roleHierarchy[member.role] || 0
+      const requiredLevel = roleHierarchy[agent.permission] || 1
+      if (userLevel < requiredLevel) {
+        throw new Error(
+          `Permission denied: Insufficient role to use agent "${agent.user.name}". Minimum required role is "${agent.permission}".`,
+        )
       }
 
       if (activeSessionId) {

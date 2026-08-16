@@ -16,8 +16,16 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { AgentInfo, AgentType, ThinkingLevel } from '@shumai/dtos'
+import { AgentInfo, AgentType, ThinkingLevel, AgentPermission } from '@shumai/dtos'
 import { AgentFormDialog } from './AgentFormDialog'
+import { usePermissions } from '@/ui/hooks/use-permissions'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/ui/components/ui/select'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,6 +63,7 @@ const AGENT_TYPES: {
 
 export function AgentsSettings({ teamId }: AgentsSettingsProps) {
   const queryClient = useQueryClient()
+  const { canAdmin } = usePermissions()
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [createType, setCreateType] = useState<AgentType>('chat')
   const [editingAgent, setAgentToEdit] = useState<AgentInfo | null>(null)
@@ -98,6 +107,29 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
     },
     onError: (error) => {
       toast.error(error.message)
+    },
+  })
+
+  const updateAgentPermissionMutation = useMutation({
+    mutationFn: async ({
+      agentId,
+      permission,
+    }: {
+      agentId: string
+      permission: AgentPermission
+    }) => {
+      const res = await client.api.agents[':agentId'].permission.$patch({
+        param: { agentId },
+        json: { permission },
+      })
+      if (!res.ok) throw new Error(m.failed_to_update_permission())
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agents', teamId] })
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || m.failed_to_update_permission())
     },
   })
 
@@ -282,53 +314,31 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
                           className="group relative overflow-hidden border-border hover:border-primary/50 transition-all duration-200 cursor-pointer"
                           onClick={() => setAgentToEdit(agent)}
                         >
-                          <CardContent className="p-4 flex items-center justify-between">
-                            <div className="flex items-center gap-3 min-w-0 flex-1">
-                              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden">
-                                {agent.avatar ? (
-                                  <img
-                                    src={agent.avatar}
-                                    className="w-full h-full object-cover"
-                                    alt=""
-                                  />
-                                ) : (
-                                  <Bot className="w-6 h-6 text-muted-foreground" />
-                                )}
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <span className="font-bold text-foreground block truncate">
-                                  {agent.name}
-                                </span>
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                                  <span className="flex items-center gap-1">
-                                    <Puzzle className="w-3 h-3" />
-                                    {m.skills_count_value({ count: agent.skills?.length || 0 })}
-                                  </span>
+                          <CardContent className="p-4 flex flex-col gap-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                                  {agent.avatar ? (
+                                    <img
+                                      src={agent.avatar}
+                                      className="w-full h-full object-cover"
+                                      alt=""
+                                    />
+                                  ) : (
+                                    <Bot className="w-6 h-6 text-muted-foreground" />
+                                  )}
                                 </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <div className="mr-2" onClick={(e) => e.stopPropagation()}>
-                                <Switch
-                                  checked={agent.enabled}
-                                  onCheckedChange={(enabled) => {
-                                    updateAgentMutation.mutate({
-                                      teamId,
-                                      agentId: agent.id,
-                                      name: agent.name,
-                                      type: agent.type,
-                                      enabled,
-                                      avatar: agent.avatar,
-                                      providerId: agent.providerId,
-                                      modelId: agent.modelId,
-                                      thinkingLevel: agent.thinkingLevel,
-                                      systemPrompt: agent.systemPrompt,
-                                      soul: agent.soul,
-                                      skills: agent.skills?.map((s) => s.skillId),
-                                      deniedTools: agent.deniedTools,
-                                    })
-                                  }}
-                                />
+                                <div className="min-w-0 flex-1">
+                                  <span className="font-bold text-foreground block truncate">
+                                    {agent.name}
+                                  </span>
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                                    <span className="flex items-center gap-1">
+                                      <Puzzle className="w-3 h-3" />
+                                      {m.skills_count_value({ count: agent.skills?.length || 0 })}
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
                               <DropdownMenu modal={false}>
                                 <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -352,7 +362,71 @@ export function AgentsSettings({ teamId }: AgentsSettingsProps) {
                                     <Trash2 className="w-4 h-4" /> {m.delete()}
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
-                              </DropdownMenu>{' '}
+                              </DropdownMenu>
+                            </div>
+
+                            <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/50">
+                              <div>
+                                {agent.type === 'chat' ? (
+                                  <div onClick={(e) => e.stopPropagation()}>
+                                    <Select
+                                      value={agent.permission || 'reviewer'}
+                                      onValueChange={(permission) => {
+                                        updateAgentPermissionMutation.mutate({
+                                          agentId: agent.id,
+                                          permission: permission as AgentPermission,
+                                        })
+                                      }}
+                                      disabled={!canAdmin}
+                                    >
+                                      <SelectTrigger className="h-7 text-xs px-2 bg-background border-border w-[140px]">
+                                        <SelectValue>
+                                          {agent.permission === 'reviewer'
+                                            ? m.permission_all_users()
+                                            : agent.permission === 'editor'
+                                              ? m.permission_owner_and_editor()
+                                              : m.permission_owner_only()}
+                                        </SelectValue>
+                                      </SelectTrigger>
+                                      <SelectContent align="start">
+                                        <SelectItem value="reviewer">
+                                          {m.permission_all_users()}
+                                        </SelectItem>
+                                        <SelectItem value="editor">
+                                          {m.permission_owner_and_editor()}
+                                        </SelectItem>
+                                        <SelectItem value="owner">
+                                          {m.permission_owner_only()}
+                                        </SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                ) : (
+                                  <div />
+                                )}
+                              </div>
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <Switch
+                                  checked={agent.enabled}
+                                  onCheckedChange={(enabled) => {
+                                    updateAgentMutation.mutate({
+                                      teamId,
+                                      agentId: agent.id,
+                                      name: agent.name,
+                                      type: agent.type,
+                                      enabled,
+                                      avatar: agent.avatar,
+                                      providerId: agent.providerId,
+                                      modelId: agent.modelId,
+                                      thinkingLevel: agent.thinkingLevel,
+                                      systemPrompt: agent.systemPrompt,
+                                      soul: agent.soul,
+                                      skills: agent.skills?.map((s) => s.skillId),
+                                      deniedTools: agent.deniedTools,
+                                    })
+                                  }}
+                                />
+                              </div>
                             </div>
                           </CardContent>
                         </Card>

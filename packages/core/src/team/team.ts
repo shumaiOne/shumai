@@ -188,6 +188,13 @@ export class TeamService {
       throw new HTTPException(403, { message: 'Requester is not a team member' })
     }
 
+    const allowedAgentRoles: ('owner' | 'editor' | 'reviewer')[] =
+      requester.role === 'owner'
+        ? ['reviewer', 'editor', 'owner']
+        : requester.role === 'editor'
+          ? ['reviewer', 'editor']
+          : ['reviewer']
+
     const members = await prisma.teamMember.findMany({
       where: {
         teamId: req.teamId,
@@ -201,6 +208,7 @@ export class TeamService {
                     agent: {
                       type: 'chat',
                       enabled: true,
+                      permission: { in: allowedAgentRoles },
                     },
                   },
                 ],

@@ -1086,6 +1086,55 @@ describe('Agent Database Activities Integration', () => {
       expect(chatCtx.enabledSkillIds).toEqual([enabledSkill.id])
       expect(chatCtx.teamSkills.map((s) => s.id)).not.toContain(disabledSkill.id)
 
+      // Test permission enforcement in getAgentChatContextActivity
+      // Create owner-only agent
+      const ownerAgentUser = await prisma.user.create({
+        data: { name: 'Owner Bot', email: `ownerbot-${Date.now()}@shumai.ai`, type: 'agent' },
+      })
+      const ownerAgent = await prisma.agent.create({
+        data: {
+          id: ownerAgentUser.id,
+          teamId: team.id,
+          type: 'chat',
+          permission: 'owner',
+          providerId: provider.id,
+          modelId: model.id,
+          config: { provider: 'openai', model: 'gpt-4' },
+        },
+      })
+
+      // Create owner and reviewer members
+      const ownerUser = await prisma.user.create({
+        data: { name: 'Owner User', email: `owner-${Date.now()}@shumai.ai` },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: ownerUser.id, role: 'owner' },
+      })
+
+      const reviewerUser = await prisma.user.create({
+        data: { name: 'Reviewer User', email: `reviewer-${Date.now()}@shumai.ai` },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: reviewerUser.id, role: 'reviewer' },
+      })
+
+      // Owner should succeed
+      const ownerCtx = await getAgentChatContextActivity({
+        teamId: team.id,
+        agentId: ownerAgent.id,
+        userId: ownerUser.id,
+      })
+      expect(ownerCtx.agent.id).toBe(ownerAgent.id)
+
+      // Reviewer should fail with non-retryable ApplicationFailure
+      await expect(
+        getAgentChatContextActivity({
+          teamId: team.id,
+          agentId: ownerAgent.id,
+          userId: reviewerUser.id,
+        }),
+      ).rejects.toThrow('Permission denied')
+
       // Create User for autofill agent
       const autofillUser = await prisma.user.create({
         data: {
