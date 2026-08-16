@@ -214,10 +214,10 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
     mutationFn: async () => {
       let resourceData: Record<string, unknown> | null = null
       if (resource === 'agent_skill_call_count') {
-        if (!skillId.trim()) throw new Error(m.enter_skill_id())
+        if (!skillId.trim()) throw new Error(m.select_skill())
         resourceData = { id: skillId.trim() }
       } else if (resource === 'agent_mcp_call_count') {
-        if (!mcpServerId.trim()) throw new Error(m.enter_mcp_id())
+        if (!mcpServerId.trim()) throw new Error(m.select_mcp_server())
         resourceData = { id: mcpServerId.trim() }
       } else if (resource === 'agent_bash_call_count') {
         if (!bashMatch.trim()) throw new Error(m.bash_command_pattern())
@@ -536,28 +536,29 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
                   <Label htmlFor="skill-select" className="text-sm font-medium">
                     {m.select_skill()}
                   </Label>
-                  <div className="space-y-2">
-                    {skills.length > 0 && (
-                      <Select value={skillId} onValueChange={setSkillId}>
-                        <SelectTrigger id="skill-select">
-                          <SelectValue placeholder={m.select_skill()} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {skills.map((s: { id: string; name: string }) => (
-                            <SelectItem key={s.id} value={s.id}>
-                              {s.name} ({s.id})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                    <Input
-                      placeholder={m.enter_skill_id()}
-                      value={skillId}
-                      onChange={(e) => setSkillId(e.target.value)}
-                      required
-                    />
-                  </div>
+                  {skills.length > 0 ? (
+                    <Select value={skillId} onValueChange={setSkillId}>
+                      <SelectTrigger id="skill-select">
+                        <SelectValue placeholder={m.select_skill()} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {skills.map((s: { id: string; name: string }) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.name} ({s.id})
+                          </SelectItem>
+                        ))}
+                        {skillId && !skills.some((s: { id: string }) => s.id === skillId) && (
+                          <SelectItem key={skillId} value={skillId}>
+                            {skillId}
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="p-3 rounded-lg border border-dashed border-border text-xs text-muted-foreground bg-muted/20">
+                      {m.no_skills_installed()}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -566,28 +567,30 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
                   <Label htmlFor="mcp-select" className="text-sm font-medium">
                     {m.select_mcp_server()}
                   </Label>
-                  <div className="space-y-2">
-                    {mcpServers.length > 0 && (
-                      <Select value={mcpServerId} onValueChange={setMcpServerId}>
-                        <SelectTrigger id="mcp-select">
-                          <SelectValue placeholder={m.select_mcp_server()} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {mcpServers.map((s: { id: string; name: string }) => (
-                            <SelectItem key={s.id} value={s.id}>
-                              {s.name} ({s.id})
+                  {mcpServers.length > 0 ? (
+                    <Select value={mcpServerId} onValueChange={setMcpServerId}>
+                      <SelectTrigger id="mcp-select">
+                        <SelectValue placeholder={m.select_mcp_server()} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mcpServers.map((s: { id: string; name: string }) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.name} ({s.id})
+                          </SelectItem>
+                        ))}
+                        {mcpServerId &&
+                          !mcpServers.some((s: { id: string }) => s.id === mcpServerId) && (
+                            <SelectItem key={mcpServerId} value={mcpServerId}>
+                              {mcpServerId}
                             </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                    <Input
-                      placeholder={m.enter_mcp_id()}
-                      value={mcpServerId}
-                      onChange={(e) => setMcpServerId(e.target.value)}
-                      required
-                    />
-                  </div>
+                          )}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="p-3 rounded-lg border border-dashed border-border text-xs text-muted-foreground bg-muted/20">
+                      {m.no_mcp_servers_installed()}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -706,7 +709,12 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
                 type="submit"
                 form="quota-rule-form"
                 onClick={() => saveMutation.mutate()}
-                disabled={saveMutation.isPending || (scopeType === 'user' && !userId)}
+                disabled={
+                  saveMutation.isPending ||
+                  (scopeType === 'user' && !userId) ||
+                  (resource === 'agent_skill_call_count' && (!skillId || skills.length === 0)) ||
+                  (resource === 'agent_mcp_call_count' && (!mcpServerId || mcpServers.length === 0))
+                }
               >
                 {saveMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                 {isEditing ? m.save_changes() : m.create()}

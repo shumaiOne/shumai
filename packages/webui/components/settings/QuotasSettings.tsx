@@ -209,7 +209,7 @@ export const QuotasSettings: React.FC<QuotasSettingsProps> = ({ teamId }) => {
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-4">
                 {policies.map((policy) => {
                   const meta = RESOURCE_META[policy.resource]
                   const Icon = meta?.icon || Activity
