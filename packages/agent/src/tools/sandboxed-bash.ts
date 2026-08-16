@@ -10,6 +10,8 @@ import {
   formatSize,
   type TruncationResult,
 } from '../utils/truncate'
+import { quotaService } from '@shumai/core/src/quota/quota-service'
+import type { TeamMemberRole } from '@shumai/db'
 
 const BashSource = Type.String({
   enum: ['user', 'skill'],
@@ -33,6 +35,9 @@ export interface BashDetails {
 }
 
 export interface SandboxedBashOptions {
+  teamId?: string
+  userId?: string
+  role?: TeamMemberRole | null
   getBlockedHost?: () => string
   clearBlockedHost?: () => void
   /**
@@ -64,6 +69,18 @@ export const createSandboxedBashTool = (
         throw new Error(
           'Bash commands requested directly by the user (source="user") are not permitted for your role. ' +
             'Only commands required by a loaded skill (source="skill") can be executed.',
+        )
+      }
+      if (options?.teamId) {
+        await quotaService.checkQuota(
+          {
+            teamId: options.teamId,
+            userId: options.userId,
+            role: options.role,
+            resource: 'agent_bash_call_count',
+            resourceData: { command },
+          },
+          1,
         )
       }
       options?.clearBlockedHost?.()
@@ -218,6 +235,23 @@ export const createSandboxedBashTool = (
           const blocked = options?.getBlockedHost?.()
           const snapshot = await finishOutput()
           const { text: outputText, details: truncationDetails } = formatOutput(snapshot)
+
+          if (options?.teamId) {
+            try {
+              await quotaService.consumeQuota(
+                {
+                  teamId: options.teamId,
+                  userId: options.userId,
+                  role: options.role,
+                  resource: 'agent_bash_call_count',
+                  resourceData: { command },
+                },
+                1,
+              )
+            } catch (err) {
+              logger.error({ err }, 'Failed to record quota usage for bash command')
+            }
+          }
 
           if (signal?.aborted) {
             logger.error({ command, outputText }, 'Sandboxed bash command aborted')

@@ -24,6 +24,7 @@ export enum ResourceType {
   Invite = 'invite',
   Comment = 'comment',
   AgentSession = 'agentSession',
+  QuotaPolicy = 'quotaPolicy',
 }
 
 export interface AuthzRequest {
@@ -257,6 +258,15 @@ export class AuthzService {
         if (!comment.asset.project)
           throw new HTTPException(403, { message: 'Comment asset has no project' })
         return { teamId: comment.asset.project.teamId, projectId: comment.asset.projectId! }
+      }
+
+      case ResourceType.QuotaPolicy: {
+        const policy = await prisma.quotaPolicy.findUnique({
+          where: { id },
+          select: { teamId: true },
+        })
+        if (!policy) throw new HTTPException(404, { message: 'Quota policy not found' })
+        return { teamId: policy.teamId }
       }
 
       default:

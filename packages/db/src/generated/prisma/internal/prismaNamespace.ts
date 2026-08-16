@@ -425,7 +425,9 @@ export const ModelName = {
   Collection: 'Collection',
   ApiToken: 'ApiToken',
   AiUsage: 'AiUsage',
-  AuditLog: 'AuditLog'
+  AuditLog: 'AuditLog',
+  QuotaPolicy: 'QuotaPolicy',
+  QuotaUsage: 'QuotaUsage'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -441,7 +443,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "sandbox" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "watermarkConfig" | "watermarkTemplate" | "watermarkFile" | "asset" | "storageKey" | "assetMetadataValue" | "assetAgentMd" | "assetComment" | "assetCommentAttachment" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "mcpServer" | "agentMcpServer" | "mcpServerCredential" | "agentSession" | "agentSessionEntry" | "userMetadata" | "model" | "provider" | "collection" | "apiToken" | "aiUsage" | "auditLog"
+    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "sandbox" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "watermarkConfig" | "watermarkTemplate" | "watermarkFile" | "asset" | "storageKey" | "assetMetadataValue" | "assetAgentMd" | "assetComment" | "assetCommentAttachment" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "mcpServer" | "agentMcpServer" | "mcpServerCredential" | "agentSession" | "agentSessionEntry" | "userMetadata" | "model" | "provider" | "collection" | "apiToken" | "aiUsage" | "auditLog" | "quotaPolicy" | "quotaUsage"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -3553,6 +3555,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    QuotaPolicy: {
+      payload: Prisma.$QuotaPolicyPayload<ExtArgs>
+      fields: Prisma.QuotaPolicyFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.QuotaPolicyFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QuotaPolicyPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.QuotaPolicyFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QuotaPolicyPayload>
+        }
+        findFirst: {
+          args: Prisma.QuotaPolicyFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QuotaPolicyPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.QuotaPolicyFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QuotaPolicyPayload>
+        }
+        findMany: {
+          args: Prisma.QuotaPolicyFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QuotaPolicyPayload>[]
+        }
+        create: {
+          args: Prisma.QuotaPolicyCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QuotaPolicyPayload>
+        }
+        createMany: {
+          args: Prisma.QuotaPolicyCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.QuotaPolicyCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QuotaPolicyPayload>[]
+        }
+        delete: {
+          args: Prisma.QuotaPolicyDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QuotaPolicyPayload>
+        }
+        update: {
+          args: Prisma.QuotaPolicyUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QuotaPolicyPayload>
+        }
+        deleteMany: {
+          args: Prisma.QuotaPolicyDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.QuotaPolicyUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.QuotaPolicyUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QuotaPolicyPayload>[]
+        }
+        upsert: {
+          args: Prisma.QuotaPolicyUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QuotaPolicyPayload>
+        }
+        aggregate: {
+          args: Prisma.QuotaPolicyAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateQuotaPolicy>
+        }
+        groupBy: {
+          args: Prisma.QuotaPolicyGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.QuotaPolicyGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.QuotaPolicyCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.QuotaPolicyCountAggregateOutputType> | number
+        }
+      }
+    }
+    QuotaUsage: {
+      payload: Prisma.$QuotaUsagePayload<ExtArgs>
+      fields: Prisma.QuotaUsageFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.QuotaUsageFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QuotaUsagePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.QuotaUsageFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QuotaUsagePayload>
+        }
+        findFirst: {
+          args: Prisma.QuotaUsageFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QuotaUsagePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.QuotaUsageFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QuotaUsagePayload>
+        }
+        findMany: {
+          args: Prisma.QuotaUsageFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QuotaUsagePayload>[]
+        }
+        create: {
+          args: Prisma.QuotaUsageCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QuotaUsagePayload>
+        }
+        createMany: {
+          args: Prisma.QuotaUsageCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.QuotaUsageCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QuotaUsagePayload>[]
+        }
+        delete: {
+          args: Prisma.QuotaUsageDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QuotaUsagePayload>
+        }
+        update: {
+          args: Prisma.QuotaUsageUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QuotaUsagePayload>
+        }
+        deleteMany: {
+          args: Prisma.QuotaUsageDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.QuotaUsageUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.QuotaUsageUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QuotaUsagePayload>[]
+        }
+        upsert: {
+          args: Prisma.QuotaUsageUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$QuotaUsagePayload>
+        }
+        aggregate: {
+          args: Prisma.QuotaUsageAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateQuotaUsage>
+        }
+        groupBy: {
+          args: Prisma.QuotaUsageGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.QuotaUsageGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.QuotaUsageCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.QuotaUsageCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -4200,6 +4350,40 @@ export const AuditLogScalarFieldEnum = {
 export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
 
 
+export const QuotaPolicyScalarFieldEnum = {
+  id: 'id',
+  teamId: 'teamId',
+  scopeType: 'scopeType',
+  role: 'role',
+  userId: 'userId',
+  resource: 'resource',
+  resourceData: 'resourceData',
+  limit: 'limit',
+  period: 'period',
+  enabled: 'enabled',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type QuotaPolicyScalarFieldEnum = (typeof QuotaPolicyScalarFieldEnum)[keyof typeof QuotaPolicyScalarFieldEnum]
+
+
+export const QuotaUsageScalarFieldEnum = {
+  id: 'id',
+  policyId: 'policyId',
+  teamId: 'teamId',
+  userId: 'userId',
+  periodStart: 'periodStart',
+  periodEnd: 'periodEnd',
+  consumed: 'consumed',
+  reserved: 'reserved',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type QuotaUsageScalarFieldEnum = (typeof QuotaUsageScalarFieldEnum)[keyof typeof QuotaUsageScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -4610,6 +4794,48 @@ export type EnumAgentSessionTypeFieldRefInput<$PrismaModel> = FieldRefInputType<
 export type ListEnumAgentSessionTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AgentSessionType[]'>
     
 
+
+/**
+ * Reference to a field of type 'QuotaScopeType'
+ */
+export type EnumQuotaScopeTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QuotaScopeType'>
+    
+
+
+/**
+ * Reference to a field of type 'QuotaScopeType[]'
+ */
+export type ListEnumQuotaScopeTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QuotaScopeType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'QuotaResourceType'
+ */
+export type EnumQuotaResourceTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QuotaResourceType'>
+    
+
+
+/**
+ * Reference to a field of type 'QuotaResourceType[]'
+ */
+export type ListEnumQuotaResourceTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QuotaResourceType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'QuotaPeriod'
+ */
+export type EnumQuotaPeriodFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QuotaPeriod'>
+    
+
+
+/**
+ * Reference to a field of type 'QuotaPeriod[]'
+ */
+export type ListEnumQuotaPeriodFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QuotaPeriod[]'>
+    
+
 /**
  * Batch Payload for updateMany & deleteMany & createMany
  */
@@ -4762,6 +4988,8 @@ export type GlobalOmitConfig = {
   apiToken?: Prisma.ApiTokenOmit
   aiUsage?: Prisma.AiUsageOmit
   auditLog?: Prisma.AuditLogOmit
+  quotaPolicy?: Prisma.QuotaPolicyOmit
+  quotaUsage?: Prisma.QuotaUsageOmit
 }
 
 /* Types for Logging */

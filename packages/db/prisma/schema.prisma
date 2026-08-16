@@ -135,6 +135,28 @@ enum WatermarkFileStatus {
   failed
 }
 
+enum QuotaScopeType {
+  team
+  role
+  user
+}
+
+enum QuotaPeriod {
+  one_hour   @map("1hour")
+  five_hours @map("5hour")
+  one_day    @map("1day")
+  seven_days @map("7day")
+}
+
+enum QuotaResourceType {
+  agent_total_tokens
+  agent_cost
+  agent_skill_call_count
+  agent_mcp_call_count
+  agent_bash_call_count
+  agent_network_call_count
+}
+
 // ----------------------------------------------------------------------
 // Models
 // ----------------------------------------------------------------------
@@ -172,6 +194,8 @@ model User {
   apiTokens            ApiToken[]       @relation("UserToApiToken")
   aiUsages             AiUsage[]        @relation("UserToAiUsage")
   auditLogs            AuditLog[]       @relation("UserToAuditLog")
+  quotaPolicies        QuotaPolicy[]    @relation("UserToQuotaPolicy")
+  quotaUsages          QuotaUsage[]     @relation("UserToQuotaUsage")
 
   @@map("users")
 }
@@ -258,6 +282,8 @@ model Team {
   aiUsages       AiUsage[]       @relation("TeamToAiUsage")
   auditLogs      AuditLog[]      @relation("TeamToAuditLog")
   watermarkTemplates WatermarkTemplate[] @relation("TeamToWatermarkTemplate")
+  quotaPolicies  QuotaPolicy[]   @relation("TeamToQuotaPolicy")
+  quotaUsages    QuotaUsage[]    @relation("TeamToQuotaUsage")
 
   @@map("teams")
 }
@@ -1016,6 +1042,52 @@ model AuditLog {
   @@index([action])
   @@index([itemId])
   @@map("audit_logs")
+}
+
+model QuotaPolicy {
+  id           String            @id @default(ulid())
+  teamId       String            @map("team_id")
+  scopeType    QuotaScopeType    @map("scope_type")
+  role         TeamMemberRole?   @map("role")
+  userId       String?           @map("user_id")
+  resource     QuotaResourceType @map("resource")
+  /// [QuotaResourceData]
+  resourceData Json?             @map("resource_data")
+  limit        Float             @map("limit")
+  period       QuotaPeriod       @map("period")
+  enabled      Boolean           @default(true) @map("enabled")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  team   Team         @relation("TeamToQuotaPolicy", fields: [teamId], references: [id], onDelete: Cascade)
+  user   User?        @relation("UserToQuotaPolicy", fields: [userId], references: [id], onDelete: Cascade)
+  usages QuotaUsage[] @relation("QuotaPolicyToUsage")
+
+  @@index([teamId, enabled])
+  @@index([teamId, resource])
+  @@map("quota_policies")
+}
+
+model QuotaUsage {
+  id          String   @id @default(ulid())
+  policyId    String   @map("policy_id")
+  teamId      String   @map("team_id")
+  userId      String?  @map("user_id")
+  periodStart DateTime @map("period_start")
+  periodEnd   DateTime @map("period_end")
+  consumed    Float    @default(0) @map("consumed")
+  reserved    Float    @default(0) @map("reserved")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  policy QuotaPolicy @relation("QuotaPolicyToUsage", fields: [policyId], references: [id], onDelete: Cascade)
+  team   Team        @relation("TeamToQuotaUsage", fields: [teamId], references: [id], onDelete: Cascade)
+  user   User?       @relation("UserToQuotaUsage", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([policyId, userId, periodEnd])
+  @@index([teamId, userId])
+  @@index([periodEnd])
+  @@map("quota_usages")
 }
 
 

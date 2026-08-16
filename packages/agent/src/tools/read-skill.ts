@@ -3,6 +3,7 @@ import { Type } from 'typebox'
 import { type AgentTool } from '@earendil-works/pi-agent-core'
 import { agentService } from '@shumai/core/src/agent/agent'
 import { resolveEffectiveRole } from '@shumai/core/src/authz/authz'
+import { quotaService } from '@shumai/core/src/quota/quota-service'
 
 const readSkillSchema = Type.Object({
   skillId: Type.String({ description: 'The ID of the skill to read' }),
@@ -41,11 +42,13 @@ export const createReadSkillTool = (
     }
 
     const requiredLevel = ROLE_HIERARCHY[skill.permission] || 1
+    const effectiveRole = userId
+      ? await resolveEffectiveRole(skill.teamId, projectId, userId)
+      : null
 
     if (userId) {
       // Resolve the user's effective role for the project context (project
       // override wins; project-scoped members without project access are denied).
-      const effectiveRole = await resolveEffectiveRole(skill.teamId, projectId, userId)
       const userLevel = effectiveRole ? ROLE_HIERARCHY[effectiveRole] || 0 : 0
       if (userLevel < requiredLevel) {
         throw new Error(
@@ -58,6 +61,18 @@ export const createReadSkillTool = (
       )
     }
 
+    // Quota pre-check
+    await quotaService.checkQuota(
+      {
+        teamId: skill.teamId,
+        userId,
+        role: effectiveRole,
+        resource: 'agent_skill_call_count',
+        resourceData: { id: params.skillId, skillId: params.skillId },
+      },
+      1,
+    )
+
     // Capture environment variables using agentService
     const envs = await agentService.getSkillEnvs(params.skillId)
     onEnvsAdded(envs)
@@ -67,6 +82,18 @@ export const createReadSkillTool = (
 
     // Notify that a skill was successfully loaded (e.g. to enable restricted tools)
     await onSkillLoaded?.()
+
+    // Consume quota
+    await quotaService.consumeQuota(
+      {
+        teamId: skill.teamId,
+        userId,
+        role: effectiveRole,
+        resource: 'agent_skill_call_count',
+        resourceData: { id: params.skillId, skillId: params.skillId },
+      },
+      1,
+    )
 
     return {
       content: [{ type: 'text', text: skillMdContent }],

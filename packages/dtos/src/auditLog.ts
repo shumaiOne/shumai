@@ -46,6 +46,9 @@ export enum AuditAction {
   comment_update = 'comment_update',
   comment_delete = 'comment_delete',
   comment_complete = 'comment_complete',
+  quota_policy_create = 'quota_policy_create',
+  quota_policy_update = 'quota_policy_update',
+  quota_policy_delete = 'quota_policy_delete',
 }
 
 export const auditLogSchema = z.object({

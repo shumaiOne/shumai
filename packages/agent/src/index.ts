@@ -9,7 +9,9 @@ import type { Api, Model } from '@earendil-works/pi-ai'
 import { createModels, InMemoryCredentialStore } from '@earendil-works/pi-ai'
 import { builtinProviders } from '@earendil-works/pi-ai/providers/all'
 import { agentService } from '@shumai/core/src/agent/agent'
-import { prisma, type TeamMemberRole } from '@shumai/db'
+import { resolveEffectiveRole } from '@shumai/core/src/authz/authz'
+import { quotaService, QuotaExceededError } from '@shumai/core/src/quota/quota-service'
+import { prisma } from '@shumai/db'
 import { Type, type TSchema } from 'typebox'
 import * as fs from 'fs'
 import * as os from 'os'
@@ -112,18 +114,6 @@ export interface CreateAgentSessionParams {
   baseDelayMs?: number
 }
 
-async function resolveTeamMemberRole(
-  teamId: string,
-  userId?: string,
-): Promise<TeamMemberRole | undefined> {
-  if (!userId) return undefined
-  const member = await prisma.teamMember.findUnique({
-    where: { teamIdUserId: { teamId, userId } },
-    select: { role: true },
-  })
-  return member?.role
-}
-
 /**
  * Security instructions appended to the system prompt when the requesting user is not a team
  * owner (i.e. editor/reviewer). These complement the hard enforcement in the bash tool itself
@@ -185,7 +175,40 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     blockedHost: '',
   }
 
+  const role = userId ? await resolveEffectiveRole(teamId, projectId, userId) : undefined
+  const isOwner = !userId || role === 'owner'
+  const restricted = !isOwner
+
   const sandboxAskCallback = async ({ host }: { host: string; port?: number }) => {
+    // Quota check & consumption for network calls
+    try {
+      await quotaService.checkQuota(
+        {
+          teamId,
+          userId,
+          role,
+          resource: 'agent_network_call_count',
+          resourceData: { domain: host },
+        },
+        1,
+      )
+      await quotaService.consumeQuota(
+        {
+          teamId,
+          userId,
+          role,
+          resource: 'agent_network_call_count',
+          resourceData: { domain: host },
+        },
+        1,
+      )
+    } catch (err) {
+      if (err instanceof QuotaExceededError) {
+        sandboxState.blockedHost = host
+        return false
+      }
+    }
+
     try {
       const sandbox = await prisma.sandbox.findUnique({
         where: { teamId },
@@ -242,13 +265,6 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     Object.assign(skillEnvs, envs)
   }
 
-  // Resolve the requesting user's team role to enforce owner-only bash privileges.
-  // A user who is not a member of the team is treated as restricted (fail-closed),
-  // while flows without a user context (e.g. autofill) remain unrestricted.
-  const role = await resolveTeamMemberRole(teamId, userId)
-  const isOwner = !userId || role === 'owner'
-  const restricted = !isOwner
-
   // Restore env variables from previously loaded skills in this session
   let skillLoadedInSession = false
   if (sessionId) {
@@ -294,6 +310,9 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
   const deniedTools = agentConfig?.deniedTools || []
 
   const sandboxedBash = createSandboxedBashTool(process.cwd(), skillEnvs, {
+    teamId,
+    userId,
+    role,
     getBlockedHost: () => sandboxState.blockedHost,
     clearBlockedHost: () => {
       sandboxState.blockedHost = ''
