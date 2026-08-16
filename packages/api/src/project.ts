@@ -245,21 +245,6 @@ const route = new Hono<{ Variables: { user: User } }>()
     })
     return c.json(members)
   })
-  .get('/projects/:projectId/bots', async (c) => {
-    const projectId = c.req.param('projectId')
-    const user = c.get('user')
-
-    await authzService.hasPermission({
-      user,
-      permission: Permission.Read,
-      type: ResourceType.Project,
-      id: projectId,
-    })
-
-    // STUB: AgentService is not migrated yet.
-    return c.json([])
-  })
-
   .post(
     '/projects/:projectId/reparent',
     zValidator('json', reparentAssetsRequestSchema),

@@ -1,9 +1,4 @@
-import type {
-  CommentInfo,
-  PostAttachmentRequest,
-  PostAttachmentResponse,
-  BotInfo,
-} from '@shumai/dtos'
+import type { CommentInfo, PostAttachmentRequest, PostAttachmentResponse } from '@shumai/dtos'
 import { m } from '@/ui/paraglide/messages.js'
 import { client } from '@/ui/api/client'
 import { useAnnotationStore } from '@/ui/stores/annotation-store'
@@ -54,7 +49,6 @@ interface ChatInputProps {
   ) => void
   replyingTo?: CommentInfo | null
   onCancelReply?: () => void
-  bots?: BotInfo[]
   initialText?: string
   hideAnnotationControl?: boolean
   disableMentions?: boolean
@@ -77,7 +71,7 @@ const PREDEFINED_COLORS = [
   '#ffffff', // White
 ]
 
-type MentionEntity = { type: 'user'; data: MemberInfo } | { type: 'bot'; data: BotInfo }
+type MentionEntity = { type: 'user'; data: MemberInfo }
 
 export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
   (
@@ -86,7 +80,6 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
       onSendMessage,
       replyingTo,
       onCancelReply,
-      bots = [],
       initialText = '',
       hideAnnotationControl = false,
       disableMentions = false,
@@ -222,16 +215,11 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
       }
     }, [setIsDrawing])
 
-    const filteredAgents = [
-      ...storeMembers
-        .filter(
-          (u) => u.type === 'agent' && u.name?.toLowerCase().startsWith(mentionQuery.toLowerCase()),
-        )
-        .map((u) => ({ type: 'user' as const, data: u })),
-      ...bots
-        .filter((b) => b.name?.toLowerCase().startsWith(mentionQuery.toLowerCase()))
-        .map((b) => ({ type: 'bot' as const, data: b })),
-    ]
+    const filteredAgents = storeMembers
+      .filter(
+        (u) => u.type === 'agent' && u.name?.toLowerCase().startsWith(mentionQuery.toLowerCase()),
+      )
+      .map((u) => ({ type: 'user' as const, data: u }))
 
     const filteredHumans = storeMembers
       .filter(

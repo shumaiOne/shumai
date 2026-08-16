@@ -56,12 +56,6 @@ export const projectUserInfoSchema = z.object({
 })
 export type ProjectUserInfo = z.infer<typeof projectUserInfoSchema>
 
-export const botInfoSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-})
-export type BotInfo = z.infer<typeof botInfoSchema>
-
 export const recentlyDeletedRequestSchema = z
   .object({
     assetType: z.string(),

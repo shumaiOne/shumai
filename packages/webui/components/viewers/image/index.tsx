@@ -11,6 +11,5 @@ export const imageTypeDefinition: FileTypeDefinition = {
   commentsConfig: {
     hasTimestamp: false,
     hasAnnotations: true,
-    hasAiBots: true,
   },
 }

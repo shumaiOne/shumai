@@ -78,23 +78,7 @@ export function FileViewerRightSidebar({
     enabled: !!projectId && !publicFields,
   })
 
-  const { data: bots } = useQuery({
-    queryKey: ['projects', projectId, 'bots'],
-    queryFn: async () => {
-      const res = await client.api.projects[':projectId'].bots.$get({
-        param: { projectId: projectId },
-      })
-      if (!res.ok) throw new Error('Failed to fetch bots')
-      return await res.json()
-    },
-    enabled: !!projectId && !readOnly,
-  })
-
   const viewerDef = getViewerForFile(file)
-  const isAiEnabled = !!viewerDef?.commentsConfig?.hasAiBots
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const enabledBots = isAiEnabled ? (bots as any[]) || [] : []
 
   useEffect(() => {
     if (publicFields) {
@@ -286,14 +270,6 @@ export function FileViewerRightSidebar({
       return member
     }
 
-    if (bots) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const bot = (bots as any[]).find((b) => b.id === id)
-      if (bot) {
-        return { id: bot.id, name: bot.name, role: 'bot' }
-      }
-    }
-
     return {
       id: 'unknown',
       name: 'Unknown',
@@ -417,7 +393,6 @@ export function FileViewerRightSidebar({
                   onSendMessage={handleSendMessage}
                   replyingTo={replyingTo}
                   onCancelReply={() => setReplyingTo(null)}
-                  bots={enabledBots}
                   hideAnnotationControl={hideAnnotationControl}
                   disableMentions={isPublic}
                   currentTime={viewerDef?.commentsConfig?.hasTimestamp ? currentTime : undefined}

@@ -9,7 +9,6 @@ export const pdfTypeDefinition: FileTypeDefinition = {
   commentsConfig: {
     hasTimestamp: true,
     hasAnnotations: true,
-    hasAiBots: true,
     formatTimestamp: (second: number) => `P${Math.round(second)}`,
   },
 }

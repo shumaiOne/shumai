@@ -78,7 +78,6 @@ export interface FileTypeDefinition {
   commentsConfig?: {
     hasTimestamp?: boolean;   // Enables timestamped comments
     hasAnnotations?: boolean; // Enables annotation drawing canvas
-    hasAiBots?: boolean;       // Enables metadata/autofill AI bots
   };
 }
 ```
@@ -179,7 +178,6 @@ export const audioTypeDefinition: FileTypeDefinition = {
   commentsConfig: {
     hasTimestamp: true,
     hasAnnotations: false,
-    hasAiBots: false,
   },
 }
 ```

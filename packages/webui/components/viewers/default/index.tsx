@@ -9,6 +9,5 @@ export const defaultTypeDefinition: FileTypeDefinition = {
   commentsConfig: {
     hasTimestamp: false,
     hasAnnotations: false,
-    hasAiBots: false,
   },
 }

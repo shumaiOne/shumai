@@ -11,6 +11,5 @@ export const videoTypeDefinition: FileTypeDefinition = {
   commentsConfig: {
     hasTimestamp: true,
     hasAnnotations: true,
-    hasAiBots: true,
   },
 }
