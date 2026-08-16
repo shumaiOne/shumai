@@ -1,29 +1,29 @@
 import { client } from '@/ui/api/client'
 import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from '@/ui/components/ui/alert-dialog'
 import { Badge } from '@/ui/components/ui/badge'
 import { Button } from '@/ui/components/ui/button'
 import { Card, CardContent } from '@/ui/components/ui/card'
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu'
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/ui/components/ui/select'
 import { Switch } from '@/ui/components/ui/switch'
 import { usePermissions } from '@/ui/hooks/use-permissions'
@@ -32,16 +32,16 @@ import { m } from '@/ui/paraglide/messages.js'
 import { AgentInfo, AgentPermission, AgentType, ThinkingLevel } from '@shumai/dtos'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-    Bot,
-    ChevronDown,
-    Cpu,
-    Loader2,
-    MessageSquare,
-    MoreVertical,
-    Plus,
-    Puzzle,
-    Trash2,
-    Zap,
+  Bot,
+  ChevronDown,
+  Cpu,
+  Loader2,
+  MessageSquare,
+  MoreVertical,
+  Plus,
+  Puzzle,
+  Trash2,
+  Zap,
 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'

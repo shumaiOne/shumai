@@ -264,6 +264,75 @@ describe('project api', () => {
     expect(assetService.emptyTrash).toHaveBeenCalledWith('p1')
   })
 
+  it('GET /projects/:projectId/members', async () => {
+    vi.mocked(projectService.listProjectMembers).mockResolvedValue([
+      {
+        id: 'user1',
+        name: 'Test User',
+        role: 'editor',
+        type: 'human',
+      },
+    ])
+
+    const res = await app.request('/projects/p1/members')
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json).toEqual([
+      {
+        id: 'user1',
+        name: 'Test User',
+        role: 'editor',
+        type: 'human',
+      },
+    ])
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Read,
+      type: ResourceType.Project,
+      id: 'p1',
+    })
+    expect(projectService.listProjectMembers).toHaveBeenCalledWith({
+      projectId: 'p1',
+      includeAgents: false,
+      requesterUserId: 'user1',
+    })
+  })
+
+  it('GET /projects/:projectId/members?includeAgents=true', async () => {
+    vi.mocked(projectService.listProjectMembers).mockResolvedValue([
+      {
+        id: 'user1',
+        name: 'Test User',
+        role: 'editor',
+        type: 'human',
+      },
+      {
+        id: 'agent1',
+        name: 'Agent Bot',
+        role: 'bot',
+        type: 'agent',
+      },
+    ])
+
+    const res = await app.request('/projects/p1/members?includeAgents=true')
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json).toHaveLength(2)
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Read,
+      type: ResourceType.Project,
+      id: 'p1',
+    })
+    expect(projectService.listProjectMembers).toHaveBeenCalledWith({
+      projectId: 'p1',
+      includeAgents: true,
+      requesterUserId: 'user1',
+    })
+  })
+
   it('POST /projects/:projectId/members', async () => {
     vi.mocked(projectService.addProjectMember).mockResolvedValue(undefined)
 

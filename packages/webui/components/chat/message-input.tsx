@@ -1,14 +1,12 @@
 import type { CommentInfo, PostAttachmentRequest, PostAttachmentResponse } from '@shumai/dtos'
 import { m } from '@/ui/paraglide/messages.js'
-import type { BotInfo } from '@shumai/dtos'
-import type { UserInfo } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
 import { useAnnotationStore } from '@/ui/stores/annotation-store'
 import type { Annotation } from '@/ui/types'
 import { useMutation } from '@tanstack/react-query'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { Skeleton } from '../ui/skeleton'
-import { useMemberStore } from '@/ui/stores/members'
+import { useMemberStore, type MemberInfo } from '@/ui/stores/members'
 import { useTeamContextStore } from '@/ui/stores/team-context'
 import {
   ArrowLeft,
@@ -51,7 +49,6 @@ interface ChatInputProps {
   ) => void
   replyingTo?: CommentInfo | null
   onCancelReply?: () => void
-  bots?: BotInfo[]
   initialText?: string
   hideAnnotationControl?: boolean
   disableMentions?: boolean
@@ -74,7 +71,7 @@ const PREDEFINED_COLORS = [
   '#ffffff', // White
 ]
 
-type MentionEntity = { type: 'user'; data: UserInfo } | { type: 'bot'; data: BotInfo }
+type MentionEntity = { type: 'user'; data: MemberInfo }
 
 export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
   (
@@ -83,7 +80,6 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
       onSendMessage,
       replyingTo,
       onCancelReply,
-      bots = [],
       initialText = '',
       hideAnnotationControl = false,
       disableMentions = false,
@@ -111,7 +107,12 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
     }, [currentTime, frameRate, videoTimeDisplayMode, startTimecode, formatTimestamp])
 
     const { teamId, ensureTeamIdForProject } = useTeamContextStore()
-    const { members: storeMembers, loading: membersLoading, fetchMembers } = useMemberStore()
+    const {
+      members: storeMembers,
+      loading: membersLoading,
+      fetchMembers,
+      fetchProjectMembers,
+    } = useMemberStore()
 
     useEffect(() => {
       if (projectId && !teamId) {
@@ -214,16 +215,11 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
       }
     }, [setIsDrawing])
 
-    const filteredAgents = [
-      ...storeMembers
-        .filter(
-          (u) => u.type === 'agent' && u.name?.toLowerCase().startsWith(mentionQuery.toLowerCase()),
-        )
-        .map((u) => ({ type: 'user' as const, data: u })),
-      ...bots
-        .filter((b) => b.name?.toLowerCase().startsWith(mentionQuery.toLowerCase()))
-        .map((b) => ({ type: 'bot' as const, data: b })),
-    ]
+    const filteredAgents = storeMembers
+      .filter(
+        (u) => u.type === 'agent' && u.name?.toLowerCase().startsWith(mentionQuery.toLowerCase()),
+      )
+      .map((u) => ({ type: 'user' as const, data: u }))
 
     const filteredHumans = storeMembers
       .filter(
@@ -290,7 +286,9 @@ export const ChatInput = React.forwardRef<HTMLDivElement, ChatInputProps>(
               setMentionQuery(query)
               setShowMentionList(true)
 
-              if (teamId) {
+              if (projectId) {
+                fetchProjectMembers(projectId, true, true)
+              } else if (teamId) {
                 fetchMembers(teamId, true, true)
               }
 

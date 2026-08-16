@@ -17,6 +17,7 @@ import {
   AlertDialogTitle,
 } from '@/ui/components/ui/alert-dialog'
 import type { AttachmentInfo, CommentInfo, UserInfo } from '@shumai/dtos'
+import type { MemberInfo } from '@/ui/stores/members'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Download, File, MoreHorizontal, Trash2 } from 'lucide-react'
 import React from 'react'
@@ -36,7 +37,7 @@ interface MessageCardProps {
   isReply?: boolean
   hasReplies?: boolean
   isLastReply?: boolean
-  getUser: (id: string) => UserInfo
+  getUser: (id: string) => MemberInfo | UserInfo
   onReply: (message: CommentInfo) => void
   onViewAttachment: (attachment: AttachmentInfo) => void
   isSelected?: boolean

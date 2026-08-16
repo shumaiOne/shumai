@@ -88,17 +88,17 @@ function FileViewPage() {
     },
   })
   const queryClient = useQueryClient()
-  const { members, fetchMembers } = useMemberStore()
+  const { members, fetchProjectMembers } = useMemberStore()
 
   useEffect(() => {
     ensureTeamIdForProject(projectId)
   }, [projectId, ensureTeamIdForProject])
 
   useEffect(() => {
-    if (teamId) {
-      fetchMembers(teamId, true)
+    if (projectId) {
+      fetchProjectMembers(projectId, true)
     }
-  }, [teamId, fetchMembers])
+  }, [projectId, fetchProjectMembers])
 
   const {
     data: stackData,

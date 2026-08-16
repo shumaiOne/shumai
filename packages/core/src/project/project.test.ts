@@ -194,6 +194,10 @@ describe('ProjectService', () => {
         includeAgents: true,
       })
       expect(allMembers).toHaveLength(2)
+      const agentMember = allMembers.find((m) => m.id === bot.id)
+      const humanMember = allMembers.find((m) => m.id === human.id)
+      expect(agentMember?.type).toBe('agent')
+      expect(humanMember?.type).toBe('human')
     })
 
     it('filters agent bots by the requester effective project role', async () => {

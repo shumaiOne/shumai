@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { UserType } from '@shumai/db/enums'
 import { paginationPageInfoSchema, paginationParamsSchema } from './pagination'
 
 export const createProjectRequestSchema = z.object({
@@ -48,17 +49,12 @@ export const projectUserInfoSchema = z.object({
   id: z.string(),
   name: z.string(),
   role: z.enum(['owner', 'editor', 'reviewer', 'bot', 'unknown']),
+  type: z.nativeEnum(UserType).optional(),
   image: z.string().optional(),
   scope: z.enum(['team', 'project']).optional(),
   hasCustomRole: z.boolean().optional(),
 })
 export type ProjectUserInfo = z.infer<typeof projectUserInfoSchema>
-
-export const botInfoSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-})
-export type BotInfo = z.infer<typeof botInfoSchema>
 
 export const recentlyDeletedRequestSchema = z
   .object({

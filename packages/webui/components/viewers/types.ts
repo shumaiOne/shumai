@@ -50,7 +50,6 @@ export interface FileTypeDefinition {
   commentsConfig?: {
     hasTimestamp?: boolean
     hasAnnotations?: boolean
-    hasAiBots?: boolean
     formatTimestamp?: (second: number) => string
   }
 }
