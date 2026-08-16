@@ -8,10 +8,23 @@ import { SkillsConfigCard } from '@/ui/components/settings/SkillsConfigCard'
 import { McpConfigCard } from '@/ui/components/settings/McpConfigCard'
 import { NotificationSettings } from '@/ui/components/settings/NotificationSettings'
 import { DeveloperSettings } from '@/ui/components/settings/DeveloperSettings'
+import { QuotasSettings } from '@/ui/components/settings/QuotasSettings'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/components/ui/card'
 import { cn } from '@/ui/lib/utils'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Bot, Cpu, Film, Loader2, Puzzle, Server, Shield, User, Bell, Key } from 'lucide-react'
+import {
+  Bot,
+  Cpu,
+  Film,
+  Loader2,
+  Puzzle,
+  Server,
+  Shield,
+  User,
+  Bell,
+  Key,
+  Gauge,
+} from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/ui/avatar'
 import { Input } from '@/ui/components/ui/input'
@@ -32,6 +45,7 @@ import { m } from '@/ui/paraglide/messages.js'
 type SettingsTab =
   | 'general'
   | 'transcode'
+  | 'quotas'
   | 'skills'
   | 'mcp'
   | 'providers'
@@ -263,21 +277,39 @@ function TeamSettingsPage() {
             </button>
 
             {me?.role === 'owner' && (
-              <button
-                onClick={() => setActiveTab('transcode')}
-                className={cn(
-                  'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
-                  activeTab === 'transcode'
-                    ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
-                    : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                )}
-              >
-                <Film className="w-5 h-5" />
-                {m.media_processing()}
-                {activeTab === 'transcode' && (
-                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
-                )}
-              </button>
+              <>
+                <button
+                  onClick={() => setActiveTab('transcode')}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
+                    activeTab === 'transcode'
+                      ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
+                      : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                  )}
+                >
+                  <Film className="w-5 h-5" />
+                  {m.media_processing()}
+                  {activeTab === 'transcode' && (
+                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('quotas')}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
+                    activeTab === 'quotas'
+                      ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
+                      : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                  )}
+                >
+                  <Gauge className="w-5 h-5" />
+                  {m.quotas()}
+                  {activeTab === 'quotas' && (
+                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
+                  )}
+                </button>
+              </>
             )}
 
             <button
@@ -410,6 +442,7 @@ function TeamSettingsPage() {
                 <h2 className="text-2xl font-bold text-foreground">
                   {activeTab === 'general' && m.general_settings()}
                   {activeTab === 'transcode' && m.media_processing()}
+                  {activeTab === 'quotas' && m.resource_quotas()}
                   {activeTab === 'skills' && m.skills_management()}
                   {activeTab === 'mcp' && m.mcp_servers()}
                   {activeTab === 'providers' && m.ai_providers()}
@@ -421,6 +454,7 @@ function TeamSettingsPage() {
                 <p className="text-sm text-muted-foreground mt-1">
                   {activeTab === 'general' && m.general_settings_description()}
                   {activeTab === 'transcode' && m.transcode_description()}
+                  {activeTab === 'quotas' && m.resource_quotas_description()}
                   {activeTab === 'skills' && m.skills_description()}
                   {activeTab === 'mcp' && m.mcp_servers_description()}
                   {activeTab === 'providers' && m.providers_description()}
@@ -645,6 +679,8 @@ function TeamSettingsPage() {
               {activeTab === 'notifications' && <NotificationSettings teamId={teamId} />}
 
               {activeTab === 'developer' && <DeveloperSettings teamId={teamId} />}
+
+              {activeTab === 'quotas' && <QuotasSettings teamId={teamId} />}
             </div>
           </div>
         </main>

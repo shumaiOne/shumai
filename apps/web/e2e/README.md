@@ -63,6 +63,7 @@ apps/web/e2e/
 | Owner invites a member via invite link and the invitee joins | `tests/team/invite-member.spec.ts` |
 | Owner removes a member via the members dialog; the membership is deleted from the DB | `tests/team/remove-member.spec.ts` |
 | Owner changes a team member role in the members dialog and permissions update | `tests/team/change-member-role.spec.ts` |
+| Owner manages resource quotas in settings | `tests/team/quotas-settings.spec.ts` |
 
 ### project
 | Test | File |
