@@ -65,7 +65,7 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
     }
   }, [projectId, ensureTeamIdForProject])
 
-  const { data: agents = [] } = useQuery({
+  const { data: agents = [], isSuccess } = useQuery({
     queryKey: ['chat-agents', projectId],
     queryFn: async () => {
       if (!projectId) return []
@@ -81,6 +81,8 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
   const chatAgents = agents.filter((a) => a.type === 'chat' && a.enabled)
 
   useEffect(() => {
+    if (!isSuccess) return
+
     if (chatAgents.length > 0) {
       const exists = chatAgents.some((a) => a.id === selectedAgentId)
       if (!exists) {
@@ -89,7 +91,7 @@ export function ChatbotSidebar({ projectId, contextAssetId }: ChatbotSidebarProp
     } else if (selectedAgentId !== null) {
       setSelectedAgentId(null)
     }
-  }, [chatAgents, selectedAgentId, setSelectedAgentId])
+  }, [isSuccess, chatAgents, selectedAgentId, setSelectedAgentId])
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
