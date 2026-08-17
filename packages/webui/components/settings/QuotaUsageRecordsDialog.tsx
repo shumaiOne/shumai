@@ -134,8 +134,8 @@ export const QuotaUsageRecordsDialog: React.FC<QuotaUsageRecordsDialogProps> = (
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[620px] max-h-[85vh] flex flex-col p-0 overflow-hidden">
-        <DialogHeader className="p-6 pb-4 border-b border-border/60 shrink-0">
+      <DialogContent className="sm:max-w-[620px] p-0 gap-0 overflow-hidden">
+        <DialogHeader className="p-6 pb-4 border-b border-border/60">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
               <Icon className="w-5 h-5" />
@@ -156,129 +156,125 @@ export const QuotaUsageRecordsDialog: React.FC<QuotaUsageRecordsDialogProps> = (
           </div>
         </DialogHeader>
 
-        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-          {rule.scopeMode !== 'all_members' && records.length > 3 && (
-            <div className="px-6 pt-4 pb-2 shrink-0">
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder={m.quota_search_members()}
-                  className="pl-9 h-9 text-sm"
-                />
-              </div>
+        {rule.scopeMode !== 'all_members' && records.length > 3 && (
+          <div className="px-6 pt-4 pb-2">
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={m.quota_search_members()}
+                className="pl-9 h-9 text-sm"
+              />
             </div>
-          )}
+          </div>
+        )}
 
-          <ScrollArea className="flex-1 min-h-0 [&>div>div]:block!">
-            <div className="p-6 pt-3 space-y-3">
-              {isLoading ? (
-                <div className="flex justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                </div>
-              ) : filteredRecords.length === 0 ? (
-                <div className="text-center py-10 text-sm text-muted-foreground">
-                  {records.length === 0 ? m.no_quotas_title() : 'No matching records found'}
-                </div>
-              ) : (
-                filteredRecords.map((record, index) => {
-                  const percent = record.percent
-                  const isOverLimit = percent >= 100
-                  const isSharedPool = rule.scopeMode === 'all_members'
+        <ScrollArea className="max-h-[60vh] p-6 pt-3">
+          {isLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : filteredRecords.length === 0 ? (
+            <div className="text-center py-10 text-sm text-muted-foreground">
+              {records.length === 0 ? m.no_quotas_title() : 'No matching records found'}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredRecords.map((record, index) => {
+                const percent = record.percent
+                const isOverLimit = percent >= 100
+                const isSharedPool = rule.scopeMode === 'all_members'
 
-                  return (
-                    <div
-                      key={record.id || record.userId || `record-${index}`}
-                      className="p-4 rounded-xl border border-border/70 bg-card text-card-foreground shadow-2xs space-y-3"
-                    >
-                      {/* Top Row: User / Pool Info & Status Badge */}
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-3 min-w-0">
-                          {isSharedPool ? (
-                            <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                              <Users className="w-5 h-5" />
-                            </div>
-                          ) : (
-                            <Avatar className="w-9 h-9 border border-border/50 shrink-0">
-                              <AvatarImage src={record.user?.image || undefined} />
-                              <AvatarFallback className="text-xs font-semibold">
-                                {record.user?.name?.[0]?.toUpperCase() || 'U'}
-                              </AvatarFallback>
-                            </Avatar>
-                          )}
-                          <div className="min-w-0">
-                            <div className="font-semibold text-sm text-foreground truncate">
-                              {isSharedPool
-                                ? rule.role
-                                  ? `${m.quota_role_shared_pool()}: ${rule.role}`
-                                  : m.quota_team_shared_pool()
-                                : record.user?.name || record.userId}
-                            </div>
-                            {!isSharedPool && record.user?.email && (
-                              <div className="text-xs text-muted-foreground truncate">
-                                {record.user.email}
-                              </div>
-                            )}
+                return (
+                  <div
+                    key={record.id || record.userId || `record-${index}`}
+                    className="p-4 rounded-xl border border-border/70 bg-card text-card-foreground shadow-2xs space-y-3"
+                  >
+                    {/* Top Row: User / Pool Info & Status Badge */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {isSharedPool ? (
+                          <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                            <Users className="w-5 h-5" />
                           </div>
-                        </div>
-
-                        {/* Status Badge */}
-                        <div className="shrink-0">
-                          {record.isWindowActive && record.periodEnd ? (
-                            <Badge
-                              variant="outline"
-                              className="gap-1 text-xs text-primary border-primary/30 bg-primary/5"
-                            >
-                              <Clock className="w-3 h-3" />
-                              <span>
-                                {m.quota_active()}:{' '}
-                                {new Date(record.periodEnd).toLocaleTimeString([], {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
-                              </span>
-                            </Badge>
-                          ) : (
-                            <Badge
-                              variant="secondary"
-                              className="gap-1 text-xs text-muted-foreground bg-muted"
-                            >
-                              <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                              <span>{m.quota_available()}</span>
-                            </Badge>
+                        ) : (
+                          <Avatar className="w-9 h-9 border border-border/50 shrink-0">
+                            <AvatarImage src={record.user?.image || undefined} />
+                            <AvatarFallback className="text-xs font-semibold">
+                              {record.user?.name?.[0]?.toUpperCase() || 'U'}
+                            </AvatarFallback>
+                          </Avatar>
+                        )}
+                        <div className="min-w-0">
+                          <div className="font-semibold text-sm text-foreground truncate">
+                            {isSharedPool
+                              ? rule.role
+                                ? `${m.quota_role_shared_pool()}: ${rule.role}`
+                                : m.quota_team_shared_pool()
+                              : record.user?.name || record.userId}
+                          </div>
+                          {!isSharedPool && record.user?.email && (
+                            <div className="text-xs text-muted-foreground truncate">
+                              {record.user.email}
+                            </div>
                           )}
                         </div>
                       </div>
 
-                      {/* Progress Bar & Details */}
-                      <div className="space-y-1.5 pt-1">
-                        <Progress value={Math.min(100, Math.max(0, percent))} className="h-2" />
-                        <div className="flex items-center justify-between text-xs font-medium">
-                          <span
-                            className={
-                              isOverLimit ? 'text-destructive font-bold' : 'text-foreground'
-                            }
+                      {/* Status Badge */}
+                      <div className="shrink-0">
+                        {record.isWindowActive && record.periodEnd ? (
+                          <Badge
+                            variant="outline"
+                            className="gap-1 text-xs text-primary border-primary/30 bg-primary/5"
                           >
-                            {formatResourceValue(rule.resource, record.consumed)} /{' '}
-                            {formatResourceValue(rule.resource, rule.limit)} {meta?.unit}
-                          </span>
-                          <span
-                            className={
-                              isOverLimit ? 'text-destructive font-bold' : 'text-muted-foreground'
-                            }
+                            <Clock className="w-3 h-3" />
+                            <span>
+                              {m.quota_active()}:{' '}
+                              {new Date(record.periodEnd).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="secondary"
+                            className="gap-1 text-xs text-muted-foreground bg-muted"
                           >
-                            {percent}%
-                          </span>
-                        </div>
+                            <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                            <span>{m.quota_available()}</span>
+                          </Badge>
+                        )}
                       </div>
                     </div>
-                  )
-                })
-              )}
+
+                    {/* Progress Bar & Details */}
+                    <div className="space-y-1.5 pt-1">
+                      <Progress value={Math.min(100, Math.max(0, percent))} className="h-2" />
+                      <div className="flex items-center justify-between text-xs font-medium">
+                        <span
+                          className={isOverLimit ? 'text-destructive font-bold' : 'text-foreground'}
+                        >
+                          {formatResourceValue(rule.resource, record.consumed)} /{' '}
+                          {formatResourceValue(rule.resource, rule.limit)} {meta?.unit}
+                        </span>
+                        <span
+                          className={
+                            isOverLimit ? 'text-destructive font-bold' : 'text-muted-foreground'
+                          }
+                        >
+                          {percent}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
-          </ScrollArea>
-        </div>
+          )}
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   )
