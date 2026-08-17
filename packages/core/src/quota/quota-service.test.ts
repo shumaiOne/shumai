@@ -1,10 +1,9 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
-import { quotaService, QuotaExceededError } from './quota-service'
-import { quotaRuleCache, wildcardToRegex } from './quota-cache'
+import { quotaService, QuotaExceededError, wildcardToRegex } from './quota-service'
 
-describe('QuotaRuleCache Wildcard Matchers', () => {
+describe('QuotaRule Wildcard Matchers', () => {
   it('correctly matches bash command wildcards', () => {
     const starRegex = wildcardToRegex('*')
     expect(starRegex.test('npm install')).toBe(true)
@@ -33,10 +32,6 @@ describe('QuotaRuleCache Wildcard Matchers', () => {
 
 describe('QuotaService', () => {
   setupTestDbHooks()
-
-  beforeEach(() => {
-    quotaRuleCache.clear()
-  })
 
   it('creates, reads, updates, and deletes quota rules', async () => {
     const team = await prisma.team.create({
@@ -97,6 +92,33 @@ describe('QuotaService', () => {
         period: '1day',
       }),
     ).rejects.toThrow()
+  })
+
+  it('uses the latest database rule state for every quota check', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'Fresh Quota Rule Team' },
+    })
+
+    const rule = await quotaService.createRule(team.id, {
+      scopeMode: 'all_members',
+      resource: 'agent_cost',
+      limit: 10,
+      period: '1hour',
+    })
+
+    const event = {
+      teamId: team.id,
+      resource: 'agent_cost' as const,
+    }
+
+    expect((await quotaService.checkQuota(event)).matchedRules).toHaveLength(1)
+
+    await prisma.quotaRule.update({
+      where: { id: rule.id },
+      data: { enabled: false },
+    })
+
+    expect((await quotaService.checkQuota(event)).matchedRules).toHaveLength(0)
   })
 
   it('enforces check and consumes quota for all_members (shared pool)', async () => {

@@ -1,4 +1,12 @@
-import { prisma, Prisma, type QuotaRule, type QuotaRecord } from '@shumai/db'
+import {
+  prisma,
+  Prisma,
+  type QuotaPeriod,
+  type QuotaRecord,
+  type QuotaResourceType,
+  type QuotaRule,
+  type TeamMemberRole,
+} from '@shumai/db'
 import {
   type CreateQuotaRuleRequest,
   type ListQuotaRulesResponse,
@@ -14,7 +22,6 @@ import {
   toolResourceDataSchema,
 } from '@shumai/dtos'
 import { HTTPException } from 'hono/http-exception'
-import { quotaRuleCache, type CachedQuotaRule, type QuotaEvent } from './quota-cache'
 
 export class QuotaExceededError extends Error {
   public readonly policyId: string
@@ -42,6 +49,107 @@ export class QuotaExceededError extends Error {
     this.consumed = params.consumed
     this.periodEnd = params.periodEnd
   }
+}
+
+export interface QuotaEventResourceData {
+  skillId?: string
+  mcpServerId?: string
+  command?: string
+  name?: string
+  toolName?: string
+  [key: string]: unknown
+}
+
+export interface QuotaEvent {
+  teamId: string
+  userId?: string | null
+  role?: TeamMemberRole | null
+  resource: QuotaResourceType
+  resourceData?: QuotaEventResourceData
+}
+
+export function periodToDurationMs(period: QuotaPeriod | string): number {
+  switch (period) {
+    case 'one_hour':
+    case '1hour':
+      return 60 * 60 * 1000
+    case 'five_hours':
+    case '5hour':
+      return 5 * 60 * 60 * 1000
+    case 'one_day':
+    case '1day':
+      return 24 * 60 * 60 * 1000
+    case 'seven_days':
+    case '7day':
+      return 7 * 24 * 60 * 60 * 1000
+    default:
+      return 60 * 60 * 1000
+  }
+}
+
+/**
+ * Converts a wildcard pattern (with * and ?) into a regular expression.
+ */
+export function wildcardToRegex(pattern: string): RegExp {
+  const trimmed = pattern.trim()
+  if (trimmed === '*' || trimmed === '') {
+    return /^.*$/s
+  }
+  // Escape regex special chars except * and ?
+  const escaped = trimmed.replace(/[.+^${}()|[\]\\]/g, '\\$&')
+  const regexStr = '^' + escaped.replace(/\*/g, '.*').replace(/\?/g, '.') + '$'
+  return new RegExp(regexStr, 's')
+}
+
+function matchesQuotaRule(rule: QuotaRule, event: QuotaEvent): boolean {
+  if (!rule.enabled) return false
+  if (event.teamId !== rule.teamId) return false
+  if (event.resource !== rule.resource) return false
+
+  // Scope check
+  if (rule.scopeMode === 'all_members') {
+    if (rule.role && event.role !== rule.role) return false
+  } else if (rule.scopeMode === 'each_member') {
+    if (!event.userId) return false
+    if (rule.role && event.role !== rule.role) return false
+  } else if (rule.scopeMode === 'selected_members') {
+    if (!event.userId) return false
+    const userIds = Array.isArray(rule.userIds) ? (rule.userIds as string[]) : null
+    if (!userIds || !userIds.includes(event.userId)) return false
+  }
+
+  const resourceData = (rule.resourceData as Record<string, unknown> | null) ?? null
+
+  // Resource data check
+  if (rule.resource === 'agent_skill_call_count') {
+    const targetId = resourceData?.id ?? resourceData?.skillId
+    const eventSkillId = event.resourceData?.skillId ?? event.resourceData?.id
+    if (targetId && eventSkillId !== targetId) return false
+  } else if (rule.resource === 'agent_mcp_call_count') {
+    const targetId = resourceData?.id ?? resourceData?.mcpServerId
+    const eventMcpId = event.resourceData?.mcpServerId ?? event.resourceData?.id
+    if (targetId && eventMcpId !== targetId) return false
+  } else if (rule.resource === 'agent_bash_call_count' && resourceData?.match) {
+    const bashMatcher = wildcardToRegex(String(resourceData.match))
+    const command = event.resourceData?.command ?? ''
+    if (!bashMatcher.test(command)) return false
+  } else if (
+    rule.resource === 'agent_tool_call_count' &&
+    (resourceData?.name || resourceData?.toolName)
+  ) {
+    const toolMatcher = wildcardToRegex(String(resourceData.name ?? resourceData.toolName))
+    const toolName = String(event.resourceData?.name ?? event.resourceData?.toolName ?? '')
+    if (!toolMatcher.test(toolName)) return false
+  }
+
+  return true
+}
+
+function getQuotaRuleTargetUserId(rule: QuotaRule, event: QuotaEvent): string | null {
+  if (rule.scopeMode === 'all_members') {
+    return null
+  }
+  return event.userId ?? null
 }
 
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -114,8 +222,6 @@ export class QuotaService {
         enabled: req.enabled ?? true,
       },
     })
-
-    quotaRuleCache.invalidate(teamId)
 
     return this.mapRuleToResponse(rule, 0)
   }
@@ -260,8 +366,6 @@ export class QuotaService {
       })
     })
 
-    quotaRuleCache.invalidate(teamId)
-
     const recordsCount = await this.prismaClient.quotaRecord.count({
       where: { ruleId },
     })
@@ -281,8 +385,6 @@ export class QuotaService {
     await this.prismaClient.quotaRule.delete({
       where: { id: ruleId },
     })
-
-    quotaRuleCache.invalidate(teamId)
   }
 
   async getRule(teamId: string, ruleId: string): Promise<QuotaRuleResponse> {
@@ -453,6 +555,18 @@ export class QuotaService {
     }
   }
 
+  private async findMatchingRules(event: QuotaEvent): Promise<QuotaRule[]> {
+    const rules = await this.prismaClient.quotaRule.findMany({
+      where: {
+        teamId: event.teamId,
+        resource: event.resource,
+        enabled: true,
+      },
+    })
+
+    return rules.filter((rule) => matchesQuotaRule(rule, event))
+  }
+
   /**
    * Evaluates whether an action is permitted under all active matching quota rules.
    * Performs an atomic pre-check with SELECT ... FOR UPDATE.
@@ -461,8 +575,8 @@ export class QuotaService {
   async checkQuota(
     event: QuotaEvent,
     amount: number = 0,
-  ): Promise<{ allowed: boolean; matchedRules: CachedQuotaRule[] }> {
-    const rules = await quotaRuleCache.findMatchingRules(event)
+  ): Promise<{ allowed: boolean; matchedRules: QuotaRule[] }> {
+    const rules = await this.findMatchingRules(event)
     if (rules.length === 0) {
       return { allowed: true, matchedRules: [] }
     }
@@ -470,7 +584,7 @@ export class QuotaService {
     const now = new Date()
 
     for (const rule of rules) {
-      const targetUserId = rule.getTargetUserId(event)
+      const targetUserId = getQuotaRuleTargetUserId(rule, event)
 
       await this.prismaClient.$transaction(async (tx) => {
         if (targetUserId === null) {
@@ -517,7 +631,7 @@ export class QuotaService {
         const consumed = isWindowActive ? (rawRecord?.consumed ?? 0) : 0
         const periodEnd = isWindowActive
           ? rawRecord!.period_end!
-          : new Date(now.getTime() + rule.periodDurationMs)
+          : new Date(now.getTime() + periodToDurationMs(rule.period))
 
         if (consumed + amount > rule.limit) {
           throw new QuotaExceededError({
@@ -542,13 +656,13 @@ export class QuotaService {
   async consumeQuota(event: QuotaEvent, amount: number): Promise<void> {
     if (amount <= 0) return
 
-    const rules = await quotaRuleCache.findMatchingRules(event)
+    const rules = await this.findMatchingRules(event)
     if (rules.length === 0) return
 
     const now = new Date()
 
     for (const rule of rules) {
-      const targetUserId = rule.getTargetUserId(event)
+      const targetUserId = getQuotaRuleTargetUserId(rule, event)
 
       await this.prismaClient.$transaction(async (tx) => {
         if (targetUserId === null) {
@@ -601,7 +715,7 @@ export class QuotaService {
           })
         } else {
           const periodStart = now
-          const periodEnd = new Date(now.getTime() + rule.periodDurationMs)
+          const periodEnd = new Date(now.getTime() + periodToDurationMs(rule.period))
 
           if (rawRecord) {
             await tx.quotaRecord.update({
