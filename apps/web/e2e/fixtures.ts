@@ -21,18 +21,22 @@ const currentDir = path.dirname(fileURLToPath(import.meta.url))
 const envPath = path.resolve(currentDir, '.env.e2e')
 const fixturesDir = path.resolve(currentDir, '../../../packages/e2e/fixtures')
 
-// Load E2E environment variables if present
-if (fs.existsSync(envPath)) {
-  const content = fs.readFileSync(envPath, 'utf8')
-  content.split('\n').forEach((line) => {
-    const parts = line.split('=')
-    if (parts.length >= 2) {
-      const key = parts[0].trim()
-      const value = parts.slice(1).join('=').trim()
-      process.env[key] = value
-    }
-  })
+function loadEnv() {
+  if (fs.existsSync(envPath)) {
+    const content = fs.readFileSync(envPath, 'utf8')
+    content.split('\n').forEach((line) => {
+      const parts = line.split('=')
+      if (parts.length >= 2) {
+        const key = parts[0].trim()
+        const value = parts.slice(1).join('=').trim()
+        process.env[key] = value
+      }
+    })
+  }
 }
+
+// Load E2E environment variables if present
+loadEnv()
 
 export interface OwnerFixture {
   /** Page opened in a browser context logged in as the team owner. */
@@ -104,6 +108,7 @@ export const test = base.extend<{
   prisma: [
     // eslint-disable-next-line no-empty-pattern
     async ({}, use) => {
+      loadEnv()
       const connectionString = process.env.DATABASE_URL
       const pool = new Pool({ connectionString })
       const adapter = new PrismaPg(pool)
