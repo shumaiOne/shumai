@@ -427,8 +427,9 @@ declare global {
     }
 
     // ----------------------------------------------------------------------
-    // Quota Resource Data
+    // Quota Types
     // ----------------------------------------------------------------------
     export type QuotaResourceData = Record<string, unknown>
+    export type QuotaUserIds = string[]
   }
 }

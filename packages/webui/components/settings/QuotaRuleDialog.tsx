@@ -26,13 +26,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/ui/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/ui/popover'
 import { Input } from '@/ui/components/ui/input'
 import { Label } from '@/ui/components/ui/label'
 import { Button } from '@/ui/components/ui/button'
 import { Switch } from '@/ui/components/ui/switch'
-import { Progress } from '@/ui/components/ui/progress'
-import { Badge } from '@/ui/components/ui/badge'
+import { Checkbox } from '@/ui/components/ui/checkbox'
 import { ScrollArea } from '@/ui/components/ui/scroll-area'
+import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/ui/avatar'
 import {
   Cpu,
   DollarSign,
@@ -46,13 +47,14 @@ import {
   UserCheck,
   User,
   Clock,
-  Activity,
+  Search,
+  ChevronDown,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { m } from '@/ui/paraglide/messages.js'
 import type {
-  QuotaPolicyResponse,
-  QuotaScopeTypeEnum,
+  QuotaRuleResponse,
+  QuotaScopeModeEnum,
   QuotaResourceTypeEnum,
   QuotaPeriodEnum,
   QuotaRole,
@@ -63,7 +65,7 @@ interface QuotaRuleDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   teamId: string
-  policy?: QuotaPolicyResponse | null
+  rule?: QuotaRuleResponse | null
   onSuccess?: () => void
 }
 
@@ -108,29 +110,19 @@ const RESOURCE_CONFIG = {
 } as const
 /* eslint-enable @typescript-eslint/naming-convention */
 
-function formatResourceUsageValue(resource: QuotaResourceTypeEnum, val: number): string {
-  if (resource === 'agent_cost') {
-    return `$${val.toFixed(2)}`
-  }
-  if (resource === 'agent_total_tokens') {
-    return val.toLocaleString()
-  }
-  return val.toLocaleString()
-}
-
 export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
   open,
   onOpenChange,
   teamId,
-  policy,
+  rule,
   onSuccess,
 }) => {
   const queryClient = useQueryClient()
-  const isEditing = !!policy
+  const isEditing = !!rule
 
-  const [scopeType, setScopeType] = useState<QuotaScopeTypeEnum>('team')
-  const [role, setRole] = useState<QuotaRole>('editor')
-  const [userId, setUserId] = useState<string>('')
+  const [scopeMode, setScopeMode] = useState<QuotaScopeModeEnum>('each_member')
+  const [roleScope, setRoleScope] = useState<string>('team') // 'team' | 'owner' | 'editor' | 'reviewer'
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
   const [resource, setResource] = useState<QuotaResourceTypeEnum>('agent_total_tokens')
   const [skillId, setSkillId] = useState<string>('')
   const [mcpServerId, setMcpServerId] = useState<string>('')
@@ -140,8 +132,9 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
   const [period, setPeriod] = useState<QuotaPeriodEnum>('1day')
   const [enabled, setEnabled] = useState<boolean>(true)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false)
+  const [memberSearch, setMemberSearch] = useState<string>('')
 
-  // Fetch team members when needed
+  // Fetch team members
   const { data: members = [] } = useQuery({
     queryKey: ['teams', teamId, 'members'],
     queryFn: async () => {
@@ -179,105 +172,134 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
   })
   const mcpServers = mcpData?.servers || []
 
-  // Reset or populate form values on open/policy change
+  // Reset or populate form values on open/rule change
   useEffect(() => {
-    if (policy) {
-      setScopeType(policy.scopeType)
-      setRole(policy.role || 'editor')
-      setUserId(policy.userId || '')
-      setResource(policy.resource)
-      const resData = (policy.resourceData as Record<string, unknown> | null) || {}
+    if (rule) {
+      setScopeMode(rule.scopeMode)
+      setRoleScope(rule.role || 'team')
+      setSelectedUserIds(rule.userIds || [])
+      setResource(rule.resource)
+      const resData = (rule.resourceData as Record<string, unknown> | null) || {}
       setSkillId(typeof resData.id === 'string' ? resData.id : '')
       setMcpServerId(typeof resData.id === 'string' ? resData.id : '')
       setBashMatch(typeof resData.match === 'string' ? resData.match : '*')
       setNetworkDomain(typeof resData.domain === 'string' ? resData.domain : '*')
-      setLimit(policy.limit)
-      setPeriod(formatQuotaPeriod(policy.period) as QuotaPeriodEnum)
-      setEnabled(policy.enabled)
+      setLimit(rule.limit)
+      setPeriod(formatQuotaPeriod(rule.period) as QuotaPeriodEnum)
+      setEnabled(rule.enabled)
     } else {
-      setScopeType('team')
-      setRole('editor')
-      setUserId('')
+      setScopeMode('each_member')
+      setRoleScope('team')
+      setSelectedUserIds([])
       setResource('agent_total_tokens')
       setSkillId('')
       setMcpServerId('')
       setBashMatch('*')
       setNetworkDomain('*')
-      setLimit(100000)
+      setLimit(RESOURCE_CONFIG.agent_total_tokens.defaultLimit)
       setPeriod('1day')
       setEnabled(true)
     }
-  }, [policy, open])
+  }, [rule, open])
 
-  // Save / Update Mutation
-  const saveMutation = useMutation({
+  // Handle resource change limit defaults
+  const handleResourceChange = (newRes: QuotaResourceTypeEnum) => {
+    setResource(newRes)
+    if (!isEditing) {
+      setLimit(RESOURCE_CONFIG[newRes]?.defaultLimit || 100)
+    }
+  }
+
+  // Create mutation
+  const createMutation = useMutation({
     mutationFn: async () => {
-      let resourceData: Record<string, unknown> | null = null
+      const resourceData: Record<string, unknown> = {}
       if (resource === 'agent_skill_call_count') {
-        if (!skillId.trim()) throw new Error(m.select_skill())
-        resourceData = { id: skillId.trim() }
+        resourceData.id = skillId
       } else if (resource === 'agent_mcp_call_count') {
-        if (!mcpServerId.trim()) throw new Error(m.select_mcp_server())
-        resourceData = { id: mcpServerId.trim() }
+        resourceData.id = mcpServerId
       } else if (resource === 'agent_bash_call_count') {
-        if (!bashMatch.trim()) throw new Error(m.bash_command_pattern())
-        resourceData = { match: bashMatch.trim() }
+        resourceData.match = bashMatch.trim() || '*'
       } else if (resource === 'agent_network_call_count') {
-        if (!networkDomain.trim()) throw new Error(m.network_domain_pattern())
-        resourceData = { domain: networkDomain.trim() }
+        resourceData.domain = networkDomain.trim() || '*'
       }
 
-      if (scopeType === 'user' && !userId) {
-        throw new Error(m.select_user())
+      const res = await client.api.teams[':teamId'].quotas.$post({
+        param: { teamId },
+        json: {
+          scopeMode,
+          role:
+            scopeMode !== 'selected_members' && roleScope !== 'team'
+              ? (roleScope as QuotaRole)
+              : null,
+          userIds: scopeMode === 'selected_members' ? selectedUserIds : null,
+          resource,
+          resourceData: Object.keys(resourceData).length > 0 ? resourceData : null,
+          limit: Number(limit),
+          period,
+          enabled,
+        },
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        throw new Error((err as any)?.message || m.failed_to_create_quota())
       }
-
-      if (limit <= 0 || isNaN(limit)) {
-        throw new Error(m.quota_limit())
-      }
-
-      if (isEditing && policy) {
-        const res = await client.api.teams[':teamId'].quotas[':id'].$put({
-          param: { teamId, id: policy.id },
-          json: {
-            scopeType,
-            role: scopeType === 'role' ? role : null,
-            userId: scopeType === 'user' ? userId : null,
-            resource,
-            resourceData,
-            limit: Number(limit),
-            period,
-            enabled,
-          },
-        })
-        if (!res.ok) {
-          const err = await res.json().catch(() => null)
-          throw new Error((err as { message?: string })?.message || m.failed_to_update_quota())
-        }
-        return await res.json()
-      } else {
-        const res = await client.api.teams[':teamId'].quotas.$post({
-          param: { teamId },
-          json: {
-            scopeType,
-            role: scopeType === 'role' ? role : null,
-            userId: scopeType === 'user' ? userId : null,
-            resource,
-            resourceData,
-            limit: Number(limit),
-            period,
-            enabled,
-          },
-        })
-        if (!res.ok) {
-          const err = await res.json().catch(() => null)
-          throw new Error((err as { message?: string })?.message || m.failed_to_create_quota())
-        }
-        return await res.json()
-      }
+      return await res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'quotas'] })
-      toast.success(isEditing ? m.quota_updated_successfully() : m.quota_created_successfully())
+      toast.success(m.quota_created_successfully())
+      onOpenChange(false)
+      onSuccess?.()
+    },
+    onError: (err) => {
+      console.error('CREATE MUTATION ERROR:', err)
+      toast.error(err instanceof Error ? err.message : m.failed_to_create_quota())
+    },
+  })
+
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      if (!rule) return
+      const resourceData: Record<string, unknown> = {}
+      if (resource === 'agent_skill_call_count') {
+        resourceData.id = skillId
+      } else if (resource === 'agent_mcp_call_count') {
+        resourceData.id = mcpServerId
+      } else if (resource === 'agent_bash_call_count') {
+        resourceData.match = bashMatch.trim() || '*'
+      } else if (resource === 'agent_network_call_count') {
+        resourceData.domain = networkDomain.trim() || '*'
+      }
+
+      const res = await client.api.teams[':teamId'].quotas[':id'].$put({
+        param: { teamId, id: rule.id },
+        json: {
+          scopeMode,
+          role:
+            scopeMode !== 'selected_members' && roleScope !== 'team'
+              ? (roleScope as QuotaRole)
+              : null,
+          userIds: scopeMode === 'selected_members' ? selectedUserIds : null,
+          resource,
+          resourceData: Object.keys(resourceData).length > 0 ? resourceData : null,
+          limit: Number(limit),
+          period,
+          enabled,
+        },
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        throw new Error((err as any)?.message || m.failed_to_update_quota())
+      }
+      return await res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'quotas'] })
+      toast.success(m.quota_updated_successfully())
       onOpenChange(false)
       onSuccess?.()
     },
@@ -286,12 +308,12 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
     },
   })
 
-  // Delete Mutation
+  // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      if (!policy) return
+      if (!rule) return
       const res = await client.api.teams[':teamId'].quotas[':id'].$delete({
-        param: { teamId, id: policy.id },
+        param: { teamId, id: rule.id },
       })
       if (!res.ok) throw new Error(m.failed_to_delete_quota())
     },
@@ -309,418 +331,434 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    saveMutation.mutate()
+    if (scopeMode === 'selected_members' && selectedUserIds.length === 0) {
+      toast.error(m.select_user())
+      return
+    }
+    if (resource === 'agent_skill_call_count' && !skillId.trim()) {
+      toast.error(m.enter_skill_id())
+      return
+    }
+    if (resource === 'agent_mcp_call_count' && !mcpServerId.trim()) {
+      toast.error(m.enter_mcp_id())
+      return
+    }
+    if (limit <= 0) {
+      toast.error('Limit must be greater than 0')
+      return
+    }
+
+    if (isEditing) {
+      updateMutation.mutate()
+    } else {
+      createMutation.mutate()
+    }
   }
 
-  // Calculate current usage display
-  const consumed = policy?.usage?.consumed ?? 0
-  const reserved = policy?.usage?.reserved ?? 0
-  const totalUsed = consumed + reserved
-  const currentLimit = policy?.limit ?? limit
-  const percent =
-    policy?.usage?.percent ??
-    (currentLimit > 0 ? Number(((totalUsed / currentLimit) * 100).toFixed(1)) : 0)
-  const remaining = policy?.usage ? policy.usage.remaining : Math.max(0, currentLimit - totalUsed)
+  const isPending = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending
 
-  const isOverLimit = percent >= 100
+  const filteredMembers = members.filter((member) => {
+    if (!memberSearch.trim()) return true
+    const q = memberSearch.toLowerCase()
+    return (
+      member.name.toLowerCase().includes(q) ||
+      (member.email && member.email.toLowerCase().includes(q))
+    )
+  })
+
+  const toggleUserSelection = (userId: string) => {
+    setSelectedUserIds((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId],
+    )
+  }
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
-          <DialogHeader className="px-6 pt-6 pb-2">
-            <DialogTitle>{isEditing ? m.edit_quota_rule() : m.create_quota_rule()}</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="sm:max-w-[540px] max-h-[90vh] flex flex-col p-0">
+          <DialogHeader className="p-6 pb-4 border-b border-border/60">
+            <DialogTitle className="text-xl font-bold">
+              {isEditing ? m.edit_quota_rule() : m.create_quota_rule()}
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
               {isEditing ? m.edit_quota_rule_description() : m.create_quota_rule_description()}
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="flex-1 px-6 py-2">
-            <form id="quota-rule-form" onSubmit={handleSubmit} className="space-y-6">
-              {/* Current Usage Section (Visible in Edit mode) */}
-              {isEditing && policy && (
-                <div className="rounded-lg border border-border bg-muted/40 p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-semibold text-foreground">
-                        {m.quota_current_usage()}
-                      </span>
-                    </div>
-                    <Badge variant={policy.enabled ? 'default' : 'secondary'}>
-                      {policy.enabled ? m.quota_enabled() : m.quota_disabled()}
-                    </Badge>
-                  </div>
-
-                  {/* Progress bar */}
-                  <div className="space-y-1.5">
-                    <Progress value={Math.min(100, Math.max(0, percent))} className="h-2" />
-                    <div className="flex items-center justify-between text-xs text-muted-foreground font-medium">
-                      <span
-                        className={
-                          isOverLimit ? 'text-destructive font-semibold' : 'text-foreground'
-                        }
-                      >
-                        {formatResourceUsageValue(policy.resource, totalUsed)} /{' '}
-                        {formatResourceUsageValue(policy.resource, policy.limit)}{' '}
-                        {RESOURCE_CONFIG[policy.resource]?.unit}
-                      </span>
-                      <span>{percent}%</span>
-                    </div>
-                  </div>
-
-                  {/* Window & Detailed Stats */}
-                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/60 text-xs">
-                    <div>
-                      <span className="text-muted-foreground block">{m.quota_consumed()}</span>
-                      <span className="font-semibold text-foreground">
-                        {formatResourceUsageValue(policy.resource, consumed)}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground block">{m.quota_reserved()}</span>
-                      <span className="font-semibold text-foreground">
-                        {formatResourceUsageValue(policy.resource, reserved)}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground block">{m.quota_remaining()}</span>
-                      <span className="font-semibold text-foreground">
-                        {formatResourceUsageValue(policy.resource, remaining)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {policy.usage?.periodEnd && (
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>
-                        {m.quota_period_resets()}:{' '}
-                        {new Date(policy.usage.periodEnd).toLocaleString()}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Scope Selection */}
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">{m.quota_scope()}</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setScopeType('team')}
-                    className={`flex flex-col items-center justify-center p-3 rounded-lg border text-xs font-medium transition-all ${
-                      scopeType === 'team'
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border bg-card hover:bg-muted/50 text-muted-foreground'
-                    }`}
-                  >
-                    <Users className="w-4 h-4 mb-1.5" />
-                    {m.quota_scope_team()}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setScopeType('role')}
-                    className={`flex flex-col items-center justify-center p-3 rounded-lg border text-xs font-medium transition-all ${
-                      scopeType === 'role'
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border bg-card hover:bg-muted/50 text-muted-foreground'
-                    }`}
-                  >
-                    <UserCheck className="w-4 h-4 mb-1.5" />
-                    {m.quota_scope_role()}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setScopeType('user')}
-                    className={`flex flex-col items-center justify-center p-3 rounded-lg border text-xs font-medium transition-all ${
-                      scopeType === 'user'
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border bg-card hover:bg-muted/50 text-muted-foreground'
-                    }`}
-                  >
-                    <User className="w-4 h-4 mb-1.5" />
-                    {m.quota_scope_user()}
-                  </button>
-                </div>
-              </div>
-
-              {/* Conditional Scope Target: Role */}
-              {scopeType === 'role' && (
-                <div className="space-y-2">
-                  <Label htmlFor="role-select" className="text-sm font-medium">
-                    {m.select_role()}
-                  </Label>
-                  <Select value={role} onValueChange={(val) => setRole(val as QuotaRole)}>
-                    <SelectTrigger id="role-select">
-                      <SelectValue placeholder={m.select_role()} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="owner">Owner</SelectItem>
-                      <SelectItem value="editor">Editor</SelectItem>
-                      <SelectItem value="reviewer">Reviewer</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {/* Conditional Scope Target: User */}
-              {scopeType === 'user' && (
-                <div className="space-y-2">
-                  <Label htmlFor="user-select" className="text-sm font-medium">
-                    {m.select_user()}
-                  </Label>
-                  <Select value={userId} onValueChange={setUserId}>
-                    <SelectTrigger id="user-select">
-                      <SelectValue placeholder={m.select_user()} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {members.map(
-                        (member: {
-                          user?: { id: string; name: string; email: string }
-                          role: string
-                        }) => (
-                          <SelectItem key={member.user?.id} value={member.user?.id || ''}>
-                            {member.user?.name} ({member.user?.email}) - {member.role}
-                          </SelectItem>
-                        ),
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {/* Resource Type */}
-              <div className="space-y-2">
-                <Label htmlFor="resource-select" className="text-sm font-medium">
-                  {m.quota_resource()}
-                </Label>
-                <Select
-                  value={resource}
-                  onValueChange={(val) => {
-                    const newRes = val as QuotaResourceTypeEnum
-                    setResource(newRes)
-                    if (!isEditing) {
-                      setLimit(RESOURCE_CONFIG[newRes]?.defaultLimit || 100)
-                    }
-                  }}
+          <form onSubmit={handleSubmit} noValidate className="flex-1 overflow-y-auto p-6 space-y-5">
+            {/* Step 1: Scope Mode Selector */}
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">{m.quota_scope_mode()}</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <Button
+                  type="button"
+                  variant={scopeMode === 'each_member' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setScopeMode('each_member')}
+                  className="flex flex-col h-auto py-2.5 px-2 gap-1 items-center justify-center text-xs"
                 >
-                  <SelectTrigger id="resource-select">
-                    <SelectValue placeholder={m.quota_resource()} />
+                  <User className="w-4 h-4" />
+                  <span className="font-semibold">{m.quota_scope_mode_each_member()}</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant={scopeMode === 'all_members' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setScopeMode('all_members')}
+                  className="flex flex-col h-auto py-2.5 px-2 gap-1 items-center justify-center text-xs"
+                >
+                  <Users className="w-4 h-4" />
+                  <span className="font-semibold">{m.quota_scope_mode_all_members()}</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant={scopeMode === 'selected_members' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setScopeMode('selected_members')}
+                  className="flex flex-col h-auto py-2.5 px-2 gap-1 items-center justify-center text-xs"
+                >
+                  <UserCheck className="w-4 h-4" />
+                  <span className="font-semibold">{m.quota_scope_mode_selected_members()}</span>
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground pt-0.5">
+                {scopeMode === 'each_member' && m.quota_scope_mode_each_member_desc()}
+                {scopeMode === 'all_members' && m.quota_scope_mode_all_members_desc()}
+                {scopeMode === 'selected_members' && m.quota_scope_mode_selected_members_desc()}
+              </p>
+            </div>
+
+            {/* Step 2: Target Scope or Multi-Select Users */}
+            {scopeMode !== 'selected_members' ? (
+              <div className="space-y-2">
+                <Label htmlFor="quota-role-scope" className="text-sm font-semibold">
+                  {m.quota_scope()}
+                </Label>
+                <Select value={roleScope} onValueChange={setRoleScope}>
+                  <SelectTrigger id="quota-role-scope" className="w-full">
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="agent_total_tokens">
-                      {m.quota_resource_agent_total_tokens()}
+                    <SelectItem value="team">{m.quota_scope_team()}</SelectItem>
+                    <SelectItem value="owner">{m.quota_scope_role()}: Owner</SelectItem>
+                    <SelectItem value="editor">{m.quota_scope_role()}: Editor</SelectItem>
+                    <SelectItem value="reviewer">{m.quota_scope_role()}: Reviewer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold">{m.select_members()}</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between text-left font-normal h-10"
+                    >
+                      <span className="truncate">
+                        {selectedUserIds.length === 0
+                          ? m.select_members()
+                          : m.quota_selected_users_count({ count: selectedUserIds.length })}
+                      </span>
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[320px] p-2" align="start">
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          placeholder={m.quota_search_members()}
+                          value={memberSearch}
+                          onChange={(e) => setMemberSearch(e.target.value)}
+                          className="h-8 pl-8 text-xs"
+                        />
+                      </div>
+                      <ScrollArea className="h-48">
+                        <div className="space-y-1 pr-2">
+                          {filteredMembers.map((member) => {
+                            const isChecked = selectedUserIds.includes(member.id)
+                            return (
+                              <div
+                                key={member.id}
+                                onClick={() => toggleUserSelection(member.id)}
+                                className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-muted/60 cursor-pointer text-xs"
+                              >
+                                <Checkbox
+                                  checked={isChecked}
+                                  onCheckedChange={() => toggleUserSelection(member.id)}
+                                />
+                                <Avatar className="w-5 h-5">
+                                  <AvatarImage src={member.image || undefined} />
+                                  <AvatarFallback className="text-[10px]">
+                                    {member.name?.[0]?.toUpperCase() || 'U'}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="truncate flex-1">
+                                  <span className="font-medium text-foreground block truncate">
+                                    {member.name}
+                                  </span>
+                                  {member.email && (
+                                    <span className="text-[10px] text-muted-foreground block truncate">
+                                      {member.email}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
+
+            {/* Resource Type */}
+            <div className="space-y-2">
+              <Label htmlFor="quota-resource" className="text-sm font-semibold">
+                {m.quota_resource()}
+              </Label>
+              <Select
+                value={resource}
+                onValueChange={(val) => handleResourceChange(val as QuotaResourceTypeEnum)}
+              >
+                <SelectTrigger id="quota-resource" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="agent_total_tokens">
+                    <div className="flex items-center gap-2">
+                      <Cpu className="w-4 h-4 text-primary" />
+                      <span>{m.quota_resource_agent_total_tokens()}</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="agent_cost">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-emerald-500" />
+                      <span>{m.quota_resource_agent_cost()}</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="agent_skill_call_count">
+                    <div className="flex items-center gap-2">
+                      <Puzzle className="w-4 h-4 text-amber-500" />
+                      <span>{m.quota_resource_agent_skill_call_count()}</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="agent_mcp_call_count">
+                    <div className="flex items-center gap-2">
+                      <Server className="w-4 h-4 text-blue-500" />
+                      <span>{m.quota_resource_agent_mcp_call_count()}</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="agent_bash_call_count">
+                    <div className="flex items-center gap-2">
+                      <Terminal className="w-4 h-4 text-purple-500" />
+                      <span>{m.quota_resource_agent_bash_call_count()}</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="agent_network_call_count">
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-cyan-500" />
+                      <span>{m.quota_resource_agent_network_call_count()}</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Resource Specific Fields */}
+            {resource === 'agent_skill_call_count' && (
+              <div className="space-y-2">
+                <Label htmlFor="quota-skill" className="text-sm font-semibold">
+                  {m.select_skill()}
+                </Label>
+                {skills.length > 0 ? (
+                  <Select value={skillId} onValueChange={setSkillId}>
+                    <SelectTrigger id="quota-skill" className="w-full">
+                      <SelectValue placeholder={m.select_skill()} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {skills.map((s: { id: string; name: string }) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.name} ({s.id})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    id="quota-skill"
+                    value={skillId}
+                    onChange={(e) => setSkillId(e.target.value)}
+                    placeholder={m.enter_skill_id()}
+                  />
+                )}
+              </div>
+            )}
+
+            {resource === 'agent_mcp_call_count' && (
+              <div className="space-y-2">
+                <Label htmlFor="quota-mcp" className="text-sm font-semibold">
+                  {m.select_mcp_server()}
+                </Label>
+                {mcpServers.length > 0 ? (
+                  <Select value={mcpServerId} onValueChange={setMcpServerId}>
+                    <SelectTrigger id="quota-mcp" className="w-full">
+                      <SelectValue placeholder={m.select_mcp_server()} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {mcpServers.map((s: { id: string; name: string }) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.name} ({s.id})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    id="quota-mcp"
+                    value={mcpServerId}
+                    onChange={(e) => setMcpServerId(e.target.value)}
+                    placeholder={m.enter_mcp_id()}
+                  />
+                )}
+              </div>
+            )}
+
+            {resource === 'agent_bash_call_count' && (
+              <div className="space-y-2">
+                <Label htmlFor="quota-bash" className="text-sm font-semibold">
+                  {m.bash_command_pattern()}
+                </Label>
+                <Input
+                  id="quota-bash"
+                  value={bashMatch}
+                  onChange={(e) => setBashMatch(e.target.value)}
+                  placeholder={m.bash_command_pattern_placeholder()}
+                />
+              </div>
+            )}
+
+            {resource === 'agent_network_call_count' && (
+              <div className="space-y-2">
+                <Label htmlFor="quota-network" className="text-sm font-semibold">
+                  {m.network_domain_pattern()}
+                </Label>
+                <Input
+                  id="quota-network"
+                  value={networkDomain}
+                  onChange={(e) => setNetworkDomain(e.target.value)}
+                  placeholder={m.network_domain_pattern_placeholder()}
+                />
+              </div>
+            )}
+
+            {/* Limit and Period Row */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="quota-limit" className="text-sm font-semibold">
+                  {m.quota_limit()} ({RESOURCE_CONFIG[resource]?.unit || ''})
+                </Label>
+                <Input
+                  id="quota-limit"
+                  type="number"
+                  min="0.01"
+                  step={resource === 'agent_cost' ? '0.01' : '1'}
+                  value={limit}
+                  onChange={(e) => setLimit(Number(e.target.value))}
+                  placeholder={m.quota_limit_placeholder()}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="quota-period" className="text-sm font-semibold">
+                  {m.quota_period()}
+                </Label>
+                <Select value={period} onValueChange={(val) => setPeriod(val as QuotaPeriodEnum)}>
+                  <SelectTrigger id="quota-period" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1hour">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span>{m.quota_period_1hour()}</span>
+                      </div>
                     </SelectItem>
-                    <SelectItem value="agent_cost">{m.quota_resource_agent_cost()}</SelectItem>
-                    <SelectItem value="agent_skill_call_count">
-                      {m.quota_resource_agent_skill_call_count()}
+                    <SelectItem value="5hour">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span>{m.quota_period_5hour()}</span>
+                      </div>
                     </SelectItem>
-                    <SelectItem value="agent_mcp_call_count">
-                      {m.quota_resource_agent_mcp_call_count()}
+                    <SelectItem value="1day">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span>{m.quota_period_1day()}</span>
+                      </div>
                     </SelectItem>
-                    <SelectItem value="agent_bash_call_count">
-                      {m.quota_resource_agent_bash_call_count()}
-                    </SelectItem>
-                    <SelectItem value="agent_network_call_count">
-                      {m.quota_resource_agent_network_call_count()}
+                    <SelectItem value="7day">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span>{m.quota_period_7day()}</span>
+                      </div>
                     </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Resource-Specific Configuration Fields */}
-              {resource === 'agent_skill_call_count' && (
-                <div className="space-y-2">
-                  <Label htmlFor="skill-select" className="text-sm font-medium">
-                    {m.select_skill()}
-                  </Label>
-                  {skills.length > 0 ? (
-                    <Select value={skillId} onValueChange={setSkillId}>
-                      <SelectTrigger id="skill-select">
-                        <SelectValue placeholder={m.select_skill()} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {skills.map((s: { id: string; name: string }) => (
-                          <SelectItem key={s.id} value={s.id}>
-                            {s.name} ({s.id})
-                          </SelectItem>
-                        ))}
-                        {skillId && !skills.some((s: { id: string }) => s.id === skillId) && (
-                          <SelectItem key={skillId} value={skillId}>
-                            {skillId}
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <div className="p-3 rounded-lg border border-dashed border-border text-xs text-muted-foreground bg-muted/20">
-                      {m.no_skills_installed()}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {resource === 'agent_mcp_call_count' && (
-                <div className="space-y-2">
-                  <Label htmlFor="mcp-select" className="text-sm font-medium">
-                    {m.select_mcp_server()}
-                  </Label>
-                  {mcpServers.length > 0 ? (
-                    <Select value={mcpServerId} onValueChange={setMcpServerId}>
-                      <SelectTrigger id="mcp-select">
-                        <SelectValue placeholder={m.select_mcp_server()} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {mcpServers.map((s: { id: string; name: string }) => (
-                          <SelectItem key={s.id} value={s.id}>
-                            {s.name} ({s.id})
-                          </SelectItem>
-                        ))}
-                        {mcpServerId &&
-                          !mcpServers.some((s: { id: string }) => s.id === mcpServerId) && (
-                            <SelectItem key={mcpServerId} value={mcpServerId}>
-                              {mcpServerId}
-                            </SelectItem>
-                          )}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <div className="p-3 rounded-lg border border-dashed border-border text-xs text-muted-foreground bg-muted/20">
-                      {m.no_mcp_servers_installed()}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {resource === 'agent_bash_call_count' && (
-                <div className="space-y-2">
-                  <Label htmlFor="bash-match" className="text-sm font-medium">
-                    {m.bash_command_pattern()}
-                  </Label>
-                  <Input
-                    id="bash-match"
-                    placeholder={m.bash_command_pattern_placeholder()}
-                    value={bashMatch}
-                    onChange={(e) => setBashMatch(e.target.value)}
-                    required
-                  />
-                </div>
-              )}
-
-              {resource === 'agent_network_call_count' && (
-                <div className="space-y-2">
-                  <Label htmlFor="network-domain" className="text-sm font-medium">
-                    {m.network_domain_pattern()}
-                  </Label>
-                  <Input
-                    id="network-domain"
-                    placeholder={m.network_domain_pattern_placeholder()}
-                    value={networkDomain}
-                    onChange={(e) => setNetworkDomain(e.target.value)}
-                    required
-                  />
-                </div>
-              )}
-
-              {/* Limit & Period */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="quota-limit" className="text-sm font-medium">
-                    {m.quota_limit()} ({RESOURCE_CONFIG[resource]?.unit})
-                  </Label>
-                  <Input
-                    id="quota-limit"
-                    type="number"
-                    min="0.01"
-                    step={resource === 'agent_cost' ? '0.01' : '1'}
-                    value={limit}
-                    onChange={(e) => setLimit(parseFloat(e.target.value) || 0)}
-                    placeholder={m.quota_limit_placeholder()}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="period-select" className="text-sm font-medium">
-                    {m.quota_period()}
-                  </Label>
-                  <Select value={period} onValueChange={(val) => setPeriod(val as QuotaPeriodEnum)}>
-                    <SelectTrigger id="period-select">
-                      <SelectValue placeholder={m.quota_period()} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1hour">{m.quota_period_1hour()}</SelectItem>
-                      <SelectItem value="5hour">{m.quota_period_5hour()}</SelectItem>
-                      <SelectItem value="1day">{m.quota_period_1day()}</SelectItem>
-                      <SelectItem value="7day">{m.quota_period_7day()}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Enabled Switch */}
-              <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card">
-                <div className="space-y-0.5">
-                  <Label htmlFor="quota-enabled-switch" className="text-sm font-medium">
-                    {m.quota_enabled()}
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    {enabled ? m.quota_enabled() : m.quota_disabled()}
-                  </p>
-                </div>
-                <Switch id="quota-enabled-switch" checked={enabled} onCheckedChange={setEnabled} />
-              </div>
-            </form>
-          </ScrollArea>
-
-          <DialogFooter className="px-6 py-4 border-t border-border bg-muted/20 flex flex-row items-center justify-between sm:justify-between">
-            {isEditing ? (
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                onClick={() => setIsDeleteDialogOpen(true)}
-                disabled={deleteMutation.isPending || saveMutation.isPending}
-                className="gap-1.5"
-              >
-                {deleteMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Trash2 className="w-4 h-4" />
-                )}
-                {m.delete_quota()}
-              </Button>
-            ) : (
-              <div />
-            )}
-
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={saveMutation.isPending}
-              >
-                {m.cancel()}
-              </Button>
-              <Button
-                type="submit"
-                form="quota-rule-form"
-                onClick={() => saveMutation.mutate()}
-                disabled={
-                  saveMutation.isPending ||
-                  (scopeType === 'user' && !userId) ||
-                  (resource === 'agent_skill_call_count' && (!skillId || skills.length === 0)) ||
-                  (resource === 'agent_mcp_call_count' && (!mcpServerId || mcpServers.length === 0))
-                }
-              >
-                {saveMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                {isEditing ? m.save_changes() : m.create()}
-              </Button>
             </div>
-          </DialogFooter>
+
+            {/* Enabled Switch */}
+            <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/20">
+              <div className="space-y-0.5">
+                <Label htmlFor="quota-enabled" className="text-sm font-medium cursor-pointer">
+                  {enabled ? m.quota_enabled() : m.quota_disabled()}
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {enabled
+                    ? 'Active and enforcing limits'
+                    : 'Inactive, requests will bypass this quota'}
+                </p>
+              </div>
+              <Switch id="quota-enabled" checked={enabled} onCheckedChange={setEnabled} />
+            </div>
+
+            <DialogFooter className="pt-4 flex items-center justify-between gap-2 sm:justify-between border-t border-border/60">
+              {isEditing ? (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                  disabled={isPending}
+                  className="gap-1.5"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>{m.delete_quota()}</span>
+                </Button>
+              ) : (
+                <div />
+              )}
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isPending}
+                >
+                  {m.cancel()}
+                </Button>
+                <Button type="submit" disabled={isPending} className="gap-2">
+                  {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {isEditing ? m.save() : m.create()}
+                </Button>
+              </div>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -732,16 +770,16 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
             <AlertDialogDescription>{m.delete_quota_confirm()}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteMutation.isPending}>{m.cancel()}</AlertDialogCancel>
+            <AlertDialogCancel disabled={isPending}>{m.cancel()}</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault()
                 deleteMutation.mutate()
               }}
-              disabled={deleteMutation.isPending}
+              disabled={isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              {isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               {m.delete()}
             </AlertDialogAction>
           </AlertDialogFooter>

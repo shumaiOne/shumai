@@ -203,8 +203,8 @@ export type TeamWhereInput = {
   aiUsages?: Prisma.AiUsageListRelationFilter
   auditLogs?: Prisma.AuditLogListRelationFilter
   watermarkTemplates?: Prisma.WatermarkTemplateListRelationFilter
-  quotaPolicies?: Prisma.QuotaPolicyListRelationFilter
-  quotaUsages?: Prisma.QuotaUsageListRelationFilter
+  quotaRules?: Prisma.QuotaRuleListRelationFilter
+  quotaRecords?: Prisma.QuotaRecordListRelationFilter
 }
 
 export type TeamOrderByWithRelationInput = {
@@ -229,8 +229,8 @@ export type TeamOrderByWithRelationInput = {
   aiUsages?: Prisma.AiUsageOrderByRelationAggregateInput
   auditLogs?: Prisma.AuditLogOrderByRelationAggregateInput
   watermarkTemplates?: Prisma.WatermarkTemplateOrderByRelationAggregateInput
-  quotaPolicies?: Prisma.QuotaPolicyOrderByRelationAggregateInput
-  quotaUsages?: Prisma.QuotaUsageOrderByRelationAggregateInput
+  quotaRules?: Prisma.QuotaRuleOrderByRelationAggregateInput
+  quotaRecords?: Prisma.QuotaRecordOrderByRelationAggregateInput
 }
 
 export type TeamWhereUniqueInput = Prisma.AtLeast<{
@@ -258,8 +258,8 @@ export type TeamWhereUniqueInput = Prisma.AtLeast<{
   aiUsages?: Prisma.AiUsageListRelationFilter
   auditLogs?: Prisma.AuditLogListRelationFilter
   watermarkTemplates?: Prisma.WatermarkTemplateListRelationFilter
-  quotaPolicies?: Prisma.QuotaPolicyListRelationFilter
-  quotaUsages?: Prisma.QuotaUsageListRelationFilter
+  quotaRules?: Prisma.QuotaRuleListRelationFilter
+  quotaRecords?: Prisma.QuotaRecordListRelationFilter
 }, "id" | "rootFolderId">
 
 export type TeamOrderByWithAggregationInput = {
@@ -307,8 +307,8 @@ export type TeamCreateInput = {
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateInput = {
@@ -332,8 +332,8 @@ export type TeamUncheckedCreateInput = {
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleUncheckedCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUpdateInput = {
@@ -357,8 +357,8 @@ export type TeamUpdateInput = {
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateInput = {
@@ -382,8 +382,8 @@ export type TeamUncheckedUpdateInput = {
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateManyInput = {
@@ -679,32 +679,32 @@ export type TeamUpdateOneRequiredWithoutAuditLogsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.TeamUpdateToOneWithWhereWithoutAuditLogsInput, Prisma.TeamUpdateWithoutAuditLogsInput>, Prisma.TeamUncheckedUpdateWithoutAuditLogsInput>
 }
 
-export type TeamCreateNestedOneWithoutQuotaPoliciesInput = {
-  create?: Prisma.XOR<Prisma.TeamCreateWithoutQuotaPoliciesInput, Prisma.TeamUncheckedCreateWithoutQuotaPoliciesInput>
-  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutQuotaPoliciesInput
+export type TeamCreateNestedOneWithoutQuotaRulesInput = {
+  create?: Prisma.XOR<Prisma.TeamCreateWithoutQuotaRulesInput, Prisma.TeamUncheckedCreateWithoutQuotaRulesInput>
+  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutQuotaRulesInput
   connect?: Prisma.TeamWhereUniqueInput
 }
 
-export type TeamUpdateOneRequiredWithoutQuotaPoliciesNestedInput = {
-  create?: Prisma.XOR<Prisma.TeamCreateWithoutQuotaPoliciesInput, Prisma.TeamUncheckedCreateWithoutQuotaPoliciesInput>
-  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutQuotaPoliciesInput
-  upsert?: Prisma.TeamUpsertWithoutQuotaPoliciesInput
+export type TeamUpdateOneRequiredWithoutQuotaRulesNestedInput = {
+  create?: Prisma.XOR<Prisma.TeamCreateWithoutQuotaRulesInput, Prisma.TeamUncheckedCreateWithoutQuotaRulesInput>
+  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutQuotaRulesInput
+  upsert?: Prisma.TeamUpsertWithoutQuotaRulesInput
   connect?: Prisma.TeamWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.TeamUpdateToOneWithWhereWithoutQuotaPoliciesInput, Prisma.TeamUpdateWithoutQuotaPoliciesInput>, Prisma.TeamUncheckedUpdateWithoutQuotaPoliciesInput>
+  update?: Prisma.XOR<Prisma.XOR<Prisma.TeamUpdateToOneWithWhereWithoutQuotaRulesInput, Prisma.TeamUpdateWithoutQuotaRulesInput>, Prisma.TeamUncheckedUpdateWithoutQuotaRulesInput>
 }
 
-export type TeamCreateNestedOneWithoutQuotaUsagesInput = {
-  create?: Prisma.XOR<Prisma.TeamCreateWithoutQuotaUsagesInput, Prisma.TeamUncheckedCreateWithoutQuotaUsagesInput>
-  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutQuotaUsagesInput
+export type TeamCreateNestedOneWithoutQuotaRecordsInput = {
+  create?: Prisma.XOR<Prisma.TeamCreateWithoutQuotaRecordsInput, Prisma.TeamUncheckedCreateWithoutQuotaRecordsInput>
+  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutQuotaRecordsInput
   connect?: Prisma.TeamWhereUniqueInput
 }
 
-export type TeamUpdateOneRequiredWithoutQuotaUsagesNestedInput = {
-  create?: Prisma.XOR<Prisma.TeamCreateWithoutQuotaUsagesInput, Prisma.TeamUncheckedCreateWithoutQuotaUsagesInput>
-  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutQuotaUsagesInput
-  upsert?: Prisma.TeamUpsertWithoutQuotaUsagesInput
+export type TeamUpdateOneRequiredWithoutQuotaRecordsNestedInput = {
+  create?: Prisma.XOR<Prisma.TeamCreateWithoutQuotaRecordsInput, Prisma.TeamUncheckedCreateWithoutQuotaRecordsInput>
+  connectOrCreate?: Prisma.TeamCreateOrConnectWithoutQuotaRecordsInput
+  upsert?: Prisma.TeamUpsertWithoutQuotaRecordsInput
   connect?: Prisma.TeamWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.TeamUpdateToOneWithWhereWithoutQuotaUsagesInput, Prisma.TeamUpdateWithoutQuotaUsagesInput>, Prisma.TeamUncheckedUpdateWithoutQuotaUsagesInput>
+  update?: Prisma.XOR<Prisma.XOR<Prisma.TeamUpdateToOneWithWhereWithoutQuotaRecordsInput, Prisma.TeamUpdateWithoutQuotaRecordsInput>, Prisma.TeamUncheckedUpdateWithoutQuotaRecordsInput>
 }
 
 export type TeamCreateWithoutSandboxInput = {
@@ -727,8 +727,8 @@ export type TeamCreateWithoutSandboxInput = {
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutSandboxInput = {
@@ -751,8 +751,8 @@ export type TeamUncheckedCreateWithoutSandboxInput = {
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleUncheckedCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutSandboxInput = {
@@ -791,8 +791,8 @@ export type TeamUpdateWithoutSandboxInput = {
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutSandboxInput = {
@@ -815,8 +815,8 @@ export type TeamUncheckedUpdateWithoutSandboxInput = {
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutSkillsInput = {
@@ -839,8 +839,8 @@ export type TeamCreateWithoutSkillsInput = {
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutSkillsInput = {
@@ -863,8 +863,8 @@ export type TeamUncheckedCreateWithoutSkillsInput = {
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleUncheckedCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutSkillsInput = {
@@ -903,8 +903,8 @@ export type TeamUpdateWithoutSkillsInput = {
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutSkillsInput = {
@@ -927,8 +927,8 @@ export type TeamUncheckedUpdateWithoutSkillsInput = {
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutMembersInput = {
@@ -951,8 +951,8 @@ export type TeamCreateWithoutMembersInput = {
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutMembersInput = {
@@ -975,8 +975,8 @@ export type TeamUncheckedCreateWithoutMembersInput = {
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleUncheckedCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutMembersInput = {
@@ -1015,8 +1015,8 @@ export type TeamUpdateWithoutMembersInput = {
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutMembersInput = {
@@ -1039,8 +1039,8 @@ export type TeamUncheckedUpdateWithoutMembersInput = {
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutProjectsInput = {
@@ -1063,8 +1063,8 @@ export type TeamCreateWithoutProjectsInput = {
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutProjectsInput = {
@@ -1087,8 +1087,8 @@ export type TeamUncheckedCreateWithoutProjectsInput = {
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleUncheckedCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutProjectsInput = {
@@ -1127,8 +1127,8 @@ export type TeamUpdateWithoutProjectsInput = {
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutProjectsInput = {
@@ -1151,8 +1151,8 @@ export type TeamUncheckedUpdateWithoutProjectsInput = {
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutWatermarkTemplatesInput = {
@@ -1175,8 +1175,8 @@ export type TeamCreateWithoutWatermarkTemplatesInput = {
   agents?: Prisma.AgentCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutWatermarkTemplatesInput = {
@@ -1199,8 +1199,8 @@ export type TeamUncheckedCreateWithoutWatermarkTemplatesInput = {
   agents?: Prisma.AgentUncheckedCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleUncheckedCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutWatermarkTemplatesInput = {
@@ -1239,8 +1239,8 @@ export type TeamUpdateWithoutWatermarkTemplatesInput = {
   agents?: Prisma.AgentUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutWatermarkTemplatesInput = {
@@ -1263,8 +1263,8 @@ export type TeamUncheckedUpdateWithoutWatermarkTemplatesInput = {
   agents?: Prisma.AgentUncheckedUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutRootFolderInput = {
@@ -1287,8 +1287,8 @@ export type TeamCreateWithoutRootFolderInput = {
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutRootFolderInput = {
@@ -1311,8 +1311,8 @@ export type TeamUncheckedCreateWithoutRootFolderInput = {
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleUncheckedCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutRootFolderInput = {
@@ -1351,8 +1351,8 @@ export type TeamUpdateWithoutRootFolderInput = {
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutRootFolderInput = {
@@ -1375,8 +1375,8 @@ export type TeamUncheckedUpdateWithoutRootFolderInput = {
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutInvitesInput = {
@@ -1399,8 +1399,8 @@ export type TeamCreateWithoutInvitesInput = {
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutInvitesInput = {
@@ -1423,8 +1423,8 @@ export type TeamUncheckedCreateWithoutInvitesInput = {
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleUncheckedCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutInvitesInput = {
@@ -1463,8 +1463,8 @@ export type TeamUpdateWithoutInvitesInput = {
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutInvitesInput = {
@@ -1487,8 +1487,8 @@ export type TeamUncheckedUpdateWithoutInvitesInput = {
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutMetadataFieldsInput = {
@@ -1511,8 +1511,8 @@ export type TeamCreateWithoutMetadataFieldsInput = {
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutMetadataFieldsInput = {
@@ -1535,8 +1535,8 @@ export type TeamUncheckedCreateWithoutMetadataFieldsInput = {
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleUncheckedCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutMetadataFieldsInput = {
@@ -1575,8 +1575,8 @@ export type TeamUpdateWithoutMetadataFieldsInput = {
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutMetadataFieldsInput = {
@@ -1599,8 +1599,8 @@ export type TeamUncheckedUpdateWithoutMetadataFieldsInput = {
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutNotificationsInput = {
@@ -1623,8 +1623,8 @@ export type TeamCreateWithoutNotificationsInput = {
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutNotificationsInput = {
@@ -1647,8 +1647,8 @@ export type TeamUncheckedCreateWithoutNotificationsInput = {
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleUncheckedCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutNotificationsInput = {
@@ -1687,8 +1687,8 @@ export type TeamUpdateWithoutNotificationsInput = {
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutNotificationsInput = {
@@ -1711,8 +1711,8 @@ export type TeamUncheckedUpdateWithoutNotificationsInput = {
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutAgentsInput = {
@@ -1735,8 +1735,8 @@ export type TeamCreateWithoutAgentsInput = {
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutAgentsInput = {
@@ -1759,8 +1759,8 @@ export type TeamUncheckedCreateWithoutAgentsInput = {
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleUncheckedCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutAgentsInput = {
@@ -1799,8 +1799,8 @@ export type TeamUpdateWithoutAgentsInput = {
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutAgentsInput = {
@@ -1823,8 +1823,8 @@ export type TeamUncheckedUpdateWithoutAgentsInput = {
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutMcpServersInput = {
@@ -1847,8 +1847,8 @@ export type TeamCreateWithoutMcpServersInput = {
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutMcpServersInput = {
@@ -1871,8 +1871,8 @@ export type TeamUncheckedCreateWithoutMcpServersInput = {
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleUncheckedCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutMcpServersInput = {
@@ -1911,8 +1911,8 @@ export type TeamUpdateWithoutMcpServersInput = {
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutMcpServersInput = {
@@ -1935,8 +1935,8 @@ export type TeamUncheckedUpdateWithoutMcpServersInput = {
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutUserMetadataInput = {
@@ -1959,8 +1959,8 @@ export type TeamCreateWithoutUserMetadataInput = {
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutUserMetadataInput = {
@@ -1983,8 +1983,8 @@ export type TeamUncheckedCreateWithoutUserMetadataInput = {
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleUncheckedCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutUserMetadataInput = {
@@ -2023,8 +2023,8 @@ export type TeamUpdateWithoutUserMetadataInput = {
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutUserMetadataInput = {
@@ -2047,8 +2047,8 @@ export type TeamUncheckedUpdateWithoutUserMetadataInput = {
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutProvidersInput = {
@@ -2071,8 +2071,8 @@ export type TeamCreateWithoutProvidersInput = {
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutProvidersInput = {
@@ -2095,8 +2095,8 @@ export type TeamUncheckedCreateWithoutProvidersInput = {
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleUncheckedCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutProvidersInput = {
@@ -2135,8 +2135,8 @@ export type TeamUpdateWithoutProvidersInput = {
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutProvidersInput = {
@@ -2159,8 +2159,8 @@ export type TeamUncheckedUpdateWithoutProvidersInput = {
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutAiUsagesInput = {
@@ -2183,8 +2183,8 @@ export type TeamCreateWithoutAiUsagesInput = {
   agents?: Prisma.AgentCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutAiUsagesInput = {
@@ -2207,8 +2207,8 @@ export type TeamUncheckedCreateWithoutAiUsagesInput = {
   agents?: Prisma.AgentUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleUncheckedCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutAiUsagesInput = {
@@ -2247,8 +2247,8 @@ export type TeamUpdateWithoutAiUsagesInput = {
   agents?: Prisma.AgentUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutAiUsagesInput = {
@@ -2271,8 +2271,8 @@ export type TeamUncheckedUpdateWithoutAiUsagesInput = {
   agents?: Prisma.AgentUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamCreateWithoutAuditLogsInput = {
@@ -2295,8 +2295,8 @@ export type TeamCreateWithoutAuditLogsInput = {
   agents?: Prisma.AgentCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutTeamInput
 }
 
 export type TeamUncheckedCreateWithoutAuditLogsInput = {
@@ -2319,8 +2319,8 @@ export type TeamUncheckedCreateWithoutAuditLogsInput = {
   agents?: Prisma.AgentUncheckedCreateNestedManyWithoutTeamInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleUncheckedCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutTeamInput
 }
 
 export type TeamCreateOrConnectWithoutAuditLogsInput = {
@@ -2359,8 +2359,8 @@ export type TeamUpdateWithoutAuditLogsInput = {
   agents?: Prisma.AgentUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutTeamNestedInput
 }
 
 export type TeamUncheckedUpdateWithoutAuditLogsInput = {
@@ -2383,11 +2383,11 @@ export type TeamUncheckedUpdateWithoutAuditLogsInput = {
   agents?: Prisma.AgentUncheckedUpdateManyWithoutTeamNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutTeamNestedInput
 }
 
-export type TeamCreateWithoutQuotaPoliciesInput = {
+export type TeamCreateWithoutQuotaRulesInput = {
   id?: string
   name: string
   settings?:PrismaJson.Settings | Prisma.NullableJsonNullValueInput
@@ -2408,10 +2408,10 @@ export type TeamCreateWithoutQuotaPoliciesInput = {
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutTeamInput
 }
 
-export type TeamUncheckedCreateWithoutQuotaPoliciesInput = {
+export type TeamUncheckedCreateWithoutQuotaRulesInput = {
   id?: string
   name: string
   settings?:PrismaJson.Settings | Prisma.NullableJsonNullValueInput
@@ -2432,26 +2432,26 @@ export type TeamUncheckedCreateWithoutQuotaPoliciesInput = {
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedCreateNestedManyWithoutTeamInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutTeamInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutTeamInput
 }
 
-export type TeamCreateOrConnectWithoutQuotaPoliciesInput = {
+export type TeamCreateOrConnectWithoutQuotaRulesInput = {
   where: Prisma.TeamWhereUniqueInput
-  create: Prisma.XOR<Prisma.TeamCreateWithoutQuotaPoliciesInput, Prisma.TeamUncheckedCreateWithoutQuotaPoliciesInput>
+  create: Prisma.XOR<Prisma.TeamCreateWithoutQuotaRulesInput, Prisma.TeamUncheckedCreateWithoutQuotaRulesInput>
 }
 
-export type TeamUpsertWithoutQuotaPoliciesInput = {
-  update: Prisma.XOR<Prisma.TeamUpdateWithoutQuotaPoliciesInput, Prisma.TeamUncheckedUpdateWithoutQuotaPoliciesInput>
-  create: Prisma.XOR<Prisma.TeamCreateWithoutQuotaPoliciesInput, Prisma.TeamUncheckedCreateWithoutQuotaPoliciesInput>
+export type TeamUpsertWithoutQuotaRulesInput = {
+  update: Prisma.XOR<Prisma.TeamUpdateWithoutQuotaRulesInput, Prisma.TeamUncheckedUpdateWithoutQuotaRulesInput>
+  create: Prisma.XOR<Prisma.TeamCreateWithoutQuotaRulesInput, Prisma.TeamUncheckedCreateWithoutQuotaRulesInput>
   where?: Prisma.TeamWhereInput
 }
 
-export type TeamUpdateToOneWithWhereWithoutQuotaPoliciesInput = {
+export type TeamUpdateToOneWithWhereWithoutQuotaRulesInput = {
   where?: Prisma.TeamWhereInput
-  data: Prisma.XOR<Prisma.TeamUpdateWithoutQuotaPoliciesInput, Prisma.TeamUncheckedUpdateWithoutQuotaPoliciesInput>
+  data: Prisma.XOR<Prisma.TeamUpdateWithoutQuotaRulesInput, Prisma.TeamUncheckedUpdateWithoutQuotaRulesInput>
 }
 
-export type TeamUpdateWithoutQuotaPoliciesInput = {
+export type TeamUpdateWithoutQuotaRulesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   settings?:PrismaJson.Settings | Prisma.NullableJsonNullValueInput
@@ -2472,10 +2472,10 @@ export type TeamUpdateWithoutQuotaPoliciesInput = {
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutTeamNestedInput
 }
 
-export type TeamUncheckedUpdateWithoutQuotaPoliciesInput = {
+export type TeamUncheckedUpdateWithoutQuotaRulesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   settings?:PrismaJson.Settings | Prisma.NullableJsonNullValueInput
@@ -2496,10 +2496,10 @@ export type TeamUncheckedUpdateWithoutQuotaPoliciesInput = {
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedUpdateManyWithoutTeamNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutTeamNestedInput
 }
 
-export type TeamCreateWithoutQuotaUsagesInput = {
+export type TeamCreateWithoutQuotaRecordsInput = {
   id?: string
   name: string
   settings?:PrismaJson.Settings | Prisma.NullableJsonNullValueInput
@@ -2520,10 +2520,10 @@ export type TeamCreateWithoutQuotaUsagesInput = {
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleCreateNestedManyWithoutTeamInput
 }
 
-export type TeamUncheckedCreateWithoutQuotaUsagesInput = {
+export type TeamUncheckedCreateWithoutQuotaRecordsInput = {
   id?: string
   name: string
   settings?:PrismaJson.Settings | Prisma.NullableJsonNullValueInput
@@ -2544,26 +2544,26 @@ export type TeamUncheckedCreateWithoutQuotaUsagesInput = {
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutTeamInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutTeamInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedCreateNestedManyWithoutTeamInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutTeamInput
+  quotaRules?: Prisma.QuotaRuleUncheckedCreateNestedManyWithoutTeamInput
 }
 
-export type TeamCreateOrConnectWithoutQuotaUsagesInput = {
+export type TeamCreateOrConnectWithoutQuotaRecordsInput = {
   where: Prisma.TeamWhereUniqueInput
-  create: Prisma.XOR<Prisma.TeamCreateWithoutQuotaUsagesInput, Prisma.TeamUncheckedCreateWithoutQuotaUsagesInput>
+  create: Prisma.XOR<Prisma.TeamCreateWithoutQuotaRecordsInput, Prisma.TeamUncheckedCreateWithoutQuotaRecordsInput>
 }
 
-export type TeamUpsertWithoutQuotaUsagesInput = {
-  update: Prisma.XOR<Prisma.TeamUpdateWithoutQuotaUsagesInput, Prisma.TeamUncheckedUpdateWithoutQuotaUsagesInput>
-  create: Prisma.XOR<Prisma.TeamCreateWithoutQuotaUsagesInput, Prisma.TeamUncheckedCreateWithoutQuotaUsagesInput>
+export type TeamUpsertWithoutQuotaRecordsInput = {
+  update: Prisma.XOR<Prisma.TeamUpdateWithoutQuotaRecordsInput, Prisma.TeamUncheckedUpdateWithoutQuotaRecordsInput>
+  create: Prisma.XOR<Prisma.TeamCreateWithoutQuotaRecordsInput, Prisma.TeamUncheckedCreateWithoutQuotaRecordsInput>
   where?: Prisma.TeamWhereInput
 }
 
-export type TeamUpdateToOneWithWhereWithoutQuotaUsagesInput = {
+export type TeamUpdateToOneWithWhereWithoutQuotaRecordsInput = {
   where?: Prisma.TeamWhereInput
-  data: Prisma.XOR<Prisma.TeamUpdateWithoutQuotaUsagesInput, Prisma.TeamUncheckedUpdateWithoutQuotaUsagesInput>
+  data: Prisma.XOR<Prisma.TeamUpdateWithoutQuotaRecordsInput, Prisma.TeamUncheckedUpdateWithoutQuotaRecordsInput>
 }
 
-export type TeamUpdateWithoutQuotaUsagesInput = {
+export type TeamUpdateWithoutQuotaRecordsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   settings?:PrismaJson.Settings | Prisma.NullableJsonNullValueInput
@@ -2584,10 +2584,10 @@ export type TeamUpdateWithoutQuotaUsagesInput = {
   aiUsages?: Prisma.AiUsageUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUpdateManyWithoutTeamNestedInput
 }
 
-export type TeamUncheckedUpdateWithoutQuotaUsagesInput = {
+export type TeamUncheckedUpdateWithoutQuotaRecordsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
   settings?:PrismaJson.Settings | Prisma.NullableJsonNullValueInput
@@ -2608,7 +2608,7 @@ export type TeamUncheckedUpdateWithoutQuotaUsagesInput = {
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutTeamNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutTeamNestedInput
   watermarkTemplates?: Prisma.WatermarkTemplateUncheckedUpdateManyWithoutTeamNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutTeamNestedInput
+  quotaRules?: Prisma.QuotaRuleUncheckedUpdateManyWithoutTeamNestedInput
 }
 
 
@@ -2630,8 +2630,8 @@ export type TeamCountOutputType = {
   aiUsages: number
   auditLogs: number
   watermarkTemplates: number
-  quotaPolicies: number
-  quotaUsages: number
+  quotaRules: number
+  quotaRecords: number
 }
 
 export type TeamCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2648,8 +2648,8 @@ export type TeamCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   aiUsages?: boolean | TeamCountOutputTypeCountAiUsagesArgs
   auditLogs?: boolean | TeamCountOutputTypeCountAuditLogsArgs
   watermarkTemplates?: boolean | TeamCountOutputTypeCountWatermarkTemplatesArgs
-  quotaPolicies?: boolean | TeamCountOutputTypeCountQuotaPoliciesArgs
-  quotaUsages?: boolean | TeamCountOutputTypeCountQuotaUsagesArgs
+  quotaRules?: boolean | TeamCountOutputTypeCountQuotaRulesArgs
+  quotaRecords?: boolean | TeamCountOutputTypeCountQuotaRecordsArgs
 }
 
 /**
@@ -2756,15 +2756,15 @@ export type TeamCountOutputTypeCountWatermarkTemplatesArgs<ExtArgs extends runti
 /**
  * TeamCountOutputType without action
  */
-export type TeamCountOutputTypeCountQuotaPoliciesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.QuotaPolicyWhereInput
+export type TeamCountOutputTypeCountQuotaRulesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.QuotaRuleWhereInput
 }
 
 /**
  * TeamCountOutputType without action
  */
-export type TeamCountOutputTypeCountQuotaUsagesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.QuotaUsageWhereInput
+export type TeamCountOutputTypeCountQuotaRecordsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.QuotaRecordWhereInput
 }
 
 
@@ -2790,8 +2790,8 @@ export type TeamSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   aiUsages?: boolean | Prisma.Team$aiUsagesArgs<ExtArgs>
   auditLogs?: boolean | Prisma.Team$auditLogsArgs<ExtArgs>
   watermarkTemplates?: boolean | Prisma.Team$watermarkTemplatesArgs<ExtArgs>
-  quotaPolicies?: boolean | Prisma.Team$quotaPoliciesArgs<ExtArgs>
-  quotaUsages?: boolean | Prisma.Team$quotaUsagesArgs<ExtArgs>
+  quotaRules?: boolean | Prisma.Team$quotaRulesArgs<ExtArgs>
+  quotaRecords?: boolean | Prisma.Team$quotaRecordsArgs<ExtArgs>
   _count?: boolean | Prisma.TeamCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["team"]>
 
@@ -2841,8 +2841,8 @@ export type TeamInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   aiUsages?: boolean | Prisma.Team$aiUsagesArgs<ExtArgs>
   auditLogs?: boolean | Prisma.Team$auditLogsArgs<ExtArgs>
   watermarkTemplates?: boolean | Prisma.Team$watermarkTemplatesArgs<ExtArgs>
-  quotaPolicies?: boolean | Prisma.Team$quotaPoliciesArgs<ExtArgs>
-  quotaUsages?: boolean | Prisma.Team$quotaUsagesArgs<ExtArgs>
+  quotaRules?: boolean | Prisma.Team$quotaRulesArgs<ExtArgs>
+  quotaRecords?: boolean | Prisma.Team$quotaRecordsArgs<ExtArgs>
   _count?: boolean | Prisma.TeamCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type TeamIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2870,8 +2870,8 @@ export type $TeamPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     aiUsages: Prisma.$AiUsagePayload<ExtArgs>[]
     auditLogs: Prisma.$AuditLogPayload<ExtArgs>[]
     watermarkTemplates: Prisma.$WatermarkTemplatePayload<ExtArgs>[]
-    quotaPolicies: Prisma.$QuotaPolicyPayload<ExtArgs>[]
-    quotaUsages: Prisma.$QuotaUsagePayload<ExtArgs>[]
+    quotaRules: Prisma.$QuotaRulePayload<ExtArgs>[]
+    quotaRecords: Prisma.$QuotaRecordPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -3292,8 +3292,8 @@ export interface Prisma__TeamClient<T, Null = never, ExtArgs extends runtime.Typ
   aiUsages<T extends Prisma.Team$aiUsagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$aiUsagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AiUsagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   auditLogs<T extends Prisma.Team$auditLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$auditLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   watermarkTemplates<T extends Prisma.Team$watermarkTemplatesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$watermarkTemplatesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WatermarkTemplatePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  quotaPolicies<T extends Prisma.Team$quotaPoliciesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$quotaPoliciesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$QuotaPolicyPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  quotaUsages<T extends Prisma.Team$quotaUsagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$quotaUsagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$QuotaUsagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  quotaRules<T extends Prisma.Team$quotaRulesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$quotaRulesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$QuotaRulePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  quotaRecords<T extends Prisma.Team$quotaRecordsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Team$quotaRecordsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$QuotaRecordPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -4080,51 +4080,51 @@ export type Team$watermarkTemplatesArgs<ExtArgs extends runtime.Types.Extensions
 }
 
 /**
- * Team.quotaPolicies
+ * Team.quotaRules
  */
-export type Team$quotaPoliciesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type Team$quotaRulesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the QuotaPolicy
+   * Select specific fields to fetch from the QuotaRule
    */
-  select?: Prisma.QuotaPolicySelect<ExtArgs> | null
+  select?: Prisma.QuotaRuleSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the QuotaPolicy
+   * Omit specific fields from the QuotaRule
    */
-  omit?: Prisma.QuotaPolicyOmit<ExtArgs> | null
+  omit?: Prisma.QuotaRuleOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.QuotaPolicyInclude<ExtArgs> | null
-  where?: Prisma.QuotaPolicyWhereInput
-  orderBy?: Prisma.QuotaPolicyOrderByWithRelationInput | Prisma.QuotaPolicyOrderByWithRelationInput[]
-  cursor?: Prisma.QuotaPolicyWhereUniqueInput
+  include?: Prisma.QuotaRuleInclude<ExtArgs> | null
+  where?: Prisma.QuotaRuleWhereInput
+  orderBy?: Prisma.QuotaRuleOrderByWithRelationInput | Prisma.QuotaRuleOrderByWithRelationInput[]
+  cursor?: Prisma.QuotaRuleWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.QuotaPolicyScalarFieldEnum | Prisma.QuotaPolicyScalarFieldEnum[]
+  distinct?: Prisma.QuotaRuleScalarFieldEnum | Prisma.QuotaRuleScalarFieldEnum[]
 }
 
 /**
- * Team.quotaUsages
+ * Team.quotaRecords
  */
-export type Team$quotaUsagesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type Team$quotaRecordsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the QuotaUsage
+   * Select specific fields to fetch from the QuotaRecord
    */
-  select?: Prisma.QuotaUsageSelect<ExtArgs> | null
+  select?: Prisma.QuotaRecordSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the QuotaUsage
+   * Omit specific fields from the QuotaRecord
    */
-  omit?: Prisma.QuotaUsageOmit<ExtArgs> | null
+  omit?: Prisma.QuotaRecordOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.QuotaUsageInclude<ExtArgs> | null
-  where?: Prisma.QuotaUsageWhereInput
-  orderBy?: Prisma.QuotaUsageOrderByWithRelationInput | Prisma.QuotaUsageOrderByWithRelationInput[]
-  cursor?: Prisma.QuotaUsageWhereUniqueInput
+  include?: Prisma.QuotaRecordInclude<ExtArgs> | null
+  where?: Prisma.QuotaRecordWhereInput
+  orderBy?: Prisma.QuotaRecordOrderByWithRelationInput | Prisma.QuotaRecordOrderByWithRelationInput[]
+  cursor?: Prisma.QuotaRecordWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.QuotaUsageScalarFieldEnum | Prisma.QuotaUsageScalarFieldEnum[]
+  distinct?: Prisma.QuotaRecordScalarFieldEnum | Prisma.QuotaRecordScalarFieldEnum[]
 }
 
 /**

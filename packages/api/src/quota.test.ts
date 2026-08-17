@@ -15,11 +15,12 @@ vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
 
 vi.mock('@shumai/core/src/quota/quota-service', () => ({
   quotaService: {
-    listPolicies: vi.fn(),
-    createPolicy: vi.fn(),
-    getPolicy: vi.fn(),
-    updatePolicy: vi.fn(),
-    deletePolicy: vi.fn(),
+    listRules: vi.fn(),
+    createRule: vi.fn(),
+    getRule: vi.fn(),
+    listRuleRecords: vi.fn(),
+    updateRule: vi.fn(),
+    deleteRule: vi.fn(),
   },
 }))
 
@@ -43,7 +44,7 @@ vi.mock('@shumai/core/src/authz/authz', () => ({
   },
   ResourceType: {
     Team: 'team',
-    QuotaPolicy: 'quotaPolicy',
+    QuotaRule: 'quotaRule',
   },
 }))
 
@@ -56,14 +57,14 @@ describe('Quota API', () => {
   })
 
   describe('GET /teams/:teamId/quotas', () => {
-    test('Success listing quota policies', async () => {
+    test('Success listing quota rules', async () => {
       const mockResult = {
         total: 1,
-        policies: [
+        rules: [
           {
-            id: 'policy1',
+            id: 'rule1',
             teamId: 'team1',
-            scopeType: 'team' as const,
+            scopeMode: 'all_members' as const,
             resource: 'agent_total_tokens' as const,
             limit: 50000,
             period: '1hour' as const,
@@ -73,7 +74,7 @@ describe('Quota API', () => {
           },
         ],
       }
-      vi.spyOn(quotaService, 'listPolicies').mockResolvedValue(mockResult)
+      vi.spyOn(quotaService, 'listRules').mockResolvedValue(mockResult)
 
       const res = await app.request('/teams/team1/quotas', {
         method: 'GET',
@@ -93,11 +94,11 @@ describe('Quota API', () => {
   })
 
   describe('POST /teams/:teamId/quotas', () => {
-    test('Success creating policy with audit log', async () => {
-      const mockPolicy = {
-        id: 'policy1',
+    test('Success creating rule with audit log', async () => {
+      const mockRule = {
+        id: 'rule1',
         teamId: 'team1',
-        scopeType: 'team' as const,
+        scopeMode: 'all_members' as const,
         resource: 'agent_total_tokens' as const,
         limit: 100000,
         period: '1day' as const,
@@ -105,7 +106,7 @@ describe('Quota API', () => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }
-      vi.spyOn(quotaService, 'createPolicy').mockResolvedValue(mockPolicy)
+      vi.spyOn(quotaService, 'createRule').mockResolvedValue(mockRule)
 
       const res = await app.request('/teams/team1/quotas', {
         method: 'POST',
@@ -114,7 +115,7 @@ describe('Quota API', () => {
           Authorization: 'Bearer test',
         },
         body: JSON.stringify({
-          scopeType: 'team',
+          scopeMode: 'all_members',
           resource: 'agent_total_tokens',
           limit: 100000,
           period: '1day',
@@ -122,29 +123,29 @@ describe('Quota API', () => {
       })
 
       expect(res.status).toBe(201)
-      expect(await res.json()).toEqual(mockPolicy)
-      expect(quotaService.createPolicy).toHaveBeenCalledWith('team1', {
-        scopeType: 'team',
+      expect(await res.json()).toEqual(mockRule)
+      expect(quotaService.createRule).toHaveBeenCalledWith('team1', {
+        scopeMode: 'all_members',
         resource: 'agent_total_tokens',
         limit: 100000,
         period: '1day',
         enabled: true,
       })
       expect(auditLogService.logAction).toHaveBeenCalledWith({
-        action: AuditAction.quota_policy_create,
+        action: AuditAction.quota_rule_create,
         teamId: 'team1',
         userId: 'user1',
-        itemId: 'policy1',
+        itemId: 'rule1',
       })
     })
   })
 
   describe('GET /teams/:teamId/quotas/:id', () => {
-    test('Success fetching single policy', async () => {
-      const mockPolicy = {
-        id: 'policy1',
+    test('Success fetching single rule', async () => {
+      const mockRule = {
+        id: 'rule1',
         teamId: 'team1',
-        scopeType: 'team' as const,
+        scopeMode: 'all_members' as const,
         resource: 'agent_cost' as const,
         limit: 50,
         period: '1day' as const,
@@ -152,24 +153,58 @@ describe('Quota API', () => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }
-      vi.spyOn(quotaService, 'getPolicy').mockResolvedValue(mockPolicy)
+      vi.spyOn(quotaService, 'getRule').mockResolvedValue(mockRule)
 
-      const res = await app.request('/teams/team1/quotas/policy1', {
+      const res = await app.request('/teams/team1/quotas/rule1', {
         method: 'GET',
         headers: { Authorization: 'Bearer test' },
       })
 
       expect(res.status).toBe(200)
-      expect(await res.json()).toEqual(mockPolicy)
+      expect(await res.json()).toEqual(mockRule)
+    })
+  })
+
+  describe('GET /teams/:teamId/quotas/:id/records', () => {
+    test('Success listing records for a rule', async () => {
+      const mockRecordsResult = {
+        total: 1,
+        records: [
+          {
+            id: 'rec1',
+            ruleId: 'rule1',
+            teamId: 'team1',
+            userId: null,
+            user: null,
+            periodStart: null,
+            periodEnd: null,
+            consumed: 0,
+            reserved: 0,
+            remaining: 50,
+            percent: 0,
+            isWindowActive: false,
+          },
+        ],
+      }
+      vi.spyOn(quotaService, 'listRuleRecords').mockResolvedValue(mockRecordsResult)
+
+      const res = await app.request('/teams/team1/quotas/rule1/records', {
+        method: 'GET',
+        headers: { Authorization: 'Bearer test' },
+      })
+
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual(mockRecordsResult)
+      expect(quotaService.listRuleRecords).toHaveBeenCalledWith('team1', 'rule1')
     })
   })
 
   describe('PUT /teams/:teamId/quotas/:id', () => {
-    test('Success updating policy with audit log', async () => {
-      const updatedPolicy = {
-        id: 'policy1',
+    test('Success updating rule with audit log', async () => {
+      const updatedRule = {
+        id: 'rule1',
         teamId: 'team1',
-        scopeType: 'team' as const,
+        scopeMode: 'all_members' as const,
         resource: 'agent_cost' as const,
         limit: 100,
         period: '1day' as const,
@@ -177,9 +212,9 @@ describe('Quota API', () => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }
-      vi.spyOn(quotaService, 'updatePolicy').mockResolvedValue(updatedPolicy)
+      vi.spyOn(quotaService, 'updateRule').mockResolvedValue(updatedRule)
 
-      const res = await app.request('/teams/team1/quotas/policy1', {
+      const res = await app.request('/teams/team1/quotas/rule1', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -192,32 +227,32 @@ describe('Quota API', () => {
       })
 
       expect(res.status).toBe(200)
-      expect(await res.json()).toEqual(updatedPolicy)
+      expect(await res.json()).toEqual(updatedRule)
       expect(auditLogService.logAction).toHaveBeenCalledWith({
-        action: AuditAction.quota_policy_update,
+        action: AuditAction.quota_rule_update,
         teamId: 'team1',
         userId: 'user1',
-        itemId: 'policy1',
+        itemId: 'rule1',
       })
     })
   })
 
   describe('DELETE /teams/:teamId/quotas/:id', () => {
-    test('Success deleting policy with audit log', async () => {
-      vi.spyOn(quotaService, 'deletePolicy').mockResolvedValue(undefined)
+    test('Success deleting rule with audit log', async () => {
+      vi.spyOn(quotaService, 'deleteRule').mockResolvedValue(undefined)
 
-      const res = await app.request('/teams/team1/quotas/policy1', {
+      const res = await app.request('/teams/team1/quotas/rule1', {
         method: 'DELETE',
         headers: { Authorization: 'Bearer test' },
       })
 
       expect(res.status).toBe(204)
-      expect(quotaService.deletePolicy).toHaveBeenCalledWith('team1', 'policy1')
+      expect(quotaService.deleteRule).toHaveBeenCalledWith('team1', 'rule1')
       expect(auditLogService.logAction).toHaveBeenCalledWith({
-        action: AuditAction.quota_policy_delete,
+        action: AuditAction.quota_rule_delete,
         teamId: 'team1',
         userId: 'user1',
-        itemId: 'policy1',
+        itemId: 'rule1',
       })
     })
   })

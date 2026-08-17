@@ -135,10 +135,10 @@ enum WatermarkFileStatus {
   failed
 }
 
-enum QuotaScopeType {
-  team
-  role
-  user
+enum QuotaScopeMode {
+  all_members
+  each_member
+  selected_members
 }
 
 enum QuotaPeriod {
@@ -194,8 +194,7 @@ model User {
   apiTokens            ApiToken[]       @relation("UserToApiToken")
   aiUsages             AiUsage[]        @relation("UserToAiUsage")
   auditLogs            AuditLog[]       @relation("UserToAuditLog")
-  quotaPolicies        QuotaPolicy[]    @relation("UserToQuotaPolicy")
-  quotaUsages          QuotaUsage[]     @relation("UserToQuotaUsage")
+  quotaRecords         QuotaRecord[]    @relation("UserToQuotaRecord")
 
   @@map("users")
 }
@@ -282,8 +281,8 @@ model Team {
   aiUsages       AiUsage[]       @relation("TeamToAiUsage")
   auditLogs      AuditLog[]      @relation("TeamToAuditLog")
   watermarkTemplates WatermarkTemplate[] @relation("TeamToWatermarkTemplate")
-  quotaPolicies  QuotaPolicy[]   @relation("TeamToQuotaPolicy")
-  quotaUsages    QuotaUsage[]    @relation("TeamToQuotaUsage")
+  quotaRules     QuotaRule[]     @relation("TeamToQuotaRule")
+  quotaRecords   QuotaRecord[]   @relation("TeamToQuotaRecord")
 
   @@map("teams")
 }
@@ -1044,12 +1043,13 @@ model AuditLog {
   @@map("audit_logs")
 }
 
-model QuotaPolicy {
+model QuotaRule {
   id           String            @id @default(ulid())
   teamId       String            @map("team_id")
-  scopeType    QuotaScopeType    @map("scope_type")
+  scopeMode    QuotaScopeMode    @map("scope_mode")
   role         TeamMemberRole?   @map("role")
-  userId       String?           @map("user_id")
+  /// [QuotaUserIds]
+  userIds      Json?             @map("user_ids")
   resource     QuotaResourceType @map("resource")
   /// [QuotaResourceData]
   resourceData Json?             @map("resource_data")
@@ -1059,35 +1059,34 @@ model QuotaPolicy {
   createdAt    DateTime          @default(now()) @map("created_at")
   updatedAt    DateTime          @updatedAt @map("updated_at")
 
-  team   Team         @relation("TeamToQuotaPolicy", fields: [teamId], references: [id], onDelete: Cascade)
-  user   User?        @relation("UserToQuotaPolicy", fields: [userId], references: [id], onDelete: Cascade)
-  usages QuotaUsage[] @relation("QuotaPolicyToUsage")
+  team    Team          @relation("TeamToQuotaRule", fields: [teamId], references: [id], onDelete: Cascade)
+  records QuotaRecord[] @relation("QuotaRuleToRecord")
 
   @@index([teamId, enabled])
   @@index([teamId, resource])
-  @@map("quota_policies")
+  @@map("quota_rules")
 }
 
-model QuotaUsage {
-  id          String   @id @default(ulid())
-  policyId    String   @map("policy_id")
-  teamId      String   @map("team_id")
-  userId      String?  @map("user_id")
-  periodStart DateTime @map("period_start")
-  periodEnd   DateTime @map("period_end")
-  consumed    Float    @default(0) @map("consumed")
-  reserved    Float    @default(0) @map("reserved")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+model QuotaRecord {
+  id          String    @id @default(ulid())
+  ruleId      String    @map("rule_id")
+  teamId      String    @map("team_id")
+  userId      String?   @map("user_id")
+  periodStart DateTime? @map("period_start")
+  periodEnd   DateTime? @map("period_end")
+  consumed    Float     @default(0) @map("consumed")
+  reserved    Float     @default(0) @map("reserved")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  policy QuotaPolicy @relation("QuotaPolicyToUsage", fields: [policyId], references: [id], onDelete: Cascade)
-  team   Team        @relation("TeamToQuotaUsage", fields: [teamId], references: [id], onDelete: Cascade)
-  user   User?       @relation("UserToQuotaUsage", fields: [userId], references: [id], onDelete: Cascade)
+  rule QuotaRule @relation("QuotaRuleToRecord", fields: [ruleId], references: [id], onDelete: Cascade)
+  team Team      @relation("TeamToQuotaRecord", fields: [teamId], references: [id], onDelete: Cascade)
+  user User?     @relation("UserToQuotaRecord", fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([policyId, userId, periodEnd])
+  @@unique([ruleId, userId])
   @@index([teamId, userId])
-  @@index([periodEnd])
-  @@map("quota_usages")
+  @@index([ruleId])
+  @@map("quota_records")
 }
 
 

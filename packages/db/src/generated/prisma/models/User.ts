@@ -247,8 +247,7 @@ export type UserWhereInput = {
   apiTokens?: Prisma.ApiTokenListRelationFilter
   aiUsages?: Prisma.AiUsageListRelationFilter
   auditLogs?: Prisma.AuditLogListRelationFilter
-  quotaPolicies?: Prisma.QuotaPolicyListRelationFilter
-  quotaUsages?: Prisma.QuotaUsageListRelationFilter
+  quotaRecords?: Prisma.QuotaRecordListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -282,8 +281,7 @@ export type UserOrderByWithRelationInput = {
   apiTokens?: Prisma.ApiTokenOrderByRelationAggregateInput
   aiUsages?: Prisma.AiUsageOrderByRelationAggregateInput
   auditLogs?: Prisma.AuditLogOrderByRelationAggregateInput
-  quotaPolicies?: Prisma.QuotaPolicyOrderByRelationAggregateInput
-  quotaUsages?: Prisma.QuotaUsageOrderByRelationAggregateInput
+  quotaRecords?: Prisma.QuotaRecordOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -320,8 +318,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   apiTokens?: Prisma.ApiTokenListRelationFilter
   aiUsages?: Prisma.AiUsageListRelationFilter
   auditLogs?: Prisma.AuditLogListRelationFilter
-  quotaPolicies?: Prisma.QuotaPolicyListRelationFilter
-  quotaUsages?: Prisma.QuotaUsageListRelationFilter
+  quotaRecords?: Prisma.QuotaRecordListRelationFilter
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -389,8 +386,7 @@ export type UserCreateInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -424,8 +420,7 @@ export type UserUncheckedCreateInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -459,8 +454,7 @@ export type UserUpdateInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -494,8 +488,7 @@ export type UserUncheckedUpdateInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -898,36 +891,20 @@ export type UserUpdateOneWithoutAuditLogsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAuditLogsInput, Prisma.UserUpdateWithoutAuditLogsInput>, Prisma.UserUncheckedUpdateWithoutAuditLogsInput>
 }
 
-export type UserCreateNestedOneWithoutQuotaPoliciesInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutQuotaPoliciesInput, Prisma.UserUncheckedCreateWithoutQuotaPoliciesInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutQuotaPoliciesInput
+export type UserCreateNestedOneWithoutQuotaRecordsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutQuotaRecordsInput, Prisma.UserUncheckedCreateWithoutQuotaRecordsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutQuotaRecordsInput
   connect?: Prisma.UserWhereUniqueInput
 }
 
-export type UserUpdateOneWithoutQuotaPoliciesNestedInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutQuotaPoliciesInput, Prisma.UserUncheckedCreateWithoutQuotaPoliciesInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutQuotaPoliciesInput
-  upsert?: Prisma.UserUpsertWithoutQuotaPoliciesInput
+export type UserUpdateOneWithoutQuotaRecordsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutQuotaRecordsInput, Prisma.UserUncheckedCreateWithoutQuotaRecordsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutQuotaRecordsInput
+  upsert?: Prisma.UserUpsertWithoutQuotaRecordsInput
   disconnect?: Prisma.UserWhereInput | boolean
   delete?: Prisma.UserWhereInput | boolean
   connect?: Prisma.UserWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutQuotaPoliciesInput, Prisma.UserUpdateWithoutQuotaPoliciesInput>, Prisma.UserUncheckedUpdateWithoutQuotaPoliciesInput>
-}
-
-export type UserCreateNestedOneWithoutQuotaUsagesInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutQuotaUsagesInput, Prisma.UserUncheckedCreateWithoutQuotaUsagesInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutQuotaUsagesInput
-  connect?: Prisma.UserWhereUniqueInput
-}
-
-export type UserUpdateOneWithoutQuotaUsagesNestedInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutQuotaUsagesInput, Prisma.UserUncheckedCreateWithoutQuotaUsagesInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutQuotaUsagesInput
-  upsert?: Prisma.UserUpsertWithoutQuotaUsagesInput
-  disconnect?: Prisma.UserWhereInput | boolean
-  delete?: Prisma.UserWhereInput | boolean
-  connect?: Prisma.UserWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutQuotaUsagesInput, Prisma.UserUpdateWithoutQuotaUsagesInput>, Prisma.UserUncheckedUpdateWithoutQuotaUsagesInput>
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutQuotaRecordsInput, Prisma.UserUpdateWithoutQuotaRecordsInput>, Prisma.UserUncheckedUpdateWithoutQuotaRecordsInput>
 }
 
 export type UserCreateWithoutSessionsInput = {
@@ -960,8 +937,7 @@ export type UserCreateWithoutSessionsInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSessionsInput = {
@@ -994,8 +970,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSessionsInput = {
@@ -1044,8 +1019,7 @@ export type UserUpdateWithoutSessionsInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -1078,8 +1052,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAccountsInput = {
@@ -1112,8 +1085,7 @@ export type UserCreateWithoutAccountsInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAccountsInput = {
@@ -1146,8 +1118,7 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAccountsInput = {
@@ -1196,8 +1167,7 @@ export type UserUpdateWithoutAccountsInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -1230,8 +1200,7 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAuthTokensInput = {
@@ -1264,8 +1233,7 @@ export type UserCreateWithoutAuthTokensInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAuthTokensInput = {
@@ -1298,8 +1266,7 @@ export type UserUncheckedCreateWithoutAuthTokensInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAuthTokensInput = {
@@ -1348,8 +1315,7 @@ export type UserUpdateWithoutAuthTokensInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAuthTokensInput = {
@@ -1382,8 +1348,7 @@ export type UserUncheckedUpdateWithoutAuthTokensInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutTeamMembersInput = {
@@ -1416,8 +1381,7 @@ export type UserCreateWithoutTeamMembersInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutTeamMembersInput = {
@@ -1450,8 +1414,7 @@ export type UserUncheckedCreateWithoutTeamMembersInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutTeamMembersInput = {
@@ -1500,8 +1463,7 @@ export type UserUpdateWithoutTeamMembersInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTeamMembersInput = {
@@ -1534,8 +1496,7 @@ export type UserUncheckedUpdateWithoutTeamMembersInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutShareLinksInput = {
@@ -1568,8 +1529,7 @@ export type UserCreateWithoutShareLinksInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutShareLinksInput = {
@@ -1602,8 +1562,7 @@ export type UserUncheckedCreateWithoutShareLinksInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutShareLinksInput = {
@@ -1652,8 +1611,7 @@ export type UserUpdateWithoutShareLinksInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutShareLinksInput = {
@@ -1686,8 +1644,7 @@ export type UserUncheckedUpdateWithoutShareLinksInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAssetsInput = {
@@ -1720,8 +1677,7 @@ export type UserCreateWithoutAssetsInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAssetsInput = {
@@ -1754,8 +1710,7 @@ export type UserUncheckedCreateWithoutAssetsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAssetsInput = {
@@ -1804,8 +1759,7 @@ export type UserUpdateWithoutAssetsInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAssetsInput = {
@@ -1838,8 +1792,7 @@ export type UserUncheckedUpdateWithoutAssetsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutCommentsInput = {
@@ -1872,8 +1825,7 @@ export type UserCreateWithoutCommentsInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCommentsInput = {
@@ -1906,8 +1858,7 @@ export type UserUncheckedCreateWithoutCommentsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCommentsInput = {
@@ -1945,8 +1896,7 @@ export type UserCreateWithoutCompletionChangedCommentsInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCompletionChangedCommentsInput = {
@@ -1979,8 +1929,7 @@ export type UserUncheckedCreateWithoutCompletionChangedCommentsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCompletionChangedCommentsInput = {
@@ -2029,8 +1978,7 @@ export type UserUpdateWithoutCommentsInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCommentsInput = {
@@ -2063,8 +2011,7 @@ export type UserUncheckedUpdateWithoutCommentsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserUpsertWithoutCompletionChangedCommentsInput = {
@@ -2108,8 +2055,7 @@ export type UserUpdateWithoutCompletionChangedCommentsInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCompletionChangedCommentsInput = {
@@ -2142,8 +2088,7 @@ export type UserUncheckedUpdateWithoutCompletionChangedCommentsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutCreatedInvitesInput = {
@@ -2176,8 +2121,7 @@ export type UserCreateWithoutCreatedInvitesInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCreatedInvitesInput = {
@@ -2210,8 +2154,7 @@ export type UserUncheckedCreateWithoutCreatedInvitesInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCreatedInvitesInput = {
@@ -2260,8 +2203,7 @@ export type UserUpdateWithoutCreatedInvitesInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCreatedInvitesInput = {
@@ -2294,8 +2236,7 @@ export type UserUncheckedUpdateWithoutCreatedInvitesInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutCreatedNotificationsInput = {
@@ -2328,8 +2269,7 @@ export type UserCreateWithoutCreatedNotificationsInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCreatedNotificationsInput = {
@@ -2362,8 +2302,7 @@ export type UserUncheckedCreateWithoutCreatedNotificationsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCreatedNotificationsInput = {
@@ -2401,8 +2340,7 @@ export type UserCreateWithoutNotificationsInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutNotificationsInput = {
@@ -2435,8 +2373,7 @@ export type UserUncheckedCreateWithoutNotificationsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutNotificationsInput = {
@@ -2485,8 +2422,7 @@ export type UserUpdateWithoutCreatedNotificationsInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCreatedNotificationsInput = {
@@ -2519,8 +2455,7 @@ export type UserUncheckedUpdateWithoutCreatedNotificationsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserUpsertWithoutNotificationsInput = {
@@ -2564,8 +2499,7 @@ export type UserUpdateWithoutNotificationsInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutNotificationsInput = {
@@ -2598,8 +2532,7 @@ export type UserUncheckedUpdateWithoutNotificationsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutTasksInput = {
@@ -2632,8 +2565,7 @@ export type UserCreateWithoutTasksInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutTasksInput = {
@@ -2666,8 +2598,7 @@ export type UserUncheckedCreateWithoutTasksInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutTasksInput = {
@@ -2716,8 +2647,7 @@ export type UserUpdateWithoutTasksInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTasksInput = {
@@ -2750,8 +2680,7 @@ export type UserUncheckedUpdateWithoutTasksInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAgentInput = {
@@ -2784,8 +2713,7 @@ export type UserCreateWithoutAgentInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAgentInput = {
@@ -2818,8 +2746,7 @@ export type UserUncheckedCreateWithoutAgentInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAgentInput = {
@@ -2868,8 +2795,7 @@ export type UserUpdateWithoutAgentInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAgentInput = {
@@ -2902,8 +2828,7 @@ export type UserUncheckedUpdateWithoutAgentInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAgentSessionsInput = {
@@ -2936,8 +2861,7 @@ export type UserCreateWithoutAgentSessionsInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAgentSessionsInput = {
@@ -2970,8 +2894,7 @@ export type UserUncheckedCreateWithoutAgentSessionsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAgentSessionsInput = {
@@ -3020,8 +2943,7 @@ export type UserUpdateWithoutAgentSessionsInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAgentSessionsInput = {
@@ -3054,8 +2976,7 @@ export type UserUncheckedUpdateWithoutAgentSessionsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutUserMetadataInput = {
@@ -3088,8 +3009,7 @@ export type UserCreateWithoutUserMetadataInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutUserMetadataInput = {
@@ -3122,8 +3042,7 @@ export type UserUncheckedCreateWithoutUserMetadataInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutUserMetadataInput = {
@@ -3172,8 +3091,7 @@ export type UserUpdateWithoutUserMetadataInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutUserMetadataInput = {
@@ -3206,8 +3124,7 @@ export type UserUncheckedUpdateWithoutUserMetadataInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutCollectionsInput = {
@@ -3240,8 +3157,7 @@ export type UserCreateWithoutCollectionsInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCollectionsInput = {
@@ -3274,8 +3190,7 @@ export type UserUncheckedCreateWithoutCollectionsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCollectionsInput = {
@@ -3324,8 +3239,7 @@ export type UserUpdateWithoutCollectionsInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCollectionsInput = {
@@ -3358,8 +3272,7 @@ export type UserUncheckedUpdateWithoutCollectionsInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutApiTokensInput = {
@@ -3392,8 +3305,7 @@ export type UserCreateWithoutApiTokensInput = {
   shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutCreatorInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutApiTokensInput = {
@@ -3426,8 +3338,7 @@ export type UserUncheckedCreateWithoutApiTokensInput = {
   shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutCreatorInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutApiTokensInput = {
@@ -3476,8 +3387,7 @@ export type UserUpdateWithoutApiTokensInput = {
   shareLinks?: Prisma.ShareLinkUpdateManyWithoutCreatorNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutApiTokensInput = {
@@ -3510,8 +3420,7 @@ export type UserUncheckedUpdateWithoutApiTokensInput = {
   shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAiUsagesInput = {
@@ -3544,8 +3453,7 @@ export type UserCreateWithoutAiUsagesInput = {
   shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAiUsagesInput = {
@@ -3578,8 +3486,7 @@ export type UserUncheckedCreateWithoutAiUsagesInput = {
   shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAiUsagesInput = {
@@ -3628,8 +3535,7 @@ export type UserUpdateWithoutAiUsagesInput = {
   shareLinks?: Prisma.ShareLinkUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAiUsagesInput = {
@@ -3662,8 +3568,7 @@ export type UserUncheckedUpdateWithoutAiUsagesInput = {
   shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAuditLogsInput = {
@@ -3696,8 +3601,7 @@ export type UserCreateWithoutAuditLogsInput = {
   shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAuditLogsInput = {
@@ -3730,8 +3634,7 @@ export type UserUncheckedCreateWithoutAuditLogsInput = {
   shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutCreatorInput
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutUserInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAuditLogsInput = {
@@ -3780,8 +3683,7 @@ export type UserUpdateWithoutAuditLogsInput = {
   shareLinks?: Prisma.ShareLinkUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAuditLogsInput = {
@@ -3814,11 +3716,10 @@ export type UserUncheckedUpdateWithoutAuditLogsInput = {
   shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutUserNestedInput
+  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
 }
 
-export type UserCreateWithoutQuotaPoliciesInput = {
+export type UserCreateWithoutQuotaRecordsInput = {
   id?: string
   type?: $Enums.UserType
   name: string
@@ -3849,10 +3750,9 @@ export type UserCreateWithoutQuotaPoliciesInput = {
   apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageCreateNestedManyWithoutUserInput
 }
 
-export type UserUncheckedCreateWithoutQuotaPoliciesInput = {
+export type UserUncheckedCreateWithoutQuotaRecordsInput = {
   id?: string
   type?: $Enums.UserType
   name: string
@@ -3883,26 +3783,25 @@ export type UserUncheckedCreateWithoutQuotaPoliciesInput = {
   apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
   aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedCreateNestedManyWithoutUserInput
 }
 
-export type UserCreateOrConnectWithoutQuotaPoliciesInput = {
+export type UserCreateOrConnectWithoutQuotaRecordsInput = {
   where: Prisma.UserWhereUniqueInput
-  create: Prisma.XOR<Prisma.UserCreateWithoutQuotaPoliciesInput, Prisma.UserUncheckedCreateWithoutQuotaPoliciesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutQuotaRecordsInput, Prisma.UserUncheckedCreateWithoutQuotaRecordsInput>
 }
 
-export type UserUpsertWithoutQuotaPoliciesInput = {
-  update: Prisma.XOR<Prisma.UserUpdateWithoutQuotaPoliciesInput, Prisma.UserUncheckedUpdateWithoutQuotaPoliciesInput>
-  create: Prisma.XOR<Prisma.UserCreateWithoutQuotaPoliciesInput, Prisma.UserUncheckedCreateWithoutQuotaPoliciesInput>
+export type UserUpsertWithoutQuotaRecordsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutQuotaRecordsInput, Prisma.UserUncheckedUpdateWithoutQuotaRecordsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutQuotaRecordsInput, Prisma.UserUncheckedCreateWithoutQuotaRecordsInput>
   where?: Prisma.UserWhereInput
 }
 
-export type UserUpdateToOneWithWhereWithoutQuotaPoliciesInput = {
+export type UserUpdateToOneWithWhereWithoutQuotaRecordsInput = {
   where?: Prisma.UserWhereInput
-  data: Prisma.XOR<Prisma.UserUpdateWithoutQuotaPoliciesInput, Prisma.UserUncheckedUpdateWithoutQuotaPoliciesInput>
+  data: Prisma.XOR<Prisma.UserUpdateWithoutQuotaRecordsInput, Prisma.UserUncheckedUpdateWithoutQuotaRecordsInput>
 }
 
-export type UserUpdateWithoutQuotaPoliciesInput = {
+export type UserUpdateWithoutQuotaRecordsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumUserTypeFieldUpdateOperationsInput | $Enums.UserType
   name?: Prisma.StringFieldUpdateOperationsInput | string
@@ -3933,10 +3832,9 @@ export type UserUpdateWithoutQuotaPoliciesInput = {
   apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUpdateManyWithoutUserNestedInput
 }
 
-export type UserUncheckedUpdateWithoutQuotaPoliciesInput = {
+export type UserUncheckedUpdateWithoutQuotaRecordsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.EnumUserTypeFieldUpdateOperationsInput | $Enums.UserType
   name?: Prisma.StringFieldUpdateOperationsInput | string
@@ -3967,159 +3865,6 @@ export type UserUncheckedUpdateWithoutQuotaPoliciesInput = {
   apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
   aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
-  quotaUsages?: Prisma.QuotaUsageUncheckedUpdateManyWithoutUserNestedInput
-}
-
-export type UserCreateWithoutQuotaUsagesInput = {
-  id?: string
-  type?: $Enums.UserType
-  name: string
-  email: string
-  emailVerified?: boolean
-  image?: string | null
-  password?: string | null
-  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
-  guestEmail?: string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  assets?: Prisma.AssetCreateNestedManyWithoutCreatorInput
-  authTokens?: Prisma.AuthTokenCreateNestedManyWithoutUserInput
-  tasks?: Prisma.TaskCreateNestedManyWithoutCreatorInput
-  teamMembers?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
-  comments?: Prisma.AssetCommentCreateNestedManyWithoutCreatorInput
-  completionChangedComments?: Prisma.AssetCommentCreateNestedManyWithoutCompletionLastChangedByInput
-  createdInvites?: Prisma.InviteCreateNestedManyWithoutInviterInput
-  createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
-  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
-  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
-  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
-  agent?: Prisma.AgentCreateNestedOneWithoutUserInput
-  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
-  userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutUserInput
-  collections?: Prisma.CollectionCreateNestedManyWithoutCreatorInput
-  shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutCreatorInput
-  apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
-  aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
-  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyCreateNestedManyWithoutUserInput
-}
-
-export type UserUncheckedCreateWithoutQuotaUsagesInput = {
-  id?: string
-  type?: $Enums.UserType
-  name: string
-  email: string
-  emailVerified?: boolean
-  image?: string | null
-  password?: string | null
-  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
-  guestEmail?: string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutCreatorInput
-  authTokens?: Prisma.AuthTokenUncheckedCreateNestedManyWithoutUserInput
-  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutCreatorInput
-  teamMembers?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
-  comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCreatorInput
-  completionChangedComments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCompletionLastChangedByInput
-  createdInvites?: Prisma.InviteUncheckedCreateNestedManyWithoutInviterInput
-  createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
-  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
-  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
-  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
-  agent?: Prisma.AgentUncheckedCreateNestedOneWithoutUserInput
-  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
-  userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutUserInput
-  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutCreatorInput
-  shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutCreatorInput
-  apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
-  aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
-  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedCreateNestedManyWithoutUserInput
-}
-
-export type UserCreateOrConnectWithoutQuotaUsagesInput = {
-  where: Prisma.UserWhereUniqueInput
-  create: Prisma.XOR<Prisma.UserCreateWithoutQuotaUsagesInput, Prisma.UserUncheckedCreateWithoutQuotaUsagesInput>
-}
-
-export type UserUpsertWithoutQuotaUsagesInput = {
-  update: Prisma.XOR<Prisma.UserUpdateWithoutQuotaUsagesInput, Prisma.UserUncheckedUpdateWithoutQuotaUsagesInput>
-  create: Prisma.XOR<Prisma.UserCreateWithoutQuotaUsagesInput, Prisma.UserUncheckedCreateWithoutQuotaUsagesInput>
-  where?: Prisma.UserWhereInput
-}
-
-export type UserUpdateToOneWithWhereWithoutQuotaUsagesInput = {
-  where?: Prisma.UserWhereInput
-  data: Prisma.XOR<Prisma.UserUpdateWithoutQuotaUsagesInput, Prisma.UserUncheckedUpdateWithoutQuotaUsagesInput>
-}
-
-export type UserUpdateWithoutQuotaUsagesInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumUserTypeFieldUpdateOperationsInput | $Enums.UserType
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
-  guestEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  assets?: Prisma.AssetUpdateManyWithoutCreatorNestedInput
-  authTokens?: Prisma.AuthTokenUpdateManyWithoutUserNestedInput
-  tasks?: Prisma.TaskUpdateManyWithoutCreatorNestedInput
-  teamMembers?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
-  comments?: Prisma.AssetCommentUpdateManyWithoutCreatorNestedInput
-  completionChangedComments?: Prisma.AssetCommentUpdateManyWithoutCompletionLastChangedByNestedInput
-  createdInvites?: Prisma.InviteUpdateManyWithoutInviterNestedInput
-  createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
-  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
-  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
-  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
-  agent?: Prisma.AgentUpdateOneWithoutUserNestedInput
-  agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
-  userMetadata?: Prisma.UserMetadataUpdateManyWithoutUserNestedInput
-  collections?: Prisma.CollectionUpdateManyWithoutCreatorNestedInput
-  shareLinks?: Prisma.ShareLinkUpdateManyWithoutCreatorNestedInput
-  apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
-  aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
-  auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUpdateManyWithoutUserNestedInput
-}
-
-export type UserUncheckedUpdateWithoutQuotaUsagesInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumUserTypeFieldUpdateOperationsInput | $Enums.UserType
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
-  guestEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  assets?: Prisma.AssetUncheckedUpdateManyWithoutCreatorNestedInput
-  authTokens?: Prisma.AuthTokenUncheckedUpdateManyWithoutUserNestedInput
-  tasks?: Prisma.TaskUncheckedUpdateManyWithoutCreatorNestedInput
-  teamMembers?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
-  comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput
-  completionChangedComments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByNestedInput
-  createdInvites?: Prisma.InviteUncheckedUpdateManyWithoutInviterNestedInput
-  createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
-  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
-  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
-  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
-  agent?: Prisma.AgentUncheckedUpdateOneWithoutUserNestedInput
-  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
-  userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutUserNestedInput
-  collections?: Prisma.CollectionUncheckedUpdateManyWithoutCreatorNestedInput
-  shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput
-  apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
-  aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
-  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
-  quotaPolicies?: Prisma.QuotaPolicyUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -4146,8 +3891,7 @@ export type UserCountOutputType = {
   apiTokens: number
   aiUsages: number
   auditLogs: number
-  quotaPolicies: number
-  quotaUsages: number
+  quotaRecords: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -4169,8 +3913,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   apiTokens?: boolean | UserCountOutputTypeCountApiTokensArgs
   aiUsages?: boolean | UserCountOutputTypeCountAiUsagesArgs
   auditLogs?: boolean | UserCountOutputTypeCountAuditLogsArgs
-  quotaPolicies?: boolean | UserCountOutputTypeCountQuotaPoliciesArgs
-  quotaUsages?: boolean | UserCountOutputTypeCountQuotaUsagesArgs
+  quotaRecords?: boolean | UserCountOutputTypeCountQuotaRecordsArgs
 }
 
 /**
@@ -4312,15 +4055,8 @@ export type UserCountOutputTypeCountAuditLogsArgs<ExtArgs extends runtime.Types.
 /**
  * UserCountOutputType without action
  */
-export type UserCountOutputTypeCountQuotaPoliciesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.QuotaPolicyWhereInput
-}
-
-/**
- * UserCountOutputType without action
- */
-export type UserCountOutputTypeCountQuotaUsagesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.QuotaUsageWhereInput
+export type UserCountOutputTypeCountQuotaRecordsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.QuotaRecordWhereInput
 }
 
 
@@ -4355,8 +4091,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   apiTokens?: boolean | Prisma.User$apiTokensArgs<ExtArgs>
   aiUsages?: boolean | Prisma.User$aiUsagesArgs<ExtArgs>
   auditLogs?: boolean | Prisma.User$auditLogsArgs<ExtArgs>
-  quotaPolicies?: boolean | Prisma.User$quotaPoliciesArgs<ExtArgs>
-  quotaUsages?: boolean | Prisma.User$quotaUsagesArgs<ExtArgs>
+  quotaRecords?: boolean | Prisma.User$quotaRecordsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -4423,8 +4158,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   apiTokens?: boolean | Prisma.User$apiTokensArgs<ExtArgs>
   aiUsages?: boolean | Prisma.User$aiUsagesArgs<ExtArgs>
   auditLogs?: boolean | Prisma.User$auditLogsArgs<ExtArgs>
-  quotaPolicies?: boolean | Prisma.User$quotaPoliciesArgs<ExtArgs>
-  quotaUsages?: boolean | Prisma.User$quotaUsagesArgs<ExtArgs>
+  quotaRecords?: boolean | Prisma.User$quotaRecordsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -4452,8 +4186,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     apiTokens: Prisma.$ApiTokenPayload<ExtArgs>[]
     aiUsages: Prisma.$AiUsagePayload<ExtArgs>[]
     auditLogs: Prisma.$AuditLogPayload<ExtArgs>[]
-    quotaPolicies: Prisma.$QuotaPolicyPayload<ExtArgs>[]
-    quotaUsages: Prisma.$QuotaUsagePayload<ExtArgs>[]
+    quotaRecords: Prisma.$QuotaRecordPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -4883,8 +4616,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   apiTokens<T extends Prisma.User$apiTokensArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$apiTokensArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ApiTokenPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   aiUsages<T extends Prisma.User$aiUsagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$aiUsagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AiUsagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   auditLogs<T extends Prisma.User$auditLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$auditLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  quotaPolicies<T extends Prisma.User$quotaPoliciesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$quotaPoliciesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$QuotaPolicyPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  quotaUsages<T extends Prisma.User$quotaUsagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$quotaUsagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$QuotaUsagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  quotaRecords<T extends Prisma.User$quotaRecordsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$quotaRecordsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$QuotaRecordPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -5769,51 +5501,27 @@ export type User$auditLogsArgs<ExtArgs extends runtime.Types.Extensions.Internal
 }
 
 /**
- * User.quotaPolicies
+ * User.quotaRecords
  */
-export type User$quotaPoliciesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type User$quotaRecordsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the QuotaPolicy
+   * Select specific fields to fetch from the QuotaRecord
    */
-  select?: Prisma.QuotaPolicySelect<ExtArgs> | null
+  select?: Prisma.QuotaRecordSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the QuotaPolicy
+   * Omit specific fields from the QuotaRecord
    */
-  omit?: Prisma.QuotaPolicyOmit<ExtArgs> | null
+  omit?: Prisma.QuotaRecordOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.QuotaPolicyInclude<ExtArgs> | null
-  where?: Prisma.QuotaPolicyWhereInput
-  orderBy?: Prisma.QuotaPolicyOrderByWithRelationInput | Prisma.QuotaPolicyOrderByWithRelationInput[]
-  cursor?: Prisma.QuotaPolicyWhereUniqueInput
+  include?: Prisma.QuotaRecordInclude<ExtArgs> | null
+  where?: Prisma.QuotaRecordWhereInput
+  orderBy?: Prisma.QuotaRecordOrderByWithRelationInput | Prisma.QuotaRecordOrderByWithRelationInput[]
+  cursor?: Prisma.QuotaRecordWhereUniqueInput
   take?: number
   skip?: number
-  distinct?: Prisma.QuotaPolicyScalarFieldEnum | Prisma.QuotaPolicyScalarFieldEnum[]
-}
-
-/**
- * User.quotaUsages
- */
-export type User$quotaUsagesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the QuotaUsage
-   */
-  select?: Prisma.QuotaUsageSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the QuotaUsage
-   */
-  omit?: Prisma.QuotaUsageOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.QuotaUsageInclude<ExtArgs> | null
-  where?: Prisma.QuotaUsageWhereInput
-  orderBy?: Prisma.QuotaUsageOrderByWithRelationInput | Prisma.QuotaUsageOrderByWithRelationInput[]
-  cursor?: Prisma.QuotaUsageWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.QuotaUsageScalarFieldEnum | Prisma.QuotaUsageScalarFieldEnum[]
+  distinct?: Prisma.QuotaRecordScalarFieldEnum | Prisma.QuotaRecordScalarFieldEnum[]
 }
 
 /**

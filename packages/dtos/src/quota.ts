@@ -1,10 +1,10 @@
 import { z } from 'zod'
-import { QuotaScopeType, QuotaPeriod, QuotaResourceType } from '@shumai/db/enums'
+import { QuotaScopeMode, QuotaPeriod, QuotaResourceType } from '@shumai/db/enums'
 
-export { QuotaScopeType, QuotaPeriod, QuotaResourceType }
+export { QuotaScopeMode, QuotaPeriod, QuotaResourceType }
 
-export const quotaScopeTypeSchema = z.nativeEnum(QuotaScopeType)
-export type QuotaScopeTypeEnum = z.infer<typeof quotaScopeTypeSchema>
+export const quotaScopeModeSchema = z.nativeEnum(QuotaScopeMode)
+export type QuotaScopeModeEnum = z.infer<typeof quotaScopeModeSchema>
 
 export const quotaPeriodSchema = z.enum([
   '1hour',
@@ -81,52 +81,64 @@ export const networkResourceDataSchema = z.object({
 export const quotaResourceDataSchema = z.record(z.string(), z.unknown())
 export type QuotaResourceData = z.infer<typeof quotaResourceDataSchema>
 
-export const quotaUsageSummarySchema = z.object({
-  periodStart: z.string(),
-  periodEnd: z.string(),
-  consumed: z.number(),
-  reserved: z.number(),
-  remaining: z.number(),
-  percent: z.number(),
-})
-export type QuotaUsageSummary = z.infer<typeof quotaUsageSummarySchema>
-
-export const quotaPolicyResponseSchema = z.object({
-  id: z.string(),
+export const quotaRecordResponseSchema = z.object({
+  id: z.string().nullable(),
+  ruleId: z.string(),
   teamId: z.string(),
-  scopeType: quotaScopeTypeSchema,
-  role: quotaRoleSchema.nullable().optional(),
   userId: z.string().nullable().optional(),
   user: z
     .object({
       id: z.string(),
       name: z.string(),
       email: z.string(),
+      image: z.string().nullable().optional(),
     })
     .nullable()
     .optional(),
+  periodStart: z.string().nullable().optional(),
+  periodEnd: z.string().nullable().optional(),
+  consumed: z.number(),
+  reserved: z.number(),
+  remaining: z.number(),
+  percent: z.number(),
+  isWindowActive: z.boolean(),
+})
+export type QuotaRecordResponse = z.infer<typeof quotaRecordResponseSchema>
+
+export const listQuotaRecordsResponseSchema = z.object({
+  records: z.array(quotaRecordResponseSchema),
+  total: z.number(),
+})
+export type ListQuotaRecordsResponse = z.infer<typeof listQuotaRecordsResponseSchema>
+
+export const quotaRuleResponseSchema = z.object({
+  id: z.string(),
+  teamId: z.string(),
+  scopeMode: quotaScopeModeSchema,
+  role: quotaRoleSchema.nullable().optional(),
+  userIds: z.array(z.string()).nullable().optional(),
   resource: quotaResourceTypeSchema,
   resourceData: quotaResourceDataSchema.nullable().optional(),
   limit: z.number(),
   period: quotaPeriodSchema,
   enabled: z.boolean(),
+  recordsCount: z.number().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
-  usage: quotaUsageSummarySchema.nullable().optional(),
 })
-export type QuotaPolicyResponse = z.infer<typeof quotaPolicyResponseSchema>
+export type QuotaRuleResponse = z.infer<typeof quotaRuleResponseSchema>
 
-export const listQuotaPoliciesResponseSchema = z.object({
-  policies: z.array(quotaPolicyResponseSchema),
+export const listQuotaRulesResponseSchema = z.object({
+  rules: z.array(quotaRuleResponseSchema),
   total: z.number(),
 })
-export type ListQuotaPoliciesResponse = z.infer<typeof listQuotaPoliciesResponseSchema>
+export type ListQuotaRulesResponse = z.infer<typeof listQuotaRulesResponseSchema>
 
-export const createQuotaPolicyRequestSchema = z
+export const createQuotaRuleRequestSchema = z
   .object({
-    scopeType: quotaScopeTypeSchema,
+    scopeMode: quotaScopeModeSchema,
     role: quotaRoleSchema.optional().nullable(),
-    userId: z.string().optional().nullable(),
+    userIds: z.array(z.string()).optional().nullable(),
     resource: quotaResourceTypeSchema,
     resourceData: quotaResourceDataSchema.optional().nullable(),
     limit: z.number().positive('Limit must be greater than 0'),
@@ -134,19 +146,14 @@ export const createQuotaPolicyRequestSchema = z
     enabled: z.boolean().optional().default(true),
   })
   .superRefine((data, ctx) => {
-    if (data.scopeType === 'role' && !data.role) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'role is required when scopeType is "role"',
-        path: ['role'],
-      })
-    }
-    if (data.scopeType === 'user' && !data.userId) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'userId is required when scopeType is "user"',
-        path: ['userId'],
-      })
+    if (data.scopeMode === 'selected_members') {
+      if (!data.userIds || data.userIds.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'userIds must contain at least one user when scopeMode is "selected_members"',
+          path: ['userIds'],
+        })
+      }
     }
     if (data.resource === 'agent_skill_call_count') {
       const res = skillResourceDataSchema.safeParse(data.resourceData)
@@ -186,13 +193,13 @@ export const createQuotaPolicyRequestSchema = z
       }
     }
   })
-export type CreateQuotaPolicyRequest = z.input<typeof createQuotaPolicyRequestSchema>
+export type CreateQuotaRuleRequest = z.input<typeof createQuotaRuleRequestSchema>
 
-export const updateQuotaPolicyRequestSchema = z
+export const updateQuotaRuleRequestSchema = z
   .object({
-    scopeType: quotaScopeTypeSchema.optional(),
+    scopeMode: quotaScopeModeSchema.optional(),
     role: quotaRoleSchema.optional().nullable(),
-    userId: z.string().optional().nullable(),
+    userIds: z.array(z.string()).optional().nullable(),
     resource: quotaResourceTypeSchema.optional(),
     resourceData: quotaResourceDataSchema.optional().nullable(),
     limit: z.number().positive('Limit must be greater than 0').optional(),
@@ -200,19 +207,14 @@ export const updateQuotaPolicyRequestSchema = z
     enabled: z.boolean().optional(),
   })
   .superRefine((data, ctx) => {
-    if (data.scopeType === 'role' && data.role === null) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'role cannot be null when scopeType is "role"',
-        path: ['role'],
-      })
-    }
-    if (data.scopeType === 'user' && data.userId === null) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'userId cannot be null when scopeType is "user"',
-        path: ['userId'],
-      })
+    if (data.scopeMode === 'selected_members' && data.userIds !== undefined) {
+      if (!data.userIds || data.userIds.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'userIds must contain at least one user when scopeMode is "selected_members"',
+          path: ['userIds'],
+        })
+      }
     }
     if (data.resource === 'agent_skill_call_count' && data.resourceData !== undefined) {
       const res = skillResourceDataSchema.safeParse(data.resourceData)
@@ -252,4 +254,4 @@ export const updateQuotaPolicyRequestSchema = z
       }
     }
   })
-export type UpdateQuotaPolicyRequest = z.input<typeof updateQuotaPolicyRequestSchema>
+export type UpdateQuotaRuleRequest = z.input<typeof updateQuotaRuleRequestSchema>

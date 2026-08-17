@@ -173,13 +173,13 @@ export const WatermarkFileStatus = {
 export type WatermarkFileStatus = (typeof WatermarkFileStatus)[keyof typeof WatermarkFileStatus]
 
 
-export const QuotaScopeType = {
-  team: 'team',
-  role: 'role',
-  user: 'user'
+export const QuotaScopeMode = {
+  all_members: 'all_members',
+  each_member: 'each_member',
+  selected_members: 'selected_members'
 } as const
 
-export type QuotaScopeType = (typeof QuotaScopeType)[keyof typeof QuotaScopeType]
+export type QuotaScopeMode = (typeof QuotaScopeMode)[keyof typeof QuotaScopeMode]
 
 
 export const QuotaPeriod = {

@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/ui/
 import { Button } from '@/ui/components/ui/button'
 import { Badge } from '@/ui/components/ui/badge'
 import { Switch } from '@/ui/components/ui/switch'
-import { Progress } from '@/ui/components/ui/progress'
 import { ScrollArea } from '@/ui/components/ui/scroll-area'
 import {
   DropdownMenu,
@@ -42,12 +41,14 @@ import {
   User,
   Clock,
   Activity,
+  Eye,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { m } from '@/ui/paraglide/messages.js'
-import type { QuotaPolicyResponse, QuotaResourceTypeEnum } from '@shumai/dtos'
+import type { QuotaRuleResponse, QuotaResourceTypeEnum } from '@shumai/dtos'
 import { formatQuotaPeriod } from '@shumai/dtos'
 import { QuotaRuleDialog } from './QuotaRuleDialog'
+import { QuotaUsageRecordsDialog } from './QuotaUsageRecordsDialog'
 
 interface QuotasSettingsProps {
   teamId: string
@@ -117,10 +118,11 @@ function formatResourceValue(resource: QuotaResourceTypeEnum, val: number): stri
 export const QuotasSettings: React.FC<QuotasSettingsProps> = ({ teamId }) => {
   const queryClient = useQueryClient()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [selectedPolicy, setSelectedPolicy] = useState<QuotaPolicyResponse | null>(null)
-  const [deletingPolicy, setDeletingPolicy] = useState<QuotaPolicyResponse | null>(null)
+  const [selectedRule, setSelectedRule] = useState<QuotaRuleResponse | null>(null)
+  const [viewingUsageRule, setViewingUsageRule] = useState<QuotaRuleResponse | null>(null)
+  const [deletingRule, setDeletingRule] = useState<QuotaRuleResponse | null>(null)
 
-  // Fetch policies
+  // Fetch quota rules
   const { data, isLoading } = useQuery({
     queryKey: ['teams', teamId, 'quotas'],
     queryFn: async () => {
@@ -149,7 +151,7 @@ export const QuotasSettings: React.FC<QuotasSettingsProps> = ({ teamId }) => {
     },
   })
 
-  // Delete policy mutation
+  // Delete rule mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const res = await client.api.teams[':teamId'].quotas[':id'].$delete({
@@ -160,14 +162,14 @@ export const QuotasSettings: React.FC<QuotasSettingsProps> = ({ teamId }) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'quotas'] })
       toast.success(m.quota_deleted_successfully())
-      setDeletingPolicy(null)
+      setDeletingRule(null)
     },
     onError: (err) => {
       toast.error(err instanceof Error ? err.message : m.failed_to_delete_quota())
     },
   })
 
-  const policies = data?.policies || []
+  const rules: QuotaRuleResponse[] = data?.rules || []
 
   return (
     <ScrollArea className="h-full">
@@ -193,7 +195,7 @@ export const QuotasSettings: React.FC<QuotasSettingsProps> = ({ teamId }) => {
               <div className="flex justify-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
               </div>
-            ) : policies.length === 0 ? (
+            ) : rules.length === 0 ? (
               <div className="text-center py-12 border-2 border-dashed border-border rounded-xl">
                 <div className="mx-auto w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-4 text-muted-foreground">
                   <Gauge className="w-6 h-6" />
@@ -210,27 +212,19 @@ export const QuotasSettings: React.FC<QuotasSettingsProps> = ({ teamId }) => {
               </div>
             ) : (
               <div className="flex flex-col gap-4">
-                {policies.map((policy) => {
-                  const meta = RESOURCE_META[policy.resource]
+                {rules.map((rule) => {
+                  const meta = RESOURCE_META[rule.resource]
                   const Icon = meta?.icon || Activity
-                  const consumed = policy.usage?.consumed ?? 0
-                  const reserved = policy.usage?.reserved ?? 0
-                  const totalUsed = consumed + reserved
-                  const percent =
-                    policy.usage?.percent ??
-                    (policy.limit > 0 ? Number(((totalUsed / policy.limit) * 100).toFixed(1)) : 0)
-                  const isOverLimit = percent >= 100
-                  const resData = (policy.resourceData as Record<string, unknown> | null) || {}
+                  const resData = (rule.resourceData as Record<string, unknown> | null) || {}
 
                   return (
                     <div
-                      key={policy.id}
-                      onClick={() => setSelectedPolicy(policy)}
-                      className={`group relative flex flex-col justify-between p-5 rounded-xl border bg-card text-card-foreground shadow-xs transition-all hover:border-primary/50 hover:shadow-md cursor-pointer ${
-                        !policy.enabled ? 'opacity-60 bg-muted/20' : ''
+                      key={rule.id}
+                      className={`group relative flex flex-col justify-between p-5 rounded-xl border bg-card text-card-foreground shadow-2xs transition-all hover:border-primary/40 hover:shadow-xs ${
+                        !rule.enabled ? 'opacity-60 bg-muted/20' : ''
                       }`}
                     >
-                      {/* Top Row: Resource, Scope, Period & Switch */}
+                      {/* Top Row: Resource, Details, Switch, Actions */}
                       <div className="space-y-3">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-3">
@@ -239,20 +233,20 @@ export const QuotasSettings: React.FC<QuotasSettingsProps> = ({ teamId }) => {
                             </div>
                             <div>
                               <div className="font-semibold text-base text-foreground group-hover:text-primary transition-colors flex items-center gap-2">
-                                <span>{meta?.label ? meta.label() : policy.resource}</span>
+                                <span>{meta?.label ? meta.label() : rule.resource}</span>
                               </div>
                               {/* Subtitle / target details */}
                               <div className="text-xs text-muted-foreground line-clamp-1">
-                                {policy.resource === 'agent_skill_call_count' && (
+                                {rule.resource === 'agent_skill_call_count' && (
                                   <span>Skill: {String(resData.id || '')}</span>
                                 )}
-                                {policy.resource === 'agent_mcp_call_count' && (
+                                {rule.resource === 'agent_mcp_call_count' && (
                                   <span>Server: {String(resData.id || '')}</span>
                                 )}
-                                {policy.resource === 'agent_bash_call_count' && (
+                                {rule.resource === 'agent_bash_call_count' && (
                                   <span>Match: {String(resData.match || '*')}</span>
                                 )}
-                                {policy.resource === 'agent_network_call_count' && (
+                                {rule.resource === 'agent_network_call_count' && (
                                   <span>Domain: {String(resData.domain || '*')}</span>
                                 )}
                               </div>
@@ -265,9 +259,9 @@ export const QuotasSettings: React.FC<QuotasSettingsProps> = ({ teamId }) => {
                             onClick={(e) => e.stopPropagation()}
                           >
                             <Switch
-                              checked={policy.enabled}
+                              checked={rule.enabled}
                               onCheckedChange={(checked) =>
-                                toggleMutation.mutate({ id: policy.id, enabled: checked })
+                                toggleMutation.mutate({ id: rule.id, enabled: checked })
                               }
                               disabled={toggleMutation.isPending}
                             />
@@ -276,19 +270,20 @@ export const QuotasSettings: React.FC<QuotasSettingsProps> = ({ teamId }) => {
                                 <Button
                                   variant="ghost"
                                   size="icon"
+                                  aria-label="Quota actions"
                                   className="h-8 w-8 text-muted-foreground hover:text-foreground"
                                 >
                                   <MoreVertical className="w-4 h-4" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => setSelectedPolicy(policy)}>
+                                <DropdownMenuItem onClick={() => setSelectedRule(rule)}>
                                   <Edit2 className="w-4 h-4 mr-2" />
                                   {m.edit()}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                  onClick={() => setDeletingPolicy(policy)}
+                                  onClick={() => setDeletingRule(rule)}
                                   className="text-destructive focus:text-destructive"
                                 >
                                   <Trash2 className="w-4 h-4 mr-2" />
@@ -299,58 +294,58 @@ export const QuotasSettings: React.FC<QuotasSettingsProps> = ({ teamId }) => {
                           </div>
                         </div>
 
-                        {/* Badges Row */}
-                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                          {/* Scope badge */}
-                          {policy.scopeType === 'team' && (
-                            <Badge variant="secondary" className="gap-1 text-xs">
-                              <Users className="w-3 h-3" />
-                              {m.quota_scope_team()}
-                            </Badge>
-                          )}
-                          {policy.scopeType === 'role' && (
-                            <Badge variant="secondary" className="gap-1 text-xs">
-                              <UserCheck className="w-3 h-3" />
-                              {m.quota_scope_role()}: {policy.role}
-                            </Badge>
-                          )}
-                          {policy.scopeType === 'user' && (
-                            <Badge variant="secondary" className="gap-1 text-xs">
-                              <User className="w-3 h-3" />
-                              {policy.user?.name || policy.userId}
-                            </Badge>
-                          )}
+                        {/* Badges Row & View Usage Action */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/50">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {/* Scope Mode & Role badge */}
+                            {rule.scopeMode === 'all_members' && (
+                              <Badge variant="secondary" className="gap-1 text-xs">
+                                <Users className="w-3 h-3" />
+                                <span>
+                                  {m.quota_scope_mode_all_members()}
+                                  {rule.role ? ` (${rule.role})` : ` (${m.quota_scope_team()})`}
+                                </span>
+                              </Badge>
+                            )}
+                            {rule.scopeMode === 'each_member' && (
+                              <Badge variant="secondary" className="gap-1 text-xs">
+                                <User className="w-3 h-3" />
+                                <span>
+                                  {m.quota_scope_mode_each_member()}
+                                  {rule.role ? ` (${rule.role})` : ` (${m.quota_scope_team()})`}
+                                </span>
+                              </Badge>
+                            )}
+                            {rule.scopeMode === 'selected_members' && (
+                              <Badge variant="secondary" className="gap-1 text-xs">
+                                <UserCheck className="w-3 h-3" />
+                                <span>
+                                  {m.quota_scope_mode_selected_members()} (
+                                  {rule.userIds?.length || 0})
+                                </span>
+                              </Badge>
+                            )}
 
-                          {/* Period badge */}
-                          <Badge variant="outline" className="gap-1 text-xs">
-                            <Clock className="w-3 h-3" />
-                            {getPeriodLabel(policy.period)}
-                          </Badge>
-                        </div>
-                      </div>
+                            {/* Limit & Period badge */}
+                            <Badge variant="outline" className="gap-1 text-xs">
+                              <Clock className="w-3 h-3" />
+                              <span>
+                                {formatResourceValue(rule.resource, rule.limit)} {meta?.unit} /{' '}
+                                {getPeriodLabel(rule.period)}
+                              </span>
+                            </Badge>
+                          </div>
 
-                      {/* Bottom Usage Section */}
-                      <div className="mt-5 pt-4 border-t border-border/60 space-y-2">
-                        {/* Shadcn Progress */}
-                        <Progress value={Math.min(100, Math.max(0, percent))} className="h-2" />
-
-                        {/* 123 / 456 Text under progress bar */}
-                        <div className="flex items-center justify-between text-xs font-medium">
-                          <span
-                            className={
-                              isOverLimit ? 'text-destructive font-bold' : 'text-foreground'
-                            }
+                          {/* View Usage Button */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setViewingUsageRule(rule)}
+                            className="gap-1.5 text-xs h-7 px-2.5"
                           >
-                            {formatResourceValue(policy.resource, totalUsed)} /{' '}
-                            {formatResourceValue(policy.resource, policy.limit)} {meta?.unit}
-                          </span>
-                          <span
-                            className={
-                              isOverLimit ? 'text-destructive font-bold' : 'text-muted-foreground'
-                            }
-                          >
-                            {percent}%
-                          </span>
+                            <Eye className="w-3.5 h-3.5 text-primary" />
+                            <span>{m.quota_view_usage()}</span>
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -363,25 +358,37 @@ export const QuotasSettings: React.FC<QuotasSettingsProps> = ({ teamId }) => {
       </div>
 
       {/* Create / Edit Rule Dialog */}
-      {(isCreateOpen || !!selectedPolicy) && (
+      {(isCreateOpen || !!selectedRule) && (
         <QuotaRuleDialog
-          open={isCreateOpen || !!selectedPolicy}
+          open={isCreateOpen || !!selectedRule}
           onOpenChange={(open) => {
             if (!open) {
               setIsCreateOpen(false)
-              setSelectedPolicy(null)
+              setSelectedRule(null)
             }
           }}
           teamId={teamId}
-          policy={selectedPolicy}
+          rule={selectedRule}
+        />
+      )}
+
+      {/* View Usage Records Dialog */}
+      {!!viewingUsageRule && (
+        <QuotaUsageRecordsDialog
+          open={!!viewingUsageRule}
+          onOpenChange={(open) => {
+            if (!open) setViewingUsageRule(null)
+          }}
+          teamId={teamId}
+          rule={viewingUsageRule}
         />
       )}
 
       {/* Delete Confirmation Alert Dialog */}
       <AlertDialog
-        open={!!deletingPolicy}
+        open={!!deletingRule}
         onOpenChange={(open) => {
-          if (!open) setDeletingPolicy(null)
+          if (!open) setDeletingRule(null)
         }}
       >
         <AlertDialogContent>
@@ -394,8 +401,8 @@ export const QuotasSettings: React.FC<QuotasSettingsProps> = ({ teamId }) => {
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault()
-                if (deletingPolicy) {
-                  deleteMutation.mutate(deletingPolicy.id)
+                if (deletingRule) {
+                  deleteMutation.mutate(deletingRule.id)
                 }
               }}
               disabled={deleteMutation.isPending}

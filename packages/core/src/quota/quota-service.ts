@@ -1,10 +1,11 @@
-import { prisma, Prisma, type QuotaPolicy, type QuotaUsage } from '@shumai/db'
+import { prisma, Prisma, type QuotaRule, type QuotaRecord } from '@shumai/db'
 import {
-  type CreateQuotaPolicyRequest,
-  type ListQuotaPoliciesResponse,
-  type QuotaPolicyResponse,
-  type QuotaUsageSummary,
-  type UpdateQuotaPolicyRequest,
+  type CreateQuotaRuleRequest,
+  type ListQuotaRulesResponse,
+  type QuotaRuleResponse,
+  type ListQuotaRecordsResponse,
+  type QuotaRecordResponse,
+  type UpdateQuotaRuleRequest,
   normalizeQuotaPeriod,
   formatQuotaPeriod,
 } from '@shumai/dtos'
@@ -39,125 +40,105 @@ export class QuotaExceededError extends Error {
   }
 }
 
-type PolicyWithUser = QuotaPolicy & {
-  user?: { id: string; name: string; email: string } | null
+/* eslint-disable @typescript-eslint/naming-convention */
+interface RawQuotaRecord {
+  id: string
+  rule_id: string
+  team_id: string
+  user_id: string | null
+  period_start: Date | null
+  period_end: Date | null
+  consumed: number
+  reserved: number
 }
+/* eslint-enable @typescript-eslint/naming-convention */
 
 export class QuotaService {
   constructor(private readonly prismaClient: typeof prisma = prisma) {}
 
-  private mapPolicyToResponse(
-    policy: PolicyWithUser,
-    latestUsage?: QuotaUsage | null,
-  ): QuotaPolicyResponse {
-    let usage: QuotaUsageSummary | null = null
-
-    if (latestUsage) {
-      const now = new Date()
-      const isCurrent = now >= latestUsage.periodStart && now < latestUsage.periodEnd
-      if (isCurrent) {
-        const consumed = latestUsage.consumed
-        const reserved = latestUsage.reserved
-        const totalUsed = consumed + reserved
-        const remaining = Math.max(0, policy.limit - totalUsed)
-        const percent = policy.limit > 0 ? Math.min(100, (totalUsed / policy.limit) * 100) : 0
-
-        usage = {
-          periodStart: latestUsage.periodStart.toISOString(),
-          periodEnd: latestUsage.periodEnd.toISOString(),
-          consumed,
-          reserved,
-          remaining,
-          percent: Number(percent.toFixed(2)),
-        }
-      }
-    }
+  private mapRuleToResponse(rule: QuotaRule, recordsCount?: number): QuotaRuleResponse {
+    const userIds = Array.isArray(rule.userIds) ? (rule.userIds as string[]) : undefined
 
     return {
-      id: policy.id,
-      teamId: policy.teamId,
-      scopeType: policy.scopeType,
-      role: policy.role ?? undefined,
-      userId: policy.userId ?? undefined,
-      user: policy.user
-        ? {
-            id: policy.user.id,
-            name: policy.user.name,
-            email: policy.user.email,
-          }
-        : undefined,
-      resource: policy.resource,
-      resourceData: (policy.resourceData as Record<string, unknown> | null) ?? undefined,
-      limit: policy.limit,
-      period: formatQuotaPeriod(policy.period) as QuotaPolicyResponse['period'],
-      enabled: policy.enabled,
-      createdAt: policy.createdAt.toISOString(),
-      updatedAt: policy.updatedAt.toISOString(),
-      usage,
+      id: rule.id,
+      teamId: rule.teamId,
+      scopeMode: rule.scopeMode,
+      role: rule.role ?? undefined,
+      userIds,
+      resource: rule.resource,
+      resourceData: (rule.resourceData as Record<string, unknown> | null) ?? undefined,
+      limit: rule.limit,
+      period: formatQuotaPeriod(rule.period) as QuotaRuleResponse['period'],
+      enabled: rule.enabled,
+      recordsCount,
+      createdAt: rule.createdAt.toISOString(),
+      updatedAt: rule.updatedAt.toISOString(),
     }
   }
 
-  async createPolicy(teamId: string, req: CreateQuotaPolicyRequest): Promise<QuotaPolicyResponse> {
-    if (req.userId) {
-      const user = await this.prismaClient.user.findUnique({
-        where: { id: req.userId },
+  async createRule(teamId: string, req: CreateQuotaRuleRequest): Promise<QuotaRuleResponse> {
+    if (req.scopeMode === 'selected_members' && req.userIds && req.userIds.length > 0) {
+      const users = await this.prismaClient.user.findMany({
+        where: { id: { in: req.userIds } },
+        select: { id: true },
       })
-      if (!user) {
-        throw new HTTPException(404, { message: `User with ID ${req.userId} not found` })
+      if (users.length !== req.userIds.length) {
+        throw new HTTPException(400, {
+          message: 'One or more selected users were not found',
+        })
       }
     }
 
-    const policy = await this.prismaClient.quotaPolicy.create({
+    const rule = await this.prismaClient.quotaRule.create({
       data: {
         teamId,
-        scopeType: req.scopeType,
-        role: req.role ?? null,
-        userId: req.userId ?? null,
+        scopeMode: req.scopeMode,
+        role: req.scopeMode !== 'selected_members' ? (req.role ?? null) : null,
+        userIds:
+          req.scopeMode === 'selected_members' && req.userIds ? req.userIds : Prisma.JsonNull,
         resource: req.resource,
         resourceData: req.resourceData ?? Prisma.JsonNull,
         limit: req.limit,
         period: normalizeQuotaPeriod(req.period),
         enabled: req.enabled ?? true,
       },
-      include: {
-        user: {
-          select: { id: true, name: true, email: true },
-        },
-      },
     })
 
     quotaRuleCache.invalidate(teamId)
 
-    return this.mapPolicyToResponse(policy)
+    return this.mapRuleToResponse(rule, 0)
   }
 
-  async updatePolicy(
+  async updateRule(
     teamId: string,
-    policyId: string,
-    req: UpdateQuotaPolicyRequest,
-  ): Promise<QuotaPolicyResponse> {
-    const existing = await this.prismaClient.quotaPolicy.findUnique({
-      where: { id: policyId },
+    ruleId: string,
+    req: UpdateQuotaRuleRequest,
+  ): Promise<QuotaRuleResponse> {
+    const existing = await this.prismaClient.quotaRule.findUnique({
+      where: { id: ruleId },
     })
 
     if (!existing || existing.teamId !== teamId) {
-      throw new HTTPException(404, { message: 'Quota policy not found' })
+      throw new HTTPException(404, { message: 'Quota rule not found' })
     }
 
-    if (req.userId) {
-      const user = await this.prismaClient.user.findUnique({
-        where: { id: req.userId },
-      })
-      if (!user) {
-        throw new HTTPException(404, { message: `User with ID ${req.userId} not found` })
+    const data: Prisma.QuotaRuleUpdateInput = {}
+    if (req.scopeMode !== undefined) data.scopeMode = req.scopeMode
+    if (req.role !== undefined) {
+      data.role = req.role
+    }
+    if (req.userIds !== undefined) {
+      data.userIds = req.userIds ?? Prisma.JsonNull
+
+      // Clean up records for removed users if updating userIds
+      if (req.userIds) {
+        await this.prismaClient.quotaRecord.deleteMany({
+          where: {
+            ruleId,
+            userId: { notIn: req.userIds },
+          },
+        })
       }
-    }
-
-    const data: Prisma.QuotaPolicyUpdateInput = {}
-    if (req.scopeType !== undefined) data.scopeType = req.scopeType
-    if (req.role !== undefined) data.role = req.role
-    if (req.userId !== undefined) {
-      data.user = req.userId ? { connect: { id: req.userId } } : { disconnect: true }
     }
     if (req.resource !== undefined) data.resource = req.resource
     if (req.resourceData !== undefined) {
@@ -167,95 +148,214 @@ export class QuotaService {
     if (req.period !== undefined) data.period = normalizeQuotaPeriod(req.period)
     if (req.enabled !== undefined) data.enabled = req.enabled
 
-    const updated = await this.prismaClient.quotaPolicy.update({
-      where: { id: policyId },
+    const updated = await this.prismaClient.quotaRule.update({
+      where: { id: ruleId },
       data,
-      include: {
-        user: {
-          select: { id: true, name: true, email: true },
-        },
-      },
     })
 
     quotaRuleCache.invalidate(teamId)
 
-    const latestUsage = await this.prismaClient.quotaUsage.findFirst({
-      where: { policyId },
-      orderBy: { periodEnd: 'desc' },
+    const recordsCount = await this.prismaClient.quotaRecord.count({
+      where: { ruleId },
     })
 
-    return this.mapPolicyToResponse(updated, latestUsage)
+    return this.mapRuleToResponse(updated, recordsCount)
   }
 
-  async deletePolicy(teamId: string, policyId: string): Promise<void> {
-    const existing = await this.prismaClient.quotaPolicy.findUnique({
-      where: { id: policyId },
+  async deleteRule(teamId: string, ruleId: string): Promise<void> {
+    const existing = await this.prismaClient.quotaRule.findUnique({
+      where: { id: ruleId },
     })
 
     if (!existing || existing.teamId !== teamId) {
-      throw new HTTPException(404, { message: 'Quota policy not found' })
+      throw new HTTPException(404, { message: 'Quota rule not found' })
     }
 
-    await this.prismaClient.quotaPolicy.delete({
-      where: { id: policyId },
+    await this.prismaClient.quotaRule.delete({
+      where: { id: ruleId },
     })
 
     quotaRuleCache.invalidate(teamId)
   }
 
-  async getPolicy(teamId: string, policyId: string): Promise<QuotaPolicyResponse> {
-    const policy = await this.prismaClient.quotaPolicy.findUnique({
-      where: { id: policyId },
-      include: {
-        user: {
-          select: { id: true, name: true, email: true },
-        },
-      },
+  async getRule(teamId: string, ruleId: string): Promise<QuotaRuleResponse> {
+    const rule = await this.prismaClient.quotaRule.findUnique({
+      where: { id: ruleId },
     })
 
-    if (!policy || policy.teamId !== teamId) {
-      throw new HTTPException(404, { message: 'Quota policy not found' })
+    if (!rule || rule.teamId !== teamId) {
+      throw new HTTPException(404, { message: 'Quota rule not found' })
     }
 
-    const latestUsage = await this.prismaClient.quotaUsage.findFirst({
-      where: { policyId },
-      orderBy: { periodEnd: 'desc' },
+    const recordsCount = await this.prismaClient.quotaRecord.count({
+      where: { ruleId },
     })
 
-    return this.mapPolicyToResponse(policy, latestUsage)
+    return this.mapRuleToResponse(rule, recordsCount)
   }
 
-  async listPolicies(teamId: string): Promise<ListQuotaPoliciesResponse> {
-    const policies = await this.prismaClient.quotaPolicy.findMany({
+  async listRules(teamId: string): Promise<ListQuotaRulesResponse> {
+    const rules = await this.prismaClient.quotaRule.findMany({
       where: { teamId },
       orderBy: { id: 'desc' },
-      include: {
-        user: {
-          select: { id: true, name: true, email: true },
-        },
-      },
     })
 
-    const policyResponses = await Promise.all(
-      policies.map(async (policy) => {
-        const latestUsage = await this.prismaClient.quotaUsage.findFirst({
-          where: { policyId: policy.id },
-          orderBy: { periodEnd: 'desc' },
+    const ruleResponses = await Promise.all(
+      rules.map(async (rule) => {
+        const recordsCount = await this.prismaClient.quotaRecord.count({
+          where: { ruleId: rule.id },
         })
-        return this.mapPolicyToResponse(policy, latestUsage)
+        return this.mapRuleToResponse(rule, recordsCount)
       }),
     )
 
     return {
-      policies: policyResponses,
-      total: policyResponses.length,
+      rules: ruleResponses,
+      total: ruleResponses.length,
+    }
+  }
+
+  async listRuleRecords(teamId: string, ruleId: string): Promise<ListQuotaRecordsResponse> {
+    const rule = await this.prismaClient.quotaRule.findUnique({
+      where: { id: ruleId },
+    })
+
+    if (!rule || rule.teamId !== teamId) {
+      throw new HTTPException(404, { message: 'Quota rule not found' })
+    }
+
+    const now = new Date()
+
+    if (rule.scopeMode === 'all_members') {
+      const record = await this.prismaClient.quotaRecord.findFirst({
+        where: { ruleId: rule.id, userId: null },
+      })
+
+      const isWindowActive = Boolean(
+        record?.periodStart &&
+        record?.periodEnd &&
+        now >= record.periodStart &&
+        now < record.periodEnd,
+      )
+
+      const consumed = isWindowActive ? (record?.consumed ?? 0) : 0
+      const reserved = isWindowActive ? (record?.reserved ?? 0) : 0
+      const totalUsed = consumed + reserved
+      const remaining = Math.max(0, rule.limit - totalUsed)
+      const percent =
+        rule.limit > 0 ? Math.min(100, Number(((totalUsed / rule.limit) * 100).toFixed(2))) : 0
+
+      const res: QuotaRecordResponse = {
+        id: record?.id ?? null,
+        ruleId: rule.id,
+        teamId: rule.teamId,
+        userId: null,
+        user: null,
+        periodStart:
+          isWindowActive && record?.periodStart ? record.periodStart.toISOString() : null,
+        periodEnd: isWindowActive && record?.periodEnd ? record.periodEnd.toISOString() : null,
+        consumed,
+        reserved,
+        remaining,
+        percent,
+        isWindowActive,
+      }
+
+      return {
+        records: [res],
+        total: 1,
+      }
+    }
+
+    // For each_member or selected_members
+    type MemberTarget = { id: string; name: string; email: string; image?: string | null }
+    let targetUsers: MemberTarget[] = []
+
+    if (rule.scopeMode === 'selected_members') {
+      const userIds = Array.isArray(rule.userIds) ? (rule.userIds as string[]) : []
+      if (userIds.length > 0) {
+        targetUsers = await this.prismaClient.user.findMany({
+          where: { id: { in: userIds } },
+          select: { id: true, name: true, email: true, image: true },
+        })
+      }
+    } else {
+      // each_member
+      const memberWhere: Prisma.TeamMemberWhereInput = { teamId }
+      if (rule.role) {
+        memberWhere.role = rule.role
+      }
+      const members = await this.prismaClient.teamMember.findMany({
+        where: memberWhere,
+        include: {
+          user: {
+            select: { id: true, name: true, email: true, image: true },
+          },
+        },
+      })
+      targetUsers = members.map((m) => m.user)
+    }
+
+    const existingRecords = await this.prismaClient.quotaRecord.findMany({
+      where: {
+        ruleId: rule.id,
+        userId: { in: targetUsers.map((u) => u.id) },
+      },
+    })
+
+    const recordByUserId = new Map<string, QuotaRecord>()
+    for (const r of existingRecords) {
+      if (r.userId) recordByUserId.set(r.userId, r)
+    }
+
+    const records: QuotaRecordResponse[] = targetUsers.map((user) => {
+      const record = recordByUserId.get(user.id)
+      const isWindowActive = Boolean(
+        record?.periodStart &&
+        record?.periodEnd &&
+        now >= record.periodStart &&
+        now < record.periodEnd,
+      )
+
+      const consumed = isWindowActive ? (record?.consumed ?? 0) : 0
+      const reserved = isWindowActive ? (record?.reserved ?? 0) : 0
+      const totalUsed = consumed + reserved
+      const remaining = Math.max(0, rule.limit - totalUsed)
+      const percent =
+        rule.limit > 0 ? Math.min(100, Number(((totalUsed / rule.limit) * 100).toFixed(2))) : 0
+
+      return {
+        id: record?.id ?? null,
+        ruleId: rule.id,
+        teamId: rule.teamId,
+        userId: user.id,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image ?? null,
+        },
+        periodStart:
+          isWindowActive && record?.periodStart ? record.periodStart.toISOString() : null,
+        periodEnd: isWindowActive && record?.periodEnd ? record.periodEnd.toISOString() : null,
+        consumed,
+        reserved,
+        remaining,
+        percent,
+        isWindowActive,
+      }
+    })
+
+    return {
+      records,
+      total: records.length,
     }
   }
 
   /**
-   * Evaluates whether an action is permitted under all active matching quota policies.
-   * Performs an "add 0" or "add amount" pre-check.
-   * Throws QuotaExceededError if any matching policy is exceeded.
+   * Evaluates whether an action is permitted under all active matching quota rules.
+   * Performs an atomic pre-check with SELECT ... FOR UPDATE.
+   * Throws QuotaExceededError if any matching rule is exceeded.
    */
   async checkQuota(
     event: QuotaEvent,
@@ -269,47 +369,57 @@ export class QuotaService {
     const now = new Date()
 
     for (const rule of rules) {
-      const targetUserId = rule.scopeType === 'team' ? null : (event.userId ?? null)
+      const targetUserId = rule.getTargetUserId(event)
 
-      const latestUsage = await this.prismaClient.quotaUsage.findFirst({
-        where: {
-          policyId: rule.id,
-          userId: targetUserId,
-        },
-        orderBy: { periodEnd: 'desc' },
-      })
+      await this.prismaClient.$transaction(async (tx) => {
+        const rawRecord = targetUserId
+          ? ((
+              await tx.$queryRaw<RawQuotaRecord[]>`
+                SELECT * FROM quota_records
+                WHERE rule_id = ${rule.id} AND user_id = ${targetUserId}
+                FOR UPDATE
+              `
+            )[0] ?? null)
+          : ((
+              await tx.$queryRaw<RawQuotaRecord[]>`
+                SELECT * FROM quota_records
+                WHERE rule_id = ${rule.id} AND user_id IS NULL
+                FOR UPDATE
+              `
+            )[0] ?? null)
 
-      if (latestUsage && now >= latestUsage.periodStart && now < latestUsage.periodEnd) {
-        if (latestUsage.consumed + latestUsage.reserved + amount > rule.limit) {
+        const isWindowActive = Boolean(
+          rawRecord?.period_start &&
+          rawRecord?.period_end &&
+          now >= rawRecord.period_start &&
+          now < rawRecord.period_end,
+        )
+
+        const consumed = isWindowActive ? (rawRecord?.consumed ?? 0) : 0
+        const reserved = isWindowActive ? (rawRecord?.reserved ?? 0) : 0
+        const periodEnd = isWindowActive
+          ? rawRecord!.period_end!
+          : new Date(now.getTime() + rule.periodDurationMs)
+
+        if (consumed + reserved + amount > rule.limit) {
           throw new QuotaExceededError({
             policyId: rule.id,
             resource: rule.resource,
             limit: rule.limit,
-            consumed: latestUsage.consumed,
-            periodEnd: latestUsage.periodEnd,
-          })
-        }
-      } else {
-        // Window expired or not started yet: usage in fresh window is 0 + amount
-        if (amount > rule.limit) {
-          const periodEnd = new Date(now.getTime() + rule.periodDurationMs)
-          throw new QuotaExceededError({
-            policyId: rule.id,
-            resource: rule.resource,
-            limit: rule.limit,
-            consumed: 0,
+            consumed,
             periodEnd,
           })
         }
-      }
+      })
     }
 
     return { allowed: true, matchedRules: rules }
   }
 
   /**
-   * Records consumed usage across all matching quota policies.
-   * Creates a new period window if no active window exists or if the current window has expired.
+   * Records consumed usage across all matching quota rules.
+   * Lazy resets the period window in-place when previous window has expired.
+   * Uses SELECT ... FOR UPDATE inside transactions for atomic concurrency protection.
    */
   async consumeQuota(event: QuotaEvent, amount: number): Promise<void> {
     if (amount <= 0) return
@@ -320,39 +430,68 @@ export class QuotaService {
     const now = new Date()
 
     for (const rule of rules) {
-      const targetUserId = rule.scopeType === 'team' ? null : (event.userId ?? null)
+      const targetUserId = rule.getTargetUserId(event)
 
-      const latestUsage = await this.prismaClient.quotaUsage.findFirst({
-        where: {
-          policyId: rule.id,
-          userId: targetUserId,
-        },
-        orderBy: { periodEnd: 'desc' },
+      await this.prismaClient.$transaction(async (tx) => {
+        const rawRecord = targetUserId
+          ? ((
+              await tx.$queryRaw<RawQuotaRecord[]>`
+                SELECT * FROM quota_records
+                WHERE rule_id = ${rule.id} AND user_id = ${targetUserId}
+                FOR UPDATE
+              `
+            )[0] ?? null)
+          : ((
+              await tx.$queryRaw<RawQuotaRecord[]>`
+                SELECT * FROM quota_records
+                WHERE rule_id = ${rule.id} AND user_id IS NULL
+                FOR UPDATE
+              `
+            )[0] ?? null)
+
+        const isWindowActive = Boolean(
+          rawRecord?.period_start &&
+          rawRecord?.period_end &&
+          now >= rawRecord.period_start &&
+          now < rawRecord.period_end,
+        )
+
+        if (isWindowActive && rawRecord) {
+          await tx.quotaRecord.update({
+            where: { id: rawRecord.id },
+            data: {
+              consumed: { increment: amount },
+            },
+          })
+        } else {
+          const periodStart = now
+          const periodEnd = new Date(now.getTime() + rule.periodDurationMs)
+
+          if (rawRecord) {
+            await tx.quotaRecord.update({
+              where: { id: rawRecord.id },
+              data: {
+                periodStart,
+                periodEnd,
+                consumed: amount,
+                reserved: 0,
+              },
+            })
+          } else {
+            await tx.quotaRecord.create({
+              data: {
+                ruleId: rule.id,
+                teamId: rule.teamId,
+                userId: targetUserId,
+                periodStart,
+                periodEnd,
+                consumed: amount,
+                reserved: 0,
+              },
+            })
+          }
+        }
       })
-
-      if (latestUsage && now >= latestUsage.periodStart && now < latestUsage.periodEnd) {
-        await this.prismaClient.quotaUsage.update({
-          where: { id: latestUsage.id },
-          data: {
-            consumed: { increment: amount },
-          },
-        })
-      } else {
-        const periodStart = now
-        const periodEnd = new Date(now.getTime() + rule.periodDurationMs)
-
-        await this.prismaClient.quotaUsage.create({
-          data: {
-            policyId: rule.id,
-            teamId: rule.teamId,
-            userId: targetUserId,
-            periodStart,
-            periodEnd,
-            consumed: amount,
-            reserved: 0,
-          },
-        })
-      }
     }
   }
 }

@@ -45,59 +45,60 @@ describe('QuotaService', () => {
     quotaRuleCache.clear()
   })
 
-  it('creates, reads, updates, and deletes quota policies', async () => {
+  it('creates, reads, updates, and deletes quota rules', async () => {
     const team = await prisma.team.create({
       data: { name: 'Quota Team' },
     })
 
-    // Create policy
-    const policy = await quotaService.createPolicy(team.id, {
-      scopeType: 'team',
+    // Create rule
+    const rule = await quotaService.createRule(team.id, {
+      scopeMode: 'all_members',
       resource: 'agent_total_tokens',
       limit: 100000,
       period: '1hour',
       enabled: true,
     })
 
-    expect(policy.id).toBeDefined()
-    expect(policy.teamId).toBe(team.id)
-    expect(policy.limit).toBe(100000)
-    expect(policy.period).toBe('1hour')
+    expect(rule.id).toBeDefined()
+    expect(rule.teamId).toBe(team.id)
+    expect(rule.scopeMode).toBe('all_members')
+    expect(rule.limit).toBe(100000)
+    expect(rule.period).toBe('1hour')
 
-    // Get policy
-    const fetched = await quotaService.getPolicy(team.id, policy.id)
-    expect(fetched.id).toBe(policy.id)
+    // Get rule
+    const fetched = await quotaService.getRule(team.id, rule.id)
+    expect(fetched.id).toBe(rule.id)
     expect(fetched.limit).toBe(100000)
 
-    // List policies
-    const list = await quotaService.listPolicies(team.id)
+    // List rules
+    const list = await quotaService.listRules(team.id)
     expect(list.total).toBe(1)
-    expect(list.policies[0].id).toBe(policy.id)
+    expect(list.rules[0].id).toBe(rule.id)
 
-    // Update policy
-    const updated = await quotaService.updatePolicy(team.id, policy.id, {
+    // Update rule
+    const updated = await quotaService.updateRule(team.id, rule.id, {
       limit: 200000,
       enabled: false,
     })
     expect(updated.limit).toBe(200000)
     expect(updated.enabled).toBe(false)
 
-    // Delete policy
-    await quotaService.deletePolicy(team.id, policy.id)
-    const afterDelete = await quotaService.listPolicies(team.id)
+    // Delete rule
+    await quotaService.deleteRule(team.id, rule.id)
+    const afterDelete = await quotaService.listRules(team.id)
     expect(afterDelete.total).toBe(0)
   })
 
-  it('validates user and role on policy creation', async () => {
+  it('validates selected members on rule creation', async () => {
     const team = await prisma.team.create({
       data: { name: 'Quota Team' },
     })
 
-    // Missing user should throw 404
+    // Missing user should throw 400
     await expect(
-      quotaService.createPolicy(team.id, {
-        scopeType: 'user',
-        userId: 'non-existent-user-id',
+      quotaService.createRule(team.id, {
+        scopeMode: 'selected_members',
+        userIds: ['non-existent-user-id'],
         resource: 'agent_cost',
         limit: 10,
         period: '1day',
@@ -105,13 +106,13 @@ describe('QuotaService', () => {
     ).rejects.toThrow()
   })
 
-  it('enforces optimistic check and consumes quota for team scope', async () => {
+  it('enforces check and consumes quota for all_members (shared pool)', async () => {
     const team = await prisma.team.create({
-      data: { name: 'Team Scope Quota' },
+      data: { name: 'Shared Quota Team' },
     })
 
-    await quotaService.createPolicy(team.id, {
-      scopeType: 'team',
+    await quotaService.createRule(team.id, {
+      scopeMode: 'all_members',
       resource: 'agent_total_tokens',
       limit: 1000,
       period: '1hour',
@@ -180,9 +181,9 @@ describe('QuotaService', () => {
     ).rejects.toThrow(QuotaExceededError)
   })
 
-  it('enforces role scope independently for each role member', async () => {
+  it('enforces each_member scope independently for each member', async () => {
     const team = await prisma.team.create({
-      data: { name: 'Role Scope Team' },
+      data: { name: 'Each Member Team' },
     })
 
     const userAlice = await prisma.user.create({
@@ -193,9 +194,9 @@ describe('QuotaService', () => {
       data: { name: 'Bob', email: 'bob@example.com', password: 'pw' },
     })
 
-    // Create policy for editors with 5 skill calls per 1hour
-    await quotaService.createPolicy(team.id, {
-      scopeType: 'role',
+    // Create rule: each member with role editor gets 5 skill calls per 1hour
+    await quotaService.createRule(team.id, {
+      scopeMode: 'each_member',
       role: 'editor',
       resource: 'agent_skill_call_count',
       resourceData: { id: 'skill_1' },
@@ -246,7 +247,7 @@ describe('QuotaService', () => {
       ),
     ).resolves.toEqual(expect.objectContaining({ allowed: true }))
 
-    // Reviewer should not match editor policy
+    // Reviewer should not match editor rule
     const reviewerCheck = await quotaService.checkQuota(
       {
         teamId: team.id,
@@ -260,13 +261,69 @@ describe('QuotaService', () => {
     expect(reviewerCheck.matchedRules).toHaveLength(0)
   })
 
-  it('matches bash command wildcard policies', async () => {
+  it('enforces selected_members scope correctly', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'Selected Members Team' },
+    })
+
+    const userSelected = await prisma.user.create({
+      data: { name: 'Selected User', email: 'sel@example.com', password: 'pw' },
+    })
+
+    const userOther = await prisma.user.create({
+      data: { name: 'Other User', email: 'other@example.com', password: 'pw' },
+    })
+
+    await quotaService.createRule(team.id, {
+      scopeMode: 'selected_members',
+      userIds: [userSelected.id],
+      resource: 'agent_cost',
+      limit: 5,
+      period: '1day',
+      enabled: true,
+    })
+
+    // Selected user consumes 5
+    await quotaService.consumeQuota(
+      {
+        teamId: team.id,
+        userId: userSelected.id,
+        resource: 'agent_cost',
+      },
+      5,
+    )
+
+    // Selected user is blocked
+    await expect(
+      quotaService.checkQuota(
+        {
+          teamId: team.id,
+          userId: userSelected.id,
+          resource: 'agent_cost',
+        },
+        1,
+      ),
+    ).rejects.toThrow(QuotaExceededError)
+
+    // Other user does not match the rule -> allowed
+    const otherCheck = await quotaService.checkQuota(
+      {
+        teamId: team.id,
+        userId: userOther.id,
+        resource: 'agent_cost',
+      },
+      10,
+    )
+    expect(otherCheck.matchedRules).toHaveLength(0)
+  })
+
+  it('matches bash command wildcard rules', async () => {
     const team = await prisma.team.create({
       data: { name: 'Bash Quota Team' },
     })
 
-    await quotaService.createPolicy(team.id, {
-      scopeType: 'team',
+    await quotaService.createRule(team.id, {
+      scopeMode: 'all_members',
       resource: 'agent_bash_call_count',
       resourceData: { match: 'npm *' },
       limit: 2,
@@ -319,13 +376,13 @@ describe('QuotaService', () => {
     ).resolves.toEqual(expect.objectContaining({ allowed: true }))
   })
 
-  it('matches network domain wildcard policies', async () => {
+  it('matches network domain wildcard rules', async () => {
     const team = await prisma.team.create({
       data: { name: 'Network Quota Team' },
     })
 
-    await quotaService.createPolicy(team.id, {
-      scopeType: 'team',
+    await quotaService.createRule(team.id, {
+      scopeMode: 'all_members',
       resource: 'agent_network_call_count',
       resourceData: { domain: '*.googleapis.com' },
       limit: 1,
@@ -368,26 +425,26 @@ describe('QuotaService', () => {
     ).resolves.toEqual(expect.objectContaining({ allowed: true }))
   })
 
-  it('handles period window rollover and resets usage', async () => {
+  it('handles period window rollover and resets usage in-place with no history tables', async () => {
     const team = await prisma.team.create({
       data: { name: 'Window Rollover Team' },
     })
 
-    const policy = await quotaService.createPolicy(team.id, {
-      scopeType: 'team',
+    const rule = await quotaService.createRule(team.id, {
+      scopeMode: 'all_members',
       resource: 'agent_cost',
       limit: 10,
       period: '1hour',
       enabled: true,
     })
 
-    // Simulate an expired period by creating a past QuotaUsage
+    // Simulate an expired period by creating a past QuotaRecord
     const pastStart = new Date(Date.now() - 2 * 60 * 60 * 1000)
     const pastEnd = new Date(Date.now() - 1 * 60 * 60 * 1000)
 
-    await prisma.quotaUsage.create({
+    await prisma.quotaRecord.create({
       data: {
-        policyId: policy.id,
+        ruleId: rule.id,
         teamId: team.id,
         userId: null,
         periodStart: pastStart,
@@ -407,7 +464,7 @@ describe('QuotaService', () => {
       ),
     ).resolves.toEqual(expect.objectContaining({ allowed: true }))
 
-    // Consuming now starts a fresh window
+    // Consuming now resets the single record in-place
     await quotaService.consumeQuota(
       {
         teamId: team.id,
@@ -416,17 +473,67 @@ describe('QuotaService', () => {
       5,
     )
 
-    const usages = await prisma.quotaUsage.findMany({
-      where: { policyId: policy.id },
-      orderBy: { periodStart: 'desc' },
+    const records = await prisma.quotaRecord.findMany({
+      where: { ruleId: rule.id },
     })
 
-    // Preserves historical records (2 records total: past and current)
-    expect(usages).toHaveLength(2)
-    expect(usages[0].consumed).toBe(5)
+    // No extra history records (exactly 1 record row updated in place)
+    expect(records).toHaveLength(1)
+    expect(records[0].consumed).toBe(5)
   })
 
-  it('enforces multiple matching policies simultaneously', async () => {
+  it('lists rule records accurately with lazy reset status', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'Records List Team' },
+    })
+
+    const user = await prisma.user.create({
+      data: { name: 'Alice Member', email: 'alice.member@example.com', password: 'pw' },
+    })
+
+    await prisma.teamMember.create({
+      data: {
+        teamId: team.id,
+        userId: user.id,
+        role: 'editor',
+      },
+    })
+
+    const rule = await quotaService.createRule(team.id, {
+      scopeMode: 'each_member',
+      resource: 'agent_total_tokens',
+      limit: 50000,
+      period: '1day',
+      enabled: true,
+    })
+
+    // Before any usage: listRuleRecords returns member with consumed: 0, isWindowActive: false
+    const initialRecords = await quotaService.listRuleRecords(team.id, rule.id)
+    expect(initialRecords.total).toBe(1)
+    expect(initialRecords.records[0].userId).toBe(user.id)
+    expect(initialRecords.records[0].consumed).toBe(0)
+    expect(initialRecords.records[0].remaining).toBe(50000)
+    expect(initialRecords.records[0].isWindowActive).toBe(false)
+
+    // Consume 10000 tokens
+    await quotaService.consumeQuota(
+      {
+        teamId: team.id,
+        userId: user.id,
+        role: 'editor',
+        resource: 'agent_total_tokens',
+      },
+      10000,
+    )
+
+    // After usage: active window with consumed = 10000
+    const activeRecords = await quotaService.listRuleRecords(team.id, rule.id)
+    expect(activeRecords.records[0].consumed).toBe(10000)
+    expect(activeRecords.records[0].remaining).toBe(40000)
+    expect(activeRecords.records[0].isWindowActive).toBe(true)
+  })
+
+  it('enforces multiple matching rules simultaneously', async () => {
     const team = await prisma.team.create({
       data: { name: 'Multi Rule Team' },
     })
@@ -435,19 +542,19 @@ describe('QuotaService', () => {
       data: { name: 'Charlie', email: 'charlie@example.com', password: 'pw' },
     })
 
-    // Policy 1: Team overall token limit 10,000
-    await quotaService.createPolicy(team.id, {
-      scopeType: 'team',
+    // Rule 1: Team overall token limit 10,000 (all_members)
+    await quotaService.createRule(team.id, {
+      scopeMode: 'all_members',
       resource: 'agent_total_tokens',
       limit: 10000,
       period: '1day',
       enabled: true,
     })
 
-    // Policy 2: User specific token limit 2,000
-    await quotaService.createPolicy(team.id, {
-      scopeType: 'user',
-      userId: user.id,
+    // Rule 2: User specific token limit 2,000 (selected_members)
+    await quotaService.createRule(team.id, {
+      scopeMode: 'selected_members',
+      userIds: [user.id],
       resource: 'agent_total_tokens',
       limit: 2000,
       period: '1day',
@@ -464,7 +571,7 @@ describe('QuotaService', () => {
       2000,
     )
 
-    // Charlie is blocked by user policy (2000 limit reached)
+    // Charlie is blocked by user rule (2000 limit reached)
     await expect(
       quotaService.checkQuota(
         {
@@ -476,7 +583,7 @@ describe('QuotaService', () => {
       ),
     ).rejects.toThrow(QuotaExceededError)
 
-    // Another user in the same team is NOT blocked by Charlie's user limit, only by team limit
+    // Another user in the same team is NOT blocked by Charlie's limit, only by team limit
     const userDave = await prisma.user.create({
       data: { name: 'Dave', email: 'dave@example.com', password: 'pw' },
     })

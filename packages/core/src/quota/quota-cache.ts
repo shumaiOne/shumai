@@ -1,9 +1,9 @@
 import {
   prisma,
-  type QuotaPolicy,
+  type QuotaRule,
   type QuotaPeriod,
   type QuotaResourceType,
-  type QuotaScopeType,
+  type QuotaScopeMode,
   type TeamMemberRole,
 } from '@shumai/db'
 
@@ -26,9 +26,9 @@ export interface QuotaEvent {
 export interface CachedQuotaRule {
   id: string
   teamId: string
-  scopeType: QuotaScopeType
+  scopeMode: QuotaScopeMode
   role: TeamMemberRole | null
-  userId: string | null
+  userIds: string[] | null
   resource: QuotaResourceType
   resourceData: Record<string, unknown> | null
   limit: number
@@ -36,6 +36,7 @@ export interface CachedQuotaRule {
   periodDurationMs: number
   enabled: boolean
   matcher: (event: QuotaEvent) => boolean
+  getTargetUserId: (event: QuotaEvent) => string | null
 }
 
 export function periodToDurationMs(period: QuotaPeriod | string): number {
@@ -87,44 +88,49 @@ export function domainWildcardToRegex(pattern: string): RegExp {
   return new RegExp(`^${escaped}$`, 'i')
 }
 
-export function compileRule(policy: QuotaPolicy): CachedQuotaRule {
-  const periodDurationMs = periodToDurationMs(policy.period)
-  const resourceData = (policy.resourceData as Record<string, unknown> | null) ?? null
+export function compileRule(rule: QuotaRule): CachedQuotaRule {
+  const periodDurationMs = periodToDurationMs(rule.period)
+  const resourceData = (rule.resourceData as Record<string, unknown> | null) ?? null
+  const userIds = Array.isArray(rule.userIds) ? (rule.userIds as string[]) : null
 
   let bashMatcher: RegExp | null = null
   let domainMatcher: RegExp | null = null
 
-  if (policy.resource === 'agent_bash_call_count' && resourceData?.match) {
+  if (rule.resource === 'agent_bash_call_count' && resourceData?.match) {
     bashMatcher = wildcardToRegex(String(resourceData.match))
-  } else if (policy.resource === 'agent_network_call_count' && resourceData?.domain) {
+  } else if (rule.resource === 'agent_network_call_count' && resourceData?.domain) {
     domainMatcher = domainWildcardToRegex(String(resourceData.domain))
   }
 
   const matcher = (event: QuotaEvent): boolean => {
-    if (!policy.enabled) return false
-    if (event.teamId !== policy.teamId) return false
-    if (event.resource !== policy.resource) return false
+    if (!rule.enabled) return false
+    if (event.teamId !== rule.teamId) return false
+    if (event.resource !== rule.resource) return false
 
     // Scope check
-    if (policy.scopeType === 'role') {
-      if (!event.role || event.role !== policy.role) return false
-    } else if (policy.scopeType === 'user') {
-      if (!event.userId || event.userId !== policy.userId) return false
+    if (rule.scopeMode === 'all_members') {
+      if (rule.role && event.role !== rule.role) return false
+    } else if (rule.scopeMode === 'each_member') {
+      if (!event.userId) return false
+      if (rule.role && event.role !== rule.role) return false
+    } else if (rule.scopeMode === 'selected_members') {
+      if (!event.userId) return false
+      if (!userIds || !userIds.includes(event.userId)) return false
     }
 
     // Resource Data check
-    if (policy.resource === 'agent_skill_call_count') {
+    if (rule.resource === 'agent_skill_call_count') {
       const targetId = resourceData?.id ?? resourceData?.skillId
       const eventSkillId = event.resourceData?.skillId ?? event.resourceData?.id
       if (targetId && eventSkillId !== targetId) return false
-    } else if (policy.resource === 'agent_mcp_call_count') {
+    } else if (rule.resource === 'agent_mcp_call_count') {
       const targetId = resourceData?.id ?? resourceData?.mcpServerId
       const eventMcpId = event.resourceData?.mcpServerId ?? event.resourceData?.id
       if (targetId && eventMcpId !== targetId) return false
-    } else if (policy.resource === 'agent_bash_call_count' && bashMatcher) {
+    } else if (rule.resource === 'agent_bash_call_count' && bashMatcher) {
       const cmd = event.resourceData?.command ?? ''
       if (!bashMatcher.test(cmd)) return false
-    } else if (policy.resource === 'agent_network_call_count' && domainMatcher) {
+    } else if (rule.resource === 'agent_network_call_count' && domainMatcher) {
       const domain = event.resourceData?.domain ?? ''
       if (!domainMatcher.test(domain)) return false
     }
@@ -132,19 +138,27 @@ export function compileRule(policy: QuotaPolicy): CachedQuotaRule {
     return true
   }
 
+  const getTargetUserId = (event: QuotaEvent): string | null => {
+    if (rule.scopeMode === 'all_members') {
+      return null
+    }
+    return event.userId ?? null
+  }
+
   return {
-    id: policy.id,
-    teamId: policy.teamId,
-    scopeType: policy.scopeType,
-    role: policy.role,
-    userId: policy.userId,
-    resource: policy.resource,
+    id: rule.id,
+    teamId: rule.teamId,
+    scopeMode: rule.scopeMode,
+    role: rule.role,
+    userIds,
+    resource: rule.resource,
     resourceData,
-    limit: policy.limit,
-    period: policy.period,
+    limit: rule.limit,
+    period: rule.period,
     periodDurationMs,
-    enabled: policy.enabled,
+    enabled: rule.enabled,
     matcher,
+    getTargetUserId,
   }
 }
 
@@ -160,10 +174,10 @@ export class QuotaRuleCache {
   }
 
   async loadTeamRules(teamId: string): Promise<void> {
-    const policies = await prisma.quotaPolicy.findMany({
+    const rules = await prisma.quotaRule.findMany({
       where: { teamId, enabled: true },
     })
-    this.rulesByTeam.set(teamId, policies.map(compileRule))
+    this.rulesByTeam.set(teamId, rules.map(compileRule))
     this.loadedTeams.add(teamId)
   }
 
