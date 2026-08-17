@@ -154,7 +154,7 @@ enum QuotaResourceType {
   agent_skill_call_count
   agent_mcp_call_count
   agent_bash_call_count
-  agent_network_call_count
+  agent_tool_call_count
 }
 
 // ----------------------------------------------------------------------

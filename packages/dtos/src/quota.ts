@@ -74,9 +74,10 @@ export const bashResourceDataSchema = z.object({
   match: z.string().min(1, 'Bash match wildcard is required'),
 })
 
-export const networkResourceDataSchema = z.object({
-  domain: z.string().min(1, 'Network domain wildcard is required'),
+export const toolResourceDataSchema = z.object({
+  name: z.string().min(1, 'Tool name is required'),
 })
+export type ToolResourceData = z.infer<typeof toolResourceDataSchema>
 
 export const quotaResourceDataSchema = z.record(z.string(), z.unknown())
 export type QuotaResourceData = z.infer<typeof quotaResourceDataSchema>
@@ -182,13 +183,13 @@ export const createQuotaRuleRequestSchema = z
           path: ['resourceData', 'match'],
         })
       }
-    } else if (data.resource === 'agent_network_call_count') {
-      const res = networkResourceDataSchema.safeParse(data.resourceData)
+    } else if (data.resource === 'agent_tool_call_count') {
+      const res = toolResourceDataSchema.safeParse(data.resourceData)
       if (!res.success) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: 'resourceData.domain is required for agent_network_call_count',
-          path: ['resourceData', 'domain'],
+          message: 'resourceData.name is required for agent_tool_call_count',
+          path: ['resourceData', 'name'],
         })
       }
     }
@@ -243,13 +244,13 @@ export const updateQuotaRuleRequestSchema = z
           path: ['resourceData', 'match'],
         })
       }
-    } else if (data.resource === 'agent_network_call_count' && data.resourceData !== undefined) {
-      const res = networkResourceDataSchema.safeParse(data.resourceData)
+    } else if (data.resource === 'agent_tool_call_count' && data.resourceData !== undefined) {
+      const res = toolResourceDataSchema.safeParse(data.resourceData)
       if (!res.success) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: 'resourceData.domain is required for agent_network_call_count',
-          path: ['resourceData', 'domain'],
+          message: 'resourceData.name is required for agent_tool_call_count',
+          path: ['resourceData', 'name'],
         })
       }
     }

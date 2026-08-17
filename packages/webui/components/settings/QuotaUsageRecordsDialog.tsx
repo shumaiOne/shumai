@@ -19,7 +19,7 @@ import {
   Puzzle,
   Server,
   Terminal,
-  Globe,
+  Wrench,
   Loader2,
   Users,
   Search,
@@ -68,10 +68,10 @@ const RESOURCE_META: Record<
     icon: Terminal,
     unit: 'calls',
   },
-  agent_network_call_count: {
-    label: () => m.quota_resource_agent_network_call_count(),
-    icon: Globe,
-    unit: 'requests',
+  agent_tool_call_count: {
+    label: () => m.quota_resource_agent_tool_call_count(),
+    icon: Wrench,
+    unit: 'calls',
   },
 }
 /* eslint-enable @typescript-eslint/naming-convention */

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { quotaService, QuotaExceededError } from './quota-service'
-import { quotaRuleCache, wildcardToRegex, domainWildcardToRegex } from './quota-cache'
+import { quotaRuleCache, wildcardToRegex } from './quota-cache'
 
 describe('QuotaRuleCache Wildcard Matchers', () => {
   it('correctly matches bash command wildcards', () => {
@@ -20,21 +20,14 @@ describe('QuotaRuleCache Wildcard Matchers', () => {
     expect(exactRegex.test('rm -rf /')).toBe(false)
   })
 
-  it('correctly matches domain wildcards', () => {
-    const starDomain = domainWildcardToRegex('*')
-    expect(starDomain.test('api.github.com')).toBe(true)
-    expect(starDomain.test('google.com')).toBe(true)
+  it('correctly matches agent tool name wildcards', () => {
+    const starTool = wildcardToRegex('*')
+    expect(starTool.test('analyze_image')).toBe(true)
+    expect(starTool.test('screenshot')).toBe(true)
 
-    const googleDomain = domainWildcardToRegex('*.googleapis.com')
-    expect(googleDomain.test('storage.googleapis.com')).toBe(true)
-    expect(googleDomain.test('auth.googleapis.com')).toBe(true)
-    expect(googleDomain.test('googleapis.com')).toBe(true)
-    expect(googleDomain.test('google.com')).toBe(false)
-    expect(googleDomain.test('api.github.com')).toBe(false)
-
-    const exactDomain = domainWildcardToRegex('api.github.com')
-    expect(exactDomain.test('api.github.com')).toBe(true)
-    expect(exactDomain.test('github.com')).toBe(false)
+    const exactTool = wildcardToRegex('analyze_image')
+    expect(exactTool.test('analyze_image')).toBe(true)
+    expect(exactTool.test('screenshot')).toBe(false)
   })
 })
 
@@ -382,49 +375,49 @@ describe('QuotaService', () => {
     ).resolves.toEqual(expect.objectContaining({ allowed: true }))
   })
 
-  it('matches network domain wildcard rules', async () => {
+  it('matches agent tool call rules and wildcards', async () => {
     const team = await prisma.team.create({
-      data: { name: 'Network Quota Team' },
+      data: { name: 'Tool Quota Team' },
     })
 
     await quotaService.createRule(team.id, {
       scopeMode: 'all_members',
-      resource: 'agent_network_call_count',
-      resourceData: { domain: '*.googleapis.com' },
+      resource: 'agent_tool_call_count',
+      resourceData: { name: 'analyze_image' },
       limit: 1,
       period: '1hour',
       enabled: true,
     })
 
-    // First call to storage.googleapis.com
+    // First call to analyze_image
     await quotaService.consumeQuota(
       {
         teamId: team.id,
-        resource: 'agent_network_call_count',
-        resourceData: { domain: 'storage.googleapis.com' },
+        resource: 'agent_tool_call_count',
+        resourceData: { name: 'analyze_image' },
       },
       1,
     )
 
-    // 2nd call to auth.googleapis.com is blocked
+    // 2nd call to analyze_image is blocked
     await expect(
       quotaService.checkQuota(
         {
           teamId: team.id,
-          resource: 'agent_network_call_count',
-          resourceData: { domain: 'auth.googleapis.com' },
+          resource: 'agent_tool_call_count',
+          resourceData: { name: 'analyze_image' },
         },
         1,
       ),
     ).rejects.toThrow(QuotaExceededError)
 
-    // Call to api.github.com does not match -> allowed
+    // Call to create_file does not match -> allowed
     await expect(
       quotaService.checkQuota(
         {
           teamId: team.id,
-          resource: 'agent_network_call_count',
-          resourceData: { domain: 'api.github.com' },
+          resource: 'agent_tool_call_count',
+          resourceData: { name: 'create_file' },
         },
         1,
       ),

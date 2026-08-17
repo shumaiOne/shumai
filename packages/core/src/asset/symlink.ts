@@ -24,6 +24,7 @@ export async function dedupeSymlinksToTarget(
 ): Promise<void> {
   const existingSymlinks = await tx.asset.findMany({
     where: { targetId: { in: targetIds }, type: AssetType.symlink },
+    orderBy: { id: 'asc' },
   })
   if (existingSymlinks.length === 0) return
 

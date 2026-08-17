@@ -5,7 +5,7 @@ CREATE TYPE "QuotaScopeMode" AS ENUM ('all_members', 'each_member', 'selected_me
 CREATE TYPE "QuotaPeriod" AS ENUM ('1hour', '5hour', '1day', '7day');
 
 -- CreateEnum
-CREATE TYPE "QuotaResourceType" AS ENUM ('agent_total_tokens', 'agent_cost', 'agent_skill_call_count', 'agent_mcp_call_count', 'agent_bash_call_count', 'agent_network_call_count');
+CREATE TYPE "QuotaResourceType" AS ENUM ('agent_total_tokens', 'agent_cost', 'agent_skill_call_count', 'agent_mcp_call_count', 'agent_bash_call_count', 'agent_tool_call_count');
 
 -- CreateTable
 CREATE TABLE "quota_rules" (
