@@ -269,9 +269,15 @@ describe('QuotaService', () => {
     const userSelected = await prisma.user.create({
       data: { name: 'Selected User', email: 'sel@example.com', password: 'pw' },
     })
+    await prisma.teamMember.create({
+      data: { teamId: team.id, userId: userSelected.id, role: 'editor' },
+    })
 
     const userOther = await prisma.user.create({
       data: { name: 'Other User', email: 'other@example.com', password: 'pw' },
+    })
+    await prisma.teamMember.create({
+      data: { teamId: team.id, userId: userOther.id, role: 'editor' },
     })
 
     await quotaService.createRule(team.id, {
@@ -541,6 +547,9 @@ describe('QuotaService', () => {
     const user = await prisma.user.create({
       data: { name: 'Charlie', email: 'charlie@example.com', password: 'pw' },
     })
+    await prisma.teamMember.create({
+      data: { teamId: team.id, userId: user.id, role: 'editor' },
+    })
 
     // Rule 1: Team overall token limit 10,000 (all_members)
     await quotaService.createRule(team.id, {
@@ -598,5 +607,148 @@ describe('QuotaService', () => {
         1000,
       ),
     ).resolves.toEqual(expect.objectContaining({ allowed: true }))
+  })
+
+  it('rejects selected_members if user is not a member of the team on create', async () => {
+    const team1 = await prisma.team.create({ data: { name: 'Team 1' } })
+    const team2 = await prisma.team.create({ data: { name: 'Team 2' } })
+
+    const userInTeam1 = await prisma.user.create({
+      data: { name: 'Member 1', email: 'm1@example.com', password: 'pw' },
+    })
+    await prisma.teamMember.create({
+      data: { teamId: team1.id, userId: userInTeam1.id, role: 'editor' },
+    })
+
+    const userInTeam2 = await prisma.user.create({
+      data: { name: 'Member 2', email: 'm2@example.com', password: 'pw' },
+    })
+    await prisma.teamMember.create({
+      data: { teamId: team2.id, userId: userInTeam2.id, role: 'editor' },
+    })
+
+    // Creating rule on Team 1 with user from Team 2 should throw 400
+    await expect(
+      quotaService.createRule(team1.id, {
+        scopeMode: 'selected_members',
+        userIds: [userInTeam2.id],
+        resource: 'agent_cost',
+        limit: 10,
+        period: '1day',
+      }),
+    ).rejects.toThrow('One or more selected users are not members of the team')
+  })
+
+  it('validates merged rule and rejects invalid partial updates', async () => {
+    const team = await prisma.team.create({ data: { name: 'Validation Team' } })
+    const user = await prisma.user.create({
+      data: { name: 'User 1', email: 'u1@example.com', password: 'pw' },
+    })
+    await prisma.teamMember.create({
+      data: { teamId: team.id, userId: user.id, role: 'editor' },
+    })
+
+    const rule = await quotaService.createRule(team.id, {
+      scopeMode: 'each_member',
+      resource: 'agent_total_tokens',
+      limit: 10000,
+      period: '1hour',
+    })
+
+    // Updating resource to agent_skill_call_count without resourceData.id should fail validation
+    await expect(
+      quotaService.updateRule(team.id, rule.id, {
+        resource: 'agent_skill_call_count',
+      }),
+    ).rejects.toThrow()
+
+    // Updating scopeMode to selected_members without userIds should fail validation
+    await expect(
+      quotaService.updateRule(team.id, rule.id, {
+        scopeMode: 'selected_members',
+      }),
+    ).rejects.toThrow()
+
+    // Updating userIds with a user from outside the team should fail validation
+    const otherUser = await prisma.user.create({
+      data: { name: 'Other User', email: 'other_team@example.com', password: 'pw' },
+    })
+    await expect(
+      quotaService.updateRule(team.id, rule.id, {
+        scopeMode: 'selected_members',
+        userIds: [otherUser.id],
+      }),
+    ).rejects.toThrow('One or more selected users are not members of the team')
+  })
+
+  it('resets existing quota records when accounting dimensions change', async () => {
+    const team = await prisma.team.create({ data: { name: 'Reset Records Team' } })
+
+    const rule = await quotaService.createRule(team.id, {
+      scopeMode: 'all_members',
+      resource: 'agent_total_tokens',
+      limit: 1000,
+      period: '1hour',
+    })
+
+    // Consume 500 tokens
+    await quotaService.consumeQuota(
+      {
+        teamId: team.id,
+        resource: 'agent_total_tokens',
+      },
+      500,
+    )
+
+    let records = await prisma.quotaRecord.findMany({ where: { ruleId: rule.id } })
+    expect(records).toHaveLength(1)
+    expect(records[0].consumed).toBe(500)
+
+    // Update resource to agent_cost (limit 10)
+    await quotaService.updateRule(team.id, rule.id, {
+      resource: 'agent_cost',
+      limit: 10,
+    })
+
+    // Records should be reset
+    records = await prisma.quotaRecord.findMany({ where: { ruleId: rule.id } })
+    expect(records).toHaveLength(0)
+
+    // Consume $2 under the new resource
+    await quotaService.consumeQuota(
+      {
+        teamId: team.id,
+        resource: 'agent_cost',
+      },
+      2,
+    )
+
+    records = await prisma.quotaRecord.findMany({ where: { ruleId: rule.id } })
+    expect(records).toHaveLength(1)
+    expect(records[0].consumed).toBe(2)
+  })
+
+  it('handles concurrent first consumption for all_members without creating duplicate records', async () => {
+    const team = await prisma.team.create({ data: { name: 'Concurrent Quota Team' } })
+
+    const rule = await quotaService.createRule(team.id, {
+      scopeMode: 'all_members',
+      resource: 'agent_total_tokens',
+      limit: 10000,
+      period: '1hour',
+    })
+
+    // Concurrently trigger 5 quota consumption calls for the first time
+    await Promise.all([
+      quotaService.consumeQuota({ teamId: team.id, resource: 'agent_total_tokens' }, 10),
+      quotaService.consumeQuota({ teamId: team.id, resource: 'agent_total_tokens' }, 20),
+      quotaService.consumeQuota({ teamId: team.id, resource: 'agent_total_tokens' }, 30),
+      quotaService.consumeQuota({ teamId: team.id, resource: 'agent_total_tokens' }, 40),
+      quotaService.consumeQuota({ teamId: team.id, resource: 'agent_total_tokens' }, 50),
+    ])
+
+    const records = await prisma.quotaRecord.findMany({ where: { ruleId: rule.id } })
+    expect(records).toHaveLength(1)
+    expect(records[0].consumed).toBe(150)
   })
 })
