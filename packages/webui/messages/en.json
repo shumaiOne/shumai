@@ -1083,7 +1083,6 @@
   "quota_disabled": "Disabled",
   "quota_current_usage": "Current Usage",
   "quota_consumed": "Consumed",
-  "quota_reserved": "Reserved",
   "quota_remaining": "Remaining",
   "quota_period_resets": "Resets in",
   "quota_active_window": "Active Window",

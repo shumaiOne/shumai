@@ -34,7 +34,6 @@ CREATE TABLE "quota_records" (
     "period_start" TIMESTAMP(3),
     "period_end" TIMESTAMP(3),
     "consumed" DOUBLE PRECISION NOT NULL DEFAULT 0,
-    "reserved" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 

@@ -53,7 +53,6 @@ interface RawQuotaRecord {
   period_start: Date | null
   period_end: Date | null
   consumed: number
-  reserved: number
 }
 /* eslint-enable @typescript-eslint/naming-convention */
 
@@ -347,11 +346,9 @@ export class QuotaService {
       )
 
       const consumed = isWindowActive ? (record?.consumed ?? 0) : 0
-      const reserved = isWindowActive ? (record?.reserved ?? 0) : 0
-      const totalUsed = consumed + reserved
-      const remaining = Math.max(0, rule.limit - totalUsed)
+      const remaining = Math.max(0, rule.limit - consumed)
       const percent =
-        rule.limit > 0 ? Math.min(100, Number(((totalUsed / rule.limit) * 100).toFixed(2))) : 0
+        rule.limit > 0 ? Math.min(100, Number(((consumed / rule.limit) * 100).toFixed(2))) : 0
 
       const res: QuotaRecordResponse = {
         id: record?.id ?? null,
@@ -363,7 +360,6 @@ export class QuotaService {
           isWindowActive && record?.periodStart ? record.periodStart.toISOString() : null,
         periodEnd: isWindowActive && record?.periodEnd ? record.periodEnd.toISOString() : null,
         consumed,
-        reserved,
         remaining,
         percent,
         isWindowActive,
@@ -426,11 +422,9 @@ export class QuotaService {
       )
 
       const consumed = isWindowActive ? (record?.consumed ?? 0) : 0
-      const reserved = isWindowActive ? (record?.reserved ?? 0) : 0
-      const totalUsed = consumed + reserved
-      const remaining = Math.max(0, rule.limit - totalUsed)
+      const remaining = Math.max(0, rule.limit - consumed)
       const percent =
-        rule.limit > 0 ? Math.min(100, Number(((totalUsed / rule.limit) * 100).toFixed(2))) : 0
+        rule.limit > 0 ? Math.min(100, Number(((consumed / rule.limit) * 100).toFixed(2))) : 0
 
       return {
         id: record?.id ?? null,
@@ -447,7 +441,6 @@ export class QuotaService {
           isWindowActive && record?.periodStart ? record.periodStart.toISOString() : null,
         periodEnd: isWindowActive && record?.periodEnd ? record.periodEnd.toISOString() : null,
         consumed,
-        reserved,
         remaining,
         percent,
         isWindowActive,
@@ -522,12 +515,11 @@ export class QuotaService {
         )
 
         const consumed = isWindowActive ? (rawRecord?.consumed ?? 0) : 0
-        const reserved = isWindowActive ? (rawRecord?.reserved ?? 0) : 0
         const periodEnd = isWindowActive
           ? rawRecord!.period_end!
           : new Date(now.getTime() + rule.periodDurationMs)
 
-        if (consumed + reserved + amount > rule.limit) {
+        if (consumed + amount > rule.limit) {
           throw new QuotaExceededError({
             policyId: rule.id,
             resource: rule.resource,
@@ -618,7 +610,6 @@ export class QuotaService {
                 periodStart,
                 periodEnd,
                 consumed: amount,
-                reserved: 0,
               },
             })
           } else {
@@ -630,7 +621,6 @@ export class QuotaService {
                 periodStart,
                 periodEnd,
                 consumed: amount,
-                reserved: 0,
               },
             })
           }

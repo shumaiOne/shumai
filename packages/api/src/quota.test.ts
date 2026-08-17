@@ -179,7 +179,6 @@ describe('Quota API', () => {
             periodStart: null,
             periodEnd: null,
             consumed: 0,
-            reserved: 0,
             remaining: 50,
             percent: 0,
             isWindowActive: false,

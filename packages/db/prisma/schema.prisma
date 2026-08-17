@@ -1075,7 +1075,6 @@ model QuotaRecord {
   periodStart DateTime? @map("period_start")
   periodEnd   DateTime? @map("period_end")
   consumed    Float     @default(0) @map("consumed")
-  reserved    Float     @default(0) @map("reserved")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 

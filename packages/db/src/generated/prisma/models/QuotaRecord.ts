@@ -30,12 +30,10 @@ export type AggregateQuotaRecord = {
 
 export type QuotaRecordAvgAggregateOutputType = {
   consumed: number | null
-  reserved: number | null
 }
 
 export type QuotaRecordSumAggregateOutputType = {
   consumed: number | null
-  reserved: number | null
 }
 
 export type QuotaRecordMinAggregateOutputType = {
@@ -46,7 +44,6 @@ export type QuotaRecordMinAggregateOutputType = {
   periodStart: Date | null
   periodEnd: Date | null
   consumed: number | null
-  reserved: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -59,7 +56,6 @@ export type QuotaRecordMaxAggregateOutputType = {
   periodStart: Date | null
   periodEnd: Date | null
   consumed: number | null
-  reserved: number | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -72,7 +68,6 @@ export type QuotaRecordCountAggregateOutputType = {
   periodStart: number
   periodEnd: number
   consumed: number
-  reserved: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -81,12 +76,10 @@ export type QuotaRecordCountAggregateOutputType = {
 
 export type QuotaRecordAvgAggregateInputType = {
   consumed?: true
-  reserved?: true
 }
 
 export type QuotaRecordSumAggregateInputType = {
   consumed?: true
-  reserved?: true
 }
 
 export type QuotaRecordMinAggregateInputType = {
@@ -97,7 +90,6 @@ export type QuotaRecordMinAggregateInputType = {
   periodStart?: true
   periodEnd?: true
   consumed?: true
-  reserved?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -110,7 +102,6 @@ export type QuotaRecordMaxAggregateInputType = {
   periodStart?: true
   periodEnd?: true
   consumed?: true
-  reserved?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -123,7 +114,6 @@ export type QuotaRecordCountAggregateInputType = {
   periodStart?: true
   periodEnd?: true
   consumed?: true
-  reserved?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -223,7 +213,6 @@ export type QuotaRecordGroupByOutputType = {
   periodStart: Date | null
   periodEnd: Date | null
   consumed: number
-  reserved: number
   createdAt: Date
   updatedAt: Date
   _count: QuotaRecordCountAggregateOutputType | null
@@ -259,7 +248,6 @@ export type QuotaRecordWhereInput = {
   periodStart?: Prisma.DateTimeNullableFilter<"QuotaRecord"> | Date | string | null
   periodEnd?: Prisma.DateTimeNullableFilter<"QuotaRecord"> | Date | string | null
   consumed?: Prisma.FloatFilter<"QuotaRecord"> | number
-  reserved?: Prisma.FloatFilter<"QuotaRecord"> | number
   createdAt?: Prisma.DateTimeFilter<"QuotaRecord"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"QuotaRecord"> | Date | string
   rule?: Prisma.XOR<Prisma.QuotaRuleScalarRelationFilter, Prisma.QuotaRuleWhereInput>
@@ -275,7 +263,6 @@ export type QuotaRecordOrderByWithRelationInput = {
   periodStart?: Prisma.SortOrderInput | Prisma.SortOrder
   periodEnd?: Prisma.SortOrderInput | Prisma.SortOrder
   consumed?: Prisma.SortOrder
-  reserved?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   rule?: Prisma.QuotaRuleOrderByWithRelationInput
@@ -295,7 +282,6 @@ export type QuotaRecordWhereUniqueInput = Prisma.AtLeast<{
   periodStart?: Prisma.DateTimeNullableFilter<"QuotaRecord"> | Date | string | null
   periodEnd?: Prisma.DateTimeNullableFilter<"QuotaRecord"> | Date | string | null
   consumed?: Prisma.FloatFilter<"QuotaRecord"> | number
-  reserved?: Prisma.FloatFilter<"QuotaRecord"> | number
   createdAt?: Prisma.DateTimeFilter<"QuotaRecord"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"QuotaRecord"> | Date | string
   rule?: Prisma.XOR<Prisma.QuotaRuleScalarRelationFilter, Prisma.QuotaRuleWhereInput>
@@ -311,7 +297,6 @@ export type QuotaRecordOrderByWithAggregationInput = {
   periodStart?: Prisma.SortOrderInput | Prisma.SortOrder
   periodEnd?: Prisma.SortOrderInput | Prisma.SortOrder
   consumed?: Prisma.SortOrder
-  reserved?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.QuotaRecordCountOrderByAggregateInput
@@ -332,7 +317,6 @@ export type QuotaRecordScalarWhereWithAggregatesInput = {
   periodStart?: Prisma.DateTimeNullableWithAggregatesFilter<"QuotaRecord"> | Date | string | null
   periodEnd?: Prisma.DateTimeNullableWithAggregatesFilter<"QuotaRecord"> | Date | string | null
   consumed?: Prisma.FloatWithAggregatesFilter<"QuotaRecord"> | number
-  reserved?: Prisma.FloatWithAggregatesFilter<"QuotaRecord"> | number
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"QuotaRecord"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"QuotaRecord"> | Date | string
 }
@@ -342,7 +326,6 @@ export type QuotaRecordCreateInput = {
   periodStart?: Date | string | null
   periodEnd?: Date | string | null
   consumed?: number
-  reserved?: number
   createdAt?: Date | string
   updatedAt?: Date | string
   rule: Prisma.QuotaRuleCreateNestedOneWithoutRecordsInput
@@ -358,7 +341,6 @@ export type QuotaRecordUncheckedCreateInput = {
   periodStart?: Date | string | null
   periodEnd?: Date | string | null
   consumed?: number
-  reserved?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -368,7 +350,6 @@ export type QuotaRecordUpdateInput = {
   periodStart?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   periodEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   consumed?: Prisma.FloatFieldUpdateOperationsInput | number
-  reserved?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   rule?: Prisma.QuotaRuleUpdateOneRequiredWithoutRecordsNestedInput
@@ -384,7 +365,6 @@ export type QuotaRecordUncheckedUpdateInput = {
   periodStart?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   periodEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   consumed?: Prisma.FloatFieldUpdateOperationsInput | number
-  reserved?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -397,7 +377,6 @@ export type QuotaRecordCreateManyInput = {
   periodStart?: Date | string | null
   periodEnd?: Date | string | null
   consumed?: number
-  reserved?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -407,7 +386,6 @@ export type QuotaRecordUpdateManyMutationInput = {
   periodStart?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   periodEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   consumed?: Prisma.FloatFieldUpdateOperationsInput | number
-  reserved?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -420,7 +398,6 @@ export type QuotaRecordUncheckedUpdateManyInput = {
   periodStart?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   periodEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   consumed?: Prisma.FloatFieldUpdateOperationsInput | number
-  reserved?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -448,14 +425,12 @@ export type QuotaRecordCountOrderByAggregateInput = {
   periodStart?: Prisma.SortOrder
   periodEnd?: Prisma.SortOrder
   consumed?: Prisma.SortOrder
-  reserved?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type QuotaRecordAvgOrderByAggregateInput = {
   consumed?: Prisma.SortOrder
-  reserved?: Prisma.SortOrder
 }
 
 export type QuotaRecordMaxOrderByAggregateInput = {
@@ -466,7 +441,6 @@ export type QuotaRecordMaxOrderByAggregateInput = {
   periodStart?: Prisma.SortOrder
   periodEnd?: Prisma.SortOrder
   consumed?: Prisma.SortOrder
-  reserved?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -479,14 +453,12 @@ export type QuotaRecordMinOrderByAggregateInput = {
   periodStart?: Prisma.SortOrder
   periodEnd?: Prisma.SortOrder
   consumed?: Prisma.SortOrder
-  reserved?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type QuotaRecordSumOrderByAggregateInput = {
   consumed?: Prisma.SortOrder
-  reserved?: Prisma.SortOrder
 }
 
 export type QuotaRecordCreateNestedManyWithoutUserInput = {
@@ -620,7 +592,6 @@ export type QuotaRecordCreateWithoutUserInput = {
   periodStart?: Date | string | null
   periodEnd?: Date | string | null
   consumed?: number
-  reserved?: number
   createdAt?: Date | string
   updatedAt?: Date | string
   rule: Prisma.QuotaRuleCreateNestedOneWithoutRecordsInput
@@ -634,7 +605,6 @@ export type QuotaRecordUncheckedCreateWithoutUserInput = {
   periodStart?: Date | string | null
   periodEnd?: Date | string | null
   consumed?: number
-  reserved?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -676,7 +646,6 @@ export type QuotaRecordScalarWhereInput = {
   periodStart?: Prisma.DateTimeNullableFilter<"QuotaRecord"> | Date | string | null
   periodEnd?: Prisma.DateTimeNullableFilter<"QuotaRecord"> | Date | string | null
   consumed?: Prisma.FloatFilter<"QuotaRecord"> | number
-  reserved?: Prisma.FloatFilter<"QuotaRecord"> | number
   createdAt?: Prisma.DateTimeFilter<"QuotaRecord"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"QuotaRecord"> | Date | string
 }
@@ -686,7 +655,6 @@ export type QuotaRecordCreateWithoutTeamInput = {
   periodStart?: Date | string | null
   periodEnd?: Date | string | null
   consumed?: number
-  reserved?: number
   createdAt?: Date | string
   updatedAt?: Date | string
   rule: Prisma.QuotaRuleCreateNestedOneWithoutRecordsInput
@@ -700,7 +668,6 @@ export type QuotaRecordUncheckedCreateWithoutTeamInput = {
   periodStart?: Date | string | null
   periodEnd?: Date | string | null
   consumed?: number
-  reserved?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -736,7 +703,6 @@ export type QuotaRecordCreateWithoutRuleInput = {
   periodStart?: Date | string | null
   periodEnd?: Date | string | null
   consumed?: number
-  reserved?: number
   createdAt?: Date | string
   updatedAt?: Date | string
   team: Prisma.TeamCreateNestedOneWithoutQuotaRecordsInput
@@ -750,7 +716,6 @@ export type QuotaRecordUncheckedCreateWithoutRuleInput = {
   periodStart?: Date | string | null
   periodEnd?: Date | string | null
   consumed?: number
-  reserved?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -788,7 +753,6 @@ export type QuotaRecordCreateManyUserInput = {
   periodStart?: Date | string | null
   periodEnd?: Date | string | null
   consumed?: number
-  reserved?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -798,7 +762,6 @@ export type QuotaRecordUpdateWithoutUserInput = {
   periodStart?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   periodEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   consumed?: Prisma.FloatFieldUpdateOperationsInput | number
-  reserved?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   rule?: Prisma.QuotaRuleUpdateOneRequiredWithoutRecordsNestedInput
@@ -812,7 +775,6 @@ export type QuotaRecordUncheckedUpdateWithoutUserInput = {
   periodStart?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   periodEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   consumed?: Prisma.FloatFieldUpdateOperationsInput | number
-  reserved?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -824,7 +786,6 @@ export type QuotaRecordUncheckedUpdateManyWithoutUserInput = {
   periodStart?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   periodEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   consumed?: Prisma.FloatFieldUpdateOperationsInput | number
-  reserved?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -836,7 +797,6 @@ export type QuotaRecordCreateManyTeamInput = {
   periodStart?: Date | string | null
   periodEnd?: Date | string | null
   consumed?: number
-  reserved?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -846,7 +806,6 @@ export type QuotaRecordUpdateWithoutTeamInput = {
   periodStart?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   periodEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   consumed?: Prisma.FloatFieldUpdateOperationsInput | number
-  reserved?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   rule?: Prisma.QuotaRuleUpdateOneRequiredWithoutRecordsNestedInput
@@ -860,7 +819,6 @@ export type QuotaRecordUncheckedUpdateWithoutTeamInput = {
   periodStart?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   periodEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   consumed?: Prisma.FloatFieldUpdateOperationsInput | number
-  reserved?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -872,7 +830,6 @@ export type QuotaRecordUncheckedUpdateManyWithoutTeamInput = {
   periodStart?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   periodEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   consumed?: Prisma.FloatFieldUpdateOperationsInput | number
-  reserved?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -884,7 +841,6 @@ export type QuotaRecordCreateManyRuleInput = {
   periodStart?: Date | string | null
   periodEnd?: Date | string | null
   consumed?: number
-  reserved?: number
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -894,7 +850,6 @@ export type QuotaRecordUpdateWithoutRuleInput = {
   periodStart?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   periodEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   consumed?: Prisma.FloatFieldUpdateOperationsInput | number
-  reserved?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   team?: Prisma.TeamUpdateOneRequiredWithoutQuotaRecordsNestedInput
@@ -908,7 +863,6 @@ export type QuotaRecordUncheckedUpdateWithoutRuleInput = {
   periodStart?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   periodEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   consumed?: Prisma.FloatFieldUpdateOperationsInput | number
-  reserved?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -920,7 +874,6 @@ export type QuotaRecordUncheckedUpdateManyWithoutRuleInput = {
   periodStart?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   periodEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   consumed?: Prisma.FloatFieldUpdateOperationsInput | number
-  reserved?: Prisma.FloatFieldUpdateOperationsInput | number
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -935,7 +888,6 @@ export type QuotaRecordSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   periodStart?: boolean
   periodEnd?: boolean
   consumed?: boolean
-  reserved?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   rule?: boolean | Prisma.QuotaRuleDefaultArgs<ExtArgs>
@@ -951,7 +903,6 @@ export type QuotaRecordSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   periodStart?: boolean
   periodEnd?: boolean
   consumed?: boolean
-  reserved?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   rule?: boolean | Prisma.QuotaRuleDefaultArgs<ExtArgs>
@@ -967,7 +918,6 @@ export type QuotaRecordSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   periodStart?: boolean
   periodEnd?: boolean
   consumed?: boolean
-  reserved?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   rule?: boolean | Prisma.QuotaRuleDefaultArgs<ExtArgs>
@@ -983,12 +933,11 @@ export type QuotaRecordSelectScalar = {
   periodStart?: boolean
   periodEnd?: boolean
   consumed?: boolean
-  reserved?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type QuotaRecordOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ruleId" | "teamId" | "userId" | "periodStart" | "periodEnd" | "consumed" | "reserved" | "createdAt" | "updatedAt", ExtArgs["result"]["quotaRecord"]>
+export type QuotaRecordOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "ruleId" | "teamId" | "userId" | "periodStart" | "periodEnd" | "consumed" | "createdAt" | "updatedAt", ExtArgs["result"]["quotaRecord"]>
 export type QuotaRecordInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   rule?: boolean | Prisma.QuotaRuleDefaultArgs<ExtArgs>
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
@@ -1020,7 +969,6 @@ export type $QuotaRecordPayload<ExtArgs extends runtime.Types.Extensions.Interna
     periodStart: Date | null
     periodEnd: Date | null
     consumed: number
-    reserved: number
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["quotaRecord"]>
@@ -1456,7 +1404,6 @@ export interface QuotaRecordFieldRefs {
   readonly periodStart: Prisma.FieldRef<"QuotaRecord", 'DateTime'>
   readonly periodEnd: Prisma.FieldRef<"QuotaRecord", 'DateTime'>
   readonly consumed: Prisma.FieldRef<"QuotaRecord", 'Float'>
-  readonly reserved: Prisma.FieldRef<"QuotaRecord", 'Float'>
   readonly createdAt: Prisma.FieldRef<"QuotaRecord", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"QuotaRecord", 'DateTime'>
 }

@@ -1083,7 +1083,6 @@
   "quota_disabled": "已禁用",
   "quota_current_usage": "当前使用量",
   "quota_consumed": "已消耗",
-  "quota_reserved": "已预留",
   "quota_remaining": "剩余额度",
   "quota_period_resets": "重置于",
   "quota_active_window": "生效周期",

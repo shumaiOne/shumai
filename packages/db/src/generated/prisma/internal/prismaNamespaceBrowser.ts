@@ -747,7 +747,6 @@ export const QuotaRecordScalarFieldEnum = {
   periodStart: 'periodStart',
   periodEnd: 'periodEnd',
   consumed: 'consumed',
-  reserved: 'reserved',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

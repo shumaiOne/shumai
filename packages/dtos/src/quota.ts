@@ -99,7 +99,6 @@ export const quotaRecordResponseSchema = z.object({
   periodStart: z.string().nullable().optional(),
   periodEnd: z.string().nullable().optional(),
   consumed: z.number(),
-  reserved: z.number(),
   remaining: z.number(),
   percent: z.number(),
   isWindowActive: z.boolean(),
