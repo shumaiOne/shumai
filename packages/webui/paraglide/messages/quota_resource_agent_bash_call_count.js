@@ -6,17 +6,17 @@ import { getLocale, experimentalStaticLocale } from '../runtime.js';
 /** @typedef {{}} Quota_Resource_Agent_Bash_Call_CountInputs */
 
 const en_quota_resource_agent_bash_call_count = /** @type {(inputs: Quota_Resource_Agent_Bash_Call_CountInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`Bash Commands`)
+	return /** @type {LocalizedString} */ (`Agent Bash Calls`)
 };
 
 const zh_quota_resource_agent_bash_call_count = /** @type {(inputs: Quota_Resource_Agent_Bash_Call_CountInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`Bash 命令执行次数`)
+	return /** @type {LocalizedString} */ (`智能体 Bash 执行次数`)
 };
 
 /**
 * | output |
 * | --- |
-* | "Bash Commands" |
+* | "Agent Bash Calls" |
 *
 * @param {Quota_Resource_Agent_Bash_Call_CountInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options

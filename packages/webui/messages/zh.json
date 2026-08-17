@@ -1070,7 +1070,7 @@
   "quota_resource_agent_cost": "AI 费用 ($)",
   "quota_resource_agent_skill_call_count": "Skill 调用次数",
   "quota_resource_agent_mcp_call_count": "MCP 服务调用次数",
-  "quota_resource_agent_bash_call_count": "Bash 命令执行次数",
+  "quota_resource_agent_bash_call_count": "智能体 Bash 执行次数",
   "quota_resource_agent_tool_call_count": "智能体工具调用次数",
   "quota_period": "周期窗口",
   "quota_period_1hour": "1 小时",

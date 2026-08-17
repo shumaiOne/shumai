@@ -1,7 +1,7 @@
 /**
 * | output |
 * | --- |
-* | "Bash Commands" |
+* | "Agent Bash Calls" |
 *
 * @param {Quota_Resource_Agent_Bash_Call_CountInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options

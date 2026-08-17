@@ -1070,7 +1070,7 @@
   "quota_resource_agent_cost": "AI Cost ($)",
   "quota_resource_agent_skill_call_count": "Skill Calls",
   "quota_resource_agent_mcp_call_count": "MCP Server Calls",
-  "quota_resource_agent_bash_call_count": "Bash Commands",
+  "quota_resource_agent_bash_call_count": "Agent Bash Calls",
   "quota_resource_agent_tool_call_count": "Agent Tool Calls",
   "quota_period": "Period Window",
   "quota_period_1hour": "1 Hour",
