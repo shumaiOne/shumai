@@ -33,7 +33,7 @@ import {
   Puzzle,
   Server,
   Terminal,
-  Globe,
+  Wrench,
   Users,
   UserCheck,
   User,
@@ -81,10 +81,10 @@ const RESOURCE_META: Record<
     icon: Terminal,
     unit: 'calls',
   },
-  agent_network_call_count: {
-    label: () => m.quota_resource_agent_network_call_count(),
-    icon: Globe,
-    unit: 'requests',
+  agent_tool_call_count: {
+    label: () => m.quota_resource_agent_tool_call_count(),
+    icon: Wrench,
+    unit: 'calls',
   },
 }
 /* eslint-enable @typescript-eslint/naming-convention */
@@ -239,8 +239,8 @@ export const QuotasSettings: React.FC<QuotasSettingsProps> = ({ teamId }) => {
                               {rule.resource === 'agent_bash_call_count' && (
                                 <span>Match: {String(resData.match || '*')}</span>
                               )}
-                              {rule.resource === 'agent_network_call_count' && (
-                                <span>Domain: {String(resData.domain || '*')}</span>
+                              {rule.resource === 'agent_tool_call_count' && (
+                                <span>Tool: {String(resData.name || resData.toolName || '*')}</span>
                               )}
                             </div>
                           </div>

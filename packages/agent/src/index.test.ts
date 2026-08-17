@@ -8,6 +8,7 @@ import {
 } from './index'
 import { createSandboxedBashTool } from './tools/sandboxed-bash'
 import { SandboxManager, type SandboxAskCallback } from '@anthropic-ai/sandbox-runtime'
+import { quotaService } from '@shumai/core/src/quota/quota-service'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { type TSchema } from 'typebox'
@@ -1169,6 +1170,88 @@ describe('createAgentSession enabled skill filtering', () => {
       await expect(
         readSkillTool!.execute('1', { skillId: skill.id }, undefined, undefined, undefined),
       ).rejects.toThrow('not enabled for this agent')
+    } finally {
+      initializeSpy.mockRestore()
+    }
+  })
+
+  it('enforces agent tool call count quota on tool execution', async () => {
+    const team = await prisma.team.create({ data: { name: 'Tool Quota Enforcement Team' } })
+    const user = await prisma.user.create({
+      data: { name: 'Member User', email: 'member-tool-quota@shumai.ai', password: 'pw' },
+    })
+    await prisma.teamMember.create({
+      data: { teamId: team.id, userId: user.id, role: 'editor' },
+    })
+    await prisma.user.create({
+      data: {
+        id: 'tool-quota-agent',
+        name: 'Tool Quota Agent',
+        email: 'tool-quota-agent@shumai.ai',
+        type: 'agent',
+      },
+    })
+    await prisma.agent.create({
+      data: {
+        id: 'tool-quota-agent',
+        teamId: team.id,
+        type: 'chat',
+        config: { provider: 'google', model: 'gemini' },
+      },
+    })
+
+    await quotaService.createRule(team.id, {
+      scopeMode: 'all_members',
+      resource: 'agent_tool_call_count',
+      resourceData: { name: 'read_thread' },
+      limit: 1,
+      period: '1hour',
+      enabled: true,
+    })
+
+    const initializeSpy = vi.spyOn(SandboxManager, 'initialize').mockResolvedValue()
+    try {
+      const { harness } = await createAgentSession({
+        teamId: team.id,
+        userId: user.id,
+        agentId: 'tool-quota-agent',
+        providerName: 'google',
+        modelId: 'gemini',
+        systemPrompt: 'prompt',
+        teamSkills: [],
+        enabledSkillIds: [],
+        allowedDomains: [],
+        providers: mockProviders,
+      })
+
+      const readThreadTool = harness.getTools().find((t) => t.name === 'read_thread')
+      expect(readThreadTool).toBeDefined()
+
+      // First call executes and consumes quota
+      const res1 = await readThreadTool!.execute(
+        'call-1',
+        { threadId: 'non-existent' },
+        undefined,
+        undefined,
+        undefined,
+      )
+      expect(res1).toBeDefined()
+
+      // Second call exceeds quota and returns error
+      const res2 = await readThreadTool!.execute(
+        'call-2',
+        { threadId: 'non-existent' },
+        undefined,
+        undefined,
+        undefined,
+      )
+      expect(res2).toBeDefined()
+      const textContent = res2.content[0]
+      if (textContent && textContent.type === 'text') {
+        expect(textContent.text).toContain('Quota exceeded')
+      } else {
+        expect.unreachable('Expected text content')
+      }
     } finally {
       initializeSpy.mockRestore()
     }

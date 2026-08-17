@@ -11,7 +11,8 @@ export interface QuotaEventResourceData {
   skillId?: string
   mcpServerId?: string
   command?: string
-  domain?: string
+  name?: string
+  toolName?: string
   [key: string]: unknown
 }
 
@@ -72,34 +73,22 @@ export function wildcardToRegex(pattern: string): RegExp {
   return new RegExp(regexStr, 's')
 }
 
-/**
- * Converts a domain wildcard (e.g. *.googleapis.com, googleapis.com, *) into a RegExp.
- */
-export function domainWildcardToRegex(pattern: string): RegExp {
-  const trimmed = pattern.trim().toLowerCase()
-  if (trimmed === '*' || trimmed === '') {
-    return /^.*$/
-  }
-  if (trimmed.startsWith('*.')) {
-    const base = trimmed.slice(2).replace(/[.+^${}()|[\]\\]/g, '\\$&')
-    return new RegExp(`^(?:.+\\.)?${base}$`, 'i')
-  }
-  const escaped = trimmed.replace(/[.+^${}()|[\]\\]/g, '\\$&')
-  return new RegExp(`^${escaped}$`, 'i')
-}
-
 export function compileRule(rule: QuotaRule): CachedQuotaRule {
   const periodDurationMs = periodToDurationMs(rule.period)
   const resourceData = (rule.resourceData as Record<string, unknown> | null) ?? null
   const userIds = Array.isArray(rule.userIds) ? (rule.userIds as string[]) : null
 
   let bashMatcher: RegExp | null = null
-  let domainMatcher: RegExp | null = null
+  let toolMatcher: RegExp | null = null
 
   if (rule.resource === 'agent_bash_call_count' && resourceData?.match) {
     bashMatcher = wildcardToRegex(String(resourceData.match))
-  } else if (rule.resource === 'agent_network_call_count' && resourceData?.domain) {
-    domainMatcher = domainWildcardToRegex(String(resourceData.domain))
+  } else if (
+    rule.resource === 'agent_tool_call_count' &&
+    (resourceData?.name || resourceData?.toolName)
+  ) {
+    const pattern = String(resourceData.name ?? resourceData.toolName)
+    toolMatcher = wildcardToRegex(pattern)
   }
 
   const matcher = (event: QuotaEvent): boolean => {
@@ -130,9 +119,9 @@ export function compileRule(rule: QuotaRule): CachedQuotaRule {
     } else if (rule.resource === 'agent_bash_call_count' && bashMatcher) {
       const cmd = event.resourceData?.command ?? ''
       if (!bashMatcher.test(cmd)) return false
-    } else if (rule.resource === 'agent_network_call_count' && domainMatcher) {
-      const domain = event.resourceData?.domain ?? ''
-      if (!domainMatcher.test(domain)) return false
+    } else if (rule.resource === 'agent_tool_call_count' && toolMatcher) {
+      const toolName = String(event.resourceData?.name ?? event.resourceData?.toolName ?? '')
+      if (!toolMatcher.test(toolName)) return false
     }
 
     return true

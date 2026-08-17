@@ -11,7 +11,7 @@ import {
   skillResourceDataSchema,
   mcpResourceDataSchema,
   bashResourceDataSchema,
-  networkResourceDataSchema,
+  toolResourceDataSchema,
 } from '@shumai/dtos'
 import { HTTPException } from 'hono/http-exception'
 import { quotaRuleCache, type CachedQuotaRule, type QuotaEvent } from './quota-cache'
@@ -200,11 +200,11 @@ export class QuotaService {
           message: 'resourceData.match is required for agent_bash_call_count',
         })
       }
-    } else if (effectiveResource === 'agent_network_call_count') {
-      const res = networkResourceDataSchema.safeParse(effectiveResourceData)
+    } else if (effectiveResource === 'agent_tool_call_count') {
+      const res = toolResourceDataSchema.safeParse(effectiveResourceData)
       if (!res.success) {
         throw new HTTPException(400, {
-          message: 'resourceData.domain is required for agent_network_call_count',
+          message: 'resourceData.name is required for agent_tool_call_count',
         })
       }
     }

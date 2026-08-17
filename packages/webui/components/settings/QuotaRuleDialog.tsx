@@ -40,7 +40,7 @@ import {
   Puzzle,
   Server,
   Terminal,
-  Globe,
+  Wrench,
   Loader2,
   Trash2,
   Users,
@@ -68,6 +68,16 @@ interface QuotaRuleDialogProps {
   rule?: QuotaRuleResponse | null
   onSuccess?: () => void
 }
+
+const STANDARD_TOOLS = [
+  { value: 'analyze_image', label: () => m.agent_tool_analyze_image_name() },
+  { value: 'screenshot', label: () => m.agent_tool_screenshot_name() },
+  { value: 'read_pdf_pages', label: () => m.agent_tool_read_pdf_pages_name() },
+  { value: 'list_assets', label: () => m.agent_tool_list_assets_name() },
+  { value: 'create_folder', label: () => m.agent_tool_create_folder_name() },
+  { value: 'create_file', label: () => m.agent_tool_create_file_name() },
+  { value: 'create_version', label: () => m.agent_tool_create_version_name() },
+]
 
 /* eslint-disable @typescript-eslint/naming-convention */
 const RESOURCE_CONFIG = {
@@ -101,10 +111,10 @@ const RESOURCE_CONFIG = {
     unit: 'calls',
     defaultLimit: 50,
   },
-  agent_network_call_count: {
-    label: () => m.quota_resource_agent_network_call_count(),
-    icon: Globe,
-    unit: 'requests',
+  agent_tool_call_count: {
+    label: () => m.quota_resource_agent_tool_call_count(),
+    icon: Wrench,
+    unit: 'calls',
     defaultLimit: 100,
   },
 } as const
@@ -127,7 +137,7 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
   const [skillId, setSkillId] = useState<string>('')
   const [mcpServerId, setMcpServerId] = useState<string>('')
   const [bashMatch, setBashMatch] = useState<string>('*')
-  const [networkDomain, setNetworkDomain] = useState<string>('*')
+  const [toolName, setToolName] = useState<string>('analyze_image')
   const [limit, setLimit] = useState<number>(100000)
   const [period, setPeriod] = useState<QuotaPeriodEnum>('1day')
   const [enabled, setEnabled] = useState<boolean>(true)
@@ -183,7 +193,13 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
       setSkillId(typeof resData.id === 'string' ? resData.id : '')
       setMcpServerId(typeof resData.id === 'string' ? resData.id : '')
       setBashMatch(typeof resData.match === 'string' ? resData.match : '*')
-      setNetworkDomain(typeof resData.domain === 'string' ? resData.domain : '*')
+      setToolName(
+        typeof resData.name === 'string'
+          ? resData.name
+          : typeof resData.toolName === 'string'
+            ? resData.toolName
+            : 'analyze_image',
+      )
       setLimit(rule.limit)
       setPeriod(formatQuotaPeriod(rule.period) as QuotaPeriodEnum)
       setEnabled(rule.enabled)
@@ -195,7 +211,7 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
       setSkillId('')
       setMcpServerId('')
       setBashMatch('*')
-      setNetworkDomain('*')
+      setToolName('analyze_image')
       setLimit(RESOURCE_CONFIG.agent_total_tokens.defaultLimit)
       setPeriod('1day')
       setEnabled(true)
@@ -220,8 +236,8 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
         resourceData.id = mcpServerId
       } else if (resource === 'agent_bash_call_count') {
         resourceData.match = bashMatch.trim() || '*'
-      } else if (resource === 'agent_network_call_count') {
-        resourceData.domain = networkDomain.trim() || '*'
+      } else if (resource === 'agent_tool_call_count') {
+        resourceData.name = toolName || 'analyze_image'
       }
 
       const res = await client.api.teams[':teamId'].quotas.$post({
@@ -270,8 +286,8 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
         resourceData.id = mcpServerId
       } else if (resource === 'agent_bash_call_count') {
         resourceData.match = bashMatch.trim() || '*'
-      } else if (resource === 'agent_network_call_count') {
-        resourceData.domain = networkDomain.trim() || '*'
+      } else if (resource === 'agent_tool_call_count') {
+        resourceData.name = toolName || 'analyze_image'
       }
 
       const res = await client.api.teams[':teamId'].quotas[':id'].$put({
@@ -572,10 +588,10 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
                       <span>{m.quota_resource_agent_bash_call_count()}</span>
                     </div>
                   </SelectItem>
-                  <SelectItem value="agent_network_call_count">
+                  <SelectItem value="agent_tool_call_count">
                     <div className="flex items-center gap-2">
-                      <Globe className="w-4 h-4 text-cyan-500" />
-                      <span>{m.quota_resource_agent_network_call_count()}</span>
+                      <Wrench className="w-4 h-4 text-cyan-500" />
+                      <span>{m.quota_resource_agent_tool_call_count()}</span>
                     </div>
                   </SelectItem>
                 </SelectContent>
@@ -667,19 +683,28 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
               </div>
             )}
 
-            {resource === 'agent_network_call_count' && (
-              <div className="space-y-1.5">
-                <Label htmlFor="quota-network" className="text-sm font-semibold">
-                  {m.network_domain_pattern()}
+            {resource === 'agent_tool_call_count' && (
+              <div className="space-y-2">
+                <Label htmlFor="quota-tool" className="text-sm font-semibold">
+                  {m.select_tool()}
                 </Label>
-                <Input
-                  id="quota-network"
-                  value={networkDomain}
-                  onChange={(e) => setNetworkDomain(e.target.value)}
-                  placeholder={m.network_domain_pattern_placeholder()}
-                  disabled={isPending}
-                />
-                <p className="text-xs text-muted-foreground">{m.quota_network_hint()}</p>
+                <Select
+                  value={toolName}
+                  onValueChange={setToolName}
+                  disabled={isEditing || isPending}
+                >
+                  <SelectTrigger id="quota-tool" className="w-full">
+                    <SelectValue placeholder={m.select_tool()} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STANDARD_TOOLS.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>
+                        {t.label()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">{m.quota_tool_hint()}</p>
               </div>
             )}
 

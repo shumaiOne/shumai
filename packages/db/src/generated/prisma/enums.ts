@@ -198,7 +198,7 @@ export const QuotaResourceType = {
   agent_skill_call_count: 'agent_skill_call_count',
   agent_mcp_call_count: 'agent_mcp_call_count',
   agent_bash_call_count: 'agent_bash_call_count',
-  agent_network_call_count: 'agent_network_call_count'
+  agent_tool_call_count: 'agent_tool_call_count'
 } as const
 
 export type QuotaResourceType = (typeof QuotaResourceType)[keyof typeof QuotaResourceType]

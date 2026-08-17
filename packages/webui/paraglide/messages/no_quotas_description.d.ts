@@ -1,7 +1,7 @@
 /**
 * | output |
 * | --- |
-* | "Set limits on AI tokens, costs, skill executions, and network requests to manage team usage." |
+* | "Set limits on AI tokens, costs, skill executions, and agent tool calls to manage team usage." |
 *
 * @param {No_Quotas_DescriptionInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options
