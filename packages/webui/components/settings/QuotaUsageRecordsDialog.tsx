@@ -28,6 +28,7 @@ import {
   Activity,
 } from 'lucide-react'
 import { m } from '@/ui/paraglide/messages.js'
+import { formatRemainingTime } from '@/ui/lib/time'
 import type { QuotaRuleResponse, QuotaResourceTypeEnum, QuotaRecordResponse } from '@shumai/dtos'
 import { formatQuotaPeriod } from '@shumai/dtos'
 
@@ -231,10 +232,8 @@ export const QuotaUsageRecordsDialog: React.FC<QuotaUsageRecordsDialogProps> = (
                           >
                             <Clock className="w-3 h-3" />
                             <span>
-                              {m.quota_active()}:{' '}
-                              {new Date(record.periodEnd).toLocaleTimeString([], {
-                                hour: '2-digit',
-                                minute: '2-digit',
+                              {m.quota_refreshes_in({
+                                time: formatRemainingTime(record.periodEnd),
                               })}
                             </span>
                           </Badge>

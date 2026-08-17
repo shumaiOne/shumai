@@ -1112,6 +1112,7 @@
   "quota_role_shared_pool": "角色共享配额池",
   "quota_available": "配额可用",
   "quota_active": "使用中",
+  "quota_refreshes_in": "{time} 后重置",
   "quota_search_members": "搜索成员...",
   "quota_selected_users_count": "已选择 {count} 位成员",
   "select_members": "选择成员",

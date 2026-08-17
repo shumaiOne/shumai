@@ -1112,6 +1112,7 @@
   "quota_role_shared_pool": "Role Shared Pool",
   "quota_available": "Quota available",
   "quota_active": "Active",
+  "quota_refreshes_in": "Refreshes in {time}",
   "quota_search_members": "Search members...",
   "quota_selected_users_count": "{count} members selected",
   "select_members": "Select Members",
