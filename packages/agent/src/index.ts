@@ -9,7 +9,10 @@ import type { Api, Model } from '@earendil-works/pi-ai'
 import { createModels, InMemoryCredentialStore } from '@earendil-works/pi-ai'
 import { builtinProviders } from '@earendil-works/pi-ai/providers/all'
 import { agentService } from '@shumai/core/src/agent/agent'
-import { prisma, type TeamMemberRole } from '@shumai/db'
+import { resolveEffectiveRole } from '@shumai/core/src/authz/authz'
+import { quotaService, QuotaExceededError } from '@shumai/core/src/quota/quota-service'
+import { logger } from '@shumai/core/src/logger'
+import { prisma } from '@shumai/db'
 import { Type, type TSchema } from 'typebox'
 import * as fs from 'fs'
 import * as os from 'os'
@@ -112,18 +115,6 @@ export interface CreateAgentSessionParams {
   baseDelayMs?: number
 }
 
-async function resolveTeamMemberRole(
-  teamId: string,
-  userId?: string,
-): Promise<TeamMemberRole | undefined> {
-  if (!userId) return undefined
-  const member = await prisma.teamMember.findUnique({
-    where: { teamIdUserId: { teamId, userId } },
-    select: { role: true },
-  })
-  return member?.role
-}
-
 /**
  * Security instructions appended to the system prompt when the requesting user is not a team
  * owner (i.e. editor/reviewer). These complement the hard enforcement in the bash tool itself
@@ -185,6 +176,9 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     blockedHost: '',
   }
 
+  const role = userId ? await resolveEffectiveRole(teamId, projectId, userId) : undefined
+  const isOwner = !userId || role === 'owner'
+  const restricted = !isOwner
   const sandboxAskCallback = async ({ host }: { host: string; port?: number }) => {
     try {
       const sandbox = await prisma.sandbox.findUnique({
@@ -217,6 +211,54 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     return false
   }
 
+  const wrapToolWithQuota = (tool: AgentTool): AgentTool => {
+    const originalExecute = tool.execute
+    return {
+      ...tool,
+      execute: async (toolCallId, args, signal, onUpdate) => {
+        try {
+          await quotaService.checkQuota(
+            {
+              teamId,
+              userId,
+              role,
+              resource: 'agent_tool_call_count',
+              resourceData: { name: tool.name, toolName: tool.name },
+            },
+            1,
+          )
+        } catch (err) {
+          if (err instanceof QuotaExceededError) {
+            return {
+              content: [{ type: 'text', text: `Quota exceeded: ${err.message}` }],
+              details: { error: err.message },
+            }
+          }
+          throw err
+        }
+
+        const result = await originalExecute(toolCallId, args, signal, onUpdate)
+
+        try {
+          await quotaService.consumeQuota(
+            {
+              teamId,
+              userId,
+              role,
+              resource: 'agent_tool_call_count',
+              resourceData: { name: tool.name, toolName: tool.name },
+            },
+            1,
+          )
+        } catch (err) {
+          logger.error({ err }, 'Failed to record quota usage for agent tool call')
+        }
+
+        return result
+      },
+    }
+  }
+
   // SandboxManager.initialize is a global operation that applies to the entire process.
   // We reset it first to ensure any previous process-global SOCKS/HTTP proxy servers
   // and callbacks are cleaned up, allowing the new callback and allowedDomains to take effect.
@@ -241,13 +283,6 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
   const onEnvsAdded = (envs: Record<string, string>) => {
     Object.assign(skillEnvs, envs)
   }
-
-  // Resolve the requesting user's team role to enforce owner-only bash privileges.
-  // A user who is not a member of the team is treated as restricted (fail-closed),
-  // while flows without a user context (e.g. autofill) remain unrestricted.
-  const role = await resolveTeamMemberRole(teamId, userId)
-  const isOwner = !userId || role === 'owner'
-  const restricted = !isOwner
 
   // Restore env variables from previously loaded skills in this session
   let skillLoadedInSession = false
@@ -294,6 +329,9 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
   const deniedTools = agentConfig?.deniedTools || []
 
   const sandboxedBash = createSandboxedBashTool(process.cwd(), skillEnvs, {
+    teamId,
+    userId,
+    role,
     getBlockedHost: () => sandboxState.blockedHost,
     clearBlockedHost: () => {
       sandboxState.blockedHost = ''
@@ -314,7 +352,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     bashInjected = true
     // Pass the full post-update tool list as activeToolNames: setTools only updates the
     // registry otherwise, and the model would never see the bash tool on the next turn.
-    const next = [...harness.getTools(), sandboxedBash]
+    const next = [...harness.getTools(), wrapToolWithQuota(sandboxedBash)]
     await harness.setTools(
       next,
       next.map((t) => t.name),
@@ -341,7 +379,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
   }
 
   const readThread = createReadThreadTool()
-  const allTools = [
+  const rawTools = [
     ...mediaTools,
     readSkill,
     readThread,
@@ -349,6 +387,7 @@ export async function createAgentSession(params: CreateAgentSessionParams) {
     ...systemTools,
     ...customTools,
   ]
+  const allTools = rawTools.map((tool) => wrapToolWithQuota(tool))
   const enabledTools = disableTools
     ? []
     : allTools.filter((tool) => !deniedTools.includes(tool.name))

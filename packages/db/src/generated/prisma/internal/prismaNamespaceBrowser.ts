@@ -92,7 +92,9 @@ export const ModelName = {
   Collection: 'Collection',
   ApiToken: 'ApiToken',
   AiUsage: 'AiUsage',
-  AuditLog: 'AuditLog'
+  AuditLog: 'AuditLog',
+  QuotaRule: 'QuotaRule',
+  QuotaRecord: 'QuotaRecord'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -717,6 +719,39 @@ export const AuditLogScalarFieldEnum = {
 } as const
 
 export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
+
+
+export const QuotaRuleScalarFieldEnum = {
+  id: 'id',
+  teamId: 'teamId',
+  scopeMode: 'scopeMode',
+  role: 'role',
+  userIds: 'userIds',
+  resource: 'resource',
+  resourceData: 'resourceData',
+  limit: 'limit',
+  period: 'period',
+  enabled: 'enabled',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type QuotaRuleScalarFieldEnum = (typeof QuotaRuleScalarFieldEnum)[keyof typeof QuotaRuleScalarFieldEnum]
+
+
+export const QuotaRecordScalarFieldEnum = {
+  id: 'id',
+  ruleId: 'ruleId',
+  teamId: 'teamId',
+  userId: 'userId',
+  periodStart: 'periodStart',
+  periodEnd: 'periodEnd',
+  consumed: 'consumed',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type QuotaRecordScalarFieldEnum = (typeof QuotaRecordScalarFieldEnum)[keyof typeof QuotaRecordScalarFieldEnum]
 
 
 export const SortOrder = {

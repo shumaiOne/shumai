@@ -251,3 +251,13 @@ export type AiUsage = Prisma.AiUsageModel
  * 
  */
 export type AuditLog = Prisma.AuditLogModel
+/**
+ * Model QuotaRule
+ * 
+ */
+export type QuotaRule = Prisma.QuotaRuleModel
+/**
+ * Model QuotaRecord
+ * 
+ */
+export type QuotaRecord = Prisma.QuotaRecordModel

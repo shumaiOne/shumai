@@ -425,5 +425,11 @@ declare global {
       grantType?: 'authorization_code' | 'client_credentials'
       redirectUri?: string
     }
+
+    // ----------------------------------------------------------------------
+    // Quota Types
+    // ----------------------------------------------------------------------
+    export type QuotaResourceData = Record<string, unknown>
+    export type QuotaUserIds = string[]
   }
 }

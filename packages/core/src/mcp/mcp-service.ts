@@ -4,7 +4,7 @@
 
 import { auth } from '@modelcontextprotocol/client'
 import type { AgentTool, AgentToolResult } from '@earendil-works/pi-agent-core'
-import { prisma } from '@shumai/db'
+import { prisma, type TeamMemberRole } from '@shumai/db'
 import '@shumai/db/src/prisma-json-types'
 import type {
   CreateMcpServerRequest,
@@ -14,6 +14,7 @@ import type {
 } from '@shumai/dtos'
 import { logger } from '@shumai/core/src/logger'
 import { resolveEffectiveRole } from '@shumai/core/src/authz/authz'
+import { quotaService } from '@shumai/core/src/quota/quota-service'
 import { mcpDbStore, type PendingAuth } from './mcp-db-store'
 import { buildDirectTools, isDirectTool } from './mcp-direct-tools'
 import { McpOauthProvider, type McpOauthConfig } from './mcp-oauth-provider'
@@ -529,6 +530,32 @@ export class McpService {
       return { ok: false, content: [{ type: 'text', text: denied }] }
     }
 
+    let role: TeamMemberRole | null | undefined = undefined
+    if (ctx?.teamId && ctx?.userId) {
+      role = await resolveEffectiveRole(ctx.teamId, ctx.projectId, ctx.userId)
+    }
+
+    if (ctx?.teamId) {
+      try {
+        await quotaService.checkQuota(
+          {
+            teamId: ctx.teamId,
+            userId: ctx.userId,
+            role,
+            resource: 'agent_mcp_call_count',
+            resourceData: { id: serverId, mcpServerId: serverId },
+          },
+          1,
+        )
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err)
+        return {
+          ok: false,
+          content: [{ type: 'text', text: `Quota exceeded: ${message}` }],
+        }
+      }
+    }
+
     const outcome = await this.ensureConnected(serverId)
     if (outcome.status === 'needs-auth') {
       return {
@@ -555,6 +582,24 @@ export class McpService {
 
     try {
       const result = await this.manager.callTool(serverId, toolName, args)
+
+      if (ctx?.teamId) {
+        try {
+          await quotaService.consumeQuota(
+            {
+              teamId: ctx.teamId,
+              userId: ctx.userId,
+              role,
+              resource: 'agent_mcp_call_count',
+              resourceData: { id: serverId, mcpServerId: serverId },
+            },
+            1,
+          )
+        } catch (err) {
+          logger.error({ err }, 'Failed to record quota usage for MCP tool call')
+        }
+      }
+
       if (result.isError) {
         const text = result.content.map((c) => ('text' in c ? c.text : '[image]')).join('\n')
         return {

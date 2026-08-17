@@ -748,6 +748,74 @@ export type FloatWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedFloatFilter<$PrismaModel>
 }
 
+export type EnumQuotaScopeModeFilter<$PrismaModel = never> = {
+  equals?: $Enums.QuotaScopeMode | Prisma.EnumQuotaScopeModeFieldRefInput<$PrismaModel>
+  in?: $Enums.QuotaScopeMode[] | Prisma.ListEnumQuotaScopeModeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.QuotaScopeMode[] | Prisma.ListEnumQuotaScopeModeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumQuotaScopeModeFilter<$PrismaModel> | $Enums.QuotaScopeMode
+}
+
+export type EnumTeamMemberRoleNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.TeamMemberRole | Prisma.EnumTeamMemberRoleFieldRefInput<$PrismaModel> | null
+  in?: $Enums.TeamMemberRole[] | Prisma.ListEnumTeamMemberRoleFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.TeamMemberRole[] | Prisma.ListEnumTeamMemberRoleFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumTeamMemberRoleNullableFilter<$PrismaModel> | $Enums.TeamMemberRole | null
+}
+
+export type EnumQuotaResourceTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.QuotaResourceType | Prisma.EnumQuotaResourceTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.QuotaResourceType[] | Prisma.ListEnumQuotaResourceTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.QuotaResourceType[] | Prisma.ListEnumQuotaResourceTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumQuotaResourceTypeFilter<$PrismaModel> | $Enums.QuotaResourceType
+}
+
+export type EnumQuotaPeriodFilter<$PrismaModel = never> = {
+  equals?: $Enums.QuotaPeriod | Prisma.EnumQuotaPeriodFieldRefInput<$PrismaModel>
+  in?: $Enums.QuotaPeriod[] | Prisma.ListEnumQuotaPeriodFieldRefInput<$PrismaModel>
+  notIn?: $Enums.QuotaPeriod[] | Prisma.ListEnumQuotaPeriodFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumQuotaPeriodFilter<$PrismaModel> | $Enums.QuotaPeriod
+}
+
+export type EnumQuotaScopeModeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.QuotaScopeMode | Prisma.EnumQuotaScopeModeFieldRefInput<$PrismaModel>
+  in?: $Enums.QuotaScopeMode[] | Prisma.ListEnumQuotaScopeModeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.QuotaScopeMode[] | Prisma.ListEnumQuotaScopeModeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumQuotaScopeModeWithAggregatesFilter<$PrismaModel> | $Enums.QuotaScopeMode
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumQuotaScopeModeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumQuotaScopeModeFilter<$PrismaModel>
+}
+
+export type EnumTeamMemberRoleNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.TeamMemberRole | Prisma.EnumTeamMemberRoleFieldRefInput<$PrismaModel> | null
+  in?: $Enums.TeamMemberRole[] | Prisma.ListEnumTeamMemberRoleFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.TeamMemberRole[] | Prisma.ListEnumTeamMemberRoleFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumTeamMemberRoleNullableWithAggregatesFilter<$PrismaModel> | $Enums.TeamMemberRole | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumTeamMemberRoleNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumTeamMemberRoleNullableFilter<$PrismaModel>
+}
+
+export type EnumQuotaResourceTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.QuotaResourceType | Prisma.EnumQuotaResourceTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.QuotaResourceType[] | Prisma.ListEnumQuotaResourceTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.QuotaResourceType[] | Prisma.ListEnumQuotaResourceTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumQuotaResourceTypeWithAggregatesFilter<$PrismaModel> | $Enums.QuotaResourceType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumQuotaResourceTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumQuotaResourceTypeFilter<$PrismaModel>
+}
+
+export type EnumQuotaPeriodWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.QuotaPeriod | Prisma.EnumQuotaPeriodFieldRefInput<$PrismaModel>
+  in?: $Enums.QuotaPeriod[] | Prisma.ListEnumQuotaPeriodFieldRefInput<$PrismaModel>
+  notIn?: $Enums.QuotaPeriod[] | Prisma.ListEnumQuotaPeriodFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumQuotaPeriodWithAggregatesFilter<$PrismaModel> | $Enums.QuotaPeriod
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumQuotaPeriodFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumQuotaPeriodFilter<$PrismaModel>
+}
+
 export type NestedStringFilter<$PrismaModel = never> = {
   equals?: string | Prisma.StringFieldRefInput<$PrismaModel>
   in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>
@@ -1415,6 +1483,74 @@ export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
   _sum?: Prisma.NestedFloatFilter<$PrismaModel>
   _min?: Prisma.NestedFloatFilter<$PrismaModel>
   _max?: Prisma.NestedFloatFilter<$PrismaModel>
+}
+
+export type NestedEnumQuotaScopeModeFilter<$PrismaModel = never> = {
+  equals?: $Enums.QuotaScopeMode | Prisma.EnumQuotaScopeModeFieldRefInput<$PrismaModel>
+  in?: $Enums.QuotaScopeMode[] | Prisma.ListEnumQuotaScopeModeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.QuotaScopeMode[] | Prisma.ListEnumQuotaScopeModeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumQuotaScopeModeFilter<$PrismaModel> | $Enums.QuotaScopeMode
+}
+
+export type NestedEnumTeamMemberRoleNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.TeamMemberRole | Prisma.EnumTeamMemberRoleFieldRefInput<$PrismaModel> | null
+  in?: $Enums.TeamMemberRole[] | Prisma.ListEnumTeamMemberRoleFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.TeamMemberRole[] | Prisma.ListEnumTeamMemberRoleFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumTeamMemberRoleNullableFilter<$PrismaModel> | $Enums.TeamMemberRole | null
+}
+
+export type NestedEnumQuotaResourceTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.QuotaResourceType | Prisma.EnumQuotaResourceTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.QuotaResourceType[] | Prisma.ListEnumQuotaResourceTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.QuotaResourceType[] | Prisma.ListEnumQuotaResourceTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumQuotaResourceTypeFilter<$PrismaModel> | $Enums.QuotaResourceType
+}
+
+export type NestedEnumQuotaPeriodFilter<$PrismaModel = never> = {
+  equals?: $Enums.QuotaPeriod | Prisma.EnumQuotaPeriodFieldRefInput<$PrismaModel>
+  in?: $Enums.QuotaPeriod[] | Prisma.ListEnumQuotaPeriodFieldRefInput<$PrismaModel>
+  notIn?: $Enums.QuotaPeriod[] | Prisma.ListEnumQuotaPeriodFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumQuotaPeriodFilter<$PrismaModel> | $Enums.QuotaPeriod
+}
+
+export type NestedEnumQuotaScopeModeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.QuotaScopeMode | Prisma.EnumQuotaScopeModeFieldRefInput<$PrismaModel>
+  in?: $Enums.QuotaScopeMode[] | Prisma.ListEnumQuotaScopeModeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.QuotaScopeMode[] | Prisma.ListEnumQuotaScopeModeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumQuotaScopeModeWithAggregatesFilter<$PrismaModel> | $Enums.QuotaScopeMode
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumQuotaScopeModeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumQuotaScopeModeFilter<$PrismaModel>
+}
+
+export type NestedEnumTeamMemberRoleNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.TeamMemberRole | Prisma.EnumTeamMemberRoleFieldRefInput<$PrismaModel> | null
+  in?: $Enums.TeamMemberRole[] | Prisma.ListEnumTeamMemberRoleFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.TeamMemberRole[] | Prisma.ListEnumTeamMemberRoleFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumTeamMemberRoleNullableWithAggregatesFilter<$PrismaModel> | $Enums.TeamMemberRole | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumTeamMemberRoleNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumTeamMemberRoleNullableFilter<$PrismaModel>
+}
+
+export type NestedEnumQuotaResourceTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.QuotaResourceType | Prisma.EnumQuotaResourceTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.QuotaResourceType[] | Prisma.ListEnumQuotaResourceTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.QuotaResourceType[] | Prisma.ListEnumQuotaResourceTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumQuotaResourceTypeWithAggregatesFilter<$PrismaModel> | $Enums.QuotaResourceType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumQuotaResourceTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumQuotaResourceTypeFilter<$PrismaModel>
+}
+
+export type NestedEnumQuotaPeriodWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.QuotaPeriod | Prisma.EnumQuotaPeriodFieldRefInput<$PrismaModel>
+  in?: $Enums.QuotaPeriod[] | Prisma.ListEnumQuotaPeriodFieldRefInput<$PrismaModel>
+  notIn?: $Enums.QuotaPeriod[] | Prisma.ListEnumQuotaPeriodFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumQuotaPeriodWithAggregatesFilter<$PrismaModel> | $Enums.QuotaPeriod
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumQuotaPeriodFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumQuotaPeriodFilter<$PrismaModel>
 }
 
 

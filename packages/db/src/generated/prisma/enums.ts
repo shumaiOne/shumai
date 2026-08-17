@@ -173,6 +173,37 @@ export const WatermarkFileStatus = {
 export type WatermarkFileStatus = (typeof WatermarkFileStatus)[keyof typeof WatermarkFileStatus]
 
 
+export const QuotaScopeMode = {
+  all_members: 'all_members',
+  each_member: 'each_member',
+  selected_members: 'selected_members'
+} as const
+
+export type QuotaScopeMode = (typeof QuotaScopeMode)[keyof typeof QuotaScopeMode]
+
+
+export const QuotaPeriod = {
+  one_hour: 'one_hour',
+  five_hours: 'five_hours',
+  one_day: 'one_day',
+  seven_days: 'seven_days'
+} as const
+
+export type QuotaPeriod = (typeof QuotaPeriod)[keyof typeof QuotaPeriod]
+
+
+export const QuotaResourceType = {
+  agent_total_tokens: 'agent_total_tokens',
+  agent_cost: 'agent_cost',
+  agent_skill_call_count: 'agent_skill_call_count',
+  agent_mcp_call_count: 'agent_mcp_call_count',
+  agent_bash_call_count: 'agent_bash_call_count',
+  agent_tool_call_count: 'agent_tool_call_count'
+} as const
+
+export type QuotaResourceType = (typeof QuotaResourceType)[keyof typeof QuotaResourceType]
+
+
 export const AgentType = {
   chat: 'chat',
   autofill: 'autofill',

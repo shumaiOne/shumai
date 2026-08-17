@@ -33,6 +33,7 @@ import {
 } from '../index'
 
 import { aiUsageService } from '@shumai/core/src/ai-usage/ai-usage'
+import { quotaService, QuotaExceededError } from '@shumai/core/src/quota/quota-service'
 import { UpdateAssetMetadataRequest } from '@shumai/dtos'
 
 export interface Usage {
@@ -297,6 +298,39 @@ When creating a file or version, you may attach metadata (for example, the AI mo
     let grandTotalTokens = 0
     let totalCost = 0
 
+    const effectiveRole = params.userId
+      ? await resolveEffectiveRole(params.teamId, params.projectId, params.userId)
+      : undefined
+
+    try {
+      await quotaService.checkQuota(
+        {
+          teamId: params.teamId,
+          userId: params.userId,
+          role: effectiveRole,
+          resource: 'agent_total_tokens',
+        },
+        0,
+      )
+      await quotaService.checkQuota(
+        {
+          teamId: params.teamId,
+          userId: params.userId,
+          role: effectiveRole,
+          resource: 'agent_cost',
+        },
+        0,
+      )
+    } catch (err) {
+      if (err instanceof QuotaExceededError) {
+        throw ApplicationFailure.create({
+          message: err.message,
+          nonRetryable: true,
+        })
+      }
+      throw err
+    }
+
     harness.subscribe(async (event) => {
       if (event.type === 'message_end' && event.message.role === 'assistant') {
         const assistantMsg = event.message
@@ -327,6 +361,29 @@ When creating a file or version, you may attach metadata (for example, the AI mo
           } catch (err) {
             logger.error({ err }, 'Failed to record AI usage')
           }
+
+          try {
+            await quotaService.consumeQuota(
+              {
+                teamId: params.teamId,
+                userId: params.userId,
+                role: effectiveRole,
+                resource: 'agent_total_tokens',
+              },
+              totalTokens,
+            )
+            await quotaService.consumeQuota(
+              {
+                teamId: params.teamId,
+                userId: params.userId,
+                role: effectiveRole,
+                resource: 'agent_cost',
+              },
+              cost,
+            )
+          } catch (err) {
+            logger.error({ err }, 'Failed to record quota usage for AI call')
+          }
         }
       }
     })
@@ -339,6 +396,29 @@ When creating a file or version, you may attach metadata (for example, the AI mo
       totalCacheReadTokens = assistantMessage.usage.cacheRead || 0
       grandTotalTokens = assistantMessage.usage.totalTokens || totalInputTokens + totalOutputTokens
       totalCost = assistantMessage.usage.cost?.total || 0
+
+      try {
+        await quotaService.consumeQuota(
+          {
+            teamId: params.teamId,
+            userId: params.userId,
+            role: effectiveRole,
+            resource: 'agent_total_tokens',
+          },
+          grandTotalTokens,
+        )
+        await quotaService.consumeQuota(
+          {
+            teamId: params.teamId,
+            userId: params.userId,
+            role: effectiveRole,
+            resource: 'agent_cost',
+          },
+          totalCost,
+        )
+      } catch (err) {
+        logger.error({ err }, 'Failed to record fallback quota usage for AI call')
+      }
     }
 
     const sessionEntries = await session.getEntries()
