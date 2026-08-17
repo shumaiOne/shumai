@@ -8,6 +8,10 @@ import {
   type UpdateQuotaRuleRequest,
   normalizeQuotaPeriod,
   formatQuotaPeriod,
+  skillResourceDataSchema,
+  mcpResourceDataSchema,
+  bashResourceDataSchema,
+  networkResourceDataSchema,
 } from '@shumai/dtos'
 import { HTTPException } from 'hono/http-exception'
 import { quotaRuleCache, type CachedQuotaRule, type QuotaEvent } from './quota-cache'
@@ -77,14 +81,22 @@ export class QuotaService {
   }
 
   async createRule(teamId: string, req: CreateQuotaRuleRequest): Promise<QuotaRuleResponse> {
-    if (req.scopeMode === 'selected_members' && req.userIds && req.userIds.length > 0) {
-      const users = await this.prismaClient.user.findMany({
-        where: { id: { in: req.userIds } },
-        select: { id: true },
-      })
-      if (users.length !== req.userIds.length) {
+    if (req.scopeMode === 'selected_members') {
+      if (!req.userIds || req.userIds.length === 0) {
         throw new HTTPException(400, {
-          message: 'One or more selected users were not found',
+          message: 'userIds must contain at least one user when scopeMode is "selected_members"',
+        })
+      }
+      const members = await this.prismaClient.teamMember.findMany({
+        where: {
+          teamId,
+          userId: { in: req.userIds },
+        },
+        select: { userId: true },
+      })
+      if (members.length !== req.userIds.length) {
+        throw new HTTPException(400, {
+          message: 'One or more selected users are not members of the team',
         })
       }
     }
@@ -122,35 +134,131 @@ export class QuotaService {
       throw new HTTPException(404, { message: 'Quota rule not found' })
     }
 
-    const data: Prisma.QuotaRuleUpdateInput = {}
-    if (req.scopeMode !== undefined) data.scopeMode = req.scopeMode
-    if (req.role !== undefined) {
-      data.role = req.role
-    }
-    if (req.userIds !== undefined) {
-      data.userIds = req.userIds ?? Prisma.JsonNull
+    const effectiveScopeMode = req.scopeMode ?? existing.scopeMode
+    const effectiveRole =
+      effectiveScopeMode === 'selected_members'
+        ? null
+        : req.role !== undefined
+          ? req.role
+          : existing.role
+    const effectiveUserIds =
+      effectiveScopeMode === 'selected_members'
+        ? req.userIds !== undefined
+          ? req.userIds
+          : Array.isArray(existing.userIds)
+            ? (existing.userIds as string[])
+            : []
+        : null
+    const effectiveResource = req.resource ?? existing.resource
+    const effectiveResourceData =
+      req.resourceData !== undefined
+        ? req.resourceData
+        : (existing.resourceData as Record<string, unknown> | null)
+    const effectiveLimit = req.limit ?? existing.limit
+    const effectivePeriod = req.period ? normalizeQuotaPeriod(req.period) : existing.period
+    const effectiveEnabled = req.enabled ?? existing.enabled
 
-      // Clean up records for removed users if updating userIds
-      if (req.userIds) {
-        await this.prismaClient.quotaRecord.deleteMany({
-          where: {
-            ruleId,
-            userId: { notIn: req.userIds },
-          },
+    // Validate effective merged state
+    if (effectiveScopeMode === 'selected_members') {
+      if (!effectiveUserIds || effectiveUserIds.length === 0) {
+        throw new HTTPException(400, {
+          message: 'userIds must contain at least one user when scopeMode is "selected_members"',
+        })
+      }
+      const members = await this.prismaClient.teamMember.findMany({
+        where: {
+          teamId,
+          userId: { in: effectiveUserIds },
+        },
+        select: { userId: true },
+      })
+      if (members.length !== effectiveUserIds.length) {
+        throw new HTTPException(400, {
+          message: 'One or more selected users are not members of the team',
         })
       }
     }
-    if (req.resource !== undefined) data.resource = req.resource
-    if (req.resourceData !== undefined) {
-      data.resourceData = req.resourceData ?? Prisma.JsonNull
-    }
-    if (req.limit !== undefined) data.limit = req.limit
-    if (req.period !== undefined) data.period = normalizeQuotaPeriod(req.period)
-    if (req.enabled !== undefined) data.enabled = req.enabled
 
-    const updated = await this.prismaClient.quotaRule.update({
-      where: { id: ruleId },
-      data,
+    if (effectiveResource === 'agent_skill_call_count') {
+      const res = skillResourceDataSchema.safeParse(effectiveResourceData)
+      if (!res.success) {
+        throw new HTTPException(400, {
+          message: 'resourceData.id is required for agent_skill_call_count',
+        })
+      }
+    } else if (effectiveResource === 'agent_mcp_call_count') {
+      const res = mcpResourceDataSchema.safeParse(effectiveResourceData)
+      if (!res.success) {
+        throw new HTTPException(400, {
+          message: 'resourceData.id is required for agent_mcp_call_count',
+        })
+      }
+    } else if (effectiveResource === 'agent_bash_call_count') {
+      const res = bashResourceDataSchema.safeParse(effectiveResourceData)
+      if (!res.success) {
+        throw new HTTPException(400, {
+          message: 'resourceData.match is required for agent_bash_call_count',
+        })
+      }
+    } else if (effectiveResource === 'agent_network_call_count') {
+      const res = networkResourceDataSchema.safeParse(effectiveResourceData)
+      if (!res.success) {
+        throw new HTTPException(400, {
+          message: 'resourceData.domain is required for agent_network_call_count',
+        })
+      }
+    }
+
+    if (effectiveLimit <= 0) {
+      throw new HTTPException(400, {
+        message: 'Limit must be greater than 0',
+      })
+    }
+
+    const isAccountingDimensionChanged =
+      (req.resource !== undefined && req.resource !== existing.resource) ||
+      (req.period !== undefined && normalizeQuotaPeriod(req.period) !== existing.period) ||
+      (req.scopeMode !== undefined && req.scopeMode !== existing.scopeMode) ||
+      (req.role !== undefined && req.role !== existing.role) ||
+      (req.resourceData !== undefined &&
+        JSON.stringify(req.resourceData) !== JSON.stringify(existing.resourceData))
+
+    const updated = await this.prismaClient.$transaction(async (tx) => {
+      if (isAccountingDimensionChanged) {
+        // Reset all records when accounting dimensions change
+        await tx.quotaRecord.deleteMany({
+          where: { ruleId },
+        })
+      } else if (effectiveScopeMode === 'selected_members' && req.userIds !== undefined) {
+        // Clean up records for removed users if updating userIds
+        if (req.userIds && req.userIds.length > 0) {
+          await tx.quotaRecord.deleteMany({
+            where: {
+              ruleId,
+              userId: { notIn: req.userIds },
+            },
+          })
+        }
+      }
+
+      const data: Prisma.QuotaRuleUpdateInput = {
+        scopeMode: effectiveScopeMode,
+        role: effectiveRole,
+        userIds:
+          effectiveScopeMode === 'selected_members' && effectiveUserIds
+            ? effectiveUserIds
+            : Prisma.JsonNull,
+        resource: effectiveResource,
+        resourceData: effectiveResourceData ?? Prisma.JsonNull,
+        limit: effectiveLimit,
+        period: effectivePeriod,
+        enabled: effectiveEnabled,
+      }
+
+      return tx.quotaRule.update({
+        where: { id: ruleId },
+        data,
+      })
     })
 
     quotaRuleCache.invalidate(teamId)
@@ -372,7 +480,12 @@ export class QuotaService {
       const targetUserId = rule.getTargetUserId(event)
 
       await this.prismaClient.$transaction(async (tx) => {
-        const rawRecord = targetUserId
+        if (targetUserId === null) {
+          // Serialize all_members record checks/creations on the parent rule row
+          await tx.$queryRaw`SELECT id FROM quota_rules WHERE id = ${rule.id} FOR UPDATE`
+        }
+
+        let rawRecord = targetUserId
           ? ((
               await tx.$queryRaw<RawQuotaRecord[]>`
                 SELECT * FROM quota_records
@@ -387,6 +500,19 @@ export class QuotaService {
                 FOR UPDATE
               `
             )[0] ?? null)
+
+        if (!rawRecord && targetUserId !== null) {
+          // Lock parent rule on first user record check and re-query
+          await tx.$queryRaw`SELECT id FROM quota_rules WHERE id = ${rule.id} FOR UPDATE`
+          rawRecord =
+            (
+              await tx.$queryRaw<RawQuotaRecord[]>`
+              SELECT * FROM quota_records
+              WHERE rule_id = ${rule.id} AND user_id = ${targetUserId}
+              FOR UPDATE
+            `
+            )[0] ?? null
+        }
 
         const isWindowActive = Boolean(
           rawRecord?.period_start &&
@@ -433,7 +559,12 @@ export class QuotaService {
       const targetUserId = rule.getTargetUserId(event)
 
       await this.prismaClient.$transaction(async (tx) => {
-        const rawRecord = targetUserId
+        if (targetUserId === null) {
+          // Serialize all_members (shared pool) creations and updates on the parent rule row
+          await tx.$queryRaw`SELECT id FROM quota_rules WHERE id = ${rule.id} FOR UPDATE`
+        }
+
+        let rawRecord = targetUserId
           ? ((
               await tx.$queryRaw<RawQuotaRecord[]>`
                 SELECT * FROM quota_records
@@ -448,6 +579,19 @@ export class QuotaService {
                 FOR UPDATE
               `
             )[0] ?? null)
+
+        if (!rawRecord && targetUserId !== null) {
+          // Lock parent rule on first user record creation and re-query
+          await tx.$queryRaw`SELECT id FROM quota_rules WHERE id = ${rule.id} FOR UPDATE`
+          rawRecord =
+            (
+              await tx.$queryRaw<RawQuotaRecord[]>`
+              SELECT * FROM quota_records
+              WHERE rule_id = ${rule.id} AND user_id = ${targetUserId}
+              FOR UPDATE
+            `
+            )[0] ?? null
+        }
 
         const isWindowActive = Boolean(
           rawRecord?.period_start &&
