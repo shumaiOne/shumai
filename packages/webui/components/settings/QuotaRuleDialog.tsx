@@ -375,8 +375,8 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[540px] max-h-[90vh] flex flex-col p-0">
-          <DialogHeader className="p-6 pb-4 border-b border-border/60">
+        <DialogContent className="sm:max-w-[540px] max-h-[90vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="p-6 pb-4 border-b border-border/60 shrink-0">
             <DialogTitle className="text-xl font-bold">
               {isEditing ? m.edit_quota_rule() : m.create_quota_rule()}
             </DialogTitle>
@@ -385,7 +385,11 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit} noValidate className="flex-1 overflow-y-auto p-6 space-y-5">
+          <form
+            onSubmit={handleSubmit}
+            noValidate
+            className="flex-1 overflow-y-auto min-h-0 p-6 space-y-5"
+          >
             {/* Step 1: Scope Mode Selector */}
             <div className="space-y-2">
               <Label className="text-sm font-semibold">{m.quota_scope_mode()}</Label>

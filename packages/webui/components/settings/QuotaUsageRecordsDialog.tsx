@@ -134,8 +134,8 @@ export const QuotaUsageRecordsDialog: React.FC<QuotaUsageRecordsDialogProps> = (
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[620px] max-h-[85vh] flex flex-col p-0">
-        <DialogHeader className="p-6 pb-4 border-b border-border/60">
+      <DialogContent className="sm:max-w-[620px] max-h-[85vh] flex flex-col p-0 overflow-hidden">
+        <DialogHeader className="p-6 pb-4 border-b border-border/60 shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
               <Icon className="w-5 h-5" />
@@ -156,31 +156,33 @@ export const QuotaUsageRecordsDialog: React.FC<QuotaUsageRecordsDialogProps> = (
           </div>
         </DialogHeader>
 
-        <div className="p-6 pt-3 flex-1 flex flex-col min-h-0 space-y-4">
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
           {rule.scopeMode !== 'all_members' && records.length > 3 && (
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={m.quota_search_members()}
-                className="pl-9 h-9 text-sm"
-              />
+            <div className="px-6 pt-4 pb-2 shrink-0">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={m.quota_search_members()}
+                  className="pl-9 h-9 text-sm"
+                />
+              </div>
             </div>
           )}
 
-          <ScrollArea className="flex-1 max-h-[50vh] pr-3">
-            {isLoading ? (
-              <div className="flex justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              </div>
-            ) : filteredRecords.length === 0 ? (
-              <div className="text-center py-10 text-sm text-muted-foreground">
-                {records.length === 0 ? m.no_quotas_title() : 'No matching records found'}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {filteredRecords.map((record, index) => {
+          <ScrollArea className="flex-1 min-h-0 [&>div>div]:block!">
+            <div className="p-6 pt-3 space-y-3">
+              {isLoading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : filteredRecords.length === 0 ? (
+                <div className="text-center py-10 text-sm text-muted-foreground">
+                  {records.length === 0 ? m.no_quotas_title() : 'No matching records found'}
+                </div>
+              ) : (
+                filteredRecords.map((record, index) => {
                   const percent = record.percent
                   const isOverLimit = percent >= 100
                   const isSharedPool = rule.scopeMode === 'all_members'
@@ -272,9 +274,9 @@ export const QuotaUsageRecordsDialog: React.FC<QuotaUsageRecordsDialogProps> = (
                       </div>
                     </div>
                   )
-                })}
-              </div>
-            )}
+                })
+              )}
+            </div>
           </ScrollArea>
         </div>
       </DialogContent>
