@@ -10,7 +10,7 @@ const en_enter_skill_id = /** @type {(inputs: Enter_Skill_IdInputs) => Localized
 };
 
 const zh_enter_skill_id = /** @type {(inputs: Enter_Skill_IdInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`输入 Skill ID`)
+	return /** @type {LocalizedString} */ (`输入技能 ID`)
 };
 
 /**

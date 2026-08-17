@@ -1126,5 +1126,7 @@
   "network_domain_pattern": "Domain Wildcard",
   "network_domain_pattern_placeholder": "e.g. * or *.openai.com",
   "enter_skill_id": "Enter Skill ID",
-  "enter_mcp_id": "Enter MCP Server ID"
+  "enter_mcp_id": "Enter MCP Server ID",
+  "quota_bash_hint": "Supports wildcards (*). Examples: git *, npm test, curl *, python script.py (use * for all commands)",
+  "quota_network_hint": "Supports wildcards (*). Examples: *.github.com, api.openai.com, *.internal.net (use * for all domains)"
 }

@@ -56,10 +56,11 @@ test('owner manages resource quotas in settings', async ({ owner, prisma }) => {
   await page.getByRole('switch').click()
   await expect(page.getByRole('switch')).toBeChecked()
 
-  // 9. Open Edit Dialog via dropdown menu
-  await page.getByRole('button', { name: 'Quota actions' }).first().click()
-  await page.getByRole('menuitem', { name: /Edit|编辑/i }).click()
+  // 9. Open Edit Dialog by clicking the quota card
+  await page.getByText(/50,000 tokens|50000 tokens/i).click()
   await expect(page.getByText(/Edit Quota Rule|编辑配额规则/i)).toBeVisible()
+  await expect(page.getByRole('button', { name: /Each Member|每个成员/i })).toBeDisabled()
+  await expect(page.locator('#quota-resource')).toBeDisabled()
 
   // 10. Update limit
   await page.fill('#quota-limit', '75000')

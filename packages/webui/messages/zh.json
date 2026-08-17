@@ -1125,6 +1125,8 @@
   "bash_command_pattern_placeholder": "例如 * 或 npm*",
   "network_domain_pattern": "域名通配符",
   "network_domain_pattern_placeholder": "例如 * 或 *.openai.com",
-  "enter_skill_id": "输入 Skill ID",
-  "enter_mcp_id": "输入 MCP 服务 ID"
+  "enter_skill_id": "输入技能 ID",
+  "enter_mcp_id": "输入 MCP 服务 ID",
+  "quota_bash_hint": "支持通配符 (*)。示例：git *、npm test、curl *、python script.py（使用 * 匹配所有命令）",
+  "quota_network_hint": "支持通配符 (*)。示例：*.github.com、api.openai.com、*.internal.net（使用 * 匹配所有域名）"
 }

@@ -1071,4 +1071,6 @@ export * from "./network_domain_pattern.js";
 export * from "./network_domain_pattern_placeholder.js";
 export * from "./enter_skill_id.js";
 export * from "./enter_mcp_id.js";
+export * from "./quota_bash_hint.js";
+export * from "./quota_network_hint.js";
 export type LocalizedString = import("../runtime.js").LocalizedString;

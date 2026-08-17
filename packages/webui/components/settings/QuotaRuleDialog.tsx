@@ -398,6 +398,7 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
                   type="button"
                   variant={scopeMode === 'each_member' ? 'default' : 'outline'}
                   size="sm"
+                  disabled={isEditing || isPending}
                   onClick={() => setScopeMode('each_member')}
                   className="flex flex-col h-auto py-2.5 px-2 gap-1 items-center justify-center text-xs"
                 >
@@ -408,6 +409,7 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
                   type="button"
                   variant={scopeMode === 'all_members' ? 'default' : 'outline'}
                   size="sm"
+                  disabled={isEditing || isPending}
                   onClick={() => setScopeMode('all_members')}
                   className="flex flex-col h-auto py-2.5 px-2 gap-1 items-center justify-center text-xs"
                 >
@@ -418,6 +420,7 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
                   type="button"
                   variant={scopeMode === 'selected_members' ? 'default' : 'outline'}
                   size="sm"
+                  disabled={isEditing || isPending}
                   onClick={() => setScopeMode('selected_members')}
                   className="flex flex-col h-auto py-2.5 px-2 gap-1 items-center justify-center text-xs"
                 >
@@ -438,7 +441,11 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
                 <Label htmlFor="quota-role-scope" className="text-sm font-semibold">
                   {m.quota_scope()}
                 </Label>
-                <Select value={roleScope} onValueChange={setRoleScope}>
+                <Select
+                  value={roleScope}
+                  onValueChange={setRoleScope}
+                  disabled={isEditing || isPending}
+                >
                   <SelectTrigger id="quota-role-scope" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
@@ -458,6 +465,7 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
                     <Button
                       variant="outline"
                       role="combobox"
+                      disabled={isPending}
                       className="w-full justify-between text-left font-normal h-10"
                     >
                       <span className="truncate">
@@ -528,6 +536,7 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
               <Select
                 value={resource}
                 onValueChange={(val) => handleResourceChange(val as QuotaResourceTypeEnum)}
+                disabled={isEditing || isPending}
               >
                 <SelectTrigger id="quota-resource" className="w-full">
                   <SelectValue />
@@ -580,7 +589,11 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
                   {m.select_skill()}
                 </Label>
                 {skills.length > 0 ? (
-                  <Select value={skillId} onValueChange={setSkillId}>
+                  <Select
+                    value={skillId}
+                    onValueChange={setSkillId}
+                    disabled={isEditing || isPending}
+                  >
                     <SelectTrigger id="quota-skill" className="w-full">
                       <SelectValue placeholder={m.select_skill()} />
                     </SelectTrigger>
@@ -598,6 +611,7 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
                     value={skillId}
                     onChange={(e) => setSkillId(e.target.value)}
                     placeholder={m.enter_skill_id()}
+                    disabled={isEditing || isPending}
                   />
                 )}
               </div>
@@ -609,7 +623,11 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
                   {m.select_mcp_server()}
                 </Label>
                 {mcpServers.length > 0 ? (
-                  <Select value={mcpServerId} onValueChange={setMcpServerId}>
+                  <Select
+                    value={mcpServerId}
+                    onValueChange={setMcpServerId}
+                    disabled={isEditing || isPending}
+                  >
                     <SelectTrigger id="quota-mcp" className="w-full">
                       <SelectValue placeholder={m.select_mcp_server()} />
                     </SelectTrigger>
@@ -627,13 +645,14 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
                     value={mcpServerId}
                     onChange={(e) => setMcpServerId(e.target.value)}
                     placeholder={m.enter_mcp_id()}
+                    disabled={isEditing || isPending}
                   />
                 )}
               </div>
             )}
 
             {resource === 'agent_bash_call_count' && (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="quota-bash" className="text-sm font-semibold">
                   {m.bash_command_pattern()}
                 </Label>
@@ -642,12 +661,14 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
                   value={bashMatch}
                   onChange={(e) => setBashMatch(e.target.value)}
                   placeholder={m.bash_command_pattern_placeholder()}
+                  disabled={isPending}
                 />
+                <p className="text-xs text-muted-foreground">{m.quota_bash_hint()}</p>
               </div>
             )}
 
             {resource === 'agent_network_call_count' && (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="quota-network" className="text-sm font-semibold">
                   {m.network_domain_pattern()}
                 </Label>
@@ -656,7 +677,9 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
                   value={networkDomain}
                   onChange={(e) => setNetworkDomain(e.target.value)}
                   placeholder={m.network_domain_pattern_placeholder()}
+                  disabled={isPending}
                 />
+                <p className="text-xs text-muted-foreground">{m.quota_network_hint()}</p>
               </div>
             )}
 
@@ -674,6 +697,7 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
                   value={limit}
                   onChange={(e) => setLimit(Number(e.target.value))}
                   placeholder={m.quota_limit_placeholder()}
+                  disabled={isPending}
                   required
                 />
               </div>
@@ -682,7 +706,11 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
                 <Label htmlFor="quota-period" className="text-sm font-semibold">
                   {m.quota_period()}
                 </Label>
-                <Select value={period} onValueChange={(val) => setPeriod(val as QuotaPeriodEnum)}>
+                <Select
+                  value={period}
+                  onValueChange={(val) => setPeriod(val as QuotaPeriodEnum)}
+                  disabled={isPending}
+                >
                   <SelectTrigger id="quota-period" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
@@ -728,7 +756,12 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
                     : 'Inactive, requests will bypass this quota'}
                 </p>
               </div>
-              <Switch id="quota-enabled" checked={enabled} onCheckedChange={setEnabled} />
+              <Switch
+                id="quota-enabled"
+                checked={enabled}
+                onCheckedChange={setEnabled}
+                disabled={isPending}
+              />
             </div>
 
             <DialogFooter className="pt-4 flex items-center justify-between gap-2 sm:justify-between border-t border-border/60">

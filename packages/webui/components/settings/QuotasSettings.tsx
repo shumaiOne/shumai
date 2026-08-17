@@ -10,7 +10,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/ui/components/ui/dropdown-menu'
 import {
@@ -29,7 +28,6 @@ import {
   Loader2,
   MoreVertical,
   Trash2,
-  Edit2,
   Cpu,
   DollarSign,
   Puzzle,
@@ -40,7 +38,6 @@ import {
   UserCheck,
   User,
   Clock,
-  Activity,
   Eye,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -214,42 +211,37 @@ export const QuotasSettings: React.FC<QuotasSettingsProps> = ({ teamId }) => {
               <div className="flex flex-col gap-4">
                 {rules.map((rule) => {
                   const meta = RESOURCE_META[rule.resource]
-                  const Icon = meta?.icon || Activity
                   const resData = (rule.resourceData as Record<string, unknown> | null) || {}
 
                   return (
                     <div
                       key={rule.id}
-                      className={`group relative flex flex-col justify-between p-5 rounded-xl border bg-card text-card-foreground shadow-2xs transition-all hover:border-primary/40 hover:shadow-xs ${
+                      onClick={() => setSelectedRule(rule)}
+                      className={`group relative flex flex-col justify-between p-5 rounded-xl border bg-card text-card-foreground shadow-2xs transition-all hover:border-primary/40 hover:shadow-xs cursor-pointer ${
                         !rule.enabled ? 'opacity-60 bg-muted/20' : ''
                       }`}
                     >
                       {/* Top Row: Resource, Details, Switch, Actions */}
                       <div className="space-y-3">
                         <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
-                              <Icon className="w-5 h-5" />
+                          <div>
+                            <div className="font-semibold text-base text-foreground group-hover:text-primary transition-colors flex items-center gap-2">
+                              <span>{meta?.label ? meta.label() : rule.resource}</span>
                             </div>
-                            <div>
-                              <div className="font-semibold text-base text-foreground group-hover:text-primary transition-colors flex items-center gap-2">
-                                <span>{meta?.label ? meta.label() : rule.resource}</span>
-                              </div>
-                              {/* Subtitle / target details */}
-                              <div className="text-xs text-muted-foreground line-clamp-1">
-                                {rule.resource === 'agent_skill_call_count' && (
-                                  <span>Skill: {String(resData.id || '')}</span>
-                                )}
-                                {rule.resource === 'agent_mcp_call_count' && (
-                                  <span>Server: {String(resData.id || '')}</span>
-                                )}
-                                {rule.resource === 'agent_bash_call_count' && (
-                                  <span>Match: {String(resData.match || '*')}</span>
-                                )}
-                                {rule.resource === 'agent_network_call_count' && (
-                                  <span>Domain: {String(resData.domain || '*')}</span>
-                                )}
-                              </div>
+                            {/* Subtitle / target details */}
+                            <div className="text-xs text-muted-foreground line-clamp-1">
+                              {rule.resource === 'agent_skill_call_count' && (
+                                <span>Skill: {String(resData.id || '')}</span>
+                              )}
+                              {rule.resource === 'agent_mcp_call_count' && (
+                                <span>Server: {String(resData.id || '')}</span>
+                              )}
+                              {rule.resource === 'agent_bash_call_count' && (
+                                <span>Match: {String(resData.match || '*')}</span>
+                              )}
+                              {rule.resource === 'agent_network_call_count' && (
+                                <span>Domain: {String(resData.domain || '*')}</span>
+                              )}
                             </div>
                           </div>
 
@@ -277,11 +269,6 @@ export const QuotasSettings: React.FC<QuotasSettingsProps> = ({ teamId }) => {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => setSelectedRule(rule)}>
-                                  <Edit2 className="w-4 h-4 mr-2" />
-                                  {m.edit()}
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                   onClick={() => setDeletingRule(rule)}
                                   className="text-destructive focus:text-destructive"
@@ -340,7 +327,10 @@ export const QuotasSettings: React.FC<QuotasSettingsProps> = ({ teamId }) => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setViewingUsageRule(rule)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setViewingUsageRule(rule)
+                            }}
                             className="gap-1.5 text-xs h-7 px-2.5"
                           >
                             <Eye className="w-3.5 h-3.5 text-primary" />
