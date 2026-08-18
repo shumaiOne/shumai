@@ -1,7 +1,10 @@
 import { expect, test } from '../../fixtures'
 
-test('owner manages resource quotas in settings', async ({ owner, prisma }) => {
-  const { page, teamId } = owner
+test('owner manages resource quotas in settings and resets usage from the dashboard', async ({
+  owner,
+  prisma,
+}) => {
+  const { page, teamId, email } = owner
 
   // 1. Navigate to team settings
   await page.goto(`/teams/${teamId}/settings`)
@@ -35,14 +38,8 @@ test('owner manages resource quotas in settings', async ({ owner, prisma }) => {
   expect(createdRule).not.toBeNull()
   expect(createdRule?.enabled).toBe(true)
 
-  // 7. Click View Usage button to open usage records dialog
-  await page.getByRole('button', { name: /View Usage|查看使用量/i }).click()
-  await expect(page.getByRole('heading', { name: /Usage Records|使用记录/i })).toBeVisible()
-  await expect(page.getByText(/Quota available|配额可用/i)).toBeVisible()
-
-  // Close dialog via Close button
-  await page.getByRole('button', { name: /Close|关闭/i }).click()
-  await expect(page.getByRole('heading', { name: /Usage Records|使用记录/i })).not.toBeVisible()
+  // 7. Usage is now monitored from the dashboard, not the settings rule card.
+  await expect(page.getByRole('button', { name: /View Usage|查看使用量/i })).not.toBeVisible()
 
   // 8. Toggle quota rule switch
   await page.getByRole('switch').click()
@@ -73,7 +70,41 @@ test('owner manages resource quotas in settings', async ({ owner, prisma }) => {
   })
   expect(updatedRule?.limit).toBe(75000)
 
-  // 11. Delete quota rule
+  // 11. Verify quota usage and reset it from the dashboard
+  const ownerUser = await prisma.user.findUnique({ where: { email } })
+  expect(ownerUser).not.toBeNull()
+  await prisma.quotaRecord.create({
+    data: {
+      ruleId: createdRule?.id as string,
+      teamId,
+      userId: ownerUser?.id,
+      periodStart: new Date(),
+      periodEnd: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      consumed: 100,
+    },
+  })
+  await page.goto(`/teams/${teamId}/dashboard`)
+  await page.getByRole('button', { name: /Quotas|配额/i }).click()
+  await expect(
+    page.getByText(/Monitor live quota usage|在仪表盘中监控实时配额使用情况/),
+  ).toBeVisible()
+
+  const quotaRuleButton = page.getByRole('button', { name: /Expand quota rule|展开配额规则/i })
+  await quotaRuleButton.click()
+  await expect(page.getByText(/^100 \/ 75,000 tokens$|^100 \/ 75000 tokens$/i)).toBeVisible()
+  await page.getByRole('button', { name: /Reset Usage|重置使用量/i }).click()
+  await expect(page.getByRole('alertdialog')).toBeVisible()
+  await page.getByRole('button', { name: /Confirm|确认/i }).click()
+  await expect(page.getByText(/^0 \/ 75,000 tokens$|^0 \/ 75000 tokens$/i)).toBeVisible()
+
+  const resetRecord = await prisma.quotaRecord.findFirst({
+    where: { ruleId: createdRule?.id, userId: ownerUser?.id },
+  })
+  expect(resetRecord?.consumed).toBe(0)
+
+  // 12. Delete quota rule from settings
+  await page.goto(`/teams/${teamId}/settings`)
+  await page.getByRole('button', { name: /Quotas|配额/i }).click()
   await page.getByRole('button', { name: 'Quota actions' }).first().click()
   await page.getByRole('menuitem', { name: /Delete|删除/i }).click()
   await page

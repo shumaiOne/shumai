@@ -554,6 +554,126 @@ describe('QuotaService', () => {
     expect(activeRecords.records[0].isWindowActive).toBe(true)
   })
 
+  it('resets a shared quota record and starts a fresh window', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'Reset Shared Quota Team' },
+    })
+
+    const rule = await quotaService.createRule(team.id, {
+      scopeMode: 'all_members',
+      resource: 'agent_total_tokens',
+      limit: 1000,
+      period: '1hour',
+    })
+
+    await quotaService.consumeQuota({ teamId: team.id, resource: 'agent_total_tokens' }, 500)
+    const beforeReset = await prisma.quotaRecord.findFirst({ where: { ruleId: rule.id } })
+    expect(beforeReset?.consumed).toBe(500)
+
+    const reset = await quotaService.resetRecord(team.id, rule.id, null)
+    expect(reset.userId).toBeNull()
+    expect(reset.consumed).toBe(0)
+    expect(reset.remaining).toBe(1000)
+    expect(reset.percent).toBe(0)
+    expect(reset.isWindowActive).toBe(true)
+    expect(reset.periodStart).toBeDefined()
+    expect(reset.periodEnd).toBeDefined()
+
+    const afterReset = await prisma.quotaRecord.findFirst({ where: { ruleId: rule.id } })
+    expect(afterReset?.consumed).toBe(0)
+    expect(afterReset?.periodStart?.getTime()).toBeGreaterThanOrEqual(
+      beforeReset?.periodStart?.getTime() ?? 0,
+    )
+  })
+
+  it('creates and resets a member quota record before any usage exists', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'Reset Member Quota Team' },
+    })
+    const user = await prisma.user.create({
+      data: { name: 'Reset Member', email: 'reset-member@example.com', password: 'pw' },
+    })
+    await prisma.teamMember.create({
+      data: { teamId: team.id, userId: user.id, role: 'editor' },
+    })
+
+    const rule = await quotaService.createRule(team.id, {
+      scopeMode: 'each_member',
+      resource: 'agent_total_tokens',
+      limit: 1000,
+      period: '1day',
+    })
+
+    const reset = await quotaService.resetRecord(team.id, rule.id, user.id)
+    expect(reset.userId).toBe(user.id)
+    expect(reset.consumed).toBe(0)
+    expect(reset.isWindowActive).toBe(true)
+
+    const records = await prisma.quotaRecord.findMany({ where: { ruleId: rule.id } })
+    expect(records).toHaveLength(1)
+    expect(records[0]?.userId).toBe(user.id)
+    expect(records[0]?.consumed).toBe(0)
+  })
+
+  it('rejects reset targets that do not match the quota rule', async () => {
+    const team = await prisma.team.create({
+      data: { name: 'Invalid Reset Target Team' },
+    })
+    const editor = await prisma.user.create({
+      data: { name: 'Editor', email: 'invalid-reset-editor@example.com', password: 'pw' },
+    })
+    const reviewer = await prisma.user.create({
+      data: { name: 'Reviewer', email: 'invalid-reset-reviewer@example.com', password: 'pw' },
+    })
+    await prisma.teamMember.createMany({
+      data: [
+        { teamId: team.id, userId: editor.id, role: 'editor' },
+        { teamId: team.id, userId: reviewer.id, role: 'reviewer' },
+      ],
+    })
+
+    const roleRule = await quotaService.createRule(team.id, {
+      scopeMode: 'each_member',
+      role: 'editor',
+      resource: 'agent_total_tokens',
+      limit: 1000,
+      period: '1hour',
+    })
+
+    await expect(quotaService.resetRecord(team.id, roleRule.id, reviewer.id)).rejects.toThrow(
+      'does not match the rule role',
+    )
+    await expect(quotaService.resetRecord(team.id, roleRule.id, null)).rejects.toThrow(
+      'require a userId',
+    )
+
+    const selectedRule = await quotaService.createRule(team.id, {
+      scopeMode: 'selected_members',
+      userIds: [editor.id],
+      resource: 'agent_total_tokens',
+      limit: 1000,
+      period: '1hour',
+    })
+    await expect(quotaService.resetRecord(team.id, selectedRule.id, reviewer.id)).rejects.toThrow(
+      'not selected by this rule',
+    )
+  })
+
+  it('does not allow resetting a quota rule from another team', async () => {
+    const team = await prisma.team.create({ data: { name: 'Reset Owner Team' } })
+    const otherTeam = await prisma.team.create({ data: { name: 'Reset Other Team' } })
+    const rule = await quotaService.createRule(team.id, {
+      scopeMode: 'all_members',
+      resource: 'agent_total_tokens',
+      limit: 1000,
+      period: '1hour',
+    })
+
+    await expect(quotaService.resetRecord(otherTeam.id, rule.id, null)).rejects.toThrow(
+      'Quota rule not found',
+    )
+  })
+
   it('enforces multiple matching rules simultaneously', async () => {
     const team = await prisma.team.create({
       data: { name: 'Multi Rule Team' },

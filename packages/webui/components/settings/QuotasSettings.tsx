@@ -28,89 +28,29 @@ import {
   Loader2,
   MoreVertical,
   Trash2,
-  Cpu,
-  DollarSign,
-  Server,
-  Terminal,
-  Wrench,
   Users,
   UserCheck,
   User,
   Clock,
-  Eye,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { m } from '@/ui/paraglide/messages.js'
-import type { QuotaRuleResponse, QuotaResourceTypeEnum } from '@shumai/dtos'
-import { formatQuotaPeriod } from '@shumai/dtos'
+import type { QuotaRuleResponse } from '@shumai/dtos'
+import {
+  QUOTA_RESOURCE_META,
+  formatQuotaResourceValue,
+  getQuotaPeriodLabel,
+} from '../quota/quota-display'
 import { QuotaRuleDialog } from './QuotaRuleDialog'
-import { QuotaUsageRecordsDialog } from './QuotaUsageRecordsDialog'
 
 interface QuotasSettingsProps {
   teamId: string
-}
-
-/* eslint-disable @typescript-eslint/naming-convention */
-const RESOURCE_META: Record<
-  QuotaResourceTypeEnum,
-  { label: () => string; icon: React.ElementType; unit: string }
-> = {
-  agent_total_tokens: {
-    label: () => m.quota_resource_agent_total_tokens(),
-    icon: Cpu,
-    unit: 'tokens',
-  },
-  agent_cost: {
-    label: () => m.quota_resource_agent_cost(),
-    icon: DollarSign,
-    unit: '$',
-  },
-  agent_mcp_call_count: {
-    label: () => m.quota_resource_agent_mcp_call_count(),
-    icon: Server,
-    unit: 'calls',
-  },
-  agent_bash_call_count: {
-    label: () => m.quota_resource_agent_bash_call_count(),
-    icon: Terminal,
-    unit: 'calls',
-  },
-  agent_tool_call_count: {
-    label: () => m.quota_resource_agent_tool_call_count(),
-    icon: Wrench,
-    unit: 'calls',
-  },
-}
-/* eslint-enable @typescript-eslint/naming-convention */
-
-function getPeriodLabel(period: string): string {
-  const norm = formatQuotaPeriod(period)
-  switch (norm) {
-    case '1hour':
-      return m.quota_period_1hour()
-    case '5hour':
-      return m.quota_period_5hour()
-    case '1day':
-      return m.quota_period_1day()
-    case '7day':
-      return m.quota_period_7day()
-    default:
-      return norm
-  }
-}
-
-function formatResourceValue(resource: QuotaResourceTypeEnum, val: number): string {
-  if (resource === 'agent_cost') {
-    return `$${val.toFixed(2)}`
-  }
-  return val.toLocaleString()
 }
 
 export const QuotasSettings: React.FC<QuotasSettingsProps> = ({ teamId }) => {
   const queryClient = useQueryClient()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [selectedRule, setSelectedRule] = useState<QuotaRuleResponse | null>(null)
-  const [viewingUsageRule, setViewingUsageRule] = useState<QuotaRuleResponse | null>(null)
   const [deletingRule, setDeletingRule] = useState<QuotaRuleResponse | null>(null)
 
   // Fetch quota rules
@@ -204,7 +144,7 @@ export const QuotasSettings: React.FC<QuotasSettingsProps> = ({ teamId }) => {
             ) : (
               <div className="flex flex-col gap-4">
                 {rules.map((rule) => {
-                  const meta = RESOURCE_META[rule.resource]
+                  const meta = QUOTA_RESOURCE_META[rule.resource]
                   const resData = (rule.resourceData as Record<string, unknown> | null) || {}
 
                   return (
@@ -272,8 +212,8 @@ export const QuotasSettings: React.FC<QuotasSettingsProps> = ({ teamId }) => {
                           </div>
                         </div>
 
-                        {/* Badges Row & View Usage Action */}
-                        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/50">
+                        {/* Badges Row */}
+                        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50">
                           <div className="flex flex-wrap items-center gap-1.5">
                             {/* Scope Mode & Role badge */}
                             {rule.scopeMode === 'all_members' && (
@@ -308,25 +248,11 @@ export const QuotasSettings: React.FC<QuotasSettingsProps> = ({ teamId }) => {
                             <Badge variant="outline" className="gap-1 text-xs">
                               <Clock className="w-3 h-3" />
                               <span>
-                                {formatResourceValue(rule.resource, rule.limit)} {meta?.unit} /{' '}
-                                {getPeriodLabel(rule.period)}
+                                {formatQuotaResourceValue(rule.resource, rule.limit)} {meta?.unit} /{' '}
+                                {getQuotaPeriodLabel(rule.period)}
                               </span>
                             </Badge>
                           </div>
-
-                          {/* View Usage Button */}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setViewingUsageRule(rule)
-                            }}
-                            className="gap-1.5 text-xs h-7 px-2.5"
-                          >
-                            <Eye className="w-3.5 h-3.5 text-primary" />
-                            <span>{m.quota_view_usage()}</span>
-                          </Button>
                         </div>
                       </div>
                     </div>
@@ -350,18 +276,6 @@ export const QuotasSettings: React.FC<QuotasSettingsProps> = ({ teamId }) => {
           }}
           teamId={teamId}
           rule={selectedRule}
-        />
-      )}
-
-      {/* View Usage Records Dialog */}
-      {!!viewingUsageRule && (
-        <QuotaUsageRecordsDialog
-          open={!!viewingUsageRule}
-          onOpenChange={(open) => {
-            if (!open) setViewingUsageRule(null)
-          }}
-          teamId={teamId}
-          rule={viewingUsageRule}
         />
       )}
 

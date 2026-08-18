@@ -548,6 +548,125 @@ export class QuotaService {
     }
   }
 
+  async resetRecord(
+    teamId: string,
+    ruleId: string,
+    userId: string | null,
+  ): Promise<QuotaRecordResponse> {
+    const rule = await this.prismaClient.quotaRule.findUnique({
+      where: { id: ruleId },
+    })
+
+    if (!rule || rule.teamId !== teamId) {
+      throw new HTTPException(404, { message: 'Quota rule not found' })
+    }
+
+    if (rule.scopeMode === 'all_members' && userId !== null) {
+      throw new HTTPException(400, {
+        message: 'All-members quota records must use a null userId',
+      })
+    }
+
+    if (rule.scopeMode !== 'all_members' && userId === null) {
+      throw new HTTPException(400, {
+        message: 'Member quota records require a userId',
+      })
+    }
+
+    if (userId !== null) {
+      const member = await this.prismaClient.teamMember.findUnique({
+        where: {
+          teamIdUserId: {
+            teamId,
+            userId,
+          },
+        },
+        select: {
+          role: true,
+          user: {
+            select: { type: true },
+          },
+        },
+      })
+
+      if (!member || member.user.type !== 'human') {
+        throw new HTTPException(400, {
+          message: 'Quota record user must be a human team member',
+        })
+      }
+
+      if (rule.scopeMode === 'each_member' && rule.role && member.role !== rule.role) {
+        throw new HTTPException(400, {
+          message: 'Quota record user does not match the rule role',
+        })
+      }
+
+      if (rule.scopeMode === 'selected_members') {
+        const userIds = Array.isArray(rule.userIds) ? (rule.userIds as string[]) : []
+        if (!userIds.includes(userId)) {
+          throw new HTTPException(400, {
+            message: 'Quota record user is not selected by this rule',
+          })
+        }
+      }
+    }
+
+    await this.prismaClient.$transaction(async (tx) => {
+      // Lock the rule row so reset and first-use record creation are serialized.
+      await tx.$queryRaw`SELECT id FROM quota_rules WHERE id = ${rule.id} FOR UPDATE`
+
+      const periodStart = new Date()
+      const periodEnd = new Date(periodStart.getTime() + periodToDurationMs(rule.period))
+
+      const existingRecord = userId
+        ? (
+            await tx.$queryRaw<RawQuotaRecord[]>`
+              SELECT * FROM quota_records
+              WHERE rule_id = ${rule.id} AND user_id = ${userId}
+              FOR UPDATE
+            `
+          )[0]
+        : (
+            await tx.$queryRaw<RawQuotaRecord[]>`
+              SELECT * FROM quota_records
+              WHERE rule_id = ${rule.id} AND user_id IS NULL
+              FOR UPDATE
+            `
+          )[0]
+
+      if (existingRecord) {
+        await tx.quotaRecord.update({
+          where: { id: existingRecord.id },
+          data: {
+            periodStart,
+            periodEnd,
+            consumed: 0,
+          },
+        })
+      } else {
+        await tx.quotaRecord.create({
+          data: {
+            ruleId: rule.id,
+            teamId: rule.teamId,
+            userId,
+            periodStart,
+            periodEnd,
+            consumed: 0,
+          },
+        })
+      }
+    })
+
+    const records = await this.listRuleRecords(teamId, ruleId)
+    const mappedRecord = records.records.find((record) => record.userId === userId)
+
+    if (!mappedRecord) {
+      throw new HTTPException(404, { message: 'Quota record not found' })
+    }
+
+    return mappedRecord
+  }
+
   private async findMatchingRules(event: QuotaEvent): Promise<QuotaRule[]> {
     const rules = await this.prismaClient.quotaRule.findMany({
       where: {

@@ -182,6 +182,11 @@ export const createQuotaRuleRequestSchema = z
   })
 export type CreateQuotaRuleRequest = z.input<typeof createQuotaRuleRequestSchema>
 
+export const resetQuotaRecordRequestSchema = z.object({
+  userId: z.string().nullable(),
+})
+export type ResetQuotaRecordRequest = z.infer<typeof resetQuotaRecordRequestSchema>
+
 export const updateQuotaRuleRequestSchema = z
   .object({
     scopeMode: quotaScopeModeSchema.optional(),

@@ -19,6 +19,7 @@ vi.mock('@shumai/core/src/quota/quota-service', () => ({
     createRule: vi.fn(),
     getRule: vi.fn(),
     listRuleRecords: vi.fn(),
+    resetRecord: vi.fn(),
     updateRule: vi.fn(),
     deleteRule: vi.fn(),
   },
@@ -195,6 +196,58 @@ describe('Quota API', () => {
       expect(res.status).toBe(200)
       expect(await res.json()).toEqual(mockRecordsResult)
       expect(quotaService.listRuleRecords).toHaveBeenCalledWith('team1', 'rule1')
+    })
+  })
+
+  describe('POST /teams/:teamId/quotas/:id/records/reset', () => {
+    test('Rejects a reset request without a userId', async () => {
+      const res = await app.request('/teams/team1/quotas/rule1/records/reset', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer test',
+        },
+        body: JSON.stringify({}),
+      })
+
+      expect(res.status).toBe(400)
+      expect(quotaService.resetRecord).not.toHaveBeenCalled()
+    })
+
+    test('Success resetting a quota record with audit log', async () => {
+      const mockRecord = {
+        id: 'record1',
+        ruleId: 'rule1',
+        teamId: 'team1',
+        userId: 'user2',
+        user: null,
+        periodStart: new Date().toISOString(),
+        periodEnd: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        consumed: 0,
+        remaining: 100,
+        percent: 0,
+        isWindowActive: true,
+      }
+      vi.spyOn(quotaService, 'resetRecord').mockResolvedValue(mockRecord)
+
+      const res = await app.request('/teams/team1/quotas/rule1/records/reset', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer test',
+        },
+        body: JSON.stringify({ userId: 'user2' }),
+      })
+
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual(mockRecord)
+      expect(quotaService.resetRecord).toHaveBeenCalledWith('team1', 'rule1', 'user2')
+      expect(auditLogService.logAction).toHaveBeenCalledWith({
+        action: AuditAction.quota_record_reset,
+        teamId: 'team1',
+        userId: 'user1',
+        itemId: 'record1',
+      })
     })
   })
 
