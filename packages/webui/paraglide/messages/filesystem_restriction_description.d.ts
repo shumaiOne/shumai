@@ -1,7 +1,7 @@
 /**
 * | output |
 * | --- |
-* | "The agent is restricted to reading and writing only within the .pi and /tmp folders. These settings are currently hardcoded for security." |
+* | "Sandboxed shell commands can read workspace files except sensitive environment, certificate, and key files. They can write to the project's .pi folder and th..." |
 *
 * @param {Filesystem_Restriction_DescriptionInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options
