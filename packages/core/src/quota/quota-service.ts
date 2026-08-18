@@ -198,6 +198,7 @@ export class QuotaService {
         where: {
           teamId,
           userId: { in: req.userIds },
+          user: { type: 'human' },
         },
         select: { userId: true },
       })
@@ -274,6 +275,7 @@ export class QuotaService {
         where: {
           teamId,
           userId: { in: effectiveUserIds },
+          user: { type: 'human' },
         },
         select: { userId: true },
       })
@@ -481,13 +483,16 @@ export class QuotaService {
       const userIds = Array.isArray(rule.userIds) ? (rule.userIds as string[]) : []
       if (userIds.length > 0) {
         targetUsers = await this.prismaClient.user.findMany({
-          where: { id: { in: userIds } },
+          where: { id: { in: userIds }, type: 'human' },
           select: { id: true, name: true, email: true, image: true },
         })
       }
     } else {
       // each_member
-      const memberWhere: Prisma.TeamMemberWhereInput = { teamId }
+      const memberWhere: Prisma.TeamMemberWhereInput = {
+        teamId,
+        user: { type: 'human' },
+      }
       if (rule.role) {
         memberWhere.role = rule.role
       }

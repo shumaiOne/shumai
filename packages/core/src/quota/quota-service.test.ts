@@ -766,4 +766,87 @@ describe('QuotaService', () => {
     expect(records).toHaveLength(1)
     expect(records[0].consumed).toBe(150)
   })
+
+  it('excludes agents from quota usage records and prevents creating quota rules for agents', async () => {
+    const team = await prisma.team.create({ data: { name: 'Exclude Agent Team' } })
+
+    // Create human user
+    const humanUser = await prisma.user.create({
+      data: {
+        name: 'Human Member',
+        email: 'human.member@example.com',
+        type: 'human',
+        password: 'pw',
+      },
+    })
+    await prisma.teamMember.create({
+      data: { teamId: team.id, userId: humanUser.id, role: 'reviewer' },
+    })
+
+    // Create agent user and agent
+    const agentUser = await prisma.user.create({
+      data: {
+        name: 'AI Agent Member',
+        email: 'ai.agent@shumai.ai',
+        type: 'agent',
+      },
+    })
+    await prisma.agent.create({
+      data: {
+        id: agentUser.id,
+        teamId: team.id,
+        type: 'chat',
+        config: { provider: 'google', model: 'gemini' },
+      },
+    })
+    await prisma.teamMember.create({
+      data: { teamId: team.id, userId: agentUser.id, role: 'reviewer' },
+    })
+
+    // 1. Quota rule with each_member
+    const eachMemberRule = await quotaService.createRule(team.id, {
+      scopeMode: 'each_member',
+      resource: 'agent_total_tokens',
+      limit: 10000,
+      period: '1hour',
+      enabled: true,
+    })
+
+    // listRuleRecords should ONLY return human members, NOT agents
+    const recordsResult = await quotaService.listRuleRecords(team.id, eachMemberRule.id)
+    expect(recordsResult.total).toBe(1)
+    expect(recordsResult.records).toHaveLength(1)
+    expect(recordsResult.records[0].userId).toBe(humanUser.id)
+    expect(recordsResult.records[0].user?.email).toBe('human.member@example.com')
+
+    // 2. Quota rule with selected_members targeting agentUser should be rejected
+    await expect(
+      quotaService.createRule(team.id, {
+        scopeMode: 'selected_members',
+        userIds: [agentUser.id],
+        resource: 'agent_total_tokens',
+        limit: 5000,
+        period: '1day',
+      }),
+    ).rejects.toThrow('One or more selected users are not members of the team')
+
+    // 3. Updating quota rule with selected_members targeting agentUser should be rejected
+    const validSelectedRule = await quotaService.createRule(team.id, {
+      scopeMode: 'selected_members',
+      userIds: [humanUser.id],
+      resource: 'agent_total_tokens',
+      limit: 5000,
+      period: '1day',
+    })
+
+    await expect(
+      quotaService.updateRule(team.id, validSelectedRule.id, {
+        userIds: [agentUser.id],
+      }),
+    ).rejects.toThrow('One or more selected users are not members of the team')
+
+    const selectedRecords = await quotaService.listRuleRecords(team.id, validSelectedRule.id)
+    expect(selectedRecords.total).toBe(1)
+    expect(selectedRecords.records[0].userId).toBe(humanUser.id)
+  })
 })
