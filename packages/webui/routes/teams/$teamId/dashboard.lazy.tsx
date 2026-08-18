@@ -6,10 +6,11 @@ import { cn } from '@/ui/lib/utils'
 import { m } from '@/ui/paraglide/messages.js'
 import { AiUsageDashboard } from '@/ui/components/dashboard/AiUsageDashboard'
 import { AgentSessionsDashboard } from '@/ui/components/dashboard/AgentSessionsDashboard'
+import { QuotaUsageDashboard } from '@/ui/components/dashboard/QuotaUsageDashboard'
 import { AuditLogsDashboard } from '@/ui/components/dashboard/AuditLogsDashboard'
-import { Activity, BarChart2, Loader2, MessagesSquare, ShieldAlert } from 'lucide-react'
+import { Activity, BarChart2, Gauge, Loader2, MessagesSquare, ShieldAlert } from 'lucide-react'
 
-type DashboardTab = 'audit-logs' | 'ai-usage' | 'ai-sessions'
+type DashboardTab = 'audit-logs' | 'ai-usage' | 'ai-sessions' | 'quotas'
 
 function TeamDashboardPage() {
   const { teamId } = Route.useParams()
@@ -76,6 +77,22 @@ function TeamDashboardPage() {
               )}
             </button>
 
+            <button
+              onClick={() => setActiveTab('quotas')}
+              className={cn(
+                'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
+                activeTab === 'quotas'
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
+                  : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+              )}
+            >
+              <Gauge className="w-5 h-5" />
+              {m.quotas()}
+              {activeTab === 'quotas' && (
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
+              )}
+            </button>
+
             {/* AI Category */}
             <div className="mt-4 mb-2 px-4 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider pt-4 border-t border-sidebar-border">
               {m.ai()}
@@ -121,6 +138,7 @@ function TeamDashboardPage() {
             {activeTab === 'audit-logs' && <AuditLogsDashboard teamId={teamId} />}
             {activeTab === 'ai-usage' && <AiUsageDashboard teamId={teamId} />}
             {activeTab === 'ai-sessions' && <AgentSessionsDashboard teamId={teamId} />}
+            {activeTab === 'quotas' && <QuotaUsageDashboard teamId={teamId} />}
           </div>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/a
 import { quotaService } from '@shumai/core/src/quota/quota-service'
 import {
   createQuotaRuleRequestSchema,
+  resetQuotaRecordRequestSchema,
   updateQuotaRuleRequestSchema,
   AuditAction,
 } from '@shumai/dtos'
@@ -78,6 +79,32 @@ const route = new Hono<{ Variables: { user: User } }>()
     const data = await quotaService.listRuleRecords(teamId, id)
     return c.json(data)
   })
+  .post(
+    '/teams/:teamId/quotas/:id/records/reset',
+    zValidator('json', resetQuotaRecordRequestSchema),
+    async (c) => {
+      const user = c.get('user')
+      const teamId = c.req.param('teamId')
+      const id = c.req.param('id')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Admin,
+        type: ResourceType.Team,
+        id: teamId,
+      })
+
+      const record = await quotaService.resetRecord(teamId, id, req.userId)
+      await auditLogService.logAction({
+        action: AuditAction.quota_record_reset,
+        teamId,
+        userId: user?.id,
+        itemId: record.id ?? id,
+      })
+      return c.json(record)
+    },
+  )
   .put('/teams/:teamId/quotas/:id', zValidator('json', updateQuotaRuleRequestSchema), async (c) => {
     const user = c.get('user')
     const teamId = c.req.param('teamId')

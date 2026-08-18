@@ -1,6 +1,6 @@
 ---
 title: Resource Quotas
-description: Control and monitor AI token usage, costs, shell executions, and tool call quotas for your team.
+description: Configure team resource quotas, monitor live usage, and reset quota windows from the dashboard.
 ---
 
 AI workflows and media processing tools can consume significant compute and API credits. Shumai provides a **Resource Quotas** system that allows Team Owners to set granular rate limits, govern budgets, and monitor real-time usage across team members and roles.
@@ -11,7 +11,12 @@ AI workflows and media processing tools can consume significant compute and API 
 
 Resource Quotas allow you to define maximum usage limits across specific time windows (e.g., hourly, daily, or weekly). When a member or team reaches their assigned quota, further actions for that resource are safely blocked until the quota period resets.
 
-To manage quotas, open **Team Settings** from your team dashboard and navigate to the **Quotas** tab.
+Quota configuration and usage monitoring are separate parts of the team experience:
+
+- To create and manage quota rules, open **Team Settings** and navigate to the **Quotas** tab.
+- To monitor live usage, open the **Team Dashboard** and select **Quotas** under the **TEAM** section.
+
+The quota dashboard is available to Team Owners.
 
 ---
 
@@ -77,19 +82,40 @@ Shumai tracks usage windows automatically. When a period window expires, the sys
 
 ## Monitoring Live Usage
 
-Team Owners can inspect live consumption at any time:
+Team Owners can inspect live consumption from the team dashboard:
 
-1. In the **Quotas** settings tab, click **View Usage** on any quota rule card.
-2. The **Usage Records** modal displays:
-   - **Consumption Status**: Progress bar showing consumed units vs. total limit.
-   - **Remaining Allowance**: Percentage and numerical amount remaining.
-   - **Refresh Countdown**: Exact remaining time until the active window resets (e.g., _"Refreshes in 45m"_).
-   - **Member Search**: Quickly filter through members to view individual usage.
+1. Open the **Team Dashboard**.
+2. Select **Quotas** under the **TEAM** section.
+3. Quota rules are shown as first-level collapsible entries.
+4. Expand a rule to view its usage records.
+
+Each usage record displays:
+
+- **Consumption Status**: Progress bar showing consumed units versus the total limit.
+- **Remaining Allowance**: Percentage and numerical amount remaining.
+- **Refresh Countdown**: Remaining time until the active window resets (e.g., _"Refreshes in 45m"_).
+- **Target**: The team shared pool, role pool, or individual member associated with the record.
+- **Member Search**: For member-scoped rules, search the usage records by member name or email.
+
+Usage records are loaded when a rule is expanded and refresh automatically while the rule is open.
+
+### Manually Resetting a Usage Record
+
+Each usage record includes a **Reset Usage** action. After confirming the action:
+
+- Consumption is set to zero.
+- The quota period starts immediately.
+- The period ends after the configured quota duration.
+- For example, resetting a one-day quota at 10:00 starts a new window from 10:00 until 10:00 the following day.
+
+A reset can also initialize a zero-consumption record for a member or shared pool that has not received usage yet. Resets are recorded in the team audit log.
 
 ---
 
 ## Managing Quota Rules
 
-- **Enable / Disable**: Toggle the switch on any quota card to temporarily pause or resume enforcement without deleting the rule.
-- **Edit Rules**: Click any quota card to update limits, change reset periods, or adjust member selections.
-- **Delete Rules**: Open the card action menu (`⋮`) and select **Delete** to remove the quota rule.
+- **Enable / Disable**: Toggle the switch on any quota card in Team Settings to temporarily pause or resume enforcement without deleting the rule.
+- **Edit Rules**: Click any quota card in Team Settings to update limits, change reset periods, or adjust member selections.
+- **Delete Rules**: Open the card action menu (`⋮`) in Team Settings and select **Delete** to remove the quota rule.
+
+Quota usage is monitored and reset from the Team Dashboard rather than from the settings rule cards.
