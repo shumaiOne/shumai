@@ -51,8 +51,8 @@
         ]
       },
       {
-        "group": "Media Transcoding Settings",
-        "pages": ["using-shumai/transcode-settings"]
+        "group": "Team Settings",
+        "pages": ["using-shumai/transcode-settings", "using-shumai/quotas-settings"]
       },
       {
         "group": "Configuration",

@@ -1,0 +1,95 @@
+---
+title: Resource Quotas
+description: Control and monitor AI token usage, costs, shell executions, and tool call quotas for your team.
+---
+
+AI workflows and media processing tools can consume significant compute and API credits. Shumai provides a **Resource Quotas** system that allows Team Owners to set granular rate limits, govern budgets, and monitor real-time usage across team members and roles.
+
+---
+
+## Overview
+
+Resource Quotas allow you to define maximum usage limits across specific time windows (e.g., hourly, daily, or weekly). When a member or team reaches their assigned quota, further actions for that resource are safely blocked until the quota period resets.
+
+To manage quotas, open **Team Settings** from your team dashboard and navigate to the **Quotas** tab.
+
+---
+
+## Scope Modes
+
+When creating or editing a quota rule, you can define how the limit is applied:
+
+### 1. Each Member
+
+- **Behavior**: Every member in the scope receives their own independent limit. Usage by one member does not affect the remaining quota of others.
+- **Optional Role Filter**: You can restrict the quota to members with a specific role (e.g. only **Editors** or **Reviewers**), or apply it to the entire team.
+- **Use Case**: Give each editor a daily budget of 100,000 tokens.
+
+### 2. All Members (Shared Pool)
+
+- **Behavior**: The quota limit is shared as a collective pool across all matching members. Every member's consumption draws from the same total.
+- **Optional Role Filter**: Apply the shared pool to all team members or restrict it to a specific role.
+- **Use Case**: Cap the total team spending on AI models to $50 per day.
+
+### 3. Selected Members
+
+- **Behavior**: Assign individual limits to specific chosen team members.
+- **Use Case**: Grant higher limits to senior artists or technical directors while keeping standard limits for others.
+
+---
+
+## Supported Resource Types
+
+Shumai supports quota enforcement across multiple layers of the AI and agent architecture:
+
+| Resource Type               | Description                                                                             | Target Specification                 |
+| :-------------------------- | :-------------------------------------------------------------------------------------- | :----------------------------------- |
+| **Total Tokens**            | Total LLM input and output tokens consumed in chat, comments, and autofill.             | Team, Role, or Members               |
+| **AI Cost ($)**             | Dollar expenditure accrued from AI model providers.                                     | Team, Role, or Members               |
+| **MCP Server Calls**        | Number of tool invocations directed to a connected Model Context Protocol (MCP) server. | Target MCP Server ID                 |
+| **Sandboxed Bash Commands** | Shell commands executed by the agent inside the isolated sandbox.                       | Wildcard pattern (e.g. `npm *`, `*`) |
+| **Agent Tool Calls**        | Calls to specific native tools (e.g. `analyze_image`, `screenshot`, `create_file`).     | Tool name                            |
+
+### Bash Command Wildcard Matching
+
+For sandboxed bash execution, you can restrict specific command patterns using wildcards (`*` and `?`):
+
+- `*`: Matches any bash command execution.
+- `npm *`: Matches any npm command (e.g., `npm install`, `npm test`).
+- `git commit*`: Matches git commit invocations.
+
+---
+
+## Time Periods & Rollover
+
+Quotas can be configured with the following reset periods:
+
+- **1 Hour** (`1hour`)
+- **5 Hours** (`5hour`)
+- **1 Day** (`1day`)
+- **7 Days** (`7day`)
+
+### Lazy Reset Mechanism
+
+Shumai tracks usage windows automatically. When a period window expires, the system resets the quota upon the member's next request, seamlessly starting a fresh window without requiring background maintenance tasks.
+
+---
+
+## Monitoring Live Usage
+
+Team Owners can inspect live consumption at any time:
+
+1. In the **Quotas** settings tab, click **View Usage** on any quota rule card.
+2. The **Usage Records** modal displays:
+   - **Consumption Status**: Progress bar showing consumed units vs. total limit.
+   - **Remaining Allowance**: Percentage and numerical amount remaining.
+   - **Refresh Countdown**: Exact remaining time until the active window resets (e.g., _"Refreshes in 45m"_).
+   - **Member Search**: Quickly filter through members to view individual usage.
+
+---
+
+## Managing Quota Rules
+
+- **Enable / Disable**: Toggle the switch on any quota card to temporarily pause or resume enforcement without deleting the rule.
+- **Edit Rules**: Click any quota card to update limits, change reset periods, or adjust member selections.
+- **Delete Rules**: Open the card action menu (`⋮`) and select **Delete** to remove the quota rule.
