@@ -30,7 +30,6 @@ import {
   Trash2,
   Cpu,
   DollarSign,
-  Puzzle,
   Server,
   Terminal,
   Wrench,
@@ -65,11 +64,6 @@ const RESOURCE_META: Record<
     label: () => m.quota_resource_agent_cost(),
     icon: DollarSign,
     unit: '$',
-  },
-  agent_skill_call_count: {
-    label: () => m.quota_resource_agent_skill_call_count(),
-    icon: Puzzle,
-    unit: 'calls',
   },
   agent_mcp_call_count: {
     label: () => m.quota_resource_agent_mcp_call_count(),
@@ -230,9 +224,6 @@ export const QuotasSettings: React.FC<QuotasSettingsProps> = ({ teamId }) => {
                             </div>
                             {/* Subtitle / target details */}
                             <div className="text-xs text-muted-foreground line-clamp-1">
-                              {rule.resource === 'agent_skill_call_count' && (
-                                <span>Skill: {String(resData.id || '')}</span>
-                              )}
                               {rule.resource === 'agent_mcp_call_count' && (
                                 <span>Server: {String(resData.id || '')}</span>
                               )}

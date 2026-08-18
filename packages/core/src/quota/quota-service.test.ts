@@ -209,26 +209,26 @@ describe('QuotaService', () => {
       data: { name: 'Bob', email: 'bob@example.com', password: 'pw' },
     })
 
-    // Create rule: each member with role editor gets 5 skill calls per 1hour
+    // Create rule: each member with role editor gets 5 MCP calls per 1hour
     await quotaService.createRule(team.id, {
       scopeMode: 'each_member',
       role: 'editor',
-      resource: 'agent_skill_call_count',
-      resourceData: { id: 'skill_1' },
+      resource: 'agent_mcp_call_count',
+      resourceData: { id: 'server_1' },
       limit: 5,
       period: '1hour',
       enabled: true,
     })
 
-    // Alice consumes 5 skill calls
+    // Alice consumes 5 MCP calls
     for (let i = 0; i < 5; i++) {
       await quotaService.consumeQuota(
         {
           teamId: team.id,
           userId: userAlice.id,
           role: 'editor',
-          resource: 'agent_skill_call_count',
-          resourceData: { id: 'skill_1' },
+          resource: 'agent_mcp_call_count',
+          resourceData: { id: 'server_1' },
         },
         1,
       )
@@ -241,8 +241,8 @@ describe('QuotaService', () => {
           teamId: team.id,
           userId: userAlice.id,
           role: 'editor',
-          resource: 'agent_skill_call_count',
-          resourceData: { id: 'skill_1' },
+          resource: 'agent_mcp_call_count',
+          resourceData: { id: 'server_1' },
         },
         1,
       ),
@@ -255,8 +255,8 @@ describe('QuotaService', () => {
           teamId: team.id,
           userId: userBob.id,
           role: 'editor',
-          resource: 'agent_skill_call_count',
-          resourceData: { id: 'skill_1' },
+          resource: 'agent_mcp_call_count',
+          resourceData: { id: 'server_1' },
         },
         1,
       ),
@@ -268,8 +268,8 @@ describe('QuotaService', () => {
         teamId: team.id,
         userId: userBob.id,
         role: 'reviewer',
-        resource: 'agent_skill_call_count',
-        resourceData: { id: 'skill_1' },
+        resource: 'agent_mcp_call_count',
+        resourceData: { id: 'server_1' },
       },
       1,
     )
@@ -670,10 +670,10 @@ describe('QuotaService', () => {
       period: '1hour',
     })
 
-    // Updating resource to agent_skill_call_count without resourceData.id should fail validation
+    // Updating resource to agent_mcp_call_count without resourceData.id should fail validation
     await expect(
       quotaService.updateRule(team.id, rule.id, {
-        resource: 'agent_skill_call_count',
+        resource: 'agent_mcp_call_count',
       }),
     ).rejects.toThrow()
 

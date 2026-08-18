@@ -195,7 +195,6 @@ export type QuotaPeriod = (typeof QuotaPeriod)[keyof typeof QuotaPeriod]
 export const QuotaResourceType = {
   agent_total_tokens: 'agent_total_tokens',
   agent_cost: 'agent_cost',
-  agent_skill_call_count: 'agent_skill_call_count',
   agent_mcp_call_count: 'agent_mcp_call_count',
   agent_bash_call_count: 'agent_bash_call_count',
   agent_tool_call_count: 'agent_tool_call_count'
