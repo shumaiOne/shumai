@@ -505,7 +505,7 @@
   "pending_domains_description": "These domains were blocked during agent execution. You can approve them to allow future network requests, or delete them from this list.",
   "no_pending_domains": "No pending domains requiring approval",
   "filesystem_restriction": "Filesystem Restriction",
-  "filesystem_restriction_description": "The agent is restricted to reading and writing only within the .pi and /tmp folders. These settings are currently hardcoded for security.",
+  "filesystem_restriction_description": "Sandboxed shell commands can read workspace files except sensitive environment, certificate, and key files. They can write to the project's .pi folder and the system temporary directory, plus a few runtime-managed system paths. These filesystem rules are currently hardcoded for security.",
 
   "position_and_resize": "Position and resize",
   "avatar_source": "Avatar Source",

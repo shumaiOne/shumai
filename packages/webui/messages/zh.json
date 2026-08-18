@@ -505,7 +505,7 @@
   "pending_domains_description": "这些域名在智能体执行期间被阻止。您可以批准它们以允许将来的网络请求，或从此列表中删除它们。",
   "no_pending_domains": "没有待审核的域名",
   "filesystem_restriction": "文件系统限制",
-  "filesystem_restriction_description": "智能体仅限于在 .pi 和 /tmp 文件夹内读写。这些设置目前出于安全考虑已硬编码。",
+  "filesystem_restriction_description": "沙箱 Shell 命令可以读取工作区文件，但环境变量、证书和密钥等敏感文件除外；可以写入项目的 .pi 文件夹和系统临时目录，以及少量由运行时管理的系统路径。这些文件系统规则目前出于安全考虑已硬编码。",
 
   "position_and_resize": "定位和调整大小",
   "avatar_source": "头像来源",

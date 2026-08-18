@@ -37,6 +37,7 @@ But Shumai goes beyond being a Frame.io alternative. With modern models like GPT
 * **Isolated Sandbox Execution**: Run agent-submitted scripts safely in a sandboxed environment.
 * **AI Metadata Autofill**: Automatically fill in custom metadata for new assets.
 * **Semantic Search**: Find assets by visual or conceptual meaning using vector embeddings (Gemini Embedding 2).
+* **Resource Quotas**: Set usage limits on AI tokens, costs, and tool execution per member, role, or team-wide, with real-time tracking.
 
 Here is a short demo video showing what the Shumai agent can do:
 
