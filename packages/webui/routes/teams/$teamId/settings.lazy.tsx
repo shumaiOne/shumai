@@ -113,6 +113,21 @@ function TeamSettingsPage() {
     }
   }, [me])
 
+  useEffect(() => {
+    const ownerOnlyTabs: SettingsTab[] = [
+      'transcode',
+      'quotas',
+      'providers',
+      'skills',
+      'mcp',
+      'agents',
+      'sandbox',
+    ]
+    if (me && me.role !== 'owner' && ownerOnlyTabs.includes(activeTab)) {
+      setActiveTab('general')
+    }
+  }, [me, activeTab])
+
   const getInitials = (name?: string) => {
     if (!name) return 'U'
     const names = name.split(' ')
@@ -256,8 +271,9 @@ function TeamSettingsPage() {
         {/* Sidebar */}
         <div className="w-full h-full md:w-72 bg-sidebar border-b md:border-b-0 md:border-r border-sidebar-border z-10 md:left-16 overflow-y-auto transition-colors duration-300">
           <nav className="p-4 space-y-1 mt-4">
+            {/* Personal Settings */}
             <div className="mb-2 px-4 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
-              {m.settings()}
+              {m.personal_settings()}
             </div>
 
             <button
@@ -276,8 +292,45 @@ function TeamSettingsPage() {
               )}
             </button>
 
+            <button
+              onClick={() => setActiveTab('notifications')}
+              className={cn(
+                'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
+                activeTab === 'notifications'
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
+                  : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+              )}
+            >
+              <Bell className="w-5 h-5" />
+              {m.notifications()}
+              {activeTab === 'notifications' && (
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab('developer')}
+              className={cn(
+                'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
+                activeTab === 'developer'
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
+                  : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+              )}
+            >
+              <Key className="w-5 h-5" />
+              {m.api_tokens()}
+              {activeTab === 'developer' && (
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
+              )}
+            </button>
+
+            {/* Team Settings */}
             {me?.role === 'owner' && (
               <>
+                <div className="mt-6 mb-2 px-4 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider pt-4 border-t border-sidebar-border">
+                  {m.team_settings()}
+                </div>
+
                 <button
                   onClick={() => setActiveTab('transcode')}
                   className={cn(
@@ -312,42 +365,11 @@ function TeamSettingsPage() {
               </>
             )}
 
-            <button
-              onClick={() => setActiveTab('notifications')}
-              className={cn(
-                'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
-                activeTab === 'notifications'
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
-                  : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-              )}
-            >
-              <Bell className="w-5 h-5" />
-              {m.notifications()}
-              {activeTab === 'notifications' && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
-              )}
-            </button>
-
-            <button
-              onClick={() => setActiveTab('developer')}
-              className={cn(
-                'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all',
-                activeTab === 'developer'
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border'
-                  : 'text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-              )}
-            >
-              <Key className="w-5 h-5" />
-              {m.api_tokens()}
-              {activeTab === 'developer' && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary" />
-              )}
-            </button>
-
+            {/* AI */}
             {me?.role === 'owner' && (
               <>
                 <div className="mt-6 mb-2 px-4 text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider pt-4 border-t border-sidebar-border">
-                  {m.ai()}
+                  {m.ai_settings()}
                 </div>
 
                 <button
