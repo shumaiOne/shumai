@@ -16,7 +16,6 @@ import {
   type UpdateQuotaRuleRequest,
   normalizeQuotaPeriod,
   formatQuotaPeriod,
-  skillResourceDataSchema,
   mcpResourceDataSchema,
   bashResourceDataSchema,
   toolResourceDataSchema,
@@ -121,11 +120,7 @@ function matchesQuotaRule(rule: QuotaRule, event: QuotaEvent): boolean {
   const resourceData = (rule.resourceData as Record<string, unknown> | null) ?? null
 
   // Resource data check
-  if (rule.resource === 'agent_skill_call_count') {
-    const targetId = resourceData?.id ?? resourceData?.skillId
-    const eventSkillId = event.resourceData?.skillId ?? event.resourceData?.id
-    if (targetId && eventSkillId !== targetId) return false
-  } else if (rule.resource === 'agent_mcp_call_count') {
+  if (rule.resource === 'agent_mcp_call_count') {
     const targetId = resourceData?.id ?? resourceData?.mcpServerId
     const eventMcpId = event.resourceData?.mcpServerId ?? event.resourceData?.id
     if (targetId && eventMcpId !== targetId) return false
@@ -198,6 +193,7 @@ export class QuotaService {
         where: {
           teamId,
           userId: { in: req.userIds },
+          user: { type: 'human' },
         },
         select: { userId: true },
       })
@@ -274,6 +270,7 @@ export class QuotaService {
         where: {
           teamId,
           userId: { in: effectiveUserIds },
+          user: { type: 'human' },
         },
         select: { userId: true },
       })
@@ -284,14 +281,7 @@ export class QuotaService {
       }
     }
 
-    if (effectiveResource === 'agent_skill_call_count') {
-      const res = skillResourceDataSchema.safeParse(effectiveResourceData)
-      if (!res.success) {
-        throw new HTTPException(400, {
-          message: 'resourceData.id is required for agent_skill_call_count',
-        })
-      }
-    } else if (effectiveResource === 'agent_mcp_call_count') {
+    if (effectiveResource === 'agent_mcp_call_count') {
       const res = mcpResourceDataSchema.safeParse(effectiveResourceData)
       if (!res.success) {
         throw new HTTPException(400, {
@@ -481,13 +471,16 @@ export class QuotaService {
       const userIds = Array.isArray(rule.userIds) ? (rule.userIds as string[]) : []
       if (userIds.length > 0) {
         targetUsers = await this.prismaClient.user.findMany({
-          where: { id: { in: userIds } },
+          where: { id: { in: userIds }, type: 'human' },
           select: { id: true, name: true, email: true, image: true },
         })
       }
     } else {
       // each_member
-      const memberWhere: Prisma.TeamMemberWhereInput = { teamId }
+      const memberWhere: Prisma.TeamMemberWhereInput = {
+        teamId,
+        user: { type: 'human' },
+      }
       if (rule.role) {
         memberWhere.role = rule.role
       }

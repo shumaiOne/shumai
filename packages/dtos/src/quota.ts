@@ -62,10 +62,6 @@ export type QuotaResourceTypeEnum = z.infer<typeof quotaResourceTypeSchema>
 export const quotaRoleSchema = z.enum(['owner', 'editor', 'reviewer'])
 export type QuotaRole = z.infer<typeof quotaRoleSchema>
 
-export const skillResourceDataSchema = z.object({
-  id: z.string().min(1, 'Skill ID is required'),
-})
-
 export const mcpResourceDataSchema = z.object({
   id: z.string().min(1, 'MCP server ID is required'),
 })
@@ -155,16 +151,7 @@ export const createQuotaRuleRequestSchema = z
         })
       }
     }
-    if (data.resource === 'agent_skill_call_count') {
-      const res = skillResourceDataSchema.safeParse(data.resourceData)
-      if (!res.success) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'resourceData.id is required for agent_skill_call_count',
-          path: ['resourceData', 'id'],
-        })
-      }
-    } else if (data.resource === 'agent_mcp_call_count') {
+    if (data.resource === 'agent_mcp_call_count') {
       const res = mcpResourceDataSchema.safeParse(data.resourceData)
       if (!res.success) {
         ctx.addIssue({
@@ -216,16 +203,7 @@ export const updateQuotaRuleRequestSchema = z
         })
       }
     }
-    if (data.resource === 'agent_skill_call_count' && data.resourceData !== undefined) {
-      const res = skillResourceDataSchema.safeParse(data.resourceData)
-      if (!res.success) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'resourceData.id is required for agent_skill_call_count',
-          path: ['resourceData', 'id'],
-        })
-      }
-    } else if (data.resource === 'agent_mcp_call_count' && data.resourceData !== undefined) {
+    if (data.resource === 'agent_mcp_call_count' && data.resourceData !== undefined) {
       const res = mcpResourceDataSchema.safeParse(data.resourceData)
       if (!res.success) {
         ctx.addIssue({

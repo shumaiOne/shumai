@@ -10,7 +10,7 @@ const en_no_quotas_description = /** @type {(inputs: No_Quotas_DescriptionInputs
 };
 
 const zh_no_quotas_description = /** @type {(inputs: No_Quotas_DescriptionInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`为 AI Token、费用、Skill 执行和智能体工具调用设置限制，以便管理团队的使用情况。`)
+	return /** @type {LocalizedString} */ (`为 AI Token、费用、MCP 服务和智能体工具调用设置限制，以便管理团队的使用情况。`)
 };
 
 /**

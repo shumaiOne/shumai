@@ -16,7 +16,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/ui/avatar'
 import {
   Cpu,
   DollarSign,
-  Puzzle,
   Server,
   Terminal,
   Wrench,
@@ -53,11 +52,6 @@ const RESOURCE_META: Record<
     label: () => m.quota_resource_agent_cost(),
     icon: DollarSign,
     unit: '$',
-  },
-  agent_skill_call_count: {
-    label: () => m.quota_resource_agent_skill_call_count(),
-    icon: Puzzle,
-    unit: 'calls',
   },
   agent_mcp_call_count: {
     label: () => m.quota_resource_agent_mcp_call_count(),

@@ -37,7 +37,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/ui/avatar'
 import {
   Cpu,
   DollarSign,
-  Puzzle,
   Server,
   Terminal,
   Wrench,
@@ -93,12 +92,6 @@ const RESOURCE_CONFIG = {
     unit: '$',
     defaultLimit: 10,
   },
-  agent_skill_call_count: {
-    label: () => m.quota_resource_agent_skill_call_count(),
-    icon: Puzzle,
-    unit: 'calls',
-    defaultLimit: 100,
-  },
   agent_mcp_call_count: {
     label: () => m.quota_resource_agent_mcp_call_count(),
     icon: Server,
@@ -134,7 +127,6 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
   const [roleScope, setRoleScope] = useState<string>('team') // 'team' | 'owner' | 'editor' | 'reviewer'
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
   const [resource, setResource] = useState<QuotaResourceTypeEnum>('agent_total_tokens')
-  const [skillId, setSkillId] = useState<string>('')
   const [mcpServerId, setMcpServerId] = useState<string>('')
   const [bashMatch, setBashMatch] = useState<string>('*')
   const [toolName, setToolName] = useState<string>('analyze_image')
@@ -158,18 +150,6 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
     enabled: open,
   })
 
-  // Fetch team skills when needed
-  const { data: skillsData } = useQuery({
-    queryKey: ['teams', teamId, 'skills'],
-    queryFn: async () => {
-      const res = await client.api.teams[':teamId'].skills.$get({ param: { teamId } })
-      if (!res.ok) return { skills: [] }
-      return await res.json()
-    },
-    enabled: open && resource === 'agent_skill_call_count',
-  })
-  const skills = skillsData?.skills || []
-
   // Fetch team MCP servers when needed
   const { data: mcpData } = useQuery({
     queryKey: ['teams', teamId, 'mcp', 'servers'],
@@ -190,7 +170,6 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
       setSelectedUserIds(rule.userIds || [])
       setResource(rule.resource)
       const resData = (rule.resourceData as Record<string, unknown> | null) || {}
-      setSkillId(typeof resData.id === 'string' ? resData.id : '')
       setMcpServerId(typeof resData.id === 'string' ? resData.id : '')
       setBashMatch(typeof resData.match === 'string' ? resData.match : '*')
       setToolName(
@@ -208,7 +187,6 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
       setRoleScope('team')
       setSelectedUserIds([])
       setResource('agent_total_tokens')
-      setSkillId('')
       setMcpServerId('')
       setBashMatch('*')
       setToolName('analyze_image')
@@ -230,9 +208,7 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
   const createMutation = useMutation({
     mutationFn: async () => {
       const resourceData: Record<string, unknown> = {}
-      if (resource === 'agent_skill_call_count') {
-        resourceData.id = skillId
-      } else if (resource === 'agent_mcp_call_count') {
+      if (resource === 'agent_mcp_call_count') {
         resourceData.id = mcpServerId
       } else if (resource === 'agent_bash_call_count') {
         resourceData.match = bashMatch.trim() || '*'
@@ -280,9 +256,7 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
     mutationFn: async () => {
       if (!rule) return
       const resourceData: Record<string, unknown> = {}
-      if (resource === 'agent_skill_call_count') {
-        resourceData.id = skillId
-      } else if (resource === 'agent_mcp_call_count') {
+      if (resource === 'agent_mcp_call_count') {
         resourceData.id = mcpServerId
       } else if (resource === 'agent_bash_call_count') {
         resourceData.match = bashMatch.trim() || '*'
@@ -349,10 +323,6 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
     e.preventDefault()
     if (scopeMode === 'selected_members' && selectedUserIds.length === 0) {
       toast.error(m.select_user())
-      return
-    }
-    if (resource === 'agent_skill_call_count' && !skillId.trim()) {
-      toast.error(m.enter_skill_id())
       return
     }
     if (resource === 'agent_mcp_call_count' && !mcpServerId.trim()) {
@@ -570,12 +540,6 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
                       <span>{m.quota_resource_agent_cost()}</span>
                     </div>
                   </SelectItem>
-                  <SelectItem value="agent_skill_call_count">
-                    <div className="flex items-center gap-2">
-                      <Puzzle className="w-4 h-4 text-amber-500" />
-                      <span>{m.quota_resource_agent_skill_call_count()}</span>
-                    </div>
-                  </SelectItem>
                   <SelectItem value="agent_mcp_call_count">
                     <div className="flex items-center gap-2">
                       <Server className="w-4 h-4 text-blue-500" />
@@ -599,40 +563,6 @@ export const QuotaRuleDialog: React.FC<QuotaRuleDialogProps> = ({
             </div>
 
             {/* Resource Specific Fields */}
-            {resource === 'agent_skill_call_count' && (
-              <div className="space-y-2">
-                <Label htmlFor="quota-skill" className="text-sm font-semibold">
-                  {m.select_skill()}
-                </Label>
-                {skills.length > 0 ? (
-                  <Select
-                    value={skillId}
-                    onValueChange={setSkillId}
-                    disabled={isEditing || isPending}
-                  >
-                    <SelectTrigger id="quota-skill" className="w-full">
-                      <SelectValue placeholder={m.select_skill()} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {skills.map((s: { id: string; name: string }) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.name} ({s.id})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input
-                    id="quota-skill"
-                    value={skillId}
-                    onChange={(e) => setSkillId(e.target.value)}
-                    placeholder={m.enter_skill_id()}
-                    disabled={isEditing || isPending}
-                  />
-                )}
-              </div>
-            )}
-
             {resource === 'agent_mcp_call_count' && (
               <div className="space-y-2">
                 <Label htmlFor="quota-mcp" className="text-sm font-semibold">
