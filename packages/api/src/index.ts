@@ -25,6 +25,7 @@ import quotaRoute from './quota'
 import teamRoute from './team'
 import uploadRoute, { localUploadRoute } from './upload'
 import versionStackRoute from './versionStack'
+import kanbanRoute from './kanban'
 
 type User = Prisma.UserGetPayload<Record<string, never>>
 
@@ -67,6 +68,7 @@ const apiRoute = new Hono<{ Variables: { user: User } }>()
   .route('/', mcpRoute)
   .route('/', watermarkTemplateRoute)
   .route('/', quotaRoute)
+  .route('/', kanbanRoute)
 
 app.route('/files', s3Route)
 

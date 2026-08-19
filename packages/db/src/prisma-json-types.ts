@@ -277,6 +277,7 @@ declare global {
       imageAnnotation?: ImageAnnotationSpec
       pdfPages?: PdfPagesSpec
       watermark?: WatermarkTaskPayload
+      kanbanAgentRun?: KanbanAgentRunPayload
     }
 
     // ----------------------------------------------------------------------
@@ -431,5 +432,39 @@ declare global {
     // ----------------------------------------------------------------------
     export type QuotaResourceData = Record<string, unknown>
     export type QuotaUserIds = string[]
+
+    // ----------------------------------------------------------------------
+    // Kanban Types
+    // ----------------------------------------------------------------------
+    export type KanbanBlockReasonKind = 'NEEDS_INPUT' | 'CAPABILITY' | 'DEPENDENCY' | 'TRANSIENT'
+
+    export interface KanbanAssetSummary {
+      id: string
+      type?: string
+      name?: string
+      description?: string
+    }
+
+    export interface KanbanEventPayload {
+      summary?: string
+      blockReason?: string
+      blockKind?: KanbanBlockReasonKind
+      assets?: KanbanAssetSummary[]
+      reason?: string
+      [key: string]: unknown
+    }
+
+    export interface KanbanRunMetadata {
+      deliverableAssetIds?: string[]
+      verificationNotes?: string
+      [key: string]: unknown
+    }
+
+    export interface KanbanAgentRunPayload {
+      kanbanTaskId: string
+      kanbanRunId: string
+      claimToken: string
+      [key: string]: unknown
+    }
   }
 }

@@ -94,7 +94,13 @@ export const ModelName = {
   AiUsage: 'AiUsage',
   AuditLog: 'AuditLog',
   QuotaRule: 'QuotaRule',
-  QuotaRecord: 'QuotaRecord'
+  QuotaRecord: 'QuotaRecord',
+  KanbanGoal: 'KanbanGoal',
+  KanbanTask: 'KanbanTask',
+  KanbanTaskLink: 'KanbanTaskLink',
+  KanbanTaskRun: 'KanbanTaskRun',
+  KanbanTaskComment: 'KanbanTaskComment',
+  KanbanTaskEvent: 'KanbanTaskEvent'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -752,6 +758,100 @@ export const QuotaRecordScalarFieldEnum = {
 } as const
 
 export type QuotaRecordScalarFieldEnum = (typeof QuotaRecordScalarFieldEnum)[keyof typeof QuotaRecordScalarFieldEnum]
+
+
+export const KanbanGoalScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  description: 'description',
+  teamId: 'teamId',
+  creatorId: 'creatorId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type KanbanGoalScalarFieldEnum = (typeof KanbanGoalScalarFieldEnum)[keyof typeof KanbanGoalScalarFieldEnum]
+
+
+export const KanbanTaskScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  description: 'description',
+  type: 'type',
+  status: 'status',
+  priority: 'priority',
+  startDate: 'startDate',
+  dueDate: 'dueDate',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  goalId: 'goalId',
+  teamId: 'teamId',
+  projectId: 'projectId',
+  creatorId: 'creatorId',
+  reporterId: 'reporterId',
+  assigneeId: 'assigneeId',
+  targetFolderId: 'targetFolderId',
+  latestRunId: 'latestRunId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type KanbanTaskScalarFieldEnum = (typeof KanbanTaskScalarFieldEnum)[keyof typeof KanbanTaskScalarFieldEnum]
+
+
+export const KanbanTaskLinkScalarFieldEnum = {
+  parentId: 'parentId',
+  childId: 'childId',
+  createdAt: 'createdAt'
+} as const
+
+export type KanbanTaskLinkScalarFieldEnum = (typeof KanbanTaskLinkScalarFieldEnum)[keyof typeof KanbanTaskLinkScalarFieldEnum]
+
+
+export const KanbanTaskRunScalarFieldEnum = {
+  id: 'id',
+  taskId: 'taskId',
+  actorId: 'actorId',
+  status: 'status',
+  attempt: 'attempt',
+  claimToken: 'claimToken',
+  claimExpiresAt: 'claimExpiresAt',
+  summary: 'summary',
+  metadata: 'metadata',
+  startedAt: 'startedAt',
+  endedAt: 'endedAt',
+  workflowTaskId: 'workflowTaskId',
+  workflowId: 'workflowId',
+  createdAt: 'createdAt'
+} as const
+
+export type KanbanTaskRunScalarFieldEnum = (typeof KanbanTaskRunScalarFieldEnum)[keyof typeof KanbanTaskRunScalarFieldEnum]
+
+
+export const KanbanTaskCommentScalarFieldEnum = {
+  id: 'id',
+  taskId: 'taskId',
+  authorId: 'authorId',
+  body: 'body',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type KanbanTaskCommentScalarFieldEnum = (typeof KanbanTaskCommentScalarFieldEnum)[keyof typeof KanbanTaskCommentScalarFieldEnum]
+
+
+export const KanbanTaskEventScalarFieldEnum = {
+  id: 'id',
+  taskId: 'taskId',
+  actorId: 'actorId',
+  type: 'type',
+  fromStatus: 'fromStatus',
+  toStatus: 'toStatus',
+  data: 'data',
+  createdAt: 'createdAt'
+} as const
+
+export type KanbanTaskEventScalarFieldEnum = (typeof KanbanTaskEventScalarFieldEnum)[keyof typeof KanbanTaskEventScalarFieldEnum]
 
 
 export const SortOrder = {

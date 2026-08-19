@@ -261,3 +261,33 @@ export type QuotaRule = Prisma.QuotaRuleModel
  * 
  */
 export type QuotaRecord = Prisma.QuotaRecordModel
+/**
+ * Model KanbanGoal
+ * 
+ */
+export type KanbanGoal = Prisma.KanbanGoalModel
+/**
+ * Model KanbanTask
+ * 
+ */
+export type KanbanTask = Prisma.KanbanTaskModel
+/**
+ * Model KanbanTaskLink
+ * 
+ */
+export type KanbanTaskLink = Prisma.KanbanTaskLinkModel
+/**
+ * Model KanbanTaskRun
+ * 
+ */
+export type KanbanTaskRun = Prisma.KanbanTaskRunModel
+/**
+ * Model KanbanTaskComment
+ * 
+ */
+export type KanbanTaskComment = Prisma.KanbanTaskCommentModel
+/**
+ * Model KanbanTaskEvent
+ * 
+ */
+export type KanbanTaskEvent = Prisma.KanbanTaskEventModel

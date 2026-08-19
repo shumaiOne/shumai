@@ -427,7 +427,13 @@ export const ModelName = {
   AiUsage: 'AiUsage',
   AuditLog: 'AuditLog',
   QuotaRule: 'QuotaRule',
-  QuotaRecord: 'QuotaRecord'
+  QuotaRecord: 'QuotaRecord',
+  KanbanGoal: 'KanbanGoal',
+  KanbanTask: 'KanbanTask',
+  KanbanTaskLink: 'KanbanTaskLink',
+  KanbanTaskRun: 'KanbanTaskRun',
+  KanbanTaskComment: 'KanbanTaskComment',
+  KanbanTaskEvent: 'KanbanTaskEvent'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -443,7 +449,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "sandbox" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "watermarkConfig" | "watermarkTemplate" | "watermarkFile" | "asset" | "storageKey" | "assetMetadataValue" | "assetAgentMd" | "assetComment" | "assetCommentAttachment" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "mcpServer" | "agentMcpServer" | "mcpServerCredential" | "agentSession" | "agentSessionEntry" | "userMetadata" | "model" | "provider" | "collection" | "apiToken" | "aiUsage" | "auditLog" | "quotaRule" | "quotaRecord"
+    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "sandbox" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "watermarkConfig" | "watermarkTemplate" | "watermarkFile" | "asset" | "storageKey" | "assetMetadataValue" | "assetAgentMd" | "assetComment" | "assetCommentAttachment" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "mcpServer" | "agentMcpServer" | "mcpServerCredential" | "agentSession" | "agentSessionEntry" | "userMetadata" | "model" | "provider" | "collection" | "apiToken" | "aiUsage" | "auditLog" | "quotaRule" | "quotaRecord" | "kanbanGoal" | "kanbanTask" | "kanbanTaskLink" | "kanbanTaskRun" | "kanbanTaskComment" | "kanbanTaskEvent"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -3703,6 +3709,450 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    KanbanGoal: {
+      payload: Prisma.$KanbanGoalPayload<ExtArgs>
+      fields: Prisma.KanbanGoalFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.KanbanGoalFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanGoalPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.KanbanGoalFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanGoalPayload>
+        }
+        findFirst: {
+          args: Prisma.KanbanGoalFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanGoalPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.KanbanGoalFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanGoalPayload>
+        }
+        findMany: {
+          args: Prisma.KanbanGoalFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanGoalPayload>[]
+        }
+        create: {
+          args: Prisma.KanbanGoalCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanGoalPayload>
+        }
+        createMany: {
+          args: Prisma.KanbanGoalCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.KanbanGoalCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanGoalPayload>[]
+        }
+        delete: {
+          args: Prisma.KanbanGoalDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanGoalPayload>
+        }
+        update: {
+          args: Prisma.KanbanGoalUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanGoalPayload>
+        }
+        deleteMany: {
+          args: Prisma.KanbanGoalDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.KanbanGoalUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.KanbanGoalUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanGoalPayload>[]
+        }
+        upsert: {
+          args: Prisma.KanbanGoalUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanGoalPayload>
+        }
+        aggregate: {
+          args: Prisma.KanbanGoalAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateKanbanGoal>
+        }
+        groupBy: {
+          args: Prisma.KanbanGoalGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.KanbanGoalGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.KanbanGoalCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.KanbanGoalCountAggregateOutputType> | number
+        }
+      }
+    }
+    KanbanTask: {
+      payload: Prisma.$KanbanTaskPayload<ExtArgs>
+      fields: Prisma.KanbanTaskFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.KanbanTaskFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.KanbanTaskFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskPayload>
+        }
+        findFirst: {
+          args: Prisma.KanbanTaskFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.KanbanTaskFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskPayload>
+        }
+        findMany: {
+          args: Prisma.KanbanTaskFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskPayload>[]
+        }
+        create: {
+          args: Prisma.KanbanTaskCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskPayload>
+        }
+        createMany: {
+          args: Prisma.KanbanTaskCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.KanbanTaskCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskPayload>[]
+        }
+        delete: {
+          args: Prisma.KanbanTaskDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskPayload>
+        }
+        update: {
+          args: Prisma.KanbanTaskUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskPayload>
+        }
+        deleteMany: {
+          args: Prisma.KanbanTaskDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.KanbanTaskUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.KanbanTaskUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskPayload>[]
+        }
+        upsert: {
+          args: Prisma.KanbanTaskUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskPayload>
+        }
+        aggregate: {
+          args: Prisma.KanbanTaskAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateKanbanTask>
+        }
+        groupBy: {
+          args: Prisma.KanbanTaskGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.KanbanTaskGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.KanbanTaskCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.KanbanTaskCountAggregateOutputType> | number
+        }
+      }
+    }
+    KanbanTaskLink: {
+      payload: Prisma.$KanbanTaskLinkPayload<ExtArgs>
+      fields: Prisma.KanbanTaskLinkFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.KanbanTaskLinkFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskLinkPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.KanbanTaskLinkFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskLinkPayload>
+        }
+        findFirst: {
+          args: Prisma.KanbanTaskLinkFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskLinkPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.KanbanTaskLinkFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskLinkPayload>
+        }
+        findMany: {
+          args: Prisma.KanbanTaskLinkFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskLinkPayload>[]
+        }
+        create: {
+          args: Prisma.KanbanTaskLinkCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskLinkPayload>
+        }
+        createMany: {
+          args: Prisma.KanbanTaskLinkCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.KanbanTaskLinkCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskLinkPayload>[]
+        }
+        delete: {
+          args: Prisma.KanbanTaskLinkDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskLinkPayload>
+        }
+        update: {
+          args: Prisma.KanbanTaskLinkUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskLinkPayload>
+        }
+        deleteMany: {
+          args: Prisma.KanbanTaskLinkDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.KanbanTaskLinkUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.KanbanTaskLinkUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskLinkPayload>[]
+        }
+        upsert: {
+          args: Prisma.KanbanTaskLinkUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskLinkPayload>
+        }
+        aggregate: {
+          args: Prisma.KanbanTaskLinkAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateKanbanTaskLink>
+        }
+        groupBy: {
+          args: Prisma.KanbanTaskLinkGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.KanbanTaskLinkGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.KanbanTaskLinkCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.KanbanTaskLinkCountAggregateOutputType> | number
+        }
+      }
+    }
+    KanbanTaskRun: {
+      payload: Prisma.$KanbanTaskRunPayload<ExtArgs>
+      fields: Prisma.KanbanTaskRunFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.KanbanTaskRunFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskRunPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.KanbanTaskRunFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskRunPayload>
+        }
+        findFirst: {
+          args: Prisma.KanbanTaskRunFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskRunPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.KanbanTaskRunFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskRunPayload>
+        }
+        findMany: {
+          args: Prisma.KanbanTaskRunFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskRunPayload>[]
+        }
+        create: {
+          args: Prisma.KanbanTaskRunCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskRunPayload>
+        }
+        createMany: {
+          args: Prisma.KanbanTaskRunCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.KanbanTaskRunCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskRunPayload>[]
+        }
+        delete: {
+          args: Prisma.KanbanTaskRunDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskRunPayload>
+        }
+        update: {
+          args: Prisma.KanbanTaskRunUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskRunPayload>
+        }
+        deleteMany: {
+          args: Prisma.KanbanTaskRunDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.KanbanTaskRunUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.KanbanTaskRunUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskRunPayload>[]
+        }
+        upsert: {
+          args: Prisma.KanbanTaskRunUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskRunPayload>
+        }
+        aggregate: {
+          args: Prisma.KanbanTaskRunAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateKanbanTaskRun>
+        }
+        groupBy: {
+          args: Prisma.KanbanTaskRunGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.KanbanTaskRunGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.KanbanTaskRunCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.KanbanTaskRunCountAggregateOutputType> | number
+        }
+      }
+    }
+    KanbanTaskComment: {
+      payload: Prisma.$KanbanTaskCommentPayload<ExtArgs>
+      fields: Prisma.KanbanTaskCommentFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.KanbanTaskCommentFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskCommentPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.KanbanTaskCommentFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskCommentPayload>
+        }
+        findFirst: {
+          args: Prisma.KanbanTaskCommentFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskCommentPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.KanbanTaskCommentFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskCommentPayload>
+        }
+        findMany: {
+          args: Prisma.KanbanTaskCommentFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskCommentPayload>[]
+        }
+        create: {
+          args: Prisma.KanbanTaskCommentCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskCommentPayload>
+        }
+        createMany: {
+          args: Prisma.KanbanTaskCommentCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.KanbanTaskCommentCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskCommentPayload>[]
+        }
+        delete: {
+          args: Prisma.KanbanTaskCommentDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskCommentPayload>
+        }
+        update: {
+          args: Prisma.KanbanTaskCommentUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskCommentPayload>
+        }
+        deleteMany: {
+          args: Prisma.KanbanTaskCommentDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.KanbanTaskCommentUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.KanbanTaskCommentUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskCommentPayload>[]
+        }
+        upsert: {
+          args: Prisma.KanbanTaskCommentUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskCommentPayload>
+        }
+        aggregate: {
+          args: Prisma.KanbanTaskCommentAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateKanbanTaskComment>
+        }
+        groupBy: {
+          args: Prisma.KanbanTaskCommentGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.KanbanTaskCommentGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.KanbanTaskCommentCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.KanbanTaskCommentCountAggregateOutputType> | number
+        }
+      }
+    }
+    KanbanTaskEvent: {
+      payload: Prisma.$KanbanTaskEventPayload<ExtArgs>
+      fields: Prisma.KanbanTaskEventFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.KanbanTaskEventFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskEventPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.KanbanTaskEventFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskEventPayload>
+        }
+        findFirst: {
+          args: Prisma.KanbanTaskEventFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskEventPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.KanbanTaskEventFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskEventPayload>
+        }
+        findMany: {
+          args: Prisma.KanbanTaskEventFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskEventPayload>[]
+        }
+        create: {
+          args: Prisma.KanbanTaskEventCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskEventPayload>
+        }
+        createMany: {
+          args: Prisma.KanbanTaskEventCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.KanbanTaskEventCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskEventPayload>[]
+        }
+        delete: {
+          args: Prisma.KanbanTaskEventDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskEventPayload>
+        }
+        update: {
+          args: Prisma.KanbanTaskEventUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskEventPayload>
+        }
+        deleteMany: {
+          args: Prisma.KanbanTaskEventDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.KanbanTaskEventUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.KanbanTaskEventUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskEventPayload>[]
+        }
+        upsert: {
+          args: Prisma.KanbanTaskEventUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskEventPayload>
+        }
+        aggregate: {
+          args: Prisma.KanbanTaskEventAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateKanbanTaskEvent>
+        }
+        groupBy: {
+          args: Prisma.KanbanTaskEventGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.KanbanTaskEventGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.KanbanTaskEventCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.KanbanTaskEventCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -4383,6 +4833,100 @@ export const QuotaRecordScalarFieldEnum = {
 export type QuotaRecordScalarFieldEnum = (typeof QuotaRecordScalarFieldEnum)[keyof typeof QuotaRecordScalarFieldEnum]
 
 
+export const KanbanGoalScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  description: 'description',
+  teamId: 'teamId',
+  creatorId: 'creatorId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type KanbanGoalScalarFieldEnum = (typeof KanbanGoalScalarFieldEnum)[keyof typeof KanbanGoalScalarFieldEnum]
+
+
+export const KanbanTaskScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  description: 'description',
+  type: 'type',
+  status: 'status',
+  priority: 'priority',
+  startDate: 'startDate',
+  dueDate: 'dueDate',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  goalId: 'goalId',
+  teamId: 'teamId',
+  projectId: 'projectId',
+  creatorId: 'creatorId',
+  reporterId: 'reporterId',
+  assigneeId: 'assigneeId',
+  targetFolderId: 'targetFolderId',
+  latestRunId: 'latestRunId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type KanbanTaskScalarFieldEnum = (typeof KanbanTaskScalarFieldEnum)[keyof typeof KanbanTaskScalarFieldEnum]
+
+
+export const KanbanTaskLinkScalarFieldEnum = {
+  parentId: 'parentId',
+  childId: 'childId',
+  createdAt: 'createdAt'
+} as const
+
+export type KanbanTaskLinkScalarFieldEnum = (typeof KanbanTaskLinkScalarFieldEnum)[keyof typeof KanbanTaskLinkScalarFieldEnum]
+
+
+export const KanbanTaskRunScalarFieldEnum = {
+  id: 'id',
+  taskId: 'taskId',
+  actorId: 'actorId',
+  status: 'status',
+  attempt: 'attempt',
+  claimToken: 'claimToken',
+  claimExpiresAt: 'claimExpiresAt',
+  summary: 'summary',
+  metadata: 'metadata',
+  startedAt: 'startedAt',
+  endedAt: 'endedAt',
+  workflowTaskId: 'workflowTaskId',
+  workflowId: 'workflowId',
+  createdAt: 'createdAt'
+} as const
+
+export type KanbanTaskRunScalarFieldEnum = (typeof KanbanTaskRunScalarFieldEnum)[keyof typeof KanbanTaskRunScalarFieldEnum]
+
+
+export const KanbanTaskCommentScalarFieldEnum = {
+  id: 'id',
+  taskId: 'taskId',
+  authorId: 'authorId',
+  body: 'body',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type KanbanTaskCommentScalarFieldEnum = (typeof KanbanTaskCommentScalarFieldEnum)[keyof typeof KanbanTaskCommentScalarFieldEnum]
+
+
+export const KanbanTaskEventScalarFieldEnum = {
+  id: 'id',
+  taskId: 'taskId',
+  actorId: 'actorId',
+  type: 'type',
+  fromStatus: 'fromStatus',
+  toStatus: 'toStatus',
+  data: 'data',
+  createdAt: 'createdAt'
+} as const
+
+export type KanbanTaskEventScalarFieldEnum = (typeof KanbanTaskEventScalarFieldEnum)[keyof typeof KanbanTaskEventScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -4835,6 +5379,76 @@ export type EnumQuotaPeriodFieldRefInput<$PrismaModel> = FieldRefInputType<$Pris
 export type ListEnumQuotaPeriodFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QuotaPeriod[]'>
     
 
+
+/**
+ * Reference to a field of type 'KanbanTaskType'
+ */
+export type EnumKanbanTaskTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KanbanTaskType'>
+    
+
+
+/**
+ * Reference to a field of type 'KanbanTaskType[]'
+ */
+export type ListEnumKanbanTaskTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KanbanTaskType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'KanbanTaskStatus'
+ */
+export type EnumKanbanTaskStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KanbanTaskStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'KanbanTaskStatus[]'
+ */
+export type ListEnumKanbanTaskStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KanbanTaskStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'KanbanTaskPriority'
+ */
+export type EnumKanbanTaskPriorityFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KanbanTaskPriority'>
+    
+
+
+/**
+ * Reference to a field of type 'KanbanTaskPriority[]'
+ */
+export type ListEnumKanbanTaskPriorityFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KanbanTaskPriority[]'>
+    
+
+
+/**
+ * Reference to a field of type 'KanbanTaskRunStatus'
+ */
+export type EnumKanbanTaskRunStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KanbanTaskRunStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'KanbanTaskRunStatus[]'
+ */
+export type ListEnumKanbanTaskRunStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KanbanTaskRunStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'KanbanTaskEventType'
+ */
+export type EnumKanbanTaskEventTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KanbanTaskEventType'>
+    
+
+
+/**
+ * Reference to a field of type 'KanbanTaskEventType[]'
+ */
+export type ListEnumKanbanTaskEventTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KanbanTaskEventType[]'>
+    
+
 /**
  * Batch Payload for updateMany & deleteMany & createMany
  */
@@ -4989,6 +5603,12 @@ export type GlobalOmitConfig = {
   auditLog?: Prisma.AuditLogOmit
   quotaRule?: Prisma.QuotaRuleOmit
   quotaRecord?: Prisma.QuotaRecordOmit
+  kanbanGoal?: Prisma.KanbanGoalOmit
+  kanbanTask?: Prisma.KanbanTaskOmit
+  kanbanTaskLink?: Prisma.KanbanTaskLinkOmit
+  kanbanTaskRun?: Prisma.KanbanTaskRunOmit
+  kanbanTaskComment?: Prisma.KanbanTaskCommentOmit
+  kanbanTaskEvent?: Prisma.KanbanTaskEventOmit
 }
 
 /* Types for Logging */

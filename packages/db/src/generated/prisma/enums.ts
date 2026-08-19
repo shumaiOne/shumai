@@ -137,7 +137,8 @@ export const WorkflowTaskType = {
   chat: 'chat',
   ai_embedding: 'ai_embedding',
   query_embedding_for_search: 'query_embedding_for_search',
-  agent_tool_call: 'agent_tool_call'
+  agent_tool_call: 'agent_tool_call',
+  kanban_agent_run: 'kanban_agent_run'
 } as const
 
 export type WorkflowTaskType = (typeof WorkflowTaskType)[keyof typeof WorkflowTaskType]
@@ -201,6 +202,76 @@ export const QuotaResourceType = {
 } as const
 
 export type QuotaResourceType = (typeof QuotaResourceType)[keyof typeof QuotaResourceType]
+
+
+export const KanbanTaskType = {
+  MANUAL: 'MANUAL',
+  AGENTIC: 'AGENTIC'
+} as const
+
+export type KanbanTaskType = (typeof KanbanTaskType)[keyof typeof KanbanTaskType]
+
+
+export const KanbanTaskStatus = {
+  TODO: 'TODO',
+  READY: 'READY',
+  IN_PROGRESS: 'IN_PROGRESS',
+  BLOCKED: 'BLOCKED',
+  IN_REVIEW: 'IN_REVIEW',
+  DONE: 'DONE',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type KanbanTaskStatus = (typeof KanbanTaskStatus)[keyof typeof KanbanTaskStatus]
+
+
+export const KanbanTaskRunStatus = {
+  RUNNING: 'RUNNING',
+  COMPLETED: 'COMPLETED',
+  REVIEW_REQUESTED: 'REVIEW_REQUESTED',
+  BLOCKED: 'BLOCKED',
+  FAILED: 'FAILED',
+  TIMED_OUT: 'TIMED_OUT',
+  CANCELLED: 'CANCELLED',
+  RECLAIMED: 'RECLAIMED'
+} as const
+
+export type KanbanTaskRunStatus = (typeof KanbanTaskRunStatus)[keyof typeof KanbanTaskRunStatus]
+
+
+export const KanbanTaskPriority = {
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
+  URGENT: 'URGENT'
+} as const
+
+export type KanbanTaskPriority = (typeof KanbanTaskPriority)[keyof typeof KanbanTaskPriority]
+
+
+export const KanbanTaskEventType = {
+  CREATED: 'CREATED',
+  STATUS_CHANGED: 'STATUS_CHANGED',
+  ASSIGNED: 'ASSIGNED',
+  UNASSIGNED: 'UNASSIGNED',
+  COMMENTED: 'COMMENTED',
+  REVIEW_REQUESTED: 'REVIEW_REQUESTED',
+  CHANGES_REQUESTED: 'CHANGES_REQUESTED',
+  BLOCKED: 'BLOCKED',
+  UNBLOCKED: 'UNBLOCKED',
+  RUN_STARTED: 'RUN_STARTED',
+  RUN_COMPLETED: 'RUN_COMPLETED',
+  RUN_FAILED: 'RUN_FAILED',
+  PRIORITY_CHANGED: 'PRIORITY_CHANGED',
+  GOAL_CHANGED: 'GOAL_CHANGED',
+  DEPENDENCY_ADDED: 'DEPENDENCY_ADDED',
+  DEPENDENCY_REMOVED: 'DEPENDENCY_REMOVED',
+  ANCESTOR_REOPENED: 'ANCESTOR_REOPENED',
+  RECLAIMED: 'RECLAIMED',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type KanbanTaskEventType = (typeof KanbanTaskEventType)[keyof typeof KanbanTaskEventType]
 
 
 export const AgentType = {

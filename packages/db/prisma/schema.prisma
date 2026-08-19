@@ -112,6 +112,7 @@ enum WorkflowTaskType {
   ai_embedding
   query_embedding_for_search
   agent_tool_call
+  kanban_agent_run
 }
 
 enum WorkflowTaskStatus {
@@ -156,6 +157,61 @@ enum QuotaResourceType {
   agent_tool_call_count
 }
 
+enum KanbanTaskType {
+  MANUAL
+  AGENTIC
+}
+
+enum KanbanTaskStatus {
+  TODO
+  READY
+  IN_PROGRESS
+  BLOCKED
+  IN_REVIEW
+  DONE
+  CANCELLED
+}
+
+enum KanbanTaskRunStatus {
+  RUNNING
+  COMPLETED
+  REVIEW_REQUESTED
+  BLOCKED
+  FAILED
+  TIMED_OUT
+  CANCELLED
+  RECLAIMED
+}
+
+enum KanbanTaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum KanbanTaskEventType {
+  CREATED
+  STATUS_CHANGED
+  ASSIGNED
+  UNASSIGNED
+  COMMENTED
+  REVIEW_REQUESTED
+  CHANGES_REQUESTED
+  BLOCKED
+  UNBLOCKED
+  RUN_STARTED
+  RUN_COMPLETED
+  RUN_FAILED
+  PRIORITY_CHANGED
+  GOAL_CHANGED
+  DEPENDENCY_ADDED
+  DEPENDENCY_REMOVED
+  ANCESTOR_REOPENED
+  RECLAIMED
+  CANCELLED
+}
+
 // ----------------------------------------------------------------------
 // Models
 // ----------------------------------------------------------------------
@@ -194,6 +250,13 @@ model User {
   aiUsages             AiUsage[]        @relation("UserToAiUsage")
   auditLogs            AuditLog[]       @relation("UserToAuditLog")
   quotaRecords         QuotaRecord[]    @relation("UserToQuotaRecord")
+  kanbanTasksCreated   KanbanTask[]     @relation("KanbanTaskCreator")
+  kanbanTasksReported  KanbanTask[]     @relation("KanbanTaskReporter")
+  kanbanTasksAssigned  KanbanTask[]     @relation("KanbanTaskAssignee")
+  kanbanGoalsCreated   KanbanGoal[]     @relation("UserToKanbanGoal")
+  kanbanTaskRuns       KanbanTaskRun[]
+  kanbanTaskComments   KanbanTaskComment[]
+  kanbanTaskEvents     KanbanTaskEvent[]
 
   @@map("users")
 }
@@ -282,6 +345,8 @@ model Team {
   watermarkTemplates WatermarkTemplate[] @relation("TeamToWatermarkTemplate")
   quotaRules     QuotaRule[]     @relation("TeamToQuotaRule")
   quotaRecords   QuotaRecord[]   @relation("TeamToQuotaRecord")
+  kanbanGoals    KanbanGoal[]    @relation("TeamToKanbanGoal")
+  kanbanTasks    KanbanTask[]    @relation("TeamToKanbanTask")
 
   @@map("teams")
 }
@@ -367,6 +432,7 @@ model Project {
   shareLinks             ShareLink[]        @relation("ProjectToShareLink")
   collections            Collection[]       @relation("ProjectToCollection")
   auditLogs              AuditLog[]         @relation("ProjectToAuditLog")
+  kanbanTasks            KanbanTask[]       @relation("ProjectToKanbanTask")
 
   @@map("projects")
   @@index([createdAt])
@@ -515,6 +581,7 @@ model Asset {
   agentSessions        AgentSession[] @relation("AssetToAgentSession")
   watermarkFiles       WatermarkFile[] @relation("AssetToWatermarkFile")
   agentMd              AssetAgentMd?   @relation("AssetToAgentMd")
+  kanbanTargetTasks    KanbanTask[]    @relation("KanbanTaskTargetFolder")
 
   @@map("assets")
   @@index([type])
@@ -749,6 +816,8 @@ model WorkflowTask {
   sessionId     String?            @map("session_id")
   createdAt     DateTime           @default(now()) @map("created_at")
   updatedAt     DateTime           @updatedAt @map("updated_at")
+
+  kanbanRun     KanbanTaskRun?     @relation("KanbanRunWorkflowTask")
 
   @@map("workflow_tasks")
   @@index([status, heartbeat])
@@ -1086,5 +1155,153 @@ model QuotaRecord {
   @@index([ruleId])
   @@map("quota_records")
 }
+
+model KanbanGoal {
+  id          String       @id @default(ulid())
+  title       String
+  description String?      @db.Text
+  teamId      String       @map("team_id")
+  team        Team         @relation("TeamToKanbanGoal", fields: [teamId], references: [id], onDelete: Cascade)
+  creatorId   String?      @map("creator_id")
+  creator     User?        @relation("UserToKanbanGoal", fields: [creatorId], references: [id], onDelete: SetNull)
+  tasks       KanbanTask[]
+
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  @@index([teamId])
+  @@map("kanban_goals")
+}
+
+model KanbanTask {
+  id             String             @id @default(ulid())
+  title          String
+  description    String?            @db.Text
+  type           KanbanTaskType     @default(MANUAL)
+  status         KanbanTaskStatus   @default(TODO)
+  priority       KanbanTaskPriority @default(MEDIUM)
+
+  startDate      DateTime?          @map("start_date")
+  dueDate        DateTime?          @map("due_date")
+  startedAt      DateTime?          @map("started_at")
+  completedAt    DateTime?          @map("completed_at")
+
+  goalId         String?            @map("goal_id")
+  goal           KanbanGoal?        @relation(fields: [goalId], references: [id], onDelete: SetNull)
+
+  teamId         String             @map("team_id")
+  team           Team               @relation("TeamToKanbanTask", fields: [teamId], references: [id], onDelete: Cascade)
+  projectId      String?            @map("project_id")
+  project        Project?           @relation("ProjectToKanbanTask", fields: [projectId], references: [id], onDelete: Cascade)
+
+  creatorId      String             @map("creator_id")
+  creator        User               @relation("KanbanTaskCreator", fields: [creatorId], references: [id])
+  reporterId     String?            @map("reporter_id")
+  reporter       User?              @relation("KanbanTaskReporter", fields: [reporterId], references: [id])
+  assigneeId     String?            @map("assignee_id")
+  assignee       User?              @relation("KanbanTaskAssignee", fields: [assigneeId], references: [id])
+
+  targetFolderId String?            @map("target_folder_id")
+  targetFolder   Asset?             @relation("KanbanTaskTargetFolder", fields: [targetFolderId], references: [id], onDelete: SetNull)
+
+  latestRunId    String?            @unique @map("latest_run_id")
+  latestRun      KanbanTaskRun?     @relation("KanbanTaskLatestRun", fields: [latestRunId], references: [id], onDelete: SetNull)
+
+  dependencies   KanbanTaskLink[]   @relation("ChildLinks")
+  dependents     KanbanTaskLink[]   @relation("ParentLinks")
+
+  comments       KanbanTaskComment[]
+  events         KanbanTaskEvent[]
+  runs           KanbanTaskRun[]    @relation("KanbanTaskRuns")
+
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+
+  @@index([teamId, status])
+  @@index([teamId, type, status])
+  @@index([teamId, goalId, status])
+  @@index([teamId, assigneeId, status])
+  @@index([projectId, status])
+  @@map("kanban_tasks")
+}
+
+model KanbanTaskLink {
+  parentId  String     @map("parent_id")
+  childId   String     @map("child_id")
+  parent    KanbanTask @relation("ParentLinks", fields: [parentId], references: [id], onDelete: Cascade)
+  child     KanbanTask @relation("ChildLinks", fields: [childId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  @@id([parentId, childId])
+  @@index([childId])
+  @@map("kanban_task_links")
+}
+
+model KanbanTaskRun {
+  id             String              @id @default(ulid())
+  taskId         String              @map("task_id")
+  task           KanbanTask          @relation("KanbanTaskRuns", fields: [taskId], references: [id], onDelete: Cascade)
+  actorId        String?             @map("actor_id")
+  actor          User?               @relation(fields: [actorId], references: [id])
+
+  status         KanbanTaskRunStatus
+  attempt        Int                 @map("attempt")
+  claimToken     String              @unique @map("claim_token")
+  claimExpiresAt DateTime?           @map("claim_expires_at")
+  summary        String?             @db.Text
+  /// [KanbanRunMetadata]
+  metadata       Json?
+  startedAt      DateTime            @default(now()) @map("started_at")
+  endedAt        DateTime?           @map("ended_at")
+
+  workflowTaskId String?             @unique @map("workflow_task_id")
+  workflowTask   WorkflowTask?       @relation("KanbanRunWorkflowTask", fields: [workflowTaskId], references: [id], onDelete: SetNull)
+  workflowId     String?             @unique @map("workflow_id")
+
+  latestTask     KanbanTask?         @relation("KanbanTaskLatestRun")
+
+  createdAt      DateTime            @default(now()) @map("created_at")
+
+  @@index([taskId, startedAt(sort: Desc)])
+  @@index([taskId, status])
+  @@unique([taskId, attempt])
+  @@map("kanban_task_runs")
+}
+
+model KanbanTaskComment {
+  id        String      @id @default(ulid())
+  taskId    String      @map("task_id")
+  task      KanbanTask  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorId  String      @map("author_id")
+  author    User        @relation(fields: [authorId], references: [id])
+  body      String      @db.Text
+
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  @@index([taskId, createdAt])
+  @@map("kanban_task_comments")
+}
+
+model KanbanTaskEvent {
+  id         String              @id @default(ulid())
+  taskId     String              @map("task_id")
+  task       KanbanTask          @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  actorId    String?             @map("actor_id")
+  actor      User?               @relation(fields: [actorId], references: [id])
+  type       KanbanTaskEventType
+  fromStatus KanbanTaskStatus?   @map("from_status")
+  toStatus   KanbanTaskStatus?   @map("to_status")
+  /// [KanbanEventPayload]
+  data       Json?
+
+  createdAt  DateTime            @default(now()) @map("created_at")
+
+  @@index([taskId, createdAt])
+  @@index([actorId, createdAt])
+  @@map("kanban_task_events")
+}
+
 
 

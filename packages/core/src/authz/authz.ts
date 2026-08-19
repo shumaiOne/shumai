@@ -25,6 +25,8 @@ export enum ResourceType {
   Comment = 'comment',
   AgentSession = 'agentSession',
   QuotaRule = 'quotaRule',
+  KanbanGoal = 'kanbanGoal',
+  KanbanTask = 'kanbanTask',
 }
 
 export interface AuthzRequest {
@@ -267,6 +269,24 @@ export class AuthzService {
         })
         if (!rule) throw new HTTPException(404, { message: 'Quota rule not found' })
         return { teamId: rule.teamId }
+      }
+
+      case ResourceType.KanbanGoal: {
+        const goal = await prisma.kanbanGoal.findUnique({
+          where: { id },
+          select: { teamId: true },
+        })
+        if (!goal) throw new HTTPException(404, { message: 'Kanban goal not found' })
+        return { teamId: goal.teamId }
+      }
+
+      case ResourceType.KanbanTask: {
+        const task = await prisma.kanbanTask.findUnique({
+          where: { id },
+          select: { teamId: true, projectId: true },
+        })
+        if (!task) throw new HTTPException(404, { message: 'Kanban task not found' })
+        return { teamId: task.teamId, projectId: task.projectId ?? undefined }
       }
 
       default:
