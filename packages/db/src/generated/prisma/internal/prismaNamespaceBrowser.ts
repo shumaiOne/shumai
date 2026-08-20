@@ -792,6 +792,7 @@ export const KanbanTaskScalarFieldEnum = {
   assigneeId: 'assigneeId',
   targetFolderId: 'targetFolderId',
   latestRunId: 'latestRunId',
+  sortIndex: 'sortIndex',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

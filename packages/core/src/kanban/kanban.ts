@@ -8,6 +8,7 @@ import {
 } from '@shumai/db/enums'
 import { HTTPException } from 'hono/http-exception'
 import { ulid } from 'ulid'
+import { generateKeyBetween } from 'jittered-fractional-indexing'
 import { paginateQuery } from '../pagination'
 import { kanbanDispatcher } from './kanban-dispatcher'
 import { getAvatarUrl } from '../user/avatar'
@@ -209,6 +210,12 @@ export class KanbanService {
     }
 
     const task = await prisma.$transaction(async (tx) => {
+      const lastTask = await tx.kanbanTask.findFirst({
+        where: { teamId, status: initialStatus },
+        orderBy: { sortIndex: 'desc' },
+      })
+      const sortIndex = generateKeyBetween(lastTask?.sortIndex || null, null)
+
       const created = await tx.kanbanTask.create({
         data: {
           teamId,
@@ -225,6 +232,7 @@ export class KanbanService {
           assigneeId: req.assigneeId,
           targetFolderId: req.targetFolderId,
           creatorId,
+          sortIndex,
         },
         include: {
           creator: true,
@@ -588,6 +596,43 @@ export class KanbanService {
     }
 
     const updated = await prisma.$transaction(async (tx) => {
+      const finalStatus = targetStatus ?? existing.status
+      let newSortIndex: string | undefined = undefined
+
+      if (req.beforeIndex !== undefined) {
+        const prevTask = await tx.kanbanTask.findFirst({
+          where: {
+            teamId: existing.teamId,
+            status: finalStatus,
+            sortIndex: { lt: req.beforeIndex },
+            id: { not: taskId },
+          },
+          orderBy: { sortIndex: 'desc' },
+        })
+        newSortIndex = generateKeyBetween(prevTask?.sortIndex || null, req.beforeIndex)
+      } else if (req.afterIndex !== undefined) {
+        const nextTask = await tx.kanbanTask.findFirst({
+          where: {
+            teamId: existing.teamId,
+            status: finalStatus,
+            sortIndex: { gt: req.afterIndex },
+            id: { not: taskId },
+          },
+          orderBy: { sortIndex: 'asc' },
+        })
+        newSortIndex = generateKeyBetween(req.afterIndex, nextTask?.sortIndex || null)
+      } else if (req.status !== undefined && req.status !== existing.status) {
+        const lastTask = await tx.kanbanTask.findFirst({
+          where: {
+            teamId: existing.teamId,
+            status: finalStatus,
+            id: { not: taskId },
+          },
+          orderBy: { sortIndex: 'desc' },
+        })
+        newSortIndex = generateKeyBetween(lastTask?.sortIndex || null, null)
+      }
+
       const task = await tx.kanbanTask.update({
         where: { id: taskId },
         data: {
@@ -609,6 +654,7 @@ export class KanbanService {
           ...(req.reporterId !== undefined && { reporterId: req.reporterId }),
           ...(req.assigneeId !== undefined && { assigneeId: req.assigneeId }),
           ...(req.targetFolderId !== undefined && { targetFolderId: req.targetFolderId }),
+          ...(newSortIndex !== undefined && { sortIndex: newSortIndex }),
         },
         include: { creator: true, reporter: true, assignee: true, goal: true, latestRun: true },
       })
@@ -757,7 +803,7 @@ export class KanbanService {
               },
             },
           },
-          orderBy: { id: 'desc' },
+          orderBy: [{ sortIndex: 'asc' }, { id: 'asc' }],
           skip,
           take,
         })
@@ -1485,6 +1531,7 @@ export class KanbanService {
       completedAt: task.completedAt ? task.completedAt.toISOString() : null,
       teamId: task.teamId,
       projectId: task.projectId ?? null,
+      sortIndex: task.sortIndex ?? null,
       creator: {
         id: task.creator.id,
         name: task.creator.name,

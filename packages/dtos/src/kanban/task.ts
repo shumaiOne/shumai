@@ -48,6 +48,8 @@ export const updateKanbanTaskSchema = z.object({
   reporterId: z.string().nullable().optional(),
   assigneeId: z.string().nullable().optional(),
   targetFolderId: z.string().nullable().optional(),
+  beforeIndex: z.string().optional(),
+  afterIndex: z.string().optional(),
 })
 export type UpdateKanbanTaskRequest = z.infer<typeof updateKanbanTaskSchema>
 
@@ -104,6 +106,7 @@ export const kanbanTaskSummarySchema = z.object({
   type: z.nativeEnum(KanbanTaskType),
   status: z.nativeEnum(KanbanTaskStatus),
   priority: z.nativeEnum(KanbanTaskPriority),
+  sortIndex: z.string().nullable().optional(),
 })
 export type KanbanTaskSummary = z.infer<typeof kanbanTaskSummarySchema>
 
@@ -120,6 +123,7 @@ export const kanbanTaskInfoSchema = z.object({
   completedAt: z.union([z.string(), z.date()]).nullable().optional(),
   teamId: z.string(),
   projectId: z.string().nullable().optional(),
+  sortIndex: z.string().nullable().optional(),
   creator: kanbanUserInfoSchema,
   reporter: kanbanUserInfoSchema.nullable().optional(),
   assignee: kanbanUserInfoSchema.nullable().optional(),

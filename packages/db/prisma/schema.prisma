@@ -1214,14 +1214,18 @@ model KanbanTask {
   events         KanbanTaskEvent[]
   runs           KanbanTaskRun[]    @relation("KanbanTaskRuns")
 
+  sortIndex      String?            @map("sort_index")
+
   createdAt      DateTime           @default(now()) @map("created_at")
   updatedAt      DateTime           @updatedAt @map("updated_at")
 
   @@index([teamId, status])
+  @@index([teamId, status, sortIndex])
   @@index([teamId, type, status])
   @@index([teamId, goalId, status])
   @@index([teamId, assigneeId, status])
   @@index([projectId, status])
+  @@index([sortIndex])
   @@map("kanban_tasks")
 }
 

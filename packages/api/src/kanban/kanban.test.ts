@@ -278,6 +278,38 @@ describe('Kanban API Routes', () => {
         'owner',
       )
     })
+
+    it('PATCH /teams/:teamId/kanban/tasks/:taskId with beforeIndex and afterIndex', async () => {
+      const mockUpdate = vi.spyOn(kanbanService, 'updateTask').mockResolvedValue({
+        id: taskId,
+        title: 'Task 1',
+        type: KanbanTaskType.MANUAL,
+        status: KanbanTaskStatus.READY,
+        priority: KanbanTaskPriority.MEDIUM,
+        sortIndex: 'a0V',
+        teamId,
+        creator: { id: 'user-1', name: 'User 1' },
+        commentCount: 0,
+        dependencyCount: 0,
+        dependentCount: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+
+      const res = await app.request(`/teams/${teamId}/kanban/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'READY', beforeIndex: 'a1', afterIndex: 'a0' }),
+      })
+
+      expect(res.status).toBe(200)
+      expect(mockUpdate).toHaveBeenCalledWith(
+        taskId,
+        { status: 'READY', beforeIndex: 'a1', afterIndex: 'a0' },
+        'user-1',
+        'owner',
+      )
+    })
   })
 
   // --------------------------------------------------------------------------

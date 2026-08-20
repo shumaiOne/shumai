@@ -43,14 +43,20 @@ export function KanbanBoard({
       taskId,
       status,
       reason,
+      beforeIndex,
+      afterIndex,
     }: {
       taskId: string
       status: KanbanTaskStatus
       reason?: string
+      beforeIndex?: string
+      afterIndex?: string
+      targetTaskId?: string
+      position?: 'before' | 'after'
     }) => {
       const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].$patch({
         param: { teamId, taskId },
-        json: { status, reason },
+        json: { status, reason, beforeIndex, afterIndex },
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({ message: m.error() }))
@@ -58,7 +64,7 @@ export function KanbanBoard({
       }
       return await res.json()
     },
-    onMutate: async ({ taskId, status }) => {
+    onMutate: async ({ taskId, status, targetTaskId, position }) => {
       // Cancel any outgoing refetches so they don't overwrite optimistic update
       await queryClient.cancelQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
 
@@ -113,7 +119,7 @@ export function KanbanBoard({
         },
       )
 
-      // 2. Prepend task to destination column cache
+      // 2. Insert task into destination column cache at target position
       if (movedTask) {
         const taskToAdd = movedTask
         queryClient.setQueriesData<InfiniteData<ListKanbanTasksResponse>>(
@@ -126,19 +132,53 @@ export function KanbanBoard({
           },
           (oldData) => {
             if (!oldData || !Array.isArray(oldData.pages)) return oldData
-            const firstPage = oldData.pages[0] || { data: [], pageInfo: { total: 0 } }
-            const firstPageData = Array.isArray(firstPage.data) ? firstPage.data : []
-            const updatedFirstPage = {
-              ...firstPage,
-              data: [taskToAdd, ...firstPageData.filter((t) => t.id !== taskId)],
-              pageInfo: {
-                ...firstPage.pageInfo,
-                total: (firstPage.pageInfo?.total ?? firstPageData.length) + 1,
-              },
+
+            const allItems = oldData.pages
+              .flatMap((page) => page?.data ?? [])
+              .filter((t) => t.id !== taskId)
+
+            let insertIndex = allItems.length
+            if (targetTaskId) {
+              const idx = allItems.findIndex((t) => t.id === targetTaskId)
+              if (idx !== -1) {
+                insertIndex = position === 'before' ? idx : idx + 1
+              }
             }
+
+            allItems.splice(insertIndex, 0, taskToAdd)
+
+            let pointer = 0
+            const newPages = oldData.pages.map((page, pageIdx) => {
+              const pageSize = page?.data ? page.data.length : 0
+              const takeSize =
+                pageIdx === 0 && pageSize === 0
+                  ? 1
+                  : pageIdx === oldData.pages.length - 1
+                    ? allItems.length - pointer
+                    : pageSize
+              const pageData = allItems.slice(pointer, pointer + takeSize)
+              pointer += takeSize
+              return {
+                ...page,
+                data: pageData,
+                pageInfo: {
+                  ...page?.pageInfo,
+                  total: (page?.pageInfo?.total ?? 0) + 1,
+                },
+              }
+            })
+
+            if (pointer < allItems.length && newPages.length > 0) {
+              const lastPageIndex = newPages.length - 1
+              newPages[lastPageIndex] = {
+                ...newPages[lastPageIndex],
+                data: [...(newPages[lastPageIndex]?.data ?? []), ...allItems.slice(pointer)],
+              }
+            }
+
             return {
               ...oldData,
-              pages: [updatedFirstPage, ...oldData.pages.slice(1)],
+              pages: newPages,
             }
           },
         )
@@ -165,35 +205,76 @@ export function KanbanBoard({
     if (!source || !target) return
 
     const sourceData = source.data as { type?: string; task?: KanbanTaskInfo } | undefined
-    const targetData = target.data as { type?: string; status?: KanbanTaskStatus } | undefined
-
     if (sourceData?.type !== 'kanban_task' || !sourceData.task) return
-    if (targetData?.type !== 'kanban_column' || !targetData.status) return
-
     const task = sourceData.task
-    const fromStatus = task.status
-    const toStatus = targetData.status
 
-    if (fromStatus === toStatus) return
+    const targetData = target.data as
+      | { type?: 'reorder'; task?: KanbanTaskInfo; position?: 'before' | 'after' }
+      | { type?: 'kanban_column'; status?: KanbanTaskStatus }
+      | undefined
 
-    // Guard: Agentic task cannot be manually started
-    if (task.type === KanbanTaskType.AGENTIC && toStatus === KanbanTaskStatus.IN_PROGRESS) {
-      toast.info(m.cannot_move_agentic_task_manually())
+    if (!targetData) return
+
+    if (targetData.type === 'reorder' && targetData.task && targetData.position) {
+      const targetTask = targetData.task
+      const toStatus = targetTask.status
+
+      if (task.id === targetTask.id) return
+
+      // Guard: Agentic task cannot be manually started
+      if (task.type === KanbanTaskType.AGENTIC && toStatus === KanbanTaskStatus.IN_PROGRESS) {
+        toast.info(m.cannot_move_agentic_task_manually())
+        return
+      }
+
+      // If agentic task is in review and dragged to TODO or READY, open request changes dialog
+      if (
+        task.type === KanbanTaskType.AGENTIC &&
+        task.status === KanbanTaskStatus.IN_REVIEW &&
+        (toStatus === KanbanTaskStatus.READY || toStatus === KanbanTaskStatus.TODO)
+      ) {
+        setRequestChangesTask(task)
+        return
+      }
+
+      const beforeIndex =
+        targetData.position === 'before' ? (targetTask.sortIndex ?? undefined) : undefined
+      const afterIndex =
+        targetData.position === 'after' ? (targetTask.sortIndex ?? undefined) : undefined
+
+      updateTask({
+        taskId: task.id,
+        status: toStatus,
+        beforeIndex,
+        afterIndex,
+        targetTaskId: targetTask.id,
+        position: targetData.position,
+      })
       return
     }
 
-    // If agentic task is in review and dragged to TODO or READY, open request changes dialog
-    if (
-      task.type === KanbanTaskType.AGENTIC &&
-      fromStatus === KanbanTaskStatus.IN_REVIEW &&
-      (toStatus === KanbanTaskStatus.READY || toStatus === KanbanTaskStatus.TODO)
-    ) {
-      setRequestChangesTask(task)
-      return
-    }
+    if (targetData.type === 'kanban_column' && targetData.status) {
+      const toStatus = targetData.status
+      if (task.status === toStatus) return
 
-    // For all human tasks (and valid agentic transitions), update status via unified API
-    updateTask({ taskId: task.id, status: toStatus })
+      // Guard: Agentic task cannot be manually started
+      if (task.type === KanbanTaskType.AGENTIC && toStatus === KanbanTaskStatus.IN_PROGRESS) {
+        toast.info(m.cannot_move_agentic_task_manually())
+        return
+      }
+
+      // If agentic task is in review and dragged to TODO or READY, open request changes dialog
+      if (
+        task.type === KanbanTaskType.AGENTIC &&
+        task.status === KanbanTaskStatus.IN_REVIEW &&
+        (toStatus === KanbanTaskStatus.READY || toStatus === KanbanTaskStatus.TODO)
+      ) {
+        setRequestChangesTask(task)
+        return
+      }
+
+      updateTask({ taskId: task.id, status: toStatus })
+    }
   }
 
   const columnsToRender = showCancelled
