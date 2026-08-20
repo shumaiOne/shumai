@@ -128,6 +128,16 @@ export function KanbanColumn({
             allTasks.map((task) => <KanbanCard key={task.id} task={task} onClick={onTaskClick} />)
           )}
 
+          {/* Bottom drop indicator when dragging over empty space below cards */}
+          {isOverThisColumn &&
+            target?.data?.type === 'kanban_column' &&
+            target.data.status === status &&
+            allTasks.length > 0 && (
+              <div className="relative pt-0.5 pointer-events-none">
+                <div className="h-[3px] rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.6)]" />
+              </div>
+            )}
+
           {/* Infinite Scroll Sentinel */}
           <div ref={loadMoreRef} className="h-2" />
           {isFetchingNextPage && (

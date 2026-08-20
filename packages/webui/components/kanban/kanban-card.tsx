@@ -33,7 +33,7 @@ export function KanbanCard({ task, onClick, disabled }: KanbanCardProps) {
       task,
       position: 'before',
     },
-    disabled: !isDraggingAny || isDragging || disabled,
+    disabled: isDragging || disabled,
   })
 
   const { ref: setBottomDroppableRef, isDropTarget: isBottomOver } = useDroppable({
@@ -43,7 +43,7 @@ export function KanbanCard({ task, onClick, disabled }: KanbanCardProps) {
       task,
       position: 'after',
     },
-    disabled: !isDraggingAny || isDragging || disabled,
+    disabled: isDragging || disabled,
   })
 
   const isAgentic = task.type === KanbanTaskType.AGENTIC
@@ -60,7 +60,7 @@ export function KanbanCard({ task, onClick, disabled }: KanbanCardProps) {
       <div
         ref={setTopDroppableRef}
         className={cn(
-          'absolute top-0 left-0 right-0 h-1/2 z-20',
+          'absolute -top-1 left-0 right-0 h-[calc(50%+4px)] z-20',
           isDraggingAny && !isDragging ? 'pointer-events-auto' : 'pointer-events-none',
         )}
       />
@@ -91,7 +91,7 @@ export function KanbanCard({ task, onClick, disabled }: KanbanCardProps) {
         className={cn(
           'group relative flex flex-col gap-2 p-3 rounded-lg border text-card-foreground transition-all duration-200 cursor-pointer select-none',
           isDragging && 'opacity-40 scale-95 shadow-lg ring-2 ring-primary',
-          !isDragging && 'hover:-translate-y-0.5 hover:shadow-md',
+          !isDragging && 'hover:shadow-md',
           // Agentic task distinct border & subtle glow
           isAgentic
             ? 'border-purple-500/40 dark:border-purple-400/50 bg-gradient-to-br from-purple-500/[0.04] via-card to-background shadow-xs hover:border-purple-500 hover:shadow-[0_0_16px_rgba(168,85,247,0.18)] ring-1 ring-purple-500/20'
