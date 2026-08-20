@@ -2,7 +2,12 @@ import { client } from '@/ui/api/client'
 import { DualSidebar, DualSidebarItem } from '@/ui/components/dual-sidebar'
 import { NotificationList } from '@/ui/components/notification-list'
 import { TopNav } from '@/ui/components/top-nav'
-import { HomeIcon, NotificationFillIcon, UploadCloudIcon } from '@/ui/components/ui/icons'
+import {
+  HomeIcon,
+  KanbanFillIcon,
+  NotificationFillIcon,
+  UploadCloudIcon,
+} from '@/ui/components/ui/icons'
 import { Toaster } from '@/ui/components/ui/sonner'
 import { UploadTasks } from '@/ui/components/upload-tasks'
 import { m } from '@/ui/paraglide/messages.js'
@@ -108,6 +113,18 @@ function RootComponent() {
         >
           <UploadTasks />
         </DualSidebarItem>
+        <DualSidebarItem
+          icon={<KanbanFillIcon />}
+          label={m.kanban()}
+          onItemClick={() => {
+            if (storedTeamId) {
+              navigate({
+                to: '/teams/$teamId/kanban',
+                params: { teamId: storedTeamId },
+              })
+            }
+          }}
+        />
       </DualSidebar>
       <div className="flex flex-col flex-1 md:pl-16 overflow-hidden relative">
         <TopNav />

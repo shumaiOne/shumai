@@ -6,17 +6,17 @@ import { getLocale, experimentalStaticLocale } from '../runtime.js';
 /** @typedef {{}} SavingInputs */
 
 const en_saving = /** @type {(inputs: SavingInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`Saving`)
+	return /** @type {LocalizedString} */ (`Saving...`)
 };
 
 const zh_saving = /** @type {(inputs: SavingInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`保存中`)
+	return /** @type {LocalizedString} */ (`保存中...`)
 };
 
 /**
 * | output |
 * | --- |
-* | "Saving" |
+* | "Saving..." |
 *
 * @param {SavingInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options

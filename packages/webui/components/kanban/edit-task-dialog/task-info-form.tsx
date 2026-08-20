@@ -1,0 +1,680 @@
+import { useEffect, useRef, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { client } from '@/ui/api/client'
+import { m } from '@/ui/paraglide/messages.js'
+import { Button } from '@/ui/components/ui/button'
+import { Input } from '@/ui/components/ui/input'
+import { Textarea } from '@/ui/components/ui/textarea'
+import { Label } from '@/ui/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/ui/components/ui/select'
+import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/ui/avatar'
+import { ScrollArea } from '@/ui/components/ui/scroll-area'
+import { DateTimePicker } from '@/ui/components/datetime-picker'
+import { toast } from 'sonner'
+import {
+  KanbanTaskPriority,
+  KanbanTaskStatus,
+  KanbanTaskType,
+  type KanbanTaskDetail,
+  type KanbanGoalInfo,
+  type AgentInfo,
+} from '@shumai/dtos'
+import { getPriorityBadgeColor, getPriorityLabel, getStatusLabel } from '../kanban-types'
+import { TaskDependencyManager } from './task-dependency-manager'
+import { TaskTargetFolderDialog } from './task-target-folder-dialog'
+import { KanbanRequestChangesDialog } from '../kanban-request-changes-dialog'
+import {
+  Bot,
+  User,
+  Folder,
+  Target,
+  Play,
+  CheckCircle2,
+  ThumbsUp,
+  MessageSquareReply,
+  Unlock,
+  RotateCcw,
+  Ban,
+  Loader2,
+  Check,
+} from 'lucide-react'
+import { cn } from '@/ui/lib/utils'
+
+interface TaskInfoFormProps {
+  teamId: string
+  task: KanbanTaskDetail
+  canEdit?: boolean
+}
+
+export function TaskInfoForm({ teamId, task, canEdit = true }: TaskInfoFormProps) {
+  const queryClient = useQueryClient()
+
+  // Local state for debounced text inputs
+  const [title, setTitle] = useState(task.title)
+  const [description, setDescription] = useState(task.description || '')
+  const [isFolderPickerOpen, setIsFolderPickerOpen] = useState(false)
+  const [isRequestChangesOpen, setIsRequestChangesOpen] = useState(false)
+  const [targetFolderName, setTargetFolderName] = useState<string | null>(null)
+
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Sync with prop changes if task id changed
+  useEffect(() => {
+    setTitle(task.title)
+    setDescription(task.description || '')
+  }, [task.id, task.title, task.description])
+
+  // Queries for selectors
+  const { data: members = [] } = useQuery({
+    queryKey: ['teams', teamId, 'members', 'human'],
+    queryFn: async () => {
+      const res = await client.api.teams[':teamId'].members.$get({
+        param: { teamId },
+        query: { includeAgents: 'false' },
+      })
+      if (!res.ok) return []
+      const data = await res.json()
+      return Array.isArray(data) ? data : []
+    },
+    enabled: !!teamId,
+  })
+
+  const { data: agents = [] } = useQuery({
+    queryKey: ['teams', teamId, 'agents'],
+    queryFn: async () => {
+      const res = await client.api.teams[':teamId'].agents.$get({
+        param: { teamId },
+      })
+      if (!res.ok) return []
+      return ((await res.json()) as AgentInfo[]) || []
+    },
+    enabled: !!teamId,
+  })
+
+  const { data: goalsData } = useQuery({
+    queryKey: ['teams', teamId, 'kanban', 'goals'],
+    queryFn: async () => {
+      const res = await client.api.teams[':teamId'].kanban.goals.$get({
+        param: { teamId },
+        query: {},
+      })
+      if (!res.ok) return { data: [] }
+      return (await res.json()) as { data: KanbanGoalInfo[] }
+    },
+    enabled: !!teamId,
+  })
+
+  const goals = goalsData?.data || []
+
+  // Auto-save update mutation
+  const { mutate: updateTask, isPending: isUpdating } = useMutation({
+    mutationFn: async (patch: {
+      title?: string
+      description?: string | null
+      type?: KanbanTaskType
+      priority?: KanbanTaskPriority
+      startDate?: string | null
+      dueDate?: string | null
+      goalId?: string | null
+      projectId?: string | null
+      reporterId?: string | null
+      assigneeId?: string | null
+      targetFolderId?: string | null
+    }) => {
+      const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].$patch({
+        param: { teamId, taskId: task.id },
+        json: patch,
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: m.error() }))
+        throw new Error((err as { message?: string }).message || m.error())
+      }
+      return await res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'task', task.id] })
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
+    },
+    onError: (err) => {
+      toast.error(err.message)
+    },
+  })
+
+  // Action Mutations
+  const { mutate: startTask, isPending: isStarting } = useMutation({
+    mutationFn: async () => {
+      const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].start.$post({
+        param: { teamId, taskId: task.id },
+      })
+      if (!res.ok) throw new Error('Failed to start task')
+      return await res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'task', task.id] })
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
+      toast.success(m.task_started())
+    },
+    onError: (err) => toast.error(err.message),
+  })
+
+  const { mutate: completeTask, isPending: isCompleting } = useMutation({
+    mutationFn: async () => {
+      const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].complete.$post({
+        param: { teamId, taskId: task.id },
+      })
+      if (!res.ok) throw new Error('Failed to complete task')
+      return await res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'task', task.id] })
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
+      toast.success(m.task_completed())
+    },
+    onError: (err) => toast.error(err.message),
+  })
+
+  const { mutate: approveTask, isPending: isApproving } = useMutation({
+    mutationFn: async () => {
+      const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].approve.$post({
+        param: { teamId, taskId: task.id },
+      })
+      if (!res.ok) throw new Error('Failed to approve task')
+      return await res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'task', task.id] })
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
+      toast.success(m.task_approved())
+    },
+    onError: (err) => toast.error(err.message),
+  })
+
+  const { mutate: unblockTask, isPending: isUnblocking } = useMutation({
+    mutationFn: async () => {
+      const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].unblock.$post({
+        param: { teamId, taskId: task.id },
+      })
+      if (!res.ok) throw new Error('Failed to unblock task')
+      return await res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'task', task.id] })
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
+      toast.success(m.task_unblocked())
+    },
+    onError: (err) => toast.error(err.message),
+  })
+
+  const { mutate: reopenTask, isPending: isReopening } = useMutation({
+    mutationFn: async () => {
+      const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].reopen.$post({
+        param: { teamId, taskId: task.id },
+      })
+      if (!res.ok) throw new Error('Failed to reopen task')
+      return await res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'task', task.id] })
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
+      toast.success(m.task_reopened())
+    },
+    onError: (err) => toast.error(err.message),
+  })
+
+  const { mutate: cancelTask, isPending: isCancelling } = useMutation({
+    mutationFn: async () => {
+      const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].cancel.$post({
+        param: { teamId, taskId: task.id },
+      })
+      if (!res.ok) throw new Error('Failed to cancel task')
+      return await res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'task', task.id] })
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
+      toast.success(m.task_cancelled())
+    },
+    onError: (err) => toast.error(err.message),
+  })
+
+  // Debounced auto-save handler for text fields
+  const handleTextChange = (field: 'title' | 'description', value: string) => {
+    if (field === 'title') setTitle(value)
+    if (field === 'description') setDescription(value)
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      if (field === 'title' && value.trim() && value.trim() !== task.title) {
+        updateTask({ title: value.trim() })
+      } else if (field === 'description' && value !== (task.description || '')) {
+        updateTask({ description: value.trim() || null })
+      }
+    }, 600)
+  }
+
+  const isAgentic = task.type === KanbanTaskType.AGENTIC
+
+  return (
+    <ScrollArea className="h-full p-5">
+      <div className="space-y-6 max-w-3xl pr-3">
+        {/* Status Actions Header Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg bg-muted/40 border border-border/60">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 rounded text-xs font-semibold border uppercase bg-background">
+              {getStatusLabel(task.status)}
+            </span>
+
+            {isUpdating ? (
+              <span className="flex items-center gap-1 text-[11px] text-muted-foreground animate-pulse">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                {m.saving()}
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-[11px] text-muted-foreground/80">
+                <Check className="w-3 h-3 text-emerald-500" />
+                {m.saved()}
+              </span>
+            )}
+          </div>
+
+          {/* Contextual Action Buttons */}
+          <div className="flex flex-wrap items-center gap-2">
+            {task.status === KanbanTaskStatus.READY && !isAgentic && (
+              <Button
+                size="xs"
+                onClick={() => startTask()}
+                disabled={isStarting}
+                className="gap-1 bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                {isStarting ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Play className="w-3 h-3" />
+                )}
+                <span>{m.start_task()}</span>
+              </Button>
+            )}
+
+            {task.status === KanbanTaskStatus.IN_PROGRESS && !isAgentic && (
+              <Button
+                size="xs"
+                onClick={() => completeTask()}
+                disabled={isCompleting}
+                className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                {isCompleting ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="w-3 h-3" />
+                )}
+                <span>{m.complete_task()}</span>
+              </Button>
+            )}
+
+            {task.status === KanbanTaskStatus.IN_REVIEW && (
+              <>
+                <Button
+                  size="xs"
+                  onClick={() => approveTask()}
+                  disabled={isApproving}
+                  className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                  {isApproving ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <ThumbsUp className="w-3 h-3" />
+                  )}
+                  <span>{m.approve_task()}</span>
+                </Button>
+                <Button
+                  size="xs"
+                  variant="outline"
+                  onClick={() => setIsRequestChangesOpen(true)}
+                  className="gap-1 text-purple-600 dark:text-purple-400 border-purple-500/30 hover:bg-purple-500/10"
+                >
+                  <MessageSquareReply className="w-3 h-3" />
+                  <span>{m.request_changes()}</span>
+                </Button>
+              </>
+            )}
+
+            {task.status === KanbanTaskStatus.BLOCKED && (
+              <Button
+                size="xs"
+                onClick={() => unblockTask()}
+                disabled={isUnblocking}
+                className="gap-1 bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {isUnblocking ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Unlock className="w-3 h-3" />
+                )}
+                <span>{m.unblock_task()}</span>
+              </Button>
+            )}
+
+            {task.status === KanbanTaskStatus.DONE && (
+              <Button
+                size="xs"
+                variant="outline"
+                onClick={() => reopenTask()}
+                disabled={isReopening}
+                className="gap-1"
+              >
+                {isReopening ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <RotateCcw className="w-3 h-3" />
+                )}
+                <span>{m.reopen_task()}</span>
+              </Button>
+            )}
+
+            {task.status !== KanbanTaskStatus.CANCELLED && (
+              <Button
+                size="xs"
+                variant="ghost"
+                onClick={() => cancelTask()}
+                disabled={isCancelling}
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive gap-1"
+              >
+                <Ban className="w-3 h-3" />
+                <span>{m.cancel_task()}</span>
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Title Input */}
+        <div className="space-y-1.5">
+          <Label
+            htmlFor="task-title"
+            className="text-xs font-semibold text-muted-foreground uppercase tracking-wider"
+          >
+            {m.task_title()}
+          </Label>
+          <Input
+            id="task-title"
+            value={title}
+            onChange={(e) => handleTextChange('title', e.target.value)}
+            disabled={!canEdit}
+            className="text-base font-semibold h-10 bg-background"
+            placeholder={m.task_title_placeholder()}
+          />
+        </div>
+
+        {/* Description Textarea */}
+        <div className="space-y-1.5">
+          <Label
+            htmlFor="task-description"
+            className="text-xs font-semibold text-muted-foreground uppercase tracking-wider"
+          >
+            {m.task_description()}
+          </Label>
+          <Textarea
+            id="task-description"
+            value={description}
+            onChange={(e) => handleTextChange('description', e.target.value)}
+            disabled={!canEdit}
+            rows={5}
+            className="text-xs leading-relaxed bg-background"
+            placeholder={m.task_description_placeholder()}
+          />
+        </div>
+
+        {/* Properties Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-lg bg-muted/20 border border-border/60">
+          {/* Type Selector */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">{m.task_type()}</Label>
+            <Select
+              value={task.type}
+              onValueChange={(val) => updateTask({ type: val as KanbanTaskType })}
+              disabled={!canEdit}
+            >
+              <SelectTrigger className="h-8 text-xs bg-background">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={KanbanTaskType.MANUAL}>
+                  <div className="flex items-center gap-2">
+                    <User className="w-3.5 h-3.5" />
+                    <span>{m.task_type_manual()}</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value={KanbanTaskType.AGENTIC}>
+                  <div className="flex items-center gap-2">
+                    <Bot className="w-3.5 h-3.5 text-purple-500" />
+                    <span>{m.task_type_agentic()}</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Priority Selector */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">{m.task_priority()}</Label>
+            <Select
+              value={task.priority}
+              onValueChange={(val) => updateTask({ priority: val as KanbanTaskPriority })}
+              disabled={!canEdit}
+            >
+              <SelectTrigger className="h-8 text-xs bg-background">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.values(KanbanTaskPriority).map((p) => (
+                  <SelectItem key={p} value={p}>
+                    <span
+                      className={cn(
+                        'px-1.5 py-0.5 rounded text-[10px] uppercase font-medium',
+                        getPriorityBadgeColor(p),
+                      )}
+                    >
+                      {getPriorityLabel(p)}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Assignee Selector (Contextual: Users for Manual, Agents for Agentic) */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">
+              {isAgentic ? m.select_agent() : m.assignee()}
+            </Label>
+            <Select
+              value={task.assignee?.id || 'none'}
+              onValueChange={(val) => updateTask({ assigneeId: val === 'none' ? null : val })}
+              disabled={!canEdit}
+            >
+              <SelectTrigger className="h-8 text-xs bg-background">
+                <SelectValue placeholder={m.unassigned()} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">
+                  <span className="text-muted-foreground italic">{m.unassigned()}</span>
+                </SelectItem>
+                {isAgentic
+                  ? agents.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        <div className="flex items-center gap-2">
+                          <Bot className="w-3.5 h-3.5 text-purple-500" />
+                          <span>{a.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))
+                  : members.map((mItem) => (
+                      <SelectItem key={mItem.id} value={mItem.id}>
+                        <div className="flex items-center gap-2">
+                          <Avatar size="sm" className="w-4 h-4">
+                            <AvatarImage src={mItem.image} />
+                            <AvatarFallback className="text-[8px]">
+                              {mItem.name.slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span>{mItem.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Reporter Selector */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">{m.reporter()}</Label>
+            <Select
+              value={task.reporter?.id || 'none'}
+              onValueChange={(val) => updateTask({ reporterId: val === 'none' ? null : val })}
+              disabled={!canEdit}
+            >
+              <SelectTrigger className="h-8 text-xs bg-background">
+                <SelectValue placeholder={m.unassigned()} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">
+                  <span className="text-muted-foreground italic">{m.unassigned()}</span>
+                </SelectItem>
+                {members.map((mItem) => (
+                  <SelectItem key={mItem.id} value={mItem.id}>
+                    <div className="flex items-center gap-2">
+                      <Avatar size="sm" className="w-4 h-4">
+                        <AvatarImage src={mItem.image} />
+                        <AvatarFallback className="text-[8px]">
+                          {mItem.name.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span>{mItem.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Goal Selector */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">{m.goals()}</Label>
+            <Select
+              value={task.goal?.id || 'none'}
+              onValueChange={(val) => updateTask({ goalId: val === 'none' ? null : val })}
+              disabled={!canEdit}
+            >
+              <SelectTrigger className="h-8 text-xs bg-background">
+                <SelectValue placeholder={m.no_folder_selected()} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">
+                  <span className="text-muted-foreground italic">None</span>
+                </SelectItem>
+                {goals.map((g) => (
+                  <SelectItem key={g.id} value={g.id}>
+                    <div className="flex items-center gap-2">
+                      <Target className="w-3.5 h-3.5 text-primary" />
+                      <span>{g.title}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Target Folder Selector */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">{m.target_folder()}</Label>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsFolderPickerOpen(true)}
+                disabled={!canEdit}
+                className="w-full justify-start h-8 text-xs bg-background truncate font-normal"
+              >
+                <Folder className="w-3.5 h-3.5 mr-2 text-primary shrink-0" />
+                <span className="truncate">
+                  {targetFolderName ||
+                    (task.targetFolderId ? 'Selected Folder' : m.select_target_folder())}
+                </span>
+              </Button>
+            </div>
+          </div>
+
+          {/* Start Date */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">{m.start_date()}</Label>
+            <DateTimePicker
+              value={task.startDate ? new Date(task.startDate) : undefined}
+              onChange={(date) => updateTask({ startDate: date ? date.toISOString() : null })}
+              disabled={!canEdit}
+              placeholder={m.start_date()}
+              className="h-8 text-xs bg-background"
+            />
+          </div>
+
+          {/* Due Date */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">{m.due_date()}</Label>
+            <DateTimePicker
+              value={task.dueDate ? new Date(task.dueDate) : undefined}
+              onChange={(date) => updateTask({ dueDate: date ? date.toISOString() : null })}
+              disabled={!canEdit}
+              placeholder={m.due_date()}
+              className="h-8 text-xs bg-background"
+            />
+          </div>
+        </div>
+
+        {/* DAG Dependencies Section */}
+        <div className="pt-2 border-t border-border/60">
+          <TaskDependencyManager
+            teamId={teamId}
+            taskId={task.id}
+            dependencies={task.dependencies}
+            dependents={task.dependents}
+            canEdit={canEdit}
+          />
+        </div>
+      </div>
+
+      {/* Target Folder Dialog */}
+      {isFolderPickerOpen && (
+        <TaskTargetFolderDialog
+          teamId={teamId}
+          currentProjectId={task.projectId}
+          currentTargetFolderId={task.targetFolderId}
+          isOpen={isFolderPickerOpen}
+          onClose={() => setIsFolderPickerOpen(false)}
+          onSelect={(projId, foldId, foldName) => {
+            setTargetFolderName(foldName || 'Selected Folder')
+            updateTask({ projectId: projId, targetFolderId: foldId })
+          }}
+        />
+      )}
+
+      {/* Request Changes Dialog */}
+      {isRequestChangesOpen && (
+        <KanbanRequestChangesDialog
+          teamId={teamId}
+          taskId={task.id}
+          taskTitle={task.title}
+          isOpen={isRequestChangesOpen}
+          onClose={() => setIsRequestChangesOpen(false)}
+        />
+      )}
+    </ScrollArea>
+  )
+}
