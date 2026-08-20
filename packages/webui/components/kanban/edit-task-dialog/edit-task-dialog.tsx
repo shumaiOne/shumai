@@ -4,6 +4,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/component
 import { m } from '@/ui/paraglide/messages.js'
 import { Loader2, Bot, User } from 'lucide-react'
 import type { KanbanTaskDetail } from '@shumai/dtos'
+import { cn } from '@/ui/lib/utils'
+import { getStatusBadgeColor, getStatusLabel } from '../kanban-types'
 import { TaskInfoForm } from './task-info-form'
 import { TaskActivityPane } from './task-activity-pane'
 
@@ -53,6 +55,17 @@ export function EditTaskDialog({
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-muted text-muted-foreground border border-border shrink-0">
                 <User className="w-3.5 h-3.5" />
                 <span>{m.task_type_manual()}</span>
+              </span>
+            )}
+
+            {task?.status && (
+              <span
+                className={cn(
+                  'px-2 py-0.5 rounded text-[11px] font-medium border uppercase shrink-0',
+                  getStatusBadgeColor(task.status),
+                )}
+              >
+                {getStatusLabel(task.status)}
               </span>
             )}
 

@@ -19,31 +19,16 @@ import { DateTimePicker } from '@/ui/components/datetime-picker'
 import { toast } from 'sonner'
 import {
   KanbanTaskPriority,
-  KanbanTaskStatus,
   KanbanTaskType,
   type KanbanTaskDetail,
   type KanbanGoalInfo,
   type AgentInfo,
+  type UpdateKanbanTaskRequest,
 } from '@shumai/dtos'
-import { getPriorityBadgeColor, getPriorityLabel, getStatusLabel } from '../kanban-types'
+import { getPriorityBadgeColor, getPriorityLabel } from '../kanban-types'
 import { TaskDependencyManager } from './task-dependency-manager'
 import { TaskTargetFolderDialog } from './task-target-folder-dialog'
-import { KanbanRequestChangesDialog } from '../kanban-request-changes-dialog'
-import {
-  Bot,
-  User,
-  Folder,
-  Target,
-  Play,
-  CheckCircle2,
-  ThumbsUp,
-  MessageSquareReply,
-  Unlock,
-  RotateCcw,
-  Ban,
-  Loader2,
-  Check,
-} from 'lucide-react'
+import { Bot, User, Folder, Target, Loader2 } from 'lucide-react'
 import { cn } from '@/ui/lib/utils'
 
 interface TaskInfoFormProps {
@@ -59,7 +44,6 @@ export function TaskInfoForm({ teamId, task, canEdit = true }: TaskInfoFormProps
   const [title, setTitle] = useState(task.title)
   const [description, setDescription] = useState(task.description || '')
   const [isFolderPickerOpen, setIsFolderPickerOpen] = useState(false)
-  const [isRequestChangesOpen, setIsRequestChangesOpen] = useState(false)
   const [targetFolderName, setTargetFolderName] = useState<string | null>(null)
 
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -114,21 +98,7 @@ export function TaskInfoForm({ teamId, task, canEdit = true }: TaskInfoFormProps
 
   // Auto-save update mutation
   const { mutate: updateTask, isPending: isUpdating } = useMutation({
-    mutationFn: async (patch: {
-      title?: string
-      description?: string | null
-      type?: KanbanTaskType
-      status?: KanbanTaskStatus
-      reason?: string
-      priority?: KanbanTaskPriority
-      startDate?: string | null
-      dueDate?: string | null
-      goalId?: string | null
-      projectId?: string | null
-      reporterId?: string | null
-      assigneeId?: string | null
-      targetFolderId?: string | null
-    }) => {
+    mutationFn: async (patch: UpdateKanbanTaskRequest) => {
       const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].$patch({
         param: { teamId, taskId: task.id },
         json: patch,
@@ -146,55 +116,6 @@ export function TaskInfoForm({ teamId, task, canEdit = true }: TaskInfoFormProps
     onError: (err) => {
       toast.error(err.message)
     },
-  })
-
-  // Action Mutations
-  const { mutate: startTask, isPending: isStarting } = useMutation({
-    mutationFn: async () => {
-      await updateTask({ status: KanbanTaskStatus.IN_PROGRESS })
-    },
-    onSuccess: () => toast.success(m.task_started()),
-    onError: (err) => toast.error(err.message),
-  })
-
-  const { mutate: completeTask, isPending: isCompleting } = useMutation({
-    mutationFn: async () => {
-      await updateTask({ status: KanbanTaskStatus.DONE })
-    },
-    onSuccess: () => toast.success(m.task_completed()),
-    onError: (err) => toast.error(err.message),
-  })
-
-  const { mutate: approveTask, isPending: isApproving } = useMutation({
-    mutationFn: async () => {
-      await updateTask({ status: KanbanTaskStatus.DONE })
-    },
-    onSuccess: () => toast.success(m.task_approved()),
-    onError: (err) => toast.error(err.message),
-  })
-
-  const { mutate: unblockTask, isPending: isUnblocking } = useMutation({
-    mutationFn: async () => {
-      await updateTask({ status: KanbanTaskStatus.READY })
-    },
-    onSuccess: () => toast.success(m.task_unblocked()),
-    onError: (err) => toast.error(err.message),
-  })
-
-  const { mutate: reopenTask, isPending: isReopening } = useMutation({
-    mutationFn: async () => {
-      await updateTask({ status: KanbanTaskStatus.READY })
-    },
-    onSuccess: () => toast.success(m.task_reopened()),
-    onError: (err) => toast.error(err.message),
-  })
-
-  const { mutate: cancelTask, isPending: isCancelling } = useMutation({
-    mutationFn: async () => {
-      await updateTask({ status: KanbanTaskStatus.CANCELLED })
-    },
-    onSuccess: () => toast.success(m.task_cancelled()),
-    onError: (err) => toast.error(err.message),
   })
 
   // Debounced auto-save handler for text fields
@@ -220,143 +141,22 @@ export function TaskInfoForm({ teamId, task, canEdit = true }: TaskInfoFormProps
   return (
     <ScrollArea className="h-full p-5">
       <div className="space-y-6 w-full pr-3">
-        {/* Status Actions Header Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg bg-muted/40 border border-border/60">
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded text-xs font-semibold border uppercase bg-background">
-              {getStatusLabel(task.status)}
-            </span>
-
-            {isUpdating ? (
+        {/* Title Input */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <Label
+              htmlFor="task-title"
+              className="text-xs font-semibold text-muted-foreground uppercase tracking-wider"
+            >
+              {m.task_title()}
+            </Label>
+            {isUpdating && (
               <span className="flex items-center gap-1 text-[11px] text-muted-foreground animate-pulse">
                 <Loader2 className="w-3 h-3 animate-spin" />
                 {m.saving()}
               </span>
-            ) : (
-              <span className="flex items-center gap-1 text-[11px] text-muted-foreground/80">
-                <Check className="w-3 h-3 text-emerald-500" />
-                {m.saved()}
-              </span>
             )}
           </div>
-
-          {/* Contextual Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2">
-            {task.status === KanbanTaskStatus.READY && !isAgentic && (
-              <Button
-                size="xs"
-                onClick={() => startTask()}
-                disabled={isStarting}
-                className="gap-1 bg-amber-600 hover:bg-amber-700 text-white"
-              >
-                {isStarting ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Play className="w-3 h-3" />
-                )}
-                <span>{m.start_task()}</span>
-              </Button>
-            )}
-
-            {task.status === KanbanTaskStatus.IN_PROGRESS && !isAgentic && (
-              <Button
-                size="xs"
-                onClick={() => completeTask()}
-                disabled={isCompleting}
-                className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
-              >
-                {isCompleting ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <CheckCircle2 className="w-3 h-3" />
-                )}
-                <span>{m.complete_task()}</span>
-              </Button>
-            )}
-
-            {task.status === KanbanTaskStatus.IN_REVIEW && (
-              <>
-                <Button
-                  size="xs"
-                  onClick={() => approveTask()}
-                  disabled={isApproving}
-                  className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
-                >
-                  {isApproving ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <ThumbsUp className="w-3 h-3" />
-                  )}
-                  <span>{m.approve_task()}</span>
-                </Button>
-                <Button
-                  size="xs"
-                  variant="outline"
-                  onClick={() => setIsRequestChangesOpen(true)}
-                  className="gap-1 text-purple-600 dark:text-purple-400 border-purple-500/30 hover:bg-purple-500/10"
-                >
-                  <MessageSquareReply className="w-3 h-3" />
-                  <span>{m.request_changes()}</span>
-                </Button>
-              </>
-            )}
-
-            {task.status === KanbanTaskStatus.BLOCKED && (
-              <Button
-                size="xs"
-                onClick={() => unblockTask()}
-                disabled={isUnblocking}
-                className="gap-1 bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                {isUnblocking ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Unlock className="w-3 h-3" />
-                )}
-                <span>{m.unblock_task()}</span>
-              </Button>
-            )}
-
-            {task.status === KanbanTaskStatus.DONE && (
-              <Button
-                size="xs"
-                variant="outline"
-                onClick={() => reopenTask()}
-                disabled={isReopening}
-                className="gap-1"
-              >
-                {isReopening ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <RotateCcw className="w-3 h-3" />
-                )}
-                <span>{m.reopen_task()}</span>
-              </Button>
-            )}
-
-            {task.status !== KanbanTaskStatus.CANCELLED && (
-              <Button
-                size="xs"
-                variant="ghost"
-                onClick={() => cancelTask()}
-                disabled={isCancelling}
-                className="text-destructive hover:bg-destructive/10 hover:text-destructive gap-1"
-              >
-                <Ban className="w-3 h-3" />
-                <span>{m.cancel_task()}</span>
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Title Input */}
-        <div className="space-y-1.5">
-          <Label
-            htmlFor="task-title"
-            className="text-xs font-semibold text-muted-foreground uppercase tracking-wider"
-          >
-            {m.task_title()}
-          </Label>
           <Input
             id="task-title"
             value={title}
@@ -616,17 +416,6 @@ export function TaskInfoForm({ teamId, task, canEdit = true }: TaskInfoFormProps
             setTargetFolderName(foldName || 'Selected Folder')
             updateTask({ projectId: projId, targetFolderId: foldId })
           }}
-        />
-      )}
-
-      {/* Request Changes Dialog */}
-      {isRequestChangesOpen && (
-        <KanbanRequestChangesDialog
-          teamId={teamId}
-          taskId={task.id}
-          taskTitle={task.title}
-          isOpen={isRequestChangesOpen}
-          onClose={() => setIsRequestChangesOpen(false)}
         />
       )}
     </ScrollArea>
