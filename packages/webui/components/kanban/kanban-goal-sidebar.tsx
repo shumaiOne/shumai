@@ -98,17 +98,19 @@ export function KanbanGoalSidebar({
 
   if (isCollapsed) {
     return (
-      <div className="border-r border-sidebar-border bg-sidebar flex flex-col items-center py-3 w-12 shrink-0 transition-all duration-300">
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => setIsCollapsed(false)}
-          title={m.goals()}
-          className="text-sidebar-foreground/70 hover:text-sidebar-foreground"
-        >
-          <ChevronRight className="w-4 h-4" />
-        </Button>
-        <div className="mt-4 flex flex-col items-center gap-2">
+      <div className="border-r border-sidebar-border bg-sidebar flex flex-col items-center w-12 shrink-0 transition-all duration-300">
+        <div className="h-14 flex items-center justify-center border-b border-sidebar-border w-full shrink-0">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setIsCollapsed(false)}
+            title={m.goals()}
+            className="text-sidebar-foreground/70 hover:text-sidebar-foreground"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+        <div className="mt-3 flex flex-col items-center gap-2">
           <Button
             variant={selectedGoalId === null ? 'secondary' : 'ghost'}
             size="icon-sm"
@@ -146,7 +148,7 @@ export function KanbanGoalSidebar({
   return (
     <aside className="w-64 border-r border-sidebar-border bg-sidebar flex flex-col shrink-0 transition-all duration-300 select-none">
       {/* Sidebar Header */}
-      <div className="h-12 px-3 flex items-center justify-between border-b border-sidebar-border shrink-0">
+      <div className="h-14 px-3 flex items-center justify-between border-b border-sidebar-border shrink-0">
         <div className="flex items-center gap-2 font-semibold text-xs tracking-wider uppercase text-sidebar-foreground/70">
           <Target className="w-4 h-4 text-sidebar-primary" />
           <span>{m.goals()}</span>

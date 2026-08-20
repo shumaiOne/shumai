@@ -75,31 +75,29 @@ export function KanbanPage({ teamId }: KanbanPageProps) {
   }
 
   return (
-    <div className="flex flex-col h-full bg-background overflow-hidden font-sans">
-      {/* Top Header Bar */}
-      <KanbanHeader
-        scope={scope}
-        onScopeChange={setScope}
-        search={search}
-        onSearchChange={setSearch}
-        selectedGoal={selectedGoal}
-        onClearGoal={() => setSelectedGoalId(null)}
-        showCancelled={showCancelled}
-        onToggleShowCancelled={() => setShowCancelled((prev) => !prev)}
-        onCreateTask={() => handleOpenCreateTask(KanbanTaskStatus.TODO)}
+    <div className="flex flex-row h-full bg-background overflow-hidden font-sans">
+      {/* Left Sidebar: Goals (Full Height) */}
+      <KanbanGoalSidebar
+        teamId={teamId}
+        selectedGoalId={selectedGoalId}
+        onSelectGoal={setSelectedGoalId}
+        isOwnerOrEditor={isOwnerOrEditor}
       />
 
-      {/* Main 2-Part Content Area: Goals Sidebar + Kanban Board */}
-      <div className="flex-1 flex flex-row overflow-hidden">
-        {/* Left Sidebar: Goals */}
-        <KanbanGoalSidebar
-          teamId={teamId}
-          selectedGoalId={selectedGoalId}
-          onSelectGoal={setSelectedGoalId}
-          isOwnerOrEditor={isOwnerOrEditor}
+      {/* Right Column: Top Header Bar + Kanban Board */}
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        <KanbanHeader
+          scope={scope}
+          onScopeChange={setScope}
+          search={search}
+          onSearchChange={setSearch}
+          selectedGoal={selectedGoal}
+          onClearGoal={() => setSelectedGoalId(null)}
+          showCancelled={showCancelled}
+          onToggleShowCancelled={() => setShowCancelled((prev) => !prev)}
+          onCreateTask={() => handleOpenCreateTask(KanbanTaskStatus.TODO)}
         />
 
-        {/* Main Area: Kanban Board */}
         <KanbanBoard
           teamId={teamId}
           selectedGoalId={selectedGoalId}

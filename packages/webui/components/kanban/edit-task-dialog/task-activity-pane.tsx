@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/components/ui/tabs'
 import { m } from '@/ui/paraglide/messages.js'
-import { MessageSquare, Activity } from 'lucide-react'
 import { TaskCommentThread } from './task-comment-thread'
 import { TaskEventTimeline } from './task-event-timeline'
 import type { KanbanTaskDetail } from '@shumai/dtos'
@@ -23,18 +22,16 @@ export function TaskActivityPane({ teamId, task }: TaskActivityPaneProps) {
       >
         <div className="px-3 pt-2.5 pb-1 border-b border-border/60 bg-card/50 shrink-0">
           <TabsList className="w-full grid grid-cols-2 h-8 bg-muted/60">
-            <TabsTrigger value="comments" className="text-xs gap-1.5 h-7">
-              <MessageSquare className="w-3.5 h-3.5" />
+            <TabsTrigger value="comments" className="text-xs h-7">
               <span>{m.comments()}</span>
               {task.comments.length > 0 && (
-                <span className="text-[10px] font-mono text-muted-foreground ml-0.5">
+                <span className="text-[10px] font-mono text-muted-foreground ml-1">
                   ({task.comments.length})
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="activity" className="text-xs gap-1.5 h-7">
-              <Activity className="w-3.5 h-3.5" />
-              <span>{m.activity_and_runs()}</span>
+            <TabsTrigger value="activity" className="text-xs h-7">
+              <span>{m.activity()}</span>
             </TabsTrigger>
           </TabsList>
         </div>

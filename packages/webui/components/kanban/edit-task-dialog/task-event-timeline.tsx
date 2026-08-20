@@ -5,7 +5,7 @@ import { ScrollArea } from '@/ui/components/ui/scroll-area'
 import { KanbanTaskEventType, type KanbanEventInfo, type KanbanRunSummary } from '@shumai/dtos'
 import { getRunStatusBadgeColor, getStatusLabel } from '../kanban-types'
 import { format } from 'date-fns'
-import { Activity, Bot, Loader2 } from 'lucide-react'
+import { Bot, Loader2 } from 'lucide-react'
 import { cn } from '@/ui/lib/utils'
 
 interface TaskEventTimelineProps {
@@ -123,11 +123,6 @@ export function TaskEventTimeline({
 
         {/* Audit Event Stream */}
         <div className="space-y-2">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground/80">
-            <Activity className="w-3.5 h-3.5 text-primary" />
-            <span>Audit History</span>
-          </div>
-
           {isLoading ? (
             <div className="flex items-center justify-center py-6">
               <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />

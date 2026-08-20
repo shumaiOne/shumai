@@ -9,6 +9,7 @@ import {
 import { HTTPException } from 'hono/http-exception'
 import { paginateQuery } from '../pagination'
 import { kanbanDispatcher } from './kanban-dispatcher'
+import { getAvatarUrl } from '../user/avatar'
 import type {
   CreateKanbanGoalRequest,
   UpdateKanbanGoalRequest,
@@ -258,16 +259,17 @@ export class KanbanService {
       kanbanDispatcher.nudge(task.id)
     }
 
-    return this.toTaskInfo(task, {
+    const creatorImage = await getAvatarUrl(task.creator.image)
+    return await this.toTaskInfo(task, {
       latestStatusEvent: {
         id: 'init',
         type: KanbanTaskEventType.CREATED,
         actor: {
           id: task.creator.id,
           name: task.creator.name,
-          image: task.creator.image ?? undefined,
+          image: creatorImage,
         },
-        createdAt: task.createdAt,
+        createdAt: task.createdAt.toISOString(),
       },
       dependencyCount: parentIds.length,
       dependentCount: 0,
@@ -311,7 +313,7 @@ export class KanbanService {
     // Resolve latest event matching current status
     const latestStatusEvent = await this.resolveLatestStatusEvent(taskId, task.status)
 
-    const baseInfo = this.toTaskInfo(task, {
+    const baseInfo = await this.toTaskInfo(task, {
       latestStatusEvent,
       dependencyCount: task.dependencies.length,
       dependentCount: task.dependents.length,
@@ -343,34 +345,38 @@ export class KanbanService {
         startedAt: r.startedAt.toISOString(),
         endedAt: r.endedAt?.toISOString() ?? null,
       })),
-      comments: task.comments.map((c) => ({
-        id: c.id,
-        taskId: c.taskId,
-        author: {
-          id: c.author.id,
-          name: c.author.name,
-          image: c.author.image ?? undefined,
-        },
-        body: c.body,
-        createdAt: c.createdAt.toISOString(),
-        updatedAt: c.updatedAt.toISOString(),
-      })),
-      events: task.events.map((e) => ({
-        id: e.id,
-        taskId: e.taskId,
-        actor: e.actor
-          ? {
-              id: e.actor.id,
-              name: e.actor.name,
-              image: e.actor.image ?? undefined,
-            }
-          : null,
-        type: e.type,
-        fromStatus: e.fromStatus,
-        toStatus: e.toStatus,
-        data: (e.data as Record<string, unknown>) ?? null,
-        createdAt: e.createdAt.toISOString(),
-      })),
+      comments: await Promise.all(
+        task.comments.map(async (c) => ({
+          id: c.id,
+          taskId: c.taskId,
+          author: {
+            id: c.author.id,
+            name: c.author.name,
+            image: await getAvatarUrl(c.author.image),
+          },
+          body: c.body,
+          createdAt: c.createdAt.toISOString(),
+          updatedAt: c.updatedAt.toISOString(),
+        })),
+      ),
+      events: await Promise.all(
+        task.events.map(async (e) => ({
+          id: e.id,
+          taskId: e.taskId,
+          actor: e.actor
+            ? {
+                id: e.actor.id,
+                name: e.actor.name,
+                image: await getAvatarUrl(e.actor.image),
+              }
+            : null,
+          type: e.type,
+          fromStatus: e.fromStatus,
+          toStatus: e.toStatus,
+          data: (e.data as Record<string, unknown>) ?? null,
+          createdAt: e.createdAt.toISOString(),
+        })),
+      ),
     }
   }
 
@@ -461,7 +467,7 @@ export class KanbanService {
     const latestStatusEvent = await this.resolveLatestStatusEvent(taskId, updated.status)
     const counts = await this.getTaskCounts(taskId)
 
-    return this.toTaskInfo(updated, {
+    return await this.toTaskInfo(updated, {
       latestStatusEvent,
       ...counts,
     })
@@ -508,7 +514,7 @@ export class KanbanService {
         return await Promise.all(
           tasks.map(async (t) => {
             const latestStatusEvent = await this.resolveLatestStatusEvent(t.id, t.status)
-            return this.toTaskInfo(t, {
+            return await this.toTaskInfo(t, {
               latestStatusEvent,
               commentCount: t._count.comments,
               dependencyCount: t._count.dependencies,
@@ -568,7 +574,7 @@ export class KanbanService {
 
     const latestStatusEvent = await this.resolveLatestStatusEvent(taskId, updated.status)
     const counts = await this.getTaskCounts(taskId)
-    return this.toTaskInfo(updated, { latestStatusEvent, ...counts })
+    return await this.toTaskInfo(updated, { latestStatusEvent, ...counts })
   }
 
   async completeManualTask(taskId: string, actorId: string): Promise<KanbanTaskInfo> {
@@ -616,7 +622,7 @@ export class KanbanService {
 
     const latestStatusEvent = await this.resolveLatestStatusEvent(taskId, updated.status)
     const counts = await this.getTaskCounts(taskId)
-    return this.toTaskInfo(updated, { latestStatusEvent, ...counts })
+    return await this.toTaskInfo(updated, { latestStatusEvent, ...counts })
   }
 
   async approveTask(
@@ -680,7 +686,7 @@ export class KanbanService {
 
     const latestStatusEvent = await this.resolveLatestStatusEvent(taskId, updated.status)
     const counts = await this.getTaskCounts(taskId)
-    return this.toTaskInfo(updated, { latestStatusEvent, ...counts })
+    return await this.toTaskInfo(updated, { latestStatusEvent, ...counts })
   }
 
   async requestChanges(
@@ -757,7 +763,7 @@ export class KanbanService {
 
     const latestStatusEvent = await this.resolveLatestStatusEvent(taskId, updated.status)
     const counts = await this.getTaskCounts(taskId)
-    return this.toTaskInfo(updated, { latestStatusEvent, ...counts })
+    return await this.toTaskInfo(updated, { latestStatusEvent, ...counts })
   }
 
   async unblockTask(taskId: string, actorId: string): Promise<KanbanTaskInfo> {
@@ -811,7 +817,7 @@ export class KanbanService {
 
     const latestStatusEvent = await this.resolveLatestStatusEvent(taskId, updated.status)
     const counts = await this.getTaskCounts(taskId)
-    return this.toTaskInfo(updated, { latestStatusEvent, ...counts })
+    return await this.toTaskInfo(updated, { latestStatusEvent, ...counts })
   }
 
   async reclaimTask(taskId: string, actorId?: string): Promise<KanbanTaskInfo> {
@@ -871,7 +877,7 @@ export class KanbanService {
 
     const latestStatusEvent = await this.resolveLatestStatusEvent(taskId, updated.status)
     const counts = await this.getTaskCounts(taskId)
-    return this.toTaskInfo(updated, { latestStatusEvent, ...counts })
+    return await this.toTaskInfo(updated, { latestStatusEvent, ...counts })
   }
 
   async reopenTask(taskId: string, actorId: string): Promise<KanbanTaskInfo> {
@@ -927,7 +933,7 @@ export class KanbanService {
 
     const latestStatusEvent = await this.resolveLatestStatusEvent(taskId, updated.status)
     const counts = await this.getTaskCounts(taskId)
-    return this.toTaskInfo(updated, { latestStatusEvent, ...counts })
+    return await this.toTaskInfo(updated, { latestStatusEvent, ...counts })
   }
 
   async cancelTask(taskId: string, actorId: string): Promise<KanbanTaskInfo> {
@@ -939,7 +945,7 @@ export class KanbanService {
     if (task.status === KanbanTaskStatus.CANCELLED) {
       const latestStatusEvent = await this.resolveLatestStatusEvent(taskId, task.status)
       const counts = await this.getTaskCounts(taskId)
-      return this.toTaskInfo(task, { latestStatusEvent, ...counts })
+      return await this.toTaskInfo(task, { latestStatusEvent, ...counts })
     }
 
     const updated = await prisma.$transaction(async (tx) => {
@@ -977,7 +983,7 @@ export class KanbanService {
 
     const latestStatusEvent = await this.resolveLatestStatusEvent(taskId, updated.status)
     const counts = await this.getTaskCounts(taskId)
-    return this.toTaskInfo(updated, { latestStatusEvent, ...counts })
+    return await this.toTaskInfo(updated, { latestStatusEvent, ...counts })
   }
 
   // --------------------------------------------------------------------------
@@ -1360,7 +1366,7 @@ export class KanbanService {
       author: {
         id: comment.author.id,
         name: comment.author.name,
-        image: comment.author.image ?? undefined,
+        image: await getAvatarUrl(comment.author.image),
       },
       body: comment.body,
       createdAt: comment.createdAt.toISOString(),
@@ -1375,18 +1381,20 @@ export class KanbanService {
       orderBy: { createdAt: 'asc' },
     })
 
-    return comments.map((c) => ({
-      id: c.id,
-      taskId: c.taskId,
-      author: {
-        id: c.author.id,
-        name: c.author.name,
-        image: c.author.image ?? undefined,
-      },
-      body: c.body,
-      createdAt: c.createdAt.toISOString(),
-      updatedAt: c.updatedAt.toISOString(),
-    }))
+    return await Promise.all(
+      comments.map(async (c) => ({
+        id: c.id,
+        taskId: c.taskId,
+        author: {
+          id: c.author.id,
+          name: c.author.name,
+          image: await getAvatarUrl(c.author.image),
+        },
+        body: c.body,
+        createdAt: c.createdAt.toISOString(),
+        updatedAt: c.updatedAt.toISOString(),
+      })),
+    )
   }
 
   async listEvents(taskId: string): Promise<KanbanEventInfo[]> {
@@ -1396,22 +1404,24 @@ export class KanbanService {
       orderBy: { createdAt: 'desc' },
     })
 
-    return events.map((e) => ({
-      id: e.id,
-      taskId: e.taskId,
-      actor: e.actor
-        ? {
-            id: e.actor.id,
-            name: e.actor.name,
-            image: e.actor.image ?? undefined,
-          }
-        : null,
-      type: e.type,
-      fromStatus: e.fromStatus,
-      toStatus: e.toStatus,
-      data: (e.data as Record<string, unknown>) ?? null,
-      createdAt: e.createdAt.toISOString(),
-    }))
+    return await Promise.all(
+      events.map(async (e) => ({
+        id: e.id,
+        taskId: e.taskId,
+        actor: e.actor
+          ? {
+              id: e.actor.id,
+              name: e.actor.name,
+              image: await getAvatarUrl(e.actor.image),
+            }
+          : null,
+        type: e.type,
+        fromStatus: e.fromStatus,
+        toStatus: e.toStatus,
+        data: (e.data as Record<string, unknown>) ?? null,
+        createdAt: e.createdAt.toISOString(),
+      })),
+    )
   }
 
   // --------------------------------------------------------------------------
@@ -1438,7 +1448,7 @@ export class KanbanService {
         ? {
             id: event.actor.id,
             name: event.actor.name,
-            image: event.actor.image ?? undefined,
+            image: await getAvatarUrl(event.actor.image),
           }
         : null,
       summary: typeof payload.summary === 'string' ? payload.summary : undefined,
@@ -1462,7 +1472,7 @@ export class KanbanService {
     return { commentCount, dependencyCount, dependentCount }
   }
 
-  private toTaskInfo(
+  private async toTaskInfo(
     task: Prisma.KanbanTaskGetPayload<{
       include: {
         creator: true
@@ -1478,7 +1488,13 @@ export class KanbanService {
       dependencyCount?: number
       dependentCount?: number
     },
-  ): KanbanTaskInfo {
+  ): Promise<KanbanTaskInfo> {
+    const [creatorImage, reporterImage, assigneeImage] = await Promise.all([
+      getAvatarUrl(task.creator.image),
+      task.reporter ? getAvatarUrl(task.reporter.image) : Promise.resolve(undefined),
+      task.assignee ? getAvatarUrl(task.assignee.image) : Promise.resolve(undefined),
+    ])
+
     return {
       id: task.id,
       title: task.title,
@@ -1495,20 +1511,20 @@ export class KanbanService {
       creator: {
         id: task.creator.id,
         name: task.creator.name,
-        image: task.creator.image ?? undefined,
+        image: creatorImage,
       },
       reporter: task.reporter
         ? {
             id: task.reporter.id,
             name: task.reporter.name,
-            image: task.reporter.image ?? undefined,
+            image: reporterImage,
           }
         : null,
       assignee: task.assignee
         ? {
             id: task.assignee.id,
             name: task.assignee.name,
-            image: task.assignee.image ?? undefined,
+            image: assigneeImage,
           }
         : null,
       goal: task.goal ? { id: task.goal.id, title: task.goal.title } : null,

@@ -1204,6 +1204,7 @@
   "dependency_added": "依赖已添加",
   "dependency_removed": "依赖已移除",
   "comments": "评论",
+  "activity": "活动",
   "activity_and_runs": "活动与运行",
   "add_comment": "添加评论",
   "comment_placeholder": "写下评论...",

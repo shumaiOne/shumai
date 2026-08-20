@@ -1204,6 +1204,7 @@
   "dependency_added": "Dependency added",
   "dependency_removed": "Dependency removed",
   "comments": "Comments",
+  "activity": "Activity",
   "activity_and_runs": "Activity & Runs",
   "add_comment": "Add Comment",
   "comment_placeholder": "Write a comment...",
