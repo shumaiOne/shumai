@@ -41,7 +41,7 @@ export function EditTaskDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-5xl w-[94vw] h-[86vh] p-0 gap-0 flex flex-col overflow-hidden bg-background">
+      <DialogContent className="max-w-7xl w-[96vw] h-[88vh] p-0 gap-0 flex flex-col overflow-hidden bg-background">
         <DialogHeader className="px-5 py-3 border-b border-border/70 flex flex-row items-center justify-between space-y-0 shrink-0 bg-card/80">
           <div className="flex items-center gap-2 min-w-0 pr-4">
             {task?.type === 'AGENTIC' ? (

@@ -110,7 +110,7 @@ export function KanbanCreateGoalDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-[720px]">
         <form onSubmit={handleSubmit} className="space-y-4">
           <DialogHeader>
             <DialogTitle>{goalToEdit ? m.edit_goal() : m.create_goal()}</DialogTitle>

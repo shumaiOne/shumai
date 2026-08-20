@@ -265,7 +265,7 @@ export function TaskInfoForm({ teamId, task, canEdit = true }: TaskInfoFormProps
 
   return (
     <ScrollArea className="h-full p-5">
-      <div className="space-y-6 max-w-3xl pr-3">
+      <div className="space-y-6 w-full pr-3">
         {/* Status Actions Header Bar */}
         <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg bg-muted/40 border border-border/60">
           <div className="flex items-center gap-2">

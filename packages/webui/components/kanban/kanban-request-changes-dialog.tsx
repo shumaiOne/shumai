@@ -80,7 +80,7 @@ export function KanbanRequestChangesDialog({
         }
       }}
     >
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-[650px]">
         <form onSubmit={handleSubmit} className="space-y-4">
           <DialogHeader>
             <div className="flex items-center gap-2">
