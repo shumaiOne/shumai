@@ -97,7 +97,7 @@ export function KanbanColumn({
     <div
       ref={setDroppableRef}
       className={cn(
-        'flex flex-col w-80 md:w-84 shrink-0 rounded-xl bg-card/60 border border-border/70 shadow-xs transition-colors duration-200 overflow-hidden select-none',
+        'flex flex-col h-full max-h-full w-80 md:w-84 shrink-0 rounded-xl bg-card/60 border border-border/70 shadow-xs transition-colors duration-200 overflow-hidden select-none',
         isDropTarget && 'ring-2 ring-primary/60 bg-primary/[0.03] border-primary/40',
       )}
     >
@@ -118,7 +118,7 @@ export function KanbanColumn({
       </div>
 
       {/* Column Task Cards Body */}
-      <ScrollArea className="flex-1 p-2.5">
+      <ScrollArea className="flex-1 min-h-0 p-2.5 [&>div>div]:block!">
         <div className="space-y-2.5 min-h-[120px]">
           {isLoading ? (
             <div className="flex items-center justify-center py-10">
