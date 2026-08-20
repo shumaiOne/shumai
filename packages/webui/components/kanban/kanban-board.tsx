@@ -1,11 +1,16 @@
 import { useState } from 'react'
 import { DragDropProvider, KeyboardSensor, PointerSensor, type DragEndEvent } from '@dnd-kit/react'
 import { PointerActivationConstraints } from '@dnd-kit/dom'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { client } from '@/ui/api/client'
 import { toast } from 'sonner'
 import { m } from '@/ui/paraglide/messages.js'
-import { KanbanTaskStatus, KanbanTaskType, type KanbanTaskInfo } from '@shumai/dtos'
+import {
+  KanbanTaskStatus,
+  KanbanTaskType,
+  type KanbanTaskInfo,
+  type ListKanbanTasksResponse,
+} from '@shumai/dtos'
 import { KANBAN_STATUS_COLUMNS } from './kanban-types'
 import { KanbanColumn } from './kanban-column'
 import { KanbanRequestChangesDialog } from './kanban-request-changes-dialog'
@@ -34,7 +39,7 @@ export function KanbanBoard({
   const queryClient = useQueryClient()
   const [requestChangesTask, setRequestChangesTask] = useState<KanbanTaskInfo | null>(null)
 
-  // Unified Update Mutation
+  // Unified Update Mutation with Optimistic Updates
   const { mutate: updateTask } = useMutation({
     mutationFn: async ({
       taskId,
@@ -55,11 +60,95 @@ export function KanbanBoard({
       }
       return await res.json()
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
+    onMutate: async ({ taskId, status }) => {
+      // Cancel any outgoing refetches so they don't overwrite optimistic update
+      await queryClient.cancelQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
+
+      // Snapshot previous state
+      const previousQueries = queryClient.getQueriesData({
+        queryKey: ['teams', teamId, 'kanban', 'tasks'],
+      })
+
+      let movedTask: KanbanTaskInfo | null = null
+
+      // 1. Remove task from current column in cache and save it
+      queryClient.setQueriesData<InfiniteData<ListKanbanTasksResponse>>(
+        { queryKey: ['teams', teamId, 'kanban', 'tasks'] },
+        (oldData) => {
+          if (!oldData) return oldData
+
+          let found = false
+          const newPages = oldData.pages.map((page) => {
+            const task = page.data.find((t) => t.id === taskId)
+            if (task) {
+              movedTask = { ...task, status }
+              found = true
+              return {
+                ...page,
+                data: page.data.filter((t) => t.id !== taskId),
+                pageInfo: {
+                  ...page.pageInfo,
+                  total: Math.max(0, (page.pageInfo?.total ?? page.data.length) - 1),
+                },
+              }
+            }
+            return page
+          })
+
+          return found ? { ...oldData, pages: newPages } : oldData
+        },
+      )
+
+      // 2. Prepend task to destination column cache
+      if (movedTask) {
+        const taskToAdd = movedTask
+        queryClient.setQueriesData<InfiniteData<ListKanbanTasksResponse>>(
+          {
+            predicate: (query) => {
+              const queryKey = query.queryKey
+              if (
+                queryKey[0] !== 'teams' ||
+                queryKey[1] !== teamId ||
+                queryKey[2] !== 'kanban' ||
+                queryKey[3] !== 'tasks'
+              ) {
+                return false
+              }
+              const filter = queryKey[4] as { status?: KanbanTaskStatus } | undefined
+              return filter?.status === status
+            },
+          },
+          (oldData) => {
+            if (!oldData) return oldData
+            const firstPage = oldData.pages[0] || { data: [], pageInfo: { total: 0 } }
+            const updatedFirstPage = {
+              ...firstPage,
+              data: [taskToAdd, ...firstPage.data.filter((t) => t.id !== taskId)],
+              pageInfo: {
+                ...firstPage.pageInfo,
+                total: (firstPage.pageInfo?.total ?? firstPage.data.length) + 1,
+              },
+            }
+            return {
+              ...oldData,
+              pages: [updatedFirstPage, ...oldData.pages.slice(1)],
+            }
+          },
+        )
+      }
+
+      return { previousQueries }
     },
-    onError: (err) => {
+    onError: (err, _variables, context) => {
+      if (context?.previousQueries) {
+        for (const [queryKey, data] of context.previousQueries) {
+          queryClient.setQueryData(queryKey, data)
+        }
+      }
       toast.error(err.message)
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
     },
   })
 
