@@ -188,9 +188,8 @@ describe('Kanban UI Unit & Component Tests', () => {
   })
 
   describe('KanbanHeader component', () => {
-    it('handles scope switching, search input, and goal clearing', () => {
+    it('handles scope switching and goal clearing', () => {
       const onScopeChange = vi.fn()
-      const onSearchChange = vi.fn()
       const onClearGoal = vi.fn()
       const onToggleShowCancelled = vi.fn()
       const onCreateTask = vi.fn()
@@ -207,8 +206,6 @@ describe('Kanban UI Unit & Component Tests', () => {
         <KanbanHeader
           scope="team"
           onScopeChange={onScopeChange}
-          search=""
-          onSearchChange={onSearchChange}
           selectedGoal={selectedGoal}
           onClearGoal={onClearGoal}
           showCancelled={false}
@@ -228,11 +225,6 @@ describe('Kanban UI Unit & Component Tests', () => {
         fireEvent.click(myTaskBtn)
         expect(onScopeChange).toHaveBeenCalledWith('my')
       }
-
-      // Search input change
-      const searchInput = screen.getByPlaceholderText(/search/i)
-      fireEvent.change(searchInput, { target: { value: 'test search' } })
-      expect(onSearchChange).toHaveBeenCalledWith('test search')
     })
   })
 

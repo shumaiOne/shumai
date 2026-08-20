@@ -20,7 +20,6 @@ interface KanbanBoardProps {
   selectedGoalId: string | null
   scope: 'team' | 'my'
   currentUserId?: string
-  search: string
   showCancelled: boolean
   onTaskClick: (task: KanbanTaskInfo) => void
   onCreateTaskInColumn: (status: KanbanTaskStatus) => void
@@ -31,7 +30,6 @@ export function KanbanBoard({
   selectedGoalId,
   scope,
   currentUserId,
-  search,
   showCancelled,
   onTaskClick,
   onCreateTaskInColumn,
@@ -213,7 +211,6 @@ export function KanbanBoard({
               selectedGoalId={selectedGoalId}
               scope={scope}
               currentUserId={currentUserId}
-              search={search}
               onTaskClick={onTaskClick}
               onCreateTaskInColumn={onCreateTaskInColumn}
             />

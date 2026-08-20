@@ -16,7 +16,6 @@ interface KanbanPageProps {
 export function KanbanPage({ teamId }: KanbanPageProps) {
   const [scope, setScope] = useState<'team' | 'my'>('team')
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
   const [showCancelled, setShowCancelled] = useState(false)
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false)
@@ -89,8 +88,6 @@ export function KanbanPage({ teamId }: KanbanPageProps) {
         <KanbanHeader
           scope={scope}
           onScopeChange={setScope}
-          search={search}
-          onSearchChange={setSearch}
           selectedGoal={selectedGoal}
           onClearGoal={() => setSelectedGoalId(null)}
           showCancelled={showCancelled}
@@ -103,7 +100,6 @@ export function KanbanPage({ teamId }: KanbanPageProps) {
           selectedGoalId={selectedGoalId}
           scope={scope}
           currentUserId={me?.id}
-          search={search}
           showCancelled={showCancelled}
           onTaskClick={handleTaskClick}
           onCreateTaskInColumn={(status) => handleOpenCreateTask(status)}

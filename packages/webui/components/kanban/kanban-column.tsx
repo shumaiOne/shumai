@@ -18,7 +18,6 @@ interface KanbanColumnProps {
   selectedGoalId: string | null
   scope: 'team' | 'my'
   currentUserId?: string
-  search: string
   onTaskClick: (task: KanbanTaskInfo) => void
   onCreateTaskInColumn: (status: KanbanTaskStatus) => void
 }
@@ -29,7 +28,6 @@ export function KanbanColumn({
   selectedGoalId,
   scope,
   currentUserId,
-  search,
   onTaskClick,
   onCreateTaskInColumn,
 }: KanbanColumnProps) {
@@ -79,17 +77,6 @@ export function KanbanColumn({
     return data?.pages.flatMap((page) => page.data) || []
   }, [data])
 
-  const filteredTasks = useMemo(() => {
-    if (!search.trim()) return allTasks
-    const lowerSearch = search.toLowerCase()
-    return allTasks.filter(
-      (task) =>
-        task.title.toLowerCase().includes(lowerSearch) ||
-        task.description?.toLowerCase().includes(lowerSearch) ||
-        task.assignee?.name.toLowerCase().includes(lowerSearch),
-    )
-  }, [allTasks, search])
-
   const totalCount = data?.pages[0]?.pageInfo?.total ?? allTasks.length
   const statusColor = getStatusColor(status)
 
@@ -124,16 +111,12 @@ export function KanbanColumn({
             <div className="flex items-center justify-center py-10">
               <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
             </div>
-          ) : filteredTasks.length === 0 ? (
+          ) : allTasks.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
-              <p className="text-xs text-muted-foreground/70">
-                {search.trim() ? m.no_matching_tasks() : m.no_tasks_in_column()}
-              </p>
+              <p className="text-xs text-muted-foreground/70">{m.no_tasks_in_column()}</p>
             </div>
           ) : (
-            filteredTasks.map((task) => (
-              <KanbanCard key={task.id} task={task} onClick={onTaskClick} />
-            ))
+            allTasks.map((task) => <KanbanCard key={task.id} task={task} onClick={onTaskClick} />)
           )}
 
           {/* Infinite Scroll Sentinel */}

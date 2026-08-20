@@ -1,14 +1,11 @@
 import { Button } from '@/ui/components/ui/button'
-import { Input } from '@/ui/components/ui/input'
 import { m } from '@/ui/paraglide/messages.js'
-import { Users, User, Search, Plus, Target, X, Archive, ArchiveRestore } from 'lucide-react'
+import { Users, User, Plus, Target, X, Archive, ArchiveRestore } from 'lucide-react'
 import type { KanbanGoalInfo } from '@shumai/dtos'
 
 interface KanbanHeaderProps {
   scope: 'team' | 'my'
   onScopeChange: (scope: 'team' | 'my') => void
-  search: string
-  onSearchChange: (search: string) => void
   selectedGoal: KanbanGoalInfo | null
   onClearGoal: () => void
   showCancelled: boolean
@@ -19,8 +16,6 @@ interface KanbanHeaderProps {
 export function KanbanHeader({
   scope,
   onScopeChange,
-  search,
-  onSearchChange,
   selectedGoal,
   onClearGoal,
   showCancelled,
@@ -79,29 +74,8 @@ export function KanbanHeader({
         )}
       </div>
 
-      {/* Right side: Search, Cancelled toggle, Create button */}
+      {/* Right side: Cancelled toggle, Create button */}
       <div className="flex items-center gap-2 shrink-0">
-        {/* Search Input */}
-        <div className="relative w-36 sm:w-52 md:w-64">
-          <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-          <Input
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder={m.search_tasks()}
-            className="h-8 pl-8 pr-7 text-xs bg-background/80"
-          />
-          {search && (
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              onClick={() => onSearchChange('')}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
-            >
-              <X className="w-3 h-3" />
-            </Button>
-          )}
-        </div>
-
         {/* Show / Hide Cancelled Tasks Toggle */}
         <Button
           variant={showCancelled ? 'secondary' : 'outline'}
