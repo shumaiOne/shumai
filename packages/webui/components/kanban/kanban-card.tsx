@@ -1,4 +1,4 @@
-import { useDraggable, useDroppable } from '@dnd-kit/react'
+import { useDraggable, useDroppable, useDragOperation } from '@dnd-kit/react'
 import { cn } from '@/ui/lib/utils'
 import { m } from '@/ui/paraglide/messages.js'
 import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/ui/avatar'
@@ -14,6 +14,9 @@ interface KanbanCardProps {
 }
 
 export function KanbanCard({ task, onClick, disabled }: KanbanCardProps) {
+  const { source } = useDragOperation()
+  const isDraggingAny = !!source
+
   const { ref: setDraggableRef, isDragging } = useDraggable({
     id: task.id,
     data: {
@@ -30,7 +33,7 @@ export function KanbanCard({ task, onClick, disabled }: KanbanCardProps) {
       task,
       position: 'before',
     },
-    disabled: isDragging || disabled,
+    disabled: !isDraggingAny || isDragging || disabled,
   })
 
   const { ref: setBottomDroppableRef, isDropTarget: isBottomOver } = useDroppable({
@@ -40,7 +43,7 @@ export function KanbanCard({ task, onClick, disabled }: KanbanCardProps) {
       task,
       position: 'after',
     },
-    disabled: isDragging || disabled,
+    disabled: !isDraggingAny || isDragging || disabled,
   })
 
   const isAgentic = task.type === KanbanTaskType.AGENTIC
@@ -56,13 +59,19 @@ export function KanbanCard({ task, onClick, disabled }: KanbanCardProps) {
       {/* Top 50% Droppable Zone (reorder before this card) */}
       <div
         ref={setTopDroppableRef}
-        className="absolute top-0 left-0 right-0 h-1/2 z-20 pointer-events-auto"
+        className={cn(
+          'absolute top-0 left-0 right-0 h-1/2 z-20',
+          isDraggingAny && !isDragging ? 'pointer-events-auto' : 'pointer-events-none',
+        )}
       />
 
       {/* Bottom 50% Droppable Zone (reorder after this card) */}
       <div
         ref={setBottomDroppableRef}
-        className="absolute bottom-0 left-0 right-0 h-1/2 z-20 pointer-events-auto"
+        className={cn(
+          'absolute bottom-0 left-0 right-0 h-1/2 z-20',
+          isDraggingAny && !isDragging ? 'pointer-events-auto' : 'pointer-events-none',
+        )}
       />
 
       {/* Top Reorder Drop Indicator Line */}
