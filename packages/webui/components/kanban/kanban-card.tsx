@@ -53,20 +53,27 @@ export function KanbanCard({ task, onClick, disabled }: KanbanCardProps) {
 
   return (
     <div className="relative">
-      {/* Top Reorder Drop Indicator Zone */}
+      {/* Top 50% Droppable Zone (reorder before this card) */}
       <div
         ref={setTopDroppableRef}
-        className="absolute -top-2 left-0 right-0 h-4 z-30 flex items-center pointer-events-auto"
-      >
-        <div
-          className={cn(
-            'w-full h-[3px] rounded-full transition-colors',
-            isTopOver && !isDragging
-              ? 'bg-primary shadow-[0_0_8px_rgba(var(--primary),0.6)]'
-              : 'bg-transparent',
-          )}
-        />
-      </div>
+        className="absolute top-0 left-0 right-0 h-1/2 z-20 pointer-events-auto"
+      />
+
+      {/* Bottom 50% Droppable Zone (reorder after this card) */}
+      <div
+        ref={setBottomDroppableRef}
+        className="absolute bottom-0 left-0 right-0 h-1/2 z-20 pointer-events-auto"
+      />
+
+      {/* Top Reorder Drop Indicator Line */}
+      {isTopOver && !isDragging && (
+        <div className="absolute -top-1.5 left-0 right-0 h-[3px] rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.6)] z-30 pointer-events-none" />
+      )}
+
+      {/* Bottom Reorder Drop Indicator Line */}
+      {isBottomOver && !isDragging && (
+        <div className="absolute -bottom-1.5 left-0 right-0 h-[3px] rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.6)] z-30 pointer-events-none" />
+      )}
 
       {/* Task Card Body */}
       <div
@@ -99,23 +106,20 @@ export function KanbanCard({ task, onClick, disabled }: KanbanCardProps) {
 
             {/* Goal Tag */}
             {task.goal && (
-              <span
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-sidebar-accent text-sidebar-accent-foreground border border-sidebar-border truncate max-w-[120px]"
-                title={task.goal.title}
-              >
-                <Target className="w-2.5 h-2.5 text-sidebar-primary shrink-0" />
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted text-muted-foreground border border-border/70 truncate max-w-[130px]">
+                <Target className="w-2.5 h-2.5 shrink-0" />
                 <span className="truncate">{task.goal.title}</span>
               </span>
             )}
           </div>
 
-          {/* Type Badge (Human vs Agentic) */}
+          {/* Task Type Badge (Agentic vs Manual) */}
           {isAgentic ? (
             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 shrink-0">
-              <Bot className="w-3 h-3 text-purple-600 dark:text-purple-400" />
-              <span className="hidden sm:inline">{m.task_type_agentic()}</span>
-              {task.latestRun?.attempt && task.latestRun.attempt > 1 && (
-                <span className="text-[9px] font-mono opacity-80">#{task.latestRun.attempt}</span>
+              <Bot className="w-3 h-3" />
+              <span>{m.task_type_agentic()}</span>
+              {task.latestRun && (
+                <span className="font-mono text-[9px] opacity-80">#{task.latestRun.attempt}</span>
               )}
             </span>
           ) : (
@@ -217,21 +221,6 @@ export function KanbanCard({ task, onClick, disabled }: KanbanCardProps) {
             )}
           </div>
         </div>
-      </div>
-
-      {/* Bottom Reorder Drop Indicator Zone */}
-      <div
-        ref={setBottomDroppableRef}
-        className="absolute -bottom-2 left-0 right-0 h-4 z-30 flex items-center pointer-events-auto"
-      >
-        <div
-          className={cn(
-            'w-full h-[3px] rounded-full transition-colors',
-            isBottomOver && !isDragging
-              ? 'bg-primary shadow-[0_0_8px_rgba(var(--primary),0.6)]'
-              : 'bg-transparent',
-          )}
-        />
       </div>
     </div>
   )

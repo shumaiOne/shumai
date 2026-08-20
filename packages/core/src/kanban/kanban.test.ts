@@ -672,7 +672,7 @@ describe('KanbanService', () => {
       const task2 = await kanbanService.createTask(team.id, { title: 'Task 2' }, owner.id, 'owner')
 
       // Start task1 so it's in IN_PROGRESS
-      await kanbanService.updateTask(
+      const inProgressTask1 = await kanbanService.updateTask(
         task1.id,
         { status: KanbanTaskStatus.IN_PROGRESS },
         owner.id,
@@ -684,14 +684,14 @@ describe('KanbanService', () => {
         task2.id,
         {
           status: KanbanTaskStatus.IN_PROGRESS,
-          beforeIndex: task1.sortIndex!,
+          beforeIndex: inProgressTask1.sortIndex!,
         },
         owner.id,
         'owner',
       )
 
       expect(updatedTask2.status).toBe(KanbanTaskStatus.IN_PROGRESS)
-      expect(updatedTask2.sortIndex! < task1.sortIndex!).toBe(true)
+      expect(updatedTask2.sortIndex! < inProgressTask1.sortIndex!).toBe(true)
 
       const inProgressList = await kanbanService.listTasks(team.id, {
         status: KanbanTaskStatus.IN_PROGRESS,
@@ -706,7 +706,12 @@ describe('KanbanService', () => {
       const task2 = await kanbanService.createTask(team.id, { title: 'Task 2' }, owner.id, 'owner')
 
       // Move task1 to DONE
-      await kanbanService.updateTask(task1.id, { status: KanbanTaskStatus.DONE }, owner.id, 'owner')
+      const doneTask1 = await kanbanService.updateTask(
+        task1.id,
+        { status: KanbanTaskStatus.DONE },
+        owner.id,
+        'owner',
+      )
 
       // Move task2 to DONE without position
       const updatedTask2 = await kanbanService.updateTask(
@@ -717,7 +722,7 @@ describe('KanbanService', () => {
       )
 
       expect(updatedTask2.status).toBe(KanbanTaskStatus.DONE)
-      expect(updatedTask2.sortIndex! > task1.sortIndex!).toBe(true)
+      expect(updatedTask2.sortIndex! > doneTask1.sortIndex!).toBe(true)
 
       const doneList = await kanbanService.listTasks(team.id, { status: KanbanTaskStatus.DONE })
       expect(doneList.data.map((t) => t.id)).toEqual([task1.id, task2.id])

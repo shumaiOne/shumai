@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { useDroppable } from '@dnd-kit/react'
+import { useDroppable, useDragOperation } from '@dnd-kit/react'
 import { useInView } from 'react-intersection-observer'
 import { client } from '@/ui/api/client'
 import { cn } from '@/ui/lib/utils'
@@ -38,6 +38,15 @@ export function KanbanColumn({
       status,
     },
   })
+
+  const { source, target } = useDragOperation()
+  const isDraggingTask = source?.data?.type === 'kanban_task'
+  const isOverThisColumn =
+    isDraggingTask &&
+    (isDropTarget ||
+      (target?.data?.type === 'kanban_column' && target.data.status === status) ||
+      (target?.data?.type === 'reorder' &&
+        (target.data.task as KanbanTaskInfo | undefined)?.status === status))
 
   const { ref: loadMoreRef, inView } = useInView({
     threshold: 0.1,
@@ -85,7 +94,7 @@ export function KanbanColumn({
       ref={setDroppableRef}
       className={cn(
         'flex flex-col h-full max-h-full w-80 md:w-84 shrink-0 rounded-xl bg-card/60 border border-border/70 shadow-xs transition-colors duration-200 overflow-hidden select-none',
-        isDropTarget && 'ring-2 ring-primary/60 bg-primary/[0.03] border-primary/40',
+        isOverThisColumn && 'ring-2 ring-primary/60 bg-primary/[0.03] border-primary/40',
       )}
     >
       {/* Column Header */}

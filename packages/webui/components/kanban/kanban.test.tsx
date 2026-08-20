@@ -39,6 +39,10 @@ vi.mock('@dnd-kit/react', () => ({
     ref: vi.fn(),
     isDropTarget: false,
   }),
+  useDragOperation: () => ({
+    source: null,
+    target: null,
+  }),
   DragDropProvider: ({ children }: { children?: React.ReactNode }) => children,
   PointerSensor: {
     configure: () => ({}),
