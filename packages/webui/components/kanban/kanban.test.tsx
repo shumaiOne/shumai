@@ -23,6 +23,7 @@ import {
 } from './kanban-types'
 import { KanbanCard } from './kanban-card'
 import { KanbanHeader } from './kanban-header'
+import { KanbanBoard } from './kanban-board'
 import { KanbanCreateGoalDialog } from './kanban-create-goal-dialog'
 import { TaskCommentCard } from './edit-task-dialog/task-comment-card'
 import { TaskCommentInput } from './edit-task-dialog/task-comment-input'
@@ -38,6 +39,18 @@ vi.mock('@dnd-kit/react', () => ({
     ref: vi.fn(),
     isDropTarget: false,
   }),
+  DragDropProvider: ({ children }: { children?: React.ReactNode }) => children,
+  PointerSensor: {
+    configure: () => ({}),
+  },
+  KeyboardSensor: {},
+}))
+
+// Mock @dnd-kit/dom
+vi.mock('@dnd-kit/dom', () => ({
+  PointerActivationConstraints: {
+    Distance: vi.fn(),
+  },
 }))
 
 // Mock API client
@@ -324,6 +337,54 @@ describe('Kanban UI Unit & Component Tests', () => {
       await waitFor(() => {
         expect(onSendMessage).toHaveBeenCalledWith('New task comment', undefined)
       })
+    })
+  })
+
+  describe('KanbanBoard component with mixed cache entries', () => {
+    it('renders board and safely handles query cache with non-infinite task queries', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      })
+
+      // Seed non-infinite task queries (like comments, events, dependency tasks) that do not have .pages
+      queryClient.setQueryData(['teams', 'team-1', 'kanban', 'tasks', 't-1', 'comments'], {
+        data: [{ id: 'c-1', body: 'Comment' }],
+      })
+      queryClient.setQueryData(['teams', 'team-1', 'kanban', 'tasks', 't-1', 'events'], {
+        data: [{ id: 'e-1', type: 'CREATED' }],
+      })
+      queryClient.setQueryData(['teams', 'team-1', 'kanban', 'tasks', 'all'], {
+        data: [{ id: 't-1', title: 'Task 1' }],
+      })
+
+      // Mock tasks $get endpoint
+      const mockGet = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: [],
+          pageInfo: { total: 0, hasNextPage: false },
+        }),
+      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(client.api.teams[':teamId'].kanban.tasks.$get as any) = mockGet
+
+      const onTaskClick = vi.fn()
+      const onCreateTaskInColumn = vi.fn()
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <KanbanBoard
+            teamId="team-1"
+            selectedGoalId={null}
+            scope="team"
+            showCancelled={false}
+            onTaskClick={onTaskClick}
+            onCreateTaskInColumn={onCreateTaskInColumn}
+          />
+        </QueryClientProvider>,
+      )
+
+      expect(screen.getByText(/To Do|待办/i)).toBeDefined()
     })
   })
 })

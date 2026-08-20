@@ -74,10 +74,10 @@ export function KanbanColumn({
   }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage])
 
   const allTasks = useMemo(() => {
-    return data?.pages.flatMap((page) => page.data) || []
+    return data?.pages?.flatMap((page) => (Array.isArray(page?.data) ? page.data : [])) || []
   }, [data])
 
-  const totalCount = data?.pages[0]?.pageInfo?.total ?? allTasks.length
+  const totalCount = data?.pages?.[0]?.pageInfo?.total ?? allTasks.length
   const statusColor = getStatusColor(status)
 
   return (

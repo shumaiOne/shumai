@@ -69,14 +69,30 @@ export function KanbanBoard({
 
       let movedTask: KanbanTaskInfo | null = null
 
+      // Helper to check if a query is a Kanban column infinite query
+      const isColumnQuery = (queryKey: readonly unknown[]) => {
+        return (
+          queryKey[0] === 'teams' &&
+          queryKey[1] === teamId &&
+          queryKey[2] === 'kanban' &&
+          queryKey[3] === 'tasks' &&
+          typeof queryKey[4] === 'object' &&
+          queryKey[4] !== null &&
+          'status' in queryKey[4]
+        )
+      }
+
       // 1. Remove task from current column in cache and save it
       queryClient.setQueriesData<InfiniteData<ListKanbanTasksResponse>>(
-        { queryKey: ['teams', teamId, 'kanban', 'tasks'] },
+        {
+          predicate: (query) => isColumnQuery(query.queryKey),
+        },
         (oldData) => {
-          if (!oldData) return oldData
+          if (!oldData || !Array.isArray(oldData.pages)) return oldData
 
           let found = false
           const newPages = oldData.pages.map((page) => {
+            if (!page || !Array.isArray(page.data)) return page
             const task = page.data.find((t) => t.id === taskId)
             if (task) {
               movedTask = { ...task, status }
@@ -103,28 +119,21 @@ export function KanbanBoard({
         queryClient.setQueriesData<InfiniteData<ListKanbanTasksResponse>>(
           {
             predicate: (query) => {
-              const queryKey = query.queryKey
-              if (
-                queryKey[0] !== 'teams' ||
-                queryKey[1] !== teamId ||
-                queryKey[2] !== 'kanban' ||
-                queryKey[3] !== 'tasks'
-              ) {
-                return false
-              }
-              const filter = queryKey[4] as { status?: KanbanTaskStatus } | undefined
+              if (!isColumnQuery(query.queryKey)) return false
+              const filter = query.queryKey[4] as { status?: KanbanTaskStatus } | undefined
               return filter?.status === status
             },
           },
           (oldData) => {
-            if (!oldData) return oldData
+            if (!oldData || !Array.isArray(oldData.pages)) return oldData
             const firstPage = oldData.pages[0] || { data: [], pageInfo: { total: 0 } }
+            const firstPageData = Array.isArray(firstPage.data) ? firstPage.data : []
             const updatedFirstPage = {
               ...firstPage,
-              data: [taskToAdd, ...firstPage.data.filter((t) => t.id !== taskId)],
+              data: [taskToAdd, ...firstPageData.filter((t) => t.id !== taskId)],
               pageInfo: {
                 ...firstPage.pageInfo,
-                total: (firstPage.pageInfo?.total ?? firstPage.data.length) + 1,
+                total: (firstPage.pageInfo?.total ?? firstPageData.length) + 1,
               },
             }
             return {
