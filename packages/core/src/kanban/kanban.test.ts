@@ -610,4 +610,117 @@ describe('KanbanService', () => {
       expect(afterDelete.length).toBe(0)
     })
   })
+
+  // --------------------------------------------------------------------------
+  // Task Ordering & Fractional Indexing
+  // --------------------------------------------------------------------------
+  describe('Task Ordering & Fractional Indexing', () => {
+    it('appends newly created tasks to the bottom of the column', async () => {
+      const { team, owner } = await setupTeamAndUsers()
+
+      const task1 = await kanbanService.createTask(team.id, { title: 'Task 1' }, owner.id, 'owner')
+      const task2 = await kanbanService.createTask(team.id, { title: 'Task 2' }, owner.id, 'owner')
+      const task3 = await kanbanService.createTask(team.id, { title: 'Task 3' }, owner.id, 'owner')
+
+      expect(task1.sortIndex).toBeDefined()
+      expect(task2.sortIndex).toBeDefined()
+      expect(task3.sortIndex).toBeDefined()
+      expect(task1.sortIndex! < task2.sortIndex!).toBe(true)
+      expect(task2.sortIndex! < task3.sortIndex!).toBe(true)
+
+      const list = await kanbanService.listTasks(team.id, { status: KanbanTaskStatus.READY })
+      expect(list.data.map((t) => t.id)).toEqual([task1.id, task2.id, task3.id])
+    })
+
+    it('reorders tasks within the same column using beforeIndex and afterIndex', async () => {
+      const { team, owner } = await setupTeamAndUsers()
+
+      const taskA = await kanbanService.createTask(team.id, { title: 'Task A' }, owner.id, 'owner')
+      const taskB = await kanbanService.createTask(team.id, { title: 'Task B' }, owner.id, 'owner')
+      const taskC = await kanbanService.createTask(team.id, { title: 'Task C' }, owner.id, 'owner')
+
+      // Move task C before task A
+      const updatedC = await kanbanService.updateTask(
+        taskC.id,
+        { beforeIndex: taskA.sortIndex! },
+        owner.id,
+        'owner',
+      )
+      expect(updatedC.sortIndex! < taskA.sortIndex!).toBe(true)
+
+      let list = await kanbanService.listTasks(team.id, { status: KanbanTaskStatus.READY })
+      expect(list.data.map((t) => t.id)).toEqual([taskC.id, taskA.id, taskB.id])
+
+      // Move task C after task A (between A and B)
+      const reorderedTaskC = await kanbanService.updateTask(
+        taskC.id,
+        { afterIndex: taskA.sortIndex! },
+        owner.id,
+        'owner',
+      )
+      expect(reorderedTaskC.sortIndex! > taskA.sortIndex!).toBe(true)
+      expect(reorderedTaskC.sortIndex! < taskB.sortIndex!).toBe(true)
+
+      list = await kanbanService.listTasks(team.id, { status: KanbanTaskStatus.READY })
+      expect(list.data.map((t) => t.id)).toEqual([taskA.id, taskC.id, taskB.id])
+    })
+
+    it('moves tasks across columns with custom position', async () => {
+      const { team, owner } = await setupTeamAndUsers()
+
+      const task1 = await kanbanService.createTask(team.id, { title: 'Task 1' }, owner.id, 'owner')
+      const task2 = await kanbanService.createTask(team.id, { title: 'Task 2' }, owner.id, 'owner')
+
+      // Start task1 so it's in IN_PROGRESS
+      await kanbanService.updateTask(
+        task1.id,
+        { status: KanbanTaskStatus.IN_PROGRESS },
+        owner.id,
+        'owner',
+      )
+
+      // Now move task2 to IN_PROGRESS before task1
+      const updatedTask2 = await kanbanService.updateTask(
+        task2.id,
+        {
+          status: KanbanTaskStatus.IN_PROGRESS,
+          beforeIndex: task1.sortIndex!,
+        },
+        owner.id,
+        'owner',
+      )
+
+      expect(updatedTask2.status).toBe(KanbanTaskStatus.IN_PROGRESS)
+      expect(updatedTask2.sortIndex! < task1.sortIndex!).toBe(true)
+
+      const inProgressList = await kanbanService.listTasks(team.id, {
+        status: KanbanTaskStatus.IN_PROGRESS,
+      })
+      expect(inProgressList.data.map((t) => t.id)).toEqual([task2.id, task1.id])
+    })
+
+    it('moves tasks across columns without explicit position placing at bottom', async () => {
+      const { team, owner } = await setupTeamAndUsers()
+
+      const task1 = await kanbanService.createTask(team.id, { title: 'Task 1' }, owner.id, 'owner')
+      const task2 = await kanbanService.createTask(team.id, { title: 'Task 2' }, owner.id, 'owner')
+
+      // Move task1 to DONE
+      await kanbanService.updateTask(task1.id, { status: KanbanTaskStatus.DONE }, owner.id, 'owner')
+
+      // Move task2 to DONE without position
+      const updatedTask2 = await kanbanService.updateTask(
+        task2.id,
+        { status: KanbanTaskStatus.DONE },
+        owner.id,
+        'owner',
+      )
+
+      expect(updatedTask2.status).toBe(KanbanTaskStatus.DONE)
+      expect(updatedTask2.sortIndex! > task1.sortIndex!).toBe(true)
+
+      const doneList = await kanbanService.listTasks(team.id, { status: KanbanTaskStatus.DONE })
+      expect(doneList.data.map((t) => t.id)).toEqual([task1.id, task2.id])
+    })
+  })
 })

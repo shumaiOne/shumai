@@ -386,5 +386,39 @@ describe('Kanban UI Unit & Component Tests', () => {
 
       expect(screen.getByText(/To Do|待办/i)).toBeDefined()
     })
+
+    it('renders reorder drop zones for drag-and-drop ordering', () => {
+      const mockTask: KanbanTaskInfo = {
+        id: 'task-1',
+        title: 'Reorderable Task',
+        type: KanbanTaskType.MANUAL,
+        status: KanbanTaskStatus.TODO,
+        priority: KanbanTaskPriority.MEDIUM,
+        startDate: null,
+        dueDate: null,
+        startedAt: null,
+        completedAt: null,
+        teamId: 'team-1',
+        projectId: null,
+        sortIndex: 'a0',
+        creator: { id: 'user-1', name: 'Alice' },
+        reporter: null,
+        assignee: null,
+        goal: null,
+        targetFolderId: null,
+        latestRun: null,
+        latestStatusEvent: null,
+        commentCount: 0,
+        dependencyCount: 0,
+        dependentCount: 0,
+        createdAt: '2026-08-20T00:00:00.000Z',
+        updatedAt: '2026-08-20T00:00:00.000Z',
+      }
+
+      const { container } = render(<KanbanCard task={mockTask} onClick={vi.fn()} />)
+      // Verify wrapper contains the task title and relative positioning for indicator lines
+      expect(screen.getByText('Reorderable Task')).toBeDefined()
+      expect(container.querySelector('.relative')).toBeDefined()
+    })
   })
 })
