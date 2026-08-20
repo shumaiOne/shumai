@@ -48,6 +48,9 @@ export function KanbanColumn({
       (target?.data?.type === 'reorder' &&
         (target.data.task as KanbanTaskInfo | undefined)?.status === status))
 
+  const isOverColumnEmptySpace =
+    isDraggingTask && target?.data?.type === 'kanban_column' && target.data.status === status
+
   const { ref: loadMoreRef, inView } = useInView({
     threshold: 0.1,
   })
@@ -86,12 +89,12 @@ export function KanbanColumn({
     return data?.pages?.flatMap((page) => (Array.isArray(page?.data) ? page.data : [])) || []
   }, [data])
 
+  const lastVisibleTask = allTasks.filter((t) => t.id !== source?.id).at(-1)
   const totalCount = data?.pages?.[0]?.pageInfo?.total ?? allTasks.length
   const statusColor = getStatusColor(status)
 
   return (
     <div
-      ref={setDroppableRef}
       className={cn(
         'flex flex-col h-full max-h-full w-80 md:w-84 shrink-0 rounded-xl bg-card/60 border border-border/70 shadow-xs transition-colors duration-200 overflow-hidden select-none',
         isOverThisColumn && 'ring-2 ring-primary/60 bg-primary/[0.03] border-primary/40',
@@ -114,29 +117,29 @@ export function KanbanColumn({
       </div>
 
       {/* Column Task Cards Body */}
-      <ScrollArea className="flex-1 min-h-0 p-2.5 [&>div>div]:block!">
-        <div className="space-y-2.5 min-h-[120px]">
+      <ScrollArea className="flex-1 min-h-0 [&>div>div]:block!">
+        <div ref={setDroppableRef} className="p-2.5 space-y-2.5 min-h-[120px]">
           {isLoading ? (
             <div className="flex items-center justify-center py-10">
               <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
             </div>
           ) : allTasks.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+            <div className="relative flex flex-col items-center justify-center py-10 px-4 text-center">
+              {isOverColumnEmptySpace && (
+                <div className="absolute top-3 left-3 right-3 h-[3px] rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.6)] z-30 pointer-events-none" />
+              )}
               <p className="text-xs text-muted-foreground/70">{m.no_tasks_in_column()}</p>
             </div>
           ) : (
-            allTasks.map((task) => <KanbanCard key={task.id} task={task} onClick={onTaskClick} />)
+            allTasks.map((task) => (
+              <KanbanCard
+                key={task.id}
+                task={task}
+                onClick={onTaskClick}
+                showBottomIndicator={isOverColumnEmptySpace && task.id === lastVisibleTask?.id}
+              />
+            ))
           )}
-
-          {/* Bottom drop indicator when dragging over empty space below cards */}
-          {isOverThisColumn &&
-            target?.data?.type === 'kanban_column' &&
-            target.data.status === status &&
-            allTasks.length > 0 && (
-              <div className="relative pt-0.5 pointer-events-none">
-                <div className="h-[3px] rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.6)]" />
-              </div>
-            )}
 
           {/* Infinite Scroll Sentinel */}
           <div ref={loadMoreRef} className="h-2" />

@@ -11,9 +11,10 @@ interface KanbanCardProps {
   task: KanbanTaskInfo
   onClick: (task: KanbanTaskInfo) => void
   disabled?: boolean
+  showBottomIndicator?: boolean
 }
 
-export function KanbanCard({ task, onClick, disabled }: KanbanCardProps) {
+export function KanbanCard({ task, onClick, disabled, showBottomIndicator }: KanbanCardProps) {
   const { source } = useDragOperation()
   const isDraggingAny = !!source
 
@@ -80,7 +81,7 @@ export function KanbanCard({ task, onClick, disabled }: KanbanCardProps) {
       )}
 
       {/* Bottom Reorder Drop Indicator Line */}
-      {isBottomOver && !isDragging && (
+      {(isBottomOver || showBottomIndicator) && !isDragging && (
         <div className="absolute -bottom-1.5 left-0 right-0 h-[3px] rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.6)] z-30 pointer-events-none" />
       )}
 
