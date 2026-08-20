@@ -118,6 +118,8 @@ export function TaskInfoForm({ teamId, task, canEdit = true }: TaskInfoFormProps
       title?: string
       description?: string | null
       type?: KanbanTaskType
+      status?: KanbanTaskStatus
+      reason?: string
       priority?: KanbanTaskPriority
       startDate?: string | null
       dueDate?: string | null
@@ -149,97 +151,49 @@ export function TaskInfoForm({ teamId, task, canEdit = true }: TaskInfoFormProps
   // Action Mutations
   const { mutate: startTask, isPending: isStarting } = useMutation({
     mutationFn: async () => {
-      const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].start.$post({
-        param: { teamId, taskId: task.id },
-      })
-      if (!res.ok) throw new Error('Failed to start task')
-      return await res.json()
+      await updateTask({ status: KanbanTaskStatus.IN_PROGRESS })
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'task', task.id] })
-      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
-      toast.success(m.task_started())
-    },
+    onSuccess: () => toast.success(m.task_started()),
     onError: (err) => toast.error(err.message),
   })
 
   const { mutate: completeTask, isPending: isCompleting } = useMutation({
     mutationFn: async () => {
-      const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].complete.$post({
-        param: { teamId, taskId: task.id },
-      })
-      if (!res.ok) throw new Error('Failed to complete task')
-      return await res.json()
+      await updateTask({ status: KanbanTaskStatus.DONE })
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'task', task.id] })
-      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
-      toast.success(m.task_completed())
-    },
+    onSuccess: () => toast.success(m.task_completed()),
     onError: (err) => toast.error(err.message),
   })
 
   const { mutate: approveTask, isPending: isApproving } = useMutation({
     mutationFn: async () => {
-      const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].approve.$post({
-        param: { teamId, taskId: task.id },
-      })
-      if (!res.ok) throw new Error('Failed to approve task')
-      return await res.json()
+      await updateTask({ status: KanbanTaskStatus.DONE })
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'task', task.id] })
-      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
-      toast.success(m.task_approved())
-    },
+    onSuccess: () => toast.success(m.task_approved()),
     onError: (err) => toast.error(err.message),
   })
 
   const { mutate: unblockTask, isPending: isUnblocking } = useMutation({
     mutationFn: async () => {
-      const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].unblock.$post({
-        param: { teamId, taskId: task.id },
-      })
-      if (!res.ok) throw new Error('Failed to unblock task')
-      return await res.json()
+      await updateTask({ status: KanbanTaskStatus.READY })
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'task', task.id] })
-      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
-      toast.success(m.task_unblocked())
-    },
+    onSuccess: () => toast.success(m.task_unblocked()),
     onError: (err) => toast.error(err.message),
   })
 
   const { mutate: reopenTask, isPending: isReopening } = useMutation({
     mutationFn: async () => {
-      const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].reopen.$post({
-        param: { teamId, taskId: task.id },
-      })
-      if (!res.ok) throw new Error('Failed to reopen task')
-      return await res.json()
+      await updateTask({ status: KanbanTaskStatus.READY })
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'task', task.id] })
-      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
-      toast.success(m.task_reopened())
-    },
+    onSuccess: () => toast.success(m.task_reopened()),
     onError: (err) => toast.error(err.message),
   })
 
   const { mutate: cancelTask, isPending: isCancelling } = useMutation({
     mutationFn: async () => {
-      const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].cancel.$post({
-        param: { teamId, taskId: task.id },
-      })
-      if (!res.ok) throw new Error('Failed to cancel task')
-      return await res.json()
+      await updateTask({ status: KanbanTaskStatus.CANCELLED })
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'task', task.id] })
-      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
-      toast.success(m.task_cancelled())
-    },
+    onSuccess: () => toast.success(m.task_cancelled()),
     onError: (err) => toast.error(err.message),
   })
 

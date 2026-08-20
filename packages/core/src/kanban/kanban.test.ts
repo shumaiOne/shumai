@@ -213,9 +213,6 @@ describe('KanbanService', () => {
       expect(startedA.status).toBe(KanbanTaskStatus.IN_PROGRESS)
       expect(startedA.startedAt).toBeDefined()
 
-      // Cannot complete Task B while TODO
-      await expect(kanbanService.startManualTask(taskB.id, editor.id)).rejects.toThrow()
-
       // Complete Task A
       const completedA = await kanbanService.completeManualTask(taskA.id, editor.id)
       expect(completedA.status).toBe(KanbanTaskStatus.DONE)
@@ -475,6 +472,85 @@ describe('KanbanService', () => {
       const agentList = await kanbanService.listTasks(team.id, { type: KanbanTaskType.AGENTIC })
       expect(agentList.data.length).toBe(1)
       expect(agentList.data[0].id).toBe(task2.id)
+    })
+  })
+
+  // --------------------------------------------------------------------------
+  // Unified Status Transitions & Unconstrained Human Tasks
+  // --------------------------------------------------------------------------
+  describe('Unified Status Transitions & Unconstrained Human Tasks', () => {
+    it('allows human tasks to transition between any states via updateTask', async () => {
+      const { team, editor } = await setupTeamAndUsers()
+
+      const task = await kanbanService.createTask(
+        team.id,
+        { title: 'Flexible Human Task', type: KanbanTaskType.MANUAL },
+        editor.id,
+        'editor',
+      )
+      expect(task.status).toBe(KanbanTaskStatus.READY)
+
+      // Direct transition: READY -> BLOCKED
+      const blocked = await kanbanService.updateTask(
+        task.id,
+        { status: KanbanTaskStatus.BLOCKED, reason: 'Waiting for design' },
+        editor.id,
+      )
+      expect(blocked.status).toBe(KanbanTaskStatus.BLOCKED)
+
+      // Direct transition: BLOCKED -> DONE
+      const done = await kanbanService.updateTask(
+        task.id,
+        { status: KanbanTaskStatus.DONE },
+        editor.id,
+      )
+      expect(done.status).toBe(KanbanTaskStatus.DONE)
+      expect(done.completedAt).toBeDefined()
+
+      // Direct transition: DONE -> IN_PROGRESS (re-open directly into progress)
+      const inProgress = await kanbanService.updateTask(
+        task.id,
+        { status: KanbanTaskStatus.IN_PROGRESS },
+        editor.id,
+      )
+      expect(inProgress.status).toBe(KanbanTaskStatus.IN_PROGRESS)
+      expect(inProgress.completedAt).toBeNull()
+
+      // Direct transition: IN_PROGRESS -> IN_REVIEW
+      const inReview = await kanbanService.updateTask(
+        task.id,
+        { status: KanbanTaskStatus.IN_REVIEW },
+        editor.id,
+      )
+      expect(inReview.status).toBe(KanbanTaskStatus.IN_REVIEW)
+
+      // Direct transition: IN_REVIEW -> TODO
+      const todo = await kanbanService.updateTask(
+        task.id,
+        { status: KanbanTaskStatus.TODO },
+        editor.id,
+      )
+      expect(todo.status).toBe(KanbanTaskStatus.TODO)
+    })
+
+    it('enforces agentic task boundaries (rejects direct transition to IN_PROGRESS)', async () => {
+      const { team, owner } = await setupTeamAndUsers()
+
+      const agentTask = await kanbanService.createTask(
+        team.id,
+        { title: 'Agent Task', type: KanbanTaskType.AGENTIC },
+        owner.id,
+        'owner',
+      )
+
+      await expect(
+        kanbanService.updateTask(
+          agentTask.id,
+          { status: KanbanTaskStatus.IN_PROGRESS },
+          owner.id,
+          'owner',
+        ),
+      ).rejects.toThrow(/Agentic tasks are claimed automatically/)
     })
   })
 })

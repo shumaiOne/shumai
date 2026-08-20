@@ -34,11 +34,20 @@ export function KanbanBoard({
   const queryClient = useQueryClient()
   const [requestChangesTask, setRequestChangesTask] = useState<KanbanTaskInfo | null>(null)
 
-  // Transition Mutations
-  const { mutate: startManualTask } = useMutation({
-    mutationFn: async (taskId: string) => {
-      const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].start.$post({
+  // Unified Update Mutation
+  const { mutate: updateTask } = useMutation({
+    mutationFn: async ({
+      taskId,
+      status,
+      reason,
+    }: {
+      taskId: string
+      status: KanbanTaskStatus
+      reason?: string
+    }) => {
+      const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].$patch({
         param: { teamId, taskId },
+        json: { status, reason },
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({ message: m.error() }))
@@ -48,107 +57,6 @@ export function KanbanBoard({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
-      toast.success(m.task_started())
-    },
-    onError: (err) => {
-      toast.error(err.message)
-    },
-  })
-
-  const { mutate: completeManualTask } = useMutation({
-    mutationFn: async (taskId: string) => {
-      const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].complete.$post({
-        param: { teamId, taskId },
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ message: m.error() }))
-        throw new Error((err as { message?: string }).message || m.error())
-      }
-      return await res.json()
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
-      toast.success(m.task_completed())
-    },
-    onError: (err) => {
-      toast.error(err.message)
-    },
-  })
-
-  const { mutate: approveTask } = useMutation({
-    mutationFn: async (taskId: string) => {
-      const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].approve.$post({
-        param: { teamId, taskId },
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ message: m.error() }))
-        throw new Error((err as { message?: string }).message || m.error())
-      }
-      return await res.json()
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
-      toast.success(m.task_approved())
-    },
-    onError: (err) => {
-      toast.error(err.message)
-    },
-  })
-
-  const { mutate: unblockTask } = useMutation({
-    mutationFn: async (taskId: string) => {
-      const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].unblock.$post({
-        param: { teamId, taskId },
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ message: m.error() }))
-        throw new Error((err as { message?: string }).message || m.error())
-      }
-      return await res.json()
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
-      toast.success(m.task_unblocked())
-    },
-    onError: (err) => {
-      toast.error(err.message)
-    },
-  })
-
-  const { mutate: reopenTask } = useMutation({
-    mutationFn: async (taskId: string) => {
-      const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].reopen.$post({
-        param: { teamId, taskId },
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ message: m.error() }))
-        throw new Error((err as { message?: string }).message || m.error())
-      }
-      return await res.json()
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
-      toast.success(m.task_reopened())
-    },
-    onError: (err) => {
-      toast.error(err.message)
-    },
-  })
-
-  const { mutate: cancelTask } = useMutation({
-    mutationFn: async (taskId: string) => {
-      const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].cancel.$post({
-        param: { teamId, taskId },
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ message: m.error() }))
-        throw new Error((err as { message?: string }).message || m.error())
-      }
-      return await res.json()
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
-      toast.success(m.task_cancelled())
     },
     onError: (err) => {
       toast.error(err.message)
@@ -178,58 +86,18 @@ export function KanbanBoard({
       return
     }
 
-    // Determine appropriate transition
-    if (toStatus === KanbanTaskStatus.IN_PROGRESS && task.type === KanbanTaskType.MANUAL) {
-      if (fromStatus === KanbanTaskStatus.READY) {
-        startManualTask(task.id)
-        return
-      }
-      if (fromStatus === KanbanTaskStatus.BLOCKED) {
-        unblockTask(task.id)
-        return
-      }
-    }
-
-    if (toStatus === KanbanTaskStatus.DONE) {
-      if (fromStatus === KanbanTaskStatus.IN_REVIEW) {
-        approveTask(task.id)
-        return
-      }
-      if (fromStatus === KanbanTaskStatus.IN_PROGRESS && task.type === KanbanTaskType.MANUAL) {
-        completeManualTask(task.id)
-        return
-      }
-    }
-
-    if (fromStatus === KanbanTaskStatus.IN_REVIEW && toStatus === KanbanTaskStatus.READY) {
-      // Reviewer request changes -> open dialog for reason
+    // If agentic task is in review and dragged to TODO or READY, open request changes dialog
+    if (
+      task.type === KanbanTaskType.AGENTIC &&
+      fromStatus === KanbanTaskStatus.IN_REVIEW &&
+      (toStatus === KanbanTaskStatus.READY || toStatus === KanbanTaskStatus.TODO)
+    ) {
       setRequestChangesTask(task)
       return
     }
 
-    if (
-      fromStatus === KanbanTaskStatus.BLOCKED &&
-      (toStatus === KanbanTaskStatus.READY || toStatus === KanbanTaskStatus.TODO)
-    ) {
-      unblockTask(task.id)
-      return
-    }
-
-    if (
-      fromStatus === KanbanTaskStatus.DONE &&
-      (toStatus === KanbanTaskStatus.READY || toStatus === KanbanTaskStatus.TODO)
-    ) {
-      reopenTask(task.id)
-      return
-    }
-
-    if (toStatus === KanbanTaskStatus.CANCELLED) {
-      cancelTask(task.id)
-      return
-    }
-
-    // Default fallback: if invalid state transition
-    toast.error(`Transition from ${fromStatus} to ${toStatus} is not supported directly.`)
+    // For all human tasks (and valid agentic transitions), update status via unified API
+    updateTask({ taskId: task.id, status: toStatus })
   }
 
   const columnsToRender = showCancelled

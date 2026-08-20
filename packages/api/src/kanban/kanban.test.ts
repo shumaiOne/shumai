@@ -267,11 +267,16 @@ describe('Kanban API Routes', () => {
       const res = await app.request(`/teams/${teamId}/kanban/tasks/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ priority: 'HIGH' }),
+        body: JSON.stringify({ priority: 'HIGH', status: 'DONE', reason: 'All done' }),
       })
 
       expect(res.status).toBe(200)
-      expect(mockUpdate).toHaveBeenCalledWith(taskId, { priority: 'HIGH' }, 'user-1', 'owner')
+      expect(mockUpdate).toHaveBeenCalledWith(
+        taskId,
+        { priority: 'HIGH', status: 'DONE', reason: 'All done' },
+        'user-1',
+        'owner',
+      )
     })
   })
 

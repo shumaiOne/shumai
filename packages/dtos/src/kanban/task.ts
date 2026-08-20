@@ -38,6 +38,8 @@ export const updateKanbanTaskSchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().nullable().optional(),
   type: z.nativeEnum(KanbanTaskType).optional(),
+  status: z.nativeEnum(KanbanTaskStatus).optional(),
+  reason: z.string().optional(),
   priority: z.nativeEnum(KanbanTaskPriority).optional(),
   startDate: z.union([z.string(), z.date()]).nullable().optional(),
   dueDate: z.union([z.string(), z.date()]).nullable().optional(),

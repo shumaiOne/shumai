@@ -14,6 +14,7 @@ import { client } from '@/ui/api/client'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { m } from '@/ui/paraglide/messages.js'
+import { KanbanTaskStatus } from '@shumai/dtos'
 import { Loader2, MessageSquareReply } from 'lucide-react'
 
 interface KanbanRequestChangesDialogProps {
@@ -39,11 +40,9 @@ export function KanbanRequestChangesDialog({
   const { mutate: submitRequestChanges, isPending } = useMutation({
     mutationFn: async () => {
       if (!taskId) return
-      const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'][
-        'request-changes'
-      ].$post({
+      const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].$patch({
         param: { teamId, taskId },
-        json: { reason: reason.trim() },
+        json: { status: KanbanTaskStatus.TODO, reason: reason.trim() },
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({ message: m.error() }))
