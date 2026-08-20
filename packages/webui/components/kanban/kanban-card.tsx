@@ -11,10 +11,17 @@ interface KanbanCardProps {
   task: KanbanTaskInfo
   onClick: (task: KanbanTaskInfo) => void
   disabled?: boolean
+  isFirst?: boolean
   showBottomIndicator?: boolean
 }
 
-export function KanbanCard({ task, onClick, disabled, showBottomIndicator }: KanbanCardProps) {
+export function KanbanCard({
+  task,
+  onClick,
+  disabled,
+  isFirst,
+  showBottomIndicator,
+}: KanbanCardProps) {
   const { source } = useDragOperation()
   const isDraggingAny = !!source
 
@@ -61,7 +68,8 @@ export function KanbanCard({ task, onClick, disabled, showBottomIndicator }: Kan
       <div
         ref={setTopDroppableRef}
         className={cn(
-          'absolute -top-1 left-0 right-0 h-[calc(50%+4px)] z-20',
+          'absolute left-0 right-0 z-20',
+          isFirst ? '-top-6 h-[calc(50%+24px)]' : '-top-1 h-[calc(50%+4px)]',
           isDraggingAny && !isDragging ? 'pointer-events-auto' : 'pointer-events-none',
         )}
       />

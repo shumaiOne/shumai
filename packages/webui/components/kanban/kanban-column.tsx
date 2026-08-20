@@ -95,6 +95,7 @@ export function KanbanColumn({
 
   return (
     <div
+      ref={setDroppableRef}
       className={cn(
         'flex flex-col h-full max-h-full w-80 md:w-84 shrink-0 rounded-xl bg-card/60 border border-border/70 shadow-xs transition-colors duration-200 overflow-hidden select-none',
         isOverThisColumn && 'ring-2 ring-primary/60 bg-primary/[0.03] border-primary/40',
@@ -118,7 +119,7 @@ export function KanbanColumn({
 
       {/* Column Task Cards Body */}
       <ScrollArea className="flex-1 min-h-0 [&>div>div]:block!">
-        <div ref={setDroppableRef} className="p-2.5 space-y-2.5 min-h-[120px]">
+        <div className="p-2.5 space-y-2.5 min-h-full flex flex-col">
           {isLoading ? (
             <div className="flex items-center justify-center py-10">
               <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
@@ -131,11 +132,12 @@ export function KanbanColumn({
               <p className="text-xs text-muted-foreground/70">{m.no_tasks_in_column()}</p>
             </div>
           ) : (
-            allTasks.map((task) => (
+            allTasks.map((task, index) => (
               <KanbanCard
                 key={task.id}
                 task={task}
                 onClick={onTaskClick}
+                isFirst={index === 0}
                 showBottomIndicator={isOverColumnEmptySpace && task.id === lastVisibleTask?.id}
               />
             ))
