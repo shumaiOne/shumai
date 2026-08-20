@@ -70,7 +70,7 @@ export function TaskTargetFolderDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[720px] flex flex-col h-[580px]">
+      <DialogContent className="sm:max-w-2xl flex flex-col h-[580px]">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <Folder className="w-5 h-5 text-primary" />

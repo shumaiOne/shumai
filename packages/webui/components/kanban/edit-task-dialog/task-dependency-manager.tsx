@@ -192,7 +192,7 @@ export function TaskDependencyManager({
 
       {/* Add Dependency Search Dialog */}
       <Dialog open={isAddOpen} onOpenChange={(open) => !open && setIsAddOpen(false)}>
-        <DialogContent className="sm:max-w-[460px] flex flex-col h-[480px]">
+        <DialogContent className="sm:max-w-xl flex flex-col h-[480px]">
           <DialogHeader>
             <DialogTitle>{m.add_dependency()}</DialogTitle>
           </DialogHeader>
