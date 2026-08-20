@@ -833,6 +833,7 @@ export const KanbanTaskCommentScalarFieldEnum = {
   taskId: 'taskId',
   authorId: 'authorId',
   body: 'body',
+  attachments: 'attachments',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

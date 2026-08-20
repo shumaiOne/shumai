@@ -2,14 +2,12 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { client } from '@/ui/api/client'
 import { m } from '@/ui/paraglide/messages.js'
-import { Button } from '@/ui/components/ui/button'
-import { Textarea } from '@/ui/components/ui/textarea'
-import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/ui/avatar'
 import { ScrollArea } from '@/ui/components/ui/scroll-area'
 import { toast } from 'sonner'
-import { format } from 'date-fns'
-import { Loader2, MessageSquare, Send } from 'lucide-react'
-import type { KanbanCommentInfo } from '@shumai/dtos'
+import { Loader2, MessageSquare, X } from 'lucide-react'
+import { TaskCommentCard } from './task-comment-card'
+import { TaskCommentInput } from './task-comment-input'
+import type { KanbanAttachmentInfo, KanbanAttachmentPayload, KanbanCommentInfo } from '@shumai/dtos'
 
 interface TaskCommentThreadProps {
   teamId: string
@@ -19,8 +17,24 @@ interface TaskCommentThreadProps {
 
 export function TaskCommentThread({ teamId, taskId, initialComments }: TaskCommentThreadProps) {
   const queryClient = useQueryClient()
-  const [commentBody, setCommentBody] = useState('')
+  const [viewingAttachment, setViewingAttachment] = useState<KanbanAttachmentInfo | null>(null)
 
+  // Query Current User Info
+  const { data: me } = useQuery({
+    queryKey: ['teams', teamId, 'me'],
+    queryFn: async () => {
+      const res = await client.api.teams[':teamId'].me.$get({
+        param: { teamId },
+      })
+      if (!res.ok) throw new Error('Failed to fetch me')
+      return await res.json()
+    },
+    enabled: !!teamId,
+  })
+
+  const isOwnerOrAdmin = me?.role?.toLowerCase() === 'owner' || me?.role?.toLowerCase() === 'editor'
+
+  // Query Comments
   const { data: commentsData, isLoading } = useQuery({
     queryKey: ['teams', teamId, 'kanban', 'tasks', taskId, 'comments'],
     queryFn: async () => {
@@ -32,15 +46,23 @@ export function TaskCommentThread({ teamId, taskId, initialComments }: TaskComme
     },
     initialData: initialComments ? { data: initialComments } : undefined,
     enabled: !!teamId && !!taskId,
+    refetchInterval: 4000,
   })
 
   const comments = commentsData?.data || []
 
-  const { mutate: addComment, isPending: isAdding } = useMutation({
-    mutationFn: async () => {
+  // Add Comment Mutation
+  const { mutateAsync: addComment, isPending: isAdding } = useMutation({
+    mutationFn: async ({
+      body,
+      attachments,
+    }: {
+      body: string
+      attachments?: KanbanAttachmentPayload[]
+    }) => {
       const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].comments.$post({
         param: { teamId, taskId },
-        json: { body: commentBody.trim() },
+        json: { body, attachments },
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({ message: m.error() }))
@@ -58,97 +80,82 @@ export function TaskCommentThread({ teamId, taskId, initialComments }: TaskComme
       queryClient.invalidateQueries({
         queryKey: ['teams', teamId, 'kanban', 'tasks'],
       })
-      setCommentBody('')
     },
     onError: (err) => {
       toast.error(err.message)
     },
   })
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!commentBody.trim() || isAdding) return
-    addComment()
+  const handleSendMessage = async (text: string, attachments?: KanbanAttachmentPayload[]) => {
+    await addComment({ body: text, attachments })
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden bg-background">
+      {/* Lightbox / Full-screen Attachment Viewer */}
+      {viewingAttachment && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-4 animate-in fade-in duration-150"
+          onClick={() => setViewingAttachment(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setViewingAttachment(null)}
+            className="absolute top-4 right-4 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition-colors z-50 cursor-pointer"
+            title="Close"
+          >
+            <X className="w-6 h-6" />
+          </button>
+
+          <div className="w-full h-full flex items-center justify-center p-2">
+            <img
+              src={viewingAttachment.url}
+              alt={viewingAttachment.name}
+              className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Comments List */}
-      <ScrollArea className="flex-1 p-3">
-        <div className="space-y-3.5 pr-2">
+      <ScrollArea className="flex-1 p-3.5">
+        <div className="space-y-3 pr-1 pb-2">
           {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
           ) : comments.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center text-xs text-muted-foreground">
-              <MessageSquare className="w-8 h-8 mb-2 opacity-30" />
-              <p>{m.no_comments_yet()}</p>
+            <div className="flex flex-col items-center justify-center py-16 text-center text-xs text-muted-foreground/80 space-y-2">
+              <div className="w-10 h-10 rounded-full bg-muted/60 flex items-center justify-center">
+                <MessageSquare className="w-5 h-5 opacity-40" />
+              </div>
+              <p className="font-medium">{m.no_comments_yet()}</p>
             </div>
           ) : (
             comments.map((comment) => (
-              <div key={comment.id} className="flex gap-2.5 text-xs">
-                <Avatar size="sm" className="w-6 h-6 shrink-0 mt-0.5 border border-border">
-                  <AvatarImage src={comment.author.image} />
-                  <AvatarFallback className="text-[10px]">
-                    {comment.author.name.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-
-                <div className="flex-1 min-w-0 bg-muted/40 border border-border/60 rounded-lg p-2.5 space-y-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold text-foreground truncate">
-                      {comment.author.name}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground shrink-0 font-mono">
-                      {format(new Date(comment.createdAt), 'MM/dd HH:mm')}
-                    </span>
-                  </div>
-                  <p className="text-xs text-foreground/90 whitespace-pre-wrap break-words leading-relaxed">
-                    {comment.body}
-                  </p>
-                </div>
-              </div>
+              <TaskCommentCard
+                key={comment.id}
+                teamId={teamId}
+                taskId={taskId}
+                comment={comment}
+                currentUserId={me?.id}
+                isOwnerOrAdmin={isOwnerOrAdmin}
+                onViewAttachment={(att) => setViewingAttachment(att)}
+              />
             ))
           )}
         </div>
       </ScrollArea>
 
-      {/* Composer */}
-      <form
-        onSubmit={handleSubmit}
-        className="p-3 border-t border-border/60 bg-card/80 space-y-2 shrink-0"
-      >
-        <Textarea
-          value={commentBody}
-          onChange={(e) => setCommentBody(e.target.value)}
-          placeholder={m.comment_placeholder()}
-          rows={3}
-          className="text-xs resize-none"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-              e.preventDefault()
-              if (commentBody.trim()) addComment()
-            }
-          }}
+      {/* Composer Input Box */}
+      <div className="p-3 border-t border-border/60 bg-card/60 shrink-0">
+        <TaskCommentInput
+          teamId={teamId}
+          onSendMessage={handleSendMessage}
+          isSubmitting={isAdding}
         />
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] text-muted-foreground">Cmd+Enter to send</span>
-          <Button
-            type="submit"
-            size="xs"
-            disabled={!commentBody.trim() || isAdding}
-            className="gap-1.5 h-7 px-3 text-xs"
-          >
-            {isAdding ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Send className="w-3.5 h-3.5" />
-            )}
-            <span>{m.add_comment()}</span>
-          </Button>
-        </div>
-      </form>
+      </div>
     </div>
   )
 }

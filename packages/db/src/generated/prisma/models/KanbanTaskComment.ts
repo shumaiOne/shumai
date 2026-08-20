@@ -49,6 +49,7 @@ export type KanbanTaskCommentCountAggregateOutputType = {
   taskId: number
   authorId: number
   body: number
+  attachments:PrismaJson.KanbanCommentAttachmentList
   createdAt: number
   updatedAt: number
   _all: number
@@ -78,6 +79,7 @@ export type KanbanTaskCommentCountAggregateInputType = {
   taskId?: true
   authorId?: true
   body?: true
+  attachments?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -160,6 +162,7 @@ export type KanbanTaskCommentGroupByOutputType = {
   taskId: string
   authorId: string
   body: string
+  attachments:PrismaJson.KanbanCommentAttachmentList | null
   createdAt: Date
   updatedAt: Date
   _count: KanbanTaskCommentCountAggregateOutputType | null
@@ -190,6 +193,7 @@ export type KanbanTaskCommentWhereInput = {
   taskId?: Prisma.StringFilter<"KanbanTaskComment"> | string
   authorId?: Prisma.StringFilter<"KanbanTaskComment"> | string
   body?: Prisma.StringFilter<"KanbanTaskComment"> | string
+  attachments?: Prisma.JsonNullableFilter<"KanbanTaskComment">
   createdAt?: Prisma.DateTimeFilter<"KanbanTaskComment"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"KanbanTaskComment"> | Date | string
   task?: Prisma.XOR<Prisma.KanbanTaskScalarRelationFilter, Prisma.KanbanTaskWhereInput>
@@ -201,6 +205,7 @@ export type KanbanTaskCommentOrderByWithRelationInput = {
   taskId?: Prisma.SortOrder
   authorId?: Prisma.SortOrder
   body?: Prisma.SortOrder
+  attachments?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   task?: Prisma.KanbanTaskOrderByWithRelationInput
@@ -215,6 +220,7 @@ export type KanbanTaskCommentWhereUniqueInput = Prisma.AtLeast<{
   taskId?: Prisma.StringFilter<"KanbanTaskComment"> | string
   authorId?: Prisma.StringFilter<"KanbanTaskComment"> | string
   body?: Prisma.StringFilter<"KanbanTaskComment"> | string
+  attachments?: Prisma.JsonNullableFilter<"KanbanTaskComment">
   createdAt?: Prisma.DateTimeFilter<"KanbanTaskComment"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"KanbanTaskComment"> | Date | string
   task?: Prisma.XOR<Prisma.KanbanTaskScalarRelationFilter, Prisma.KanbanTaskWhereInput>
@@ -226,6 +232,7 @@ export type KanbanTaskCommentOrderByWithAggregationInput = {
   taskId?: Prisma.SortOrder
   authorId?: Prisma.SortOrder
   body?: Prisma.SortOrder
+  attachments?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.KanbanTaskCommentCountOrderByAggregateInput
@@ -241,6 +248,7 @@ export type KanbanTaskCommentScalarWhereWithAggregatesInput = {
   taskId?: Prisma.StringWithAggregatesFilter<"KanbanTaskComment"> | string
   authorId?: Prisma.StringWithAggregatesFilter<"KanbanTaskComment"> | string
   body?: Prisma.StringWithAggregatesFilter<"KanbanTaskComment"> | string
+  attachments?: Prisma.JsonNullableWithAggregatesFilter<"KanbanTaskComment">
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"KanbanTaskComment"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"KanbanTaskComment"> | Date | string
 }
@@ -248,6 +256,7 @@ export type KanbanTaskCommentScalarWhereWithAggregatesInput = {
 export type KanbanTaskCommentCreateInput = {
   id?: string
   body: string
+  attachments?:PrismaJson.KanbanCommentAttachmentList | Prisma.NullableJsonNullValueInput
   createdAt?: Date | string
   updatedAt?: Date | string
   task: Prisma.KanbanTaskCreateNestedOneWithoutCommentsInput
@@ -259,6 +268,7 @@ export type KanbanTaskCommentUncheckedCreateInput = {
   taskId: string
   authorId: string
   body: string
+  attachments?:PrismaJson.KanbanCommentAttachmentList | Prisma.NullableJsonNullValueInput
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -266,6 +276,7 @@ export type KanbanTaskCommentUncheckedCreateInput = {
 export type KanbanTaskCommentUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
+  attachments?:PrismaJson.KanbanCommentAttachmentList | Prisma.NullableJsonNullValueInput
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   task?: Prisma.KanbanTaskUpdateOneRequiredWithoutCommentsNestedInput
@@ -277,6 +288,7 @@ export type KanbanTaskCommentUncheckedUpdateInput = {
   taskId?: Prisma.StringFieldUpdateOperationsInput | string
   authorId?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
+  attachments?:PrismaJson.KanbanCommentAttachmentList | Prisma.NullableJsonNullValueInput
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -286,6 +298,7 @@ export type KanbanTaskCommentCreateManyInput = {
   taskId: string
   authorId: string
   body: string
+  attachments?:PrismaJson.KanbanCommentAttachmentList | Prisma.NullableJsonNullValueInput
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -293,6 +306,7 @@ export type KanbanTaskCommentCreateManyInput = {
 export type KanbanTaskCommentUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
+  attachments?:PrismaJson.KanbanCommentAttachmentList | Prisma.NullableJsonNullValueInput
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -302,6 +316,7 @@ export type KanbanTaskCommentUncheckedUpdateManyInput = {
   taskId?: Prisma.StringFieldUpdateOperationsInput | string
   authorId?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
+  attachments?:PrismaJson.KanbanCommentAttachmentList | Prisma.NullableJsonNullValueInput
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -321,6 +336,7 @@ export type KanbanTaskCommentCountOrderByAggregateInput = {
   taskId?: Prisma.SortOrder
   authorId?: Prisma.SortOrder
   body?: Prisma.SortOrder
+  attachments?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -430,6 +446,7 @@ export type KanbanTaskCommentUncheckedUpdateManyWithoutTaskNestedInput = {
 export type KanbanTaskCommentCreateWithoutAuthorInput = {
   id?: string
   body: string
+  attachments?:PrismaJson.KanbanCommentAttachmentList | Prisma.NullableJsonNullValueInput
   createdAt?: Date | string
   updatedAt?: Date | string
   task: Prisma.KanbanTaskCreateNestedOneWithoutCommentsInput
@@ -439,6 +456,7 @@ export type KanbanTaskCommentUncheckedCreateWithoutAuthorInput = {
   id?: string
   taskId: string
   body: string
+  attachments?:PrismaJson.KanbanCommentAttachmentList | Prisma.NullableJsonNullValueInput
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -477,6 +495,7 @@ export type KanbanTaskCommentScalarWhereInput = {
   taskId?: Prisma.StringFilter<"KanbanTaskComment"> | string
   authorId?: Prisma.StringFilter<"KanbanTaskComment"> | string
   body?: Prisma.StringFilter<"KanbanTaskComment"> | string
+  attachments?: Prisma.JsonNullableFilter<"KanbanTaskComment">
   createdAt?: Prisma.DateTimeFilter<"KanbanTaskComment"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"KanbanTaskComment"> | Date | string
 }
@@ -484,6 +503,7 @@ export type KanbanTaskCommentScalarWhereInput = {
 export type KanbanTaskCommentCreateWithoutTaskInput = {
   id?: string
   body: string
+  attachments?:PrismaJson.KanbanCommentAttachmentList | Prisma.NullableJsonNullValueInput
   createdAt?: Date | string
   updatedAt?: Date | string
   author: Prisma.UserCreateNestedOneWithoutKanbanTaskCommentsInput
@@ -493,6 +513,7 @@ export type KanbanTaskCommentUncheckedCreateWithoutTaskInput = {
   id?: string
   authorId: string
   body: string
+  attachments?:PrismaJson.KanbanCommentAttachmentList | Prisma.NullableJsonNullValueInput
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -527,6 +548,7 @@ export type KanbanTaskCommentCreateManyAuthorInput = {
   id?: string
   taskId: string
   body: string
+  attachments?:PrismaJson.KanbanCommentAttachmentList | Prisma.NullableJsonNullValueInput
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -534,6 +556,7 @@ export type KanbanTaskCommentCreateManyAuthorInput = {
 export type KanbanTaskCommentUpdateWithoutAuthorInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
+  attachments?:PrismaJson.KanbanCommentAttachmentList | Prisma.NullableJsonNullValueInput
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   task?: Prisma.KanbanTaskUpdateOneRequiredWithoutCommentsNestedInput
@@ -543,6 +566,7 @@ export type KanbanTaskCommentUncheckedUpdateWithoutAuthorInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   taskId?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
+  attachments?:PrismaJson.KanbanCommentAttachmentList | Prisma.NullableJsonNullValueInput
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -551,6 +575,7 @@ export type KanbanTaskCommentUncheckedUpdateManyWithoutAuthorInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   taskId?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
+  attachments?:PrismaJson.KanbanCommentAttachmentList | Prisma.NullableJsonNullValueInput
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -559,6 +584,7 @@ export type KanbanTaskCommentCreateManyTaskInput = {
   id?: string
   authorId: string
   body: string
+  attachments?:PrismaJson.KanbanCommentAttachmentList | Prisma.NullableJsonNullValueInput
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -566,6 +592,7 @@ export type KanbanTaskCommentCreateManyTaskInput = {
 export type KanbanTaskCommentUpdateWithoutTaskInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
+  attachments?:PrismaJson.KanbanCommentAttachmentList | Prisma.NullableJsonNullValueInput
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   author?: Prisma.UserUpdateOneRequiredWithoutKanbanTaskCommentsNestedInput
@@ -575,6 +602,7 @@ export type KanbanTaskCommentUncheckedUpdateWithoutTaskInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   authorId?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
+  attachments?:PrismaJson.KanbanCommentAttachmentList | Prisma.NullableJsonNullValueInput
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -583,6 +611,7 @@ export type KanbanTaskCommentUncheckedUpdateManyWithoutTaskInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   authorId?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
+  attachments?:PrismaJson.KanbanCommentAttachmentList | Prisma.NullableJsonNullValueInput
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -594,6 +623,7 @@ export type KanbanTaskCommentSelect<ExtArgs extends runtime.Types.Extensions.Int
   taskId?: boolean
   authorId?: boolean
   body?: boolean
+  attachments?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   task?: boolean | Prisma.KanbanTaskDefaultArgs<ExtArgs>
@@ -605,6 +635,7 @@ export type KanbanTaskCommentSelectCreateManyAndReturn<ExtArgs extends runtime.T
   taskId?: boolean
   authorId?: boolean
   body?: boolean
+  attachments?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   task?: boolean | Prisma.KanbanTaskDefaultArgs<ExtArgs>
@@ -616,6 +647,7 @@ export type KanbanTaskCommentSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   taskId?: boolean
   authorId?: boolean
   body?: boolean
+  attachments?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   task?: boolean | Prisma.KanbanTaskDefaultArgs<ExtArgs>
@@ -627,11 +659,12 @@ export type KanbanTaskCommentSelectScalar = {
   taskId?: boolean
   authorId?: boolean
   body?: boolean
+  attachments?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type KanbanTaskCommentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "taskId" | "authorId" | "body" | "createdAt" | "updatedAt", ExtArgs["result"]["kanbanTaskComment"]>
+export type KanbanTaskCommentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "taskId" | "authorId" | "body" | "attachments" | "createdAt" | "updatedAt", ExtArgs["result"]["kanbanTaskComment"]>
 export type KanbanTaskCommentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   task?: boolean | Prisma.KanbanTaskDefaultArgs<ExtArgs>
   author?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -656,6 +689,10 @@ export type $KanbanTaskCommentPayload<ExtArgs extends runtime.Types.Extensions.I
     taskId: string
     authorId: string
     body: string
+    /**
+     * [KanbanCommentAttachmentList]
+     */
+    attachments:PrismaJson.KanbanCommentAttachmentList | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["kanbanTaskComment"]>
@@ -1087,6 +1124,7 @@ export interface KanbanTaskCommentFieldRefs {
   readonly taskId: Prisma.FieldRef<"KanbanTaskComment", 'String'>
   readonly authorId: Prisma.FieldRef<"KanbanTaskComment", 'String'>
   readonly body: Prisma.FieldRef<"KanbanTaskComment", 'String'>
+  readonly attachments: Prisma.FieldRef<"KanbanTaskComment", 'Json'>
   readonly createdAt: Prisma.FieldRef<"KanbanTaskComment", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"KanbanTaskComment", 'DateTime'>
 }

@@ -7,9 +7,12 @@ import {
   KanbanTaskEventType,
 } from '@shumai/db/enums'
 import { HTTPException } from 'hono/http-exception'
+import { ulid } from 'ulid'
 import { paginateQuery } from '../pagination'
 import { kanbanDispatcher } from './kanban-dispatcher'
 import { getAvatarUrl } from '../user/avatar'
+import { s3Service } from '../s3/s3'
+import { getProxyType } from '../utils/mime'
 import type {
   CreateKanbanGoalRequest,
   UpdateKanbanGoalRequest,
@@ -21,6 +24,9 @@ import type {
   KanbanTaskDetail,
   KanbanStatusEventInfo,
   KanbanCommentInfo,
+  KanbanAttachmentInfo,
+  KanbanAttachmentPayload,
+  PostKanbanAttachmentResponse,
   KanbanEventInfo,
   KanbanGoalInfo,
 } from '@shumai/dtos'
@@ -355,6 +361,7 @@ export class KanbanService {
             image: await getAvatarUrl(c.author.image),
           },
           body: c.body,
+          attachments: await this.resolveCommentAttachments(c.attachments),
           createdAt: c.createdAt.toISOString(),
           updatedAt: c.updatedAt.toISOString(),
         })),
@@ -1228,16 +1235,45 @@ export class KanbanService {
   }
 
   // --------------------------------------------------------------------------
-  // Comments & Events
+  // Attachments & Comments
   // --------------------------------------------------------------------------
 
-  async addComment(taskId: string, authorId: string, body: string): Promise<KanbanCommentInfo> {
+  async createAttachment(
+    teamId: string,
+    req: { fileName: string; size: number; contentType?: string },
+  ): Promise<PostKanbanAttachmentResponse> {
+    const key = `kanban/attachments/${ulid()}/${req.fileName}`
+    const uploadUrl = await s3Service.presign(process.env.S3_BUCKET || 'shumai', key, 'PUT')
+    const proxyType = getProxyType(req.contentType, req.fileName)
+
+    return {
+      id: ulid(),
+      name: req.fileName,
+      key,
+      sizeByte: req.size,
+      contentType: req.contentType,
+      uploadUrl,
+      proxyType,
+    }
+  }
+
+  async addComment(
+    taskId: string,
+    authorId: string,
+    body: string,
+    attachments?: KanbanAttachmentPayload[],
+  ): Promise<KanbanCommentInfo> {
     const task = await prisma.kanbanTask.findUnique({ where: { id: taskId } })
     if (!task) throw new HTTPException(404, { message: 'Task not found' })
 
     const comment = await prisma.$transaction(async (tx) => {
       const c = await tx.kanbanTaskComment.create({
-        data: { taskId, authorId, body },
+        data: {
+          taskId,
+          authorId,
+          body,
+          attachments: attachments && attachments.length > 0 ? attachments : undefined,
+        },
         include: { author: true },
       })
 
@@ -1252,6 +1288,8 @@ export class KanbanService {
       return c
     })
 
+    const resolvedAttachments = await this.resolveCommentAttachments(comment.attachments)
+
     return {
       id: comment.id,
       taskId: comment.taskId,
@@ -1261,6 +1299,7 @@ export class KanbanService {
         image: await getAvatarUrl(comment.author.image),
       },
       body: comment.body,
+      attachments: resolvedAttachments,
       createdAt: comment.createdAt.toISOString(),
       updatedAt: comment.updatedAt.toISOString(),
     }
@@ -1283,9 +1322,55 @@ export class KanbanService {
           image: await getAvatarUrl(c.author.image),
         },
         body: c.body,
+        attachments: await this.resolveCommentAttachments(c.attachments),
         createdAt: c.createdAt.toISOString(),
         updatedAt: c.updatedAt.toISOString(),
       })),
+    )
+  }
+
+  async deleteComment(
+    taskId: string,
+    commentId: string,
+    userId: string,
+    userRole?: TeamMemberRole | null,
+  ): Promise<void> {
+    const comment = await prisma.kanbanTaskComment.findUnique({
+      where: { id: commentId, taskId },
+    })
+    if (!comment) {
+      throw new HTTPException(404, { message: 'Comment not found' })
+    }
+
+    if (comment.authorId !== userId && userRole !== 'owner') {
+      throw new HTTPException(403, { message: 'Not authorized to delete this comment' })
+    }
+
+    await prisma.kanbanTaskComment.delete({
+      where: { id: commentId },
+    })
+  }
+
+  private async resolveCommentAttachments(
+    attachments?: PrismaJson.KanbanCommentAttachmentList | null,
+  ): Promise<KanbanAttachmentInfo[]> {
+    if (!attachments || !Array.isArray(attachments) || attachments.length === 0) {
+      return []
+    }
+
+    const bucket = process.env.S3_BUCKET || 'shumai'
+    return await Promise.all(
+      attachments.map(async (att) => {
+        const url = await s3Service.presign(bucket, att.key, 'GET')
+        return {
+          id: att.id,
+          name: att.name,
+          sizeByte: att.sizeByte,
+          contentType: att.contentType,
+          url,
+          proxyType: att.proxyType,
+        }
+      }),
     )
   }
 

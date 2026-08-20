@@ -498,15 +498,42 @@ describe('Kanban API Routes', () => {
   })
 
   // --------------------------------------------------------------------------
-  // Comments & Events
+  // Comments, Attachments & Events
   // --------------------------------------------------------------------------
-  describe('Comments and Events Endpoints', () => {
+  describe('Comments, Attachments and Events Endpoints', () => {
+    it('POST /teams/:teamId/kanban/attachments', async () => {
+      const mockAttachment = vi.spyOn(kanbanService, 'createAttachment').mockResolvedValue({
+        id: 'att-1',
+        name: 'test.png',
+        key: 'kanban/attachments/test.png',
+        sizeByte: 1024,
+        uploadUrl: 'http://s3/upload',
+        proxyType: 'image',
+      })
+
+      const res = await app.request(`/teams/${teamId}/kanban/attachments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileName: 'test.png', size: 1024, contentType: 'image/png' }),
+      })
+
+      expect(res.status).toBe(200)
+      const json = await res.json()
+      expect(json.id).toBe('att-1')
+      expect(mockAttachment).toHaveBeenCalledWith(teamId, {
+        fileName: 'test.png',
+        size: 1024,
+        contentType: 'image/png',
+      })
+    })
+
     it('POST /teams/:teamId/kanban/tasks/:taskId/comments', async () => {
       const mockAdd = vi.spyOn(kanbanService, 'addComment').mockResolvedValue({
         id: 'c-1',
         taskId,
         author: { id: 'user-1', name: 'User 1' },
         body: 'Here is a note',
+        attachments: [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
@@ -514,11 +541,43 @@ describe('Kanban API Routes', () => {
       const res = await app.request(`/teams/${teamId}/kanban/tasks/${taskId}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body: 'Here is a note' }),
+        body: JSON.stringify({
+          body: 'Here is a note',
+          attachments: [
+            {
+              id: 'att-1',
+              name: 'test.png',
+              key: 'key-1',
+              sizeByte: 1024,
+              proxyType: 'image',
+            },
+          ],
+        }),
       })
 
       expect(res.status).toBe(200)
-      expect(mockAdd).toHaveBeenCalledWith(taskId, 'user-1', 'Here is a note')
+      expect(mockAdd).toHaveBeenCalledWith(taskId, 'user-1', 'Here is a note', [
+        {
+          id: 'att-1',
+          name: 'test.png',
+          key: 'key-1',
+          sizeByte: 1024,
+          proxyType: 'image',
+        },
+      ])
+    })
+
+    it('DELETE /teams/:teamId/kanban/tasks/:taskId/comments/:commentId', async () => {
+      const mockDelete = vi.spyOn(kanbanService, 'deleteComment').mockResolvedValue()
+
+      const res = await app.request(`/teams/${teamId}/kanban/tasks/${taskId}/comments/c-1`, {
+        method: 'DELETE',
+      })
+
+      expect(res.status).toBe(200)
+      const json = await res.json()
+      expect(json.success).toBe(true)
+      expect(mockDelete).toHaveBeenCalledWith(taskId, 'c-1', 'user-1', 'owner')
     })
 
     it('GET /teams/:teamId/kanban/tasks/:taskId/comments', async () => {
@@ -528,6 +587,7 @@ describe('Kanban API Routes', () => {
           taskId,
           author: { id: 'user-1', name: 'User 1' },
           body: 'Note',
+          attachments: [],
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },

@@ -466,5 +466,15 @@ declare global {
       claimToken: string
       [key: string]: unknown
     }
+
+    export interface KanbanCommentAttachment {
+      id: string
+      name: string
+      key: string
+      sizeByte: number
+      contentType?: string | null
+      proxyType?: 'image' | 'video' | 'audio' | 'pdf' | null
+    }
+    export type KanbanCommentAttachmentList = KanbanCommentAttachment[]
   }
 }

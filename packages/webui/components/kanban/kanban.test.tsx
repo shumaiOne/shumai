@@ -11,6 +11,7 @@ import {
   KanbanTaskEventType,
   type KanbanTaskInfo,
   type KanbanGoalInfo,
+  type KanbanCommentInfo,
 } from '@shumai/dtos'
 import {
   getStatusLabel,
@@ -23,6 +24,8 @@ import {
 import { KanbanCard } from './kanban-card'
 import { KanbanHeader } from './kanban-header'
 import { KanbanCreateGoalDialog } from './kanban-create-goal-dialog'
+import { TaskCommentCard } from './edit-task-dialog/task-comment-card'
+import { TaskCommentInput } from './edit-task-dialog/task-comment-input'
 import { client } from '@/ui/api/client'
 
 // Mock @dnd-kit/react
@@ -252,6 +255,74 @@ describe('Kanban UI Unit & Component Tests', () => {
       await waitFor(() => {
         expect(mockPost).toHaveBeenCalled()
         expect(onClose).toHaveBeenCalled()
+      })
+    })
+  })
+
+  describe('TaskCommentCard and TaskCommentInput components', () => {
+    it('renders comment with markdown and image/file attachments', () => {
+      const mockComment: KanbanCommentInfo = {
+        id: 'c-1',
+        taskId: 't-1',
+        author: { id: 'u-1', name: 'Alice Author' },
+        body: 'Hello **bold** world',
+        attachments: [
+          {
+            id: 'att-1',
+            name: 'preview.png',
+            sizeByte: 10240,
+            url: 'https://example.com/preview.png',
+            proxyType: 'image',
+          },
+          {
+            id: 'att-2',
+            name: 'specs.pdf',
+            sizeByte: 20480,
+            url: 'https://example.com/specs.pdf',
+            proxyType: 'pdf',
+          },
+        ],
+        createdAt: '2026-08-20T00:00:00.000Z',
+        updatedAt: '2026-08-20T00:00:00.000Z',
+      }
+
+      const onViewAttachment = vi.fn()
+      render(
+        <TaskCommentCard
+          teamId="team-1"
+          taskId="t-1"
+          comment={mockComment}
+          currentUserId="u-1"
+          isOwnerOrAdmin={true}
+          onViewAttachment={onViewAttachment}
+        />,
+        { wrapper: createWrapper() },
+      )
+
+      expect(screen.getByText('Alice Author')).toBeDefined()
+      expect(screen.getByText('bold')).toBeDefined()
+      expect(screen.getByText('specs.pdf')).toBeDefined()
+
+      // Click image attachment
+      const img = screen.getByAltText('preview.png')
+      fireEvent.click(img)
+      expect(onViewAttachment).toHaveBeenCalledWith(mockComment.attachments[0])
+    })
+
+    it('renders TaskCommentInput and triggers send on button click', async () => {
+      const onSendMessage = vi.fn()
+      render(<TaskCommentInput teamId="team-1" onSendMessage={onSendMessage} />, {
+        wrapper: createWrapper(),
+      })
+
+      const textarea = screen.getByPlaceholderText(/comment/i)
+      fireEvent.change(textarea, { target: { value: 'New task comment' } })
+
+      const sendBtn = screen.getByTitle(/Send comment|发送/i)
+      fireEvent.click(sendBtn)
+
+      await waitFor(() => {
+        expect(onSendMessage).toHaveBeenCalledWith('New task comment', undefined)
       })
     })
   })

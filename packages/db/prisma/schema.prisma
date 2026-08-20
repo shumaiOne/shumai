@@ -1270,15 +1270,17 @@ model KanbanTaskRun {
 }
 
 model KanbanTaskComment {
-  id        String      @id @default(ulid())
-  taskId    String      @map("task_id")
-  task      KanbanTask  @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  authorId  String      @map("author_id")
-  author    User        @relation(fields: [authorId], references: [id])
-  body      String      @db.Text
+  id          String      @id @default(ulid())
+  taskId      String      @map("task_id")
+  task        KanbanTask  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorId    String      @map("author_id")
+  author      User        @relation(fields: [authorId], references: [id])
+  body        String      @db.Text
+  /// [KanbanCommentAttachmentList]
+  attachments Json?
 
-  createdAt DateTime    @default(now()) @map("created_at")
-  updatedAt DateTime    @updatedAt @map("updated_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
 
   @@index([taskId, createdAt])
   @@map("kanban_task_comments")

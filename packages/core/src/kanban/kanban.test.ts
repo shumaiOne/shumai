@@ -553,4 +553,61 @@ describe('KanbanService', () => {
       ).rejects.toThrow(/Agentic tasks are claimed automatically/)
     })
   })
+
+  // --------------------------------------------------------------------------
+  // Comments and Attachments
+  // --------------------------------------------------------------------------
+  describe('Comments and Attachments', () => {
+    it('creates attachments, adds comment with attachments, and deletes comment', async () => {
+      const { team, owner, editor, reviewer } = await setupTeamAndUsers()
+
+      const task = await kanbanService.createTask(
+        team.id,
+        { title: 'Task with Attachments' },
+        editor.id,
+        'editor',
+      )
+
+      // Create attachment
+      const att = await kanbanService.createAttachment(team.id, {
+        fileName: 'design.png',
+        size: 1024,
+        contentType: 'image/png',
+      })
+      expect(att.id).toBeDefined()
+      expect(att.uploadUrl).toBeDefined()
+      expect(att.proxyType).toBe('image')
+
+      // Add comment with attachment
+      const comment = await kanbanService.addComment(task.id, editor.id, 'Here is the design', [
+        {
+          id: att.id,
+          name: att.name,
+          key: att.key,
+          sizeByte: att.sizeByte,
+          contentType: att.contentType,
+          proxyType: att.proxyType,
+        },
+      ])
+      expect(comment.id).toBeDefined()
+      expect(comment.attachments.length).toBe(1)
+      expect(comment.attachments[0].name).toBe('design.png')
+      expect(comment.attachments[0].url).toBeDefined()
+
+      // List comments
+      const list = await kanbanService.listComments(task.id)
+      expect(list.length).toBe(1)
+      expect(list[0].attachments.length).toBe(1)
+
+      // Non-author reviewer cannot delete comment
+      await expect(
+        kanbanService.deleteComment(task.id, comment.id, reviewer.id, 'reviewer'),
+      ).rejects.toThrow(/Not authorized/)
+
+      // Team owner can delete comment
+      await kanbanService.deleteComment(task.id, comment.id, owner.id, 'owner')
+      const afterDelete = await kanbanService.listComments(task.id)
+      expect(afterDelete.length).toBe(0)
+    })
+  })
 })
