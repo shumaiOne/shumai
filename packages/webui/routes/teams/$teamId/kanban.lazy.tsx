@@ -3,7 +3,8 @@ import { KanbanPage } from '@/ui/components/kanban/kanban-page'
 
 function TeamKanbanPageRoute() {
   const { teamId } = Route.useParams()
-  return <KanbanPage teamId={teamId} />
+  const { taskId } = Route.useSearch()
+  return <KanbanPage teamId={teamId} initialTaskId={taskId} />
 }
 
 export const Route = createLazyFileRoute('/teams/$teamId/kanban')({

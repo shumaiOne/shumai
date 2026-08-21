@@ -68,6 +68,12 @@ enum NotificationType {
   metadata_field_updated_status
   new_user_join_team
   new_user_join_project
+  kanban_task_created
+  kanban_task_assigned
+  kanban_task_status_updated
+  kanban_task_updated
+  kanban_task_deleted
+  kanban_task_comment_created
 }
 
 enum ProjectMemberRole {
@@ -735,11 +741,15 @@ model Notification {
   taskId      String?          @map("task_id")
   task        Task?            @relation("TaskToNotification", fields: [taskId], references: [id])
 
+  kanbanTaskId String?         @map("kanban_task_id")
+  kanbanTask   KanbanTask?     @relation("KanbanTaskToNotification", fields: [kanbanTaskId], references: [id], onDelete: Cascade)
+
   userId      String?          @map("user_id")
   user        User?            @relation("UserToNotification", fields: [userId], references: [id])
 
   readByMembers TeamMember?    @relation("TeamMemberToLastReadNotification")
 
+  @@index([kanbanTaskId])
   @@map("notifications")
 }
 
@@ -1184,6 +1194,7 @@ model KanbanTask {
 
   comments       KanbanTaskComment[]
   events         KanbanTaskEvent[]
+  notifications  Notification[]     @relation("KanbanTaskToNotification")
 
   sortIndex      String?            @map("sort_index")
 

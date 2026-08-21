@@ -11,6 +11,7 @@ import {
   UploadCloud,
   Activity,
   Bell,
+  LayoutDashboard,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { NotificationSettings as Settings } from '@shumai/dtos'
@@ -219,6 +220,62 @@ export function NotificationSettings({ teamId }: { teamId: string }) {
               <Switch
                 checked={settings?.statusUpdates ?? true}
                 onCheckedChange={() => handleToggle('statusUpdates')}
+                disabled={isUpdating}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Kanban Settings */}
+        <Card className="border border-slate-200 dark:border-slate-800">
+          <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+            <div className="flex items-center gap-2">
+              <LayoutDashboard className="w-5 h-5 text-indigo-500" />
+              <CardTitle className="text-lg">{m.kanban_notifications()}</CardTitle>
+            </div>
+            <CardDescription>{m.kanban_notification_description()}</CardDescription>
+          </CardHeader>
+          <CardContent className="divide-y divide-slate-100 dark:divide-slate-800 p-0">
+            {/* Kanban Tasks */}
+            <div className="flex items-center justify-between p-6">
+              <div className="flex gap-4">
+                <div className="mt-1 flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400">
+                  <LayoutDashboard className="w-4 h-4" />
+                </div>
+                <div className="space-y-0.5">
+                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
+                    {m.kanban_tasks()}
+                  </h4>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {m.when_kanban_task_events()}
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={settings?.kanbanTasks ?? true}
+                onCheckedChange={() => handleToggle('kanbanTasks')}
+                disabled={isUpdating}
+              />
+            </div>
+
+            {/* Kanban Comments */}
+            <div className="flex items-center justify-between p-6">
+              <div className="flex gap-4">
+                <div className="mt-1 flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 dark:text-cyan-400">
+                  <MessageSquare className="w-4 h-4" />
+                </div>
+                <div className="space-y-0.5">
+                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
+                    {m.kanban_comments()}
+                  </h4>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {m.when_kanban_task_commented()}
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={settings?.kanbanComments ?? true}
+                onCheckedChange={() => handleToggle('kanbanComments')}
                 disabled={isUpdating}
               />
             </div>

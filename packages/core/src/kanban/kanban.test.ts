@@ -212,6 +212,28 @@ describe('KanbanService', () => {
       expect(agentList.data.length).toBe(1)
       expect(agentList.data[0].id).toBe(task2.id)
     })
+
+    it('deletes tasks properly with permissions', async () => {
+      const { team, editor, reviewer } = await setupTeamAndUsers()
+
+      const task = await kanbanService.createTask(
+        team.id,
+        { title: 'Task to Delete', isAgentTask: false },
+        editor.id,
+        'editor',
+      )
+
+      // Reviewer (not creator, not owner, not reporter) cannot delete
+      await expect(kanbanService.deleteTask(task.id, reviewer.id, 'reviewer')).rejects.toThrow()
+
+      // Creator (editor) can delete
+      const deleted = await kanbanService.deleteTask(task.id, editor.id, 'editor')
+      expect(deleted.id).toBe(task.id)
+
+      // Confirm deleted from db
+      const fromDb = await prisma.kanbanTask.findUnique({ where: { id: task.id } })
+      expect(fromDb).toBeNull()
+    })
   })
 
   // --------------------------------------------------------------------------

@@ -177,7 +177,7 @@ describe('Kanban UI Unit & Component Tests', () => {
       render(<KanbanCard task={mockAgenticTask} onClick={onClick} />)
 
       expect(screen.getByText('Autonomous Agent Task')).toBeDefined()
-      expect(screen.getByText(/Agent Task|智能体任务/i)).toBeDefined()
+      expect(screen.getByText(/^Agent Task$|^智能体任务$/i)).toBeDefined()
     })
 
     it('enforces card drag permission: enabled for owner, reporter, or assignee; disabled for others', () => {

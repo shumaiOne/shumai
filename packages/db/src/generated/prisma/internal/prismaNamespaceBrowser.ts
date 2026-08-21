@@ -471,6 +471,7 @@ export const NotificationScalarFieldEnum = {
   creatorId: 'creatorId',
   assetId: 'assetId',
   taskId: 'taskId',
+  kanbanTaskId: 'kanbanTaskId',
   userId: 'userId'
 } as const
 

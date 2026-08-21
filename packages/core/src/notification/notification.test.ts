@@ -419,7 +419,14 @@ describe('NotificationService', () => {
     const info = await svc['toNotificationInfo'](
       await prisma.notification.findUniqueOrThrow({
         where: { id: n.id },
-        include: { creator: true, team: true, project: true, asset: true, user: true },
+        include: {
+          creator: true,
+          team: true,
+          project: true,
+          asset: true,
+          user: true,
+          kanbanTask: true,
+        },
       }),
       null,
     )
@@ -429,5 +436,104 @@ describe('NotificationService', () => {
     expect(info.asset?.thumbnailUrl).toContain('posters/test-video.jpg')
     expect(info.asset?.originalWidth).toBe(1280)
     expect(info.asset?.originalHeight).toBe(720)
+  })
+
+  it('notifyKanbanTaskEvent broadcasts to stakeholders excluding actor and parses mentions', async () => {
+    const tm = await prisma.team.create({ data: { name: 'Team Kanban' } })
+    const u1 = await prisma.user.create({
+      data: { name: 'Actor', email: `actor-${Date.now()}@example.com`, password: 'p' },
+    })
+    const u2 = await prisma.user.create({
+      data: { name: 'Assignee', email: `assignee-${Date.now()}@example.com`, password: 'p' },
+    })
+    const u3 = await prisma.user.create({
+      data: { name: 'Mentioned', email: `mentioned-${Date.now()}@example.com`, password: 'p' },
+    })
+    const task = await prisma.kanbanTask.create({
+      data: {
+        teamId: tm.id,
+        creatorId: u1.id,
+        title: 'Important task',
+      },
+    })
+
+    const svc = notificationService
+    await svc.notifyKanbanTaskEvent({
+      type: NotificationType.kanban_task_comment_created,
+      teamId: tm.id,
+      creatorId: u1.id,
+      kanbanTaskId: task.id,
+      stakeholderIds: [u1.id, u2.id],
+      commentMessage: `Hey <@${u3.id}> please check this`,
+    })
+
+    const notifications = await prisma.notification.findMany({
+      where: { kanbanTaskId: task.id },
+      orderBy: { id: 'asc' },
+    })
+
+    // u1 is actor, should not get notification.
+    // u2 is stakeholder, gets kanban_task_comment_created.
+    // u3 is mentioned, gets mention.
+    expect(notifications).toHaveLength(2)
+
+    const commentNotif = notifications.find(
+      (n) => n.type === NotificationType.kanban_task_comment_created,
+    )
+    expect(commentNotif?.userId).toBe(u2.id)
+
+    const mentionNotif = notifications.find((n) => n.type === NotificationType.mention)
+    expect(mentionNotif?.userId).toBe(u3.id)
+  })
+
+  it('filters kanban notifications based on user preferences', async () => {
+    const tm = await prisma.team.create({ data: { name: 'Team Settings' } })
+    const u1 = await prisma.user.create({
+      data: { name: 'U1', email: `u1-set-${Date.now()}@example.com`, password: 'p' },
+    })
+    await prisma.teamMember.create({
+      data: { teamId: tm.id, userId: u1.id, role: 'owner' },
+    })
+    const task = await prisma.kanbanTask.create({
+      data: { teamId: tm.id, creatorId: u1.id, title: 'Task' },
+    })
+
+    await prisma.notification.create({
+      data: {
+        teamId: tm.id,
+        type: NotificationType.kanban_task_created,
+        userId: u1.id,
+        kanbanTaskId: task.id,
+      },
+    })
+    await prisma.notification.create({
+      data: {
+        teamId: tm.id,
+        type: NotificationType.kanban_task_comment_created,
+        userId: u1.id,
+        kanbanTaskId: task.id,
+      },
+    })
+
+    const svc = notificationService
+    // By default both are enabled
+    const listDefault = await svc.list(tm.id, u1.id, {})
+    expect(listDefault.data).toHaveLength(2)
+
+    // Disable kanbanTasks
+    await userMetadataService.upsertMetadata(u1.id, tm.id, 'notification_settings', {
+      comments: true,
+      replies: true,
+      mentions: true,
+      yourUploads: false,
+      otherUploads: true,
+      statusUpdates: true,
+      kanbanTasks: false,
+      kanbanComments: true,
+    })
+
+    const listWithoutTasks = await svc.list(tm.id, u1.id, {})
+    expect(listWithoutTasks.data).toHaveLength(1)
+    expect(listWithoutTasks.data[0].type).toBe(NotificationType.kanban_task_comment_created)
   })
 })

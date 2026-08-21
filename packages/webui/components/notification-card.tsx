@@ -4,6 +4,7 @@ import { cn } from '@/ui/lib/utils'
 import { SpriteScrubber } from './sprite-scrubber'
 import { m } from '@/ui/paraglide/messages.js'
 import React from 'react'
+import { useNavigate } from '@tanstack/react-router'
 
 interface NotificationCardProps {
   notification: NotificationInfo
@@ -33,11 +34,13 @@ const renderNotification = (
 }
 
 export const NotificationCard = ({ notification }: NotificationCardProps) => {
-  const { creator, createdAt, isRead, type, asset, project, team, user } = notification
+  const navigate = useNavigate()
+  const { creator, createdAt, isRead, type, asset, project, team, user, kanbanTask } = notification
 
   const message = (() => {
     const creatorName = creator?.name || m.unknown_user()
     const assetName = asset?.name || m.unknown_asset()
+    const taskTitle = kanbanTask?.title || m.unknown_task()
     const projectName = project?.name || m.unknown_project()
     const teamName = team?.name || m.unknown_team()
     const targetUserName = user?.name || m.unknown_user()
@@ -45,6 +48,7 @@ export const NotificationCard = ({ notification }: NotificationCardProps) => {
     const placeholders = {
       creator: <span className="font-semibold">{creatorName}</span>,
       asset: <span className="font-semibold">{assetName}</span>,
+      task: <span className="font-semibold">{taskTitle}</span>,
       project: <span className="font-semibold">{projectName}</span>,
       team: <span className="font-semibold">{teamName}</span>,
       user: <span className="font-semibold">{targetUserName}</span>,
@@ -63,7 +67,9 @@ export const NotificationCard = ({ notification }: NotificationCardProps) => {
         )
       case 'mention':
         return renderNotification(
-          m.notification_mentioned_you({ creator: '{creator}', asset: '{asset}' }),
+          kanbanTask
+            ? m.notification_mentioned_you_in_task({ creator: '{creator}', task: '{task}' })
+            : m.notification_mentioned_you({ creator: '{creator}', asset: '{asset}' }),
           placeholders,
         )
       case 'successful_file_uploaded':
@@ -86,6 +92,36 @@ export const NotificationCard = ({ notification }: NotificationCardProps) => {
           m.notification_joined_project({ user: '{user}', project: '{project}' }),
           placeholders,
         )
+      case 'kanban_task_created':
+        return renderNotification(
+          m.notification_kanban_task_created({ creator: '{creator}', task: '{task}' }),
+          placeholders,
+        )
+      case 'kanban_task_assigned':
+        return renderNotification(
+          m.notification_kanban_task_assigned({ creator: '{creator}', task: '{task}' }),
+          placeholders,
+        )
+      case 'kanban_task_status_updated':
+        return renderNotification(
+          m.notification_kanban_task_status_updated({ creator: '{creator}', task: '{task}' }),
+          placeholders,
+        )
+      case 'kanban_task_updated':
+        return renderNotification(
+          m.notification_kanban_task_updated({ creator: '{creator}', task: '{task}' }),
+          placeholders,
+        )
+      case 'kanban_task_deleted':
+        return renderNotification(
+          m.notification_kanban_task_deleted({ creator: '{creator}', task: '{task}' }),
+          placeholders,
+        )
+      case 'kanban_task_comment_created':
+        return renderNotification(
+          m.notification_kanban_task_comment_created({ creator: '{creator}', task: '{task}' }),
+          placeholders,
+        )
       default:
         return renderNotification(m.notification_generic({ creator: '{creator}' }), placeholders)
     }
@@ -100,8 +136,21 @@ export const NotificationCard = ({ notification }: NotificationCardProps) => {
 
   const hasPreview = asset?.preview && (asset.proxyType === 'image' || asset.proxyType === 'video')
 
+  const handleClick = () => {
+    if (kanbanTask?.id && team?.id) {
+      navigate({
+        to: '/teams/$teamId/kanban',
+        params: { teamId: team.id },
+        search: { taskId: kanbanTask.id },
+      })
+    }
+  }
+
   return (
-    <div className="flex py-2 cursor-pointer group border border-transparent items-center justify-center">
+    <div
+      onClick={handleClick}
+      className="flex py-2 cursor-pointer group border border-transparent items-center justify-center hover:bg-muted/50 rounded-md px-1 transition-colors"
+    >
       {/* Unread Indicator */}
       <div
         className={cn(

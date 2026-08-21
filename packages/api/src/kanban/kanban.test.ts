@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Hono, type Context, type Next } from 'hono'
 import { kanbanService } from '@shumai/core/src/kanban/kanban'
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
+import { notificationService } from '@shumai/core/src/notification/notification'
 import { KanbanTaskStatus, KanbanTaskPriority } from '@shumai/db/enums'
 import kanbanRoute from './index'
 
@@ -22,6 +24,19 @@ vi.mock('@shumai/core/src/authz/authz', () => ({
   },
 }))
 
+vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
+  auditLogService: {
+    logAction: vi.fn().mockResolvedValue({}),
+  },
+}))
+
+vi.mock('@shumai/core/src/notification/notification', () => ({
+  notificationService: {
+    notifyKanbanTaskEvent: vi.fn().mockResolvedValue(undefined),
+    create: vi.fn().mockResolvedValue(undefined),
+  },
+}))
+
 describe('Kanban API Routes', () => {
   const teamId = 'team-1'
   const taskId = 'task-1'
@@ -36,6 +51,8 @@ describe('Kanban API Routes', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(auditLogService.logAction).mockResolvedValue({} as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+    vi.mocked(notificationService.notifyKanbanTaskEvent).mockResolvedValue(undefined as any) // eslint-disable-line @typescript-eslint/no-explicit-any
     app = new Hono()
     app.use('*', authMiddleware)
     app.route('/', kanbanRoute)
@@ -231,6 +248,24 @@ describe('Kanban API Routes', () => {
     })
 
     it('PATCH /teams/:teamId/kanban/tasks/:taskId', async () => {
+      vi.spyOn(kanbanService, 'getTask').mockResolvedValue({
+        id: taskId,
+        title: 'Old Task Title',
+        isAgentTask: false,
+        status: KanbanTaskStatus.READY,
+        priority: KanbanTaskPriority.MEDIUM,
+        teamId,
+        creator: { id: 'user-1', name: 'User 1' },
+        dependencies: [],
+        dependents: [],
+        comments: [],
+        events: [],
+        commentCount: 0,
+        dependencyCount: 0,
+        dependentCount: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
       const mockUpdate = vi.spyOn(kanbanService, 'updateTask').mockResolvedValue({
         id: taskId,
         title: 'Updated Task Title',
@@ -262,6 +297,25 @@ describe('Kanban API Routes', () => {
     })
 
     it('PATCH /teams/:teamId/kanban/tasks/:taskId with beforeIndex and afterIndex', async () => {
+      vi.spyOn(kanbanService, 'getTask').mockResolvedValue({
+        id: taskId,
+        title: 'Task 1',
+        isAgentTask: false,
+        status: KanbanTaskStatus.READY,
+        priority: KanbanTaskPriority.MEDIUM,
+        sortIndex: 'a0V',
+        teamId,
+        creator: { id: 'user-1', name: 'User 1' },
+        dependencies: [],
+        dependents: [],
+        comments: [],
+        events: [],
+        commentCount: 0,
+        dependencyCount: 0,
+        dependentCount: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
       const mockUpdate = vi.spyOn(kanbanService, 'updateTask').mockResolvedValue({
         id: taskId,
         title: 'Task 1',
@@ -291,6 +345,50 @@ describe('Kanban API Routes', () => {
         'user-1',
         'owner',
       )
+    })
+
+    it('DELETE /teams/:teamId/kanban/tasks/:taskId', async () => {
+      vi.spyOn(kanbanService, 'getTask').mockResolvedValue({
+        id: taskId,
+        title: 'Task to delete',
+        isAgentTask: false,
+        status: KanbanTaskStatus.READY,
+        priority: KanbanTaskPriority.MEDIUM,
+        teamId,
+        creator: { id: 'user-1', name: 'User 1' },
+        dependencies: [],
+        dependents: [],
+        comments: [],
+        events: [],
+        commentCount: 0,
+        dependencyCount: 0,
+        dependentCount: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+      const mockDelete = vi.spyOn(kanbanService, 'deleteTask').mockResolvedValue({
+        id: taskId,
+        title: 'Task to delete',
+        isAgentTask: false,
+        status: KanbanTaskStatus.READY,
+        priority: KanbanTaskPriority.MEDIUM,
+        teamId,
+        creator: { id: 'user-1', name: 'User 1' },
+        commentCount: 0,
+        dependencyCount: 0,
+        dependentCount: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+
+      const res = await app.request(`/teams/${teamId}/kanban/tasks/${taskId}`, {
+        method: 'DELETE',
+      })
+
+      expect(res.status).toBe(200)
+      const json = await res.json()
+      expect(json.success).toBe(true)
+      expect(mockDelete).toHaveBeenCalledWith(taskId, 'user-1', 'owner')
     })
   })
 

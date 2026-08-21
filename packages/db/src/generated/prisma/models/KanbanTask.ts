@@ -315,6 +315,7 @@ export type KanbanTaskWhereInput = {
   dependents?: Prisma.KanbanTaskLinkListRelationFilter
   comments?: Prisma.KanbanTaskCommentListRelationFilter
   events?: Prisma.KanbanTaskEventListRelationFilter
+  notifications?: Prisma.NotificationListRelationFilter
 }
 
 export type KanbanTaskOrderByWithRelationInput = {
@@ -349,6 +350,7 @@ export type KanbanTaskOrderByWithRelationInput = {
   dependents?: Prisma.KanbanTaskLinkOrderByRelationAggregateInput
   comments?: Prisma.KanbanTaskCommentOrderByRelationAggregateInput
   events?: Prisma.KanbanTaskEventOrderByRelationAggregateInput
+  notifications?: Prisma.NotificationOrderByRelationAggregateInput
 }
 
 export type KanbanTaskWhereUniqueInput = Prisma.AtLeast<{
@@ -386,6 +388,7 @@ export type KanbanTaskWhereUniqueInput = Prisma.AtLeast<{
   dependents?: Prisma.KanbanTaskLinkListRelationFilter
   comments?: Prisma.KanbanTaskCommentListRelationFilter
   events?: Prisma.KanbanTaskEventListRelationFilter
+  notifications?: Prisma.NotificationListRelationFilter
 }, "id">
 
 export type KanbanTaskOrderByWithAggregationInput = {
@@ -465,6 +468,7 @@ export type KanbanTaskCreateInput = {
   dependents?: Prisma.KanbanTaskLinkCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventCreateNestedManyWithoutTaskInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutKanbanTaskInput
 }
 
 export type KanbanTaskUncheckedCreateInput = {
@@ -492,6 +496,7 @@ export type KanbanTaskUncheckedCreateInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutTaskInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutKanbanTaskInput
 }
 
 export type KanbanTaskUpdateInput = {
@@ -519,6 +524,7 @@ export type KanbanTaskUpdateInput = {
   dependents?: Prisma.KanbanTaskLinkUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUpdateManyWithoutTaskNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutKanbanTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateInput = {
@@ -546,6 +552,7 @@ export type KanbanTaskUncheckedUpdateInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutTaskNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutKanbanTaskNestedInput
 }
 
 export type KanbanTaskCreateManyInput = {
@@ -618,6 +625,11 @@ export type KanbanTaskListRelationFilter = {
 
 export type KanbanTaskOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
+}
+
+export type KanbanTaskNullableScalarRelationFilter = {
+  is?: Prisma.KanbanTaskWhereInput | null
+  isNot?: Prisma.KanbanTaskWhereInput | null
 }
 
 export type KanbanTaskCountOrderByAggregateInput = {
@@ -946,6 +958,22 @@ export type KanbanTaskUncheckedUpdateManyWithoutTargetFolderNestedInput = {
   deleteMany?: Prisma.KanbanTaskScalarWhereInput | Prisma.KanbanTaskScalarWhereInput[]
 }
 
+export type KanbanTaskCreateNestedOneWithoutNotificationsInput = {
+  create?: Prisma.XOR<Prisma.KanbanTaskCreateWithoutNotificationsInput, Prisma.KanbanTaskUncheckedCreateWithoutNotificationsInput>
+  connectOrCreate?: Prisma.KanbanTaskCreateOrConnectWithoutNotificationsInput
+  connect?: Prisma.KanbanTaskWhereUniqueInput
+}
+
+export type KanbanTaskUpdateOneWithoutNotificationsNestedInput = {
+  create?: Prisma.XOR<Prisma.KanbanTaskCreateWithoutNotificationsInput, Prisma.KanbanTaskUncheckedCreateWithoutNotificationsInput>
+  connectOrCreate?: Prisma.KanbanTaskCreateOrConnectWithoutNotificationsInput
+  upsert?: Prisma.KanbanTaskUpsertWithoutNotificationsInput
+  disconnect?: Prisma.KanbanTaskWhereInput | boolean
+  delete?: Prisma.KanbanTaskWhereInput | boolean
+  connect?: Prisma.KanbanTaskWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.KanbanTaskUpdateToOneWithWhereWithoutNotificationsInput, Prisma.KanbanTaskUpdateWithoutNotificationsInput>, Prisma.KanbanTaskUncheckedUpdateWithoutNotificationsInput>
+}
+
 export type KanbanTaskCreateNestedManyWithoutGoalInput = {
   create?: Prisma.XOR<Prisma.KanbanTaskCreateWithoutGoalInput, Prisma.KanbanTaskUncheckedCreateWithoutGoalInput> | Prisma.KanbanTaskCreateWithoutGoalInput[] | Prisma.KanbanTaskUncheckedCreateWithoutGoalInput[]
   connectOrCreate?: Prisma.KanbanTaskCreateOrConnectWithoutGoalInput | Prisma.KanbanTaskCreateOrConnectWithoutGoalInput[]
@@ -1076,6 +1104,7 @@ export type KanbanTaskCreateWithoutCreatorInput = {
   dependents?: Prisma.KanbanTaskLinkCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventCreateNestedManyWithoutTaskInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutKanbanTaskInput
 }
 
 export type KanbanTaskUncheckedCreateWithoutCreatorInput = {
@@ -1102,6 +1131,7 @@ export type KanbanTaskUncheckedCreateWithoutCreatorInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutTaskInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutKanbanTaskInput
 }
 
 export type KanbanTaskCreateOrConnectWithoutCreatorInput = {
@@ -1138,6 +1168,7 @@ export type KanbanTaskCreateWithoutReporterInput = {
   dependents?: Prisma.KanbanTaskLinkCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventCreateNestedManyWithoutTaskInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutKanbanTaskInput
 }
 
 export type KanbanTaskUncheckedCreateWithoutReporterInput = {
@@ -1164,6 +1195,7 @@ export type KanbanTaskUncheckedCreateWithoutReporterInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutTaskInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutKanbanTaskInput
 }
 
 export type KanbanTaskCreateOrConnectWithoutReporterInput = {
@@ -1200,6 +1232,7 @@ export type KanbanTaskCreateWithoutAssigneeInput = {
   dependents?: Prisma.KanbanTaskLinkCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventCreateNestedManyWithoutTaskInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutKanbanTaskInput
 }
 
 export type KanbanTaskUncheckedCreateWithoutAssigneeInput = {
@@ -1226,6 +1259,7 @@ export type KanbanTaskUncheckedCreateWithoutAssigneeInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutTaskInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutKanbanTaskInput
 }
 
 export type KanbanTaskCreateOrConnectWithoutAssigneeInput = {
@@ -1336,6 +1370,7 @@ export type KanbanTaskCreateWithoutTeamInput = {
   dependents?: Prisma.KanbanTaskLinkCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventCreateNestedManyWithoutTaskInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutKanbanTaskInput
 }
 
 export type KanbanTaskUncheckedCreateWithoutTeamInput = {
@@ -1362,6 +1397,7 @@ export type KanbanTaskUncheckedCreateWithoutTeamInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutTaskInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutKanbanTaskInput
 }
 
 export type KanbanTaskCreateOrConnectWithoutTeamInput = {
@@ -1414,6 +1450,7 @@ export type KanbanTaskCreateWithoutProjectInput = {
   dependents?: Prisma.KanbanTaskLinkCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventCreateNestedManyWithoutTaskInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutKanbanTaskInput
 }
 
 export type KanbanTaskUncheckedCreateWithoutProjectInput = {
@@ -1440,6 +1477,7 @@ export type KanbanTaskUncheckedCreateWithoutProjectInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutTaskInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutKanbanTaskInput
 }
 
 export type KanbanTaskCreateOrConnectWithoutProjectInput = {
@@ -1492,6 +1530,7 @@ export type KanbanTaskCreateWithoutTargetFolderInput = {
   dependents?: Prisma.KanbanTaskLinkCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventCreateNestedManyWithoutTaskInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutKanbanTaskInput
 }
 
 export type KanbanTaskUncheckedCreateWithoutTargetFolderInput = {
@@ -1518,6 +1557,7 @@ export type KanbanTaskUncheckedCreateWithoutTargetFolderInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutTaskInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutKanbanTaskInput
 }
 
 export type KanbanTaskCreateOrConnectWithoutTargetFolderInput = {
@@ -1546,6 +1586,130 @@ export type KanbanTaskUpdateManyWithWhereWithoutTargetFolderInput = {
   data: Prisma.XOR<Prisma.KanbanTaskUpdateManyMutationInput, Prisma.KanbanTaskUncheckedUpdateManyWithoutTargetFolderInput>
 }
 
+export type KanbanTaskCreateWithoutNotificationsInput = {
+  id?: string
+  title: string
+  description?: string | null
+  isAgentTask?: boolean
+  status?: $Enums.KanbanTaskStatus
+  priority?: $Enums.KanbanTaskPriority
+  startDate?: Date | string | null
+  dueDate?: Date | string | null
+  startedAt?: Date | string | null
+  completedAt?: Date | string | null
+  sortIndex?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  goal?: Prisma.KanbanGoalCreateNestedOneWithoutTasksInput
+  team: Prisma.TeamCreateNestedOneWithoutKanbanTasksInput
+  project?: Prisma.ProjectCreateNestedOneWithoutKanbanTasksInput
+  creator: Prisma.UserCreateNestedOneWithoutKanbanTasksCreatedInput
+  reporter?: Prisma.UserCreateNestedOneWithoutKanbanTasksReportedInput
+  assignee?: Prisma.UserCreateNestedOneWithoutKanbanTasksAssignedInput
+  targetFolder?: Prisma.AssetCreateNestedOneWithoutKanbanTargetTasksInput
+  dependencies?: Prisma.KanbanTaskLinkCreateNestedManyWithoutChildInput
+  dependents?: Prisma.KanbanTaskLinkCreateNestedManyWithoutParentInput
+  comments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutTaskInput
+  events?: Prisma.KanbanTaskEventCreateNestedManyWithoutTaskInput
+}
+
+export type KanbanTaskUncheckedCreateWithoutNotificationsInput = {
+  id?: string
+  title: string
+  description?: string | null
+  isAgentTask?: boolean
+  status?: $Enums.KanbanTaskStatus
+  priority?: $Enums.KanbanTaskPriority
+  startDate?: Date | string | null
+  dueDate?: Date | string | null
+  startedAt?: Date | string | null
+  completedAt?: Date | string | null
+  goalId?: string | null
+  teamId: string
+  projectId?: string | null
+  creatorId: string
+  reporterId?: string | null
+  assigneeId?: string | null
+  targetFolderId?: string | null
+  sortIndex?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  dependencies?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutChildInput
+  dependents?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutParentInput
+  comments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutTaskInput
+  events?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutTaskInput
+}
+
+export type KanbanTaskCreateOrConnectWithoutNotificationsInput = {
+  where: Prisma.KanbanTaskWhereUniqueInput
+  create: Prisma.XOR<Prisma.KanbanTaskCreateWithoutNotificationsInput, Prisma.KanbanTaskUncheckedCreateWithoutNotificationsInput>
+}
+
+export type KanbanTaskUpsertWithoutNotificationsInput = {
+  update: Prisma.XOR<Prisma.KanbanTaskUpdateWithoutNotificationsInput, Prisma.KanbanTaskUncheckedUpdateWithoutNotificationsInput>
+  create: Prisma.XOR<Prisma.KanbanTaskCreateWithoutNotificationsInput, Prisma.KanbanTaskUncheckedCreateWithoutNotificationsInput>
+  where?: Prisma.KanbanTaskWhereInput
+}
+
+export type KanbanTaskUpdateToOneWithWhereWithoutNotificationsInput = {
+  where?: Prisma.KanbanTaskWhereInput
+  data: Prisma.XOR<Prisma.KanbanTaskUpdateWithoutNotificationsInput, Prisma.KanbanTaskUncheckedUpdateWithoutNotificationsInput>
+}
+
+export type KanbanTaskUpdateWithoutNotificationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isAgentTask?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  status?: Prisma.EnumKanbanTaskStatusFieldUpdateOperationsInput | $Enums.KanbanTaskStatus
+  priority?: Prisma.EnumKanbanTaskPriorityFieldUpdateOperationsInput | $Enums.KanbanTaskPriority
+  startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  goal?: Prisma.KanbanGoalUpdateOneWithoutTasksNestedInput
+  team?: Prisma.TeamUpdateOneRequiredWithoutKanbanTasksNestedInput
+  project?: Prisma.ProjectUpdateOneWithoutKanbanTasksNestedInput
+  creator?: Prisma.UserUpdateOneRequiredWithoutKanbanTasksCreatedNestedInput
+  reporter?: Prisma.UserUpdateOneWithoutKanbanTasksReportedNestedInput
+  assignee?: Prisma.UserUpdateOneWithoutKanbanTasksAssignedNestedInput
+  targetFolder?: Prisma.AssetUpdateOneWithoutKanbanTargetTasksNestedInput
+  dependencies?: Prisma.KanbanTaskLinkUpdateManyWithoutChildNestedInput
+  dependents?: Prisma.KanbanTaskLinkUpdateManyWithoutParentNestedInput
+  comments?: Prisma.KanbanTaskCommentUpdateManyWithoutTaskNestedInput
+  events?: Prisma.KanbanTaskEventUpdateManyWithoutTaskNestedInput
+}
+
+export type KanbanTaskUncheckedUpdateWithoutNotificationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isAgentTask?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  status?: Prisma.EnumKanbanTaskStatusFieldUpdateOperationsInput | $Enums.KanbanTaskStatus
+  priority?: Prisma.EnumKanbanTaskPriorityFieldUpdateOperationsInput | $Enums.KanbanTaskPriority
+  startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  goalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  teamId?: Prisma.StringFieldUpdateOperationsInput | string
+  projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  creatorId?: Prisma.StringFieldUpdateOperationsInput | string
+  reporterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assigneeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetFolderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  dependencies?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutChildNestedInput
+  dependents?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutParentNestedInput
+  comments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutTaskNestedInput
+  events?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutTaskNestedInput
+}
+
 export type KanbanTaskCreateWithoutGoalInput = {
   id?: string
   title: string
@@ -1570,6 +1734,7 @@ export type KanbanTaskCreateWithoutGoalInput = {
   dependents?: Prisma.KanbanTaskLinkCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventCreateNestedManyWithoutTaskInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutKanbanTaskInput
 }
 
 export type KanbanTaskUncheckedCreateWithoutGoalInput = {
@@ -1596,6 +1761,7 @@ export type KanbanTaskUncheckedCreateWithoutGoalInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutTaskInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutKanbanTaskInput
 }
 
 export type KanbanTaskCreateOrConnectWithoutGoalInput = {
@@ -1648,6 +1814,7 @@ export type KanbanTaskCreateWithoutDependentsInput = {
   dependencies?: Prisma.KanbanTaskLinkCreateNestedManyWithoutChildInput
   comments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventCreateNestedManyWithoutTaskInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutKanbanTaskInput
 }
 
 export type KanbanTaskUncheckedCreateWithoutDependentsInput = {
@@ -1674,6 +1841,7 @@ export type KanbanTaskUncheckedCreateWithoutDependentsInput = {
   dependencies?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutChildInput
   comments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutTaskInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutKanbanTaskInput
 }
 
 export type KanbanTaskCreateOrConnectWithoutDependentsInput = {
@@ -1705,6 +1873,7 @@ export type KanbanTaskCreateWithoutDependenciesInput = {
   dependents?: Prisma.KanbanTaskLinkCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventCreateNestedManyWithoutTaskInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutKanbanTaskInput
 }
 
 export type KanbanTaskUncheckedCreateWithoutDependenciesInput = {
@@ -1731,6 +1900,7 @@ export type KanbanTaskUncheckedCreateWithoutDependenciesInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutTaskInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutKanbanTaskInput
 }
 
 export type KanbanTaskCreateOrConnectWithoutDependenciesInput = {
@@ -1773,6 +1943,7 @@ export type KanbanTaskUpdateWithoutDependentsInput = {
   dependencies?: Prisma.KanbanTaskLinkUpdateManyWithoutChildNestedInput
   comments?: Prisma.KanbanTaskCommentUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUpdateManyWithoutTaskNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutKanbanTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateWithoutDependentsInput = {
@@ -1799,6 +1970,7 @@ export type KanbanTaskUncheckedUpdateWithoutDependentsInput = {
   dependencies?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutChildNestedInput
   comments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutTaskNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutKanbanTaskNestedInput
 }
 
 export type KanbanTaskUpsertWithoutDependenciesInput = {
@@ -1836,6 +2008,7 @@ export type KanbanTaskUpdateWithoutDependenciesInput = {
   dependents?: Prisma.KanbanTaskLinkUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUpdateManyWithoutTaskNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutKanbanTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateWithoutDependenciesInput = {
@@ -1862,6 +2035,7 @@ export type KanbanTaskUncheckedUpdateWithoutDependenciesInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutTaskNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutKanbanTaskNestedInput
 }
 
 export type KanbanTaskCreateWithoutCommentsInput = {
@@ -1888,6 +2062,7 @@ export type KanbanTaskCreateWithoutCommentsInput = {
   dependencies?: Prisma.KanbanTaskLinkCreateNestedManyWithoutChildInput
   dependents?: Prisma.KanbanTaskLinkCreateNestedManyWithoutParentInput
   events?: Prisma.KanbanTaskEventCreateNestedManyWithoutTaskInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutKanbanTaskInput
 }
 
 export type KanbanTaskUncheckedCreateWithoutCommentsInput = {
@@ -1914,6 +2089,7 @@ export type KanbanTaskUncheckedCreateWithoutCommentsInput = {
   dependencies?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutChildInput
   dependents?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutParentInput
   events?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutTaskInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutKanbanTaskInput
 }
 
 export type KanbanTaskCreateOrConnectWithoutCommentsInput = {
@@ -1956,6 +2132,7 @@ export type KanbanTaskUpdateWithoutCommentsInput = {
   dependencies?: Prisma.KanbanTaskLinkUpdateManyWithoutChildNestedInput
   dependents?: Prisma.KanbanTaskLinkUpdateManyWithoutParentNestedInput
   events?: Prisma.KanbanTaskEventUpdateManyWithoutTaskNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutKanbanTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateWithoutCommentsInput = {
@@ -1982,6 +2159,7 @@ export type KanbanTaskUncheckedUpdateWithoutCommentsInput = {
   dependencies?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutChildNestedInput
   dependents?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutParentNestedInput
   events?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutTaskNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutKanbanTaskNestedInput
 }
 
 export type KanbanTaskCreateWithoutEventsInput = {
@@ -2008,6 +2186,7 @@ export type KanbanTaskCreateWithoutEventsInput = {
   dependencies?: Prisma.KanbanTaskLinkCreateNestedManyWithoutChildInput
   dependents?: Prisma.KanbanTaskLinkCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutTaskInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutKanbanTaskInput
 }
 
 export type KanbanTaskUncheckedCreateWithoutEventsInput = {
@@ -2034,6 +2213,7 @@ export type KanbanTaskUncheckedCreateWithoutEventsInput = {
   dependencies?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutChildInput
   dependents?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutTaskInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutKanbanTaskInput
 }
 
 export type KanbanTaskCreateOrConnectWithoutEventsInput = {
@@ -2076,6 +2256,7 @@ export type KanbanTaskUpdateWithoutEventsInput = {
   dependencies?: Prisma.KanbanTaskLinkUpdateManyWithoutChildNestedInput
   dependents?: Prisma.KanbanTaskLinkUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUpdateManyWithoutTaskNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutKanbanTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateWithoutEventsInput = {
@@ -2102,6 +2283,7 @@ export type KanbanTaskUncheckedUpdateWithoutEventsInput = {
   dependencies?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutChildNestedInput
   dependents?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutTaskNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutKanbanTaskNestedInput
 }
 
 export type KanbanTaskCreateManyCreatorInput = {
@@ -2194,6 +2376,7 @@ export type KanbanTaskUpdateWithoutCreatorInput = {
   dependents?: Prisma.KanbanTaskLinkUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUpdateManyWithoutTaskNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutKanbanTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateWithoutCreatorInput = {
@@ -2220,6 +2403,7 @@ export type KanbanTaskUncheckedUpdateWithoutCreatorInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutTaskNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutKanbanTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateManyWithoutCreatorInput = {
@@ -2268,6 +2452,7 @@ export type KanbanTaskUpdateWithoutReporterInput = {
   dependents?: Prisma.KanbanTaskLinkUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUpdateManyWithoutTaskNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutKanbanTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateWithoutReporterInput = {
@@ -2294,6 +2479,7 @@ export type KanbanTaskUncheckedUpdateWithoutReporterInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutTaskNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutKanbanTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateManyWithoutReporterInput = {
@@ -2342,6 +2528,7 @@ export type KanbanTaskUpdateWithoutAssigneeInput = {
   dependents?: Prisma.KanbanTaskLinkUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUpdateManyWithoutTaskNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutKanbanTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateWithoutAssigneeInput = {
@@ -2368,6 +2555,7 @@ export type KanbanTaskUncheckedUpdateWithoutAssigneeInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutTaskNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutKanbanTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateManyWithoutAssigneeInput = {
@@ -2438,6 +2626,7 @@ export type KanbanTaskUpdateWithoutTeamInput = {
   dependents?: Prisma.KanbanTaskLinkUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUpdateManyWithoutTaskNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutKanbanTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateWithoutTeamInput = {
@@ -2464,6 +2653,7 @@ export type KanbanTaskUncheckedUpdateWithoutTeamInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutTaskNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutKanbanTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateManyWithoutTeamInput = {
@@ -2534,6 +2724,7 @@ export type KanbanTaskUpdateWithoutProjectInput = {
   dependents?: Prisma.KanbanTaskLinkUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUpdateManyWithoutTaskNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutKanbanTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateWithoutProjectInput = {
@@ -2560,6 +2751,7 @@ export type KanbanTaskUncheckedUpdateWithoutProjectInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutTaskNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutKanbanTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateManyWithoutProjectInput = {
@@ -2630,6 +2822,7 @@ export type KanbanTaskUpdateWithoutTargetFolderInput = {
   dependents?: Prisma.KanbanTaskLinkUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUpdateManyWithoutTaskNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutKanbanTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateWithoutTargetFolderInput = {
@@ -2656,6 +2849,7 @@ export type KanbanTaskUncheckedUpdateWithoutTargetFolderInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutTaskNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutKanbanTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateManyWithoutTargetFolderInput = {
@@ -2726,6 +2920,7 @@ export type KanbanTaskUpdateWithoutGoalInput = {
   dependents?: Prisma.KanbanTaskLinkUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUpdateManyWithoutTaskNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutKanbanTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateWithoutGoalInput = {
@@ -2752,6 +2947,7 @@ export type KanbanTaskUncheckedUpdateWithoutGoalInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutTaskNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutKanbanTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateManyWithoutGoalInput = {
@@ -2786,6 +2982,7 @@ export type KanbanTaskCountOutputType = {
   dependents: number
   comments: number
   events: number
+  notifications: number
 }
 
 export type KanbanTaskCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2793,6 +2990,7 @@ export type KanbanTaskCountOutputTypeSelect<ExtArgs extends runtime.Types.Extens
   dependents?: boolean | KanbanTaskCountOutputTypeCountDependentsArgs
   comments?: boolean | KanbanTaskCountOutputTypeCountCommentsArgs
   events?: boolean | KanbanTaskCountOutputTypeCountEventsArgs
+  notifications?: boolean | KanbanTaskCountOutputTypeCountNotificationsArgs
 }
 
 /**
@@ -2833,6 +3031,13 @@ export type KanbanTaskCountOutputTypeCountEventsArgs<ExtArgs extends runtime.Typ
   where?: Prisma.KanbanTaskEventWhereInput
 }
 
+/**
+ * KanbanTaskCountOutputType without action
+ */
+export type KanbanTaskCountOutputTypeCountNotificationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.NotificationWhereInput
+}
+
 
 export type KanbanTaskSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -2866,6 +3071,7 @@ export type KanbanTaskSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   dependents?: boolean | Prisma.KanbanTask$dependentsArgs<ExtArgs>
   comments?: boolean | Prisma.KanbanTask$commentsArgs<ExtArgs>
   events?: boolean | Prisma.KanbanTask$eventsArgs<ExtArgs>
+  notifications?: boolean | Prisma.KanbanTask$notificationsArgs<ExtArgs>
   _count?: boolean | Prisma.KanbanTaskCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["kanbanTask"]>
 
@@ -2965,6 +3171,7 @@ export type KanbanTaskInclude<ExtArgs extends runtime.Types.Extensions.InternalA
   dependents?: boolean | Prisma.KanbanTask$dependentsArgs<ExtArgs>
   comments?: boolean | Prisma.KanbanTask$commentsArgs<ExtArgs>
   events?: boolean | Prisma.KanbanTask$eventsArgs<ExtArgs>
+  notifications?: boolean | Prisma.KanbanTask$notificationsArgs<ExtArgs>
   _count?: boolean | Prisma.KanbanTaskCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type KanbanTaskIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -3000,6 +3207,7 @@ export type $KanbanTaskPayload<ExtArgs extends runtime.Types.Extensions.Internal
     dependents: Prisma.$KanbanTaskLinkPayload<ExtArgs>[]
     comments: Prisma.$KanbanTaskCommentPayload<ExtArgs>[]
     events: Prisma.$KanbanTaskEventPayload<ExtArgs>[]
+    notifications: Prisma.$NotificationPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -3427,6 +3635,7 @@ export interface Prisma__KanbanTaskClient<T, Null = never, ExtArgs extends runti
   dependents<T extends Prisma.KanbanTask$dependentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.KanbanTask$dependentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KanbanTaskLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   comments<T extends Prisma.KanbanTask$commentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.KanbanTask$commentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KanbanTaskCommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   events<T extends Prisma.KanbanTask$eventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.KanbanTask$eventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KanbanTaskEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  notifications<T extends Prisma.KanbanTask$notificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.KanbanTask$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -4065,6 +4274,30 @@ export type KanbanTask$eventsArgs<ExtArgs extends runtime.Types.Extensions.Inter
   take?: number
   skip?: number
   distinct?: Prisma.KanbanTaskEventScalarFieldEnum | Prisma.KanbanTaskEventScalarFieldEnum[]
+}
+
+/**
+ * KanbanTask.notifications
+ */
+export type KanbanTask$notificationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Notification
+   */
+  select?: Prisma.NotificationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Notification
+   */
+  omit?: Prisma.NotificationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.NotificationInclude<ExtArgs> | null
+  where?: Prisma.NotificationWhereInput
+  orderBy?: Prisma.NotificationOrderByWithRelationInput | Prisma.NotificationOrderByWithRelationInput[]
+  cursor?: Prisma.NotificationWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.NotificationScalarFieldEnum | Prisma.NotificationScalarFieldEnum[]
 }
 
 /**
