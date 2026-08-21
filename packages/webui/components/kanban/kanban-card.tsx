@@ -2,7 +2,7 @@ import { useDraggable, useDroppable, useDragOperation } from '@dnd-kit/react'
 import { cn } from '@/ui/lib/utils'
 import { m } from '@/ui/paraglide/messages.js'
 import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/ui/avatar'
-import { KanbanTaskStatus, KanbanTaskType, type KanbanTaskInfo } from '@shumai/dtos'
+import { KanbanTaskStatus, type KanbanTaskInfo } from '@shumai/dtos'
 import { getPriorityBadgeColor, getPriorityLabel } from './kanban-types'
 import { Bot, Calendar, Link2, MessageSquare, AlertTriangle, Target, Sparkles } from 'lucide-react'
 import { format, isPast } from 'date-fns'
@@ -64,7 +64,7 @@ export function KanbanCard({
     disabled: isDragging || disabled,
   })
 
-  const isAgentic = task.type === KanbanTaskType.AGENTIC
+  const isAgentic = task.isAgentTask
   const isBlocked = task.status === KanbanTaskStatus.BLOCKED
   const isOverdue = task.dueDate
     ? isPast(new Date(task.dueDate)) &&
@@ -141,18 +141,14 @@ export function KanbanCard({
             )}
           </div>
 
-          {/* Task Type Badge (Agentic vs Manual) */}
-          {isAgentic ? (
+          {/* Task Type Badge (Agent Task only) */}
+          {isAgentic && (
             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 shrink-0">
               <Bot className="w-3 h-3" />
               <span>{m.task_type_agent()}</span>
               {task.latestRun && (
                 <span className="font-mono text-[9px] opacity-80">#{task.latestRun.attempt}</span>
               )}
-            </span>
-          ) : (
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted text-muted-foreground border border-border shrink-0">
-              {m.task_type_manual()}
             </span>
           )}
         </div>

@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import {
   KanbanTaskPriority,
   KanbanTaskStatus,
-  KanbanTaskType,
   KanbanTaskRunStatus,
   KanbanTaskEventType,
   type KanbanTaskInfo,
@@ -104,8 +103,8 @@ describe('Kanban UI Unit & Component Tests', () => {
     vi.clearAllMocks()
   })
 
-  describe('kanban-types helper functions', () => {
-    it('returns valid labels and colors for all statuses', () => {
+  describe('Kanban Helpers & Type Utilities', () => {
+    it('maps status to correct labels and semantic badge colors', () => {
       expect(getStatusLabel(KanbanTaskStatus.TODO)).toBeDefined()
       expect(getStatusLabel(KanbanTaskStatus.READY)).toBeDefined()
       expect(getStatusLabel(KanbanTaskStatus.IN_PROGRESS)).toBeDefined()
@@ -114,19 +113,18 @@ describe('Kanban UI Unit & Component Tests', () => {
       expect(getStatusLabel(KanbanTaskStatus.DONE)).toBeDefined()
       expect(getStatusLabel(KanbanTaskStatus.CANCELLED)).toBeDefined()
 
-      const todoColor = getStatusColor(KanbanTaskStatus.TODO)
-      expect(todoColor.badge).toBeDefined()
-      expect(todoColor.dot).toBeDefined()
-      expect(getStatusBadgeColor(KanbanTaskStatus.TODO)).toBe(todoColor.badge)
+      expect(getStatusColor(KanbanTaskStatus.READY)).toContain('emerald')
+      expect(getStatusBadgeColor(KanbanTaskStatus.BLOCKED)).toContain('red')
     })
 
-    it('returns valid labels and badges for priorities', () => {
+    it('maps priority to labels and colors', () => {
       expect(getPriorityLabel(KanbanTaskPriority.LOW)).toBeDefined()
-      expect(getPriorityLabel(KanbanTaskPriority.MEDIUM)).toBeDefined()
-      expect(getPriorityLabel(KanbanTaskPriority.HIGH)).toBeDefined()
       expect(getPriorityLabel(KanbanTaskPriority.URGENT)).toBeDefined()
-
       expect(getPriorityBadgeColor(KanbanTaskPriority.URGENT)).toContain('red')
+    })
+
+    it('maps run status to colors', () => {
+      expect(getRunStatusBadgeColor(KanbanTaskRunStatus.RUNNING)).toContain('amber')
       expect(getRunStatusBadgeColor(KanbanTaskRunStatus.COMPLETED)).toContain('emerald')
     })
   })
@@ -136,7 +134,7 @@ describe('Kanban UI Unit & Component Tests', () => {
       id: 'task-1',
       title: 'Manual Human Task',
       description: 'Test description',
-      type: KanbanTaskType.MANUAL,
+      isAgentTask: false,
       status: KanbanTaskStatus.TODO,
       priority: KanbanTaskPriority.HIGH,
       startDate: null,
@@ -163,7 +161,7 @@ describe('Kanban UI Unit & Component Tests', () => {
       ...mockManualTask,
       id: 'task-2',
       title: 'Autonomous Agent Task',
-      type: KanbanTaskType.AGENTIC,
+      isAgentTask: true,
       status: KanbanTaskStatus.IN_PROGRESS,
       latestRun: {
         id: 'run-1',
@@ -173,7 +171,7 @@ describe('Kanban UI Unit & Component Tests', () => {
       },
     }
 
-    it('renders human task card correctly', () => {
+    it('renders human task card correctly without agent task label', () => {
       const onClick = vi.fn()
       render(<KanbanCard task={mockManualTask} onClick={onClick} />)
 
@@ -182,6 +180,7 @@ describe('Kanban UI Unit & Component Tests', () => {
       expect(screen.getByText('Q3 Goal')).toBeDefined()
       expect(screen.getByText('3')).toBeDefined() // Comments count
       expect(screen.getByText('1')).toBeDefined() // Dependency count
+      expect(screen.queryByText(/Agent Task|智能体任务/i)).toBeNull()
 
       fireEvent.click(screen.getByText('Manual Human Task'))
       expect(onClick).toHaveBeenCalledWith(mockManualTask)
@@ -473,7 +472,7 @@ describe('Kanban UI Unit & Component Tests', () => {
       const mockTask: KanbanTaskInfo = {
         id: 'task-1',
         title: 'Reorderable Task',
-        type: KanbanTaskType.MANUAL,
+        isAgentTask: false,
         status: KanbanTaskStatus.TODO,
         priority: KanbanTaskPriority.MEDIUM,
         startDate: null,

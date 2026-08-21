@@ -75,7 +75,7 @@ export class KanbanContextService {
     lines.push('')
     lines.push(`Assignee: ${task.assignee?.name ?? 'Unassigned'}`)
     lines.push(`Status:   ${task.status}`)
-    lines.push(`Type:     ${task.type}`)
+    lines.push(`Agent:    ${task.isAgentTask ? 'Yes' : 'No'}`)
     lines.push(`Priority: ${task.priority}`)
     if (task.dueDate) {
       lines.push(`Due Date: ${task.dueDate.toISOString().split('T')[0]}`)

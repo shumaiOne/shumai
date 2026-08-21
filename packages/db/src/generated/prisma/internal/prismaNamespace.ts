@@ -4850,7 +4850,7 @@ export const KanbanTaskScalarFieldEnum = {
   id: 'id',
   title: 'title',
   description: 'description',
-  type: 'type',
+  isAgentTask: 'isAgentTask',
   status: 'status',
   priority: 'priority',
   startDate: 'startDate',
@@ -5379,20 +5379,6 @@ export type EnumQuotaPeriodFieldRefInput<$PrismaModel> = FieldRefInputType<$Pris
  * Reference to a field of type 'QuotaPeriod[]'
  */
 export type ListEnumQuotaPeriodFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QuotaPeriod[]'>
-    
-
-
-/**
- * Reference to a field of type 'KanbanTaskType'
- */
-export type EnumKanbanTaskTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KanbanTaskType'>
-    
-
-
-/**
- * Reference to a field of type 'KanbanTaskType[]'
- */
-export type ListEnumKanbanTaskTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KanbanTaskType[]'>
     
 
 

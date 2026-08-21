@@ -777,7 +777,7 @@ export const KanbanTaskScalarFieldEnum = {
   id: 'id',
   title: 'title',
   description: 'description',
-  type: 'type',
+  isAgentTask: 'isAgentTask',
   status: 'status',
   priority: 'priority',
   startDate: 'startDate',

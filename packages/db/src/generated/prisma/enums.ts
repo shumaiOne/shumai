@@ -204,14 +204,6 @@ export const QuotaResourceType = {
 export type QuotaResourceType = (typeof QuotaResourceType)[keyof typeof QuotaResourceType]
 
 
-export const KanbanTaskType = {
-  MANUAL: 'MANUAL',
-  AGENTIC: 'AGENTIC'
-} as const
-
-export type KanbanTaskType = (typeof KanbanTaskType)[keyof typeof KanbanTaskType]
-
-
 export const KanbanTaskStatus = {
   TODO: 'TODO',
   READY: 'READY',

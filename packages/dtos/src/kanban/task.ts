@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import {
-  KanbanTaskType,
   KanbanTaskStatus,
   KanbanTaskPriority,
   KanbanTaskRunStatus,
@@ -10,18 +9,12 @@ import { paginationPageInfoSchema, paginationParamsSchema } from '../pagination'
 import { kanbanUserInfoSchema, kanbanEventInfoSchema } from './event'
 import { kanbanCommentInfoSchema } from './comment'
 
-export {
-  KanbanTaskType,
-  KanbanTaskStatus,
-  KanbanTaskPriority,
-  KanbanTaskRunStatus,
-  KanbanTaskEventType,
-}
+export { KanbanTaskStatus, KanbanTaskPriority, KanbanTaskRunStatus, KanbanTaskEventType }
 
 export const createKanbanTaskSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
-  type: z.nativeEnum(KanbanTaskType).optional(),
+  isAgentTask: z.boolean().optional(),
   priority: z.nativeEnum(KanbanTaskPriority).optional(),
   startDate: z.union([z.string(), z.date()]).optional(),
   dueDate: z.union([z.string(), z.date()]).optional(),
@@ -37,7 +30,6 @@ export type CreateKanbanTaskRequest = z.infer<typeof createKanbanTaskSchema>
 export const updateKanbanTaskSchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().nullable().optional(),
-  type: z.nativeEnum(KanbanTaskType).optional(),
   status: z.nativeEnum(KanbanTaskStatus).optional(),
   reason: z.string().optional(),
   priority: z.nativeEnum(KanbanTaskPriority).optional(),
@@ -61,7 +53,10 @@ export type RequestChangesRequest = z.infer<typeof requestChangesSchema>
 export const listKanbanTasksRequestSchema = z
   .object({
     status: z.nativeEnum(KanbanTaskStatus).optional(),
-    type: z.nativeEnum(KanbanTaskType).optional(),
+    isAgentTask: z
+      .union([z.boolean(), z.string()])
+      .transform((v) => v === true || v === 'true')
+      .optional(),
     goalId: z.string().optional(),
     projectId: z.string().optional(),
     priority: z.nativeEnum(KanbanTaskPriority).optional(),
@@ -103,7 +98,7 @@ export type KanbanRunSummary = z.infer<typeof kanbanRunSummarySchema>
 export const kanbanTaskSummarySchema = z.object({
   id: z.string(),
   title: z.string(),
-  type: z.nativeEnum(KanbanTaskType),
+  isAgentTask: z.boolean(),
   status: z.nativeEnum(KanbanTaskStatus),
   priority: z.nativeEnum(KanbanTaskPriority),
   sortIndex: z.string().nullable().optional(),
@@ -114,7 +109,7 @@ export const kanbanTaskInfoSchema = z.object({
   id: z.string(),
   title: z.string(),
   description: z.string().nullable().optional(),
-  type: z.nativeEnum(KanbanTaskType),
+  isAgentTask: z.boolean(),
   status: z.nativeEnum(KanbanTaskStatus),
   priority: z.nativeEnum(KanbanTaskPriority),
   startDate: z.union([z.string(), z.date()]).nullable().optional(),
