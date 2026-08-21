@@ -150,22 +150,22 @@ describe('KanbanService', () => {
       const taskC = await kanbanService.createTask(team.id, { title: 'C' }, editor.id, 'editor')
 
       // Self dependency
-      await expect(kanbanService.addDependency(taskA.id, taskA.id, editor.id)).rejects.toThrow()
+      await expect(kanbanService.setDependencies(taskA.id, [taskA.id], editor.id)).rejects.toThrow()
 
-      // Chain: A -> B -> C
-      await kanbanService.addDependency(taskA.id, taskB.id, editor.id)
-      await kanbanService.addDependency(taskB.id, taskC.id, editor.id)
+      // Chain: A -> B -> C (B depends on A, C depends on B)
+      await kanbanService.setDependencies(taskB.id, [taskA.id], editor.id)
+      await kanbanService.setDependencies(taskC.id, [taskB.id], editor.id)
 
-      // Attempt cycle: C -> A (would create A -> B -> C -> A)
-      await expect(kanbanService.addDependency(taskC.id, taskA.id, editor.id)).rejects.toThrow(
+      // Attempt cycle: A depends on C (would create A -> B -> C -> A)
+      await expect(kanbanService.setDependencies(taskA.id, [taskC.id], editor.id)).rejects.toThrow(
         /Circular dependency detected/,
       )
 
-      // Remove dependency B -> C
-      await kanbanService.removeDependency(taskB.id, taskC.id, editor.id)
+      // Remove dependency of C on B
+      await kanbanService.setDependencies(taskC.id, [], editor.id)
 
-      // Now C -> A is allowed since chain is broken
-      await kanbanService.addDependency(taskC.id, taskA.id, editor.id)
+      // Now A can depend on C since chain is broken
+      await kanbanService.setDependencies(taskA.id, [taskC.id], editor.id)
     })
 
     it('syncs parent dependencies via setDependencies and updateTask', async () => {
