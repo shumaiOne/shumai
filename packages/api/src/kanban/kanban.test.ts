@@ -393,35 +393,6 @@ describe('Kanban API Routes', () => {
   })
 
   // --------------------------------------------------------------------------
-  // Links / Dependencies
-  // --------------------------------------------------------------------------
-  describe('Dependencies Endpoints', () => {
-    it('POST & DELETE /teams/:teamId/kanban/tasks/:taskId/dependencies', async () => {
-      const mockAdd = vi.spyOn(kanbanService, 'addDependency').mockResolvedValue(undefined)
-      const mockRemove = vi.spyOn(kanbanService, 'removeDependency').mockResolvedValue(undefined)
-
-      // Add
-      const addRes = await app.request(`/teams/${teamId}/kanban/tasks/${taskId}/dependencies`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ parentId: 'parent-1' }),
-      })
-      expect(addRes.status).toBe(200)
-      expect(mockAdd).toHaveBeenCalledWith('parent-1', taskId, 'user-1')
-
-      // Remove
-      const delRes = await app.request(
-        `/teams/${teamId}/kanban/tasks/${taskId}/dependencies/parent-1`,
-        {
-          method: 'DELETE',
-        },
-      )
-      expect(delRes.status).toBe(200)
-      expect(mockRemove).toHaveBeenCalledWith('parent-1', taskId, 'user-1')
-    })
-  })
-
-  // --------------------------------------------------------------------------
   // Comments, Attachments & Events
   // --------------------------------------------------------------------------
   describe('Comments, Attachments and Events Endpoints', () => {

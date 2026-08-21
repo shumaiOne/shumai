@@ -193,7 +193,7 @@ export class KanbanService {
 
     const task = await prisma.$transaction(async (tx) => {
       const lastTask = await tx.kanbanTask.findFirst({
-        where: { teamId, status: initialStatus },
+        where: { teamId, status: initialStatus, sortIndex: { not: null } },
         orderBy: { sortIndex: 'desc' },
       })
       const sortIndex = generateKeyBetween(lastTask?.sortIndex || null, null)
@@ -470,7 +470,7 @@ export class KanbanService {
           where: {
             teamId: existing.teamId,
             status: finalStatus,
-            sortIndex: { lt: req.beforeIndex },
+            sortIndex: { lt: req.beforeIndex, not: null },
             id: { not: taskId },
           },
           orderBy: { sortIndex: 'desc' },
@@ -481,7 +481,7 @@ export class KanbanService {
           where: {
             teamId: existing.teamId,
             status: finalStatus,
-            sortIndex: { gt: req.afterIndex },
+            sortIndex: { gt: req.afterIndex, not: null },
             id: { not: taskId },
           },
           orderBy: { sortIndex: 'asc' },
@@ -493,6 +493,7 @@ export class KanbanService {
             teamId: existing.teamId,
             status: finalStatus,
             id: { not: taskId },
+            sortIndex: { not: null },
           },
           orderBy: { sortIndex: 'desc' },
         })
@@ -571,6 +572,10 @@ export class KanbanService {
 
       return task
     })
+
+    if (req.parentIds !== undefined) {
+      await this.setDependencies(taskId, req.parentIds, actorId)
+    }
 
     const latestStatusEvent = await this.resolveLatestStatusEvent(taskId, updated.status)
     const counts = await this.getTaskCounts(taskId)
@@ -676,79 +681,74 @@ export class KanbanService {
   // DAG Dependency Management & Cycles
   // --------------------------------------------------------------------------
 
-  async addDependency(parentId: string, childId: string, actorId?: string): Promise<void> {
-    if (parentId === childId) {
+  async setDependencies(taskId: string, parentIds: string[], actorId?: string): Promise<void> {
+    const distinctParentIds = [...new Set(parentIds)]
+    if (distinctParentIds.includes(taskId)) {
       throw new HTTPException(400, { message: 'Task cannot depend on itself' })
     }
 
-    const [parent, child] = await Promise.all([
-      prisma.kanbanTask.findUnique({ where: { id: parentId } }),
-      prisma.kanbanTask.findUnique({ where: { id: childId } }),
-    ])
-    if (!parent || !child) {
-      throw new HTTPException(404, { message: 'Parent or child task not found' })
-    }
-    if (parent.teamId !== child.teamId) {
-      throw new HTTPException(400, {
-        message: 'Parent and child tasks must belong to the same team',
-      })
+    const task = await prisma.kanbanTask.findUnique({ where: { id: taskId } })
+    if (!task) {
+      throw new HTTPException(404, { message: 'Task not found' })
     }
 
-    // Check if link already exists
-    const existing = await prisma.kanbanTaskLink.findUnique({
-      // Prisma compound unique constraint key requires snake_case property name
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      where: { parentId_childId: { parentId, childId } },
+    if (distinctParentIds.length > 0) {
+      const parents = await prisma.kanbanTask.findMany({
+        where: { id: { in: distinctParentIds }, teamId: task.teamId },
+      })
+      if (parents.length !== distinctParentIds.length) {
+        throw new HTTPException(400, { message: 'One or more parent tasks were not found' })
+      }
+    }
+
+    const currentLinks = await prisma.kanbanTaskLink.findMany({
+      where: { childId: taskId },
     })
-    if (existing) return
+    const currentParentIds = new Set(currentLinks.map((l) => l.parentId))
+    const toAdd = distinctParentIds.filter((p) => !currentParentIds.has(p))
+    const toRemove = [...currentParentIds].filter((p) => !distinctParentIds.includes(p))
 
-    // Cycle detection: check if a path already exists from childId to parentId
-    const wouldCreateCycle = await this.pathExists(childId, parentId)
-    if (wouldCreateCycle) {
-      throw new HTTPException(400, {
-        message: 'Circular dependency detected: adding this dependency would create a cycle',
-      })
+    for (const parentId of toAdd) {
+      const wouldCreateCycle = await this.pathExists(taskId, parentId)
+      if (wouldCreateCycle) {
+        throw new HTTPException(400, {
+          message: 'Circular dependency detected: adding this dependency would create a cycle',
+        })
+      }
     }
 
     await prisma.$transaction(async (tx) => {
-      await tx.kanbanTaskLink.create({
-        data: { parentId, childId },
-      })
+      if (toRemove.length > 0) {
+        await tx.kanbanTaskLink.deleteMany({
+          where: { childId: taskId, parentId: { in: toRemove } },
+        })
+        for (const parentId of toRemove) {
+          await tx.kanbanTaskEvent.create({
+            data: {
+              taskId,
+              actorId,
+              type: KanbanTaskEventType.DEPENDENCY_REMOVED,
+              data: { parentId },
+            },
+          })
+        }
+      }
 
-      await tx.kanbanTaskEvent.create({
-        data: {
-          taskId: childId,
-          actorId,
-          type: KanbanTaskEventType.DEPENDENCY_ADDED,
-          data: { parentId },
-        },
-      })
-    })
-  }
-
-  async removeDependency(parentId: string, childId: string, actorId?: string): Promise<void> {
-    const link = await prisma.kanbanTaskLink.findUnique({
-      // Prisma compound unique constraint key requires snake_case property name
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      where: { parentId_childId: { parentId, childId } },
-    })
-    if (!link) return
-
-    await prisma.$transaction(async (tx) => {
-      await tx.kanbanTaskLink.delete({
-        // Prisma compound unique constraint key requires snake_case property name
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        where: { parentId_childId: { parentId, childId } },
-      })
-
-      await tx.kanbanTaskEvent.create({
-        data: {
-          taskId: childId,
-          actorId,
-          type: KanbanTaskEventType.DEPENDENCY_REMOVED,
-          data: { parentId },
-        },
-      })
+      if (toAdd.length > 0) {
+        await tx.kanbanTaskLink.createMany({
+          data: toAdd.map((parentId) => ({ parentId, childId: taskId })),
+        })
+        for (const parentId of toAdd) {
+          await tx.kanbanTaskEvent.create({
+            data: {
+              taskId,
+              actorId,
+              type: KanbanTaskEventType.DEPENDENCY_ADDED,
+              data: { parentId },
+            },
+          })
+        }
+      }
     })
   }
 

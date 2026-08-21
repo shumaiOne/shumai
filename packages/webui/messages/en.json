@@ -1255,5 +1255,9 @@
   "goal_task_count": "{count} tasks",
   "clear_filter": "Clear",
   "select_parent_task": "Select Parent Task",
-  "circular_dependency_warning": "Cannot select this task as it would create a circular dependency"
+  "circular_dependency_warning": "Cannot select this task as it would create a circular dependency",
+  "parent_tasks": "Parent Tasks",
+  "select_parent_tasks": "Select parent tasks...",
+  "no_parent_tasks": "No parent tasks",
+  "filter_tasks_placeholder": "Search tasks in this status..."
 }

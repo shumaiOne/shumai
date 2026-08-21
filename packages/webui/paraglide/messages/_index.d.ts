@@ -1195,4 +1195,8 @@ export * from "./goal_task_count.js";
 export * from "./clear_filter.js";
 export * from "./select_parent_task.js";
 export * from "./circular_dependency_warning.js";
+export * from "./parent_tasks.js";
+export * from "./select_parent_tasks.js";
+export * from "./no_parent_tasks.js";
+export * from "./filter_tasks_placeholder.js";
 export type LocalizedString = import("../runtime.js").LocalizedString;

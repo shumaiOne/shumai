@@ -150,22 +150,66 @@ describe('KanbanService', () => {
       const taskC = await kanbanService.createTask(team.id, { title: 'C' }, editor.id, 'editor')
 
       // Self dependency
-      await expect(kanbanService.addDependency(taskA.id, taskA.id, editor.id)).rejects.toThrow()
+      await expect(kanbanService.setDependencies(taskA.id, [taskA.id], editor.id)).rejects.toThrow()
 
-      // Chain: A -> B -> C
-      await kanbanService.addDependency(taskA.id, taskB.id, editor.id)
-      await kanbanService.addDependency(taskB.id, taskC.id, editor.id)
+      // Chain: A -> B -> C (B depends on A, C depends on B)
+      await kanbanService.setDependencies(taskB.id, [taskA.id], editor.id)
+      await kanbanService.setDependencies(taskC.id, [taskB.id], editor.id)
 
-      // Attempt cycle: C -> A (would create A -> B -> C -> A)
-      await expect(kanbanService.addDependency(taskC.id, taskA.id, editor.id)).rejects.toThrow(
+      // Attempt cycle: A depends on C (would create A -> B -> C -> A)
+      await expect(kanbanService.setDependencies(taskA.id, [taskC.id], editor.id)).rejects.toThrow(
         /Circular dependency detected/,
       )
 
-      // Remove dependency B -> C
-      await kanbanService.removeDependency(taskB.id, taskC.id, editor.id)
+      // Remove dependency of C on B
+      await kanbanService.setDependencies(taskC.id, [], editor.id)
 
-      // Now C -> A is allowed since chain is broken
-      await kanbanService.addDependency(taskC.id, taskA.id, editor.id)
+      // Now A can depend on C since chain is broken
+      await kanbanService.setDependencies(taskA.id, [taskC.id], editor.id)
+    })
+
+    it('syncs parent dependencies via setDependencies and updateTask', async () => {
+      const { team, editor } = await setupTeamAndUsers()
+
+      const task1 = await kanbanService.createTask(
+        team.id,
+        { title: 'Parent 1' },
+        editor.id,
+        'editor',
+      )
+      const task2 = await kanbanService.createTask(
+        team.id,
+        { title: 'Parent 2' },
+        editor.id,
+        'editor',
+      )
+      const task3 = await kanbanService.createTask(
+        team.id,
+        { title: 'Parent 3' },
+        editor.id,
+        'editor',
+      )
+      const child = await kanbanService.createTask(team.id, { title: 'Child' }, editor.id, 'editor')
+
+      // Set initial parents [task1, task2]
+      await kanbanService.setDependencies(child.id, [task1.id, task2.id], editor.id)
+      let detail = await kanbanService.getTask(child.id)
+      expect(detail.dependencies.map((d) => d.id).sort()).toEqual([task1.id, task2.id].sort())
+
+      // Update parents to [task2, task3] via updateTask (removes task1, adds task3)
+      await kanbanService.updateTask(
+        child.id,
+        { parentIds: [task2.id, task3.id] },
+        editor.id,
+        'editor',
+      )
+      detail = await kanbanService.getTask(child.id)
+      expect(detail.dependencies.map((d) => d.id).sort()).toEqual([task2.id, task3.id].sort())
+
+      // Clear parents
+      await kanbanService.updateTask(child.id, { parentIds: [] }, editor.id, 'editor')
+      detail = await kanbanService.getTask(child.id)
+      expect(detail.dependencies.length).toBe(0)
     })
   })
 
