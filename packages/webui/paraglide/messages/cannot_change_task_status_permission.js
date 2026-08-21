@@ -10,7 +10,7 @@ const en_cannot_change_task_status_permission = /** @type {(inputs: Cannot_Chang
 };
 
 const zh_cannot_change_task_status_permission = /** @type {(inputs: Cannot_Change_Task_Status_PermissionInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`仅团队所有者、任务报告人或负责人可以修改任务状态`)
+	return /** @type {LocalizedString} */ (`只有负责人、报告人或被指派人可以更改任务状态`)
 };
 
 /**

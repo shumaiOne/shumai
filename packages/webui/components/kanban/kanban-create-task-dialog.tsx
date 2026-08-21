@@ -226,7 +226,7 @@ export function KanbanCreateTaskDialog({
                     <SelectItem value={KanbanTaskType.AGENTIC}>
                       <div className="flex items-center gap-2">
                         <Bot className="w-3.5 h-3.5 text-purple-500" />
-                        <span>{m.task_type_agentic()}</span>
+                        <span>{m.task_type_agent()}</span>
                       </div>
                     </SelectItem>
                   </SelectContent>

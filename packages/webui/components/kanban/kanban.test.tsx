@@ -162,7 +162,7 @@ describe('Kanban UI Unit & Component Tests', () => {
     const mockAgenticTask: KanbanTaskInfo = {
       ...mockManualTask,
       id: 'task-2',
-      title: 'Autonomous Agentic Task',
+      title: 'Autonomous Agent Task',
       type: KanbanTaskType.AGENTIC,
       status: KanbanTaskStatus.IN_PROGRESS,
       latestRun: {
@@ -191,7 +191,7 @@ describe('Kanban UI Unit & Component Tests', () => {
       const onClick = vi.fn()
       render(<KanbanCard task={mockAgenticTask} onClick={onClick} />)
 
-      expect(screen.getByText('Autonomous Agentic Task')).toBeDefined()
+      expect(screen.getByText('Autonomous Agent Task')).toBeDefined()
       expect(screen.getByText(/Agent Task|智能体任务/i)).toBeDefined()
       expect(screen.getByText('#2')).toBeDefined()
     })

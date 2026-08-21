@@ -49,7 +49,7 @@ export function EditTaskDialog({
             {task?.type === 'AGENTIC' ? (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 shrink-0">
                 <Bot className="w-3.5 h-3.5" />
-                <span>{m.task_type_agentic()}</span>
+                <span>{m.task_type_agent()}</span>
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-muted text-muted-foreground border border-border shrink-0">
