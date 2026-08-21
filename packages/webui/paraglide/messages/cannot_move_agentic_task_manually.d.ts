@@ -1,7 +1,7 @@
 /**
 * | output |
 * | --- |
-* | "Agentic tasks are claimed automatically by the agent dispatcher" |
+* | "Agent tasks are claimed automatically by the agent dispatcher" |
 *
 * @param {Cannot_Move_Agentic_Task_ManuallyInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options

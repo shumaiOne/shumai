@@ -104,7 +104,7 @@ describe('KanbanService', () => {
   // Tasks Creation & Cost Protection
   // --------------------------------------------------------------------------
   describe('Task Creation & Permissions', () => {
-    it('restricts AGENTIC task creation to owner', async () => {
+    it('allows owner and editor to create tasks (including agent tasks)', async () => {
       const { team, owner, editor } = await setupTeamAndUsers()
 
       // Owner can create AGENTIC task
@@ -120,18 +120,18 @@ describe('KanbanService', () => {
       expect(agentTask.type).toBe(KanbanTaskType.AGENTIC)
       expect(agentTask.status).toBe(KanbanTaskStatus.READY)
 
-      // Editor cannot create AGENTIC task (throws 403)
-      await expect(
-        kanbanService.createTask(
-          team.id,
-          {
-            title: 'Unauthorized AI Task',
-            type: KanbanTaskType.AGENTIC,
-          },
-          editor.id,
-          'editor',
-        ),
-      ).rejects.toThrow()
+      // Editor can create AGENTIC task
+      const editorAgentTask = await kanbanService.createTask(
+        team.id,
+        {
+          title: 'Editor AI Task',
+          type: KanbanTaskType.AGENTIC,
+        },
+        editor.id,
+        'editor',
+      )
+      expect(editorAgentTask.type).toBe(KanbanTaskType.AGENTIC)
+      expect(editorAgentTask.status).toBe(KanbanTaskStatus.READY)
 
       // Editor can create MANUAL task
       const manualTask = await kanbanService.createTask(
@@ -478,7 +478,9 @@ describe('KanbanService', () => {
   // --------------------------------------------------------------------------
   // Unified Status Transitions & Unconstrained Human Tasks
   // --------------------------------------------------------------------------
-  describe('Unified Status Transitions & Unconstrained Human Tasks', () => {
+  // Unified Status Transitions & Task Status Permissions
+  // --------------------------------------------------------------------------
+  describe('Unified Status Transitions & Task Status Permissions', () => {
     it('allows human tasks to transition between any states via updateTask', async () => {
       const { team, editor } = await setupTeamAndUsers()
 
@@ -533,24 +535,134 @@ describe('KanbanService', () => {
       expect(todo.status).toBe(KanbanTaskStatus.TODO)
     })
 
-    it('enforces agentic task boundaries (rejects direct transition to IN_PROGRESS)', async () => {
-      const { team, owner } = await setupTeamAndUsers()
+    it('allows agent tasks to transition freely between any states via updateTask', async () => {
+      const { team, owner, editor } = await setupTeamAndUsers()
 
       const agentTask = await kanbanService.createTask(
         team.id,
-        { title: 'Agent Task', type: KanbanTaskType.AGENTIC },
+        { title: 'Flexible Agent Task', type: KanbanTaskType.AGENTIC },
+        editor.id,
+        'editor',
+      )
+      expect(agentTask.type).toBe(KanbanTaskType.AGENTIC)
+      expect(agentTask.status).toBe(KanbanTaskStatus.READY)
+
+      // Direct transition: READY -> IN_PROGRESS
+      const inProgress = await kanbanService.updateTask(
+        agentTask.id,
+        { status: KanbanTaskStatus.IN_PROGRESS },
+        editor.id,
+        'editor',
+      )
+      expect(inProgress.status).toBe(KanbanTaskStatus.IN_PROGRESS)
+
+      // Direct transition: IN_PROGRESS -> DONE
+      const done = await kanbanService.updateTask(
+        agentTask.id,
+        { status: KanbanTaskStatus.DONE },
         owner.id,
         'owner',
       )
+      expect(done.status).toBe(KanbanTaskStatus.DONE)
+      expect(done.completedAt).toBeDefined()
 
+      // Direct transition: DONE -> TODO
+      const todo = await kanbanService.updateTask(
+        agentTask.id,
+        { status: KanbanTaskStatus.TODO },
+        editor.id,
+        'editor',
+      )
+      expect(todo.status).toBe(KanbanTaskStatus.TODO)
+      expect(todo.completedAt).toBeNull()
+
+      // Direct transition: TODO -> IN_REVIEW
+      const inReview = await kanbanService.updateTask(
+        agentTask.id,
+        { status: KanbanTaskStatus.IN_REVIEW },
+        editor.id,
+        'editor',
+      )
+      expect(inReview.status).toBe(KanbanTaskStatus.IN_REVIEW)
+
+      // Direct transition: IN_REVIEW -> CANCELLED
+      const cancelled = await kanbanService.updateTask(
+        agentTask.id,
+        { status: KanbanTaskStatus.CANCELLED },
+        editor.id,
+        'editor',
+      )
+      expect(cancelled.status).toBe(KanbanTaskStatus.CANCELLED)
+    })
+
+    it('enforces status change permissions (only owner, reporter, or assignee can change status)', async () => {
+      const { team, owner, editor, reviewer } = await setupTeamAndUsers()
+
+      // Create another editor in team who is NOT reporter and NOT assignee
+      const otherEditor = await prisma.user.create({
+        data: { name: 'Other Editor', email: 'other-editor@example.com' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: otherEditor.id, role: 'editor', scope: 'team' },
+      })
+
+      // Create a task: reporter is editor, assignee is reviewer
+      const task = await kanbanService.createTask(
+        team.id,
+        {
+          title: 'Guarded Task',
+          reporterId: editor.id,
+          assigneeId: reviewer.id,
+        },
+        editor.id,
+        'editor',
+      )
+
+      // Other editor tries to change status -> rejected with 403
       await expect(
         kanbanService.updateTask(
-          agentTask.id,
+          task.id,
           { status: KanbanTaskStatus.IN_PROGRESS },
-          owner.id,
-          'owner',
+          otherEditor.id,
+          'editor',
         ),
-      ).rejects.toThrow(/Agentic tasks are claimed automatically/)
+      ).rejects.toThrow(/Only team owners, task reporters, or assignees can change task status/)
+
+      // Other editor CAN update non-status fields (e.g. description)
+      const descUpdated = await kanbanService.updateTask(
+        task.id,
+        { description: 'Updated by other editor' },
+        otherEditor.id,
+        'editor',
+      )
+      expect(descUpdated.description).toBe('Updated by other editor')
+
+      // Reporter (editor) CAN change status -> succeeds
+      const reporterUpdated = await kanbanService.updateTask(
+        task.id,
+        { status: KanbanTaskStatus.IN_PROGRESS },
+        editor.id,
+        'editor',
+      )
+      expect(reporterUpdated.status).toBe(KanbanTaskStatus.IN_PROGRESS)
+
+      // Assignee (reviewer) CAN change status -> succeeds
+      const assigneeUpdated = await kanbanService.updateTask(
+        task.id,
+        { status: KanbanTaskStatus.IN_REVIEW },
+        reviewer.id,
+        'reviewer',
+      )
+      expect(assigneeUpdated.status).toBe(KanbanTaskStatus.IN_REVIEW)
+
+      // Owner CAN change status -> succeeds
+      const ownerUpdated = await kanbanService.updateTask(
+        task.id,
+        { status: KanbanTaskStatus.DONE },
+        owner.id,
+        'owner',
+      )
+      expect(ownerUpdated.status).toBe(KanbanTaskStatus.DONE)
     })
   })
 

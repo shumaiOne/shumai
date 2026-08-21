@@ -1170,6 +1170,7 @@ export * from "./task_unblocked.js";
 export * from "./task_reopened.js";
 export * from "./task_cancelled.js";
 export * from "./cannot_move_agentic_task_manually.js";
+export * from "./cannot_change_task_status_permission.js";
 export * from "./task_has_unmet_dependencies.js";
 export * from "./show_cancelled_tasks.js";
 export * from "./hide_cancelled_tasks.js";

@@ -100,6 +100,7 @@ export function KanbanPage({ teamId }: KanbanPageProps) {
           selectedGoalId={selectedGoalId}
           scope={scope}
           currentUserId={me?.id}
+          currentUserRole={me?.role}
           showCancelled={showCancelled}
           onTaskClick={handleTaskClick}
           onCreateTaskInColumn={(status) => handleOpenCreateTask(status)}

@@ -6,7 +6,7 @@ import { getLocale, experimentalStaticLocale } from '../runtime.js';
 /** @typedef {{}} Task_Type_AgenticInputs */
 
 const en_task_type_agentic = /** @type {(inputs: Task_Type_AgenticInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`Agentic Task`)
+	return /** @type {LocalizedString} */ (`Agent Task`)
 };
 
 const zh_task_type_agentic = /** @type {(inputs: Task_Type_AgenticInputs) => LocalizedString} */ () => {
@@ -16,7 +16,7 @@ const zh_task_type_agentic = /** @type {(inputs: Task_Type_AgenticInputs) => Loc
 /**
 * | output |
 * | --- |
-* | "Agentic Task" |
+* | "Agent Task" |
 *
 * @param {Task_Type_AgenticInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options

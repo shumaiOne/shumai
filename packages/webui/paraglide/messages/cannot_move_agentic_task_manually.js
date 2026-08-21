@@ -6,7 +6,7 @@ import { getLocale, experimentalStaticLocale } from '../runtime.js';
 /** @typedef {{}} Cannot_Move_Agentic_Task_ManuallyInputs */
 
 const en_cannot_move_agentic_task_manually = /** @type {(inputs: Cannot_Move_Agentic_Task_ManuallyInputs) => LocalizedString} */ () => {
-	return /** @type {LocalizedString} */ (`Agentic tasks are claimed automatically by the agent dispatcher`)
+	return /** @type {LocalizedString} */ (`Agent tasks are claimed automatically by the agent dispatcher`)
 };
 
 const zh_cannot_move_agentic_task_manually = /** @type {(inputs: Cannot_Move_Agentic_Task_ManuallyInputs) => LocalizedString} */ () => {
@@ -16,7 +16,7 @@ const zh_cannot_move_agentic_task_manually = /** @type {(inputs: Cannot_Move_Age
 /**
 * | output |
 * | --- |
-* | "Agentic tasks are claimed automatically by the agent dispatcher" |
+* | "Agent tasks are claimed automatically by the agent dispatcher" |
 *
 * @param {Cannot_Move_Agentic_Task_ManuallyInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options

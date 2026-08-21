@@ -337,7 +337,7 @@ describe('Kanban API Routes', () => {
       })
 
       expect(res.status).toBe(200)
-      expect(mockStart).toHaveBeenCalledWith(taskId, 'user-1')
+      expect(mockStart).toHaveBeenCalledWith(taskId, 'user-1', 'owner')
     })
 
     it('POST /teams/:teamId/kanban/tasks/:taskId/complete', async () => {
@@ -361,7 +361,7 @@ describe('Kanban API Routes', () => {
       })
 
       expect(res.status).toBe(200)
-      expect(mockComplete).toHaveBeenCalledWith(taskId, 'user-1')
+      expect(mockComplete).toHaveBeenCalledWith(taskId, 'user-1', 'owner')
     })
 
     it('POST /teams/:teamId/kanban/tasks/:taskId/approve', async () => {
@@ -435,7 +435,7 @@ describe('Kanban API Routes', () => {
       })
 
       expect(res.status).toBe(200)
-      expect(mockUnblock).toHaveBeenCalledWith(taskId, 'user-1')
+      expect(mockUnblock).toHaveBeenCalledWith(taskId, 'user-1', 'owner')
     })
 
     it('POST /teams/:teamId/kanban/tasks/:taskId/reopen', async () => {
@@ -459,7 +459,7 @@ describe('Kanban API Routes', () => {
       })
 
       expect(res.status).toBe(200)
-      expect(mockReopen).toHaveBeenCalledWith(taskId, 'user-1')
+      expect(mockReopen).toHaveBeenCalledWith(taskId, 'user-1', 'owner')
     })
 
     it('POST /teams/:teamId/kanban/tasks/:taskId/cancel', async () => {
@@ -483,7 +483,7 @@ describe('Kanban API Routes', () => {
       })
 
       expect(res.status).toBe(200)
-      expect(mockCancel).toHaveBeenCalledWith(taskId, 'user-1')
+      expect(mockCancel).toHaveBeenCalledWith(taskId, 'user-1', 'owner')
     })
 
     it('GET /teams/:teamId/kanban/tasks/:taskId/context', async () => {

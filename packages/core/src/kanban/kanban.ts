@@ -182,9 +182,8 @@ export class KanbanService {
     creatorId: string,
     callerRole?: TeamMemberRole | null,
   ): Promise<KanbanTaskInfo> {
-    // Permission: Only owner can create agentic tasks
-    if (req.type === KanbanTaskType.AGENTIC && callerRole !== 'owner') {
-      throw new HTTPException(403, { message: 'Only team owners can create agentic tasks' })
+    if (callerRole !== 'owner' && callerRole !== 'editor') {
+      throw new HTTPException(403, { message: 'Only team owners and editors can create tasks' })
     }
 
     const parentIds = req.parentIds ? [...new Set(req.parentIds)] : []
@@ -416,25 +415,23 @@ export class KanbanService {
       throw new HTTPException(404, { message: 'Task not found' })
     }
 
-    const isAgentic =
-      existing.type === KanbanTaskType.AGENTIC || req.type === KanbanTaskType.AGENTIC
     const isOwner = callerRole === 'owner'
     const isEditor = callerRole === 'editor'
-    const isReporter = existing.reporterId === actorId
+    const isReporter = existing.reporterId === actorId || existing.creatorId === actorId
+    const isAssignee = existing.assigneeId === actorId
 
-    // Permission checks for agentic tasks
-    if (isAgentic && !isOwner) {
-      const isReviewAction =
-        existing.status === KanbanTaskStatus.IN_REVIEW &&
-        req.status !== undefined &&
-        (isEditor || isReporter)
-      const isUnblockOrCancel =
-        (existing.status === KanbanTaskStatus.BLOCKED ||
-          req.status === KanbanTaskStatus.CANCELLED) &&
-        (isEditor || isReporter)
-      if (!isReviewAction && !isUnblockOrCancel) {
-        throw new HTTPException(403, { message: 'Only team owners can update agentic tasks' })
+    // Status change permission check: only owner, reporter, or assignee can change task status
+    if (req.status !== undefined && req.status !== existing.status) {
+      if (!isOwner && !isReporter && !isAssignee) {
+        throw new HTTPException(403, {
+          message: 'Only team owners, task reporters, or assignees can change task status',
+        })
       }
+    }
+
+    // General edit permission check for other fields: must be owner, editor, reporter, or assignee
+    if (!isOwner && !isEditor && !isReporter && !isAssignee) {
+      throw new HTTPException(403, { message: 'Permission denied' })
     }
 
     // Status transition calculation if status changed
@@ -459,138 +456,68 @@ export class KanbanService {
       const now = new Date()
       const startDateSatisfied = !effectiveStartDate || effectiveStartDate <= now
 
-      if (existing.type === KanbanTaskType.MANUAL) {
-        // MANUAL (Human) task: no restrictions, user can move from ANY state to ANY state
-        switch (req.status) {
-          case KanbanTaskStatus.DONE: {
-            completedAtUpdate = new Date()
-            shouldRecomputeChildren = true
-            statusEventType = KanbanTaskEventType.STATUS_CHANGED
-            break
+      switch (req.status) {
+        case KanbanTaskStatus.DONE: {
+          completedAtUpdate = new Date()
+          shouldRecomputeChildren = true
+          statusEventType = KanbanTaskEventType.STATUS_CHANGED
+          if (existing.status === KanbanTaskStatus.IN_REVIEW) {
+            statusEventData = { summary: 'Approved by reviewer' }
           }
-          case KanbanTaskStatus.IN_PROGRESS: {
-            if (existing.status === KanbanTaskStatus.DONE) {
-              completedAtUpdate = null
-              shouldInvalidateDescendants = true
-            }
-            startedAtUpdate = existing.startedAt ?? new Date()
-            statusEventType = KanbanTaskEventType.STATUS_CHANGED
-            break
-          }
-          case KanbanTaskStatus.IN_REVIEW: {
-            if (existing.status === KanbanTaskStatus.DONE) {
-              completedAtUpdate = null
-              shouldInvalidateDescendants = true
-            }
-            statusEventType = KanbanTaskEventType.STATUS_CHANGED
-            break
-          }
-          case KanbanTaskStatus.BLOCKED: {
-            if (existing.status === KanbanTaskStatus.DONE) {
-              completedAtUpdate = null
-              shouldInvalidateDescendants = true
-            }
-            statusEventType = KanbanTaskEventType.BLOCKED
-            statusEventData = req.reason ? { reason: req.reason } : undefined
-            break
-          }
-          case KanbanTaskStatus.CANCELLED: {
-            if (existing.status === KanbanTaskStatus.DONE) {
-              completedAtUpdate = null
-            }
-            shouldCancelDescendants = true
-            statusEventType = KanbanTaskEventType.CANCELLED
-            break
-          }
-          case KanbanTaskStatus.TODO:
-          case KanbanTaskStatus.READY: {
-            if (existing.status === KanbanTaskStatus.DONE) {
-              completedAtUpdate = null
-              shouldInvalidateDescendants = true
-            }
-            if (existing.status === KanbanTaskStatus.BLOCKED) {
-              statusEventType = KanbanTaskEventType.UNBLOCKED
-            } else {
-              statusEventType = KanbanTaskEventType.STATUS_CHANGED
-            }
-            if (req.status === KanbanTaskStatus.READY && (!allParentsDone || !startDateSatisfied)) {
-              targetStatus = KanbanTaskStatus.TODO
-            }
-            break
-          }
+          break
         }
-      } else {
-        // AGENTIC Task: enforce agentic workflow boundaries
-        switch (req.status) {
-          case KanbanTaskStatus.IN_PROGRESS: {
-            throw new HTTPException(400, {
-              message: 'Agentic tasks are claimed automatically by the agent dispatcher',
-            })
+        case KanbanTaskStatus.IN_PROGRESS: {
+          if (existing.status === KanbanTaskStatus.DONE) {
+            completedAtUpdate = null
+            shouldInvalidateDescendants = true
           }
-          case KanbanTaskStatus.DONE: {
-            if (existing.status === KanbanTaskStatus.IN_REVIEW) {
-              completedAtUpdate = new Date()
-              shouldRecomputeChildren = true
-              statusEventType = KanbanTaskEventType.STATUS_CHANGED
-              statusEventData = { summary: 'Approved by reviewer' }
-            } else {
-              throw new HTTPException(400, {
-                message: `Agentic task cannot be transitioned directly to DONE from '${existing.status}'`,
-              })
-            }
-            break
+          startedAtUpdate = existing.startedAt ?? new Date()
+          statusEventType = KanbanTaskEventType.STATUS_CHANGED
+          break
+        }
+        case KanbanTaskStatus.IN_REVIEW: {
+          if (existing.status === KanbanTaskStatus.DONE) {
+            completedAtUpdate = null
+            shouldInvalidateDescendants = true
           }
-          case KanbanTaskStatus.TODO:
-          case KanbanTaskStatus.READY: {
-            if (existing.status === KanbanTaskStatus.IN_REVIEW) {
-              if (!req.reason?.trim()) {
-                throw new HTTPException(400, {
-                  message: 'Reason is required when requesting changes',
-                })
-              }
-              targetStatus =
-                allParentsDone && startDateSatisfied
-                  ? KanbanTaskStatus.READY
-                  : KanbanTaskStatus.TODO
-              statusEventType = KanbanTaskEventType.CHANGES_REQUESTED
-              statusEventData = { reason: req.reason }
-            } else if (existing.status === KanbanTaskStatus.BLOCKED) {
-              targetStatus =
-                allParentsDone && startDateSatisfied
-                  ? KanbanTaskStatus.READY
-                  : KanbanTaskStatus.TODO
-              statusEventType = KanbanTaskEventType.UNBLOCKED
-            } else if (existing.status === KanbanTaskStatus.DONE) {
-              completedAtUpdate = null
-              shouldInvalidateDescendants = true
-              targetStatus =
-                allParentsDone && startDateSatisfied
-                  ? KanbanTaskStatus.READY
-                  : KanbanTaskStatus.TODO
-              statusEventType = KanbanTaskEventType.STATUS_CHANGED
-            } else {
-              targetStatus =
-                allParentsDone && startDateSatisfied
-                  ? KanbanTaskStatus.READY
-                  : KanbanTaskStatus.TODO
-              statusEventType = KanbanTaskEventType.STATUS_CHANGED
-            }
-            break
+          statusEventType = KanbanTaskEventType.STATUS_CHANGED
+          break
+        }
+        case KanbanTaskStatus.BLOCKED: {
+          if (existing.status === KanbanTaskStatus.DONE) {
+            completedAtUpdate = null
+            shouldInvalidateDescendants = true
           }
-          case KanbanTaskStatus.BLOCKED: {
-            statusEventType = KanbanTaskEventType.BLOCKED
-            statusEventData = req.reason ? { reason: req.reason } : undefined
-            break
+          statusEventType = KanbanTaskEventType.BLOCKED
+          statusEventData = req.reason ? { reason: req.reason } : undefined
+          break
+        }
+        case KanbanTaskStatus.CANCELLED: {
+          if (existing.status === KanbanTaskStatus.DONE) {
+            completedAtUpdate = null
           }
-          case KanbanTaskStatus.CANCELLED: {
-            shouldCancelDescendants = true
-            statusEventType = KanbanTaskEventType.CANCELLED
-            break
+          shouldCancelDescendants = true
+          statusEventType = KanbanTaskEventType.CANCELLED
+          break
+        }
+        case KanbanTaskStatus.TODO:
+        case KanbanTaskStatus.READY: {
+          if (existing.status === KanbanTaskStatus.DONE) {
+            completedAtUpdate = null
+            shouldInvalidateDescendants = true
           }
-          case KanbanTaskStatus.IN_REVIEW: {
+          if (existing.status === KanbanTaskStatus.BLOCKED) {
+            statusEventType = KanbanTaskEventType.UNBLOCKED
+          } else if (existing.status === KanbanTaskStatus.IN_REVIEW && req.reason) {
+            statusEventType = KanbanTaskEventType.CHANGES_REQUESTED
+            statusEventData = { reason: req.reason }
+          } else {
             statusEventType = KanbanTaskEventType.STATUS_CHANGED
-            break
           }
+          if (req.status === KanbanTaskStatus.READY && (!allParentsDone || !startDateSatisfied)) {
+            targetStatus = KanbanTaskStatus.TODO
+          }
+          break
         }
       }
     }
@@ -680,11 +607,7 @@ export class KanbanService {
           })
         }
 
-        if (
-          targetStatus === KanbanTaskStatus.DONE &&
-          existing.status === KanbanTaskStatus.IN_REVIEW &&
-          task.latestRunId
-        ) {
+        if (targetStatus === KanbanTaskStatus.DONE && task.latestRunId) {
           await tx.kanbanTaskRun.update({
             where: { id: task.latestRunId },
             data: {
@@ -757,7 +680,11 @@ export class KanbanService {
       await this.recomputeReady(taskId)
     }
 
-    if (updated.status === KanbanTaskStatus.READY && updated.type === KanbanTaskType.AGENTIC) {
+    if (
+      (updated.status === KanbanTaskStatus.READY ||
+        updated.status === KanbanTaskStatus.IN_PROGRESS) &&
+      updated.type === KanbanTaskType.AGENTIC
+    ) {
       kanbanDispatcher.nudge(taskId)
     }
 
@@ -829,12 +756,25 @@ export class KanbanService {
   // State Machine Transitions
   // --------------------------------------------------------------------------
 
-  async startManualTask(taskId: string, actorId: string): Promise<KanbanTaskInfo> {
-    return await this.updateTask(taskId, { status: KanbanTaskStatus.IN_PROGRESS }, actorId)
+  async startManualTask(
+    taskId: string,
+    actorId: string,
+    callerRole?: TeamMemberRole | null,
+  ): Promise<KanbanTaskInfo> {
+    return await this.updateTask(
+      taskId,
+      { status: KanbanTaskStatus.IN_PROGRESS },
+      actorId,
+      callerRole,
+    )
   }
 
-  async completeManualTask(taskId: string, actorId: string): Promise<KanbanTaskInfo> {
-    return await this.updateTask(taskId, { status: KanbanTaskStatus.DONE }, actorId)
+  async completeManualTask(
+    taskId: string,
+    actorId: string,
+    callerRole?: TeamMemberRole | null,
+  ): Promise<KanbanTaskInfo> {
+    return await this.updateTask(taskId, { status: KanbanTaskStatus.DONE }, actorId, callerRole)
   }
 
   async approveTask(
@@ -859,8 +799,12 @@ export class KanbanService {
     )
   }
 
-  async unblockTask(taskId: string, actorId: string): Promise<KanbanTaskInfo> {
-    return await this.updateTask(taskId, { status: KanbanTaskStatus.READY }, actorId)
+  async unblockTask(
+    taskId: string,
+    actorId: string,
+    callerRole?: TeamMemberRole | null,
+  ): Promise<KanbanTaskInfo> {
+    return await this.updateTask(taskId, { status: KanbanTaskStatus.READY }, actorId, callerRole)
   }
 
   async reclaimTask(taskId: string, actorId?: string): Promise<KanbanTaskInfo> {
@@ -923,12 +867,25 @@ export class KanbanService {
     return await this.toTaskInfo(updated, { latestStatusEvent, ...counts })
   }
 
-  async reopenTask(taskId: string, actorId: string): Promise<KanbanTaskInfo> {
-    return await this.updateTask(taskId, { status: KanbanTaskStatus.READY }, actorId)
+  async reopenTask(
+    taskId: string,
+    actorId: string,
+    callerRole?: TeamMemberRole | null,
+  ): Promise<KanbanTaskInfo> {
+    return await this.updateTask(taskId, { status: KanbanTaskStatus.READY }, actorId, callerRole)
   }
 
-  async cancelTask(taskId: string, actorId: string): Promise<KanbanTaskInfo> {
-    return await this.updateTask(taskId, { status: KanbanTaskStatus.CANCELLED }, actorId)
+  async cancelTask(
+    taskId: string,
+    actorId: string,
+    callerRole?: TeamMemberRole | null,
+  ): Promise<KanbanTaskInfo> {
+    return await this.updateTask(
+      taskId,
+      { status: KanbanTaskStatus.CANCELLED },
+      actorId,
+      callerRole,
+    )
   }
 
   // --------------------------------------------------------------------------
