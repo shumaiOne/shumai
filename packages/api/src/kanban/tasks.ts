@@ -94,7 +94,7 @@ const route = new Hono<{ Variables: { user: User } }>()
     },
   )
   .post('/teams/:teamId/kanban/tasks/:taskId/start', async (c) => {
-    const { taskId } = c.req.param()
+    const { teamId, taskId } = c.req.param()
     const user = c.get('user')
 
     await authzService.hasPermission({
@@ -104,11 +104,12 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: taskId,
     })
 
-    const task = await kanbanService.startManualTask(taskId, user.id)
+    const role = await resolveEffectiveRole(teamId, undefined, user.id)
+    const task = await kanbanService.startManualTask(taskId, user.id, role)
     return c.json(task)
   })
   .post('/teams/:teamId/kanban/tasks/:taskId/complete', async (c) => {
-    const { taskId } = c.req.param()
+    const { teamId, taskId } = c.req.param()
     const user = c.get('user')
 
     await authzService.hasPermission({
@@ -118,7 +119,8 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: taskId,
     })
 
-    const task = await kanbanService.completeManualTask(taskId, user.id)
+    const role = await resolveEffectiveRole(teamId, undefined, user.id)
+    const task = await kanbanService.completeManualTask(taskId, user.id, role)
     return c.json(task)
   })
   .post('/teams/:teamId/kanban/tasks/:taskId/approve', async (c) => {
@@ -157,7 +159,7 @@ const route = new Hono<{ Variables: { user: User } }>()
     },
   )
   .post('/teams/:teamId/kanban/tasks/:taskId/unblock', async (c) => {
-    const { taskId } = c.req.param()
+    const { teamId, taskId } = c.req.param()
     const user = c.get('user')
 
     await authzService.hasPermission({
@@ -167,11 +169,12 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: taskId,
     })
 
-    const task = await kanbanService.unblockTask(taskId, user.id)
+    const role = await resolveEffectiveRole(teamId, undefined, user.id)
+    const task = await kanbanService.unblockTask(taskId, user.id, role)
     return c.json(task)
   })
   .post('/teams/:teamId/kanban/tasks/:taskId/reopen', async (c) => {
-    const { taskId } = c.req.param()
+    const { teamId, taskId } = c.req.param()
     const user = c.get('user')
 
     await authzService.hasPermission({
@@ -181,11 +184,12 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: taskId,
     })
 
-    const task = await kanbanService.reopenTask(taskId, user.id)
+    const role = await resolveEffectiveRole(teamId, undefined, user.id)
+    const task = await kanbanService.reopenTask(taskId, user.id, role)
     return c.json(task)
   })
   .post('/teams/:teamId/kanban/tasks/:taskId/cancel', async (c) => {
-    const { taskId } = c.req.param()
+    const { teamId, taskId } = c.req.param()
     const user = c.get('user')
 
     await authzService.hasPermission({
@@ -195,7 +199,8 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: taskId,
     })
 
-    const task = await kanbanService.cancelTask(taskId, user.id)
+    const role = await resolveEffectiveRole(teamId, undefined, user.id)
+    const task = await kanbanService.cancelTask(taskId, user.id, role)
     return c.json(task)
   })
   .get('/teams/:teamId/kanban/tasks/:taskId/context', async (c) => {

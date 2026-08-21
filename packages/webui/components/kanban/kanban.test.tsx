@@ -29,12 +29,17 @@ import { TaskCommentCard } from './edit-task-dialog/task-comment-card'
 import { TaskCommentInput } from './edit-task-dialog/task-comment-input'
 import { client } from '@/ui/api/client'
 
+const mockUseDraggable = vi.fn()
+
 // Mock @dnd-kit/react
 vi.mock('@dnd-kit/react', () => ({
-  useDraggable: () => ({
-    ref: vi.fn(),
-    isDragging: false,
-  }),
+  useDraggable: (args: unknown) => {
+    mockUseDraggable(args)
+    return {
+      ref: vi.fn(),
+      isDragging: false,
+    }
+  },
   useDroppable: () => ({
     ref: vi.fn(),
     isDropTarget: false,
@@ -182,12 +187,85 @@ describe('Kanban UI Unit & Component Tests', () => {
       expect(onClick).toHaveBeenCalledWith(mockManualTask)
     })
 
-    it('renders agentic task card with distinct styling and attempt count', () => {
+    it('renders agent task card with Agent Task label and attempt count', () => {
       const onClick = vi.fn()
       render(<KanbanCard task={mockAgenticTask} onClick={onClick} />)
 
       expect(screen.getByText('Autonomous Agentic Task')).toBeDefined()
+      expect(screen.getByText(/Agent Task|智能体任务/i)).toBeDefined()
       expect(screen.getByText('#2')).toBeDefined()
+    })
+
+    it('enforces card drag permission: enabled for owner, reporter, or assignee; disabled for others', () => {
+      // 1. Enabled when user is owner
+      render(
+        <KanbanCard
+          task={{
+            ...mockManualTask,
+            creator: { id: 'other', name: 'Other' },
+            reporter: null,
+            assignee: null,
+          }}
+          onClick={vi.fn()}
+          currentUserRole="owner"
+          currentUserId="random-user"
+        />,
+      )
+      expect(mockUseDraggable).toHaveBeenLastCalledWith(
+        expect.objectContaining({ disabled: false }),
+      )
+
+      // 2. Enabled when user is reporter (or creator if reporter null)
+      render(
+        <KanbanCard
+          task={{
+            ...mockManualTask,
+            creator: { id: 'user-reporter', name: 'Rep' },
+            reporter: null,
+            assignee: null,
+          }}
+          onClick={vi.fn()}
+          currentUserRole="editor"
+          currentUserId="user-reporter"
+        />,
+      )
+      expect(mockUseDraggable).toHaveBeenLastCalledWith(
+        expect.objectContaining({ disabled: false }),
+      )
+
+      // 3. Enabled when user is assignee
+      render(
+        <KanbanCard
+          task={{
+            ...mockManualTask,
+            creator: { id: 'other', name: 'Other' },
+            reporter: null,
+            assignee: { id: 'user-assignee', name: 'Assignee' },
+          }}
+          onClick={vi.fn()}
+          currentUserRole="reviewer"
+          currentUserId="user-assignee"
+        />,
+      )
+      expect(mockUseDraggable).toHaveBeenLastCalledWith(
+        expect.objectContaining({ disabled: false }),
+      )
+
+      // 4. Disabled when user is not owner, not reporter, and not assignee
+      render(
+        <KanbanCard
+          task={{
+            ...mockManualTask,
+            creator: { id: 'other-1', name: 'Other' },
+            reporter: { id: 'other-2', name: 'Reporter' },
+            assignee: { id: 'other-3', name: 'Assignee' },
+          }}
+          onClick={vi.fn()}
+          currentUserRole="editor"
+          currentUserId="stranger-user"
+        />,
+      )
+      expect(mockUseDraggable).toHaveBeenLastCalledWith(expect.objectContaining({ disabled: true }))
     })
 
     it('renders blocked warning and reason when task is BLOCKED', () => {

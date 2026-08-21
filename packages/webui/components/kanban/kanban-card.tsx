@@ -13,6 +13,8 @@ interface KanbanCardProps {
   disabled?: boolean
   isFirst?: boolean
   showBottomIndicator?: boolean
+  currentUserId?: string
+  currentUserRole?: string
 }
 
 export function KanbanCard({
@@ -21,9 +23,17 @@ export function KanbanCard({
   disabled,
   isFirst,
   showBottomIndicator,
+  currentUserId,
+  currentUserRole,
 }: KanbanCardProps) {
   const { source } = useDragOperation()
   const isDraggingAny = !!source
+
+  const isOwner = currentUserRole?.toLowerCase() === 'owner'
+  const isReporter = task.reporter?.id === currentUserId || task.creator?.id === currentUserId
+  const isAssignee = task.assignee?.id === currentUserId
+  const canChangeStatus = isOwner || isReporter || isAssignee
+  const isDragDisabled = disabled || !canChangeStatus
 
   const { ref: setDraggableRef, isDragging } = useDraggable({
     id: task.id,
@@ -31,7 +41,7 @@ export function KanbanCard({
       type: 'kanban_task',
       task,
     },
-    disabled,
+    disabled: isDragDisabled,
   })
 
   const { ref: setTopDroppableRef, isDropTarget: isTopOver } = useDroppable({

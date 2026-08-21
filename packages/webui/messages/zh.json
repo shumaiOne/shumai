@@ -1231,6 +1231,7 @@
   "saving": "保存中...",
   "saved": "已保存",
   "cannot_move_agentic_task_manually": "智能体任务由调度器自动认领执行",
+  "cannot_change_task_status_permission": "仅团队所有者、任务报告人或负责人可以修改任务状态",
   "task_has_unmet_dependencies": "任务无法移动，因为前置依赖尚未完成",
   "show_cancelled_tasks": "显示已取消任务",
   "hide_cancelled_tasks": "隐藏已取消任务",

@@ -1,7 +1,7 @@
 /**
 * | output |
 * | --- |
-* | "Agentic Task" |
+* | "Agent Task" |
 *
 * @param {Task_Type_AgenticInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options

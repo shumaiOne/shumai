@@ -18,6 +18,7 @@ interface KanbanColumnProps {
   selectedGoalId: string | null
   scope: 'team' | 'my'
   currentUserId?: string
+  currentUserRole?: string
   onTaskClick: (task: KanbanTaskInfo) => void
   onCreateTaskInColumn: (status: KanbanTaskStatus) => void
 }
@@ -28,6 +29,7 @@ export function KanbanColumn({
   selectedGoalId,
   scope,
   currentUserId,
+  currentUserRole,
   onTaskClick,
   onCreateTaskInColumn,
 }: KanbanColumnProps) {
@@ -139,6 +141,8 @@ export function KanbanColumn({
                 onClick={onTaskClick}
                 isFirst={index === 0}
                 showBottomIndicator={isOverColumnEmptySpace && task.id === lastVisibleTask?.id}
+                currentUserId={currentUserId}
+                currentUserRole={currentUserRole}
               />
             ))
           )}

@@ -1,25 +1,19 @@
-import { useState } from 'react'
 import { DragDropProvider, KeyboardSensor, PointerSensor, type DragEndEvent } from '@dnd-kit/react'
 import { PointerActivationConstraints } from '@dnd-kit/dom'
 import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { client } from '@/ui/api/client'
 import { toast } from 'sonner'
 import { m } from '@/ui/paraglide/messages.js'
-import {
-  KanbanTaskStatus,
-  KanbanTaskType,
-  type KanbanTaskInfo,
-  type ListKanbanTasksResponse,
-} from '@shumai/dtos'
+import { KanbanTaskStatus, type KanbanTaskInfo, type ListKanbanTasksResponse } from '@shumai/dtos'
 import { KANBAN_STATUS_COLUMNS } from './kanban-types'
 import { KanbanColumn } from './kanban-column'
-import { KanbanRequestChangesDialog } from './kanban-request-changes-dialog'
 
 interface KanbanBoardProps {
   teamId: string
   selectedGoalId: string | null
   scope: 'team' | 'my'
   currentUserId?: string
+  currentUserRole?: string
   showCancelled: boolean
   onTaskClick: (task: KanbanTaskInfo) => void
   onCreateTaskInColumn: (status: KanbanTaskStatus) => void
@@ -30,12 +24,12 @@ export function KanbanBoard({
   selectedGoalId,
   scope,
   currentUserId,
+  currentUserRole,
   showCancelled,
   onTaskClick,
   onCreateTaskInColumn,
 }: KanbanBoardProps) {
   const queryClient = useQueryClient()
-  const [requestChangesTask, setRequestChangesTask] = useState<KanbanTaskInfo | null>(null)
 
   // Unified Update Mutation with Optimistic Updates
   const { mutate: updateTask } = useMutation({
@@ -208,6 +202,15 @@ export function KanbanBoard({
     if (sourceData?.type !== 'kanban_task' || !sourceData.task) return
     const task = sourceData.task
 
+    // Check status change permission
+    const isOwner = currentUserRole?.toLowerCase() === 'owner'
+    const isReporter = task.reporter?.id === currentUserId || task.creator?.id === currentUserId
+    const isAssignee = task.assignee?.id === currentUserId
+    if (!isOwner && !isReporter && !isAssignee) {
+      toast.error(m.cannot_change_task_status_permission())
+      return
+    }
+
     const targetData = target.data as
       | { type?: 'reorder'; task?: KanbanTaskInfo; position?: 'before' | 'after' }
       | { type?: 'kanban_column'; status?: KanbanTaskStatus }
@@ -220,22 +223,6 @@ export function KanbanBoard({
       const toStatus = targetTask.status
 
       if (task.id === targetTask.id) return
-
-      // Guard: Agentic task cannot be manually started
-      if (task.type === KanbanTaskType.AGENTIC && toStatus === KanbanTaskStatus.IN_PROGRESS) {
-        toast.info(m.cannot_move_agentic_task_manually())
-        return
-      }
-
-      // If agentic task is in review and dragged to TODO or READY, open request changes dialog
-      if (
-        task.type === KanbanTaskType.AGENTIC &&
-        task.status === KanbanTaskStatus.IN_REVIEW &&
-        (toStatus === KanbanTaskStatus.READY || toStatus === KanbanTaskStatus.TODO)
-      ) {
-        setRequestChangesTask(task)
-        return
-      }
 
       const beforeIndex =
         targetData.position === 'before' ? (targetTask.sortIndex ?? undefined) : undefined
@@ -256,22 +243,6 @@ export function KanbanBoard({
     if (targetData.type === 'kanban_column' && targetData.status) {
       const toStatus = targetData.status
       if (task.status === toStatus) return
-
-      // Guard: Agentic task cannot be manually started
-      if (task.type === KanbanTaskType.AGENTIC && toStatus === KanbanTaskStatus.IN_PROGRESS) {
-        toast.info(m.cannot_move_agentic_task_manually())
-        return
-      }
-
-      // If agentic task is in review and dragged to TODO or READY, open request changes dialog
-      if (
-        task.type === KanbanTaskType.AGENTIC &&
-        task.status === KanbanTaskStatus.IN_REVIEW &&
-        (toStatus === KanbanTaskStatus.READY || toStatus === KanbanTaskStatus.TODO)
-      ) {
-        setRequestChangesTask(task)
-        return
-      }
 
       updateTask({ taskId: task.id, status: toStatus })
     }
@@ -301,23 +272,13 @@ export function KanbanBoard({
               selectedGoalId={selectedGoalId}
               scope={scope}
               currentUserId={currentUserId}
+              currentUserRole={currentUserRole}
               onTaskClick={onTaskClick}
               onCreateTaskInColumn={onCreateTaskInColumn}
             />
           ))}
         </div>
       </div>
-
-      {/* Request Changes Feedback Dialog */}
-      {requestChangesTask && (
-        <KanbanRequestChangesDialog
-          teamId={teamId}
-          taskId={requestChangesTask.id}
-          taskTitle={requestChangesTask.title}
-          isOpen={!!requestChangesTask}
-          onClose={() => setRequestChangesTask(null)}
-        />
-      )}
     </DragDropProvider>
   )
 }

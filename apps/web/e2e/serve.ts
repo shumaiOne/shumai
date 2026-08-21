@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url'
 const currentDir = path.dirname(fileURLToPath(import.meta.url))
 
 async function start() {
+  process.env.TESTCONTAINERS_RYUK_DISABLED = 'true'
   console.log('Starting E2E test database container...')
   await globalTestSetup()
 
@@ -32,4 +33,7 @@ async function start() {
   await import('../src/index.ts')
 }
 
-start().catch(console.error)
+start().catch((err) => {
+  console.error('Failed to start E2E server:', err)
+  process.exit(1)
+})
