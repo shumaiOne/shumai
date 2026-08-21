@@ -252,7 +252,6 @@ export type UserWhereInput = {
   kanbanTasksReported?: Prisma.KanbanTaskListRelationFilter
   kanbanTasksAssigned?: Prisma.KanbanTaskListRelationFilter
   kanbanGoalsCreated?: Prisma.KanbanGoalListRelationFilter
-  kanbanTaskRuns?: Prisma.KanbanTaskRunListRelationFilter
   kanbanTaskComments?: Prisma.KanbanTaskCommentListRelationFilter
   kanbanTaskEvents?: Prisma.KanbanTaskEventListRelationFilter
 }
@@ -293,7 +292,6 @@ export type UserOrderByWithRelationInput = {
   kanbanTasksReported?: Prisma.KanbanTaskOrderByRelationAggregateInput
   kanbanTasksAssigned?: Prisma.KanbanTaskOrderByRelationAggregateInput
   kanbanGoalsCreated?: Prisma.KanbanGoalOrderByRelationAggregateInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunOrderByRelationAggregateInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentOrderByRelationAggregateInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventOrderByRelationAggregateInput
 }
@@ -337,7 +335,6 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   kanbanTasksReported?: Prisma.KanbanTaskListRelationFilter
   kanbanTasksAssigned?: Prisma.KanbanTaskListRelationFilter
   kanbanGoalsCreated?: Prisma.KanbanGoalListRelationFilter
-  kanbanTaskRuns?: Prisma.KanbanTaskRunListRelationFilter
   kanbanTaskComments?: Prisma.KanbanTaskCommentListRelationFilter
   kanbanTaskEvents?: Prisma.KanbanTaskEventListRelationFilter
 }, "id" | "email">
@@ -412,7 +409,6 @@ export type UserCreateInput = {
   kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
 }
@@ -453,7 +449,6 @@ export type UserUncheckedCreateInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
 }
@@ -494,7 +489,6 @@ export type UserUpdateInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
 }
@@ -535,7 +529,6 @@ export type UserUncheckedUpdateInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
 }
@@ -1018,22 +1011,6 @@ export type UserUpdateOneWithoutKanbanTasksAssignedNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutKanbanTasksAssignedInput, Prisma.UserUpdateWithoutKanbanTasksAssignedInput>, Prisma.UserUncheckedUpdateWithoutKanbanTasksAssignedInput>
 }
 
-export type UserCreateNestedOneWithoutKanbanTaskRunsInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutKanbanTaskRunsInput, Prisma.UserUncheckedCreateWithoutKanbanTaskRunsInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutKanbanTaskRunsInput
-  connect?: Prisma.UserWhereUniqueInput
-}
-
-export type UserUpdateOneWithoutKanbanTaskRunsNestedInput = {
-  create?: Prisma.XOR<Prisma.UserCreateWithoutKanbanTaskRunsInput, Prisma.UserUncheckedCreateWithoutKanbanTaskRunsInput>
-  connectOrCreate?: Prisma.UserCreateOrConnectWithoutKanbanTaskRunsInput
-  upsert?: Prisma.UserUpsertWithoutKanbanTaskRunsInput
-  disconnect?: Prisma.UserWhereInput | boolean
-  delete?: Prisma.UserWhereInput | boolean
-  connect?: Prisma.UserWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutKanbanTaskRunsInput, Prisma.UserUpdateWithoutKanbanTaskRunsInput>, Prisma.UserUncheckedUpdateWithoutKanbanTaskRunsInput>
-}
-
 export type UserCreateNestedOneWithoutKanbanTaskCommentsInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutKanbanTaskCommentsInput, Prisma.UserUncheckedCreateWithoutKanbanTaskCommentsInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutKanbanTaskCommentsInput
@@ -1099,7 +1076,6 @@ export type UserCreateWithoutSessionsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
 }
@@ -1139,7 +1115,6 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
 }
@@ -1195,7 +1170,6 @@ export type UserUpdateWithoutSessionsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
 }
@@ -1235,7 +1209,6 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
 }
@@ -1275,7 +1248,6 @@ export type UserCreateWithoutAccountsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
 }
@@ -1315,7 +1287,6 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
 }
@@ -1371,7 +1342,6 @@ export type UserUpdateWithoutAccountsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
 }
@@ -1411,7 +1381,6 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
 }
@@ -1451,7 +1420,6 @@ export type UserCreateWithoutAuthTokensInput = {
   kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
 }
@@ -1491,7 +1459,6 @@ export type UserUncheckedCreateWithoutAuthTokensInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
 }
@@ -1547,7 +1514,6 @@ export type UserUpdateWithoutAuthTokensInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
 }
@@ -1587,7 +1553,6 @@ export type UserUncheckedUpdateWithoutAuthTokensInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
 }
@@ -1627,7 +1592,6 @@ export type UserCreateWithoutTeamMembersInput = {
   kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
 }
@@ -1667,7 +1631,6 @@ export type UserUncheckedCreateWithoutTeamMembersInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
 }
@@ -1723,7 +1686,6 @@ export type UserUpdateWithoutTeamMembersInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
 }
@@ -1763,7 +1725,6 @@ export type UserUncheckedUpdateWithoutTeamMembersInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
 }
@@ -1803,7 +1764,6 @@ export type UserCreateWithoutShareLinksInput = {
   kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
 }
@@ -1843,7 +1803,6 @@ export type UserUncheckedCreateWithoutShareLinksInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
 }
@@ -1899,7 +1858,6 @@ export type UserUpdateWithoutShareLinksInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
 }
@@ -1939,7 +1897,6 @@ export type UserUncheckedUpdateWithoutShareLinksInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
 }
@@ -1979,7 +1936,6 @@ export type UserCreateWithoutAssetsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
 }
@@ -2019,7 +1975,6 @@ export type UserUncheckedCreateWithoutAssetsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
 }
@@ -2075,7 +2030,6 @@ export type UserUpdateWithoutAssetsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
 }
@@ -2115,7 +2069,6 @@ export type UserUncheckedUpdateWithoutAssetsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
 }
@@ -2155,7 +2108,6 @@ export type UserCreateWithoutCommentsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
 }
@@ -2195,7 +2147,6 @@ export type UserUncheckedCreateWithoutCommentsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
 }
@@ -2240,7 +2191,6 @@ export type UserCreateWithoutCompletionChangedCommentsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
 }
@@ -2280,7 +2230,6 @@ export type UserUncheckedCreateWithoutCompletionChangedCommentsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
 }
@@ -2336,7 +2285,6 @@ export type UserUpdateWithoutCommentsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
 }
@@ -2376,7 +2324,6 @@ export type UserUncheckedUpdateWithoutCommentsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
 }
@@ -2427,7 +2374,6 @@ export type UserUpdateWithoutCompletionChangedCommentsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
 }
@@ -2467,7 +2413,6 @@ export type UserUncheckedUpdateWithoutCompletionChangedCommentsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
 }
@@ -2507,7 +2452,6 @@ export type UserCreateWithoutCreatedInvitesInput = {
   kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
 }
@@ -2547,7 +2491,6 @@ export type UserUncheckedCreateWithoutCreatedInvitesInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
 }
@@ -2603,7 +2546,6 @@ export type UserUpdateWithoutCreatedInvitesInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
 }
@@ -2643,7 +2585,6 @@ export type UserUncheckedUpdateWithoutCreatedInvitesInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
 }
@@ -2683,7 +2624,6 @@ export type UserCreateWithoutCreatedNotificationsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
 }
@@ -2723,7 +2663,6 @@ export type UserUncheckedCreateWithoutCreatedNotificationsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
 }
@@ -2768,7 +2707,6 @@ export type UserCreateWithoutNotificationsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
 }
@@ -2808,7 +2746,6 @@ export type UserUncheckedCreateWithoutNotificationsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
 }
@@ -2864,7 +2801,6 @@ export type UserUpdateWithoutCreatedNotificationsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
 }
@@ -2904,7 +2840,6 @@ export type UserUncheckedUpdateWithoutCreatedNotificationsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
 }
@@ -2955,7 +2890,6 @@ export type UserUpdateWithoutNotificationsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
 }
@@ -2995,7 +2929,6 @@ export type UserUncheckedUpdateWithoutNotificationsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
 }
@@ -3035,7 +2968,6 @@ export type UserCreateWithoutTasksInput = {
   kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
 }
@@ -3075,7 +3007,6 @@ export type UserUncheckedCreateWithoutTasksInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
 }
@@ -3131,7 +3062,6 @@ export type UserUpdateWithoutTasksInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
 }
@@ -3171,7 +3101,6 @@ export type UserUncheckedUpdateWithoutTasksInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
 }
@@ -3211,7 +3140,6 @@ export type UserCreateWithoutAgentInput = {
   kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
 }
@@ -3251,7 +3179,6 @@ export type UserUncheckedCreateWithoutAgentInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
 }
@@ -3307,7 +3234,6 @@ export type UserUpdateWithoutAgentInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
 }
@@ -3347,7 +3273,6 @@ export type UserUncheckedUpdateWithoutAgentInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
 }
@@ -3387,7 +3312,6 @@ export type UserCreateWithoutAgentSessionsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
 }
@@ -3427,7 +3351,6 @@ export type UserUncheckedCreateWithoutAgentSessionsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
 }
@@ -3483,7 +3406,6 @@ export type UserUpdateWithoutAgentSessionsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
 }
@@ -3523,7 +3445,6 @@ export type UserUncheckedUpdateWithoutAgentSessionsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
 }
@@ -3563,7 +3484,6 @@ export type UserCreateWithoutUserMetadataInput = {
   kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
 }
@@ -3603,7 +3523,6 @@ export type UserUncheckedCreateWithoutUserMetadataInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
 }
@@ -3659,7 +3578,6 @@ export type UserUpdateWithoutUserMetadataInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
 }
@@ -3699,7 +3617,6 @@ export type UserUncheckedUpdateWithoutUserMetadataInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
 }
@@ -3739,7 +3656,6 @@ export type UserCreateWithoutCollectionsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
 }
@@ -3779,7 +3695,6 @@ export type UserUncheckedCreateWithoutCollectionsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
 }
@@ -3835,7 +3750,6 @@ export type UserUpdateWithoutCollectionsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
 }
@@ -3875,7 +3789,6 @@ export type UserUncheckedUpdateWithoutCollectionsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
 }
@@ -3915,7 +3828,6 @@ export type UserCreateWithoutApiTokensInput = {
   kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
 }
@@ -3955,7 +3867,6 @@ export type UserUncheckedCreateWithoutApiTokensInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
 }
@@ -4011,7 +3922,6 @@ export type UserUpdateWithoutApiTokensInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
 }
@@ -4051,7 +3961,6 @@ export type UserUncheckedUpdateWithoutApiTokensInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
 }
@@ -4091,7 +4000,6 @@ export type UserCreateWithoutAiUsagesInput = {
   kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
 }
@@ -4131,7 +4039,6 @@ export type UserUncheckedCreateWithoutAiUsagesInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
 }
@@ -4187,7 +4094,6 @@ export type UserUpdateWithoutAiUsagesInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
 }
@@ -4227,7 +4133,6 @@ export type UserUncheckedUpdateWithoutAiUsagesInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
 }
@@ -4267,7 +4172,6 @@ export type UserCreateWithoutAuditLogsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
 }
@@ -4307,7 +4211,6 @@ export type UserUncheckedCreateWithoutAuditLogsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
 }
@@ -4363,7 +4266,6 @@ export type UserUpdateWithoutAuditLogsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
 }
@@ -4403,7 +4305,6 @@ export type UserUncheckedUpdateWithoutAuditLogsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
 }
@@ -4443,7 +4344,6 @@ export type UserCreateWithoutQuotaRecordsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
 }
@@ -4483,7 +4383,6 @@ export type UserUncheckedCreateWithoutQuotaRecordsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
 }
@@ -4539,7 +4438,6 @@ export type UserUpdateWithoutQuotaRecordsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
 }
@@ -4579,7 +4477,6 @@ export type UserUncheckedUpdateWithoutQuotaRecordsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
 }
@@ -4619,7 +4516,6 @@ export type UserCreateWithoutKanbanGoalsCreatedInput = {
   kanbanTasksCreated?: Prisma.KanbanTaskCreateNestedManyWithoutCreatorInput
   kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
 }
@@ -4659,7 +4555,6 @@ export type UserUncheckedCreateWithoutKanbanGoalsCreatedInput = {
   kanbanTasksCreated?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
 }
@@ -4715,7 +4610,6 @@ export type UserUpdateWithoutKanbanGoalsCreatedInput = {
   kanbanTasksCreated?: Prisma.KanbanTaskUpdateManyWithoutCreatorNestedInput
   kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
 }
@@ -4755,7 +4649,6 @@ export type UserUncheckedUpdateWithoutKanbanGoalsCreatedInput = {
   kanbanTasksCreated?: Prisma.KanbanTaskUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
 }
@@ -4795,7 +4688,6 @@ export type UserCreateWithoutKanbanTasksCreatedInput = {
   kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
 }
@@ -4835,7 +4727,6 @@ export type UserUncheckedCreateWithoutKanbanTasksCreatedInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
 }
@@ -4880,7 +4771,6 @@ export type UserCreateWithoutKanbanTasksReportedInput = {
   kanbanTasksCreated?: Prisma.KanbanTaskCreateNestedManyWithoutCreatorInput
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
 }
@@ -4920,7 +4810,6 @@ export type UserUncheckedCreateWithoutKanbanTasksReportedInput = {
   kanbanTasksCreated?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
 }
@@ -4965,7 +4854,6 @@ export type UserCreateWithoutKanbanTasksAssignedInput = {
   kanbanTasksCreated?: Prisma.KanbanTaskCreateNestedManyWithoutCreatorInput
   kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
 }
@@ -5005,7 +4893,6 @@ export type UserUncheckedCreateWithoutKanbanTasksAssignedInput = {
   kanbanTasksCreated?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutCreatorInput
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
 }
@@ -5061,7 +4948,6 @@ export type UserUpdateWithoutKanbanTasksCreatedInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
 }
@@ -5101,7 +4987,6 @@ export type UserUncheckedUpdateWithoutKanbanTasksCreatedInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
 }
@@ -5152,7 +5037,6 @@ export type UserUpdateWithoutKanbanTasksReportedInput = {
   kanbanTasksCreated?: Prisma.KanbanTaskUpdateManyWithoutCreatorNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
 }
@@ -5192,7 +5076,6 @@ export type UserUncheckedUpdateWithoutKanbanTasksReportedInput = {
   kanbanTasksCreated?: Prisma.KanbanTaskUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
 }
@@ -5243,7 +5126,6 @@ export type UserUpdateWithoutKanbanTasksAssignedInput = {
   kanbanTasksCreated?: Prisma.KanbanTaskUpdateManyWithoutCreatorNestedInput
   kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
 }
@@ -5282,183 +5164,6 @@ export type UserUncheckedUpdateWithoutKanbanTasksAssignedInput = {
   quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
   kanbanTasksCreated?: Prisma.KanbanTaskUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
-  kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
-  kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
-  kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
-}
-
-export type UserCreateWithoutKanbanTaskRunsInput = {
-  id?: string
-  type?: $Enums.UserType
-  name: string
-  email: string
-  emailVerified?: boolean
-  image?: string | null
-  password?: string | null
-  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
-  guestEmail?: string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  assets?: Prisma.AssetCreateNestedManyWithoutCreatorInput
-  authTokens?: Prisma.AuthTokenCreateNestedManyWithoutUserInput
-  tasks?: Prisma.TaskCreateNestedManyWithoutCreatorInput
-  teamMembers?: Prisma.TeamMemberCreateNestedManyWithoutUserInput
-  comments?: Prisma.AssetCommentCreateNestedManyWithoutCreatorInput
-  completionChangedComments?: Prisma.AssetCommentCreateNestedManyWithoutCompletionLastChangedByInput
-  createdInvites?: Prisma.InviteCreateNestedManyWithoutInviterInput
-  createdNotifications?: Prisma.NotificationCreateNestedManyWithoutCreatorInput
-  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
-  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
-  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
-  agent?: Prisma.AgentCreateNestedOneWithoutUserInput
-  agentSessions?: Prisma.AgentSessionCreateNestedManyWithoutUserInput
-  userMetadata?: Prisma.UserMetadataCreateNestedManyWithoutUserInput
-  collections?: Prisma.CollectionCreateNestedManyWithoutCreatorInput
-  shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutCreatorInput
-  apiTokens?: Prisma.ApiTokenCreateNestedManyWithoutUserInput
-  aiUsages?: Prisma.AiUsageCreateNestedManyWithoutUserInput
-  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
-  quotaRecords?: Prisma.QuotaRecordCreateNestedManyWithoutUserInput
-  kanbanTasksCreated?: Prisma.KanbanTaskCreateNestedManyWithoutCreatorInput
-  kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
-  kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
-  kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
-  kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
-}
-
-export type UserUncheckedCreateWithoutKanbanTaskRunsInput = {
-  id?: string
-  type?: $Enums.UserType
-  name: string
-  email: string
-  emailVerified?: boolean
-  image?: string | null
-  password?: string | null
-  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
-  guestEmail?: string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutCreatorInput
-  authTokens?: Prisma.AuthTokenUncheckedCreateNestedManyWithoutUserInput
-  tasks?: Prisma.TaskUncheckedCreateNestedManyWithoutCreatorInput
-  teamMembers?: Prisma.TeamMemberUncheckedCreateNestedManyWithoutUserInput
-  comments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCreatorInput
-  completionChangedComments?: Prisma.AssetCommentUncheckedCreateNestedManyWithoutCompletionLastChangedByInput
-  createdInvites?: Prisma.InviteUncheckedCreateNestedManyWithoutInviterInput
-  createdNotifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutCreatorInput
-  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
-  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
-  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
-  agent?: Prisma.AgentUncheckedCreateNestedOneWithoutUserInput
-  agentSessions?: Prisma.AgentSessionUncheckedCreateNestedManyWithoutUserInput
-  userMetadata?: Prisma.UserMetadataUncheckedCreateNestedManyWithoutUserInput
-  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutCreatorInput
-  shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutCreatorInput
-  apiTokens?: Prisma.ApiTokenUncheckedCreateNestedManyWithoutUserInput
-  aiUsages?: Prisma.AiUsageUncheckedCreateNestedManyWithoutUserInput
-  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
-  quotaRecords?: Prisma.QuotaRecordUncheckedCreateNestedManyWithoutUserInput
-  kanbanTasksCreated?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
-  kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
-  kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
-  kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
-}
-
-export type UserCreateOrConnectWithoutKanbanTaskRunsInput = {
-  where: Prisma.UserWhereUniqueInput
-  create: Prisma.XOR<Prisma.UserCreateWithoutKanbanTaskRunsInput, Prisma.UserUncheckedCreateWithoutKanbanTaskRunsInput>
-}
-
-export type UserUpsertWithoutKanbanTaskRunsInput = {
-  update: Prisma.XOR<Prisma.UserUpdateWithoutKanbanTaskRunsInput, Prisma.UserUncheckedUpdateWithoutKanbanTaskRunsInput>
-  create: Prisma.XOR<Prisma.UserCreateWithoutKanbanTaskRunsInput, Prisma.UserUncheckedCreateWithoutKanbanTaskRunsInput>
-  where?: Prisma.UserWhereInput
-}
-
-export type UserUpdateToOneWithWhereWithoutKanbanTaskRunsInput = {
-  where?: Prisma.UserWhereInput
-  data: Prisma.XOR<Prisma.UserUpdateWithoutKanbanTaskRunsInput, Prisma.UserUncheckedUpdateWithoutKanbanTaskRunsInput>
-}
-
-export type UserUpdateWithoutKanbanTaskRunsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumUserTypeFieldUpdateOperationsInput | $Enums.UserType
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
-  guestEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  assets?: Prisma.AssetUpdateManyWithoutCreatorNestedInput
-  authTokens?: Prisma.AuthTokenUpdateManyWithoutUserNestedInput
-  tasks?: Prisma.TaskUpdateManyWithoutCreatorNestedInput
-  teamMembers?: Prisma.TeamMemberUpdateManyWithoutUserNestedInput
-  comments?: Prisma.AssetCommentUpdateManyWithoutCreatorNestedInput
-  completionChangedComments?: Prisma.AssetCommentUpdateManyWithoutCompletionLastChangedByNestedInput
-  createdInvites?: Prisma.InviteUpdateManyWithoutInviterNestedInput
-  createdNotifications?: Prisma.NotificationUpdateManyWithoutCreatorNestedInput
-  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
-  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
-  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
-  agent?: Prisma.AgentUpdateOneWithoutUserNestedInput
-  agentSessions?: Prisma.AgentSessionUpdateManyWithoutUserNestedInput
-  userMetadata?: Prisma.UserMetadataUpdateManyWithoutUserNestedInput
-  collections?: Prisma.CollectionUpdateManyWithoutCreatorNestedInput
-  shareLinks?: Prisma.ShareLinkUpdateManyWithoutCreatorNestedInput
-  apiTokens?: Prisma.ApiTokenUpdateManyWithoutUserNestedInput
-  aiUsages?: Prisma.AiUsageUpdateManyWithoutUserNestedInput
-  auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
-  quotaRecords?: Prisma.QuotaRecordUpdateManyWithoutUserNestedInput
-  kanbanTasksCreated?: Prisma.KanbanTaskUpdateManyWithoutCreatorNestedInput
-  kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
-  kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
-  kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
-  kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
-}
-
-export type UserUncheckedUpdateWithoutKanbanTaskRunsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.EnumUserTypeFieldUpdateOperationsInput | $Enums.UserType
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  password?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  agentSettings?:PrismaJson.AgentSettings | Prisma.NullableJsonNullValueInput
-  guestEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  assets?: Prisma.AssetUncheckedUpdateManyWithoutCreatorNestedInput
-  authTokens?: Prisma.AuthTokenUncheckedUpdateManyWithoutUserNestedInput
-  tasks?: Prisma.TaskUncheckedUpdateManyWithoutCreatorNestedInput
-  teamMembers?: Prisma.TeamMemberUncheckedUpdateManyWithoutUserNestedInput
-  comments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCreatorNestedInput
-  completionChangedComments?: Prisma.AssetCommentUncheckedUpdateManyWithoutCompletionLastChangedByNestedInput
-  createdInvites?: Prisma.InviteUncheckedUpdateManyWithoutInviterNestedInput
-  createdNotifications?: Prisma.NotificationUncheckedUpdateManyWithoutCreatorNestedInput
-  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
-  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
-  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
-  agent?: Prisma.AgentUncheckedUpdateOneWithoutUserNestedInput
-  agentSessions?: Prisma.AgentSessionUncheckedUpdateManyWithoutUserNestedInput
-  userMetadata?: Prisma.UserMetadataUncheckedUpdateManyWithoutUserNestedInput
-  collections?: Prisma.CollectionUncheckedUpdateManyWithoutCreatorNestedInput
-  shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutCreatorNestedInput
-  apiTokens?: Prisma.ApiTokenUncheckedUpdateManyWithoutUserNestedInput
-  aiUsages?: Prisma.AiUsageUncheckedUpdateManyWithoutUserNestedInput
-  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
-  quotaRecords?: Prisma.QuotaRecordUncheckedUpdateManyWithoutUserNestedInput
-  kanbanTasksCreated?: Prisma.KanbanTaskUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
-  kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
@@ -5500,7 +5205,6 @@ export type UserCreateWithoutKanbanTaskCommentsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventCreateNestedManyWithoutActorInput
 }
 
@@ -5540,7 +5244,6 @@ export type UserUncheckedCreateWithoutKanbanTaskCommentsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutActorInput
 }
 
@@ -5596,7 +5299,6 @@ export type UserUpdateWithoutKanbanTaskCommentsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUpdateManyWithoutActorNestedInput
 }
 
@@ -5636,7 +5338,6 @@ export type UserUncheckedUpdateWithoutKanbanTaskCommentsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
   kanbanTaskEvents?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutActorNestedInput
 }
 
@@ -5676,7 +5377,6 @@ export type UserCreateWithoutKanbanTaskEventsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutAuthorInput
 }
 
@@ -5716,7 +5416,6 @@ export type UserUncheckedCreateWithoutKanbanTaskEventsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutReporterInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutAssigneeInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedCreateNestedManyWithoutCreatorInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutActorInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutAuthorInput
 }
 
@@ -5772,7 +5471,6 @@ export type UserUpdateWithoutKanbanTaskEventsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUpdateManyWithoutAuthorNestedInput
 }
 
@@ -5812,7 +5510,6 @@ export type UserUncheckedUpdateWithoutKanbanTaskEventsInput = {
   kanbanTasksReported?: Prisma.KanbanTaskUncheckedUpdateManyWithoutReporterNestedInput
   kanbanTasksAssigned?: Prisma.KanbanTaskUncheckedUpdateManyWithoutAssigneeNestedInput
   kanbanGoalsCreated?: Prisma.KanbanGoalUncheckedUpdateManyWithoutCreatorNestedInput
-  kanbanTaskRuns?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutActorNestedInput
   kanbanTaskComments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutAuthorNestedInput
 }
 
@@ -5845,7 +5542,6 @@ export type UserCountOutputType = {
   kanbanTasksReported: number
   kanbanTasksAssigned: number
   kanbanGoalsCreated: number
-  kanbanTaskRuns: number
   kanbanTaskComments: number
   kanbanTaskEvents: number
 }
@@ -5874,7 +5570,6 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   kanbanTasksReported?: boolean | UserCountOutputTypeCountKanbanTasksReportedArgs
   kanbanTasksAssigned?: boolean | UserCountOutputTypeCountKanbanTasksAssignedArgs
   kanbanGoalsCreated?: boolean | UserCountOutputTypeCountKanbanGoalsCreatedArgs
-  kanbanTaskRuns?: boolean | UserCountOutputTypeCountKanbanTaskRunsArgs
   kanbanTaskComments?: boolean | UserCountOutputTypeCountKanbanTaskCommentsArgs
   kanbanTaskEvents?: boolean | UserCountOutputTypeCountKanbanTaskEventsArgs
 }
@@ -6053,13 +5748,6 @@ export type UserCountOutputTypeCountKanbanGoalsCreatedArgs<ExtArgs extends runti
 /**
  * UserCountOutputType without action
  */
-export type UserCountOutputTypeCountKanbanTaskRunsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.KanbanTaskRunWhereInput
-}
-
-/**
- * UserCountOutputType without action
- */
 export type UserCountOutputTypeCountKanbanTaskCommentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.KanbanTaskCommentWhereInput
 }
@@ -6108,7 +5796,6 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   kanbanTasksReported?: boolean | Prisma.User$kanbanTasksReportedArgs<ExtArgs>
   kanbanTasksAssigned?: boolean | Prisma.User$kanbanTasksAssignedArgs<ExtArgs>
   kanbanGoalsCreated?: boolean | Prisma.User$kanbanGoalsCreatedArgs<ExtArgs>
-  kanbanTaskRuns?: boolean | Prisma.User$kanbanTaskRunsArgs<ExtArgs>
   kanbanTaskComments?: boolean | Prisma.User$kanbanTaskCommentsArgs<ExtArgs>
   kanbanTaskEvents?: boolean | Prisma.User$kanbanTaskEventsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
@@ -6182,7 +5869,6 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   kanbanTasksReported?: boolean | Prisma.User$kanbanTasksReportedArgs<ExtArgs>
   kanbanTasksAssigned?: boolean | Prisma.User$kanbanTasksAssignedArgs<ExtArgs>
   kanbanGoalsCreated?: boolean | Prisma.User$kanbanGoalsCreatedArgs<ExtArgs>
-  kanbanTaskRuns?: boolean | Prisma.User$kanbanTaskRunsArgs<ExtArgs>
   kanbanTaskComments?: boolean | Prisma.User$kanbanTaskCommentsArgs<ExtArgs>
   kanbanTaskEvents?: boolean | Prisma.User$kanbanTaskEventsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
@@ -6217,7 +5903,6 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     kanbanTasksReported: Prisma.$KanbanTaskPayload<ExtArgs>[]
     kanbanTasksAssigned: Prisma.$KanbanTaskPayload<ExtArgs>[]
     kanbanGoalsCreated: Prisma.$KanbanGoalPayload<ExtArgs>[]
-    kanbanTaskRuns: Prisma.$KanbanTaskRunPayload<ExtArgs>[]
     kanbanTaskComments: Prisma.$KanbanTaskCommentPayload<ExtArgs>[]
     kanbanTaskEvents: Prisma.$KanbanTaskEventPayload<ExtArgs>[]
   }
@@ -6654,7 +6339,6 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   kanbanTasksReported<T extends Prisma.User$kanbanTasksReportedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$kanbanTasksReportedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KanbanTaskPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   kanbanTasksAssigned<T extends Prisma.User$kanbanTasksAssignedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$kanbanTasksAssignedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KanbanTaskPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   kanbanGoalsCreated<T extends Prisma.User$kanbanGoalsCreatedArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$kanbanGoalsCreatedArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KanbanGoalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  kanbanTaskRuns<T extends Prisma.User$kanbanTaskRunsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$kanbanTaskRunsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KanbanTaskRunPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   kanbanTaskComments<T extends Prisma.User$kanbanTaskCommentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$kanbanTaskCommentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KanbanTaskCommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   kanbanTaskEvents<T extends Prisma.User$kanbanTaskEventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$kanbanTaskEventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KanbanTaskEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
@@ -7658,30 +7342,6 @@ export type User$kanbanGoalsCreatedArgs<ExtArgs extends runtime.Types.Extensions
   take?: number
   skip?: number
   distinct?: Prisma.KanbanGoalScalarFieldEnum | Prisma.KanbanGoalScalarFieldEnum[]
-}
-
-/**
- * User.kanbanTaskRuns
- */
-export type User$kanbanTaskRunsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the KanbanTaskRun
-   */
-  select?: Prisma.KanbanTaskRunSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the KanbanTaskRun
-   */
-  omit?: Prisma.KanbanTaskRunOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.KanbanTaskRunInclude<ExtArgs> | null
-  where?: Prisma.KanbanTaskRunWhereInput
-  orderBy?: Prisma.KanbanTaskRunOrderByWithRelationInput | Prisma.KanbanTaskRunOrderByWithRelationInput[]
-  cursor?: Prisma.KanbanTaskRunWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.KanbanTaskRunScalarFieldEnum | Prisma.KanbanTaskRunScalarFieldEnum[]
 }
 
 /**

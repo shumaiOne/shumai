@@ -1,7 +1,6 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { kanbanService } from '@shumai/core/src/kanban/kanban'
-import { kanbanContextService } from '@shumai/core/src/kanban/kanban-context'
 import {
   authzService,
   Permission,
@@ -11,7 +10,6 @@ import {
 import {
   createKanbanTaskSchema,
   updateKanbanTaskSchema,
-  requestChangesSchema,
   listKanbanTasksRequestSchema,
 } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
@@ -93,129 +91,5 @@ const route = new Hono<{ Variables: { user: User } }>()
       return c.json(task)
     },
   )
-  .post('/teams/:teamId/kanban/tasks/:taskId/start', async (c) => {
-    const { teamId, taskId } = c.req.param()
-    const user = c.get('user')
-
-    await authzService.hasPermission({
-      user,
-      permission: Permission.Edit,
-      type: ResourceType.KanbanTask,
-      id: taskId,
-    })
-
-    const role = await resolveEffectiveRole(teamId, undefined, user.id)
-    const task = await kanbanService.startManualTask(taskId, user.id, role)
-    return c.json(task)
-  })
-  .post('/teams/:teamId/kanban/tasks/:taskId/complete', async (c) => {
-    const { teamId, taskId } = c.req.param()
-    const user = c.get('user')
-
-    await authzService.hasPermission({
-      user,
-      permission: Permission.Edit,
-      type: ResourceType.KanbanTask,
-      id: taskId,
-    })
-
-    const role = await resolveEffectiveRole(teamId, undefined, user.id)
-    const task = await kanbanService.completeManualTask(taskId, user.id, role)
-    return c.json(task)
-  })
-  .post('/teams/:teamId/kanban/tasks/:taskId/approve', async (c) => {
-    const { teamId, taskId } = c.req.param()
-    const user = c.get('user')
-
-    await authzService.hasPermission({
-      user,
-      permission: Permission.Read,
-      type: ResourceType.KanbanTask,
-      id: taskId,
-    })
-
-    const role = await resolveEffectiveRole(teamId, undefined, user.id)
-    const task = await kanbanService.approveTask(taskId, user.id, role)
-    return c.json(task)
-  })
-  .post(
-    '/teams/:teamId/kanban/tasks/:taskId/request-changes',
-    zValidator('json', requestChangesSchema),
-    async (c) => {
-      const { teamId, taskId } = c.req.param()
-      const req = c.req.valid('json')
-      const user = c.get('user')
-
-      await authzService.hasPermission({
-        user,
-        permission: Permission.Read,
-        type: ResourceType.KanbanTask,
-        id: taskId,
-      })
-
-      const role = await resolveEffectiveRole(teamId, undefined, user.id)
-      const task = await kanbanService.requestChanges(taskId, req.reason, user.id, role)
-      return c.json(task)
-    },
-  )
-  .post('/teams/:teamId/kanban/tasks/:taskId/unblock', async (c) => {
-    const { teamId, taskId } = c.req.param()
-    const user = c.get('user')
-
-    await authzService.hasPermission({
-      user,
-      permission: Permission.Edit,
-      type: ResourceType.KanbanTask,
-      id: taskId,
-    })
-
-    const role = await resolveEffectiveRole(teamId, undefined, user.id)
-    const task = await kanbanService.unblockTask(taskId, user.id, role)
-    return c.json(task)
-  })
-  .post('/teams/:teamId/kanban/tasks/:taskId/reopen', async (c) => {
-    const { teamId, taskId } = c.req.param()
-    const user = c.get('user')
-
-    await authzService.hasPermission({
-      user,
-      permission: Permission.Edit,
-      type: ResourceType.KanbanTask,
-      id: taskId,
-    })
-
-    const role = await resolveEffectiveRole(teamId, undefined, user.id)
-    const task = await kanbanService.reopenTask(taskId, user.id, role)
-    return c.json(task)
-  })
-  .post('/teams/:teamId/kanban/tasks/:taskId/cancel', async (c) => {
-    const { teamId, taskId } = c.req.param()
-    const user = c.get('user')
-
-    await authzService.hasPermission({
-      user,
-      permission: Permission.Edit,
-      type: ResourceType.KanbanTask,
-      id: taskId,
-    })
-
-    const role = await resolveEffectiveRole(teamId, undefined, user.id)
-    const task = await kanbanService.cancelTask(taskId, user.id, role)
-    return c.json(task)
-  })
-  .get('/teams/:teamId/kanban/tasks/:taskId/context', async (c) => {
-    const { taskId } = c.req.param()
-    const user = c.get('user')
-
-    await authzService.hasPermission({
-      user,
-      permission: Permission.Read,
-      type: ResourceType.KanbanTask,
-      id: taskId,
-    })
-
-    const context = await kanbanContextService.buildAgentContext(taskId)
-    return c.json({ context })
-  })
 
 export default route

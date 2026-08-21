@@ -217,20 +217,6 @@ export const KanbanTaskStatus = {
 export type KanbanTaskStatus = (typeof KanbanTaskStatus)[keyof typeof KanbanTaskStatus]
 
 
-export const KanbanTaskRunStatus = {
-  RUNNING: 'RUNNING',
-  COMPLETED: 'COMPLETED',
-  REVIEW_REQUESTED: 'REVIEW_REQUESTED',
-  BLOCKED: 'BLOCKED',
-  FAILED: 'FAILED',
-  TIMED_OUT: 'TIMED_OUT',
-  CANCELLED: 'CANCELLED',
-  RECLAIMED: 'RECLAIMED'
-} as const
-
-export type KanbanTaskRunStatus = (typeof KanbanTaskRunStatus)[keyof typeof KanbanTaskRunStatus]
-
-
 export const KanbanTaskPriority = {
   LOW: 'LOW',
   MEDIUM: 'MEDIUM',
@@ -247,19 +233,13 @@ export const KanbanTaskEventType = {
   ASSIGNED: 'ASSIGNED',
   UNASSIGNED: 'UNASSIGNED',
   COMMENTED: 'COMMENTED',
-  REVIEW_REQUESTED: 'REVIEW_REQUESTED',
   CHANGES_REQUESTED: 'CHANGES_REQUESTED',
   BLOCKED: 'BLOCKED',
   UNBLOCKED: 'UNBLOCKED',
-  RUN_STARTED: 'RUN_STARTED',
-  RUN_COMPLETED: 'RUN_COMPLETED',
-  RUN_FAILED: 'RUN_FAILED',
   PRIORITY_CHANGED: 'PRIORITY_CHANGED',
   GOAL_CHANGED: 'GOAL_CHANGED',
   DEPENDENCY_ADDED: 'DEPENDENCY_ADDED',
   DEPENDENCY_REMOVED: 'DEPENDENCY_REMOVED',
-  ANCESTOR_REOPENED: 'ANCESTOR_REOPENED',
-  RECLAIMED: 'RECLAIMED',
   CANCELLED: 'CANCELLED'
 } as const
 

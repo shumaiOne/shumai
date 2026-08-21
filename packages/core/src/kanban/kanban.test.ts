@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
-import { KanbanTaskStatus, KanbanTaskPriority, KanbanTaskRunStatus } from '@shumai/db/enums'
+import { KanbanTaskStatus, KanbanTaskPriority } from '@shumai/db/enums'
 import { kanbanService } from './kanban'
 
 describe('KanbanService', () => {
@@ -91,13 +91,13 @@ describe('KanbanService', () => {
   })
 
   // --------------------------------------------------------------------------
-  // Tasks CRUD & Readiness Logic
+  // Tasks CRUD & Status
   // --------------------------------------------------------------------------
   describe('Tasks CRUD & Permissions', () => {
-    it('allows owners and editors to create tasks and computes initial READY state', async () => {
+    it('allows owners and editors to create tasks and starts in TODO', async () => {
       const { team, owner, editor } = await setupTeamAndUsers()
 
-      // Owner can create AGENTIC task
+      // Owner can create Agent Task
       const agentTask = await kanbanService.createTask(
         team.id,
         {
@@ -108,9 +108,9 @@ describe('KanbanService', () => {
         'owner',
       )
       expect(agentTask.isAgentTask).toBe(true)
-      expect(agentTask.status).toBe(KanbanTaskStatus.READY)
+      expect(agentTask.status).toBe(KanbanTaskStatus.TODO)
 
-      // Editor can create AGENTIC task
+      // Editor can create Agent Task
       const editorAgentTask = await kanbanService.createTask(
         team.id,
         {
@@ -121,9 +121,9 @@ describe('KanbanService', () => {
         'editor',
       )
       expect(editorAgentTask.isAgentTask).toBe(true)
-      expect(editorAgentTask.status).toBe(KanbanTaskStatus.READY)
+      expect(editorAgentTask.status).toBe(KanbanTaskStatus.TODO)
 
-      // Editor can create MANUAL task
+      // Editor can create Standard Task
       const manualTask = await kanbanService.createTask(
         team.id,
         {
@@ -134,258 +134,7 @@ describe('KanbanService', () => {
         'editor',
       )
       expect(manualTask.isAgentTask).toBe(false)
-      expect(manualTask.status).toBe(KanbanTaskStatus.READY)
-    })
-
-    it('sets initial status to TODO if parents exist and are not DONE or startDate in future', async () => {
-      const { team, owner } = await setupTeamAndUsers()
-
-      const parentTask = await kanbanService.createTask(
-        team.id,
-        { title: 'Parent Task' },
-        owner.id,
-        'owner',
-      )
-      expect(parentTask.status).toBe(KanbanTaskStatus.READY)
-
-      // Child with unfinished parent starts as TODO
-      const childTask = await kanbanService.createTask(
-        team.id,
-        {
-          title: 'Child Task',
-          parentIds: [parentTask.id],
-        },
-        owner.id,
-        'owner',
-      )
-      expect(childTask.status).toBe(KanbanTaskStatus.TODO)
-
-      // Task with future startDate starts as TODO
-      const futureDate = new Date(Date.now() + 86400000)
-      const futureTask = await kanbanService.createTask(
-        team.id,
-        {
-          title: 'Future Task',
-          startDate: futureDate,
-        },
-        owner.id,
-        'owner',
-      )
-      expect(futureTask.status).toBe(KanbanTaskStatus.TODO)
-    })
-  })
-
-  // --------------------------------------------------------------------------
-  // Manual Task Lifecycle
-  // --------------------------------------------------------------------------
-  describe('Manual Task Lifecycle & Child Readiness', () => {
-    it('transitions READY -> IN_PROGRESS -> DONE and unlocks child tasks', async () => {
-      const { team, editor } = await setupTeamAndUsers()
-
-      const taskA = await kanbanService.createTask(
-        team.id,
-        { title: 'Task A' },
-        editor.id,
-        'editor',
-      )
-      const taskB = await kanbanService.createTask(
-        team.id,
-        { title: 'Task B', parentIds: [taskA.id] },
-        editor.id,
-        'editor',
-      )
-
-      expect(taskA.status).toBe(KanbanTaskStatus.READY)
-      expect(taskB.status).toBe(KanbanTaskStatus.TODO)
-
-      // Start Task A
-      const startedA = await kanbanService.startManualTask(taskA.id, editor.id)
-      expect(startedA.status).toBe(KanbanTaskStatus.IN_PROGRESS)
-      expect(startedA.startedAt).toBeDefined()
-
-      // Complete Task A
-      const completedA = await kanbanService.completeManualTask(taskA.id, editor.id)
-      expect(completedA.status).toBe(KanbanTaskStatus.DONE)
-      expect(completedA.completedAt).toBeDefined()
-
-      // Task B should automatically become READY
-      const refreshedB = await kanbanService.getTask(taskB.id)
-      expect(refreshedB.status).toBe(KanbanTaskStatus.READY)
-    })
-  })
-
-  // --------------------------------------------------------------------------
-  // Review & Rework Lifecycle
-  // --------------------------------------------------------------------------
-  describe('Review & Rework Lifecycle', () => {
-    it('allows designated editor reporter to approve or request changes on an AGENTIC task', async () => {
-      const { team, owner, editor } = await setupTeamAndUsers()
-
-      // Owner creates AGENTIC task and assigns Editor as reporter
-      const agentTask = await kanbanService.createTask(
-        team.id,
-        {
-          title: 'Agent Review Task',
-          isAgentTask: true,
-          reporterId: editor.id,
-        },
-        owner.id,
-        'owner',
-      )
-
-      // Simulate an active run in IN_REVIEW
-      const run = await prisma.kanbanTaskRun.create({
-        data: {
-          taskId: agentTask.id,
-          status: KanbanTaskRunStatus.REVIEW_REQUESTED,
-          attempt: 1,
-          claimToken: 'token-1',
-          summary: 'Finished first pass',
-        },
-      })
-      await prisma.kanbanTask.update({
-        where: { id: agentTask.id },
-        data: {
-          status: KanbanTaskStatus.IN_REVIEW,
-          latestRunId: run.id,
-        },
-      })
-
-      // Editor (as reporter) requests changes
-      const afterChanges = await kanbanService.requestChanges(
-        agentTask.id,
-        'Please fix the headers',
-        editor.id,
-        'editor',
-      )
-      expect(afterChanges.status).toBe(KanbanTaskStatus.READY)
-
-      // Check comments and events
-      const comments = await kanbanService.listComments(agentTask.id)
-      expect(comments.length).toBe(1)
-      expect(comments[0].body).toContain('Please fix the headers')
-
-      // Put back in IN_REVIEW
-      await prisma.kanbanTask.update({
-        where: { id: agentTask.id },
-        data: { status: KanbanTaskStatus.IN_REVIEW },
-      })
-
-      // Editor approves task
-      const approved = await kanbanService.approveTask(agentTask.id, editor.id, 'editor')
-      expect(approved.status).toBe(KanbanTaskStatus.DONE)
-      expect(approved.completedAt).toBeDefined()
-
-      const finishedRun = await prisma.kanbanTaskRun.findUnique({ where: { id: run.id } })
-      expect(finishedRun?.status).toBe(KanbanTaskRunStatus.COMPLETED)
-    })
-  })
-
-  // --------------------------------------------------------------------------
-  // Unblock, Reclaim & Cancel
-  // --------------------------------------------------------------------------
-  describe('Unblock, Reclaim, and Cancel', () => {
-    it('unblocks blocked task to READY if parents are satisfied', async () => {
-      const { team, editor } = await setupTeamAndUsers()
-
-      const task = await kanbanService.createTask(
-        team.id,
-        { title: 'Blockable Task' },
-        editor.id,
-        'editor',
-      )
-
-      await prisma.kanbanTask.update({
-        where: { id: task.id },
-        data: { status: KanbanTaskStatus.BLOCKED },
-      })
-
-      const unblocked = await kanbanService.unblockTask(task.id, editor.id)
-      expect(unblocked.status).toBe(KanbanTaskStatus.READY)
-    })
-
-    it('cancels task and all downstream descendants', async () => {
-      const { team, editor } = await setupTeamAndUsers()
-
-      const taskA = await kanbanService.createTask(
-        team.id,
-        { title: 'Parent' },
-        editor.id,
-        'editor',
-      )
-      const taskB = await kanbanService.createTask(
-        team.id,
-        { title: 'Child', parentIds: [taskA.id] },
-        editor.id,
-        'editor',
-      )
-      const taskC = await kanbanService.createTask(
-        team.id,
-        { title: 'Grandchild', parentIds: [taskB.id] },
-        editor.id,
-        'editor',
-      )
-
-      // Cancel parent taskA
-      const cancelledA = await kanbanService.cancelTask(taskA.id, editor.id)
-      expect(cancelledA.status).toBe(KanbanTaskStatus.CANCELLED)
-
-      const refreshedB = await kanbanService.getTask(taskB.id)
-      const refreshedC = await kanbanService.getTask(taskC.id)
-      expect(refreshedB.status).toBe(KanbanTaskStatus.CANCELLED)
-      expect(refreshedC.status).toBe(KanbanTaskStatus.CANCELLED)
-    })
-  })
-
-  // --------------------------------------------------------------------------
-  // Reopen & Descendant Invalidation
-  // --------------------------------------------------------------------------
-  describe('Reopen Task & Descendant Invalidation', () => {
-    it('demotes all downstream children from DONE/READY back to TODO when ancestor is reopened', async () => {
-      const { team, editor } = await setupTeamAndUsers()
-
-      // Create chain: A -> B -> C
-      const taskA = await kanbanService.createTask(team.id, { title: 'A' }, editor.id, 'editor')
-      const taskB = await kanbanService.createTask(
-        team.id,
-        { title: 'B', parentIds: [taskA.id] },
-        editor.id,
-        'editor',
-      )
-      const taskC = await kanbanService.createTask(
-        team.id,
-        { title: 'C', parentIds: [taskB.id] },
-        editor.id,
-        'editor',
-      )
-
-      // Complete A
-      await kanbanService.startManualTask(taskA.id, editor.id)
-      await kanbanService.completeManualTask(taskA.id, editor.id)
-
-      // Complete B
-      await kanbanService.startManualTask(taskB.id, editor.id)
-      await kanbanService.completeManualTask(taskB.id, editor.id)
-
-      // C is now READY
-      const readyC = await kanbanService.getTask(taskC.id)
-      expect(readyC.status).toBe(KanbanTaskStatus.READY)
-
-      // Reopen A
-      const reopenedA = await kanbanService.reopenTask(taskA.id, editor.id)
-      expect(reopenedA.status).toBe(KanbanTaskStatus.READY)
-      expect(reopenedA.completedAt).toBeNull()
-
-      // B and C must both be demoted back to TODO
-      const refreshedB = await kanbanService.getTask(taskB.id)
-      const refreshedC = await kanbanService.getTask(taskC.id)
-      expect(refreshedB.status).toBe(KanbanTaskStatus.TODO)
-      expect(refreshedB.completedAt).toBeNull()
-      expect(refreshedC.status).toBe(KanbanTaskStatus.TODO)
-
-      // Verify audit comments were injected
-      const commentsB = await kanbanService.listComments(taskB.id)
-      expect(commentsB.some((c) => c.body.includes('Invalidated: ancestor'))).toBe(true)
+      expect(manualTask.status).toBe(KanbanTaskStatus.TODO)
     })
   })
 
@@ -424,7 +173,7 @@ describe('KanbanService', () => {
   // Task Listing with Status Event
   // --------------------------------------------------------------------------
   describe('Task Listing and Status Event Details', () => {
-    it('attaches latestStatusEvent and filters by type, status, goal', async () => {
+    it('attaches latestStatusEvent and filters by isAgentTask, status, goal', async () => {
       const { team, owner, editor } = await setupTeamAndUsers()
 
       const goal = await kanbanService.createGoal(team.id, { title: 'Q3 Goal' }, owner.id, 'owner')
@@ -466,12 +215,10 @@ describe('KanbanService', () => {
   })
 
   // --------------------------------------------------------------------------
-  // Unified Status Transitions & Unconstrained Human Tasks
-  // --------------------------------------------------------------------------
-  // Unified Status Transitions & Task Status Permissions
+  // Unified Status Transitions & Permissions
   // --------------------------------------------------------------------------
   describe('Unified Status Transitions & Task Status Permissions', () => {
-    it('allows human tasks to transition between any states via updateTask', async () => {
+    it('allows tasks to transition between any states via updateTask', async () => {
       const { team, editor } = await setupTeamAndUsers()
 
       const task = await kanbanService.createTask(
@@ -480,9 +227,18 @@ describe('KanbanService', () => {
         editor.id,
         'editor',
       )
-      expect(task.status).toBe(KanbanTaskStatus.READY)
+      expect(task.status).toBe(KanbanTaskStatus.TODO)
 
-      // Direct transition: READY -> BLOCKED
+      // Direct transition: TODO -> IN_PROGRESS
+      const inProgress = await kanbanService.updateTask(
+        task.id,
+        { status: KanbanTaskStatus.IN_PROGRESS },
+        editor.id,
+      )
+      expect(inProgress.status).toBe(KanbanTaskStatus.IN_PROGRESS)
+      expect(inProgress.startedAt).toBeDefined()
+
+      // Direct transition: IN_PROGRESS -> BLOCKED
       const blocked = await kanbanService.updateTask(
         task.id,
         { status: KanbanTaskStatus.BLOCKED, reason: 'Waiting for design' },
@@ -500,13 +256,13 @@ describe('KanbanService', () => {
       expect(done.completedAt).toBeDefined()
 
       // Direct transition: DONE -> IN_PROGRESS (re-open directly into progress)
-      const inProgress = await kanbanService.updateTask(
+      const reopened = await kanbanService.updateTask(
         task.id,
         { status: KanbanTaskStatus.IN_PROGRESS },
         editor.id,
       )
-      expect(inProgress.status).toBe(KanbanTaskStatus.IN_PROGRESS)
-      expect(inProgress.completedAt).toBeNull()
+      expect(reopened.status).toBe(KanbanTaskStatus.IN_PROGRESS)
+      expect(reopened.completedAt).toBeNull()
 
       // Direct transition: IN_PROGRESS -> IN_REVIEW
       const inReview = await kanbanService.updateTask(
@@ -523,66 +279,6 @@ describe('KanbanService', () => {
         editor.id,
       )
       expect(todo.status).toBe(KanbanTaskStatus.TODO)
-    })
-
-    it('allows agent tasks to transition freely between any states via updateTask', async () => {
-      const { team, owner, editor } = await setupTeamAndUsers()
-
-      const agentTask = await kanbanService.createTask(
-        team.id,
-        { title: 'Flexible Agent Task', isAgentTask: true },
-        editor.id,
-        'editor',
-      )
-      expect(agentTask.isAgentTask).toBe(true)
-      expect(agentTask.status).toBe(KanbanTaskStatus.READY)
-
-      // Direct transition: READY -> IN_PROGRESS
-      const inProgress = await kanbanService.updateTask(
-        agentTask.id,
-        { status: KanbanTaskStatus.IN_PROGRESS },
-        editor.id,
-        'editor',
-      )
-      expect(inProgress.status).toBe(KanbanTaskStatus.IN_PROGRESS)
-
-      // Direct transition: IN_PROGRESS -> DONE
-      const done = await kanbanService.updateTask(
-        agentTask.id,
-        { status: KanbanTaskStatus.DONE },
-        owner.id,
-        'owner',
-      )
-      expect(done.status).toBe(KanbanTaskStatus.DONE)
-      expect(done.completedAt).toBeDefined()
-
-      // Direct transition: DONE -> TODO
-      const todo = await kanbanService.updateTask(
-        agentTask.id,
-        { status: KanbanTaskStatus.TODO },
-        editor.id,
-        'editor',
-      )
-      expect(todo.status).toBe(KanbanTaskStatus.TODO)
-      expect(todo.completedAt).toBeNull()
-
-      // Direct transition: TODO -> IN_REVIEW
-      const inReview = await kanbanService.updateTask(
-        agentTask.id,
-        { status: KanbanTaskStatus.IN_REVIEW },
-        editor.id,
-        'editor',
-      )
-      expect(inReview.status).toBe(KanbanTaskStatus.IN_REVIEW)
-
-      // Direct transition: IN_REVIEW -> CANCELLED
-      const cancelled = await kanbanService.updateTask(
-        agentTask.id,
-        { status: KanbanTaskStatus.CANCELLED },
-        editor.id,
-        'editor',
-      )
-      expect(cancelled.status).toBe(KanbanTaskStatus.CANCELLED)
     })
 
     it('enforces status change permissions (only owner, reporter, or assignee can change status)', async () => {
@@ -730,7 +426,7 @@ describe('KanbanService', () => {
       expect(task1.sortIndex! < task2.sortIndex!).toBe(true)
       expect(task2.sortIndex! < task3.sortIndex!).toBe(true)
 
-      const list = await kanbanService.listTasks(team.id, { status: KanbanTaskStatus.READY })
+      const list = await kanbanService.listTasks(team.id, { status: KanbanTaskStatus.TODO })
       expect(list.data.map((t) => t.id)).toEqual([task1.id, task2.id, task3.id])
     })
 
@@ -750,7 +446,7 @@ describe('KanbanService', () => {
       )
       expect(updatedC.sortIndex! < taskA.sortIndex!).toBe(true)
 
-      let list = await kanbanService.listTasks(team.id, { status: KanbanTaskStatus.READY })
+      let list = await kanbanService.listTasks(team.id, { status: KanbanTaskStatus.TODO })
       expect(list.data.map((t) => t.id)).toEqual([taskC.id, taskA.id, taskB.id])
 
       // Move task C after task A (between A and B)
@@ -763,7 +459,7 @@ describe('KanbanService', () => {
       expect(reorderedTaskC.sortIndex! > taskA.sortIndex!).toBe(true)
       expect(reorderedTaskC.sortIndex! < taskB.sortIndex!).toBe(true)
 
-      list = await kanbanService.listTasks(team.id, { status: KanbanTaskStatus.READY })
+      list = await kanbanService.listTasks(team.id, { status: KanbanTaskStatus.TODO })
       expect(list.data.map((t) => t.id)).toEqual([taskA.id, taskC.id, taskB.id])
     })
 

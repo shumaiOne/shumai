@@ -2,16 +2,14 @@ import { useQuery } from '@tanstack/react-query'
 import { client } from '@/ui/api/client'
 import { m } from '@/ui/paraglide/messages.js'
 import { ScrollArea } from '@/ui/components/ui/scroll-area'
-import { KanbanTaskEventType, type KanbanEventInfo, type KanbanRunSummary } from '@shumai/dtos'
-import { getRunStatusBadgeColor, getStatusLabel } from '../kanban-types'
+import { KanbanTaskEventType, type KanbanEventInfo } from '@shumai/dtos'
+import { getStatusLabel } from '../kanban-types'
 import { format } from 'date-fns'
-import { Bot, Loader2 } from 'lucide-react'
-import { cn } from '@/ui/lib/utils'
+import { Loader2 } from 'lucide-react'
 
 interface TaskEventTimelineProps {
   teamId: string
   taskId: string
-  runs?: KanbanRunSummary[]
   initialEvents?: KanbanEventInfo[]
 }
 
@@ -40,8 +38,6 @@ function getEventDescription(event: KanbanEventInfo): string {
       return `Task blocked: "${String(data.reason || data.blockReason || '')}"`
     case KanbanTaskEventType.UNBLOCKED:
       return 'Task unblocked'
-    case KanbanTaskEventType.RECLAIMED:
-      return 'Task reclaimed'
     case KanbanTaskEventType.CANCELLED:
       return 'Task cancelled'
     case KanbanTaskEventType.COMMENTED:
@@ -51,12 +47,7 @@ function getEventDescription(event: KanbanEventInfo): string {
   }
 }
 
-export function TaskEventTimeline({
-  teamId,
-  taskId,
-  runs = [],
-  initialEvents,
-}: TaskEventTimelineProps) {
+export function TaskEventTimeline({ teamId, taskId, initialEvents }: TaskEventTimelineProps) {
   const { data: eventsData, isLoading } = useQuery({
     queryKey: ['teams', teamId, 'kanban', 'tasks', taskId, 'events'],
     queryFn: async () => {
@@ -74,53 +65,7 @@ export function TaskEventTimeline({
 
   return (
     <ScrollArea className="h-full p-3">
-      <div className="space-y-5 pr-2">
-        {/* AI Run Attempts History */}
-        {runs.length > 0 && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground/80">
-              <Bot className="w-3.5 h-3.5 text-purple-500" />
-              <span>AI Execution Attempts</span>
-              <span className="text-[11px] font-mono text-muted-foreground">({runs.length})</span>
-            </div>
-
-            <div className="space-y-2">
-              {runs.map((run) => (
-                <div
-                  key={run.id}
-                  className="p-2.5 rounded-lg border border-purple-500/20 bg-purple-500/[0.03] space-y-1.5 text-xs"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-semibold text-purple-600 dark:text-purple-400">
-                        {m.run_attempt({ number: run.attempt })}
-                      </span>
-                      <span
-                        className={cn(
-                          'px-1.5 py-0.2 rounded text-[10px] font-medium border uppercase',
-                          getRunStatusBadgeColor(run.status),
-                        )}
-                      >
-                        {run.status}
-                      </span>
-                    </div>
-
-                    <span className="text-[10px] text-muted-foreground font-mono">
-                      {format(new Date(run.startedAt), 'MM/dd HH:mm')}
-                    </span>
-                  </div>
-
-                  {run.summary && (
-                    <p className="text-[11px] text-foreground/80 bg-background/80 p-2 rounded border border-border/50 whitespace-pre-wrap">
-                      {run.summary}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
+      <div className="space-y-4 pr-2">
         {/* Audit Event Stream */}
         <div className="space-y-2">
           {isLoading ? (

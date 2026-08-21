@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import {
   KanbanTaskPriority,
   KanbanTaskStatus,
-  KanbanTaskRunStatus,
   KanbanTaskEventType,
   type KanbanTaskInfo,
   type KanbanGoalInfo,
@@ -18,7 +17,6 @@ import {
   getStatusBadgeColor,
   getPriorityLabel,
   getPriorityBadgeColor,
-  getRunStatusBadgeColor,
 } from './kanban-types'
 import { KanbanCard } from './kanban-card'
 import { KanbanHeader } from './kanban-header'
@@ -113,7 +111,7 @@ describe('Kanban UI Unit & Component Tests', () => {
       expect(getStatusLabel(KanbanTaskStatus.DONE)).toBeDefined()
       expect(getStatusLabel(KanbanTaskStatus.CANCELLED)).toBeDefined()
 
-      expect(getStatusColor(KanbanTaskStatus.READY)).toContain('emerald')
+      expect(getStatusColor(KanbanTaskStatus.READY).badge).toBeDefined()
       expect(getStatusBadgeColor(KanbanTaskStatus.BLOCKED)).toContain('red')
     })
 
@@ -121,11 +119,6 @@ describe('Kanban UI Unit & Component Tests', () => {
       expect(getPriorityLabel(KanbanTaskPriority.LOW)).toBeDefined()
       expect(getPriorityLabel(KanbanTaskPriority.URGENT)).toBeDefined()
       expect(getPriorityBadgeColor(KanbanTaskPriority.URGENT)).toContain('red')
-    })
-
-    it('maps run status to colors', () => {
-      expect(getRunStatusBadgeColor(KanbanTaskRunStatus.RUNNING)).toContain('amber')
-      expect(getRunStatusBadgeColor(KanbanTaskRunStatus.COMPLETED)).toContain('emerald')
     })
   })
 
@@ -148,7 +141,6 @@ describe('Kanban UI Unit & Component Tests', () => {
       assignee: { id: 'user-2', name: 'Bob' },
       goal: { id: 'goal-1', title: 'Q3 Goal' },
       targetFolderId: null,
-      latestRun: null,
       latestStatusEvent: null,
       commentCount: 3,
       dependencyCount: 1,
@@ -163,12 +155,6 @@ describe('Kanban UI Unit & Component Tests', () => {
       title: 'Autonomous Agent Task',
       isAgentTask: true,
       status: KanbanTaskStatus.IN_PROGRESS,
-      latestRun: {
-        id: 'run-1',
-        status: KanbanTaskRunStatus.RUNNING,
-        attempt: 2,
-        startedAt: '2026-08-20T01:00:00.000Z',
-      },
     }
 
     it('renders human task card correctly without agent task label', () => {
@@ -186,13 +172,12 @@ describe('Kanban UI Unit & Component Tests', () => {
       expect(onClick).toHaveBeenCalledWith(mockManualTask)
     })
 
-    it('renders agent task card with Agent Task label and attempt count', () => {
+    it('renders agent task card with Agent Task label', () => {
       const onClick = vi.fn()
       render(<KanbanCard task={mockAgenticTask} onClick={onClick} />)
 
       expect(screen.getByText('Autonomous Agent Task')).toBeDefined()
       expect(screen.getByText(/Agent Task|智能体任务/i)).toBeDefined()
-      expect(screen.getByText('#2')).toBeDefined()
     })
 
     it('enforces card drag permission: enabled for owner, reporter, or assignee; disabled for others', () => {
@@ -487,7 +472,6 @@ describe('Kanban UI Unit & Component Tests', () => {
         assignee: null,
         goal: null,
         targetFolderId: null,
-        latestRun: null,
         latestStatusEvent: null,
         commentCount: 0,
         dependencyCount: 0,

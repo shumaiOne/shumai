@@ -1,4 +1,4 @@
-import { KanbanTaskPriority, KanbanTaskStatus, KanbanTaskRunStatus } from '@shumai/dtos'
+import { KanbanTaskPriority, KanbanTaskStatus } from '@shumai/dtos'
 import { m } from '@/ui/paraglide/messages.js'
 
 export const KANBAN_STATUS_COLUMNS: KanbanTaskStatus[] = [
@@ -119,26 +119,6 @@ export function getPriorityBadgeColor(priority: KanbanTaskPriority): string {
       return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
     case KanbanTaskPriority.URGENT:
       return 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20 font-semibold'
-    default:
-      return 'bg-muted text-muted-foreground border-border'
-  }
-}
-
-export function getRunStatusBadgeColor(status: KanbanTaskRunStatus): string {
-  switch (status) {
-    case KanbanTaskRunStatus.RUNNING:
-      return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
-    case KanbanTaskRunStatus.COMPLETED:
-      return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-    case KanbanTaskRunStatus.REVIEW_REQUESTED:
-      return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20'
-    case KanbanTaskRunStatus.BLOCKED:
-    case KanbanTaskRunStatus.FAILED:
-    case KanbanTaskRunStatus.TIMED_OUT:
-      return 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20'
-    case KanbanTaskRunStatus.CANCELLED:
-    case KanbanTaskRunStatus.RECLAIMED:
-      return 'bg-muted text-muted-foreground border-border'
     default:
       return 'bg-muted text-muted-foreground border-border'
   }

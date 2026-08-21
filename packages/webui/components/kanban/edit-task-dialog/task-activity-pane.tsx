@@ -44,12 +44,7 @@ export function TaskActivityPane({ teamId, task }: TaskActivityPaneProps) {
             <TaskCommentThread teamId={teamId} taskId={task.id} initialComments={task.comments} />
           </TabsContent>
           <TabsContent value="activity" className="h-full m-0 data-[state=active]:block">
-            <TaskEventTimeline
-              teamId={teamId}
-              taskId={task.id}
-              runs={task.runs}
-              initialEvents={task.events}
-            />
+            <TaskEventTimeline teamId={teamId} taskId={task.id} initialEvents={task.events} />
           </TabsContent>
         </div>
       </Tabs>

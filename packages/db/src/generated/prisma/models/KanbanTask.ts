@@ -44,7 +44,6 @@ export type KanbanTaskMinAggregateOutputType = {
   reporterId: string | null
   assigneeId: string | null
   targetFolderId: string | null
-  latestRunId: string | null
   sortIndex: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -68,7 +67,6 @@ export type KanbanTaskMaxAggregateOutputType = {
   reporterId: string | null
   assigneeId: string | null
   targetFolderId: string | null
-  latestRunId: string | null
   sortIndex: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -92,7 +90,6 @@ export type KanbanTaskCountAggregateOutputType = {
   reporterId: number
   assigneeId: number
   targetFolderId: number
-  latestRunId: number
   sortIndex: number
   createdAt: number
   updatedAt: number
@@ -118,7 +115,6 @@ export type KanbanTaskMinAggregateInputType = {
   reporterId?: true
   assigneeId?: true
   targetFolderId?: true
-  latestRunId?: true
   sortIndex?: true
   createdAt?: true
   updatedAt?: true
@@ -142,7 +138,6 @@ export type KanbanTaskMaxAggregateInputType = {
   reporterId?: true
   assigneeId?: true
   targetFolderId?: true
-  latestRunId?: true
   sortIndex?: true
   createdAt?: true
   updatedAt?: true
@@ -166,7 +161,6 @@ export type KanbanTaskCountAggregateInputType = {
   reporterId?: true
   assigneeId?: true
   targetFolderId?: true
-  latestRunId?: true
   sortIndex?: true
   createdAt?: true
   updatedAt?: true
@@ -263,7 +257,6 @@ export type KanbanTaskGroupByOutputType = {
   reporterId: string | null
   assigneeId: string | null
   targetFolderId: string | null
-  latestRunId: string | null
   sortIndex: string | null
   createdAt: Date
   updatedAt: Date
@@ -308,7 +301,6 @@ export type KanbanTaskWhereInput = {
   reporterId?: Prisma.StringNullableFilter<"KanbanTask"> | string | null
   assigneeId?: Prisma.StringNullableFilter<"KanbanTask"> | string | null
   targetFolderId?: Prisma.StringNullableFilter<"KanbanTask"> | string | null
-  latestRunId?: Prisma.StringNullableFilter<"KanbanTask"> | string | null
   sortIndex?: Prisma.StringNullableFilter<"KanbanTask"> | string | null
   createdAt?: Prisma.DateTimeFilter<"KanbanTask"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"KanbanTask"> | Date | string
@@ -319,12 +311,10 @@ export type KanbanTaskWhereInput = {
   reporter?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   assignee?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   targetFolder?: Prisma.XOR<Prisma.AssetNullableScalarRelationFilter, Prisma.AssetWhereInput> | null
-  latestRun?: Prisma.XOR<Prisma.KanbanTaskRunNullableScalarRelationFilter, Prisma.KanbanTaskRunWhereInput> | null
   dependencies?: Prisma.KanbanTaskLinkListRelationFilter
   dependents?: Prisma.KanbanTaskLinkListRelationFilter
   comments?: Prisma.KanbanTaskCommentListRelationFilter
   events?: Prisma.KanbanTaskEventListRelationFilter
-  runs?: Prisma.KanbanTaskRunListRelationFilter
 }
 
 export type KanbanTaskOrderByWithRelationInput = {
@@ -345,7 +335,6 @@ export type KanbanTaskOrderByWithRelationInput = {
   reporterId?: Prisma.SortOrderInput | Prisma.SortOrder
   assigneeId?: Prisma.SortOrderInput | Prisma.SortOrder
   targetFolderId?: Prisma.SortOrderInput | Prisma.SortOrder
-  latestRunId?: Prisma.SortOrderInput | Prisma.SortOrder
   sortIndex?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -356,17 +345,14 @@ export type KanbanTaskOrderByWithRelationInput = {
   reporter?: Prisma.UserOrderByWithRelationInput
   assignee?: Prisma.UserOrderByWithRelationInput
   targetFolder?: Prisma.AssetOrderByWithRelationInput
-  latestRun?: Prisma.KanbanTaskRunOrderByWithRelationInput
   dependencies?: Prisma.KanbanTaskLinkOrderByRelationAggregateInput
   dependents?: Prisma.KanbanTaskLinkOrderByRelationAggregateInput
   comments?: Prisma.KanbanTaskCommentOrderByRelationAggregateInput
   events?: Prisma.KanbanTaskEventOrderByRelationAggregateInput
-  runs?: Prisma.KanbanTaskRunOrderByRelationAggregateInput
 }
 
 export type KanbanTaskWhereUniqueInput = Prisma.AtLeast<{
   id?: string
-  latestRunId?: string
   AND?: Prisma.KanbanTaskWhereInput | Prisma.KanbanTaskWhereInput[]
   OR?: Prisma.KanbanTaskWhereInput[]
   NOT?: Prisma.KanbanTaskWhereInput | Prisma.KanbanTaskWhereInput[]
@@ -396,13 +382,11 @@ export type KanbanTaskWhereUniqueInput = Prisma.AtLeast<{
   reporter?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   assignee?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   targetFolder?: Prisma.XOR<Prisma.AssetNullableScalarRelationFilter, Prisma.AssetWhereInput> | null
-  latestRun?: Prisma.XOR<Prisma.KanbanTaskRunNullableScalarRelationFilter, Prisma.KanbanTaskRunWhereInput> | null
   dependencies?: Prisma.KanbanTaskLinkListRelationFilter
   dependents?: Prisma.KanbanTaskLinkListRelationFilter
   comments?: Prisma.KanbanTaskCommentListRelationFilter
   events?: Prisma.KanbanTaskEventListRelationFilter
-  runs?: Prisma.KanbanTaskRunListRelationFilter
-}, "id" | "latestRunId">
+}, "id">
 
 export type KanbanTaskOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -422,7 +406,6 @@ export type KanbanTaskOrderByWithAggregationInput = {
   reporterId?: Prisma.SortOrderInput | Prisma.SortOrder
   assigneeId?: Prisma.SortOrderInput | Prisma.SortOrder
   targetFolderId?: Prisma.SortOrderInput | Prisma.SortOrder
-  latestRunId?: Prisma.SortOrderInput | Prisma.SortOrder
   sortIndex?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -452,7 +435,6 @@ export type KanbanTaskScalarWhereWithAggregatesInput = {
   reporterId?: Prisma.StringNullableWithAggregatesFilter<"KanbanTask"> | string | null
   assigneeId?: Prisma.StringNullableWithAggregatesFilter<"KanbanTask"> | string | null
   targetFolderId?: Prisma.StringNullableWithAggregatesFilter<"KanbanTask"> | string | null
-  latestRunId?: Prisma.StringNullableWithAggregatesFilter<"KanbanTask"> | string | null
   sortIndex?: Prisma.StringNullableWithAggregatesFilter<"KanbanTask"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"KanbanTask"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"KanbanTask"> | Date | string
@@ -479,12 +461,10 @@ export type KanbanTaskCreateInput = {
   reporter?: Prisma.UserCreateNestedOneWithoutKanbanTasksReportedInput
   assignee?: Prisma.UserCreateNestedOneWithoutKanbanTasksAssignedInput
   targetFolder?: Prisma.AssetCreateNestedOneWithoutKanbanTargetTasksInput
-  latestRun?: Prisma.KanbanTaskRunCreateNestedOneWithoutLatestTaskInput
   dependencies?: Prisma.KanbanTaskLinkCreateNestedManyWithoutChildInput
   dependents?: Prisma.KanbanTaskLinkCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventCreateNestedManyWithoutTaskInput
-  runs?: Prisma.KanbanTaskRunCreateNestedManyWithoutTaskInput
 }
 
 export type KanbanTaskUncheckedCreateInput = {
@@ -505,7 +485,6 @@ export type KanbanTaskUncheckedCreateInput = {
   reporterId?: string | null
   assigneeId?: string | null
   targetFolderId?: string | null
-  latestRunId?: string | null
   sortIndex?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -513,7 +492,6 @@ export type KanbanTaskUncheckedCreateInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutTaskInput
-  runs?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutTaskInput
 }
 
 export type KanbanTaskUpdateInput = {
@@ -537,12 +515,10 @@ export type KanbanTaskUpdateInput = {
   reporter?: Prisma.UserUpdateOneWithoutKanbanTasksReportedNestedInput
   assignee?: Prisma.UserUpdateOneWithoutKanbanTasksAssignedNestedInput
   targetFolder?: Prisma.AssetUpdateOneWithoutKanbanTargetTasksNestedInput
-  latestRun?: Prisma.KanbanTaskRunUpdateOneWithoutLatestTaskNestedInput
   dependencies?: Prisma.KanbanTaskLinkUpdateManyWithoutChildNestedInput
   dependents?: Prisma.KanbanTaskLinkUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUpdateManyWithoutTaskNestedInput
-  runs?: Prisma.KanbanTaskRunUpdateManyWithoutTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateInput = {
@@ -563,7 +539,6 @@ export type KanbanTaskUncheckedUpdateInput = {
   reporterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assigneeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetFolderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  latestRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -571,7 +546,6 @@ export type KanbanTaskUncheckedUpdateInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutTaskNestedInput
-  runs?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutTaskNestedInput
 }
 
 export type KanbanTaskCreateManyInput = {
@@ -592,7 +566,6 @@ export type KanbanTaskCreateManyInput = {
   reporterId?: string | null
   assigneeId?: string | null
   targetFolderId?: string | null
-  latestRunId?: string | null
   sortIndex?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -632,7 +605,6 @@ export type KanbanTaskUncheckedUpdateManyInput = {
   reporterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assigneeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetFolderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  latestRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -666,7 +638,6 @@ export type KanbanTaskCountOrderByAggregateInput = {
   reporterId?: Prisma.SortOrder
   assigneeId?: Prisma.SortOrder
   targetFolderId?: Prisma.SortOrder
-  latestRunId?: Prisma.SortOrder
   sortIndex?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -690,7 +661,6 @@ export type KanbanTaskMaxOrderByAggregateInput = {
   reporterId?: Prisma.SortOrder
   assigneeId?: Prisma.SortOrder
   targetFolderId?: Prisma.SortOrder
-  latestRunId?: Prisma.SortOrder
   sortIndex?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -714,7 +684,6 @@ export type KanbanTaskMinOrderByAggregateInput = {
   reporterId?: Prisma.SortOrder
   assigneeId?: Prisma.SortOrder
   targetFolderId?: Prisma.SortOrder
-  latestRunId?: Prisma.SortOrder
   sortIndex?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -723,11 +692,6 @@ export type KanbanTaskMinOrderByAggregateInput = {
 export type KanbanTaskScalarRelationFilter = {
   is?: Prisma.KanbanTaskWhereInput
   isNot?: Prisma.KanbanTaskWhereInput
-}
-
-export type KanbanTaskNullableScalarRelationFilter = {
-  is?: Prisma.KanbanTaskWhereInput | null
-  isNot?: Prisma.KanbanTaskWhereInput | null
 }
 
 export type KanbanTaskCreateNestedManyWithoutCreatorInput = {
@@ -1060,52 +1024,6 @@ export type KanbanTaskUpdateOneRequiredWithoutDependenciesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.KanbanTaskUpdateToOneWithWhereWithoutDependenciesInput, Prisma.KanbanTaskUpdateWithoutDependenciesInput>, Prisma.KanbanTaskUncheckedUpdateWithoutDependenciesInput>
 }
 
-export type KanbanTaskCreateNestedOneWithoutRunsInput = {
-  create?: Prisma.XOR<Prisma.KanbanTaskCreateWithoutRunsInput, Prisma.KanbanTaskUncheckedCreateWithoutRunsInput>
-  connectOrCreate?: Prisma.KanbanTaskCreateOrConnectWithoutRunsInput
-  connect?: Prisma.KanbanTaskWhereUniqueInput
-}
-
-export type KanbanTaskCreateNestedOneWithoutLatestRunInput = {
-  create?: Prisma.XOR<Prisma.KanbanTaskCreateWithoutLatestRunInput, Prisma.KanbanTaskUncheckedCreateWithoutLatestRunInput>
-  connectOrCreate?: Prisma.KanbanTaskCreateOrConnectWithoutLatestRunInput
-  connect?: Prisma.KanbanTaskWhereUniqueInput
-}
-
-export type KanbanTaskUncheckedCreateNestedOneWithoutLatestRunInput = {
-  create?: Prisma.XOR<Prisma.KanbanTaskCreateWithoutLatestRunInput, Prisma.KanbanTaskUncheckedCreateWithoutLatestRunInput>
-  connectOrCreate?: Prisma.KanbanTaskCreateOrConnectWithoutLatestRunInput
-  connect?: Prisma.KanbanTaskWhereUniqueInput
-}
-
-export type KanbanTaskUpdateOneRequiredWithoutRunsNestedInput = {
-  create?: Prisma.XOR<Prisma.KanbanTaskCreateWithoutRunsInput, Prisma.KanbanTaskUncheckedCreateWithoutRunsInput>
-  connectOrCreate?: Prisma.KanbanTaskCreateOrConnectWithoutRunsInput
-  upsert?: Prisma.KanbanTaskUpsertWithoutRunsInput
-  connect?: Prisma.KanbanTaskWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.KanbanTaskUpdateToOneWithWhereWithoutRunsInput, Prisma.KanbanTaskUpdateWithoutRunsInput>, Prisma.KanbanTaskUncheckedUpdateWithoutRunsInput>
-}
-
-export type KanbanTaskUpdateOneWithoutLatestRunNestedInput = {
-  create?: Prisma.XOR<Prisma.KanbanTaskCreateWithoutLatestRunInput, Prisma.KanbanTaskUncheckedCreateWithoutLatestRunInput>
-  connectOrCreate?: Prisma.KanbanTaskCreateOrConnectWithoutLatestRunInput
-  upsert?: Prisma.KanbanTaskUpsertWithoutLatestRunInput
-  disconnect?: Prisma.KanbanTaskWhereInput | boolean
-  delete?: Prisma.KanbanTaskWhereInput | boolean
-  connect?: Prisma.KanbanTaskWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.KanbanTaskUpdateToOneWithWhereWithoutLatestRunInput, Prisma.KanbanTaskUpdateWithoutLatestRunInput>, Prisma.KanbanTaskUncheckedUpdateWithoutLatestRunInput>
-}
-
-export type KanbanTaskUncheckedUpdateOneWithoutLatestRunNestedInput = {
-  create?: Prisma.XOR<Prisma.KanbanTaskCreateWithoutLatestRunInput, Prisma.KanbanTaskUncheckedCreateWithoutLatestRunInput>
-  connectOrCreate?: Prisma.KanbanTaskCreateOrConnectWithoutLatestRunInput
-  upsert?: Prisma.KanbanTaskUpsertWithoutLatestRunInput
-  disconnect?: Prisma.KanbanTaskWhereInput | boolean
-  delete?: Prisma.KanbanTaskWhereInput | boolean
-  connect?: Prisma.KanbanTaskWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.KanbanTaskUpdateToOneWithWhereWithoutLatestRunInput, Prisma.KanbanTaskUpdateWithoutLatestRunInput>, Prisma.KanbanTaskUncheckedUpdateWithoutLatestRunInput>
-}
-
 export type KanbanTaskCreateNestedOneWithoutCommentsInput = {
   create?: Prisma.XOR<Prisma.KanbanTaskCreateWithoutCommentsInput, Prisma.KanbanTaskUncheckedCreateWithoutCommentsInput>
   connectOrCreate?: Prisma.KanbanTaskCreateOrConnectWithoutCommentsInput
@@ -1154,12 +1072,10 @@ export type KanbanTaskCreateWithoutCreatorInput = {
   reporter?: Prisma.UserCreateNestedOneWithoutKanbanTasksReportedInput
   assignee?: Prisma.UserCreateNestedOneWithoutKanbanTasksAssignedInput
   targetFolder?: Prisma.AssetCreateNestedOneWithoutKanbanTargetTasksInput
-  latestRun?: Prisma.KanbanTaskRunCreateNestedOneWithoutLatestTaskInput
   dependencies?: Prisma.KanbanTaskLinkCreateNestedManyWithoutChildInput
   dependents?: Prisma.KanbanTaskLinkCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventCreateNestedManyWithoutTaskInput
-  runs?: Prisma.KanbanTaskRunCreateNestedManyWithoutTaskInput
 }
 
 export type KanbanTaskUncheckedCreateWithoutCreatorInput = {
@@ -1179,7 +1095,6 @@ export type KanbanTaskUncheckedCreateWithoutCreatorInput = {
   reporterId?: string | null
   assigneeId?: string | null
   targetFolderId?: string | null
-  latestRunId?: string | null
   sortIndex?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1187,7 +1102,6 @@ export type KanbanTaskUncheckedCreateWithoutCreatorInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutTaskInput
-  runs?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutTaskInput
 }
 
 export type KanbanTaskCreateOrConnectWithoutCreatorInput = {
@@ -1220,12 +1134,10 @@ export type KanbanTaskCreateWithoutReporterInput = {
   creator: Prisma.UserCreateNestedOneWithoutKanbanTasksCreatedInput
   assignee?: Prisma.UserCreateNestedOneWithoutKanbanTasksAssignedInput
   targetFolder?: Prisma.AssetCreateNestedOneWithoutKanbanTargetTasksInput
-  latestRun?: Prisma.KanbanTaskRunCreateNestedOneWithoutLatestTaskInput
   dependencies?: Prisma.KanbanTaskLinkCreateNestedManyWithoutChildInput
   dependents?: Prisma.KanbanTaskLinkCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventCreateNestedManyWithoutTaskInput
-  runs?: Prisma.KanbanTaskRunCreateNestedManyWithoutTaskInput
 }
 
 export type KanbanTaskUncheckedCreateWithoutReporterInput = {
@@ -1245,7 +1157,6 @@ export type KanbanTaskUncheckedCreateWithoutReporterInput = {
   creatorId: string
   assigneeId?: string | null
   targetFolderId?: string | null
-  latestRunId?: string | null
   sortIndex?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1253,7 +1164,6 @@ export type KanbanTaskUncheckedCreateWithoutReporterInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutTaskInput
-  runs?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutTaskInput
 }
 
 export type KanbanTaskCreateOrConnectWithoutReporterInput = {
@@ -1286,12 +1196,10 @@ export type KanbanTaskCreateWithoutAssigneeInput = {
   creator: Prisma.UserCreateNestedOneWithoutKanbanTasksCreatedInput
   reporter?: Prisma.UserCreateNestedOneWithoutKanbanTasksReportedInput
   targetFolder?: Prisma.AssetCreateNestedOneWithoutKanbanTargetTasksInput
-  latestRun?: Prisma.KanbanTaskRunCreateNestedOneWithoutLatestTaskInput
   dependencies?: Prisma.KanbanTaskLinkCreateNestedManyWithoutChildInput
   dependents?: Prisma.KanbanTaskLinkCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventCreateNestedManyWithoutTaskInput
-  runs?: Prisma.KanbanTaskRunCreateNestedManyWithoutTaskInput
 }
 
 export type KanbanTaskUncheckedCreateWithoutAssigneeInput = {
@@ -1311,7 +1219,6 @@ export type KanbanTaskUncheckedCreateWithoutAssigneeInput = {
   creatorId: string
   reporterId?: string | null
   targetFolderId?: string | null
-  latestRunId?: string | null
   sortIndex?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1319,7 +1226,6 @@ export type KanbanTaskUncheckedCreateWithoutAssigneeInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutTaskInput
-  runs?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutTaskInput
 }
 
 export type KanbanTaskCreateOrConnectWithoutAssigneeInput = {
@@ -1369,7 +1275,6 @@ export type KanbanTaskScalarWhereInput = {
   reporterId?: Prisma.StringNullableFilter<"KanbanTask"> | string | null
   assigneeId?: Prisma.StringNullableFilter<"KanbanTask"> | string | null
   targetFolderId?: Prisma.StringNullableFilter<"KanbanTask"> | string | null
-  latestRunId?: Prisma.StringNullableFilter<"KanbanTask"> | string | null
   sortIndex?: Prisma.StringNullableFilter<"KanbanTask"> | string | null
   createdAt?: Prisma.DateTimeFilter<"KanbanTask"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"KanbanTask"> | Date | string
@@ -1427,12 +1332,10 @@ export type KanbanTaskCreateWithoutTeamInput = {
   reporter?: Prisma.UserCreateNestedOneWithoutKanbanTasksReportedInput
   assignee?: Prisma.UserCreateNestedOneWithoutKanbanTasksAssignedInput
   targetFolder?: Prisma.AssetCreateNestedOneWithoutKanbanTargetTasksInput
-  latestRun?: Prisma.KanbanTaskRunCreateNestedOneWithoutLatestTaskInput
   dependencies?: Prisma.KanbanTaskLinkCreateNestedManyWithoutChildInput
   dependents?: Prisma.KanbanTaskLinkCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventCreateNestedManyWithoutTaskInput
-  runs?: Prisma.KanbanTaskRunCreateNestedManyWithoutTaskInput
 }
 
 export type KanbanTaskUncheckedCreateWithoutTeamInput = {
@@ -1452,7 +1355,6 @@ export type KanbanTaskUncheckedCreateWithoutTeamInput = {
   reporterId?: string | null
   assigneeId?: string | null
   targetFolderId?: string | null
-  latestRunId?: string | null
   sortIndex?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1460,7 +1362,6 @@ export type KanbanTaskUncheckedCreateWithoutTeamInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutTaskInput
-  runs?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutTaskInput
 }
 
 export type KanbanTaskCreateOrConnectWithoutTeamInput = {
@@ -1509,12 +1410,10 @@ export type KanbanTaskCreateWithoutProjectInput = {
   reporter?: Prisma.UserCreateNestedOneWithoutKanbanTasksReportedInput
   assignee?: Prisma.UserCreateNestedOneWithoutKanbanTasksAssignedInput
   targetFolder?: Prisma.AssetCreateNestedOneWithoutKanbanTargetTasksInput
-  latestRun?: Prisma.KanbanTaskRunCreateNestedOneWithoutLatestTaskInput
   dependencies?: Prisma.KanbanTaskLinkCreateNestedManyWithoutChildInput
   dependents?: Prisma.KanbanTaskLinkCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventCreateNestedManyWithoutTaskInput
-  runs?: Prisma.KanbanTaskRunCreateNestedManyWithoutTaskInput
 }
 
 export type KanbanTaskUncheckedCreateWithoutProjectInput = {
@@ -1534,7 +1433,6 @@ export type KanbanTaskUncheckedCreateWithoutProjectInput = {
   reporterId?: string | null
   assigneeId?: string | null
   targetFolderId?: string | null
-  latestRunId?: string | null
   sortIndex?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1542,7 +1440,6 @@ export type KanbanTaskUncheckedCreateWithoutProjectInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutTaskInput
-  runs?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutTaskInput
 }
 
 export type KanbanTaskCreateOrConnectWithoutProjectInput = {
@@ -1591,12 +1488,10 @@ export type KanbanTaskCreateWithoutTargetFolderInput = {
   creator: Prisma.UserCreateNestedOneWithoutKanbanTasksCreatedInput
   reporter?: Prisma.UserCreateNestedOneWithoutKanbanTasksReportedInput
   assignee?: Prisma.UserCreateNestedOneWithoutKanbanTasksAssignedInput
-  latestRun?: Prisma.KanbanTaskRunCreateNestedOneWithoutLatestTaskInput
   dependencies?: Prisma.KanbanTaskLinkCreateNestedManyWithoutChildInput
   dependents?: Prisma.KanbanTaskLinkCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventCreateNestedManyWithoutTaskInput
-  runs?: Prisma.KanbanTaskRunCreateNestedManyWithoutTaskInput
 }
 
 export type KanbanTaskUncheckedCreateWithoutTargetFolderInput = {
@@ -1616,7 +1511,6 @@ export type KanbanTaskUncheckedCreateWithoutTargetFolderInput = {
   creatorId: string
   reporterId?: string | null
   assigneeId?: string | null
-  latestRunId?: string | null
   sortIndex?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1624,7 +1518,6 @@ export type KanbanTaskUncheckedCreateWithoutTargetFolderInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutTaskInput
-  runs?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutTaskInput
 }
 
 export type KanbanTaskCreateOrConnectWithoutTargetFolderInput = {
@@ -1673,12 +1566,10 @@ export type KanbanTaskCreateWithoutGoalInput = {
   reporter?: Prisma.UserCreateNestedOneWithoutKanbanTasksReportedInput
   assignee?: Prisma.UserCreateNestedOneWithoutKanbanTasksAssignedInput
   targetFolder?: Prisma.AssetCreateNestedOneWithoutKanbanTargetTasksInput
-  latestRun?: Prisma.KanbanTaskRunCreateNestedOneWithoutLatestTaskInput
   dependencies?: Prisma.KanbanTaskLinkCreateNestedManyWithoutChildInput
   dependents?: Prisma.KanbanTaskLinkCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventCreateNestedManyWithoutTaskInput
-  runs?: Prisma.KanbanTaskRunCreateNestedManyWithoutTaskInput
 }
 
 export type KanbanTaskUncheckedCreateWithoutGoalInput = {
@@ -1698,7 +1589,6 @@ export type KanbanTaskUncheckedCreateWithoutGoalInput = {
   reporterId?: string | null
   assigneeId?: string | null
   targetFolderId?: string | null
-  latestRunId?: string | null
   sortIndex?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1706,7 +1596,6 @@ export type KanbanTaskUncheckedCreateWithoutGoalInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutTaskInput
-  runs?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutTaskInput
 }
 
 export type KanbanTaskCreateOrConnectWithoutGoalInput = {
@@ -1756,11 +1645,9 @@ export type KanbanTaskCreateWithoutDependentsInput = {
   reporter?: Prisma.UserCreateNestedOneWithoutKanbanTasksReportedInput
   assignee?: Prisma.UserCreateNestedOneWithoutKanbanTasksAssignedInput
   targetFolder?: Prisma.AssetCreateNestedOneWithoutKanbanTargetTasksInput
-  latestRun?: Prisma.KanbanTaskRunCreateNestedOneWithoutLatestTaskInput
   dependencies?: Prisma.KanbanTaskLinkCreateNestedManyWithoutChildInput
   comments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventCreateNestedManyWithoutTaskInput
-  runs?: Prisma.KanbanTaskRunCreateNestedManyWithoutTaskInput
 }
 
 export type KanbanTaskUncheckedCreateWithoutDependentsInput = {
@@ -1781,14 +1668,12 @@ export type KanbanTaskUncheckedCreateWithoutDependentsInput = {
   reporterId?: string | null
   assigneeId?: string | null
   targetFolderId?: string | null
-  latestRunId?: string | null
   sortIndex?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   dependencies?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutChildInput
   comments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutTaskInput
-  runs?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutTaskInput
 }
 
 export type KanbanTaskCreateOrConnectWithoutDependentsInput = {
@@ -1817,11 +1702,9 @@ export type KanbanTaskCreateWithoutDependenciesInput = {
   reporter?: Prisma.UserCreateNestedOneWithoutKanbanTasksReportedInput
   assignee?: Prisma.UserCreateNestedOneWithoutKanbanTasksAssignedInput
   targetFolder?: Prisma.AssetCreateNestedOneWithoutKanbanTargetTasksInput
-  latestRun?: Prisma.KanbanTaskRunCreateNestedOneWithoutLatestTaskInput
   dependents?: Prisma.KanbanTaskLinkCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventCreateNestedManyWithoutTaskInput
-  runs?: Prisma.KanbanTaskRunCreateNestedManyWithoutTaskInput
 }
 
 export type KanbanTaskUncheckedCreateWithoutDependenciesInput = {
@@ -1842,14 +1725,12 @@ export type KanbanTaskUncheckedCreateWithoutDependenciesInput = {
   reporterId?: string | null
   assigneeId?: string | null
   targetFolderId?: string | null
-  latestRunId?: string | null
   sortIndex?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   dependents?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutTaskInput
   events?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutTaskInput
-  runs?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutTaskInput
 }
 
 export type KanbanTaskCreateOrConnectWithoutDependenciesInput = {
@@ -1889,11 +1770,9 @@ export type KanbanTaskUpdateWithoutDependentsInput = {
   reporter?: Prisma.UserUpdateOneWithoutKanbanTasksReportedNestedInput
   assignee?: Prisma.UserUpdateOneWithoutKanbanTasksAssignedNestedInput
   targetFolder?: Prisma.AssetUpdateOneWithoutKanbanTargetTasksNestedInput
-  latestRun?: Prisma.KanbanTaskRunUpdateOneWithoutLatestTaskNestedInput
   dependencies?: Prisma.KanbanTaskLinkUpdateManyWithoutChildNestedInput
   comments?: Prisma.KanbanTaskCommentUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUpdateManyWithoutTaskNestedInput
-  runs?: Prisma.KanbanTaskRunUpdateManyWithoutTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateWithoutDependentsInput = {
@@ -1914,14 +1793,12 @@ export type KanbanTaskUncheckedUpdateWithoutDependentsInput = {
   reporterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assigneeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetFolderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  latestRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   dependencies?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutChildNestedInput
   comments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutTaskNestedInput
-  runs?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutTaskNestedInput
 }
 
 export type KanbanTaskUpsertWithoutDependenciesInput = {
@@ -1956,11 +1833,9 @@ export type KanbanTaskUpdateWithoutDependenciesInput = {
   reporter?: Prisma.UserUpdateOneWithoutKanbanTasksReportedNestedInput
   assignee?: Prisma.UserUpdateOneWithoutKanbanTasksAssignedNestedInput
   targetFolder?: Prisma.AssetUpdateOneWithoutKanbanTargetTasksNestedInput
-  latestRun?: Prisma.KanbanTaskRunUpdateOneWithoutLatestTaskNestedInput
   dependents?: Prisma.KanbanTaskLinkUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUpdateManyWithoutTaskNestedInput
-  runs?: Prisma.KanbanTaskRunUpdateManyWithoutTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateWithoutDependenciesInput = {
@@ -1981,270 +1856,12 @@ export type KanbanTaskUncheckedUpdateWithoutDependenciesInput = {
   reporterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assigneeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetFolderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  latestRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   dependents?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutTaskNestedInput
-  runs?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutTaskNestedInput
-}
-
-export type KanbanTaskCreateWithoutRunsInput = {
-  id?: string
-  title: string
-  description?: string | null
-  isAgentTask?: boolean
-  status?: $Enums.KanbanTaskStatus
-  priority?: $Enums.KanbanTaskPriority
-  startDate?: Date | string | null
-  dueDate?: Date | string | null
-  startedAt?: Date | string | null
-  completedAt?: Date | string | null
-  sortIndex?: string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  goal?: Prisma.KanbanGoalCreateNestedOneWithoutTasksInput
-  team: Prisma.TeamCreateNestedOneWithoutKanbanTasksInput
-  project?: Prisma.ProjectCreateNestedOneWithoutKanbanTasksInput
-  creator: Prisma.UserCreateNestedOneWithoutKanbanTasksCreatedInput
-  reporter?: Prisma.UserCreateNestedOneWithoutKanbanTasksReportedInput
-  assignee?: Prisma.UserCreateNestedOneWithoutKanbanTasksAssignedInput
-  targetFolder?: Prisma.AssetCreateNestedOneWithoutKanbanTargetTasksInput
-  latestRun?: Prisma.KanbanTaskRunCreateNestedOneWithoutLatestTaskInput
-  dependencies?: Prisma.KanbanTaskLinkCreateNestedManyWithoutChildInput
-  dependents?: Prisma.KanbanTaskLinkCreateNestedManyWithoutParentInput
-  comments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutTaskInput
-  events?: Prisma.KanbanTaskEventCreateNestedManyWithoutTaskInput
-}
-
-export type KanbanTaskUncheckedCreateWithoutRunsInput = {
-  id?: string
-  title: string
-  description?: string | null
-  isAgentTask?: boolean
-  status?: $Enums.KanbanTaskStatus
-  priority?: $Enums.KanbanTaskPriority
-  startDate?: Date | string | null
-  dueDate?: Date | string | null
-  startedAt?: Date | string | null
-  completedAt?: Date | string | null
-  goalId?: string | null
-  teamId: string
-  projectId?: string | null
-  creatorId: string
-  reporterId?: string | null
-  assigneeId?: string | null
-  targetFolderId?: string | null
-  latestRunId?: string | null
-  sortIndex?: string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  dependencies?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutChildInput
-  dependents?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutParentInput
-  comments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutTaskInput
-  events?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutTaskInput
-}
-
-export type KanbanTaskCreateOrConnectWithoutRunsInput = {
-  where: Prisma.KanbanTaskWhereUniqueInput
-  create: Prisma.XOR<Prisma.KanbanTaskCreateWithoutRunsInput, Prisma.KanbanTaskUncheckedCreateWithoutRunsInput>
-}
-
-export type KanbanTaskCreateWithoutLatestRunInput = {
-  id?: string
-  title: string
-  description?: string | null
-  isAgentTask?: boolean
-  status?: $Enums.KanbanTaskStatus
-  priority?: $Enums.KanbanTaskPriority
-  startDate?: Date | string | null
-  dueDate?: Date | string | null
-  startedAt?: Date | string | null
-  completedAt?: Date | string | null
-  sortIndex?: string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  goal?: Prisma.KanbanGoalCreateNestedOneWithoutTasksInput
-  team: Prisma.TeamCreateNestedOneWithoutKanbanTasksInput
-  project?: Prisma.ProjectCreateNestedOneWithoutKanbanTasksInput
-  creator: Prisma.UserCreateNestedOneWithoutKanbanTasksCreatedInput
-  reporter?: Prisma.UserCreateNestedOneWithoutKanbanTasksReportedInput
-  assignee?: Prisma.UserCreateNestedOneWithoutKanbanTasksAssignedInput
-  targetFolder?: Prisma.AssetCreateNestedOneWithoutKanbanTargetTasksInput
-  dependencies?: Prisma.KanbanTaskLinkCreateNestedManyWithoutChildInput
-  dependents?: Prisma.KanbanTaskLinkCreateNestedManyWithoutParentInput
-  comments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutTaskInput
-  events?: Prisma.KanbanTaskEventCreateNestedManyWithoutTaskInput
-  runs?: Prisma.KanbanTaskRunCreateNestedManyWithoutTaskInput
-}
-
-export type KanbanTaskUncheckedCreateWithoutLatestRunInput = {
-  id?: string
-  title: string
-  description?: string | null
-  isAgentTask?: boolean
-  status?: $Enums.KanbanTaskStatus
-  priority?: $Enums.KanbanTaskPriority
-  startDate?: Date | string | null
-  dueDate?: Date | string | null
-  startedAt?: Date | string | null
-  completedAt?: Date | string | null
-  goalId?: string | null
-  teamId: string
-  projectId?: string | null
-  creatorId: string
-  reporterId?: string | null
-  assigneeId?: string | null
-  targetFolderId?: string | null
-  sortIndex?: string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  dependencies?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutChildInput
-  dependents?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutParentInput
-  comments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutTaskInput
-  events?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutTaskInput
-  runs?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutTaskInput
-}
-
-export type KanbanTaskCreateOrConnectWithoutLatestRunInput = {
-  where: Prisma.KanbanTaskWhereUniqueInput
-  create: Prisma.XOR<Prisma.KanbanTaskCreateWithoutLatestRunInput, Prisma.KanbanTaskUncheckedCreateWithoutLatestRunInput>
-}
-
-export type KanbanTaskUpsertWithoutRunsInput = {
-  update: Prisma.XOR<Prisma.KanbanTaskUpdateWithoutRunsInput, Prisma.KanbanTaskUncheckedUpdateWithoutRunsInput>
-  create: Prisma.XOR<Prisma.KanbanTaskCreateWithoutRunsInput, Prisma.KanbanTaskUncheckedCreateWithoutRunsInput>
-  where?: Prisma.KanbanTaskWhereInput
-}
-
-export type KanbanTaskUpdateToOneWithWhereWithoutRunsInput = {
-  where?: Prisma.KanbanTaskWhereInput
-  data: Prisma.XOR<Prisma.KanbanTaskUpdateWithoutRunsInput, Prisma.KanbanTaskUncheckedUpdateWithoutRunsInput>
-}
-
-export type KanbanTaskUpdateWithoutRunsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  title?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isAgentTask?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  status?: Prisma.EnumKanbanTaskStatusFieldUpdateOperationsInput | $Enums.KanbanTaskStatus
-  priority?: Prisma.EnumKanbanTaskPriorityFieldUpdateOperationsInput | $Enums.KanbanTaskPriority
-  startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  goal?: Prisma.KanbanGoalUpdateOneWithoutTasksNestedInput
-  team?: Prisma.TeamUpdateOneRequiredWithoutKanbanTasksNestedInput
-  project?: Prisma.ProjectUpdateOneWithoutKanbanTasksNestedInput
-  creator?: Prisma.UserUpdateOneRequiredWithoutKanbanTasksCreatedNestedInput
-  reporter?: Prisma.UserUpdateOneWithoutKanbanTasksReportedNestedInput
-  assignee?: Prisma.UserUpdateOneWithoutKanbanTasksAssignedNestedInput
-  targetFolder?: Prisma.AssetUpdateOneWithoutKanbanTargetTasksNestedInput
-  latestRun?: Prisma.KanbanTaskRunUpdateOneWithoutLatestTaskNestedInput
-  dependencies?: Prisma.KanbanTaskLinkUpdateManyWithoutChildNestedInput
-  dependents?: Prisma.KanbanTaskLinkUpdateManyWithoutParentNestedInput
-  comments?: Prisma.KanbanTaskCommentUpdateManyWithoutTaskNestedInput
-  events?: Prisma.KanbanTaskEventUpdateManyWithoutTaskNestedInput
-}
-
-export type KanbanTaskUncheckedUpdateWithoutRunsInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  title?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isAgentTask?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  status?: Prisma.EnumKanbanTaskStatusFieldUpdateOperationsInput | $Enums.KanbanTaskStatus
-  priority?: Prisma.EnumKanbanTaskPriorityFieldUpdateOperationsInput | $Enums.KanbanTaskPriority
-  startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  goalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  teamId?: Prisma.StringFieldUpdateOperationsInput | string
-  projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  creatorId?: Prisma.StringFieldUpdateOperationsInput | string
-  reporterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  assigneeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  targetFolderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  latestRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  dependencies?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutChildNestedInput
-  dependents?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutParentNestedInput
-  comments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutTaskNestedInput
-  events?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutTaskNestedInput
-}
-
-export type KanbanTaskUpsertWithoutLatestRunInput = {
-  update: Prisma.XOR<Prisma.KanbanTaskUpdateWithoutLatestRunInput, Prisma.KanbanTaskUncheckedUpdateWithoutLatestRunInput>
-  create: Prisma.XOR<Prisma.KanbanTaskCreateWithoutLatestRunInput, Prisma.KanbanTaskUncheckedCreateWithoutLatestRunInput>
-  where?: Prisma.KanbanTaskWhereInput
-}
-
-export type KanbanTaskUpdateToOneWithWhereWithoutLatestRunInput = {
-  where?: Prisma.KanbanTaskWhereInput
-  data: Prisma.XOR<Prisma.KanbanTaskUpdateWithoutLatestRunInput, Prisma.KanbanTaskUncheckedUpdateWithoutLatestRunInput>
-}
-
-export type KanbanTaskUpdateWithoutLatestRunInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  title?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isAgentTask?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  status?: Prisma.EnumKanbanTaskStatusFieldUpdateOperationsInput | $Enums.KanbanTaskStatus
-  priority?: Prisma.EnumKanbanTaskPriorityFieldUpdateOperationsInput | $Enums.KanbanTaskPriority
-  startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  goal?: Prisma.KanbanGoalUpdateOneWithoutTasksNestedInput
-  team?: Prisma.TeamUpdateOneRequiredWithoutKanbanTasksNestedInput
-  project?: Prisma.ProjectUpdateOneWithoutKanbanTasksNestedInput
-  creator?: Prisma.UserUpdateOneRequiredWithoutKanbanTasksCreatedNestedInput
-  reporter?: Prisma.UserUpdateOneWithoutKanbanTasksReportedNestedInput
-  assignee?: Prisma.UserUpdateOneWithoutKanbanTasksAssignedNestedInput
-  targetFolder?: Prisma.AssetUpdateOneWithoutKanbanTargetTasksNestedInput
-  dependencies?: Prisma.KanbanTaskLinkUpdateManyWithoutChildNestedInput
-  dependents?: Prisma.KanbanTaskLinkUpdateManyWithoutParentNestedInput
-  comments?: Prisma.KanbanTaskCommentUpdateManyWithoutTaskNestedInput
-  events?: Prisma.KanbanTaskEventUpdateManyWithoutTaskNestedInput
-  runs?: Prisma.KanbanTaskRunUpdateManyWithoutTaskNestedInput
-}
-
-export type KanbanTaskUncheckedUpdateWithoutLatestRunInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  title?: Prisma.StringFieldUpdateOperationsInput | string
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isAgentTask?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  status?: Prisma.EnumKanbanTaskStatusFieldUpdateOperationsInput | $Enums.KanbanTaskStatus
-  priority?: Prisma.EnumKanbanTaskPriorityFieldUpdateOperationsInput | $Enums.KanbanTaskPriority
-  startDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  goalId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  teamId?: Prisma.StringFieldUpdateOperationsInput | string
-  projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  creatorId?: Prisma.StringFieldUpdateOperationsInput | string
-  reporterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  assigneeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  targetFolderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  dependencies?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutChildNestedInput
-  dependents?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutParentNestedInput
-  comments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutTaskNestedInput
-  events?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutTaskNestedInput
-  runs?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutTaskNestedInput
 }
 
 export type KanbanTaskCreateWithoutCommentsInput = {
@@ -2268,11 +1885,9 @@ export type KanbanTaskCreateWithoutCommentsInput = {
   reporter?: Prisma.UserCreateNestedOneWithoutKanbanTasksReportedInput
   assignee?: Prisma.UserCreateNestedOneWithoutKanbanTasksAssignedInput
   targetFolder?: Prisma.AssetCreateNestedOneWithoutKanbanTargetTasksInput
-  latestRun?: Prisma.KanbanTaskRunCreateNestedOneWithoutLatestTaskInput
   dependencies?: Prisma.KanbanTaskLinkCreateNestedManyWithoutChildInput
   dependents?: Prisma.KanbanTaskLinkCreateNestedManyWithoutParentInput
   events?: Prisma.KanbanTaskEventCreateNestedManyWithoutTaskInput
-  runs?: Prisma.KanbanTaskRunCreateNestedManyWithoutTaskInput
 }
 
 export type KanbanTaskUncheckedCreateWithoutCommentsInput = {
@@ -2293,14 +1908,12 @@ export type KanbanTaskUncheckedCreateWithoutCommentsInput = {
   reporterId?: string | null
   assigneeId?: string | null
   targetFolderId?: string | null
-  latestRunId?: string | null
   sortIndex?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   dependencies?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutChildInput
   dependents?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutParentInput
   events?: Prisma.KanbanTaskEventUncheckedCreateNestedManyWithoutTaskInput
-  runs?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutTaskInput
 }
 
 export type KanbanTaskCreateOrConnectWithoutCommentsInput = {
@@ -2340,11 +1953,9 @@ export type KanbanTaskUpdateWithoutCommentsInput = {
   reporter?: Prisma.UserUpdateOneWithoutKanbanTasksReportedNestedInput
   assignee?: Prisma.UserUpdateOneWithoutKanbanTasksAssignedNestedInput
   targetFolder?: Prisma.AssetUpdateOneWithoutKanbanTargetTasksNestedInput
-  latestRun?: Prisma.KanbanTaskRunUpdateOneWithoutLatestTaskNestedInput
   dependencies?: Prisma.KanbanTaskLinkUpdateManyWithoutChildNestedInput
   dependents?: Prisma.KanbanTaskLinkUpdateManyWithoutParentNestedInput
   events?: Prisma.KanbanTaskEventUpdateManyWithoutTaskNestedInput
-  runs?: Prisma.KanbanTaskRunUpdateManyWithoutTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateWithoutCommentsInput = {
@@ -2365,14 +1976,12 @@ export type KanbanTaskUncheckedUpdateWithoutCommentsInput = {
   reporterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assigneeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetFolderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  latestRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   dependencies?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutChildNestedInput
   dependents?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutParentNestedInput
   events?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutTaskNestedInput
-  runs?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutTaskNestedInput
 }
 
 export type KanbanTaskCreateWithoutEventsInput = {
@@ -2396,11 +2005,9 @@ export type KanbanTaskCreateWithoutEventsInput = {
   reporter?: Prisma.UserCreateNestedOneWithoutKanbanTasksReportedInput
   assignee?: Prisma.UserCreateNestedOneWithoutKanbanTasksAssignedInput
   targetFolder?: Prisma.AssetCreateNestedOneWithoutKanbanTargetTasksInput
-  latestRun?: Prisma.KanbanTaskRunCreateNestedOneWithoutLatestTaskInput
   dependencies?: Prisma.KanbanTaskLinkCreateNestedManyWithoutChildInput
   dependents?: Prisma.KanbanTaskLinkCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentCreateNestedManyWithoutTaskInput
-  runs?: Prisma.KanbanTaskRunCreateNestedManyWithoutTaskInput
 }
 
 export type KanbanTaskUncheckedCreateWithoutEventsInput = {
@@ -2421,14 +2028,12 @@ export type KanbanTaskUncheckedCreateWithoutEventsInput = {
   reporterId?: string | null
   assigneeId?: string | null
   targetFolderId?: string | null
-  latestRunId?: string | null
   sortIndex?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   dependencies?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutChildInput
   dependents?: Prisma.KanbanTaskLinkUncheckedCreateNestedManyWithoutParentInput
   comments?: Prisma.KanbanTaskCommentUncheckedCreateNestedManyWithoutTaskInput
-  runs?: Prisma.KanbanTaskRunUncheckedCreateNestedManyWithoutTaskInput
 }
 
 export type KanbanTaskCreateOrConnectWithoutEventsInput = {
@@ -2468,11 +2073,9 @@ export type KanbanTaskUpdateWithoutEventsInput = {
   reporter?: Prisma.UserUpdateOneWithoutKanbanTasksReportedNestedInput
   assignee?: Prisma.UserUpdateOneWithoutKanbanTasksAssignedNestedInput
   targetFolder?: Prisma.AssetUpdateOneWithoutKanbanTargetTasksNestedInput
-  latestRun?: Prisma.KanbanTaskRunUpdateOneWithoutLatestTaskNestedInput
   dependencies?: Prisma.KanbanTaskLinkUpdateManyWithoutChildNestedInput
   dependents?: Prisma.KanbanTaskLinkUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUpdateManyWithoutTaskNestedInput
-  runs?: Prisma.KanbanTaskRunUpdateManyWithoutTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateWithoutEventsInput = {
@@ -2493,14 +2096,12 @@ export type KanbanTaskUncheckedUpdateWithoutEventsInput = {
   reporterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assigneeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetFolderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  latestRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   dependencies?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutChildNestedInput
   dependents?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutTaskNestedInput
-  runs?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutTaskNestedInput
 }
 
 export type KanbanTaskCreateManyCreatorInput = {
@@ -2520,7 +2121,6 @@ export type KanbanTaskCreateManyCreatorInput = {
   reporterId?: string | null
   assigneeId?: string | null
   targetFolderId?: string | null
-  latestRunId?: string | null
   sortIndex?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -2543,7 +2143,6 @@ export type KanbanTaskCreateManyReporterInput = {
   creatorId: string
   assigneeId?: string | null
   targetFolderId?: string | null
-  latestRunId?: string | null
   sortIndex?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -2566,7 +2165,6 @@ export type KanbanTaskCreateManyAssigneeInput = {
   creatorId: string
   reporterId?: string | null
   targetFolderId?: string | null
-  latestRunId?: string | null
   sortIndex?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -2592,12 +2190,10 @@ export type KanbanTaskUpdateWithoutCreatorInput = {
   reporter?: Prisma.UserUpdateOneWithoutKanbanTasksReportedNestedInput
   assignee?: Prisma.UserUpdateOneWithoutKanbanTasksAssignedNestedInput
   targetFolder?: Prisma.AssetUpdateOneWithoutKanbanTargetTasksNestedInput
-  latestRun?: Prisma.KanbanTaskRunUpdateOneWithoutLatestTaskNestedInput
   dependencies?: Prisma.KanbanTaskLinkUpdateManyWithoutChildNestedInput
   dependents?: Prisma.KanbanTaskLinkUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUpdateManyWithoutTaskNestedInput
-  runs?: Prisma.KanbanTaskRunUpdateManyWithoutTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateWithoutCreatorInput = {
@@ -2617,7 +2213,6 @@ export type KanbanTaskUncheckedUpdateWithoutCreatorInput = {
   reporterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assigneeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetFolderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  latestRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2625,7 +2220,6 @@ export type KanbanTaskUncheckedUpdateWithoutCreatorInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutTaskNestedInput
-  runs?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateManyWithoutCreatorInput = {
@@ -2645,7 +2239,6 @@ export type KanbanTaskUncheckedUpdateManyWithoutCreatorInput = {
   reporterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assigneeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetFolderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  latestRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2671,12 +2264,10 @@ export type KanbanTaskUpdateWithoutReporterInput = {
   creator?: Prisma.UserUpdateOneRequiredWithoutKanbanTasksCreatedNestedInput
   assignee?: Prisma.UserUpdateOneWithoutKanbanTasksAssignedNestedInput
   targetFolder?: Prisma.AssetUpdateOneWithoutKanbanTargetTasksNestedInput
-  latestRun?: Prisma.KanbanTaskRunUpdateOneWithoutLatestTaskNestedInput
   dependencies?: Prisma.KanbanTaskLinkUpdateManyWithoutChildNestedInput
   dependents?: Prisma.KanbanTaskLinkUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUpdateManyWithoutTaskNestedInput
-  runs?: Prisma.KanbanTaskRunUpdateManyWithoutTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateWithoutReporterInput = {
@@ -2696,7 +2287,6 @@ export type KanbanTaskUncheckedUpdateWithoutReporterInput = {
   creatorId?: Prisma.StringFieldUpdateOperationsInput | string
   assigneeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetFolderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  latestRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2704,7 +2294,6 @@ export type KanbanTaskUncheckedUpdateWithoutReporterInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutTaskNestedInput
-  runs?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateManyWithoutReporterInput = {
@@ -2724,7 +2313,6 @@ export type KanbanTaskUncheckedUpdateManyWithoutReporterInput = {
   creatorId?: Prisma.StringFieldUpdateOperationsInput | string
   assigneeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetFolderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  latestRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2750,12 +2338,10 @@ export type KanbanTaskUpdateWithoutAssigneeInput = {
   creator?: Prisma.UserUpdateOneRequiredWithoutKanbanTasksCreatedNestedInput
   reporter?: Prisma.UserUpdateOneWithoutKanbanTasksReportedNestedInput
   targetFolder?: Prisma.AssetUpdateOneWithoutKanbanTargetTasksNestedInput
-  latestRun?: Prisma.KanbanTaskRunUpdateOneWithoutLatestTaskNestedInput
   dependencies?: Prisma.KanbanTaskLinkUpdateManyWithoutChildNestedInput
   dependents?: Prisma.KanbanTaskLinkUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUpdateManyWithoutTaskNestedInput
-  runs?: Prisma.KanbanTaskRunUpdateManyWithoutTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateWithoutAssigneeInput = {
@@ -2775,7 +2361,6 @@ export type KanbanTaskUncheckedUpdateWithoutAssigneeInput = {
   creatorId?: Prisma.StringFieldUpdateOperationsInput | string
   reporterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetFolderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  latestRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2783,7 +2368,6 @@ export type KanbanTaskUncheckedUpdateWithoutAssigneeInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutTaskNestedInput
-  runs?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateManyWithoutAssigneeInput = {
@@ -2803,7 +2387,6 @@ export type KanbanTaskUncheckedUpdateManyWithoutAssigneeInput = {
   creatorId?: Prisma.StringFieldUpdateOperationsInput | string
   reporterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetFolderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  latestRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2826,7 +2409,6 @@ export type KanbanTaskCreateManyTeamInput = {
   reporterId?: string | null
   assigneeId?: string | null
   targetFolderId?: string | null
-  latestRunId?: string | null
   sortIndex?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -2852,12 +2434,10 @@ export type KanbanTaskUpdateWithoutTeamInput = {
   reporter?: Prisma.UserUpdateOneWithoutKanbanTasksReportedNestedInput
   assignee?: Prisma.UserUpdateOneWithoutKanbanTasksAssignedNestedInput
   targetFolder?: Prisma.AssetUpdateOneWithoutKanbanTargetTasksNestedInput
-  latestRun?: Prisma.KanbanTaskRunUpdateOneWithoutLatestTaskNestedInput
   dependencies?: Prisma.KanbanTaskLinkUpdateManyWithoutChildNestedInput
   dependents?: Prisma.KanbanTaskLinkUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUpdateManyWithoutTaskNestedInput
-  runs?: Prisma.KanbanTaskRunUpdateManyWithoutTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateWithoutTeamInput = {
@@ -2877,7 +2457,6 @@ export type KanbanTaskUncheckedUpdateWithoutTeamInput = {
   reporterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assigneeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetFolderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  latestRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2885,7 +2464,6 @@ export type KanbanTaskUncheckedUpdateWithoutTeamInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutTaskNestedInput
-  runs?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateManyWithoutTeamInput = {
@@ -2905,7 +2483,6 @@ export type KanbanTaskUncheckedUpdateManyWithoutTeamInput = {
   reporterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assigneeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetFolderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  latestRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2928,7 +2505,6 @@ export type KanbanTaskCreateManyProjectInput = {
   reporterId?: string | null
   assigneeId?: string | null
   targetFolderId?: string | null
-  latestRunId?: string | null
   sortIndex?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -2954,12 +2530,10 @@ export type KanbanTaskUpdateWithoutProjectInput = {
   reporter?: Prisma.UserUpdateOneWithoutKanbanTasksReportedNestedInput
   assignee?: Prisma.UserUpdateOneWithoutKanbanTasksAssignedNestedInput
   targetFolder?: Prisma.AssetUpdateOneWithoutKanbanTargetTasksNestedInput
-  latestRun?: Prisma.KanbanTaskRunUpdateOneWithoutLatestTaskNestedInput
   dependencies?: Prisma.KanbanTaskLinkUpdateManyWithoutChildNestedInput
   dependents?: Prisma.KanbanTaskLinkUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUpdateManyWithoutTaskNestedInput
-  runs?: Prisma.KanbanTaskRunUpdateManyWithoutTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateWithoutProjectInput = {
@@ -2979,7 +2553,6 @@ export type KanbanTaskUncheckedUpdateWithoutProjectInput = {
   reporterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assigneeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetFolderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  latestRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2987,7 +2560,6 @@ export type KanbanTaskUncheckedUpdateWithoutProjectInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutTaskNestedInput
-  runs?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateManyWithoutProjectInput = {
@@ -3007,7 +2579,6 @@ export type KanbanTaskUncheckedUpdateManyWithoutProjectInput = {
   reporterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assigneeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetFolderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  latestRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -3030,7 +2601,6 @@ export type KanbanTaskCreateManyTargetFolderInput = {
   creatorId: string
   reporterId?: string | null
   assigneeId?: string | null
-  latestRunId?: string | null
   sortIndex?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -3056,12 +2626,10 @@ export type KanbanTaskUpdateWithoutTargetFolderInput = {
   creator?: Prisma.UserUpdateOneRequiredWithoutKanbanTasksCreatedNestedInput
   reporter?: Prisma.UserUpdateOneWithoutKanbanTasksReportedNestedInput
   assignee?: Prisma.UserUpdateOneWithoutKanbanTasksAssignedNestedInput
-  latestRun?: Prisma.KanbanTaskRunUpdateOneWithoutLatestTaskNestedInput
   dependencies?: Prisma.KanbanTaskLinkUpdateManyWithoutChildNestedInput
   dependents?: Prisma.KanbanTaskLinkUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUpdateManyWithoutTaskNestedInput
-  runs?: Prisma.KanbanTaskRunUpdateManyWithoutTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateWithoutTargetFolderInput = {
@@ -3081,7 +2649,6 @@ export type KanbanTaskUncheckedUpdateWithoutTargetFolderInput = {
   creatorId?: Prisma.StringFieldUpdateOperationsInput | string
   reporterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assigneeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  latestRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -3089,7 +2656,6 @@ export type KanbanTaskUncheckedUpdateWithoutTargetFolderInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutTaskNestedInput
-  runs?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateManyWithoutTargetFolderInput = {
@@ -3109,7 +2675,6 @@ export type KanbanTaskUncheckedUpdateManyWithoutTargetFolderInput = {
   creatorId?: Prisma.StringFieldUpdateOperationsInput | string
   reporterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assigneeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  latestRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -3132,7 +2697,6 @@ export type KanbanTaskCreateManyGoalInput = {
   reporterId?: string | null
   assigneeId?: string | null
   targetFolderId?: string | null
-  latestRunId?: string | null
   sortIndex?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -3158,12 +2722,10 @@ export type KanbanTaskUpdateWithoutGoalInput = {
   reporter?: Prisma.UserUpdateOneWithoutKanbanTasksReportedNestedInput
   assignee?: Prisma.UserUpdateOneWithoutKanbanTasksAssignedNestedInput
   targetFolder?: Prisma.AssetUpdateOneWithoutKanbanTargetTasksNestedInput
-  latestRun?: Prisma.KanbanTaskRunUpdateOneWithoutLatestTaskNestedInput
   dependencies?: Prisma.KanbanTaskLinkUpdateManyWithoutChildNestedInput
   dependents?: Prisma.KanbanTaskLinkUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUpdateManyWithoutTaskNestedInput
-  runs?: Prisma.KanbanTaskRunUpdateManyWithoutTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateWithoutGoalInput = {
@@ -3183,7 +2745,6 @@ export type KanbanTaskUncheckedUpdateWithoutGoalInput = {
   reporterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assigneeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetFolderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  latestRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -3191,7 +2752,6 @@ export type KanbanTaskUncheckedUpdateWithoutGoalInput = {
   dependents?: Prisma.KanbanTaskLinkUncheckedUpdateManyWithoutParentNestedInput
   comments?: Prisma.KanbanTaskCommentUncheckedUpdateManyWithoutTaskNestedInput
   events?: Prisma.KanbanTaskEventUncheckedUpdateManyWithoutTaskNestedInput
-  runs?: Prisma.KanbanTaskRunUncheckedUpdateManyWithoutTaskNestedInput
 }
 
 export type KanbanTaskUncheckedUpdateManyWithoutGoalInput = {
@@ -3211,7 +2771,6 @@ export type KanbanTaskUncheckedUpdateManyWithoutGoalInput = {
   reporterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   assigneeId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetFolderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  latestRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sortIndex?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -3227,7 +2786,6 @@ export type KanbanTaskCountOutputType = {
   dependents: number
   comments: number
   events: number
-  runs: number
 }
 
 export type KanbanTaskCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -3235,7 +2793,6 @@ export type KanbanTaskCountOutputTypeSelect<ExtArgs extends runtime.Types.Extens
   dependents?: boolean | KanbanTaskCountOutputTypeCountDependentsArgs
   comments?: boolean | KanbanTaskCountOutputTypeCountCommentsArgs
   events?: boolean | KanbanTaskCountOutputTypeCountEventsArgs
-  runs?: boolean | KanbanTaskCountOutputTypeCountRunsArgs
 }
 
 /**
@@ -3276,13 +2833,6 @@ export type KanbanTaskCountOutputTypeCountEventsArgs<ExtArgs extends runtime.Typ
   where?: Prisma.KanbanTaskEventWhereInput
 }
 
-/**
- * KanbanTaskCountOutputType without action
- */
-export type KanbanTaskCountOutputTypeCountRunsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.KanbanTaskRunWhereInput
-}
-
 
 export type KanbanTaskSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -3302,7 +2852,6 @@ export type KanbanTaskSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   reporterId?: boolean
   assigneeId?: boolean
   targetFolderId?: boolean
-  latestRunId?: boolean
   sortIndex?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -3313,12 +2862,10 @@ export type KanbanTaskSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   reporter?: boolean | Prisma.KanbanTask$reporterArgs<ExtArgs>
   assignee?: boolean | Prisma.KanbanTask$assigneeArgs<ExtArgs>
   targetFolder?: boolean | Prisma.KanbanTask$targetFolderArgs<ExtArgs>
-  latestRun?: boolean | Prisma.KanbanTask$latestRunArgs<ExtArgs>
   dependencies?: boolean | Prisma.KanbanTask$dependenciesArgs<ExtArgs>
   dependents?: boolean | Prisma.KanbanTask$dependentsArgs<ExtArgs>
   comments?: boolean | Prisma.KanbanTask$commentsArgs<ExtArgs>
   events?: boolean | Prisma.KanbanTask$eventsArgs<ExtArgs>
-  runs?: boolean | Prisma.KanbanTask$runsArgs<ExtArgs>
   _count?: boolean | Prisma.KanbanTaskCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["kanbanTask"]>
 
@@ -3340,7 +2887,6 @@ export type KanbanTaskSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   reporterId?: boolean
   assigneeId?: boolean
   targetFolderId?: boolean
-  latestRunId?: boolean
   sortIndex?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -3351,7 +2897,6 @@ export type KanbanTaskSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   reporter?: boolean | Prisma.KanbanTask$reporterArgs<ExtArgs>
   assignee?: boolean | Prisma.KanbanTask$assigneeArgs<ExtArgs>
   targetFolder?: boolean | Prisma.KanbanTask$targetFolderArgs<ExtArgs>
-  latestRun?: boolean | Prisma.KanbanTask$latestRunArgs<ExtArgs>
 }, ExtArgs["result"]["kanbanTask"]>
 
 export type KanbanTaskSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -3372,7 +2917,6 @@ export type KanbanTaskSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   reporterId?: boolean
   assigneeId?: boolean
   targetFolderId?: boolean
-  latestRunId?: boolean
   sortIndex?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -3383,7 +2927,6 @@ export type KanbanTaskSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   reporter?: boolean | Prisma.KanbanTask$reporterArgs<ExtArgs>
   assignee?: boolean | Prisma.KanbanTask$assigneeArgs<ExtArgs>
   targetFolder?: boolean | Prisma.KanbanTask$targetFolderArgs<ExtArgs>
-  latestRun?: boolean | Prisma.KanbanTask$latestRunArgs<ExtArgs>
 }, ExtArgs["result"]["kanbanTask"]>
 
 export type KanbanTaskSelectScalar = {
@@ -3404,13 +2947,12 @@ export type KanbanTaskSelectScalar = {
   reporterId?: boolean
   assigneeId?: boolean
   targetFolderId?: boolean
-  latestRunId?: boolean
   sortIndex?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type KanbanTaskOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "description" | "isAgentTask" | "status" | "priority" | "startDate" | "dueDate" | "startedAt" | "completedAt" | "goalId" | "teamId" | "projectId" | "creatorId" | "reporterId" | "assigneeId" | "targetFolderId" | "latestRunId" | "sortIndex" | "createdAt" | "updatedAt", ExtArgs["result"]["kanbanTask"]>
+export type KanbanTaskOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "description" | "isAgentTask" | "status" | "priority" | "startDate" | "dueDate" | "startedAt" | "completedAt" | "goalId" | "teamId" | "projectId" | "creatorId" | "reporterId" | "assigneeId" | "targetFolderId" | "sortIndex" | "createdAt" | "updatedAt", ExtArgs["result"]["kanbanTask"]>
 export type KanbanTaskInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   goal?: boolean | Prisma.KanbanTask$goalArgs<ExtArgs>
   team?: boolean | Prisma.TeamDefaultArgs<ExtArgs>
@@ -3419,12 +2961,10 @@ export type KanbanTaskInclude<ExtArgs extends runtime.Types.Extensions.InternalA
   reporter?: boolean | Prisma.KanbanTask$reporterArgs<ExtArgs>
   assignee?: boolean | Prisma.KanbanTask$assigneeArgs<ExtArgs>
   targetFolder?: boolean | Prisma.KanbanTask$targetFolderArgs<ExtArgs>
-  latestRun?: boolean | Prisma.KanbanTask$latestRunArgs<ExtArgs>
   dependencies?: boolean | Prisma.KanbanTask$dependenciesArgs<ExtArgs>
   dependents?: boolean | Prisma.KanbanTask$dependentsArgs<ExtArgs>
   comments?: boolean | Prisma.KanbanTask$commentsArgs<ExtArgs>
   events?: boolean | Prisma.KanbanTask$eventsArgs<ExtArgs>
-  runs?: boolean | Prisma.KanbanTask$runsArgs<ExtArgs>
   _count?: boolean | Prisma.KanbanTaskCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type KanbanTaskIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -3435,7 +2975,6 @@ export type KanbanTaskIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.E
   reporter?: boolean | Prisma.KanbanTask$reporterArgs<ExtArgs>
   assignee?: boolean | Prisma.KanbanTask$assigneeArgs<ExtArgs>
   targetFolder?: boolean | Prisma.KanbanTask$targetFolderArgs<ExtArgs>
-  latestRun?: boolean | Prisma.KanbanTask$latestRunArgs<ExtArgs>
 }
 export type KanbanTaskIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   goal?: boolean | Prisma.KanbanTask$goalArgs<ExtArgs>
@@ -3445,7 +2984,6 @@ export type KanbanTaskIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   reporter?: boolean | Prisma.KanbanTask$reporterArgs<ExtArgs>
   assignee?: boolean | Prisma.KanbanTask$assigneeArgs<ExtArgs>
   targetFolder?: boolean | Prisma.KanbanTask$targetFolderArgs<ExtArgs>
-  latestRun?: boolean | Prisma.KanbanTask$latestRunArgs<ExtArgs>
 }
 
 export type $KanbanTaskPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -3458,12 +2996,10 @@ export type $KanbanTaskPayload<ExtArgs extends runtime.Types.Extensions.Internal
     reporter: Prisma.$UserPayload<ExtArgs> | null
     assignee: Prisma.$UserPayload<ExtArgs> | null
     targetFolder: Prisma.$AssetPayload<ExtArgs> | null
-    latestRun: Prisma.$KanbanTaskRunPayload<ExtArgs> | null
     dependencies: Prisma.$KanbanTaskLinkPayload<ExtArgs>[]
     dependents: Prisma.$KanbanTaskLinkPayload<ExtArgs>[]
     comments: Prisma.$KanbanTaskCommentPayload<ExtArgs>[]
     events: Prisma.$KanbanTaskEventPayload<ExtArgs>[]
-    runs: Prisma.$KanbanTaskRunPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -3483,7 +3019,6 @@ export type $KanbanTaskPayload<ExtArgs extends runtime.Types.Extensions.Internal
     reporterId: string | null
     assigneeId: string | null
     targetFolderId: string | null
-    latestRunId: string | null
     sortIndex: string | null
     createdAt: Date
     updatedAt: Date
@@ -3888,12 +3423,10 @@ export interface Prisma__KanbanTaskClient<T, Null = never, ExtArgs extends runti
   reporter<T extends Prisma.KanbanTask$reporterArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.KanbanTask$reporterArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   assignee<T extends Prisma.KanbanTask$assigneeArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.KanbanTask$assigneeArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   targetFolder<T extends Prisma.KanbanTask$targetFolderArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.KanbanTask$targetFolderArgs<ExtArgs>>): Prisma.Prisma__AssetClient<runtime.Types.Result.GetResult<Prisma.$AssetPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  latestRun<T extends Prisma.KanbanTask$latestRunArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.KanbanTask$latestRunArgs<ExtArgs>>): Prisma.Prisma__KanbanTaskRunClient<runtime.Types.Result.GetResult<Prisma.$KanbanTaskRunPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   dependencies<T extends Prisma.KanbanTask$dependenciesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.KanbanTask$dependenciesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KanbanTaskLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   dependents<T extends Prisma.KanbanTask$dependentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.KanbanTask$dependentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KanbanTaskLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   comments<T extends Prisma.KanbanTask$commentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.KanbanTask$commentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KanbanTaskCommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   events<T extends Prisma.KanbanTask$eventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.KanbanTask$eventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KanbanTaskEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  runs<T extends Prisma.KanbanTask$runsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.KanbanTask$runsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KanbanTaskRunPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3940,7 +3473,6 @@ export interface KanbanTaskFieldRefs {
   readonly reporterId: Prisma.FieldRef<"KanbanTask", 'String'>
   readonly assigneeId: Prisma.FieldRef<"KanbanTask", 'String'>
   readonly targetFolderId: Prisma.FieldRef<"KanbanTask", 'String'>
-  readonly latestRunId: Prisma.FieldRef<"KanbanTask", 'String'>
   readonly sortIndex: Prisma.FieldRef<"KanbanTask", 'String'>
   readonly createdAt: Prisma.FieldRef<"KanbanTask", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"KanbanTask", 'DateTime'>
@@ -4440,25 +3972,6 @@ export type KanbanTask$targetFolderArgs<ExtArgs extends runtime.Types.Extensions
 }
 
 /**
- * KanbanTask.latestRun
- */
-export type KanbanTask$latestRunArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the KanbanTaskRun
-   */
-  select?: Prisma.KanbanTaskRunSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the KanbanTaskRun
-   */
-  omit?: Prisma.KanbanTaskRunOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.KanbanTaskRunInclude<ExtArgs> | null
-  where?: Prisma.KanbanTaskRunWhereInput
-}
-
-/**
  * KanbanTask.dependencies
  */
 export type KanbanTask$dependenciesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -4552,30 +4065,6 @@ export type KanbanTask$eventsArgs<ExtArgs extends runtime.Types.Extensions.Inter
   take?: number
   skip?: number
   distinct?: Prisma.KanbanTaskEventScalarFieldEnum | Prisma.KanbanTaskEventScalarFieldEnum[]
-}
-
-/**
- * KanbanTask.runs
- */
-export type KanbanTask$runsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the KanbanTaskRun
-   */
-  select?: Prisma.KanbanTaskRunSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the KanbanTaskRun
-   */
-  omit?: Prisma.KanbanTaskRunOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.KanbanTaskRunInclude<ExtArgs> | null
-  where?: Prisma.KanbanTaskRunWhereInput
-  orderBy?: Prisma.KanbanTaskRunOrderByWithRelationInput | Prisma.KanbanTaskRunOrderByWithRelationInput[]
-  cursor?: Prisma.KanbanTaskRunWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.KanbanTaskRunScalarFieldEnum | Prisma.KanbanTaskRunScalarFieldEnum[]
 }
 
 /**

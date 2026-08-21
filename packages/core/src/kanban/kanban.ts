@@ -1,15 +1,9 @@
 import { prisma, type TeamMemberRole, type Prisma } from '@shumai/db'
-import {
-  KanbanTaskStatus,
-  KanbanTaskPriority,
-  KanbanTaskRunStatus,
-  KanbanTaskEventType,
-} from '@shumai/db/enums'
+import { KanbanTaskStatus, KanbanTaskPriority, KanbanTaskEventType } from '@shumai/db/enums'
 import { HTTPException } from 'hono/http-exception'
 import { ulid } from 'ulid'
 import { generateKeyBetween } from 'jittered-fractional-indexing'
 import { paginateQuery } from '../pagination'
-import { kanbanDispatcher } from './kanban-dispatcher'
 import { getAvatarUrl } from '../user/avatar'
 import { s3Service } from '../s3/s3'
 import { getProxyType } from '../utils/mime'
@@ -186,26 +180,16 @@ export class KanbanService {
     }
 
     const parentIds = req.parentIds ? [...new Set(req.parentIds)] : []
-    const now = new Date()
-
-    // Determine initial status based on parents and startDate
-    let initialStatus: KanbanTaskStatus = KanbanTaskStatus.READY
-    const startDateObj = req.startDate ? new Date(req.startDate) : null
-
-    if (startDateObj && startDateObj > now) {
-      initialStatus = KanbanTaskStatus.TODO
-    } else if (parentIds.length > 0) {
+    if (parentIds.length > 0) {
       const parents = await prisma.kanbanTask.findMany({
         where: { id: { in: parentIds }, teamId },
       })
       if (parents.length !== parentIds.length) {
         throw new HTTPException(400, { message: 'One or more parent tasks were not found' })
       }
-      const allParentsDone = parents.every((p) => p.status === KanbanTaskStatus.DONE)
-      if (!allParentsDone) {
-        initialStatus = KanbanTaskStatus.TODO
-      }
     }
+
+    const initialStatus: KanbanTaskStatus = KanbanTaskStatus.TODO
 
     const task = await prisma.$transaction(async (tx) => {
       const lastTask = await tx.kanbanTask.findFirst({
@@ -237,7 +221,6 @@ export class KanbanService {
           reporter: true,
           assignee: true,
           goal: true,
-          latestRun: true,
         },
       })
 
@@ -267,10 +250,6 @@ export class KanbanService {
       return created
     })
 
-    if (initialStatus === KanbanTaskStatus.READY && task.isAgentTask) {
-      kanbanDispatcher.nudge(task.id)
-    }
-
     const creatorImage = await getAvatarUrl(task.creator.image)
     return await this.toTaskInfo(task, {
       latestStatusEvent: {
@@ -297,15 +276,11 @@ export class KanbanService {
         reporter: true,
         assignee: true,
         goal: true,
-        latestRun: true,
         dependencies: {
           include: { parent: true },
         },
         dependents: {
           include: { child: true },
-        },
-        runs: {
-          orderBy: { attempt: 'desc' },
         },
         comments: {
           orderBy: { createdAt: 'asc' },
@@ -322,7 +297,6 @@ export class KanbanService {
       throw new HTTPException(404, { message: 'Task not found' })
     }
 
-    // Resolve latest event matching current status
     const latestStatusEvent = await this.resolveLatestStatusEvent(taskId, task.status)
 
     const baseInfo = await this.toTaskInfo(task, {
@@ -347,15 +321,6 @@ export class KanbanService {
         isAgentTask: d.child.isAgentTask,
         status: d.child.status,
         priority: d.child.priority,
-      })),
-      runs: task.runs.map((r) => ({
-        id: r.id,
-        status: r.status,
-        attempt: r.attempt,
-        summary: r.summary,
-        claimToken: r.claimToken,
-        startedAt: r.startedAt.toISOString(),
-        endedAt: r.endedAt?.toISOString() ?? null,
       })),
       comments: await Promise.all(
         task.comments.map(async (c) => ({
@@ -406,8 +371,6 @@ export class KanbanService {
         reporter: true,
         assignee: true,
         goal: true,
-        latestRun: true,
-        dependencies: { include: { parent: true } },
       },
     })
     if (!existing) {
@@ -434,31 +397,16 @@ export class KanbanService {
     }
 
     // Status transition calculation if status changed
-    let targetStatus: KanbanTaskStatus | undefined = req.status
+    const targetStatus: KanbanTaskStatus | undefined = req.status
     let completedAtUpdate: Date | null | undefined = undefined
     let startedAtUpdate: Date | null | undefined = undefined
-    let shouldRecomputeChildren = false
-    let shouldInvalidateDescendants = false
-    let shouldCancelDescendants = false
     let statusEventType: KanbanTaskEventType = KanbanTaskEventType.STATUS_CHANGED
     let statusEventData: Record<string, unknown> | undefined = undefined
 
     if (req.status !== undefined && req.status !== existing.status) {
-      const parentLinks = existing.dependencies
-      const allParentsDone = parentLinks.every((d) => d.parent.status === KanbanTaskStatus.DONE)
-      const effectiveStartDate =
-        req.startDate !== undefined
-          ? req.startDate
-            ? new Date(req.startDate)
-            : null
-          : existing.startDate
-      const now = new Date()
-      const startDateSatisfied = !effectiveStartDate || effectiveStartDate <= now
-
       switch (req.status) {
         case KanbanTaskStatus.DONE: {
           completedAtUpdate = new Date()
-          shouldRecomputeChildren = true
           statusEventType = KanbanTaskEventType.STATUS_CHANGED
           if (existing.status === KanbanTaskStatus.IN_REVIEW) {
             statusEventData = { summary: 'Approved by reviewer' }
@@ -468,7 +416,6 @@ export class KanbanService {
         case KanbanTaskStatus.IN_PROGRESS: {
           if (existing.status === KanbanTaskStatus.DONE) {
             completedAtUpdate = null
-            shouldInvalidateDescendants = true
           }
           startedAtUpdate = existing.startedAt ?? new Date()
           statusEventType = KanbanTaskEventType.STATUS_CHANGED
@@ -477,7 +424,6 @@ export class KanbanService {
         case KanbanTaskStatus.IN_REVIEW: {
           if (existing.status === KanbanTaskStatus.DONE) {
             completedAtUpdate = null
-            shouldInvalidateDescendants = true
           }
           statusEventType = KanbanTaskEventType.STATUS_CHANGED
           break
@@ -485,7 +431,6 @@ export class KanbanService {
         case KanbanTaskStatus.BLOCKED: {
           if (existing.status === KanbanTaskStatus.DONE) {
             completedAtUpdate = null
-            shouldInvalidateDescendants = true
           }
           statusEventType = KanbanTaskEventType.BLOCKED
           statusEventData = req.reason ? { reason: req.reason } : undefined
@@ -495,7 +440,6 @@ export class KanbanService {
           if (existing.status === KanbanTaskStatus.DONE) {
             completedAtUpdate = null
           }
-          shouldCancelDescendants = true
           statusEventType = KanbanTaskEventType.CANCELLED
           break
         }
@@ -503,7 +447,6 @@ export class KanbanService {
         case KanbanTaskStatus.READY: {
           if (existing.status === KanbanTaskStatus.DONE) {
             completedAtUpdate = null
-            shouldInvalidateDescendants = true
           }
           if (existing.status === KanbanTaskStatus.BLOCKED) {
             statusEventType = KanbanTaskEventType.UNBLOCKED
@@ -512,9 +455,6 @@ export class KanbanService {
             statusEventData = { reason: req.reason }
           } else {
             statusEventType = KanbanTaskEventType.STATUS_CHANGED
-          }
-          if (req.status === KanbanTaskStatus.READY && (!allParentsDone || !startDateSatisfied)) {
-            targetStatus = KanbanTaskStatus.TODO
           }
           break
         }
@@ -581,30 +521,10 @@ export class KanbanService {
           ...(req.targetFolderId !== undefined && { targetFolderId: req.targetFolderId }),
           ...(newSortIndex !== undefined && { sortIndex: newSortIndex }),
         },
-        include: { creator: true, reporter: true, assignee: true, goal: true, latestRun: true },
+        include: { creator: true, reporter: true, assignee: true, goal: true },
       })
 
       if (req.status !== undefined && req.status !== existing.status) {
-        if (targetStatus === KanbanTaskStatus.CANCELLED && task.latestRunId) {
-          await tx.kanbanTaskRun.update({
-            where: { id: task.latestRunId },
-            data: {
-              status: KanbanTaskRunStatus.CANCELLED,
-              endedAt: new Date(),
-            },
-          })
-        }
-
-        if (targetStatus === KanbanTaskStatus.DONE && task.latestRunId) {
-          await tx.kanbanTaskRun.update({
-            where: { id: task.latestRunId },
-            data: {
-              status: KanbanTaskRunStatus.COMPLETED,
-              endedAt: new Date(),
-            },
-          })
-        }
-
         await tx.kanbanTaskEvent.create({
           data: {
             taskId,
@@ -615,13 +535,6 @@ export class KanbanService {
             data: statusEventData ?? (req.reason ? { reason: req.reason } : undefined),
           },
         })
-
-        if (shouldCancelDescendants) {
-          await this.cancelDescendants(taskId, actorId, tx)
-        }
-        if (shouldInvalidateDescendants) {
-          await this.invalidateDescendants(taskId, actorId, tx)
-        }
       }
 
       // Log specific events if critical fields changed
@@ -659,22 +572,6 @@ export class KanbanService {
       return task
     })
 
-    if (shouldRecomputeChildren) {
-      await this.recomputeChildrenReadiness(taskId)
-    }
-
-    if (req.startDate !== undefined && updated.status === KanbanTaskStatus.TODO) {
-      await this.recomputeReady(taskId)
-    }
-
-    if (
-      (updated.status === KanbanTaskStatus.READY ||
-        updated.status === KanbanTaskStatus.IN_PROGRESS) &&
-      updated.isAgentTask
-    ) {
-      kanbanDispatcher.nudge(taskId)
-    }
-
     const latestStatusEvent = await this.resolveLatestStatusEvent(taskId, updated.status)
     const counts = await this.getTaskCounts(taskId)
 
@@ -708,7 +605,6 @@ export class KanbanService {
             reporter: true,
             assignee: true,
             goal: true,
-            latestRun: true,
             _count: {
               select: {
                 comments: true,
@@ -736,142 +632,6 @@ export class KanbanService {
       },
       () => prisma.kanbanTask.count({ where }),
       params,
-    )
-  }
-
-  // --------------------------------------------------------------------------
-  // State Machine Transitions
-  // --------------------------------------------------------------------------
-
-  async startManualTask(
-    taskId: string,
-    actorId: string,
-    callerRole?: TeamMemberRole | null,
-  ): Promise<KanbanTaskInfo> {
-    return await this.updateTask(
-      taskId,
-      { status: KanbanTaskStatus.IN_PROGRESS },
-      actorId,
-      callerRole,
-    )
-  }
-
-  async completeManualTask(
-    taskId: string,
-    actorId: string,
-    callerRole?: TeamMemberRole | null,
-  ): Promise<KanbanTaskInfo> {
-    return await this.updateTask(taskId, { status: KanbanTaskStatus.DONE }, actorId, callerRole)
-  }
-
-  async approveTask(
-    taskId: string,
-    actorId: string,
-    callerRole?: TeamMemberRole | null,
-  ): Promise<KanbanTaskInfo> {
-    return await this.updateTask(taskId, { status: KanbanTaskStatus.DONE }, actorId, callerRole)
-  }
-
-  async requestChanges(
-    taskId: string,
-    reason: string,
-    actorId: string,
-    callerRole?: TeamMemberRole | null,
-  ): Promise<KanbanTaskInfo> {
-    return await this.updateTask(
-      taskId,
-      { status: KanbanTaskStatus.TODO, reason },
-      actorId,
-      callerRole,
-    )
-  }
-
-  async unblockTask(
-    taskId: string,
-    actorId: string,
-    callerRole?: TeamMemberRole | null,
-  ): Promise<KanbanTaskInfo> {
-    return await this.updateTask(taskId, { status: KanbanTaskStatus.READY }, actorId, callerRole)
-  }
-
-  async reclaimTask(taskId: string, actorId?: string): Promise<KanbanTaskInfo> {
-    const task = await prisma.kanbanTask.findUnique({
-      where: { id: taskId },
-      include: {
-        creator: true,
-        reporter: true,
-        assignee: true,
-        goal: true,
-        latestRun: true,
-        dependencies: { include: { parent: true } },
-      },
-    })
-    if (!task) throw new HTTPException(404, { message: 'Task not found' })
-    if (task.status !== KanbanTaskStatus.IN_PROGRESS) {
-      throw new HTTPException(400, {
-        message: `Task cannot be reclaimed from '${task.status}' status (must be IN_PROGRESS)`,
-      })
-    }
-
-    const now = new Date()
-    const allParentsDone = task.dependencies.every((d) => d.parent.status === KanbanTaskStatus.DONE)
-    const startDateSatisfied = !task.startDate || task.startDate <= now
-    const nextStatus =
-      allParentsDone && startDateSatisfied ? KanbanTaskStatus.READY : KanbanTaskStatus.TODO
-
-    const updated = await prisma.$transaction(async (tx) => {
-      const t = await tx.kanbanTask.update({
-        where: { id: taskId },
-        data: { status: nextStatus },
-        include: { creator: true, reporter: true, assignee: true, goal: true, latestRun: true },
-      })
-
-      if (task.latestRunId) {
-        await tx.kanbanTaskRun.update({
-          where: { id: task.latestRunId },
-          data: {
-            status: KanbanTaskRunStatus.RECLAIMED,
-            endedAt: new Date(),
-          },
-        })
-      }
-
-      await tx.kanbanTaskEvent.create({
-        data: {
-          taskId,
-          actorId,
-          type: KanbanTaskEventType.RECLAIMED,
-          fromStatus: KanbanTaskStatus.IN_PROGRESS,
-          toStatus: nextStatus,
-        },
-      })
-
-      return t
-    })
-
-    const latestStatusEvent = await this.resolveLatestStatusEvent(taskId, updated.status)
-    const counts = await this.getTaskCounts(taskId)
-    return await this.toTaskInfo(updated, { latestStatusEvent, ...counts })
-  }
-
-  async reopenTask(
-    taskId: string,
-    actorId: string,
-    callerRole?: TeamMemberRole | null,
-  ): Promise<KanbanTaskInfo> {
-    return await this.updateTask(taskId, { status: KanbanTaskStatus.READY }, actorId, callerRole)
-  }
-
-  async cancelTask(
-    taskId: string,
-    actorId: string,
-    callerRole?: TeamMemberRole | null,
-  ): Promise<KanbanTaskInfo> {
-    return await this.updateTask(
-      taskId,
-      { status: KanbanTaskStatus.CANCELLED },
-      actorId,
-      callerRole,
     )
   }
 
@@ -926,25 +686,6 @@ export class KanbanService {
           data: { parentId },
         },
       })
-
-      // If child is READY and parent is not DONE, demote child to TODO
-      if (child.status === KanbanTaskStatus.READY && parent.status !== KanbanTaskStatus.DONE) {
-        await tx.kanbanTask.update({
-          where: { id: childId },
-          data: { status: KanbanTaskStatus.TODO },
-        })
-
-        await tx.kanbanTaskEvent.create({
-          data: {
-            taskId: childId,
-            actorId,
-            type: KanbanTaskEventType.STATUS_CHANGED,
-            fromStatus: KanbanTaskStatus.READY,
-            toStatus: KanbanTaskStatus.TODO,
-            data: { reason: `Prerequisite parent task ${parentId} is not DONE` },
-          },
-        })
-      }
     })
   }
 
@@ -972,232 +713,6 @@ export class KanbanService {
         },
       })
     })
-
-    // Re-evaluate child readiness
-    await this.recomputeReady(childId)
-  }
-
-  // --------------------------------------------------------------------------
-  // Readiness Recomputation & Invalidation Helpers
-  // --------------------------------------------------------------------------
-
-  async recomputeReady(taskId?: string): Promise<void> {
-    const now = new Date()
-
-    if (taskId) {
-      const task = await prisma.kanbanTask.findUnique({
-        where: { id: taskId },
-        include: { dependencies: { include: { parent: true } } },
-      })
-      if (!task || task.status !== KanbanTaskStatus.TODO) return
-
-      const allParentsDone = task.dependencies.every(
-        (d) => d.parent.status === KanbanTaskStatus.DONE,
-      )
-      const startDateSatisfied = !task.startDate || task.startDate <= now
-
-      if (allParentsDone && startDateSatisfied) {
-        await prisma.$transaction(async (tx) => {
-          await tx.kanbanTask.update({
-            where: { id: taskId },
-            data: { status: KanbanTaskStatus.READY },
-          })
-
-          await tx.kanbanTaskEvent.create({
-            data: {
-              taskId,
-              type: KanbanTaskEventType.STATUS_CHANGED,
-              fromStatus: KanbanTaskStatus.TODO,
-              toStatus: KanbanTaskStatus.READY,
-              data: { reason: 'All prerequisites and start date requirements satisfied' },
-            },
-          })
-        })
-
-        if (task.isAgentTask) {
-          kanbanDispatcher.nudge(taskId)
-        }
-      }
-      return
-    }
-
-    // Recompute all TODO tasks
-    const todoTasks = await prisma.kanbanTask.findMany({
-      where: { status: KanbanTaskStatus.TODO },
-      include: { dependencies: { include: { parent: true } } },
-    })
-
-    for (const task of todoTasks) {
-      const allParentsDone = task.dependencies.every(
-        (d) => d.parent.status === KanbanTaskStatus.DONE,
-      )
-      const startDateSatisfied = !task.startDate || task.startDate <= now
-
-      if (allParentsDone && startDateSatisfied) {
-        await prisma.$transaction(async (tx) => {
-          await tx.kanbanTask.update({
-            where: { id: task.id },
-            data: { status: KanbanTaskStatus.READY },
-          })
-
-          await tx.kanbanTaskEvent.create({
-            data: {
-              taskId: task.id,
-              type: KanbanTaskEventType.STATUS_CHANGED,
-              fromStatus: KanbanTaskStatus.TODO,
-              toStatus: KanbanTaskStatus.READY,
-            },
-          })
-        })
-
-        if (task.isAgentTask) {
-          kanbanDispatcher.nudge(task.id)
-        }
-      }
-    }
-  }
-
-  private async recomputeChildrenReadiness(parentTaskId: string): Promise<void> {
-    const childLinks = await prisma.kanbanTaskLink.findMany({
-      where: { parentId: parentTaskId },
-    })
-    for (const link of childLinks) {
-      await this.recomputeReady(link.childId)
-    }
-  }
-
-  private async invalidateDescendants(
-    ancestorTaskId: string,
-    actorId: string,
-    db: typeof prisma | Parameters<Parameters<typeof prisma.$transaction>[0]>[0] = prisma,
-  ): Promise<void> {
-    const descendantIds = await this.getDownstreamDescendants(ancestorTaskId)
-
-    for (const childId of descendantIds) {
-      const child = await db.kanbanTask.findUnique({
-        where: { id: childId },
-        include: { latestRun: true },
-      })
-      if (!child) continue
-
-      if (
-        child.status === KanbanTaskStatus.READY ||
-        child.status === KanbanTaskStatus.IN_PROGRESS ||
-        child.status === KanbanTaskStatus.IN_REVIEW ||
-        child.status === KanbanTaskStatus.DONE
-      ) {
-        const prevStatus = child.status
-
-        await db.kanbanTask.update({
-          where: { id: childId },
-          data: {
-            status: KanbanTaskStatus.TODO,
-            completedAt: null,
-          },
-        })
-
-        if (
-          child.latestRun &&
-          (child.latestRun.status === KanbanTaskRunStatus.RUNNING ||
-            child.latestRun.status === KanbanTaskRunStatus.REVIEW_REQUESTED)
-        ) {
-          await db.kanbanTaskRun.update({
-            where: { id: child.latestRun.id },
-            data: {
-              status: KanbanTaskRunStatus.RECLAIMED,
-              endedAt: new Date(),
-            },
-          })
-        }
-
-        await db.kanbanTaskComment.create({
-          data: {
-            taskId: childId,
-            authorId: actorId,
-            body: `Invalidated: ancestor ${ancestorTaskId} was reopened; retracted from '${prevStatus}' to 'TODO' (will resume once ancestor completes).`,
-          },
-        })
-
-        await db.kanbanTaskEvent.create({
-          data: {
-            taskId: childId,
-            actorId,
-            type: KanbanTaskEventType.ANCESTOR_REOPENED,
-            fromStatus: prevStatus,
-            toStatus: KanbanTaskStatus.TODO,
-            data: { ancestorTaskId },
-          },
-        })
-      }
-    }
-  }
-
-  private async cancelDescendants(
-    ancestorTaskId: string,
-    actorId: string,
-    db: typeof prisma | Parameters<Parameters<typeof prisma.$transaction>[0]>[0] = prisma,
-  ): Promise<void> {
-    const descendantIds = await this.getDownstreamDescendants(ancestorTaskId)
-
-    for (const childId of descendantIds) {
-      const child = await db.kanbanTask.findUnique({
-        where: { id: childId },
-        include: { latestRun: true },
-      })
-      if (!child || child.status === KanbanTaskStatus.CANCELLED) continue
-
-      const prevStatus = child.status
-      await db.kanbanTask.update({
-        where: { id: childId },
-        data: { status: KanbanTaskStatus.CANCELLED },
-      })
-
-      if (
-        child.latestRun &&
-        (child.latestRun.status === KanbanTaskRunStatus.RUNNING ||
-          child.latestRun.status === KanbanTaskRunStatus.REVIEW_REQUESTED)
-      ) {
-        await db.kanbanTaskRun.update({
-          where: { id: child.latestRun.id },
-          data: {
-            status: KanbanTaskRunStatus.CANCELLED,
-            endedAt: new Date(),
-          },
-        })
-      }
-
-      await db.kanbanTaskEvent.create({
-        data: {
-          taskId: childId,
-          actorId,
-          type: KanbanTaskEventType.CANCELLED,
-          fromStatus: prevStatus,
-          toStatus: KanbanTaskStatus.CANCELLED,
-          data: { reason: `Cancelled due to parent task ${ancestorTaskId} cancellation` },
-        },
-      })
-    }
-  }
-
-  private async getDownstreamDescendants(startTaskId: string): Promise<string[]> {
-    const visited = new Set<string>()
-    const queue = [startTaskId]
-
-    while (queue.length > 0) {
-      const current = queue.shift()!
-      const links = await prisma.kanbanTaskLink.findMany({
-        where: { parentId: current },
-        select: { childId: true },
-      })
-      for (const link of links) {
-        if (!visited.has(link.childId)) {
-          visited.add(link.childId)
-          queue.push(link.childId)
-        }
-      }
-    }
-
-    return Array.from(visited)
   }
 
   private async pathExists(fromId: string, toId: string): Promise<boolean> {
@@ -1446,7 +961,6 @@ export class KanbanService {
         reporter?: true
         assignee?: true
         goal?: true
-        latestRun?: true
       }
     }>,
     extra: {
@@ -1497,17 +1011,6 @@ export class KanbanService {
         : null,
       goal: task.goal ? { id: task.goal.id, title: task.goal.title } : null,
       targetFolderId: task.targetFolderId ?? null,
-      latestRun: task.latestRun
-        ? {
-            id: task.latestRun.id,
-            status: task.latestRun.status,
-            attempt: task.latestRun.attempt,
-            summary: task.latestRun.summary,
-            claimToken: task.latestRun.claimToken,
-            startedAt: task.latestRun.startedAt.toISOString(),
-            endedAt: task.latestRun.endedAt ? task.latestRun.endedAt.toISOString() : null,
-          }
-        : null,
       latestStatusEvent: extra.latestStatusEvent ?? null,
       commentCount: extra.commentCount ?? 0,
       dependencyCount: extra.dependencyCount ?? 0,

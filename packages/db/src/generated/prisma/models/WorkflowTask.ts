@@ -302,7 +302,6 @@ export type WorkflowTaskWhereInput = {
   sessionId?: Prisma.StringNullableFilter<"WorkflowTask"> | string | null
   createdAt?: Prisma.DateTimeFilter<"WorkflowTask"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"WorkflowTask"> | Date | string
-  kanbanRun?: Prisma.XOR<Prisma.KanbanTaskRunNullableScalarRelationFilter, Prisma.KanbanTaskRunWhereInput> | null
 }
 
 export type WorkflowTaskOrderByWithRelationInput = {
@@ -322,7 +321,6 @@ export type WorkflowTaskOrderByWithRelationInput = {
   sessionId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-  kanbanRun?: Prisma.KanbanTaskRunOrderByWithRelationInput
 }
 
 export type WorkflowTaskWhereUniqueInput = Prisma.AtLeast<{
@@ -345,7 +343,6 @@ export type WorkflowTaskWhereUniqueInput = Prisma.AtLeast<{
   sessionId?: Prisma.StringNullableFilter<"WorkflowTask"> | string | null
   createdAt?: Prisma.DateTimeFilter<"WorkflowTask"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"WorkflowTask"> | Date | string
-  kanbanRun?: Prisma.XOR<Prisma.KanbanTaskRunNullableScalarRelationFilter, Prisma.KanbanTaskRunWhereInput> | null
 }, "id">
 
 export type WorkflowTaskOrderByWithAggregationInput = {
@@ -411,7 +408,6 @@ export type WorkflowTaskCreateInput = {
   sessionId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  kanbanRun?: Prisma.KanbanTaskRunCreateNestedOneWithoutWorkflowTaskInput
 }
 
 export type WorkflowTaskUncheckedCreateInput = {
@@ -431,7 +427,6 @@ export type WorkflowTaskUncheckedCreateInput = {
   sessionId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
-  kanbanRun?: Prisma.KanbanTaskRunUncheckedCreateNestedOneWithoutWorkflowTaskInput
 }
 
 export type WorkflowTaskUpdateInput = {
@@ -451,7 +446,6 @@ export type WorkflowTaskUpdateInput = {
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  kanbanRun?: Prisma.KanbanTaskRunUpdateOneWithoutWorkflowTaskNestedInput
 }
 
 export type WorkflowTaskUncheckedUpdateInput = {
@@ -471,7 +465,6 @@ export type WorkflowTaskUncheckedUpdateInput = {
   sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  kanbanRun?: Prisma.KanbanTaskRunUncheckedUpdateOneWithoutWorkflowTaskNestedInput
 }
 
 export type WorkflowTaskCreateManyInput = {
@@ -594,125 +587,12 @@ export type WorkflowTaskSumOrderByAggregateInput = {
   outputTokens?: Prisma.SortOrder
 }
 
-export type WorkflowTaskNullableScalarRelationFilter = {
-  is?: Prisma.WorkflowTaskWhereInput | null
-  isNot?: Prisma.WorkflowTaskWhereInput | null
-}
-
 export type NullableEnumWorkflowTaskTypeFieldUpdateOperationsInput = {
   set?: $Enums.WorkflowTaskType | null
 }
 
 export type NullableEnumWorkflowTaskStatusFieldUpdateOperationsInput = {
   set?: $Enums.WorkflowTaskStatus | null
-}
-
-export type WorkflowTaskCreateNestedOneWithoutKanbanRunInput = {
-  create?: Prisma.XOR<Prisma.WorkflowTaskCreateWithoutKanbanRunInput, Prisma.WorkflowTaskUncheckedCreateWithoutKanbanRunInput>
-  connectOrCreate?: Prisma.WorkflowTaskCreateOrConnectWithoutKanbanRunInput
-  connect?: Prisma.WorkflowTaskWhereUniqueInput
-}
-
-export type WorkflowTaskUpdateOneWithoutKanbanRunNestedInput = {
-  create?: Prisma.XOR<Prisma.WorkflowTaskCreateWithoutKanbanRunInput, Prisma.WorkflowTaskUncheckedCreateWithoutKanbanRunInput>
-  connectOrCreate?: Prisma.WorkflowTaskCreateOrConnectWithoutKanbanRunInput
-  upsert?: Prisma.WorkflowTaskUpsertWithoutKanbanRunInput
-  disconnect?: Prisma.WorkflowTaskWhereInput | boolean
-  delete?: Prisma.WorkflowTaskWhereInput | boolean
-  connect?: Prisma.WorkflowTaskWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.WorkflowTaskUpdateToOneWithWhereWithoutKanbanRunInput, Prisma.WorkflowTaskUpdateWithoutKanbanRunInput>, Prisma.WorkflowTaskUncheckedUpdateWithoutKanbanRunInput>
-}
-
-export type WorkflowTaskCreateWithoutKanbanRunInput = {
-  id?: string
-  uid?: string
-  teamId?: string | null
-  projectId?: string | null
-  assetId: string
-  type?: $Enums.WorkflowTaskType | null
-  status?: $Enums.WorkflowTaskStatus | null
-  payload?:PrismaJson.WorkflowTaskPayload | Prisma.NullableJsonNullValueInput
-  output?:PrismaJson.WorkflowTaskOutput | Prisma.NullableJsonNullValueInput
-  heartbeat?: Date | string | null
-  inputTokens?: number
-  outputTokens?: number
-  model?: string | null
-  sessionId?: string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-}
-
-export type WorkflowTaskUncheckedCreateWithoutKanbanRunInput = {
-  id?: string
-  uid?: string
-  teamId?: string | null
-  projectId?: string | null
-  assetId: string
-  type?: $Enums.WorkflowTaskType | null
-  status?: $Enums.WorkflowTaskStatus | null
-  payload?:PrismaJson.WorkflowTaskPayload | Prisma.NullableJsonNullValueInput
-  output?:PrismaJson.WorkflowTaskOutput | Prisma.NullableJsonNullValueInput
-  heartbeat?: Date | string | null
-  inputTokens?: number
-  outputTokens?: number
-  model?: string | null
-  sessionId?: string | null
-  createdAt?: Date | string
-  updatedAt?: Date | string
-}
-
-export type WorkflowTaskCreateOrConnectWithoutKanbanRunInput = {
-  where: Prisma.WorkflowTaskWhereUniqueInput
-  create: Prisma.XOR<Prisma.WorkflowTaskCreateWithoutKanbanRunInput, Prisma.WorkflowTaskUncheckedCreateWithoutKanbanRunInput>
-}
-
-export type WorkflowTaskUpsertWithoutKanbanRunInput = {
-  update: Prisma.XOR<Prisma.WorkflowTaskUpdateWithoutKanbanRunInput, Prisma.WorkflowTaskUncheckedUpdateWithoutKanbanRunInput>
-  create: Prisma.XOR<Prisma.WorkflowTaskCreateWithoutKanbanRunInput, Prisma.WorkflowTaskUncheckedCreateWithoutKanbanRunInput>
-  where?: Prisma.WorkflowTaskWhereInput
-}
-
-export type WorkflowTaskUpdateToOneWithWhereWithoutKanbanRunInput = {
-  where?: Prisma.WorkflowTaskWhereInput
-  data: Prisma.XOR<Prisma.WorkflowTaskUpdateWithoutKanbanRunInput, Prisma.WorkflowTaskUncheckedUpdateWithoutKanbanRunInput>
-}
-
-export type WorkflowTaskUpdateWithoutKanbanRunInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  uid?: Prisma.StringFieldUpdateOperationsInput | string
-  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  assetId?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.NullableEnumWorkflowTaskTypeFieldUpdateOperationsInput | $Enums.WorkflowTaskType | null
-  status?: Prisma.NullableEnumWorkflowTaskStatusFieldUpdateOperationsInput | $Enums.WorkflowTaskStatus | null
-  payload?:PrismaJson.WorkflowTaskPayload | Prisma.NullableJsonNullValueInput
-  output?:PrismaJson.WorkflowTaskOutput | Prisma.NullableJsonNullValueInput
-  heartbeat?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  inputTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  outputTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-}
-
-export type WorkflowTaskUncheckedUpdateWithoutKanbanRunInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  uid?: Prisma.StringFieldUpdateOperationsInput | string
-  teamId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  projectId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  assetId?: Prisma.StringFieldUpdateOperationsInput | string
-  type?: Prisma.NullableEnumWorkflowTaskTypeFieldUpdateOperationsInput | $Enums.WorkflowTaskType | null
-  status?: Prisma.NullableEnumWorkflowTaskStatusFieldUpdateOperationsInput | $Enums.WorkflowTaskStatus | null
-  payload?:PrismaJson.WorkflowTaskPayload | Prisma.NullableJsonNullValueInput
-  output?:PrismaJson.WorkflowTaskOutput | Prisma.NullableJsonNullValueInput
-  heartbeat?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  inputTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  outputTokens?: Prisma.IntFieldUpdateOperationsInput | number
-  model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 
@@ -734,7 +614,6 @@ export type WorkflowTaskSelect<ExtArgs extends runtime.Types.Extensions.Internal
   sessionId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
-  kanbanRun?: boolean | Prisma.WorkflowTask$kanbanRunArgs<ExtArgs>
 }, ExtArgs["result"]["workflowTask"]>
 
 export type WorkflowTaskSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -795,17 +674,10 @@ export type WorkflowTaskSelectScalar = {
 }
 
 export type WorkflowTaskOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "uid" | "teamId" | "projectId" | "assetId" | "type" | "status" | "payload" | "output" | "heartbeat" | "inputTokens" | "outputTokens" | "model" | "sessionId" | "createdAt" | "updatedAt", ExtArgs["result"]["workflowTask"]>
-export type WorkflowTaskInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  kanbanRun?: boolean | Prisma.WorkflowTask$kanbanRunArgs<ExtArgs>
-}
-export type WorkflowTaskIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
-export type WorkflowTaskIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
 
 export type $WorkflowTaskPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "WorkflowTask"
-  objects: {
-    kanbanRun: Prisma.$KanbanTaskRunPayload<ExtArgs> | null
-  }
+  objects: {}
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     uid: string
@@ -1223,7 +1095,6 @@ readonly fields: WorkflowTaskFieldRefs;
  */
 export interface Prisma__WorkflowTaskClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  kanbanRun<T extends Prisma.WorkflowTask$kanbanRunArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.WorkflowTask$kanbanRunArgs<ExtArgs>>): Prisma.Prisma__KanbanTaskRunClient<runtime.Types.Result.GetResult<Prisma.$KanbanTaskRunPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1286,10 +1157,6 @@ export type WorkflowTaskFindUniqueArgs<ExtArgs extends runtime.Types.Extensions.
    */
   omit?: Prisma.WorkflowTaskOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.WorkflowTaskInclude<ExtArgs> | null
-  /**
    * Filter, which WorkflowTask to fetch.
    */
   where: Prisma.WorkflowTaskWhereUniqueInput
@@ -1308,10 +1175,6 @@ export type WorkflowTaskFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Exte
    */
   omit?: Prisma.WorkflowTaskOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.WorkflowTaskInclude<ExtArgs> | null
-  /**
    * Filter, which WorkflowTask to fetch.
    */
   where: Prisma.WorkflowTaskWhereUniqueInput
@@ -1329,10 +1192,6 @@ export type WorkflowTaskFindFirstArgs<ExtArgs extends runtime.Types.Extensions.I
    * Omit specific fields from the WorkflowTask
    */
   omit?: Prisma.WorkflowTaskOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.WorkflowTaskInclude<ExtArgs> | null
   /**
    * Filter, which WorkflowTask to fetch.
    */
@@ -1382,10 +1241,6 @@ export type WorkflowTaskFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Exten
    */
   omit?: Prisma.WorkflowTaskOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.WorkflowTaskInclude<ExtArgs> | null
-  /**
    * Filter, which WorkflowTask to fetch.
    */
   where?: Prisma.WorkflowTaskWhereInput
@@ -1433,10 +1288,6 @@ export type WorkflowTaskFindManyArgs<ExtArgs extends runtime.Types.Extensions.In
    * Omit specific fields from the WorkflowTask
    */
   omit?: Prisma.WorkflowTaskOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.WorkflowTaskInclude<ExtArgs> | null
   /**
    * Filter, which WorkflowTasks to fetch.
    */
@@ -1486,10 +1337,6 @@ export type WorkflowTaskCreateArgs<ExtArgs extends runtime.Types.Extensions.Inte
    */
   omit?: Prisma.WorkflowTaskOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.WorkflowTaskInclude<ExtArgs> | null
-  /**
    * The data needed to create a WorkflowTask.
    */
   data: Prisma.XOR<Prisma.WorkflowTaskCreateInput, Prisma.WorkflowTaskUncheckedCreateInput>
@@ -1537,10 +1384,6 @@ export type WorkflowTaskUpdateArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * Omit specific fields from the WorkflowTask
    */
   omit?: Prisma.WorkflowTaskOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.WorkflowTaskInclude<ExtArgs> | null
   /**
    * The data needed to update a WorkflowTask.
    */
@@ -1608,10 +1451,6 @@ export type WorkflowTaskUpsertArgs<ExtArgs extends runtime.Types.Extensions.Inte
    */
   omit?: Prisma.WorkflowTaskOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.WorkflowTaskInclude<ExtArgs> | null
-  /**
    * The filter to search for the WorkflowTask to update in case it exists.
    */
   where: Prisma.WorkflowTaskWhereUniqueInput
@@ -1638,10 +1477,6 @@ export type WorkflowTaskDeleteArgs<ExtArgs extends runtime.Types.Extensions.Inte
    */
   omit?: Prisma.WorkflowTaskOmit<ExtArgs> | null
   /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.WorkflowTaskInclude<ExtArgs> | null
-  /**
    * Filter which WorkflowTask to delete.
    */
   where: Prisma.WorkflowTaskWhereUniqueInput
@@ -1662,25 +1497,6 @@ export type WorkflowTaskDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.
 }
 
 /**
- * WorkflowTask.kanbanRun
- */
-export type WorkflowTask$kanbanRunArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the KanbanTaskRun
-   */
-  select?: Prisma.KanbanTaskRunSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the KanbanTaskRun
-   */
-  omit?: Prisma.KanbanTaskRunOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.KanbanTaskRunInclude<ExtArgs> | null
-  where?: Prisma.KanbanTaskRunWhereInput
-}
-
-/**
  * WorkflowTask without action
  */
 export type WorkflowTaskDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1692,8 +1508,4 @@ export type WorkflowTaskDefaultArgs<ExtArgs extends runtime.Types.Extensions.Int
    * Omit specific fields from the WorkflowTask
    */
   omit?: Prisma.WorkflowTaskOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.WorkflowTaskInclude<ExtArgs> | null
 }

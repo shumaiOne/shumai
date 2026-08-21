@@ -98,7 +98,6 @@ export const ModelName = {
   KanbanGoal: 'KanbanGoal',
   KanbanTask: 'KanbanTask',
   KanbanTaskLink: 'KanbanTaskLink',
-  KanbanTaskRun: 'KanbanTaskRun',
   KanbanTaskComment: 'KanbanTaskComment',
   KanbanTaskEvent: 'KanbanTaskEvent'
 } as const
@@ -791,7 +790,6 @@ export const KanbanTaskScalarFieldEnum = {
   reporterId: 'reporterId',
   assigneeId: 'assigneeId',
   targetFolderId: 'targetFolderId',
-  latestRunId: 'latestRunId',
   sortIndex: 'sortIndex',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -807,26 +805,6 @@ export const KanbanTaskLinkScalarFieldEnum = {
 } as const
 
 export type KanbanTaskLinkScalarFieldEnum = (typeof KanbanTaskLinkScalarFieldEnum)[keyof typeof KanbanTaskLinkScalarFieldEnum]
-
-
-export const KanbanTaskRunScalarFieldEnum = {
-  id: 'id',
-  taskId: 'taskId',
-  actorId: 'actorId',
-  status: 'status',
-  attempt: 'attempt',
-  claimToken: 'claimToken',
-  claimExpiresAt: 'claimExpiresAt',
-  summary: 'summary',
-  metadata: 'metadata',
-  startedAt: 'startedAt',
-  endedAt: 'endedAt',
-  workflowTaskId: 'workflowTaskId',
-  workflowId: 'workflowId',
-  createdAt: 'createdAt'
-} as const
-
-export type KanbanTaskRunScalarFieldEnum = (typeof KanbanTaskRunScalarFieldEnum)[keyof typeof KanbanTaskRunScalarFieldEnum]
 
 
 export const KanbanTaskCommentScalarFieldEnum = {

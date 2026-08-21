@@ -431,7 +431,6 @@ export const ModelName = {
   KanbanGoal: 'KanbanGoal',
   KanbanTask: 'KanbanTask',
   KanbanTaskLink: 'KanbanTaskLink',
-  KanbanTaskRun: 'KanbanTaskRun',
   KanbanTaskComment: 'KanbanTaskComment',
   KanbanTaskEvent: 'KanbanTaskEvent'
 } as const
@@ -449,7 +448,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "sandbox" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "watermarkConfig" | "watermarkTemplate" | "watermarkFile" | "asset" | "storageKey" | "assetMetadataValue" | "assetAgentMd" | "assetComment" | "assetCommentAttachment" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "mcpServer" | "agentMcpServer" | "mcpServerCredential" | "agentSession" | "agentSessionEntry" | "userMetadata" | "model" | "provider" | "collection" | "apiToken" | "aiUsage" | "auditLog" | "quotaRule" | "quotaRecord" | "kanbanGoal" | "kanbanTask" | "kanbanTaskLink" | "kanbanTaskRun" | "kanbanTaskComment" | "kanbanTaskEvent"
+    modelProps: "user" | "session" | "account" | "verification" | "authToken" | "team" | "sandbox" | "skill" | "teamMember" | "project" | "projectMember" | "shareLink" | "watermarkConfig" | "watermarkTemplate" | "watermarkFile" | "asset" | "storageKey" | "assetMetadataValue" | "assetAgentMd" | "assetComment" | "assetCommentAttachment" | "assetEmbedding" | "invite" | "metadataField" | "notification" | "systemSettings" | "task" | "workflowTask" | "agent" | "agentSkill" | "mcpServer" | "agentMcpServer" | "mcpServerCredential" | "agentSession" | "agentSessionEntry" | "userMetadata" | "model" | "provider" | "collection" | "apiToken" | "aiUsage" | "auditLog" | "quotaRule" | "quotaRecord" | "kanbanGoal" | "kanbanTask" | "kanbanTaskLink" | "kanbanTaskComment" | "kanbanTaskEvent"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -3931,80 +3930,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    KanbanTaskRun: {
-      payload: Prisma.$KanbanTaskRunPayload<ExtArgs>
-      fields: Prisma.KanbanTaskRunFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.KanbanTaskRunFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskRunPayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.KanbanTaskRunFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskRunPayload>
-        }
-        findFirst: {
-          args: Prisma.KanbanTaskRunFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskRunPayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.KanbanTaskRunFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskRunPayload>
-        }
-        findMany: {
-          args: Prisma.KanbanTaskRunFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskRunPayload>[]
-        }
-        create: {
-          args: Prisma.KanbanTaskRunCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskRunPayload>
-        }
-        createMany: {
-          args: Prisma.KanbanTaskRunCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.KanbanTaskRunCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskRunPayload>[]
-        }
-        delete: {
-          args: Prisma.KanbanTaskRunDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskRunPayload>
-        }
-        update: {
-          args: Prisma.KanbanTaskRunUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskRunPayload>
-        }
-        deleteMany: {
-          args: Prisma.KanbanTaskRunDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.KanbanTaskRunUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.KanbanTaskRunUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskRunPayload>[]
-        }
-        upsert: {
-          args: Prisma.KanbanTaskRunUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$KanbanTaskRunPayload>
-        }
-        aggregate: {
-          args: Prisma.KanbanTaskRunAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateKanbanTaskRun>
-        }
-        groupBy: {
-          args: Prisma.KanbanTaskRunGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.KanbanTaskRunGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.KanbanTaskRunCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.KanbanTaskRunCountAggregateOutputType> | number
-        }
-      }
-    }
     KanbanTaskComment: {
       payload: Prisma.$KanbanTaskCommentPayload<ExtArgs>
       fields: Prisma.KanbanTaskCommentFieldRefs
@@ -4864,7 +4789,6 @@ export const KanbanTaskScalarFieldEnum = {
   reporterId: 'reporterId',
   assigneeId: 'assigneeId',
   targetFolderId: 'targetFolderId',
-  latestRunId: 'latestRunId',
   sortIndex: 'sortIndex',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -4880,26 +4804,6 @@ export const KanbanTaskLinkScalarFieldEnum = {
 } as const
 
 export type KanbanTaskLinkScalarFieldEnum = (typeof KanbanTaskLinkScalarFieldEnum)[keyof typeof KanbanTaskLinkScalarFieldEnum]
-
-
-export const KanbanTaskRunScalarFieldEnum = {
-  id: 'id',
-  taskId: 'taskId',
-  actorId: 'actorId',
-  status: 'status',
-  attempt: 'attempt',
-  claimToken: 'claimToken',
-  claimExpiresAt: 'claimExpiresAt',
-  summary: 'summary',
-  metadata: 'metadata',
-  startedAt: 'startedAt',
-  endedAt: 'endedAt',
-  workflowTaskId: 'workflowTaskId',
-  workflowId: 'workflowId',
-  createdAt: 'createdAt'
-} as const
-
-export type KanbanTaskRunScalarFieldEnum = (typeof KanbanTaskRunScalarFieldEnum)[keyof typeof KanbanTaskRunScalarFieldEnum]
 
 
 export const KanbanTaskCommentScalarFieldEnum = {
@@ -5411,20 +5315,6 @@ export type ListEnumKanbanTaskPriorityFieldRefInput<$PrismaModel> = FieldRefInpu
 
 
 /**
- * Reference to a field of type 'KanbanTaskRunStatus'
- */
-export type EnumKanbanTaskRunStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KanbanTaskRunStatus'>
-    
-
-
-/**
- * Reference to a field of type 'KanbanTaskRunStatus[]'
- */
-export type ListEnumKanbanTaskRunStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KanbanTaskRunStatus[]'>
-    
-
-
-/**
  * Reference to a field of type 'KanbanTaskEventType'
  */
 export type EnumKanbanTaskEventTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'KanbanTaskEventType'>
@@ -5594,7 +5484,6 @@ export type GlobalOmitConfig = {
   kanbanGoal?: Prisma.KanbanGoalOmit
   kanbanTask?: Prisma.KanbanTaskOmit
   kanbanTaskLink?: Prisma.KanbanTaskLinkOmit
-  kanbanTaskRun?: Prisma.KanbanTaskRunOmit
   kanbanTaskComment?: Prisma.KanbanTaskCommentOmit
   kanbanTaskEvent?: Prisma.KanbanTaskEventOmit
 }

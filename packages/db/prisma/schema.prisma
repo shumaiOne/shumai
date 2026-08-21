@@ -167,17 +167,6 @@ enum KanbanTaskStatus {
   CANCELLED
 }
 
-enum KanbanTaskRunStatus {
-  RUNNING
-  COMPLETED
-  REVIEW_REQUESTED
-  BLOCKED
-  FAILED
-  TIMED_OUT
-  CANCELLED
-  RECLAIMED
-}
-
 enum KanbanTaskPriority {
   LOW
   MEDIUM
@@ -191,19 +180,13 @@ enum KanbanTaskEventType {
   ASSIGNED
   UNASSIGNED
   COMMENTED
-  REVIEW_REQUESTED
   CHANGES_REQUESTED
   BLOCKED
   UNBLOCKED
-  RUN_STARTED
-  RUN_COMPLETED
-  RUN_FAILED
   PRIORITY_CHANGED
   GOAL_CHANGED
   DEPENDENCY_ADDED
   DEPENDENCY_REMOVED
-  ANCESTOR_REOPENED
-  RECLAIMED
   CANCELLED
 }
 
@@ -249,7 +232,6 @@ model User {
   kanbanTasksReported  KanbanTask[]     @relation("KanbanTaskReporter")
   kanbanTasksAssigned  KanbanTask[]     @relation("KanbanTaskAssignee")
   kanbanGoalsCreated   KanbanGoal[]     @relation("UserToKanbanGoal")
-  kanbanTaskRuns       KanbanTaskRun[]
   kanbanTaskComments   KanbanTaskComment[]
   kanbanTaskEvents     KanbanTaskEvent[]
 
@@ -812,8 +794,6 @@ model WorkflowTask {
   createdAt     DateTime           @default(now()) @map("created_at")
   updatedAt     DateTime           @updatedAt @map("updated_at")
 
-  kanbanRun     KanbanTaskRun?     @relation("KanbanRunWorkflowTask")
-
   @@map("workflow_tasks")
   @@index([status, heartbeat])
   @@index([assetId, type])
@@ -1199,15 +1179,11 @@ model KanbanTask {
   targetFolderId String?            @map("target_folder_id")
   targetFolder   Asset?             @relation("KanbanTaskTargetFolder", fields: [targetFolderId], references: [id], onDelete: SetNull)
 
-  latestRunId    String?            @unique @map("latest_run_id")
-  latestRun      KanbanTaskRun?     @relation("KanbanTaskLatestRun", fields: [latestRunId], references: [id], onDelete: SetNull)
-
   dependencies   KanbanTaskLink[]   @relation("ChildLinks")
   dependents     KanbanTaskLink[]   @relation("ParentLinks")
 
   comments       KanbanTaskComment[]
   events         KanbanTaskEvent[]
-  runs           KanbanTaskRun[]    @relation("KanbanTaskRuns")
 
   sortIndex      String?            @map("sort_index")
 
@@ -1235,37 +1211,6 @@ model KanbanTaskLink {
   @@id([parentId, childId])
   @@index([childId])
   @@map("kanban_task_links")
-}
-
-model KanbanTaskRun {
-  id             String              @id @default(ulid())
-  taskId         String              @map("task_id")
-  task           KanbanTask          @relation("KanbanTaskRuns", fields: [taskId], references: [id], onDelete: Cascade)
-  actorId        String?             @map("actor_id")
-  actor          User?               @relation(fields: [actorId], references: [id])
-
-  status         KanbanTaskRunStatus
-  attempt        Int                 @map("attempt")
-  claimToken     String              @unique @map("claim_token")
-  claimExpiresAt DateTime?           @map("claim_expires_at")
-  summary        String?             @db.Text
-  /// [KanbanRunMetadata]
-  metadata       Json?
-  startedAt      DateTime            @default(now()) @map("started_at")
-  endedAt        DateTime?           @map("ended_at")
-
-  workflowTaskId String?             @unique @map("workflow_task_id")
-  workflowTask   WorkflowTask?       @relation("KanbanRunWorkflowTask", fields: [workflowTaskId], references: [id], onDelete: SetNull)
-  workflowId     String?             @unique @map("workflow_id")
-
-  latestTask     KanbanTask?         @relation("KanbanTaskLatestRun")
-
-  createdAt      DateTime            @default(now()) @map("created_at")
-
-  @@index([taskId, startedAt(sort: Desc)])
-  @@index([taskId, status])
-  @@unique([taskId, attempt])
-  @@map("kanban_task_runs")
 }
 
 model KanbanTaskComment {

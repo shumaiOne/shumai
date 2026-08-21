@@ -277,7 +277,6 @@ declare global {
       imageAnnotation?: ImageAnnotationSpec
       pdfPages?: PdfPagesSpec
       watermark?: WatermarkTaskPayload
-      kanbanAgentRun?: KanbanAgentRunPayload
     }
 
     // ----------------------------------------------------------------------
@@ -451,19 +450,6 @@ declare global {
       blockKind?: KanbanBlockReasonKind
       assets?: KanbanAssetSummary[]
       reason?: string
-      [key: string]: unknown
-    }
-
-    export interface KanbanRunMetadata {
-      deliverableAssetIds?: string[]
-      verificationNotes?: string
-      [key: string]: unknown
-    }
-
-    export interface KanbanAgentRunPayload {
-      kanbanTaskId: string
-      kanbanRunId: string
-      claimToken: string
       [key: string]: unknown
     }
 

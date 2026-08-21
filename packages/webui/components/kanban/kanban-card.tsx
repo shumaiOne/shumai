@@ -146,9 +146,6 @@ export function KanbanCard({
             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 shrink-0">
               <Bot className="w-3 h-3" />
               <span>{m.task_type_agent()}</span>
-              {task.latestRun && (
-                <span className="font-mono text-[9px] opacity-80">#{task.latestRun.attempt}</span>
-              )}
             </span>
           )}
         </div>

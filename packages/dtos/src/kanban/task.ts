@@ -1,15 +1,10 @@
 import { z } from 'zod'
-import {
-  KanbanTaskStatus,
-  KanbanTaskPriority,
-  KanbanTaskRunStatus,
-  KanbanTaskEventType,
-} from '@shumai/db/enums'
+import { KanbanTaskStatus, KanbanTaskPriority, KanbanTaskEventType } from '@shumai/db/enums'
 import { paginationPageInfoSchema, paginationParamsSchema } from '../pagination'
 import { kanbanUserInfoSchema, kanbanEventInfoSchema } from './event'
 import { kanbanCommentInfoSchema } from './comment'
 
-export { KanbanTaskStatus, KanbanTaskPriority, KanbanTaskRunStatus, KanbanTaskEventType }
+export { KanbanTaskStatus, KanbanTaskPriority, KanbanTaskEventType }
 
 export const createKanbanTaskSchema = z.object({
   title: z.string().min(1),
@@ -45,11 +40,6 @@ export const updateKanbanTaskSchema = z.object({
 })
 export type UpdateKanbanTaskRequest = z.infer<typeof updateKanbanTaskSchema>
 
-export const requestChangesSchema = z.object({
-  reason: z.string().min(1),
-})
-export type RequestChangesRequest = z.infer<typeof requestChangesSchema>
-
 export const listKanbanTasksRequestSchema = z
   .object({
     status: z.nativeEnum(KanbanTaskStatus).optional(),
@@ -84,17 +74,6 @@ export const kanbanTaskGoalSummarySchema = z.object({
 })
 export type KanbanTaskGoalSummary = z.infer<typeof kanbanTaskGoalSummarySchema>
 
-export const kanbanRunSummarySchema = z.object({
-  id: z.string(),
-  status: z.nativeEnum(KanbanTaskRunStatus),
-  attempt: z.number(),
-  summary: z.string().nullable().optional(),
-  claimToken: z.string().optional(),
-  startedAt: z.union([z.string(), z.date()]),
-  endedAt: z.union([z.string(), z.date()]).nullable().optional(),
-})
-export type KanbanRunSummary = z.infer<typeof kanbanRunSummarySchema>
-
 export const kanbanTaskSummarySchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -124,7 +103,6 @@ export const kanbanTaskInfoSchema = z.object({
   assignee: kanbanUserInfoSchema.nullable().optional(),
   goal: kanbanTaskGoalSummarySchema.nullable().optional(),
   targetFolderId: z.string().nullable().optional(),
-  latestRun: kanbanRunSummarySchema.nullable().optional(),
   latestStatusEvent: kanbanStatusEventInfoSchema.nullable().optional(),
   commentCount: z.number().default(0),
   dependencyCount: z.number().default(0),
@@ -137,7 +115,6 @@ export type KanbanTaskInfo = z.infer<typeof kanbanTaskInfoSchema>
 export const kanbanTaskDetailSchema = kanbanTaskInfoSchema.extend({
   dependencies: z.array(kanbanTaskSummarySchema),
   dependents: z.array(kanbanTaskSummarySchema),
-  runs: z.array(kanbanRunSummarySchema),
   comments: z.array(kanbanCommentInfoSchema),
   events: z.array(kanbanEventInfoSchema),
 })
