@@ -37,6 +37,7 @@ export const updateKanbanTaskSchema = z.object({
   targetFolderId: z.string().nullable().optional(),
   beforeIndex: z.string().optional(),
   afterIndex: z.string().optional(),
+  parentIds: z.array(z.string()).optional(),
 })
 export type UpdateKanbanTaskRequest = z.infer<typeof updateKanbanTaskSchema>
 

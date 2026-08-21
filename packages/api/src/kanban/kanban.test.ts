@@ -419,6 +419,18 @@ describe('Kanban API Routes', () => {
       expect(delRes.status).toBe(200)
       expect(mockRemove).toHaveBeenCalledWith('parent-1', taskId, 'user-1')
     })
+
+    it('PUT /teams/:teamId/kanban/tasks/:taskId/dependencies', async () => {
+      const mockSet = vi.spyOn(kanbanService, 'setDependencies').mockResolvedValue(undefined)
+
+      const res = await app.request(`/teams/${teamId}/kanban/tasks/${taskId}/dependencies`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parentIds: ['p1', 'p2'] }),
+      })
+      expect(res.status).toBe(200)
+      expect(mockSet).toHaveBeenCalledWith(taskId, ['p1', 'p2'], 'user-1')
+    })
   })
 
   // --------------------------------------------------------------------------

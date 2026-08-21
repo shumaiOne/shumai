@@ -32,6 +32,7 @@ import {
 } from '@shumai/dtos'
 import { getPriorityBadgeColor, getPriorityLabel } from './kanban-types'
 import { TaskTargetFolderDialog } from './edit-task-dialog/task-target-folder-dialog'
+import { TaskParentSelector } from './task-parent-selector'
 import { Bot, Folder, Target, Loader2 } from 'lucide-react'
 import { cn } from '@/ui/lib/utils'
 
@@ -63,6 +64,7 @@ export function KanbanCreateTaskDialog({
   const [projectId, setProjectId] = useState<string | null>(null)
   const [targetFolderId, setTargetFolderId] = useState<string | null>(null)
   const [targetFolderName, setTargetFolderName] = useState<string | null>(null)
+  const [parentIds, setParentIds] = useState<string[]>([])
   const [isFolderPickerOpen, setIsFolderPickerOpen] = useState(false)
 
   useEffect(() => {
@@ -79,6 +81,7 @@ export function KanbanCreateTaskDialog({
       setProjectId(null)
       setTargetFolderId(null)
       setTargetFolderName(null)
+      setParentIds([])
     }
   }, [isOpen, initialGoalId])
 
@@ -141,6 +144,7 @@ export function KanbanCreateTaskDialog({
           dueDate: dueDate ? dueDate.toISOString() : undefined,
           projectId: projectId || undefined,
           targetFolderId: targetFolderId || undefined,
+          parentIds: parentIds.length > 0 ? parentIds : undefined,
         },
       })
       if (!res.ok) {
@@ -385,6 +389,14 @@ export function KanbanCreateTaskDialog({
                   placeholder={m.due_date()}
                   className="h-9 text-xs"
                 />
+              </div>
+
+              {/* Row 6: Parent Tasks */}
+              <div className="sm:col-span-2 space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">
+                  {m.parent_tasks()}
+                </Label>
+                <TaskParentSelector teamId={teamId} value={parentIds} onChange={setParentIds} />
               </div>
             </div>
           </div>

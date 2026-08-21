@@ -1255,5 +1255,9 @@
   "goal_task_count": "{count} 个任务",
   "clear_filter": "清除",
   "select_parent_task": "选择前置任务",
-  "circular_dependency_warning": "无法选择此任务，因为这会产生循环依赖"
+  "circular_dependency_warning": "无法选择此任务，因为这会产生循环依赖",
+  "parent_tasks": "前置任务",
+  "select_parent_tasks": "选择前置任务...",
+  "no_parent_tasks": "无前置任务",
+  "filter_tasks_placeholder": "搜索此状态下的任务..."
 }

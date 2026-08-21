@@ -5,6 +5,11 @@ export const createKanbanLinkSchema = z.object({
 })
 export type CreateKanbanLinkRequest = z.infer<typeof createKanbanLinkSchema>
 
+export const setKanbanDependenciesSchema = z.object({
+  parentIds: z.array(z.string()),
+})
+export type SetKanbanDependenciesRequest = z.infer<typeof setKanbanDependenciesSchema>
+
 export const kanbanLinkInfoSchema = z.object({
   parentId: z.string(),
   childId: z.string(),

@@ -26,7 +26,7 @@ import {
   type UpdateKanbanTaskRequest,
 } from '@shumai/dtos'
 import { getPriorityBadgeColor, getPriorityLabel } from '../kanban-types'
-import { TaskDependencyManager } from './task-dependency-manager'
+import { TaskParentSelector } from '../task-parent-selector'
 import { TaskTargetFolderDialog } from './task-target-folder-dialog'
 import { Bot, Folder, Target, Loader2 } from 'lucide-react'
 import { cn } from '@/ui/lib/utils'
@@ -377,17 +377,20 @@ export function TaskInfoForm({ teamId, task, canEdit = true }: TaskInfoFormProps
               className="h-8 text-xs bg-background"
             />
           </div>
-        </div>
 
-        {/* DAG Dependencies Section */}
-        <div className="pt-2 border-t border-border/60">
-          <TaskDependencyManager
-            teamId={teamId}
-            taskId={task.id}
-            dependencies={task.dependencies}
-            dependents={task.dependents}
-            canEdit={canEdit}
-          />
+          {/* Row 6: Parent Tasks */}
+          <div className="sm:col-span-2 space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">{m.parent_tasks()}</Label>
+            <TaskParentSelector
+              teamId={teamId}
+              currentTaskId={task.id}
+              excludeTaskIds={task.dependents.map((d) => d.id)}
+              value={task.dependencies.map((d) => d.id)}
+              knownTasks={[...task.dependencies, ...task.dependents]}
+              onChange={(parentIds) => updateTask({ parentIds })}
+              canEdit={canEdit}
+            />
+          </div>
         </div>
       </div>
 
