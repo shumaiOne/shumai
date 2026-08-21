@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
-import { KanbanTaskType, KanbanTaskRunStatus, KanbanTaskEventType } from '@shumai/db/enums'
+import { KanbanTaskRunStatus, KanbanTaskEventType } from '@shumai/db/enums'
 import { kanbanContextService } from './kanban-context'
 import { kanbanService } from './kanban'
 
@@ -58,7 +58,7 @@ describe('KanbanContextService', () => {
       {
         title: 'Generate Marketing Materials',
         description: 'Generate high-resolution launch posters and banners.',
-        type: KanbanTaskType.AGENTIC,
+        isAgentTask: true,
         parentIds: [parent.id],
         assigneeId: user.id,
         reporterId: reviewer.id,

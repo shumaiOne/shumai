@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { client } from '@/ui/api/client'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog'
 import { m } from '@/ui/paraglide/messages.js'
-import { Loader2, Bot, User } from 'lucide-react'
+import { Loader2, Bot } from 'lucide-react'
 import type { KanbanTaskDetail } from '@shumai/dtos'
 import { cn } from '@/ui/lib/utils'
 import { getStatusBadgeColor, getStatusLabel } from '../kanban-types'
@@ -46,15 +46,10 @@ export function EditTaskDialog({
       <DialogContent className="sm:max-w-5xl w-[95vw] h-[88vh] p-0 gap-0 flex flex-col overflow-hidden bg-background">
         <DialogHeader className="px-5 py-3 border-b border-border/70 flex flex-row items-center justify-between space-y-0 shrink-0 bg-card/80">
           <div className="flex items-center gap-2 min-w-0 pr-4">
-            {task?.type === 'AGENTIC' ? (
+            {task?.isAgentTask && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 shrink-0">
                 <Bot className="w-3.5 h-3.5" />
                 <span>{m.task_type_agent()}</span>
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-muted text-muted-foreground border border-border shrink-0">
-                <User className="w-3.5 h-3.5" />
-                <span>{m.task_type_manual()}</span>
               </span>
             )}
 

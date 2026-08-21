@@ -6,6 +6,7 @@ import { Button } from '@/ui/components/ui/button'
 import { Input } from '@/ui/components/ui/input'
 import { Textarea } from '@/ui/components/ui/textarea'
 import { Label } from '@/ui/components/ui/label'
+import { Switch } from '@/ui/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -19,7 +20,6 @@ import { DateTimePicker } from '@/ui/components/datetime-picker'
 import { toast } from 'sonner'
 import {
   KanbanTaskPriority,
-  KanbanTaskType,
   type KanbanTaskDetail,
   type KanbanGoalInfo,
   type AgentInfo,
@@ -28,7 +28,7 @@ import {
 import { getPriorityBadgeColor, getPriorityLabel } from '../kanban-types'
 import { TaskDependencyManager } from './task-dependency-manager'
 import { TaskTargetFolderDialog } from './task-target-folder-dialog'
-import { Bot, User, Folder, Target, Loader2 } from 'lucide-react'
+import { Bot, Folder, Target, Loader2 } from 'lucide-react'
 import { cn } from '@/ui/lib/utils'
 
 interface TaskInfoFormProps {
@@ -136,7 +136,7 @@ export function TaskInfoForm({ teamId, task, canEdit = true }: TaskInfoFormProps
     }, 600)
   }
 
-  const isAgentic = task.type === KanbanTaskType.AGENTIC
+  const isAgentic = task.isAgentTask
 
   return (
     <ScrollArea className="h-full p-5">
@@ -188,32 +188,18 @@ export function TaskInfoForm({ teamId, task, canEdit = true }: TaskInfoFormProps
 
         {/* Properties Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-lg bg-muted/20 border border-border/60">
-          {/* Type Selector */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">{m.task_type()}</Label>
-            <Select
-              value={task.type}
-              onValueChange={(val) => updateTask({ type: val as KanbanTaskType })}
-              disabled={!canEdit}
-            >
-              <SelectTrigger className="h-8 text-xs bg-background">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={KanbanTaskType.MANUAL}>
-                  <div className="flex items-center gap-2">
-                    <User className="w-3.5 h-3.5" />
-                    <span>{m.task_type_manual()}</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value={KanbanTaskType.AGENTIC}>
-                  <div className="flex items-center gap-2">
-                    <Bot className="w-3.5 h-3.5 text-purple-500" />
-                    <span>{m.task_type_agent()}</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Agent Task Switch (Read-Only) */}
+          <div className="flex items-center justify-between space-x-2 rounded-md border border-border/60 bg-background/50 px-3 py-2 h-14">
+            <div className="space-y-0.5 min-w-0 pr-2">
+              <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                <Bot className="w-3.5 h-3.5 text-purple-500" />
+                <span>{m.task_type_agent()}</span>
+              </Label>
+              <p className="text-[11px] text-muted-foreground/80 line-clamp-1">
+                {m.task_type_agent_desc()}
+              </p>
+            </div>
+            <Switch checked={task.isAgentTask} disabled={true} />
           </div>
 
           {/* Priority Selector */}

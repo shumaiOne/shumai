@@ -19,6 +19,7 @@ import {
 } from '@/ui/components/ui/select'
 import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/ui/avatar'
 import { DateTimePicker } from '@/ui/components/datetime-picker'
+import { Switch } from '@/ui/components/ui/switch'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { client } from '@/ui/api/client'
 import { toast } from 'sonner'
@@ -26,13 +27,12 @@ import { m } from '@/ui/paraglide/messages.js'
 import {
   KanbanTaskPriority,
   KanbanTaskStatus,
-  KanbanTaskType,
   type KanbanGoalInfo,
   type AgentInfo,
 } from '@shumai/dtos'
 import { getPriorityBadgeColor, getPriorityLabel } from './kanban-types'
 import { TaskTargetFolderDialog } from './edit-task-dialog/task-target-folder-dialog'
-import { Bot, User, Target, Folder, Loader2 } from 'lucide-react'
+import { Bot, Folder, Target, Loader2 } from 'lucide-react'
 import { cn } from '@/ui/lib/utils'
 
 interface KanbanCreateTaskDialogProps {
@@ -53,7 +53,7 @@ export function KanbanCreateTaskDialog({
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [type, setType] = useState<KanbanTaskType>(KanbanTaskType.MANUAL)
+  const [isAgentTask, setIsAgentTask] = useState(false)
   const [priority, setPriority] = useState<KanbanTaskPriority>(KanbanTaskPriority.MEDIUM)
   const [goalId, setGoalId] = useState<string>(initialGoalId || 'none')
   const [assigneeId, setAssigneeId] = useState<string>('none')
@@ -69,7 +69,7 @@ export function KanbanCreateTaskDialog({
     if (isOpen) {
       setTitle('')
       setDescription('')
-      setType(KanbanTaskType.MANUAL)
+      setIsAgentTask(false)
       setPriority(KanbanTaskPriority.MEDIUM)
       setGoalId(initialGoalId || 'none')
       setAssigneeId('none')
@@ -132,7 +132,7 @@ export function KanbanCreateTaskDialog({
         json: {
           title: title.trim(),
           description: description.trim() || undefined,
-          type,
+          isAgentTask,
           priority,
           goalId: goalId !== 'none' ? goalId : undefined,
           assigneeId: assigneeId !== 'none' ? assigneeId : undefined,
@@ -166,7 +166,7 @@ export function KanbanCreateTaskDialog({
     createTask()
   }
 
-  const isAgentic = type === KanbanTaskType.AGENTIC
+  const isAgentic = isAgentTask
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -202,35 +202,29 @@ export function KanbanCreateTaskDialog({
               />
             </div>
 
-            {/* Type & Priority Row */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>{m.task_type()}</Label>
-                <Select
-                  value={type}
-                  onValueChange={(val) => {
-                    setType(val as KanbanTaskType)
+            {/* Agent Task Switch & Priority Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+              <div className="flex items-center justify-between space-x-2 rounded-lg border border-border/80 bg-muted/30 p-2.5 h-14">
+                <div className="space-y-0.5 min-w-0 pr-2">
+                  <Label
+                    htmlFor="create-is-agent-task"
+                    className="text-xs font-medium cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Bot className="w-3.5 h-3.5 text-purple-500" />
+                    <span>{m.task_type_agent()}</span>
+                  </Label>
+                  <p className="text-[11px] text-muted-foreground line-clamp-1">
+                    {m.task_type_agent_desc()}
+                  </p>
+                </div>
+                <Switch
+                  id="create-is-agent-task"
+                  checked={isAgentTask}
+                  onCheckedChange={(checked) => {
+                    setIsAgentTask(checked)
                     setAssigneeId('none')
                   }}
-                >
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={KanbanTaskType.MANUAL}>
-                      <div className="flex items-center gap-2">
-                        <User className="w-3.5 h-3.5" />
-                        <span>{m.task_type_manual()}</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value={KanbanTaskType.AGENTIC}>
-                      <div className="flex items-center gap-2">
-                        <Bot className="w-3.5 h-3.5 text-purple-500" />
-                        <span>{m.task_type_agent()}</span>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                />
               </div>
 
               <div className="space-y-1.5">

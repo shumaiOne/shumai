@@ -157,11 +157,6 @@ enum QuotaResourceType {
   agent_tool_call_count
 }
 
-enum KanbanTaskType {
-  MANUAL
-  AGENTIC
-}
-
 enum KanbanTaskStatus {
   TODO
   READY
@@ -1177,7 +1172,7 @@ model KanbanTask {
   id             String             @id @default(ulid())
   title          String
   description    String?            @db.Text
-  type           KanbanTaskType     @default(MANUAL)
+  isAgentTask    Boolean            @default(false) @map("is_agent_task")
   status         KanbanTaskStatus   @default(TODO)
   priority       KanbanTaskPriority @default(MEDIUM)
 
@@ -1221,7 +1216,7 @@ model KanbanTask {
 
   @@index([teamId, status])
   @@index([teamId, status, sortIndex])
-  @@index([teamId, type, status])
+  @@index([teamId, isAgentTask, status])
   @@index([teamId, goalId, status])
   @@index([teamId, assigneeId, status])
   @@index([projectId, status])

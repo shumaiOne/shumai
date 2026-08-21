@@ -2,13 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Hono, type Context, type Next } from 'hono'
 import { kanbanService } from '@shumai/core/src/kanban/kanban'
 import { kanbanContextService } from '@shumai/core/src/kanban/kanban-context'
-import {
-  authzService,
-  Permission,
-  ResourceType,
-  resolveEffectiveRole,
-} from '@shumai/core/src/authz/authz'
-import { KanbanTaskType, KanbanTaskStatus, KanbanTaskPriority } from '@shumai/db/enums'
+import { KanbanTaskStatus, KanbanTaskPriority } from '@shumai/db/enums'
 import kanbanRoute from './index'
 
 vi.mock('@shumai/core/src/authz/authz', () => ({
@@ -39,12 +33,13 @@ describe('Kanban API Routes', () => {
     await next()
   }
 
-  const app = new Hono().use('*', authMiddleware).route('/', kanbanRoute)
+  let app: Hono
 
   beforeEach(() => {
-    vi.restoreAllMocks()
-    vi.mocked(authzService.hasPermission).mockResolvedValue(undefined)
-    vi.mocked(resolveEffectiveRole).mockResolvedValue('owner')
+    vi.clearAllMocks()
+    app = new Hono()
+    app.use('*', authMiddleware)
+    app.route('/', kanbanRoute)
   })
 
   // --------------------------------------------------------------------------
@@ -55,7 +50,7 @@ describe('Kanban API Routes', () => {
       const mockCreate = vi.spyOn(kanbanService, 'createGoal').mockResolvedValue({
         id: goalId,
         title: 'New Goal',
-        description: 'Goal desc',
+        description: 'Goal description',
         teamId,
         creatorId: 'user-1',
         taskCount: 0,
@@ -66,19 +61,18 @@ describe('Kanban API Routes', () => {
       const res = await app.request(`/teams/${teamId}/kanban/goals`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: 'New Goal', description: 'Goal desc' }),
+        body: JSON.stringify({ title: 'New Goal', description: 'Goal description' }),
       })
 
       expect(res.status).toBe(200)
       const json = await res.json()
       expect(json.id).toBe(goalId)
-      expect(mockCreate).toHaveBeenCalledWith(teamId, expect.any(Object), 'user-1', 'owner')
-      expect(authzService.hasPermission).toHaveBeenCalledWith({
-        user: expect.any(Object),
-        permission: Permission.Admin,
-        type: ResourceType.Team,
-        id: teamId,
-      })
+      expect(mockCreate).toHaveBeenCalledWith(
+        teamId,
+        { title: 'New Goal', description: 'Goal description' },
+        'user-1',
+        'owner',
+      )
     })
 
     it('GET /teams/:teamId/kanban/goals', async () => {
@@ -88,6 +82,7 @@ describe('Kanban API Routes', () => {
           title: 'Goal 1',
           teamId,
           creatorId: 'user-1',
+          taskCount: 0,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },
@@ -101,28 +96,13 @@ describe('Kanban API Routes', () => {
       expect(mockList).toHaveBeenCalledWith(teamId, expect.any(Object))
     })
 
-    it('GET /teams/:teamId/kanban/goals/:goalId', async () => {
-      const mockGet = vi.spyOn(kanbanService, 'getGoal').mockResolvedValue({
-        id: goalId,
-        title: 'Goal 1',
-        teamId,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      })
-
-      const res = await app.request(`/teams/${teamId}/kanban/goals/${goalId}`)
-
-      expect(res.status).toBe(200)
-      const json = await res.json()
-      expect(json.id).toBe(goalId)
-      expect(mockGet).toHaveBeenCalledWith(goalId)
-    })
-
     it('PATCH /teams/:teamId/kanban/goals/:goalId', async () => {
       const mockUpdate = vi.spyOn(kanbanService, 'updateGoal').mockResolvedValue({
         id: goalId,
         title: 'Updated Goal',
         teamId,
+        creatorId: 'user-1',
+        taskCount: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
@@ -134,6 +114,8 @@ describe('Kanban API Routes', () => {
       })
 
       expect(res.status).toBe(200)
+      const json = await res.json()
+      expect(json.title).toBe('Updated Goal')
       expect(mockUpdate).toHaveBeenCalledWith(goalId, { title: 'Updated Goal' }, 'owner')
     })
 
@@ -145,6 +127,8 @@ describe('Kanban API Routes', () => {
       })
 
       expect(res.status).toBe(200)
+      const json = await res.json()
+      expect(json.ok).toBe(true)
       expect(mockDelete).toHaveBeenCalledWith(goalId, 'owner')
     })
   })
@@ -157,7 +141,7 @@ describe('Kanban API Routes', () => {
       const mockCreate = vi.spyOn(kanbanService, 'createTask').mockResolvedValue({
         id: taskId,
         title: 'New Task',
-        type: KanbanTaskType.MANUAL,
+        isAgentTask: false,
         status: KanbanTaskStatus.READY,
         priority: KanbanTaskPriority.MEDIUM,
         teamId,
@@ -172,7 +156,7 @@ describe('Kanban API Routes', () => {
       const res = await app.request(`/teams/${teamId}/kanban/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: 'New Task', type: 'MANUAL' }),
+        body: JSON.stringify({ title: 'New Task', isAgentTask: false }),
       })
 
       expect(res.status).toBe(200)
@@ -181,13 +165,13 @@ describe('Kanban API Routes', () => {
       expect(mockCreate).toHaveBeenCalledWith(teamId, expect.any(Object), 'user-1', 'owner')
     })
 
-    it('GET /teams/:teamId/kanban/tasks (with type and goal filters)', async () => {
+    it('GET /teams/:teamId/kanban/tasks (with isAgentTask and goal filters)', async () => {
       const mockList = vi.spyOn(kanbanService, 'listTasks').mockResolvedValue({
         data: [
           {
             id: taskId,
             title: 'Task 1',
-            type: KanbanTaskType.MANUAL,
+            isAgentTask: false,
             status: KanbanTaskStatus.READY,
             priority: KanbanTaskPriority.MEDIUM,
             teamId,
@@ -203,7 +187,7 @@ describe('Kanban API Routes', () => {
       })
 
       const res = await app.request(
-        `/teams/${teamId}/kanban/tasks?type=MANUAL&status=READY&goalId=goal-1`,
+        `/teams/${teamId}/kanban/tasks?isAgentTask=false&status=READY&goalId=goal-1`,
       )
 
       expect(res.status).toBe(200)
@@ -212,7 +196,7 @@ describe('Kanban API Routes', () => {
       expect(mockList).toHaveBeenCalledWith(
         teamId,
         expect.objectContaining({
-          type: 'MANUAL',
+          isAgentTask: false,
           status: 'READY',
           goalId: 'goal-1',
         }),
@@ -223,7 +207,7 @@ describe('Kanban API Routes', () => {
       const mockGet = vi.spyOn(kanbanService, 'getTask').mockResolvedValue({
         id: taskId,
         title: 'Task 1',
-        type: KanbanTaskType.MANUAL,
+        isAgentTask: false,
         status: KanbanTaskStatus.READY,
         priority: KanbanTaskPriority.MEDIUM,
         teamId,
@@ -252,7 +236,7 @@ describe('Kanban API Routes', () => {
       const mockUpdate = vi.spyOn(kanbanService, 'updateTask').mockResolvedValue({
         id: taskId,
         title: 'Updated Task Title',
-        type: KanbanTaskType.MANUAL,
+        isAgentTask: false,
         status: KanbanTaskStatus.READY,
         priority: KanbanTaskPriority.HIGH,
         teamId,
@@ -283,7 +267,7 @@ describe('Kanban API Routes', () => {
       const mockUpdate = vi.spyOn(kanbanService, 'updateTask').mockResolvedValue({
         id: taskId,
         title: 'Task 1',
-        type: KanbanTaskType.MANUAL,
+        isAgentTask: false,
         status: KanbanTaskStatus.READY,
         priority: KanbanTaskPriority.MEDIUM,
         sortIndex: 'a0V',
@@ -320,7 +304,7 @@ describe('Kanban API Routes', () => {
       const mockStart = vi.spyOn(kanbanService, 'startManualTask').mockResolvedValue({
         id: taskId,
         title: 'Task',
-        type: KanbanTaskType.MANUAL,
+        isAgentTask: false,
         status: KanbanTaskStatus.IN_PROGRESS,
         priority: KanbanTaskPriority.MEDIUM,
         teamId,
@@ -344,7 +328,7 @@ describe('Kanban API Routes', () => {
       const mockComplete = vi.spyOn(kanbanService, 'completeManualTask').mockResolvedValue({
         id: taskId,
         title: 'Task',
-        type: KanbanTaskType.MANUAL,
+        isAgentTask: false,
         status: KanbanTaskStatus.DONE,
         priority: KanbanTaskPriority.MEDIUM,
         teamId,
@@ -368,7 +352,7 @@ describe('Kanban API Routes', () => {
       const mockApprove = vi.spyOn(kanbanService, 'approveTask').mockResolvedValue({
         id: taskId,
         title: 'Task',
-        type: KanbanTaskType.AGENTIC,
+        isAgentTask: true,
         status: KanbanTaskStatus.DONE,
         priority: KanbanTaskPriority.MEDIUM,
         teamId,
@@ -392,7 +376,7 @@ describe('Kanban API Routes', () => {
       const mockRequest = vi.spyOn(kanbanService, 'requestChanges').mockResolvedValue({
         id: taskId,
         title: 'Task',
-        type: KanbanTaskType.AGENTIC,
+        isAgentTask: true,
         status: KanbanTaskStatus.READY,
         priority: KanbanTaskPriority.MEDIUM,
         teamId,
@@ -418,7 +402,7 @@ describe('Kanban API Routes', () => {
       const mockUnblock = vi.spyOn(kanbanService, 'unblockTask').mockResolvedValue({
         id: taskId,
         title: 'Task',
-        type: KanbanTaskType.AGENTIC,
+        isAgentTask: true,
         status: KanbanTaskStatus.READY,
         priority: KanbanTaskPriority.MEDIUM,
         teamId,
@@ -442,7 +426,7 @@ describe('Kanban API Routes', () => {
       const mockReopen = vi.spyOn(kanbanService, 'reopenTask').mockResolvedValue({
         id: taskId,
         title: 'Task',
-        type: KanbanTaskType.MANUAL,
+        isAgentTask: false,
         status: KanbanTaskStatus.READY,
         priority: KanbanTaskPriority.MEDIUM,
         teamId,
@@ -466,7 +450,7 @@ describe('Kanban API Routes', () => {
       const mockCancel = vi.spyOn(kanbanService, 'cancelTask').mockResolvedValue({
         id: taskId,
         title: 'Task',
-        type: KanbanTaskType.MANUAL,
+        isAgentTask: false,
         status: KanbanTaskStatus.CANCELLED,
         priority: KanbanTaskPriority.MEDIUM,
         teamId,

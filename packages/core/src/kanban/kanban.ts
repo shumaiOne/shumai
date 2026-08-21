@@ -1,7 +1,6 @@
 import { prisma, type TeamMemberRole, type Prisma } from '@shumai/db'
 import {
   KanbanTaskStatus,
-  KanbanTaskType,
   KanbanTaskPriority,
   KanbanTaskRunStatus,
   KanbanTaskEventType,
@@ -220,7 +219,7 @@ export class KanbanService {
           teamId,
           title: req.title,
           description: req.description,
-          type: req.type ?? KanbanTaskType.MANUAL,
+          isAgentTask: req.isAgentTask ?? false,
           status: initialStatus,
           priority: req.priority ?? KanbanTaskPriority.MEDIUM,
           startDate: req.startDate ? new Date(req.startDate) : null,
@@ -268,7 +267,7 @@ export class KanbanService {
       return created
     })
 
-    if (initialStatus === KanbanTaskStatus.READY && task.type === KanbanTaskType.AGENTIC) {
+    if (initialStatus === KanbanTaskStatus.READY && task.isAgentTask) {
       kanbanDispatcher.nudge(task.id)
     }
 
@@ -338,14 +337,14 @@ export class KanbanService {
       dependencies: task.dependencies.map((d) => ({
         id: d.parent.id,
         title: d.parent.title,
-        type: d.parent.type,
+        isAgentTask: d.parent.isAgentTask,
         status: d.parent.status,
         priority: d.parent.priority,
       })),
       dependents: task.dependents.map((d) => ({
         id: d.child.id,
         title: d.child.title,
-        type: d.child.type,
+        isAgentTask: d.child.isAgentTask,
         status: d.child.status,
         priority: d.child.priority,
       })),
@@ -565,7 +564,6 @@ export class KanbanService {
         data: {
           ...(req.title !== undefined && { title: req.title }),
           ...(req.description !== undefined && { description: req.description }),
-          ...(req.type !== undefined && { type: req.type }),
           ...(targetStatus !== undefined && { status: targetStatus }),
           ...(completedAtUpdate !== undefined && { completedAt: completedAtUpdate }),
           ...(startedAtUpdate !== undefined && { startedAt: startedAtUpdate }),
@@ -587,16 +585,6 @@ export class KanbanService {
       })
 
       if (req.status !== undefined && req.status !== existing.status) {
-        if (statusEventType === KanbanTaskEventType.CHANGES_REQUESTED && req.reason) {
-          await tx.kanbanTaskComment.create({
-            data: {
-              taskId,
-              authorId: actorId,
-              body: `[Changes Requested] ${req.reason}`,
-            },
-          })
-        }
-
         if (targetStatus === KanbanTaskStatus.CANCELLED && task.latestRunId) {
           await tx.kanbanTaskRun.update({
             where: { id: task.latestRunId },
@@ -624,7 +612,7 @@ export class KanbanService {
             type: statusEventType,
             fromStatus: existing.status,
             toStatus: targetStatus!,
-            data: statusEventData,
+            data: statusEventData ?? (req.reason ? { reason: req.reason } : undefined),
           },
         })
 
@@ -637,7 +625,7 @@ export class KanbanService {
       }
 
       // Log specific events if critical fields changed
-      if (req.priority && req.priority !== existing.priority) {
+      if (req.priority !== undefined && req.priority !== existing.priority) {
         await tx.kanbanTaskEvent.create({
           data: {
             taskId,
@@ -675,7 +663,6 @@ export class KanbanService {
       await this.recomputeChildrenReadiness(taskId)
     }
 
-    // If startDate changed and task is in TODO, re-check ready state
     if (req.startDate !== undefined && updated.status === KanbanTaskStatus.TODO) {
       await this.recomputeReady(taskId)
     }
@@ -683,7 +670,7 @@ export class KanbanService {
     if (
       (updated.status === KanbanTaskStatus.READY ||
         updated.status === KanbanTaskStatus.IN_PROGRESS) &&
-      updated.type === KanbanTaskType.AGENTIC
+      updated.isAgentTask
     ) {
       kanbanDispatcher.nudge(taskId)
     }
@@ -704,7 +691,7 @@ export class KanbanService {
     const where = {
       teamId,
       ...(params.status && { status: params.status }),
-      ...(params.type && { type: params.type }),
+      ...(params.isAgentTask !== undefined && { isAgentTask: params.isAgentTask }),
       ...(params.goalId && { goalId: params.goalId }),
       ...(params.projectId && { projectId: params.projectId }),
       ...(params.priority && { priority: params.priority }),
@@ -1027,7 +1014,7 @@ export class KanbanService {
           })
         })
 
-        if (task.type === KanbanTaskType.AGENTIC) {
+        if (task.isAgentTask) {
           kanbanDispatcher.nudge(taskId)
         }
       }
@@ -1063,7 +1050,7 @@ export class KanbanService {
           })
         })
 
-        if (task.type === KanbanTaskType.AGENTIC) {
+        if (task.isAgentTask) {
           kanbanDispatcher.nudge(task.id)
         }
       }
@@ -1479,7 +1466,7 @@ export class KanbanService {
       id: task.id,
       title: task.title,
       description: task.description,
-      type: task.type,
+      isAgentTask: task.isAgentTask,
       status: task.status,
       priority: task.priority,
       startDate: task.startDate ? task.startDate.toISOString() : null,
