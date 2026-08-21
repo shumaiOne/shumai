@@ -202,9 +202,10 @@ export function KanbanCreateTaskDialog({
               />
             </div>
 
-            {/* Agent Task Switch & Priority Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
-              <div className="flex items-center justify-between space-x-2 rounded-lg border border-border/80 bg-muted/30 p-2.5 h-14">
+            {/* Properties Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Row 1: Agent Task Switch */}
+              <div className="sm:col-span-2 flex items-center justify-between space-x-2 rounded-lg border border-border/80 bg-muted/30 p-2.5 h-14">
                 <div className="space-y-0.5 min-w-0 pr-2">
                   <Label
                     htmlFor="create-is-agent-task"
@@ -227,13 +228,16 @@ export function KanbanCreateTaskDialog({
                 />
               </div>
 
+              {/* Row 2: Priority and Goal selectors */}
               <div className="space-y-1.5">
-                <Label>{m.task_priority()}</Label>
+                <Label className="text-xs font-medium text-muted-foreground">
+                  {m.task_priority()}
+                </Label>
                 <Select
                   value={priority}
                   onValueChange={(val) => setPriority(val as KanbanTaskPriority)}
                 >
-                  <SelectTrigger className="h-9 text-xs">
+                  <SelectTrigger className="w-full h-9 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -252,14 +256,36 @@ export function KanbanCreateTaskDialog({
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            {/* Assignee & Reporter Row */}
-            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>{isAgentic ? m.select_agent() : m.assignee()}</Label>
+                <Label className="text-xs font-medium text-muted-foreground">{m.goals()}</Label>
+                <Select value={goalId} onValueChange={setGoalId}>
+                  <SelectTrigger className="w-full h-9 text-xs">
+                    <SelectValue placeholder="None" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">
+                      <span className="text-muted-foreground italic">None</span>
+                    </SelectItem>
+                    {goals.map((g) => (
+                      <SelectItem key={g.id} value={g.id}>
+                        <div className="flex items-center gap-2">
+                          <Target className="w-3.5 h-3.5 text-primary" />
+                          <span>{g.title}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Row 3: Assignee and Reporter */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">
+                  {isAgentic ? m.select_agent() : m.assignee()}
+                </Label>
                 <Select value={assigneeId} onValueChange={setAssigneeId}>
-                  <SelectTrigger className="h-9 text-xs">
+                  <SelectTrigger className="w-full h-9 text-xs">
                     <SelectValue placeholder={m.unassigned()} />
                   </SelectTrigger>
                   <SelectContent>
@@ -293,9 +319,9 @@ export function KanbanCreateTaskDialog({
               </div>
 
               <div className="space-y-1.5">
-                <Label>{m.reporter()}</Label>
+                <Label className="text-xs font-medium text-muted-foreground">{m.reporter()}</Label>
                 <Select value={reporterId} onValueChange={setReporterId}>
-                  <SelectTrigger className="h-9 text-xs">
+                  <SelectTrigger className="w-full h-9 text-xs">
                     <SelectValue placeholder={m.unassigned()} />
                   </SelectTrigger>
                   <SelectContent>
@@ -318,51 +344,31 @@ export function KanbanCreateTaskDialog({
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            {/* Goal & Target Folder Row */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>{m.goals()}</Label>
-                <Select value={goalId} onValueChange={setGoalId}>
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="None" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">
-                      <span className="text-muted-foreground italic">None</span>
-                    </SelectItem>
-                    {goals.map((g) => (
-                      <SelectItem key={g.id} value={g.id}>
-                        <div className="flex items-center gap-2">
-                          <Target className="w-3.5 h-3.5 text-primary" />
-                          <span>{g.title}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Row 4: Target Folder Selector (only for agent task) */}
+              {isAgentic && (
+                <div className="sm:col-span-2 space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">
+                    {m.target_folder()}
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsFolderPickerOpen(true)}
+                    className="w-full justify-start h-9 text-xs truncate font-normal"
+                  >
+                    <Folder className="w-3.5 h-3.5 mr-2 text-primary shrink-0" />
+                    <span className="truncate">{targetFolderName || m.select_target_folder()}</span>
+                  </Button>
+                </div>
+              )}
 
+              {/* Row 5: Start Date and Due Date */}
               <div className="space-y-1.5">
-                <Label>{m.target_folder()}</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsFolderPickerOpen(true)}
-                  className="w-full justify-start h-9 text-xs truncate font-normal"
-                >
-                  <Folder className="w-3.5 h-3.5 mr-2 text-primary shrink-0" />
-                  <span className="truncate">{targetFolderName || m.select_target_folder()}</span>
-                </Button>
-              </div>
-            </div>
-
-            {/* Dates Row */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>{m.start_date()}</Label>
+                <Label className="text-xs font-medium text-muted-foreground">
+                  {m.start_date()}
+                </Label>
                 <DateTimePicker
                   value={startDate}
                   onChange={setStartDate}
@@ -372,7 +378,7 @@ export function KanbanCreateTaskDialog({
               </div>
 
               <div className="space-y-1.5">
-                <Label>{m.due_date()}</Label>
+                <Label className="text-xs font-medium text-muted-foreground">{m.due_date()}</Label>
                 <DateTimePicker
                   value={dueDate}
                   onChange={setDueDate}

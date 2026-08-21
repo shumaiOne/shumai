@@ -188,8 +188,8 @@ export function TaskInfoForm({ teamId, task, canEdit = true }: TaskInfoFormProps
 
         {/* Properties Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-lg bg-muted/20 border border-border/60">
-          {/* Agent Task Switch (Read-Only) */}
-          <div className="flex items-center justify-between space-x-2 rounded-md border border-border/60 bg-background/50 px-3 py-2 h-14">
+          {/* Row 1: Agent Task Switch (Read-Only) */}
+          <div className="sm:col-span-2 flex items-center justify-between space-x-2 rounded-md border border-border/60 bg-background/50 px-3 py-2 h-14">
             <div className="space-y-0.5 min-w-0 pr-2">
               <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                 <Bot className="w-3.5 h-3.5 text-purple-500" />
@@ -202,7 +202,7 @@ export function TaskInfoForm({ teamId, task, canEdit = true }: TaskInfoFormProps
             <Switch checked={task.isAgentTask} disabled={true} />
           </div>
 
-          {/* Priority Selector */}
+          {/* Row 2: Priority Selector and Goal Selector */}
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">{m.task_priority()}</Label>
             <Select
@@ -210,7 +210,7 @@ export function TaskInfoForm({ teamId, task, canEdit = true }: TaskInfoFormProps
               onValueChange={(val) => updateTask({ priority: val as KanbanTaskPriority })}
               disabled={!canEdit}
             >
-              <SelectTrigger className="h-8 text-xs bg-background">
+              <SelectTrigger className="w-full h-8 text-xs bg-background">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -230,7 +230,33 @@ export function TaskInfoForm({ teamId, task, canEdit = true }: TaskInfoFormProps
             </Select>
           </div>
 
-          {/* Assignee Selector (Contextual: Users for Manual, Agents for Agentic) */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">{m.goals()}</Label>
+            <Select
+              value={task.goal?.id || 'none'}
+              onValueChange={(val) => updateTask({ goalId: val === 'none' ? null : val })}
+              disabled={!canEdit}
+            >
+              <SelectTrigger className="w-full h-8 text-xs bg-background">
+                <SelectValue placeholder={m.no_folder_selected()} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">
+                  <span className="text-muted-foreground italic">None</span>
+                </SelectItem>
+                {goals.map((g) => (
+                  <SelectItem key={g.id} value={g.id}>
+                    <div className="flex items-center gap-2">
+                      <Target className="w-3.5 h-3.5 text-primary" />
+                      <span>{g.title}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Row 3: Assignee Selector and Reporter Selector */}
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">
               {isAgentic ? m.select_agent() : m.assignee()}
@@ -240,7 +266,7 @@ export function TaskInfoForm({ teamId, task, canEdit = true }: TaskInfoFormProps
               onValueChange={(val) => updateTask({ assigneeId: val === 'none' ? null : val })}
               disabled={!canEdit}
             >
-              <SelectTrigger className="h-8 text-xs bg-background">
+              <SelectTrigger className="w-full h-8 text-xs bg-background">
                 <SelectValue placeholder={m.unassigned()} />
               </SelectTrigger>
               <SelectContent>
@@ -273,7 +299,6 @@ export function TaskInfoForm({ teamId, task, canEdit = true }: TaskInfoFormProps
             </Select>
           </div>
 
-          {/* Reporter Selector */}
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">{m.reporter()}</Label>
             <Select
@@ -281,7 +306,7 @@ export function TaskInfoForm({ teamId, task, canEdit = true }: TaskInfoFormProps
               onValueChange={(val) => updateTask({ reporterId: val === 'none' ? null : val })}
               disabled={!canEdit}
             >
-              <SelectTrigger className="h-8 text-xs bg-background">
+              <SelectTrigger className="w-full h-8 text-xs bg-background">
                 <SelectValue placeholder={m.unassigned()} />
               </SelectTrigger>
               <SelectContent>
@@ -305,55 +330,32 @@ export function TaskInfoForm({ teamId, task, canEdit = true }: TaskInfoFormProps
             </Select>
           </div>
 
-          {/* Goal Selector */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">{m.goals()}</Label>
-            <Select
-              value={task.goal?.id || 'none'}
-              onValueChange={(val) => updateTask({ goalId: val === 'none' ? null : val })}
-              disabled={!canEdit}
-            >
-              <SelectTrigger className="h-8 text-xs bg-background">
-                <SelectValue placeholder={m.no_folder_selected()} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">
-                  <span className="text-muted-foreground italic">None</span>
-                </SelectItem>
-                {goals.map((g) => (
-                  <SelectItem key={g.id} value={g.id}>
-                    <div className="flex items-center gap-2">
-                      <Target className="w-3.5 h-3.5 text-primary" />
-                      <span>{g.title}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Target Folder Selector */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">{m.target_folder()}</Label>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setIsFolderPickerOpen(true)}
-                disabled={!canEdit}
-                className="w-full justify-start h-8 text-xs bg-background truncate font-normal"
-              >
-                <Folder className="w-3.5 h-3.5 mr-2 text-primary shrink-0" />
-                <span className="truncate">
-                  {targetFolderName ||
-                    (task.targetFolderId ? 'Selected Folder' : m.select_target_folder())}
-                </span>
-              </Button>
+          {/* Row 4: Target Folder Selector (only for agent task) */}
+          {isAgentic && (
+            <div className="sm:col-span-2 space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">
+                {m.target_folder()}
+              </Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsFolderPickerOpen(true)}
+                  disabled={!canEdit}
+                  className="w-full justify-start h-8 text-xs bg-background truncate font-normal"
+                >
+                  <Folder className="w-3.5 h-3.5 mr-2 text-primary shrink-0" />
+                  <span className="truncate">
+                    {targetFolderName ||
+                      (task.targetFolderId ? 'Selected Folder' : m.select_target_folder())}
+                  </span>
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Start Date */}
+          {/* Row 5: Start Date and Due Date */}
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">{m.start_date()}</Label>
             <DateTimePicker
@@ -365,7 +367,6 @@ export function TaskInfoForm({ teamId, task, canEdit = true }: TaskInfoFormProps
             />
           </div>
 
-          {/* Due Date */}
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">{m.due_date()}</Label>
             <DateTimePicker
