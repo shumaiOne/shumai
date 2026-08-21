@@ -581,6 +581,43 @@ export class KanbanService {
     })
   }
 
+  async deleteTask(
+    taskId: string,
+    actorId: string,
+    callerRole?: TeamMemberRole | null,
+  ): Promise<KanbanTaskInfo> {
+    const existing = await prisma.kanbanTask.findUnique({
+      where: { id: taskId },
+      include: {
+        creator: true,
+        reporter: true,
+        assignee: true,
+        goal: true,
+      },
+    })
+    if (!existing) {
+      throw new HTTPException(404, { message: 'Task not found' })
+    }
+
+    const isOwner = callerRole === 'owner'
+    const isCreator = existing.creatorId === actorId
+    const isReporter = existing.reporterId === actorId
+
+    if (!isOwner && !isCreator && !isReporter) {
+      throw new HTTPException(403, {
+        message: 'Only team owners, task creators, or reporters can delete tasks',
+      })
+    }
+
+    const taskInfo = await this.toTaskInfo(existing, {})
+
+    await prisma.kanbanTask.delete({
+      where: { id: taskId },
+    })
+
+    return taskInfo
+  }
+
   async listTasks(
     teamId: string,
     params: ListKanbanTasksRequest,

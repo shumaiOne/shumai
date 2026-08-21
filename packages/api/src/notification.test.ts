@@ -150,6 +150,8 @@ describe('notification api', () => {
         yourUploads: true,
         otherUploads: false,
         statusUpdates: true,
+        kanbanTasks: true,
+        kanbanComments: true,
       },
     )
   })

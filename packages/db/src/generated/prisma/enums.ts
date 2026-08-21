@@ -75,7 +75,13 @@ export const NotificationType = {
   successful_file_uploaded: 'successful_file_uploaded',
   metadata_field_updated_status: 'metadata_field_updated_status',
   new_user_join_team: 'new_user_join_team',
-  new_user_join_project: 'new_user_join_project'
+  new_user_join_project: 'new_user_join_project',
+  kanban_task_created: 'kanban_task_created',
+  kanban_task_assigned: 'kanban_task_assigned',
+  kanban_task_status_updated: 'kanban_task_status_updated',
+  kanban_task_updated: 'kanban_task_updated',
+  kanban_task_deleted: 'kanban_task_deleted',
+  kanban_task_comment_created: 'kanban_task_comment_created'
 } as const
 
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]

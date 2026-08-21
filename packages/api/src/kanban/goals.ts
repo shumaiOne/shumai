@@ -1,6 +1,7 @@
 import { zValidator } from '@hono/zod-validator'
 import { Hono } from 'hono'
 import { kanbanService } from '@shumai/core/src/kanban/kanban'
+import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 import {
   authzService,
   Permission,
@@ -11,6 +12,7 @@ import {
   createKanbanGoalSchema,
   updateKanbanGoalSchema,
   listKanbanGoalsRequestSchema,
+  AuditAction,
 } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
 
@@ -31,6 +33,14 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     const role = await resolveEffectiveRole(teamId, undefined, user.id)
     const goal = await kanbanService.createGoal(teamId, req, user.id, role)
+
+    await auditLogService.logAction({
+      action: AuditAction.kanban_goal_create,
+      teamId,
+      userId: user.id,
+      itemId: goal.id,
+    })
+
     return c.json(goal)
   })
   .get(
@@ -83,6 +93,14 @@ const route = new Hono<{ Variables: { user: User } }>()
 
       const role = await resolveEffectiveRole(teamId, undefined, user.id)
       const goal = await kanbanService.updateGoal(goalId, req, role)
+
+      await auditLogService.logAction({
+        action: AuditAction.kanban_goal_update,
+        teamId,
+        userId: user.id,
+        itemId: goalId,
+      })
+
       return c.json(goal)
     },
   )
@@ -99,7 +117,15 @@ const route = new Hono<{ Variables: { user: User } }>()
 
     const role = await resolveEffectiveRole(teamId, undefined, user.id)
     await kanbanService.deleteGoal(goalId, role)
-    return c.json({ success: true })
+
+    await auditLogService.logAction({
+      action: AuditAction.kanban_goal_delete,
+      teamId,
+      userId: user.id,
+      itemId: goalId,
+    })
+
+    return c.json({ ok: true })
   })
 
 export default route

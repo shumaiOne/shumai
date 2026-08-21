@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { client } from '@/ui/api/client'
 import { KanbanTaskStatus, type KanbanGoalInfo, type KanbanTaskInfo } from '@shumai/dtos'
@@ -11,14 +11,21 @@ import { Loader2 } from 'lucide-react'
 
 interface KanbanPageProps {
   teamId: string
+  initialTaskId?: string
 }
 
-export function KanbanPage({ teamId }: KanbanPageProps) {
+export function KanbanPage({ teamId, initialTaskId }: KanbanPageProps) {
   const [scope, setScope] = useState<'team' | 'my'>('team')
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null)
   const [showCancelled, setShowCancelled] = useState(false)
-  const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(initialTaskId ?? null)
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false)
+
+  useEffect(() => {
+    if (initialTaskId) {
+      setEditingTaskId(initialTaskId)
+    }
+  }, [initialTaskId])
   const [createTaskInitialStatus, setCreateTaskInitialStatus] = useState<KanbanTaskStatus>(
     KanbanTaskStatus.TODO,
   )
