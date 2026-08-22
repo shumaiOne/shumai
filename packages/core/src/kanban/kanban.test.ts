@@ -416,6 +416,92 @@ describe('KanbanService', () => {
       )
       expect(ownerUpdated.status).toBe(KanbanTaskStatus.DONE)
     })
+
+    it('handles status CAS (Compare-And-Swap) with fromStatus validation', async () => {
+      const { team, owner } = await setupTeamAndUsers()
+
+      const task = await kanbanService.createTask(
+        team.id,
+        { title: 'CAS Task', isAgentTask: false },
+        owner.id,
+        'owner',
+      )
+      expect(task.status).toBe(KanbanTaskStatus.TODO)
+
+      // 1. Matching fromStatus succeeds
+      const inProgress = await kanbanService.updateTask(
+        task.id,
+        { fromStatus: KanbanTaskStatus.TODO, status: KanbanTaskStatus.IN_PROGRESS },
+        owner.id,
+        'owner',
+      )
+      expect(inProgress.status).toBe(KanbanTaskStatus.IN_PROGRESS)
+
+      // 2. Mismatched fromStatus throws 409 Conflict
+      await expect(
+        kanbanService.updateTask(
+          task.id,
+          { fromStatus: KanbanTaskStatus.TODO, status: KanbanTaskStatus.DONE },
+          owner.id,
+          'owner',
+        ),
+      ).rejects.toThrow(/Task status has been modified by another user/)
+
+      // 3. Status is still IN_PROGRESS
+      const current = await kanbanService.getTask(task.id)
+      expect(current.status).toBe(KanbanTaskStatus.IN_PROGRESS)
+    })
+
+    it('prevents race conditions when two users update status concurrently', async () => {
+      const { team, owner, editor } = await setupTeamAndUsers()
+
+      const task = await kanbanService.createTask(
+        team.id,
+        {
+          title: 'Race Condition Task',
+          reporterId: editor.id,
+        },
+        owner.id,
+        'owner',
+      )
+      expect(task.status).toBe(KanbanTaskStatus.TODO)
+
+      // User 1 drags to IN_PROGRESS (from TODO)
+      const u1Promise = kanbanService.updateTask(
+        task.id,
+        { fromStatus: KanbanTaskStatus.TODO, status: KanbanTaskStatus.IN_PROGRESS },
+        owner.id,
+        'owner',
+      )
+
+      // User 2 drags to DONE (from TODO)
+      const u2Promise = kanbanService.updateTask(
+        task.id,
+        { fromStatus: KanbanTaskStatus.TODO, status: KanbanTaskStatus.DONE },
+        editor.id,
+        'editor',
+      )
+
+      const results = await Promise.allSettled([u1Promise, u2Promise])
+      const fulfilled = results.filter((r) => r.status === 'fulfilled')
+      const rejected = results.filter((r) => r.status === 'rejected')
+
+      // Exactly one should succeed, and one should fail with 409 Conflict
+      expect(fulfilled).toHaveLength(1)
+      expect(rejected).toHaveLength(1)
+      expect((rejected[0] as PromiseRejectedResult).reason.message).toMatch(
+        /Task status has been modified by another user/,
+      )
+
+      // Verify the task event log is consistent
+      const detail = await kanbanService.getTask(task.id)
+      const statusEvents = detail.events.filter(
+        (e) => e.type === 'STATUS_CHANGED' && e.toStatus !== null,
+      )
+      // Only the winning transition was recorded
+      expect(statusEvents.length).toBe(1)
+      expect(statusEvents[0].fromStatus).toBe(KanbanTaskStatus.TODO)
+    })
   })
 
   // --------------------------------------------------------------------------

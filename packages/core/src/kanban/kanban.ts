@@ -394,104 +394,112 @@ export class KanbanService {
     actorId: string,
     callerRole?: TeamMemberRole | null,
   ): Promise<KanbanTaskInfo> {
-    const existing = await prisma.kanbanTask.findUnique({
-      where: { id: taskId },
-      include: {
-        creator: true,
-        reporter: true,
-        assignee: true,
-        goal: true,
-      },
-    })
-    if (!existing) {
-      throw new HTTPException(404, { message: 'Task not found' })
-    }
-
     const isOwner = callerRole === 'owner'
     const isEditor = callerRole === 'editor'
-    const isReporter = existing.reporterId === actorId || existing.creatorId === actorId
-    const isAssignee = existing.assigneeId === actorId
-
-    // Status change permission check: only owner, reporter, or assignee can change task status
-    if (req.status !== undefined && req.status !== existing.status) {
-      if (!isOwner && !isReporter && !isAssignee) {
-        throw new HTTPException(403, {
-          message: 'Only team owners, task reporters, or assignees can change task status',
-        })
-      }
-    }
-
-    // General edit permission check for other fields: must be owner, editor, reporter, or assignee
-    if (!isOwner && !isEditor && !isReporter && !isAssignee) {
-      throw new HTTPException(403, { message: 'Permission denied' })
-    }
-
-    // Status transition calculation if status changed
-    const targetStatus: KanbanTaskStatus | undefined = req.status
-    let completedAtUpdate: Date | null | undefined = undefined
-    let startedAtUpdate: Date | null | undefined = undefined
-    let statusEventType: KanbanTaskEventType = KanbanTaskEventType.STATUS_CHANGED
-    let statusEventData: Record<string, unknown> | undefined = undefined
-
-    if (req.status !== undefined && req.status !== existing.status) {
-      switch (req.status) {
-        case KanbanTaskStatus.DONE: {
-          completedAtUpdate = new Date()
-          statusEventType = KanbanTaskEventType.STATUS_CHANGED
-          if (existing.status === KanbanTaskStatus.IN_REVIEW) {
-            statusEventData = { summary: 'Approved by reviewer' }
-          }
-          break
-        }
-        case KanbanTaskStatus.IN_PROGRESS: {
-          if (existing.status === KanbanTaskStatus.DONE) {
-            completedAtUpdate = null
-          }
-          startedAtUpdate = existing.startedAt ?? new Date()
-          statusEventType = KanbanTaskEventType.STATUS_CHANGED
-          break
-        }
-        case KanbanTaskStatus.IN_REVIEW: {
-          if (existing.status === KanbanTaskStatus.DONE) {
-            completedAtUpdate = null
-          }
-          statusEventType = KanbanTaskEventType.STATUS_CHANGED
-          break
-        }
-        case KanbanTaskStatus.BLOCKED: {
-          if (existing.status === KanbanTaskStatus.DONE) {
-            completedAtUpdate = null
-          }
-          statusEventType = KanbanTaskEventType.BLOCKED
-          statusEventData = req.reason ? { reason: req.reason } : undefined
-          break
-        }
-        case KanbanTaskStatus.TODO:
-        case KanbanTaskStatus.READY: {
-          if (existing.status === KanbanTaskStatus.DONE) {
-            completedAtUpdate = null
-          }
-          if (existing.status === KanbanTaskStatus.BLOCKED) {
-            statusEventType = KanbanTaskEventType.UNBLOCKED
-          } else if (existing.status === KanbanTaskStatus.IN_REVIEW && req.reason) {
-            statusEventType = KanbanTaskEventType.CHANGES_REQUESTED
-            statusEventData = { reason: req.reason }
-          } else {
-            statusEventType = KanbanTaskEventType.STATUS_CHANGED
-          }
-          break
-        }
-      }
-    }
 
     const updated = await prisma.$transaction(async (tx) => {
-      const finalStatus = targetStatus ?? existing.status
+      const current = await tx.kanbanTask.findUnique({
+        where: { id: taskId },
+        include: {
+          creator: true,
+          reporter: true,
+          assignee: true,
+          goal: true,
+        },
+      })
+      if (!current) {
+        throw new HTTPException(404, { message: 'Task not found' })
+      }
+
+      // CAS status validation: ensure task status has not changed concurrently
+      if (req.fromStatus !== undefined && current.status !== req.fromStatus) {
+        throw new HTTPException(409, {
+          message: 'Task status has been modified by another user. Please refresh.',
+        })
+      }
+
+      const isReporter = current.reporterId === actorId || current.creatorId === actorId
+      const isAssignee = current.assigneeId === actorId
+
+      // Status change permission check: only owner, reporter, or assignee can change task status
+      if (req.status !== undefined && req.status !== current.status) {
+        if (!isOwner && !isReporter && !isAssignee) {
+          throw new HTTPException(403, {
+            message: 'Only team owners, task reporters, or assignees can change task status',
+          })
+        }
+      }
+
+      // General edit permission check for other fields: must be owner, editor, reporter, or assignee
+      if (!isOwner && !isEditor && !isReporter && !isAssignee) {
+        throw new HTTPException(403, { message: 'Permission denied' })
+      }
+
+      // Status transition calculation if status changed
+      const targetStatus: KanbanTaskStatus | undefined = req.status
+      let completedAtUpdate: Date | null | undefined = undefined
+      let startedAtUpdate: Date | null | undefined = undefined
+      let statusEventType: KanbanTaskEventType = KanbanTaskEventType.STATUS_CHANGED
+      let statusEventData: Record<string, unknown> | undefined = undefined
+
+      if (req.status !== undefined && req.status !== current.status) {
+        switch (req.status) {
+          case KanbanTaskStatus.DONE: {
+            completedAtUpdate = new Date()
+            statusEventType = KanbanTaskEventType.STATUS_CHANGED
+            if (current.status === KanbanTaskStatus.IN_REVIEW) {
+              statusEventData = { summary: 'Approved by reviewer' }
+            }
+            break
+          }
+          case KanbanTaskStatus.IN_PROGRESS: {
+            if (current.status === KanbanTaskStatus.DONE) {
+              completedAtUpdate = null
+            }
+            startedAtUpdate = current.startedAt ?? new Date()
+            statusEventType = KanbanTaskEventType.STATUS_CHANGED
+            break
+          }
+          case KanbanTaskStatus.IN_REVIEW: {
+            if (current.status === KanbanTaskStatus.DONE) {
+              completedAtUpdate = null
+            }
+            statusEventType = KanbanTaskEventType.STATUS_CHANGED
+            break
+          }
+          case KanbanTaskStatus.BLOCKED: {
+            if (current.status === KanbanTaskStatus.DONE) {
+              completedAtUpdate = null
+            }
+            statusEventType = KanbanTaskEventType.BLOCKED
+            statusEventData = req.reason ? { reason: req.reason } : undefined
+            break
+          }
+          case KanbanTaskStatus.TODO:
+          case KanbanTaskStatus.READY: {
+            if (current.status === KanbanTaskStatus.DONE) {
+              completedAtUpdate = null
+            }
+            if (current.status === KanbanTaskStatus.BLOCKED) {
+              statusEventType = KanbanTaskEventType.UNBLOCKED
+            } else if (current.status === KanbanTaskStatus.IN_REVIEW && req.reason) {
+              statusEventType = KanbanTaskEventType.CHANGES_REQUESTED
+              statusEventData = { reason: req.reason }
+            } else {
+              statusEventType = KanbanTaskEventType.STATUS_CHANGED
+            }
+            break
+          }
+        }
+      }
+
+      const finalStatus = targetStatus ?? current.status
       let newSortIndex: string | undefined = undefined
 
       if (req.beforeIndex !== undefined) {
         const prevTask = await tx.kanbanTask.findFirst({
           where: {
-            teamId: existing.teamId,
+            teamId: current.teamId,
             status: finalStatus,
             sortIndex: { lt: req.beforeIndex, not: null },
             id: { not: taskId },
@@ -502,7 +510,7 @@ export class KanbanService {
       } else if (req.afterIndex !== undefined) {
         const nextTask = await tx.kanbanTask.findFirst({
           where: {
-            teamId: existing.teamId,
+            teamId: current.teamId,
             status: finalStatus,
             sortIndex: { gt: req.afterIndex, not: null },
             id: { not: taskId },
@@ -510,10 +518,10 @@ export class KanbanService {
           orderBy: { sortIndex: 'asc' },
         })
         newSortIndex = generateKeyBetween(req.afterIndex, nextTask?.sortIndex || null)
-      } else if (req.status !== undefined && req.status !== existing.status) {
+      } else if (req.status !== undefined && req.status !== current.status) {
         const lastTask = await tx.kanbanTask.findFirst({
           where: {
-            teamId: existing.teamId,
+            teamId: current.teamId,
             status: finalStatus,
             id: { not: taskId },
             sortIndex: { not: null },
@@ -548,13 +556,13 @@ export class KanbanService {
         include: { creator: true, reporter: true, assignee: true, goal: true },
       })
 
-      if (req.status !== undefined && req.status !== existing.status) {
+      if (req.status !== undefined && req.status !== current.status) {
         await tx.kanbanTaskEvent.create({
           data: {
             taskId,
             actorId,
             type: statusEventType,
-            fromStatus: existing.status,
+            fromStatus: current.status,
             toStatus: targetStatus!,
             data: statusEventData ?? (req.reason ? { reason: req.reason } : undefined),
           },
@@ -562,33 +570,33 @@ export class KanbanService {
       }
 
       // Log specific events if critical fields changed
-      if (req.priority !== undefined && req.priority !== existing.priority) {
+      if (req.priority !== undefined && req.priority !== current.priority) {
         await tx.kanbanTaskEvent.create({
           data: {
             taskId,
             actorId,
             type: KanbanTaskEventType.PRIORITY_CHANGED,
-            data: { from: existing.priority, to: req.priority },
+            data: { from: current.priority, to: req.priority },
           },
         })
       }
-      if (req.goalId !== undefined && req.goalId !== existing.goalId) {
+      if (req.goalId !== undefined && req.goalId !== current.goalId) {
         await tx.kanbanTaskEvent.create({
           data: {
             taskId,
             actorId,
             type: KanbanTaskEventType.GOAL_CHANGED,
-            data: { from: existing.goalId, to: req.goalId },
+            data: { from: current.goalId, to: req.goalId },
           },
         })
       }
-      if (req.assigneeId !== undefined && req.assigneeId !== existing.assigneeId) {
+      if (req.assigneeId !== undefined && req.assigneeId !== current.assigneeId) {
         await tx.kanbanTaskEvent.create({
           data: {
             taskId,
             actorId,
             type: req.assigneeId ? KanbanTaskEventType.ASSIGNED : KanbanTaskEventType.UNASSIGNED,
-            data: { from: existing.assigneeId, to: req.assigneeId },
+            data: { from: current.assigneeId, to: req.assigneeId },
           },
         })
       }

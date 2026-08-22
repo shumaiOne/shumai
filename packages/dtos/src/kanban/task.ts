@@ -24,6 +24,7 @@ export const createKanbanTaskSchema = z.object({
 export type CreateKanbanTaskRequest = z.infer<typeof createKanbanTaskSchema>
 
 export const updateKanbanTaskSchema = z.object({
+  fromStatus: z.nativeEnum(KanbanTaskStatus).optional(),
   title: z.string().min(1).optional(),
   description: z.string().nullable().optional(),
   status: z.nativeEnum(KanbanTaskStatus).optional(),
