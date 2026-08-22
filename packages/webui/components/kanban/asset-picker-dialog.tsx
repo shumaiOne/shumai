@@ -222,7 +222,7 @@ export function AssetPickerDialog({
       }}
     >
       <DialogContent className="sm:max-w-4xl flex flex-col h-[650px] p-0 overflow-hidden">
-        <DialogHeader className="p-4 border-b shrink-0">
+        <DialogHeader className="px-4 py-2.5 border-b shrink-0">
           <div className="flex items-center gap-2">
             <Folder className="w-5 h-5 text-primary" />
             <DialogTitle>{m.select_assets()}</DialogTitle>
@@ -230,7 +230,7 @@ export function AssetPickerDialog({
         </DialogHeader>
 
         {/* Second Row Toolbar: Project Selector with Hint Text */}
-        <div className="flex items-center gap-2.5 px-4 py-2 border-b bg-muted/20 shrink-0">
+        <div className="flex items-center gap-2.5 px-4 py-1.5 border-b bg-muted/20 shrink-0">
           <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
             {m.current_project_label()}:
           </span>
@@ -272,6 +272,7 @@ export function AssetPickerDialog({
                     selectedFolderId={activeFolderId}
                     hideCollections
                     hideShares
+                    hideRecentlyDeleted
                   />
                 </div>
               ) : (
