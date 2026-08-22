@@ -33,7 +33,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { KanbanGoalInfo } from '@shumai/dtos'
+import { type KanbanGoalInfo, UNASSIGNED_GOAL_ID } from '@shumai/dtos'
 import { KanbanCreateGoalDialog } from './kanban-create-goal-dialog'
 
 interface KanbanGoalSidebarProps {
@@ -214,6 +214,8 @@ export function KanbanGoalSidebar({
           ) : (
             goals.map((goal) => {
               const isSelected = selectedGoalId === goal.id
+              const isUnassigned = goal.id === UNASSIGNED_GOAL_ID
+              const title = isUnassigned ? m.unassigned() : goal.title
               return (
                 <div
                   key={goal.id}
@@ -232,8 +234,8 @@ export function KanbanGoalSidebar({
                         isSelected ? 'text-sidebar-primary' : 'text-muted-foreground',
                       )}
                     />
-                    <span className="truncate" title={goal.title}>
-                      {goal.title}
+                    <span className="truncate" title={title}>
+                      {title}
                     </span>
                   </div>
 
@@ -244,7 +246,7 @@ export function KanbanGoalSidebar({
                       </span>
                     )}
 
-                    {isOwnerOrEditor && (
+                    {isOwnerOrEditor && !isUnassigned && (
                       <div
                         className="opacity-0 group-hover:opacity-100 [&:has([data-state=open])]:opacity-100 focus-within:opacity-100 transition-opacity flex items-center"
                         onClick={(e) => e.stopPropagation()}

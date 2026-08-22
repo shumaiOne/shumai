@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+export const UNASSIGNED_GOAL_ID = 'unassigned'
+
 export const createKanbanGoalSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),

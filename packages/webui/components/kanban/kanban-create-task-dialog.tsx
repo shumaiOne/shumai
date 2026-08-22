@@ -30,6 +30,7 @@ import {
   type KanbanGoalInfo,
   type AgentInfo,
   type KanbanTaskAssetInfo,
+  UNASSIGNED_GOAL_ID,
 } from '@shumai/dtos'
 import { getPriorityBadgeColor, getPriorityLabel } from './kanban-types'
 import { TaskTargetFolderDialog } from './edit-task-dialog/task-target-folder-dialog'
@@ -54,11 +55,14 @@ export function KanbanCreateTaskDialog({
 }: KanbanCreateTaskDialogProps) {
   const queryClient = useQueryClient()
 
+  const effectiveInitialGoalId =
+    initialGoalId === UNASSIGNED_GOAL_ID || !initialGoalId ? 'none' : initialGoalId
+
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [isAgentTask, setIsAgentTask] = useState(false)
   const [priority, setPriority] = useState<KanbanTaskPriority>(KanbanTaskPriority.MEDIUM)
-  const [goalId, setGoalId] = useState<string>(initialGoalId || 'none')
+  const [goalId, setGoalId] = useState<string>(effectiveInitialGoalId)
   const [assigneeId, setAssigneeId] = useState<string>('none')
   const [reporterId, setReporterId] = useState<string>('none')
   const [startDate, setStartDate] = useState<Date | undefined>(undefined)
@@ -76,7 +80,7 @@ export function KanbanCreateTaskDialog({
       setDescription('')
       setIsAgentTask(false)
       setPriority(KanbanTaskPriority.MEDIUM)
-      setGoalId(initialGoalId || 'none')
+      setGoalId(effectiveInitialGoalId)
       setAssigneeId('none')
       setReporterId('none')
       setStartDate(undefined)
@@ -87,7 +91,7 @@ export function KanbanCreateTaskDialog({
       setParentIds([])
       setSelectedAssets([])
     }
-  }, [isOpen, initialGoalId])
+  }, [isOpen, effectiveInitialGoalId])
 
   // Queries for selectors
   const { data: members = [] } = useQuery({
@@ -276,14 +280,16 @@ export function KanbanCreateTaskDialog({
                     <SelectItem value="none">
                       <span className="text-muted-foreground italic">None</span>
                     </SelectItem>
-                    {goals.map((g) => (
-                      <SelectItem key={g.id} value={g.id}>
-                        <div className="flex items-center gap-2">
-                          <Target className="w-3.5 h-3.5 text-primary" />
-                          <span>{g.title}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
+                    {goals
+                      .filter((g) => g.id !== UNASSIGNED_GOAL_ID)
+                      .map((g) => (
+                        <SelectItem key={g.id} value={g.id}>
+                          <div className="flex items-center gap-2">
+                            <Target className="w-3.5 h-3.5 text-primary" />
+                            <span>{g.title}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>

@@ -25,6 +25,7 @@ import {
   type AgentInfo,
   type KanbanTaskAssetInfo,
   type UpdateKanbanTaskRequest,
+  UNASSIGNED_GOAL_ID,
 } from '@shumai/dtos'
 import { getPriorityBadgeColor, getPriorityLabel } from '../kanban-types'
 import { TaskParentSelector } from '../task-parent-selector'
@@ -285,14 +286,16 @@ export function TaskInfoForm({ teamId, task, canEdit = true }: TaskInfoFormProps
                 <SelectItem value="none">
                   <span className="text-muted-foreground italic">None</span>
                 </SelectItem>
-                {goals.map((g) => (
-                  <SelectItem key={g.id} value={g.id}>
-                    <div className="flex items-center gap-2">
-                      <Target className="w-3.5 h-3.5 text-primary" />
-                      <span>{g.title}</span>
-                    </div>
-                  </SelectItem>
-                ))}
+                {goals
+                  .filter((g) => g.id !== UNASSIGNED_GOAL_ID)
+                  .map((g) => (
+                    <SelectItem key={g.id} value={g.id}>
+                      <div className="flex items-center gap-2">
+                        <Target className="w-3.5 h-3.5 text-primary" />
+                        <span>{g.title}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>

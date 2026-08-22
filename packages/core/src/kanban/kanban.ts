@@ -25,6 +25,7 @@ import type {
   KanbanEventInfo,
   KanbanGoalInfo,
 } from '@shumai/dtos'
+import { UNASSIGNED_GOAL_ID } from '@shumai/dtos'
 
 export class KanbanService {
   // --------------------------------------------------------------------------
@@ -96,6 +97,10 @@ export class KanbanService {
       throw new HTTPException(403, { message: 'Only team owners can update goals' })
     }
 
+    if (goalId === UNASSIGNED_GOAL_ID) {
+      throw new HTTPException(400, { message: 'Cannot edit or delete the unassigned goal' })
+    }
+
     const existing = await prisma.kanbanGoal.findUnique({ where: { id: goalId } })
     if (!existing) {
       throw new HTTPException(404, { message: 'Goal not found' })
@@ -131,6 +136,10 @@ export class KanbanService {
       throw new HTTPException(403, { message: 'Only team owners can delete goals' })
     }
 
+    if (goalId === UNASSIGNED_GOAL_ID) {
+      throw new HTTPException(400, { message: 'Cannot edit or delete the unassigned goal' })
+    }
+
     const existing = await prisma.kanbanGoal.findUnique({ where: { id: goalId } })
     if (!existing) {
       throw new HTTPException(404, { message: 'Goal not found' })
@@ -144,17 +153,33 @@ export class KanbanService {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _req?: ListKanbanGoalsRequest,
   ): Promise<KanbanGoalInfo[]> {
-    const goals = await prisma.kanbanGoal.findMany({
-      where: { teamId },
-      include: {
-        _count: {
-          select: { tasks: true },
+    const [goals, unassignedCount] = await Promise.all([
+      prisma.kanbanGoal.findMany({
+        where: { teamId },
+        include: {
+          _count: {
+            select: { tasks: true },
+          },
         },
-      },
-      orderBy: { id: 'desc' },
-    })
+        orderBy: { id: 'desc' },
+      }),
+      prisma.kanbanTask.count({
+        where: { teamId, goalId: null },
+      }),
+    ])
 
-    return goals.map((g) => ({
+    const unassignedGoal: KanbanGoalInfo = {
+      id: UNASSIGNED_GOAL_ID,
+      title: 'Unassigned',
+      description: null,
+      teamId,
+      creatorId: null,
+      taskCount: unassignedCount,
+      createdAt: new Date(0).toISOString(),
+      updatedAt: new Date(0).toISOString(),
+    }
+
+    const goalInfos = goals.map((g) => ({
       id: g.id,
       title: g.title,
       description: g.description,
@@ -164,6 +189,8 @@ export class KanbanService {
       createdAt: g.createdAt.toISOString(),
       updatedAt: g.updatedAt.toISOString(),
     }))
+
+    return [unassignedGoal, ...goalInfos]
   }
 
   // --------------------------------------------------------------------------
@@ -677,11 +704,15 @@ export class KanbanService {
     teamId: string,
     params: ListKanbanTasksRequest,
   ): Promise<{ data: KanbanTaskInfo[]; pageInfo: { total?: number; cursor?: string } }> {
-    const where = {
+    const where: Prisma.KanbanTaskWhereInput = {
       teamId,
       ...(params.status && { status: params.status }),
       ...(params.isAgentTask !== undefined && { isAgentTask: params.isAgentTask }),
-      ...(params.goalId && { goalId: params.goalId }),
+      ...(params.goalId === UNASSIGNED_GOAL_ID
+        ? { goalId: null }
+        : params.goalId
+          ? { goalId: params.goalId }
+          : {}),
       ...(params.projectId && { projectId: params.projectId }),
       ...(params.priority && { priority: params.priority }),
       ...(params.assigneeId && { assigneeId: params.assigneeId }),

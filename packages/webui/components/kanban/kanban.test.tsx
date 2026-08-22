@@ -10,6 +10,7 @@ import {
   type KanbanTaskInfo,
   type KanbanGoalInfo,
   type KanbanCommentInfo,
+  UNASSIGNED_GOAL_ID,
 } from '@shumai/dtos'
 import {
   getStatusLabel,
@@ -21,7 +22,9 @@ import {
 import { KanbanCard } from './kanban-card'
 import { KanbanHeader } from './kanban-header'
 import { KanbanBoard } from './kanban-board'
+import { KanbanGoalSidebar } from './kanban-goal-sidebar'
 import { KanbanCreateGoalDialog } from './kanban-create-goal-dialog'
+import { KanbanCreateTaskDialog } from './kanban-create-task-dialog'
 import { TaskRelatedAssets } from './task-related-assets'
 import { TaskCommentCard } from './edit-task-dialog/task-comment-card'
 import { TaskCommentInput } from './edit-task-dialog/task-comment-input'
@@ -69,6 +72,7 @@ vi.mock('@/ui/api/client', () => ({
         ':teamId': {
           kanban: {
             goals: {
+              $get: vi.fn(),
               $post: vi.fn(),
               ':goalId': {
                 $patch: vi.fn(),
@@ -83,6 +87,18 @@ vi.mock('@/ui/api/client', () => ({
                 $delete: vi.fn(),
               },
             },
+          },
+          members: {
+            $get: vi.fn().mockResolvedValue({ ok: true, json: async () => [] }),
+          },
+          agents: {
+            $get: vi.fn().mockResolvedValue({ ok: true, json: async () => [] }),
+          },
+          me: {
+            $get: vi.fn().mockResolvedValue({
+              ok: true,
+              json: async () => ({ id: 'u-1', name: 'User 1', role: 'owner' }),
+            }),
           },
         },
       },
@@ -638,6 +654,118 @@ describe('Kanban UI Unit & Component Tests', () => {
       expect(removeButtons.length).toBe(2)
       fireEvent.click(removeButtons[0])
       expect(onRemove).toHaveBeenCalledWith('asset-1')
+    })
+  })
+
+  describe('KanbanGoalSidebar component', () => {
+    it('renders goals list with unassigned goal and calculates All Tasks sum correctly', async () => {
+      const mockGoals: KanbanGoalInfo[] = [
+        {
+          id: UNASSIGNED_GOAL_ID,
+          title: 'Unassigned',
+          teamId: 'team-1',
+          creatorId: null,
+          taskCount: 3,
+          createdAt: new Date(0).toISOString(),
+          updatedAt: new Date(0).toISOString(),
+        },
+        {
+          id: 'goal-1',
+          title: 'Sprint 1',
+          teamId: 'team-1',
+          creatorId: 'user-1',
+          taskCount: 5,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ]
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(client.api.teams[':teamId'].kanban.goals.$get as any) = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ data: mockGoals }),
+      })
+
+      const onSelectGoal = vi.fn()
+      render(
+        <KanbanGoalSidebar
+          teamId="team-1"
+          selectedGoalId={null}
+          onSelectGoal={onSelectGoal}
+          isOwnerOrEditor={true}
+        />,
+        { wrapper: createWrapper() },
+      )
+
+      // Total count in All Tasks should be 3 + 5 = 8
+      await waitFor(() => {
+        expect(screen.getByText('8')).toBeDefined()
+        expect(screen.getByText(/All Tasks|所有任务/i)).toBeDefined()
+        expect(screen.getByText(/Unassigned|未指派/i)).toBeDefined()
+        expect(screen.getByText('Sprint 1')).toBeDefined()
+      })
+
+      // Clicking Unassigned triggers onSelectGoal with UNASSIGNED_GOAL_ID
+      const unassignedElement = screen.getByText(/Unassigned|未指派/i)
+      fireEvent.click(unassignedElement)
+      expect(onSelectGoal).toHaveBeenCalledWith(UNASSIGNED_GOAL_ID)
+    })
+  })
+
+  describe('KanbanCreateTaskDialog goal handling', () => {
+    it('defaults goalId to none when opened with unassigned goal and excludes unassigned from options', async () => {
+      const mockGoals: KanbanGoalInfo[] = [
+        {
+          id: UNASSIGNED_GOAL_ID,
+          title: 'Unassigned',
+          teamId: 'team-1',
+          creatorId: null,
+          taskCount: 2,
+          createdAt: new Date(0).toISOString(),
+          updatedAt: new Date(0).toISOString(),
+        },
+        {
+          id: 'goal-1',
+          title: 'Alpha Goal',
+          teamId: 'team-1',
+          creatorId: 'user-1',
+          taskCount: 1,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ]
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(client.api.teams[':teamId'].kanban.goals.$get as any) = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ data: mockGoals }),
+      })
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(client.api.teams[':teamId'].members.$get as any) = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [],
+      })
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(client.api.teams[':teamId'].agents.$get as any) = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [],
+      })
+
+      render(
+        <KanbanCreateTaskDialog
+          teamId="team-1"
+          isOpen={true}
+          onClose={vi.fn()}
+          initialGoalId={UNASSIGNED_GOAL_ID}
+        />,
+        { wrapper: createWrapper() },
+      )
+
+      await waitFor(() => {
+        expect(screen.getByText(/Create Task|创建任务/i)).toBeDefined()
+      })
     })
   })
 })
