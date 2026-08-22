@@ -22,8 +22,10 @@ import { KanbanCard } from './kanban-card'
 import { KanbanHeader } from './kanban-header'
 import { KanbanBoard } from './kanban-board'
 import { KanbanCreateGoalDialog } from './kanban-create-goal-dialog'
+import { TaskRelatedAssets } from './task-related-assets'
 import { TaskCommentCard } from './edit-task-dialog/task-comment-card'
 import { TaskCommentInput } from './edit-task-dialog/task-comment-input'
+import type { KanbanTaskAssetInfo } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
 
 const mockUseDraggable = vi.fn()
@@ -145,6 +147,7 @@ describe('Kanban UI Unit & Component Tests', () => {
       commentCount: 3,
       dependencyCount: 1,
       dependentCount: 0,
+      assetCount: 0,
       createdAt: '2026-08-20T00:00:00.000Z',
       updatedAt: '2026-08-20T00:00:00.000Z',
     }
@@ -250,6 +253,19 @@ describe('Kanban UI Unit & Component Tests', () => {
         />,
       )
       expect(mockUseDraggable).toHaveBeenLastCalledWith(expect.objectContaining({ disabled: true }))
+    })
+
+    it('renders asset count badge when task has linked assets', () => {
+      render(
+        <KanbanCard
+          task={{
+            ...mockManualTask,
+            assetCount: 4,
+          }}
+          onClick={vi.fn()}
+        />,
+      )
+      expect(screen.getByText('4')).toBeDefined()
     })
 
     it('renders blocked warning and reason when task is BLOCKED', () => {
@@ -476,6 +492,7 @@ describe('Kanban UI Unit & Component Tests', () => {
         commentCount: 0,
         dependencyCount: 0,
         dependentCount: 0,
+        assetCount: 0,
         createdAt: '2026-08-20T00:00:00.000Z',
         updatedAt: '2026-08-20T00:00:00.000Z',
       }
@@ -484,6 +501,73 @@ describe('Kanban UI Unit & Component Tests', () => {
       // Verify wrapper contains the task title and relative positioning for indicator lines
       expect(screen.getByText('Reorderable Task')).toBeDefined()
       expect(container.querySelector('.relative')).toBeDefined()
+    })
+  })
+
+  describe('TaskRelatedAssets component', () => {
+    const mockAssets: KanbanTaskAssetInfo[] = [
+      {
+        id: 'asset-1',
+        name: 'Design_Spec.pdf',
+        type: 'file',
+        proxyType: 'pdf',
+        thumbnailUrl: null,
+        path: '/Project/Design_Spec.pdf',
+        creator: { id: 'user-1', name: 'Alice' },
+        sizeByte: 1024,
+        fileCount: undefined,
+        projectId: 'proj-1',
+        createdAt: '2026-08-20T00:00:00.000Z',
+      },
+      {
+        id: 'asset-2',
+        name: 'Assets Folder',
+        type: 'folder',
+        proxyType: null,
+        thumbnailUrl: null,
+        path: '/Project/Assets Folder',
+        creator: { id: 'user-2', name: 'Bob' },
+        sizeByte: 0,
+        fileCount: 5,
+        projectId: 'proj-1',
+        createdAt: '2026-08-20T00:00:00.000Z',
+      },
+    ]
+
+    it('renders empty state when no assets are linked', () => {
+      render(
+        <TaskRelatedAssets
+          teamId="team-1"
+          assets={[]}
+          onAddAssets={vi.fn()}
+          onRemoveAsset={vi.fn()}
+        />,
+      )
+      expect(screen.getByText(/No related assets|暂无关联资产/i)).toBeDefined()
+    })
+
+    it('renders asset rows with name, path, and creator and triggers remove', () => {
+      const onRemove = vi.fn()
+      render(
+        <TaskRelatedAssets
+          teamId="team-1"
+          assets={mockAssets}
+          onAddAssets={vi.fn()}
+          onRemoveAsset={onRemove}
+        />,
+      )
+
+      expect(screen.getByText('Design_Spec.pdf')).toBeDefined()
+      expect(screen.getByText('/Project/Design_Spec.pdf')).toBeDefined()
+      expect(screen.getByText('Alice')).toBeDefined()
+      expect(screen.getByText('Assets Folder')).toBeDefined()
+      expect(screen.getByText('/Project/Assets Folder')).toBeDefined()
+
+      // Click remove button on first asset
+      const removeButtons = screen.getAllByTitle(/Unlink Asset|取消关联资产/i)
+      expect(removeButtons.length).toBe(2)
+      fireEvent.click(removeButtons[0])
+      expect(onRemove).toHaveBeenCalledWith('asset-1')
     })
   })
 })

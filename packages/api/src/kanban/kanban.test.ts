@@ -165,6 +165,7 @@ describe('Kanban API Routes', () => {
         commentCount: 0,
         dependencyCount: 0,
         dependentCount: 0,
+        assetCount: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
@@ -195,6 +196,7 @@ describe('Kanban API Routes', () => {
             commentCount: 0,
             dependencyCount: 0,
             dependentCount: 0,
+            assetCount: 0,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           },
@@ -230,11 +232,13 @@ describe('Kanban API Routes', () => {
         creator: { id: 'user-1', name: 'User 1' },
         dependencies: [],
         dependents: [],
+        assets: [],
         comments: [],
         events: [],
         commentCount: 0,
         dependencyCount: 0,
         dependentCount: 0,
+        assetCount: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
@@ -258,11 +262,13 @@ describe('Kanban API Routes', () => {
         creator: { id: 'user-1', name: 'User 1' },
         dependencies: [],
         dependents: [],
+        assets: [],
         comments: [],
         events: [],
         commentCount: 0,
         dependencyCount: 0,
         dependentCount: 0,
+        assetCount: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
@@ -277,6 +283,7 @@ describe('Kanban API Routes', () => {
         commentCount: 0,
         dependencyCount: 0,
         dependentCount: 0,
+        assetCount: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
@@ -308,11 +315,13 @@ describe('Kanban API Routes', () => {
         creator: { id: 'user-1', name: 'User 1' },
         dependencies: [],
         dependents: [],
+        assets: [],
         comments: [],
         events: [],
         commentCount: 0,
         dependencyCount: 0,
         dependentCount: 0,
+        assetCount: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
@@ -328,6 +337,7 @@ describe('Kanban API Routes', () => {
         commentCount: 0,
         dependencyCount: 0,
         dependentCount: 0,
+        assetCount: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
@@ -358,11 +368,13 @@ describe('Kanban API Routes', () => {
         creator: { id: 'user-1', name: 'User 1' },
         dependencies: [],
         dependents: [],
+        assets: [],
         comments: [],
         events: [],
         commentCount: 0,
         dependencyCount: 0,
         dependentCount: 0,
+        assetCount: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
@@ -377,6 +389,7 @@ describe('Kanban API Routes', () => {
         commentCount: 0,
         dependencyCount: 0,
         dependentCount: 0,
+        assetCount: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
@@ -389,6 +402,111 @@ describe('Kanban API Routes', () => {
       const json = await res.json()
       expect(json.success).toBe(true)
       expect(mockDelete).toHaveBeenCalledWith(taskId, 'user-1', 'owner')
+    })
+
+    it('GET /teams/:teamId/kanban/tasks/:taskId/assets', async () => {
+      const mockListTaskAssets = vi.spyOn(kanbanService, 'listTaskAssets').mockResolvedValue([
+        {
+          id: 'asset-1',
+          name: 'Video.mp4',
+          type: 'file',
+          proxyType: 'video',
+          thumbnailUrl: 'http://example.com/thumb.jpg',
+          path: '/Project/Video.mp4',
+          creator: { id: 'user-1', name: 'User 1' },
+          createdAt: new Date().toISOString(),
+        },
+      ])
+
+      const res = await app.request(`/teams/${teamId}/kanban/tasks/${taskId}/assets`)
+      expect(res.status).toBe(200)
+      const json = await res.json()
+      expect(json).toHaveLength(1)
+      expect(json[0].name).toBe('Video.mp4')
+      expect(mockListTaskAssets).toHaveBeenCalledWith(taskId)
+    })
+
+    it('POST /teams/:teamId/kanban/tasks/:taskId/assets', async () => {
+      const mockLinkAssets = vi.spyOn(kanbanService, 'linkAssets').mockResolvedValue(undefined)
+
+      const res = await app.request(`/teams/${teamId}/kanban/tasks/${taskId}/assets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assetIds: ['asset-1', 'asset-2'] }),
+      })
+
+      expect(res.status).toBe(200)
+      const json = await res.json()
+      expect(json.success).toBe(true)
+      expect(mockLinkAssets).toHaveBeenCalledWith(teamId, taskId, ['asset-1', 'asset-2'])
+    })
+
+    it('DELETE /teams/:teamId/kanban/tasks/:taskId/assets/:assetId', async () => {
+      const mockUnlinkAsset = vi.spyOn(kanbanService, 'unlinkAsset').mockResolvedValue(undefined)
+
+      const res = await app.request(`/teams/${teamId}/kanban/tasks/${taskId}/assets/asset-1`, {
+        method: 'DELETE',
+      })
+
+      expect(res.status).toBe(200)
+      const json = await res.json()
+      expect(json.success).toBe(true)
+      expect(mockUnlinkAsset).toHaveBeenCalledWith(teamId, taskId, 'asset-1')
+    })
+
+    it('GET /teams/:teamId/kanban/assets/:assetId/tasks', async () => {
+      const mockListTasksForAsset = vi.spyOn(kanbanService, 'listTasksForAsset').mockResolvedValue([
+        {
+          id: taskId,
+          title: 'Task linked to asset',
+          isAgentTask: false,
+          status: KanbanTaskStatus.READY,
+          priority: KanbanTaskPriority.MEDIUM,
+          teamId,
+          creator: { id: 'user-1', name: 'User 1' },
+          commentCount: 0,
+          dependencyCount: 0,
+          dependentCount: 0,
+          assetCount: 1,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ])
+
+      const res = await app.request(`/teams/${teamId}/kanban/assets/asset-1/tasks`)
+      expect(res.status).toBe(200)
+      const json = await res.json()
+      expect(json.total).toBe(1)
+      expect(json.data).toHaveLength(1)
+      expect(mockListTasksForAsset).toHaveBeenCalledWith(teamId, 'asset-1')
+    })
+
+    it('POST /teams/:teamId/kanban/assets/:assetId/tasks', async () => {
+      const mockLinkAsset = vi.spyOn(kanbanService, 'linkAsset').mockResolvedValue(undefined)
+
+      const res = await app.request(`/teams/${teamId}/kanban/assets/asset-1/tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId }),
+      })
+
+      expect(res.status).toBe(200)
+      const json = await res.json()
+      expect(json.success).toBe(true)
+      expect(mockLinkAsset).toHaveBeenCalledWith(teamId, taskId, 'asset-1')
+    })
+
+    it('DELETE /teams/:teamId/kanban/assets/:assetId/tasks/:taskId', async () => {
+      const mockUnlinkAsset = vi.spyOn(kanbanService, 'unlinkAsset').mockResolvedValue(undefined)
+
+      const res = await app.request(`/teams/${teamId}/kanban/assets/asset-1/tasks/${taskId}`, {
+        method: 'DELETE',
+      })
+
+      expect(res.status).toBe(200)
+      const json = await res.json()
+      expect(json.success).toBe(true)
+      expect(mockUnlinkAsset).toHaveBeenCalledWith(teamId, taskId, 'asset-1')
     })
   })
 

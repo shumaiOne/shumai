@@ -13,6 +13,8 @@ import {
   createKanbanTaskSchema,
   updateKanbanTaskSchema,
   listKanbanTasksRequestSchema,
+  linkTaskAssetsSchema,
+  linkAssetToTaskSchema,
   AuditAction,
 } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
@@ -229,6 +231,100 @@ const route = new Hono<{ Variables: { user: User } }>()
     })
 
     await kanbanService.deleteTask(taskId, user.id, role)
+    return c.json({ success: true })
+  })
+  .get('/teams/:teamId/kanban/tasks/:taskId/assets', async (c) => {
+    const { taskId } = c.req.param()
+    const user = c.get('user')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.KanbanTask,
+      id: taskId,
+    })
+
+    const assets = await kanbanService.listTaskAssets(taskId)
+    return c.json(assets)
+  })
+  .post(
+    '/teams/:teamId/kanban/tasks/:taskId/assets',
+    zValidator('json', linkTaskAssetsSchema),
+    async (c) => {
+      const { teamId, taskId } = c.req.param()
+      const req = c.req.valid('json')
+      const user = c.get('user')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Edit,
+        type: ResourceType.KanbanTask,
+        id: taskId,
+      })
+
+      await kanbanService.linkAssets(teamId, taskId, req.assetIds)
+      return c.json({ success: true })
+    },
+  )
+  .delete('/teams/:teamId/kanban/tasks/:taskId/assets/:assetId', async (c) => {
+    const { teamId, taskId, assetId } = c.req.param()
+    const user = c.get('user')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Edit,
+      type: ResourceType.KanbanTask,
+      id: taskId,
+    })
+
+    await kanbanService.unlinkAsset(teamId, taskId, assetId)
+    return c.json({ success: true })
+  })
+  .get('/teams/:teamId/kanban/assets/:assetId/tasks', async (c) => {
+    const { teamId, assetId } = c.req.param()
+    const user = c.get('user')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Team,
+      id: teamId,
+    })
+
+    const tasks = await kanbanService.listTasksForAsset(teamId, assetId)
+    return c.json({ data: tasks, total: tasks.length })
+  })
+  .post(
+    '/teams/:teamId/kanban/assets/:assetId/tasks',
+    zValidator('json', linkAssetToTaskSchema),
+    async (c) => {
+      const { teamId, assetId } = c.req.param()
+      const req = c.req.valid('json')
+      const user = c.get('user')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Edit,
+        type: ResourceType.KanbanTask,
+        id: req.taskId,
+      })
+
+      await kanbanService.linkAsset(teamId, req.taskId, assetId)
+      return c.json({ success: true })
+    },
+  )
+  .delete('/teams/:teamId/kanban/assets/:assetId/tasks/:taskId', async (c) => {
+    const { teamId, assetId, taskId } = c.req.param()
+    const user = c.get('user')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Edit,
+      type: ResourceType.KanbanTask,
+      id: taskId,
+    })
+
+    await kanbanService.unlinkAsset(teamId, taskId, assetId)
     return c.json({ success: true })
   })
 

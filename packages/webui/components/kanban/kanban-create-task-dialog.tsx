@@ -29,10 +29,12 @@ import {
   KanbanTaskStatus,
   type KanbanGoalInfo,
   type AgentInfo,
+  type KanbanTaskAssetInfo,
 } from '@shumai/dtos'
 import { getPriorityBadgeColor, getPriorityLabel } from './kanban-types'
 import { TaskTargetFolderDialog } from './edit-task-dialog/task-target-folder-dialog'
 import { TaskParentSelector } from './task-parent-selector'
+import { TaskRelatedAssets } from './task-related-assets'
 import { Bot, Folder, Target, Loader2 } from 'lucide-react'
 import { cn } from '@/ui/lib/utils'
 
@@ -65,6 +67,7 @@ export function KanbanCreateTaskDialog({
   const [targetFolderId, setTargetFolderId] = useState<string | null>(null)
   const [targetFolderName, setTargetFolderName] = useState<string | null>(null)
   const [parentIds, setParentIds] = useState<string[]>([])
+  const [selectedAssets, setSelectedAssets] = useState<KanbanTaskAssetInfo[]>([])
   const [isFolderPickerOpen, setIsFolderPickerOpen] = useState(false)
 
   useEffect(() => {
@@ -82,6 +85,7 @@ export function KanbanCreateTaskDialog({
       setTargetFolderId(null)
       setTargetFolderName(null)
       setParentIds([])
+      setSelectedAssets([])
     }
   }, [isOpen, initialGoalId])
 
@@ -145,6 +149,7 @@ export function KanbanCreateTaskDialog({
           projectId: projectId || undefined,
           targetFolderId: targetFolderId || undefined,
           parentIds: parentIds.length > 0 ? parentIds : undefined,
+          assetIds: selectedAssets.length > 0 ? selectedAssets.map((a) => a.id) : undefined,
         },
       })
       if (!res.ok) {
@@ -397,6 +402,19 @@ export function KanbanCreateTaskDialog({
                   {m.parent_tasks()}
                 </Label>
                 <TaskParentSelector teamId={teamId} value={parentIds} onChange={setParentIds} />
+              </div>
+
+              {/* Row 7: Related Assets */}
+              <div className="sm:col-span-2 pt-1">
+                <TaskRelatedAssets
+                  teamId={teamId}
+                  projectId={projectId}
+                  assets={selectedAssets}
+                  onAddAssets={(newAssets) => setSelectedAssets((prev) => [...prev, ...newAssets])}
+                  onRemoveAsset={(assetId) =>
+                    setSelectedAssets((prev) => prev.filter((a) => a.id !== assetId))
+                  }
+                />
               </div>
             </div>
           </div>

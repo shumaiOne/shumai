@@ -19,6 +19,7 @@ export const createKanbanTaskSchema = z.object({
   assigneeId: z.string().optional(),
   targetFolderId: z.string().optional(),
   parentIds: z.array(z.string()).optional(),
+  assetIds: z.array(z.string()).optional(),
 })
 export type CreateKanbanTaskRequest = z.infer<typeof createKanbanTaskSchema>
 
@@ -38,6 +39,7 @@ export const updateKanbanTaskSchema = z.object({
   beforeIndex: z.string().optional(),
   afterIndex: z.string().optional(),
   parentIds: z.array(z.string()).optional(),
+  assetIds: z.array(z.string()).optional(),
 })
 export type UpdateKanbanTaskRequest = z.infer<typeof updateKanbanTaskSchema>
 
@@ -85,6 +87,21 @@ export const kanbanTaskSummarySchema = z.object({
 })
 export type KanbanTaskSummary = z.infer<typeof kanbanTaskSummarySchema>
 
+export const kanbanTaskAssetInfoSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  type: z.string(),
+  proxyType: z.enum(['image', 'video', 'audio', 'pdf']).nullable().optional(),
+  thumbnailUrl: z.string().nullable().optional(),
+  path: z.string(),
+  creator: kanbanUserInfoSchema.nullable().optional(),
+  sizeByte: z.number().optional(),
+  fileCount: z.number().optional(),
+  projectId: z.string().nullable().optional(),
+  createdAt: z.union([z.string(), z.date()]),
+})
+export type KanbanTaskAssetInfo = z.infer<typeof kanbanTaskAssetInfoSchema>
+
 export const kanbanTaskInfoSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -108,6 +125,7 @@ export const kanbanTaskInfoSchema = z.object({
   commentCount: z.number().default(0),
   dependencyCount: z.number().default(0),
   dependentCount: z.number().default(0),
+  assetCount: z.number().default(0),
   createdAt: z.union([z.string(), z.date()]),
   updatedAt: z.union([z.string(), z.date()]),
 })
@@ -116,6 +134,7 @@ export type KanbanTaskInfo = z.infer<typeof kanbanTaskInfoSchema>
 export const kanbanTaskDetailSchema = kanbanTaskInfoSchema.extend({
   dependencies: z.array(kanbanTaskSummarySchema),
   dependents: z.array(kanbanTaskSummarySchema),
+  assets: z.array(kanbanTaskAssetInfoSchema),
   comments: z.array(kanbanCommentInfoSchema),
   events: z.array(kanbanEventInfoSchema),
 })
@@ -126,3 +145,19 @@ export const listKanbanTasksResponseSchema = z.object({
   pageInfo: paginationPageInfoSchema,
 })
 export type ListKanbanTasksResponse = z.infer<typeof listKanbanTasksResponseSchema>
+
+export const linkAssetToTaskSchema = z.object({
+  taskId: z.string(),
+})
+export type LinkAssetToTaskRequest = z.infer<typeof linkAssetToTaskSchema>
+
+export const linkTaskAssetsSchema = z.object({
+  assetIds: z.array(z.string()),
+})
+export type LinkTaskAssetsRequest = z.infer<typeof linkTaskAssetsSchema>
+
+export const listAssetTasksResponseSchema = z.object({
+  data: z.array(kanbanTaskInfoSchema),
+  total: z.number(),
+})
+export type ListAssetTasksResponse = z.infer<typeof listAssetTasksResponseSchema>

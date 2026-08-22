@@ -121,6 +121,7 @@ export function TaskTargetFolderDialog({
                     }
                     hideCollections
                     hideShares
+                    hideRecentlyDeleted
                   />
                 ) : (
                   <div className="flex items-center justify-center h-full p-6 text-xs text-muted-foreground">

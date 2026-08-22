@@ -98,6 +98,7 @@ export const ModelName = {
   KanbanGoal: 'KanbanGoal',
   KanbanTask: 'KanbanTask',
   KanbanTaskLink: 'KanbanTaskLink',
+  KanbanTaskAsset: 'KanbanTaskAsset',
   KanbanTaskComment: 'KanbanTaskComment',
   KanbanTaskEvent: 'KanbanTaskEvent'
 } as const
@@ -806,6 +807,15 @@ export const KanbanTaskLinkScalarFieldEnum = {
 } as const
 
 export type KanbanTaskLinkScalarFieldEnum = (typeof KanbanTaskLinkScalarFieldEnum)[keyof typeof KanbanTaskLinkScalarFieldEnum]
+
+
+export const KanbanTaskAssetScalarFieldEnum = {
+  taskId: 'taskId',
+  assetId: 'assetId',
+  createdAt: 'createdAt'
+} as const
+
+export type KanbanTaskAssetScalarFieldEnum = (typeof KanbanTaskAssetScalarFieldEnum)[keyof typeof KanbanTaskAssetScalarFieldEnum]
 
 
 export const KanbanTaskCommentScalarFieldEnum = {

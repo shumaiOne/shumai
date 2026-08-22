@@ -4,7 +4,16 @@ import { m } from '@/ui/paraglide/messages.js'
 import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/ui/avatar'
 import { KanbanTaskStatus, type KanbanTaskInfo } from '@shumai/dtos'
 import { getPriorityBadgeColor, getPriorityLabel } from './kanban-types'
-import { Bot, Calendar, Link2, MessageSquare, AlertTriangle, Target, Sparkles } from 'lucide-react'
+import {
+  Bot,
+  Calendar,
+  Link2,
+  MessageSquare,
+  Files,
+  AlertTriangle,
+  Target,
+  Sparkles,
+} from 'lucide-react'
 import { format, isPast } from 'date-fns'
 
 interface KanbanCardProps {
@@ -216,6 +225,17 @@ export function KanbanCard({
               >
                 <Calendar className="w-3 h-3" />
                 <span>{format(new Date(task.dueDate), 'MM/dd')}</span>
+              </div>
+            )}
+
+            {/* Linked assets count */}
+            {task.assetCount > 0 && (
+              <div
+                className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
+                title={m.linked_assets_count({ count: task.assetCount })}
+              >
+                <Files className="w-3 h-3" />
+                <span>{task.assetCount}</span>
               </div>
             )}
 

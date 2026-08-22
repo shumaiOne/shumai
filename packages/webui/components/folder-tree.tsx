@@ -73,6 +73,7 @@ interface FolderTreeProps {
   selectedFolderId?: string
   hideCollections?: boolean
   hideShares?: boolean
+  hideRecentlyDeleted?: boolean
   ancestorFolders?: AncestorFolder[]
 }
 
@@ -86,6 +87,7 @@ export function FolderTree({
   selectedFolderId,
   hideCollections,
   hideShares,
+  hideRecentlyDeleted,
   ancestorFolders,
 }: FolderTreeProps) {
   const navigate = useNavigate()
@@ -513,7 +515,7 @@ export function FolderTree({
               ancestorFolders={ancestorFolders}
             />
 
-            {canEdit && (
+            {canEdit && !hideRecentlyDeleted && (
               <div
                 className={cn(
                   'group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
