@@ -174,12 +174,14 @@ describe('Kanban UI Unit & Component Tests', () => {
       expect(onClick).toHaveBeenCalledWith(mockManualTask)
     })
 
-    it('renders agent task card with Agent Task label and standard card border', () => {
+    it('renders agent task card with Agent Task label in orange style and standard card border', () => {
       const onClick = vi.fn()
       const { container } = render(<KanbanCard task={mockAgenticTask} onClick={onClick} />)
 
       expect(screen.getByText('Autonomous Agent Task')).toBeDefined()
-      expect(screen.getByText(/^Agent Task$|^智能体任务$/i)).toBeDefined()
+      const agentBadge = screen.getByText(/^Agent Task$|^智能体任务$/i)
+      expect(agentBadge).toBeDefined()
+      expect(agentBadge.parentElement?.className).toContain('text-orange-600')
       // Verify card container uses standard border, not purple border highlight
       const card = container.querySelector('.border-border\\/80')
       expect(card).toBeDefined()

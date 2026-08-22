@@ -174,7 +174,7 @@ export function AssetLinkedTasksDialog({
                       {/* Left: Status, Priority, Title */}
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         {task.isAgentTask && (
-                          <span className="p-1 rounded bg-purple-500/15 text-purple-600 dark:text-purple-400 shrink-0">
+                          <span className="p-1 rounded bg-orange-500/15 text-orange-600 dark:text-orange-400 shrink-0">
                             <Bot className="w-3.5 h-3.5" />
                           </span>
                         )}
