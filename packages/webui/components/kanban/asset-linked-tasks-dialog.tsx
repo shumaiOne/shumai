@@ -139,7 +139,7 @@ export function AssetLinkedTasksDialog({
           {/* Header */}
           <DialogHeader className="p-4 border-b flex flex-row items-center justify-between space-y-0 shrink-0">
             <div className="flex items-center gap-2 min-w-0 pr-4">
-              <SquareKanban className="w-5 h-5 text-primary shrink-0" />
+              <SquareKanban className="w-5 h-5 text-primary shrink-0 rotate-180" />
               <div className="min-w-0">
                 <DialogTitle className="text-sm font-semibold truncate">
                   {m.linked_tasks()}
@@ -160,7 +160,7 @@ export function AssetLinkedTasksDialog({
                 </div>
               ) : linkedTasks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center p-12 text-center text-xs text-muted-foreground gap-2">
-                  <SquareKanban className="w-8 h-8 opacity-30" />
+                  <SquareKanban className="w-8 h-8 opacity-30 rotate-180" />
                   <p>{m.no_linked_tasks()}</p>
                 </div>
               ) : (
