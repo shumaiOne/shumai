@@ -1,6 +1,6 @@
 import { Button } from '@/ui/components/ui/button'
 import { m } from '@/ui/paraglide/messages.js'
-import { Users, User, Plus, Target, X, Archive, ArchiveRestore } from 'lucide-react'
+import { Users, User, Plus, Target, X } from 'lucide-react'
 import type { KanbanGoalInfo } from '@shumai/dtos'
 
 interface KanbanHeaderProps {
@@ -8,8 +8,6 @@ interface KanbanHeaderProps {
   onScopeChange: (scope: 'team' | 'my') => void
   selectedGoal: KanbanGoalInfo | null
   onClearGoal: () => void
-  showCancelled: boolean
-  onToggleShowCancelled: () => void
   onCreateTask: () => void
 }
 
@@ -18,8 +16,6 @@ export function KanbanHeader({
   onScopeChange,
   selectedGoal,
   onClearGoal,
-  showCancelled,
-  onToggleShowCancelled,
   onCreateTask,
 }: KanbanHeaderProps) {
   return (
@@ -74,26 +70,8 @@ export function KanbanHeader({
         )}
       </div>
 
-      {/* Right side: Cancelled toggle, Create button */}
+      {/* Right side: Create button */}
       <div className="flex items-center gap-2 shrink-0">
-        {/* Show / Hide Cancelled Tasks Toggle */}
-        <Button
-          variant={showCancelled ? 'secondary' : 'outline'}
-          size="sm"
-          onClick={onToggleShowCancelled}
-          className="h-8 px-2.5 text-xs gap-1.5"
-          title={showCancelled ? m.hide_cancelled_tasks() : m.show_cancelled_tasks()}
-        >
-          {showCancelled ? (
-            <ArchiveRestore className="w-3.5 h-3.5 text-primary" />
-          ) : (
-            <Archive className="w-3.5 h-3.5 text-muted-foreground" />
-          )}
-          <span className="hidden md:inline">
-            {showCancelled ? m.hide_cancelled_tasks() : m.show_cancelled_tasks()}
-          </span>
-        </Button>
-
         {/* Create Task Button */}
         <Button size="sm" onClick={onCreateTask} className="h-8 px-3 text-xs gap-1.5 shadow-xs">
           <Plus className="w-3.5 h-3.5" />

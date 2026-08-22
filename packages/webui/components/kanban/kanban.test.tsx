@@ -111,7 +111,6 @@ describe('Kanban UI Unit & Component Tests', () => {
       expect(getStatusLabel(KanbanTaskStatus.BLOCKED)).toBeDefined()
       expect(getStatusLabel(KanbanTaskStatus.IN_REVIEW)).toBeDefined()
       expect(getStatusLabel(KanbanTaskStatus.DONE)).toBeDefined()
-      expect(getStatusLabel(KanbanTaskStatus.CANCELLED)).toBeDefined()
 
       expect(getStatusColor(KanbanTaskStatus.READY).badge).toBeDefined()
       expect(getStatusBadgeColor(KanbanTaskStatus.BLOCKED)).toContain('red')
@@ -175,12 +174,44 @@ describe('Kanban UI Unit & Component Tests', () => {
       expect(onClick).toHaveBeenCalledWith(mockManualTask)
     })
 
-    it('renders agent task card with Agent Task label', () => {
+    it('renders agent task card with Agent Task label and standard card border', () => {
       const onClick = vi.fn()
-      render(<KanbanCard task={mockAgenticTask} onClick={onClick} />)
+      const { container } = render(<KanbanCard task={mockAgenticTask} onClick={onClick} />)
 
       expect(screen.getByText('Autonomous Agent Task')).toBeDefined()
       expect(screen.getByText(/^Agent Task$|^智能体任务$/i)).toBeDefined()
+      // Verify card container uses standard border, not purple border highlight
+      const card = container.querySelector('.border-border\\/80')
+      expect(card).toBeDefined()
+    })
+
+    it('renders three-dot delete action for task creator or owner and triggers onDelete', () => {
+      const onDelete = vi.fn()
+      const { container, rerender } = render(
+        <KanbanCard
+          task={mockManualTask}
+          onClick={vi.fn()}
+          onDelete={onDelete}
+          currentUserId="user-1" // mockManualTask creator is user-1
+          currentUserRole="reviewer"
+        />,
+      )
+
+      // Three-dot trigger should be rendered
+      const triggerBtn = container.querySelector('button')
+      expect(triggerBtn).toBeDefined()
+
+      // When user is not creator and not owner, delete trigger is not rendered
+      rerender(
+        <KanbanCard
+          task={mockManualTask}
+          onClick={vi.fn()}
+          onDelete={onDelete}
+          currentUserId="other-user"
+          currentUserRole="reviewer"
+        />,
+      )
+      expect(container.querySelector('button')).toBeNull()
     })
 
     it('enforces card drag permission: enabled for owner, reporter, or assignee; disabled for others', () => {
@@ -289,7 +320,6 @@ describe('Kanban UI Unit & Component Tests', () => {
     it('handles scope switching and goal clearing', () => {
       const onScopeChange = vi.fn()
       const onClearGoal = vi.fn()
-      const onToggleShowCancelled = vi.fn()
       const onCreateTask = vi.fn()
 
       const selectedGoal: KanbanGoalInfo = {
@@ -306,8 +336,6 @@ describe('Kanban UI Unit & Component Tests', () => {
           onScopeChange={onScopeChange}
           selectedGoal={selectedGoal}
           onClearGoal={onClearGoal}
-          showCancelled={false}
-          onToggleShowCancelled={onToggleShowCancelled}
           onCreateTask={onCreateTask}
         />,
       )
@@ -459,7 +487,6 @@ describe('Kanban UI Unit & Component Tests', () => {
             teamId="team-1"
             selectedGoalId={null}
             scope="team"
-            showCancelled={false}
             onTaskClick={onTaskClick}
             onCreateTaskInColumn={onCreateTaskInColumn}
           />

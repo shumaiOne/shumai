@@ -1,9 +1,21 @@
+import { useState } from 'react'
 import { DragDropProvider, KeyboardSensor, PointerSensor, type DragEndEvent } from '@dnd-kit/react'
 import { PointerActivationConstraints } from '@dnd-kit/dom'
 import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { client } from '@/ui/api/client'
 import { toast } from 'sonner'
 import { m } from '@/ui/paraglide/messages.js'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/ui/components/ui/alert-dialog'
+import { Loader2 } from 'lucide-react'
 import { KanbanTaskStatus, type KanbanTaskInfo, type ListKanbanTasksResponse } from '@shumai/dtos'
 import { KANBAN_STATUS_COLUMNS } from './kanban-types'
 import { KanbanColumn } from './kanban-column'
@@ -14,7 +26,6 @@ interface KanbanBoardProps {
   scope: 'team' | 'my'
   currentUserId?: string
   currentUserRole?: string
-  showCancelled: boolean
   onTaskClick: (task: KanbanTaskInfo) => void
   onCreateTaskInColumn: (status: KanbanTaskStatus) => void
 }
@@ -25,11 +36,33 @@ export function KanbanBoard({
   scope,
   currentUserId,
   currentUserRole,
-  showCancelled,
   onTaskClick,
   onCreateTaskInColumn,
 }: KanbanBoardProps) {
   const queryClient = useQueryClient()
+  const [taskToDelete, setTaskToDelete] = useState<KanbanTaskInfo | null>(null)
+
+  const { mutate: deleteTask, isPending: isDeleting } = useMutation({
+    mutationFn: async (taskId: string) => {
+      const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].$delete({
+        param: { teamId, taskId },
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: m.error() }))
+        throw new Error((err as { message?: string }).message || m.error())
+      }
+      return await res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'goals'] })
+      toast.success(m.task_deleted())
+      setTaskToDelete(null)
+    },
+    onError: (err) => {
+      toast.error(err.message)
+    },
+  })
 
   // Unified Update Mutation with Optimistic Updates
   const { mutate: updateTask } = useMutation({
@@ -248,10 +281,6 @@ export function KanbanBoard({
     }
   }
 
-  const columnsToRender = showCancelled
-    ? [...KANBAN_STATUS_COLUMNS, KanbanTaskStatus.CANCELLED]
-    : KANBAN_STATUS_COLUMNS
-
   return (
     <DragDropProvider
       sensors={[
@@ -264,7 +293,7 @@ export function KanbanBoard({
     >
       <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden p-4 bg-background/50">
         <div className="flex gap-4 h-full min-w-max pb-2">
-          {columnsToRender.map((status) => (
+          {KANBAN_STATUS_COLUMNS.map((status) => (
             <KanbanColumn
               key={status}
               teamId={teamId}
@@ -274,11 +303,37 @@ export function KanbanBoard({
               currentUserId={currentUserId}
               currentUserRole={currentUserRole}
               onTaskClick={onTaskClick}
+              onDeleteTask={(task) => setTaskToDelete(task)}
               onCreateTaskInColumn={onCreateTaskInColumn}
             />
           ))}
         </div>
       </div>
+
+      {/* Delete Task Confirmation */}
+      {taskToDelete && (
+        <AlertDialog open={!!taskToDelete} onOpenChange={(open) => !open && setTaskToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{m.delete_task()}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {m.delete_task_confirm({ title: taskToDelete.title })}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>{m.cancel()}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteTask(taskToDelete.id)}
+                disabled={isDeleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeleting && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
+                {m.delete()}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </DragDropProvider>
   )
 }

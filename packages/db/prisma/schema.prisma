@@ -170,7 +170,6 @@ enum KanbanTaskStatus {
   BLOCKED
   IN_REVIEW
   DONE
-  CANCELLED
 }
 
 enum KanbanTaskPriority {
@@ -193,7 +192,6 @@ enum KanbanTaskEventType {
   GOAL_CHANGED
   DEPENDENCY_ADDED
   DEPENDENCY_REMOVED
-  CANCELLED
 }
 
 // ----------------------------------------------------------------------

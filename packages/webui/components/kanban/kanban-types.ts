@@ -24,8 +24,6 @@ export function getStatusLabel(status: KanbanTaskStatus): string {
       return m.status_in_review()
     case KanbanTaskStatus.DONE:
       return m.status_done()
-    case KanbanTaskStatus.CANCELLED:
-      return m.status_cancelled()
     default:
       return status
   }
@@ -79,13 +77,6 @@ export function getStatusColor(status: KanbanTaskStatus): {
         border: 'border-emerald-500/30',
         dot: 'bg-emerald-500',
         bg: 'bg-emerald-500/5',
-      }
-    case KanbanTaskStatus.CANCELLED:
-      return {
-        badge: 'bg-muted text-muted-foreground/60 border-border',
-        border: 'border-border',
-        dot: 'bg-muted-foreground/50',
-        bg: 'bg-muted/10',
       }
   }
 }

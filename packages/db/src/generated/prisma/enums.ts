@@ -216,8 +216,7 @@ export const KanbanTaskStatus = {
   IN_PROGRESS: 'IN_PROGRESS',
   BLOCKED: 'BLOCKED',
   IN_REVIEW: 'IN_REVIEW',
-  DONE: 'DONE',
-  CANCELLED: 'CANCELLED'
+  DONE: 'DONE'
 } as const
 
 export type KanbanTaskStatus = (typeof KanbanTaskStatus)[keyof typeof KanbanTaskStatus]
@@ -245,8 +244,7 @@ export const KanbanTaskEventType = {
   PRIORITY_CHANGED: 'PRIORITY_CHANGED',
   GOAL_CHANGED: 'GOAL_CHANGED',
   DEPENDENCY_ADDED: 'DEPENDENCY_ADDED',
-  DEPENDENCY_REMOVED: 'DEPENDENCY_REMOVED',
-  CANCELLED: 'CANCELLED'
+  DEPENDENCY_REMOVED: 'DEPENDENCY_REMOVED'
 } as const
 
 export type KanbanTaskEventType = (typeof KanbanTaskEventType)[keyof typeof KanbanTaskEventType]
