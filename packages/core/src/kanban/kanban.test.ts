@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { prisma } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { KanbanTaskStatus, KanbanTaskPriority } from '@shumai/db/enums'
+import { UNASSIGNED_GOAL_ID } from '@shumai/dtos'
 import { kanbanService } from './kanban'
 
 describe('KanbanService', () => {
@@ -42,8 +43,27 @@ describe('KanbanService', () => {
   // Goals
   // --------------------------------------------------------------------------
   describe('Goals', () => {
-    it('creates, lists, updates, and deletes goals', async () => {
+    it('creates, lists, updates, and deletes goals including unassigned record', async () => {
       const { team, owner, editor } = await setupTeamAndUsers()
+
+      // When no custom goals exist, listGoals returns only the unassigned goal record with taskCount 0
+      const initialGoals = await kanbanService.listGoals(team.id)
+      expect(initialGoals.length).toBe(1)
+      expect(initialGoals[0].id).toBe(UNASSIGNED_GOAL_ID)
+      expect(initialGoals[0].taskCount).toBe(0)
+
+      // Create an unassigned task (no goalId)
+      const unassignedTask = await kanbanService.createTask(
+        team.id,
+        { title: 'Unassigned Task' },
+        editor.id,
+        'editor',
+      )
+
+      const goalsWithUnassignedTask = await kanbanService.listGoals(team.id)
+      expect(goalsWithUnassignedTask.length).toBe(1)
+      expect(goalsWithUnassignedTask[0].id).toBe(UNASSIGNED_GOAL_ID)
+      expect(goalsWithUnassignedTask[0].taskCount).toBe(1)
 
       const goal = await kanbanService.createGoal(
         team.id,
@@ -60,7 +80,7 @@ describe('KanbanService', () => {
       expect(goal.taskCount).toBe(0)
 
       // Create a task under this goal
-      await kanbanService.createTask(
+      const assignedTask = await kanbanService.createTask(
         team.id,
         {
           title: 'Design Wireframes',
@@ -70,10 +90,27 @@ describe('KanbanService', () => {
         'editor',
       )
 
-      // Get goal progress
+      // Get goals: should return [unassignedGoal, customGoal]
       const listedGoals = await kanbanService.listGoals(team.id)
-      expect(listedGoals.length).toBe(1)
+      expect(listedGoals.length).toBe(2)
+      expect(listedGoals[0].id).toBe(UNASSIGNED_GOAL_ID)
       expect(listedGoals[0].taskCount).toBe(1)
+      expect(listedGoals[1].id).toBe(goal.id)
+      expect(listedGoals[1].taskCount).toBe(1)
+
+      // Filtering tasks with goalId = UNASSIGNED_GOAL_ID
+      const unassignedTasksList = await kanbanService.listTasks(team.id, {
+        goalId: UNASSIGNED_GOAL_ID,
+      })
+      expect(unassignedTasksList.data.length).toBe(1)
+      expect(unassignedTasksList.data[0].id).toBe(unassignedTask.id)
+
+      // Filtering tasks with custom goalId
+      const assignedTasksList = await kanbanService.listTasks(team.id, {
+        goalId: goal.id,
+      })
+      expect(assignedTasksList.data.length).toBe(1)
+      expect(assignedTasksList.data[0].id).toBe(assignedTask.id)
 
       // Update goal
       const updated = await kanbanService.updateGoal(
@@ -83,10 +120,23 @@ describe('KanbanService', () => {
       )
       expect(updated.title).toBe('Q3 Launch Release Updated')
 
-      // Delete goal
+      // Should reject updating unassigned goal
+      await expect(
+        kanbanService.updateGoal(UNASSIGNED_GOAL_ID, { title: 'Illegal' }, 'owner'),
+      ).rejects.toThrow('Cannot edit or delete the unassigned goal')
+
+      // Should reject deleting unassigned goal
+      await expect(kanbanService.deleteGoal(UNASSIGNED_GOAL_ID, 'owner')).rejects.toThrow(
+        'Cannot edit or delete the unassigned goal',
+      )
+
+      // Delete custom goal
       await kanbanService.deleteGoal(goal.id, 'owner')
       const afterDelete = await kanbanService.listGoals(team.id)
-      expect(afterDelete.length).toBe(0)
+      // Only unassigned record remains, now with 2 unassigned tasks (since assignedTask's goal was set to null on delete)
+      expect(afterDelete.length).toBe(1)
+      expect(afterDelete[0].id).toBe(UNASSIGNED_GOAL_ID)
+      expect(afterDelete[0].taskCount).toBe(2)
     })
   })
 

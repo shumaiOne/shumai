@@ -33,7 +33,7 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { KanbanGoalInfo } from '@shumai/dtos'
+import { type KanbanGoalInfo, UNASSIGNED_GOAL_ID } from '@shumai/dtos'
 import { KanbanCreateGoalDialog } from './kanban-create-goal-dialog'
 
 interface KanbanGoalSidebarProps {
@@ -214,6 +214,9 @@ export function KanbanGoalSidebar({
           ) : (
             goals.map((goal) => {
               const isSelected = selectedGoalId === goal.id
+              const isUnassigned = goal.id === UNASSIGNED_GOAL_ID
+              const title = isUnassigned ? m.unassigned() : goal.title
+              const hasActions = isOwnerOrEditor && !isUnassigned
               return (
                 <div
                   key={goal.id}
@@ -232,54 +235,62 @@ export function KanbanGoalSidebar({
                         isSelected ? 'text-sidebar-primary' : 'text-muted-foreground',
                       )}
                     />
-                    <span className="truncate" title={goal.title}>
-                      {goal.title}
+                    <span className="truncate" title={title}>
+                      {title}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1 shrink-0 ml-1">
-                    {(goal.taskCount ?? 0) > 0 && (
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-sidebar-border text-sidebar-foreground/60">
-                        {goal.taskCount}
-                      </span>
-                    )}
+                  <div className="flex items-center shrink-0 ml-1">
+                    {hasActions ? (
+                      <>
+                        {(goal.taskCount ?? 0) > 0 && (
+                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-sidebar-border text-sidebar-foreground/60 group-hover:hidden group-focus-within:hidden [&:has(~_div_[data-state=open])]:hidden">
+                            {goal.taskCount}
+                          </span>
+                        )}
 
-                    {isOwnerOrEditor && (
-                      <div
-                        className="opacity-0 group-hover:opacity-100 [&:has([data-state=open])]:opacity-100 focus-within:opacity-100 transition-opacity flex items-center"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <DropdownMenu modal={false}>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
-                            >
-                              <MoreHorizontal className="w-3.5 h-3.5" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-36">
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setGoalToEdit(goal)
-                              }}
-                            >
-                              <Edit2 className="w-3.5 h-3.5 mr-2" />
-                              {m.edit()}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                              onClick={() => {
-                                setGoalToDelete(goal)
-                              }}
-                            >
-                              <Trash2 className="w-3.5 h-3.5 mr-2" />
-                              {m.delete()}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
+                        <div
+                          className="hidden group-hover:flex group-focus-within:flex [&:has([data-state=open])]:flex items-center"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <DropdownMenu modal={false}>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                              >
+                                <MoreHorizontal className="w-3.5 h-3.5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-36">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setGoalToEdit(goal)
+                                }}
+                              >
+                                <Edit2 className="w-3.5 h-3.5 mr-2" />
+                                {m.edit()}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                                onClick={() => {
+                                  setGoalToDelete(goal)
+                                }}
+                              >
+                                <Trash2 className="w-3.5 h-3.5 mr-2" />
+                                {m.delete()}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </>
+                    ) : (
+                      (goal.taskCount ?? 0) > 0 && (
+                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-sidebar-border text-sidebar-foreground/60">
+                          {goal.taskCount}
+                        </span>
+                      )
                     )}
                   </div>
                 </div>

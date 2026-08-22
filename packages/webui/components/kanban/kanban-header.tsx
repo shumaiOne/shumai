@@ -1,7 +1,7 @@
 import { Button } from '@/ui/components/ui/button'
 import { m } from '@/ui/paraglide/messages.js'
 import { Users, User, Plus, Target, X } from 'lucide-react'
-import type { KanbanGoalInfo } from '@shumai/dtos'
+import { type KanbanGoalInfo, UNASSIGNED_GOAL_ID } from '@shumai/dtos'
 
 interface KanbanHeaderProps {
   scope: 'team' | 'my'
@@ -56,7 +56,9 @@ export function KanbanHeader({
         {selectedGoal && (
           <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-md bg-sidebar-accent border border-sidebar-border text-xs text-sidebar-accent-foreground min-w-0 max-w-[200px] md:max-w-[280px]">
             <Target className="w-3.5 h-3.5 text-sidebar-primary shrink-0" />
-            <span className="truncate font-medium">{selectedGoal.title}</span>
+            <span className="truncate font-medium">
+              {selectedGoal.id === UNASSIGNED_GOAL_ID ? m.unassigned() : selectedGoal.title}
+            </span>
             <Button
               variant="ghost"
               size="icon-xs"
