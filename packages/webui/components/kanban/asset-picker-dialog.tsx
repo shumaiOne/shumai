@@ -222,7 +222,7 @@ export function AssetPickerDialog({
       }}
     >
       <DialogContent className="sm:max-w-4xl flex flex-col h-[650px] p-0 overflow-hidden">
-        <DialogHeader className="p-4 border-b">
+        <DialogHeader className="p-4 border-b shrink-0">
           <div className="flex items-center gap-2">
             <Folder className="w-5 h-5 text-primary" />
             <DialogTitle>{m.select_assets()}</DialogTitle>
@@ -230,7 +230,7 @@ export function AssetPickerDialog({
         </DialogHeader>
 
         {/* Second Row Toolbar: Project Selector with Hint Text */}
-        <div className="flex items-center gap-2.5 px-4 py-2 border-b bg-muted/20">
+        <div className="flex items-center gap-2.5 px-4 py-2 border-b bg-muted/20 shrink-0">
           <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
             {m.current_project_label()}:
           </span>
@@ -257,10 +257,10 @@ export function AssetPickerDialog({
         </div>
 
         {/* Main 2-Pane Content */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 min-h-0 flex overflow-hidden">
           {/* Left Pane: Folder Tree */}
-          <div className="w-1/3 border-r bg-sidebar/30 flex flex-col overflow-hidden">
-            <ScrollArea className="flex-1">
+          <div className="w-1/3 min-h-0 border-r bg-sidebar/30 flex flex-col overflow-hidden">
+            <ScrollArea className="flex-1 min-h-0 [&>div>div]:block!">
               {selectedProject && selectedProject.rootFolder ? (
                 <div className="p-2">
                   <FolderTree
@@ -287,9 +287,9 @@ export function AssetPickerDialog({
           </div>
 
           {/* Right Pane: Asset List */}
-          <div className="flex-1 flex flex-col overflow-hidden bg-background">
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden bg-background">
             {/* Top folder action / status banner */}
-            <div className="p-2.5 px-4 border-b flex items-center justify-between bg-muted/20">
+            <div className="p-2.5 px-4 border-b flex items-center justify-between bg-muted/20 shrink-0">
               <div className="flex items-center gap-2 text-xs font-medium truncate">
                 <Folder className="w-4 h-4 text-muted-foreground shrink-0" />
                 <span className="truncate">
@@ -327,7 +327,7 @@ export function AssetPickerDialog({
             </div>
 
             {/* List of files & folders inside current directory */}
-            <ScrollArea className="flex-1">
+            <ScrollArea className="flex-1 min-h-0 [&>div>div]:block!">
               {isLoadingChildren ? (
                 <div className="flex items-center justify-center p-12">
                   <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -408,7 +408,7 @@ export function AssetPickerDialog({
         </div>
 
         {/* Footer */}
-        <DialogFooter className="p-3 px-4 border-t flex items-center justify-between sm:justify-between bg-muted/10">
+        <DialogFooter className="p-3 px-4 border-t flex items-center justify-between sm:justify-between bg-muted/10 shrink-0">
           <div className="text-xs text-muted-foreground">
             {selectedAssets.size > 0 &&
               m.n_assets_selected({

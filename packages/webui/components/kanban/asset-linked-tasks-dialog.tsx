@@ -137,7 +137,7 @@ export function AssetLinkedTasksDialog({
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
         <DialogContent className="sm:max-w-2xl flex flex-col h-[520px] p-0 overflow-hidden">
           {/* Header */}
-          <DialogHeader className="p-4 border-b flex flex-row items-center justify-between space-y-0">
+          <DialogHeader className="p-4 border-b flex flex-row items-center justify-between space-y-0 shrink-0">
             <div className="flex items-center gap-2 min-w-0 pr-4">
               <SquareKanban className="w-5 h-5 text-primary shrink-0" />
               <div className="min-w-0">
@@ -152,8 +152,8 @@ export function AssetLinkedTasksDialog({
           </DialogHeader>
 
           {/* Linked Tasks List */}
-          <div className="flex-1 flex flex-col overflow-hidden bg-background">
-            <ScrollArea className="flex-1 p-4">
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden bg-background">
+            <ScrollArea className="flex-1 min-h-0 p-4 [&>div>div]:block!">
               {isLoadingLinked ? (
                 <div className="flex items-center justify-center p-12">
                   <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -240,7 +240,7 @@ export function AssetLinkedTasksDialog({
           </div>
 
           {/* Bottom Action: Link to Task Popover */}
-          <div className="p-3 px-4 border-t bg-muted/10 flex items-center justify-between">
+          <div className="p-3 px-4 border-t bg-muted/10 flex items-center justify-between shrink-0">
             <Popover open={isLinkSelectorOpen} onOpenChange={setIsLinkSelectorOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-1.5 text-xs h-8">
