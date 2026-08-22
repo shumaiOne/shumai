@@ -357,6 +357,58 @@ describe('Kanban API Routes', () => {
       )
     })
 
+    it('PATCH /teams/:teamId/kanban/tasks/:taskId with fromStatus for CAS', async () => {
+      vi.spyOn(kanbanService, 'getTask').mockResolvedValue({
+        id: taskId,
+        title: 'Task 1',
+        isAgentTask: false,
+        status: KanbanTaskStatus.TODO,
+        priority: KanbanTaskPriority.MEDIUM,
+        teamId,
+        creator: { id: 'user-1', name: 'User 1' },
+        dependencies: [],
+        dependents: [],
+        assets: [],
+        comments: [],
+        events: [],
+        commentCount: 0,
+        dependencyCount: 0,
+        dependentCount: 0,
+        assetCount: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+      const mockUpdate = vi.spyOn(kanbanService, 'updateTask').mockResolvedValue({
+        id: taskId,
+        title: 'Task 1',
+        isAgentTask: false,
+        status: KanbanTaskStatus.IN_PROGRESS,
+        priority: KanbanTaskPriority.MEDIUM,
+        teamId,
+        creator: { id: 'user-1', name: 'User 1' },
+        commentCount: 0,
+        dependencyCount: 0,
+        dependentCount: 0,
+        assetCount: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+
+      const res = await app.request(`/teams/${teamId}/kanban/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fromStatus: 'TODO', status: 'IN_PROGRESS' }),
+      })
+
+      expect(res.status).toBe(200)
+      expect(mockUpdate).toHaveBeenCalledWith(
+        taskId,
+        { fromStatus: 'TODO', status: 'IN_PROGRESS' },
+        'user-1',
+        'owner',
+      )
+    })
+
     it('DELETE /teams/:teamId/kanban/tasks/:taskId', async () => {
       vi.spyOn(kanbanService, 'getTask').mockResolvedValue({
         id: taskId,

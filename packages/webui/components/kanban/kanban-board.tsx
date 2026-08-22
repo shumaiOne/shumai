@@ -68,12 +68,14 @@ export function KanbanBoard({
   const { mutate: updateTask } = useMutation({
     mutationFn: async ({
       taskId,
+      fromStatus,
       status,
       reason,
       beforeIndex,
       afterIndex,
     }: {
       taskId: string
+      fromStatus?: KanbanTaskStatus
       status: KanbanTaskStatus
       reason?: string
       beforeIndex?: string
@@ -83,7 +85,7 @@ export function KanbanBoard({
     }) => {
       const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].$patch({
         param: { teamId, taskId },
-        json: { status, reason, beforeIndex, afterIndex },
+        json: { fromStatus, status, reason, beforeIndex, afterIndex },
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({ message: m.error() }))
@@ -264,6 +266,7 @@ export function KanbanBoard({
 
       updateTask({
         taskId: task.id,
+        fromStatus: task.status,
         status: toStatus,
         beforeIndex,
         afterIndex,
@@ -277,7 +280,7 @@ export function KanbanBoard({
       const toStatus = targetData.status
       if (task.status === toStatus) return
 
-      updateTask({ taskId: task.id, status: toStatus })
+      updateTask({ taskId: task.id, fromStatus: task.status, status: toStatus })
     }
   }
 

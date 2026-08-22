@@ -439,7 +439,7 @@ export function BreadcrumbNav({
             onClick={() => setIsLinkedTasksOpen(true)}
             title={m.linked_tasks()}
           >
-            <SquareKanban className="w-4 h-4 rotate-180" />
+            <SquareKanban className="w-4 h-4" />
             {linkedTaskCount > 0 && (
               <span className="inline-flex items-center justify-center px-1.5 py-0.2 text-[10px] font-semibold rounded-full bg-muted-foreground/15 text-foreground">
                 {linkedTaskCount}

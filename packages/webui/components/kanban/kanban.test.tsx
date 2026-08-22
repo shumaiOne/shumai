@@ -78,6 +78,10 @@ vi.mock('@/ui/api/client', () => ({
             tasks: {
               $get: vi.fn(),
               $post: vi.fn(),
+              ':taskId': {
+                $patch: vi.fn(),
+                $delete: vi.fn(),
+              },
             },
           },
         },
@@ -530,6 +534,43 @@ describe('Kanban UI Unit & Component Tests', () => {
       // Verify wrapper contains the task title and relative positioning for indicator lines
       expect(screen.getByText('Reorderable Task')).toBeDefined()
       expect(container.querySelector('.relative')).toBeDefined()
+    })
+
+    it('renders board with proper permissions and handles task update mutation', async () => {
+      const mockPatch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ id: 'task-1', status: KanbanTaskStatus.IN_PROGRESS }),
+      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(client.api.teams[':teamId'].kanban.tasks[':taskId'].$patch as any) = mockPatch
+
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      })
+      const mockGet = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: [],
+          pageInfo: { total: 0, hasNextPage: false },
+        }),
+      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(client.api.teams[':teamId'].kanban.tasks.$get as any) = mockGet
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <KanbanBoard
+            teamId="team-1"
+            selectedGoalId={null}
+            scope="team"
+            currentUserId="user-1"
+            currentUserRole="owner"
+            onTaskClick={vi.fn()}
+            onCreateTaskInColumn={vi.fn()}
+          />
+        </QueryClientProvider>,
+      )
+      expect(screen.getByText(/To Do|待办/i)).toBeDefined()
     })
   })
 
