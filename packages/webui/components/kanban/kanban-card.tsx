@@ -9,7 +9,7 @@ import {
   Calendar,
   Link2,
   MessageSquare,
-  Paperclip,
+  Files,
   AlertTriangle,
   Target,
   Sparkles,
@@ -234,7 +234,7 @@ export function KanbanCard({
                 className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
                 title={m.linked_assets_count({ count: task.assetCount })}
               >
-                <Paperclip className="w-3 h-3" />
+                <Files className="w-3 h-3" />
                 <span>{task.assetCount}</span>
               </div>
             )}

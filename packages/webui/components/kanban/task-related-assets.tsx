@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/ui/avatar'
 import { m } from '@/ui/paraglide/messages.js'
 import type { KanbanTaskAssetInfo } from '@shumai/dtos'
 import { AssetPickerDialog } from './asset-picker-dialog'
-import { Plus, X, Folder, File, Paperclip } from 'lucide-react'
+import { Plus, X, Folder, File, Files } from 'lucide-react'
 
 interface TaskRelatedAssetsProps {
   teamId: string
@@ -40,7 +40,7 @@ export function TaskRelatedAssets({
       {/* Title + Plus Button */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-          <Paperclip className="w-3.5 h-3.5 text-muted-foreground" />
+          <Files className="w-3.5 h-3.5 text-muted-foreground" />
           <span>{m.related_assets()}</span>
           {assets.length > 0 && (
             <span className="text-[11px] text-muted-foreground font-normal">({assets.length})</span>

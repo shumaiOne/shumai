@@ -1,13 +1,15 @@
-import { useState, useMemo, useEffect } from 'react'
+import { client } from '@/ui/api/client'
+import { FolderTree } from '@/ui/components/folder-tree'
+import { Button } from '@/ui/components/ui/button'
+import { Checkbox } from '@/ui/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/ui/components/ui/dialog'
-import { Button } from '@/ui/components/ui/button'
-import { Checkbox } from '@/ui/components/ui/checkbox'
+import { ScrollArea } from '@/ui/components/ui/scroll-area'
 import {
   Select,
   SelectContent,
@@ -15,20 +17,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/ui/components/ui/select'
-import { useQuery, useInfiniteQuery } from '@tanstack/react-query'
-import { useInView } from 'react-intersection-observer'
-import { client } from '@/ui/api/client'
-import { FolderTree } from '@/ui/components/folder-tree'
-import { ScrollArea } from '@/ui/components/ui/scroll-area'
+import { formatSize } from '@/ui/lib/format'
 import { m } from '@/ui/paraglide/messages.js'
 import type {
   AssetInfo,
-  ProjectInfo,
-  KanbanTaskAssetInfo,
   AssetInfoPaginatedList,
+  KanbanTaskAssetInfo,
+  ProjectInfo,
 } from '@shumai/dtos'
-import { Loader2, Folder, File, Check, Plus } from 'lucide-react'
-import { formatSize } from '@/ui/lib/format'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { Check, File, Folder, Loader2, Plus } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { useInView } from 'react-intersection-observer'
 
 interface AssetPickerDialogProps {
   teamId: string
@@ -221,8 +221,8 @@ export function AssetPickerDialog({
         if (!open) onClose()
       }}
     >
-      <DialogContent className="sm:max-w-4xl flex flex-col h-[650px] p-0 overflow-hidden">
-        <DialogHeader className="px-4 py-2.5 border-b shrink-0">
+      <DialogContent className="sm:max-w-4xl flex flex-col h-[650px] p-0 overflow-hidden gap-1">
+        <DialogHeader className="px-4 py-3 border-b shrink-0">
           <div className="flex items-center gap-2">
             <Folder className="w-5 h-5 text-primary" />
             <DialogTitle>{m.select_assets()}</DialogTitle>
@@ -230,7 +230,7 @@ export function AssetPickerDialog({
         </DialogHeader>
 
         {/* Second Row Toolbar: Project Selector with Hint Text */}
-        <div className="flex items-center gap-2.5 px-4 py-1.5 border-b bg-muted/20 shrink-0">
+        <div className="flex items-center gap-2.5 px-4 py-1.5 border-b bg-transparent shrink-0">
           <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
             {m.current_project_label()}:
           </span>
