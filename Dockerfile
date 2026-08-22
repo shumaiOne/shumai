@@ -1,6 +1,6 @@
 #syntax=docker/dockerfile:1.7-labs
 # Stage 1: Builder
-FROM oven/bun:1 AS builder
+FROM oven/bun:1.3.14 AS builder
 
 WORKDIR /app
 
@@ -25,7 +25,7 @@ RUN bun run build.ts
 RUN bun run scripts/extract-runtime-deps.ts
 
 # Stage 2: Runner
-FROM oven/bun:1 AS runner
+FROM oven/bun:1.3.14 AS runner
 
 # Install ffmpeg/ffprobe
 COPY --from=mwader/static-ffmpeg:8.1 /ffmpeg /usr/local/bin/
