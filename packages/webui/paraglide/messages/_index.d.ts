@@ -1217,4 +1217,5 @@ export * from "./n_assets_selected.js";
 export * from "./no_assets_in_folder.js";
 export * from "./linked_assets_count.js";
 export * from "./linked_tasks_count.js";
+export * from "./current_project_label.js";
 export type LocalizedString = import("../runtime.js").LocalizedString;

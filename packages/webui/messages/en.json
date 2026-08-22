@@ -1277,5 +1277,6 @@
   "n_assets_selected": "{count} assets selected",
   "no_assets_in_folder": "No assets in this folder",
   "linked_assets_count": "{count} assets",
-  "linked_tasks_count": "{count} tasks"
+  "linked_tasks_count": "{count} tasks",
+  "current_project_label": "Current Project"
 }

@@ -515,7 +515,7 @@ describe('Kanban UI Unit & Component Tests', () => {
         path: '/Project/Design_Spec.pdf',
         creator: { id: 'user-1', name: 'Alice' },
         sizeByte: 1024,
-        fileCount: null,
+        fileCount: undefined,
         projectId: 'proj-1',
         createdAt: '2026-08-20T00:00:00.000Z',
       },

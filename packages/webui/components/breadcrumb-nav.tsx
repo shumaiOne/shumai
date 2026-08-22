@@ -435,13 +435,13 @@ export function BreadcrumbNav({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 px-2 text-xs gap-1.5 text-muted-foreground hover:text-foreground hover:bg-muted ml-1"
+            className="h-7 px-2 text-xs gap-1.5 text-muted-foreground hover:text-foreground hover:bg-muted ml-1 cursor-pointer"
             onClick={() => setIsLinkedTasksOpen(true)}
             title={m.linked_tasks()}
           >
-            <SquareKanban className="w-4 h-4 text-primary" />
+            <SquareKanban className="w-4 h-4 rotate-180" />
             {linkedTaskCount > 0 && (
-              <span className="inline-flex items-center justify-center px-1.5 py-0.2 text-[10px] font-semibold rounded-full bg-primary/15 text-primary">
+              <span className="inline-flex items-center justify-center px-1.5 py-0.2 text-[10px] font-semibold rounded-full bg-muted-foreground/15 text-foreground">
                 {linkedTaskCount}
               </span>
             )}

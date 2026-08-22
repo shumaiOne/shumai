@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -15,12 +15,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/ui/components/ui/select'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query'
+import { useInView } from 'react-intersection-observer'
 import { client } from '@/ui/api/client'
 import { FolderTree } from '@/ui/components/folder-tree'
 import { ScrollArea } from '@/ui/components/ui/scroll-area'
 import { m } from '@/ui/paraglide/messages.js'
-import type { AssetInfo, ProjectInfo, KanbanTaskAssetInfo } from '@shumai/dtos'
+import type {
+  AssetInfo,
+  ProjectInfo,
+  KanbanTaskAssetInfo,
+  AssetInfoPaginatedList,
+} from '@shumai/dtos'
 import { Loader2, Folder, File, Check, Plus } from 'lucide-react'
 import { formatSize } from '@/ui/lib/format'
 
@@ -65,39 +71,76 @@ export function AssetPickerDialog({
   const activeFolderId = selectedFolder?.id || selectedProject?.rootFolder || ''
   const isRootFolder = activeFolderId === selectedProject?.rootFolder
 
-  // Fetch subfolders inside active folder
-  const { data: foldersData, isLoading: isLoadingFolders } = useQuery({
+  // Fetch subfolders inside active folder with infinite pagination
+  const {
+    data: foldersData,
+    fetchNextPage: fetchNextFolders,
+    hasNextPage: hasNextFolders,
+    isFetchingNextPage: isFetchingNextFolders,
+    isLoading: isLoadingFolders,
+  } = useInfiniteQuery<AssetInfoPaginatedList>({
     queryKey: ['folders', activeFolderId, 'children', 'folder', 'picker'],
-    queryFn: async () => {
+    queryFn: async ({ pageParam }) => {
       const res = await client.api.folders[':folderId'].children.$get({
         param: { folderId: activeFolderId },
-        query: { assetType: 'folder', first: '100' },
+        query: { assetType: 'folder', after: pageParam as string, first: '20' },
       })
-      if (!res.ok) return { data: [] }
-      return await res.json()
+      if (!res.ok) throw new Error('Failed to fetch folders')
+      return (await res.json()) as unknown as AssetInfoPaginatedList
     },
+    initialPageParam: '',
+    getNextPageParam: (lastPage) => lastPage.pageInfo?.cursor || undefined,
     enabled: !!activeFolderId && isOpen,
   })
 
-  // Fetch files inside active folder
-  const { data: filesData, isLoading: isLoadingFiles } = useQuery({
+  // Fetch files inside active folder with infinite pagination
+  const {
+    data: filesData,
+    fetchNextPage: fetchNextFiles,
+    hasNextPage: hasNextFiles,
+    isFetchingNextPage: isFetchingNextFiles,
+    isLoading: isLoadingFiles,
+  } = useInfiniteQuery<AssetInfoPaginatedList>({
     queryKey: ['folders', activeFolderId, 'children', 'file', 'picker'],
-    queryFn: async () => {
+    queryFn: async ({ pageParam }) => {
       const res = await client.api.folders[':folderId'].children.$get({
         param: { folderId: activeFolderId },
-        query: { assetType: 'file', first: '100' },
+        query: { assetType: 'file', after: pageParam as string, first: '20' },
       })
-      if (!res.ok) return { data: [] }
-      return await res.json()
+      if (!res.ok) throw new Error('Failed to fetch files')
+      return (await res.json()) as unknown as AssetInfoPaginatedList
     },
+    initialPageParam: '',
+    getNextPageParam: (lastPage) => lastPage.pageInfo?.cursor || undefined,
     enabled: !!activeFolderId && isOpen,
   })
 
-  const isLoadingChildren = isLoadingFolders || isLoadingFiles
+  const { ref: loadMoreRef, inView } = useInView()
+
+  useEffect(() => {
+    if (inView) {
+      if (hasNextFolders && !isFetchingNextFolders) {
+        fetchNextFolders()
+      } else if (hasNextFiles && !isFetchingNextFiles) {
+        fetchNextFiles()
+      }
+    }
+  }, [
+    inView,
+    hasNextFolders,
+    isFetchingNextFolders,
+    fetchNextFolders,
+    hasNextFiles,
+    isFetchingNextFiles,
+    fetchNextFiles,
+  ])
+
+  const isLoadingChildren = (isLoadingFolders && !foldersData) || (isLoadingFiles && !filesData)
+  const isFetchingMore = isFetchingNextFolders || isFetchingNextFiles
 
   const children = useMemo(() => {
-    const folders = (foldersData?.data || []) as AssetInfo[]
-    const files = (filesData?.data || []) as AssetInfo[]
+    const folders = foldersData?.pages.flatMap((page) => page.data ?? []) ?? []
+    const files = filesData?.pages.flatMap((page) => page.data ?? []) ?? []
     return [...folders, ...files]
   }, [foldersData, filesData])
 
@@ -180,34 +223,38 @@ export function AssetPickerDialog({
     >
       <DialogContent className="sm:max-w-4xl flex flex-col h-[650px] p-0 overflow-hidden">
         <DialogHeader className="p-4 border-b">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Folder className="w-5 h-5 text-primary" />
-              <DialogTitle>{m.select_assets()}</DialogTitle>
-            </div>
-            {/* Project Switcher */}
-            <div className="w-64">
-              <Select
-                value={activeProjectId}
-                onValueChange={(val) => {
-                  setSelectedProjectId(val)
-                  setSelectedFolder(null)
-                }}
-              >
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder={m.select_project()} />
-                </SelectTrigger>
-                <SelectContent>
-                  {projects.map((p) => (
-                    <SelectItem key={p.id} value={p.id} className="text-xs">
-                      {p.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="flex items-center gap-2">
+            <Folder className="w-5 h-5 text-primary" />
+            <DialogTitle>{m.select_assets()}</DialogTitle>
           </div>
         </DialogHeader>
+
+        {/* Second Row Toolbar: Project Selector with Hint Text */}
+        <div className="flex items-center gap-2.5 px-4 py-2 border-b bg-muted/20">
+          <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+            {m.current_project_label()}:
+          </span>
+          <div className="w-64">
+            <Select
+              value={activeProjectId}
+              onValueChange={(val) => {
+                setSelectedProjectId(val)
+                setSelectedFolder(null)
+              }}
+            >
+              <SelectTrigger className="h-8 text-xs bg-background">
+                <SelectValue placeholder={m.select_project()} />
+              </SelectTrigger>
+              <SelectContent>
+                {projects.map((p) => (
+                  <SelectItem key={p.id} value={p.id} className="text-xs">
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
         {/* Main 2-Pane Content */}
         <div className="flex-1 flex overflow-hidden">
@@ -346,6 +393,14 @@ export function AssetPickerDialog({
                       </div>
                     )
                   })}
+
+                  {/* Infinite scroll sentinel & bottom loading spinner */}
+                  <div ref={loadMoreRef} className="h-1" />
+                  {isFetchingMore && (
+                    <div className="flex items-center justify-center p-3">
+                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
                 </div>
               )}
             </ScrollArea>
