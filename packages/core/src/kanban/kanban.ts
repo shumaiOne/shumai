@@ -466,13 +466,6 @@ export class KanbanService {
           statusEventData = req.reason ? { reason: req.reason } : undefined
           break
         }
-        case KanbanTaskStatus.CANCELLED: {
-          if (existing.status === KanbanTaskStatus.DONE) {
-            completedAtUpdate = null
-          }
-          statusEventType = KanbanTaskEventType.CANCELLED
-          break
-        }
         case KanbanTaskStatus.TODO:
         case KanbanTaskStatus.READY: {
           if (existing.status === KanbanTaskStatus.DONE) {

@@ -20,6 +20,7 @@ interface KanbanColumnProps {
   currentUserId?: string
   currentUserRole?: string
   onTaskClick: (task: KanbanTaskInfo) => void
+  onDeleteTask?: (task: KanbanTaskInfo) => void
   onCreateTaskInColumn: (status: KanbanTaskStatus) => void
 }
 
@@ -31,6 +32,7 @@ export function KanbanColumn({
   currentUserId,
   currentUserRole,
   onTaskClick,
+  onDeleteTask,
   onCreateTaskInColumn,
 }: KanbanColumnProps) {
   const { ref: setDroppableRef, isDropTarget } = useDroppable({
@@ -139,6 +141,7 @@ export function KanbanColumn({
                 key={task.id}
                 task={task}
                 onClick={onTaskClick}
+                onDelete={onDeleteTask}
                 isFirst={index === 0}
                 showBottomIndicator={isOverColumnEmptySpace && task.id === lastVisibleTask?.id}
                 currentUserId={currentUserId}

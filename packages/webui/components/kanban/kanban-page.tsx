@@ -17,7 +17,6 @@ interface KanbanPageProps {
 export function KanbanPage({ teamId, initialTaskId }: KanbanPageProps) {
   const [scope, setScope] = useState<'team' | 'my'>('team')
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null)
-  const [showCancelled, setShowCancelled] = useState(false)
   const [editingTaskId, setEditingTaskId] = useState<string | null>(initialTaskId ?? null)
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false)
 
@@ -97,8 +96,6 @@ export function KanbanPage({ teamId, initialTaskId }: KanbanPageProps) {
           onScopeChange={setScope}
           selectedGoal={selectedGoal}
           onClearGoal={() => setSelectedGoalId(null)}
-          showCancelled={showCancelled}
-          onToggleShowCancelled={() => setShowCancelled((prev) => !prev)}
           onCreateTask={() => handleOpenCreateTask(KanbanTaskStatus.TODO)}
         />
 
@@ -108,7 +105,6 @@ export function KanbanPage({ teamId, initialTaskId }: KanbanPageProps) {
           scope={scope}
           currentUserId={me?.id}
           currentUserRole={me?.role}
-          showCancelled={showCancelled}
           onTaskClick={handleTaskClick}
           onCreateTaskInColumn={(status) => handleOpenCreateTask(status)}
         />

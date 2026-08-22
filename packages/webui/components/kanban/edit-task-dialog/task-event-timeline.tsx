@@ -38,8 +38,6 @@ function getEventDescription(event: KanbanEventInfo): string {
       return `Task blocked: "${String(data.reason || data.blockReason || '')}"`
     case KanbanTaskEventType.UNBLOCKED:
       return 'Task unblocked'
-    case KanbanTaskEventType.CANCELLED:
-      return 'Task cancelled'
     case KanbanTaskEventType.COMMENTED:
       return 'Added a comment'
     default:

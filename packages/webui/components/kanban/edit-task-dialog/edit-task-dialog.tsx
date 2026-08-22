@@ -47,7 +47,7 @@ export function EditTaskDialog({
         <DialogHeader className="px-5 py-3 border-b border-border/70 flex flex-row items-center justify-between space-y-0 shrink-0 bg-card/80">
           <div className="flex items-center gap-2 min-w-0 pr-4">
             {task?.isAgentTask && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 shrink-0">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-orange-500/15 text-orange-600 dark:text-orange-400 border border-orange-500/30 shrink-0">
                 <Bot className="w-3.5 h-3.5" />
                 <span>{m.task_type_agent()}</span>
               </span>

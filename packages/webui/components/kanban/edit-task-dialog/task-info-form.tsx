@@ -233,7 +233,7 @@ export function TaskInfoForm({ teamId, task, canEdit = true }: TaskInfoFormProps
           <div className="sm:col-span-2 flex items-center justify-between space-x-2 rounded-md border border-border/60 bg-background/50 px-3 py-2 h-14">
             <div className="space-y-0.5 min-w-0 pr-2">
               <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                <Bot className="w-3.5 h-3.5 text-purple-500" />
+                <Bot className="w-3.5 h-3.5 text-orange-500" />
                 <span>{m.task_type_agent()}</span>
               </Label>
               <p className="text-[11px] text-muted-foreground/80 line-clamp-1">

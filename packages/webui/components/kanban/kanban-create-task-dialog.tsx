@@ -220,7 +220,7 @@ export function KanbanCreateTaskDialog({
                     htmlFor="create-is-agent-task"
                     className="text-xs font-medium cursor-pointer flex items-center gap-1.5"
                   >
-                    <Bot className="w-3.5 h-3.5 text-purple-500" />
+                    <Bot className="w-3.5 h-3.5 text-orange-500" />
                     <span>{m.task_type_agent()}</span>
                   </Label>
                   <p className="text-[11px] text-muted-foreground line-clamp-1">

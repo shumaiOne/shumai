@@ -2,6 +2,13 @@ import { useDraggable, useDroppable, useDragOperation } from '@dnd-kit/react'
 import { cn } from '@/ui/lib/utils'
 import { m } from '@/ui/paraglide/messages.js'
 import { Avatar, AvatarFallback, AvatarImage } from '@/ui/components/ui/avatar'
+import { Button } from '@/ui/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/ui/components/ui/dropdown-menu'
 import { KanbanTaskStatus, type KanbanTaskInfo } from '@shumai/dtos'
 import { getPriorityBadgeColor, getPriorityLabel } from './kanban-types'
 import {
@@ -13,12 +20,15 @@ import {
   AlertTriangle,
   Target,
   Sparkles,
+  MoreHorizontal,
+  Trash2,
 } from 'lucide-react'
 import { format, isPast } from 'date-fns'
 
 interface KanbanCardProps {
   task: KanbanTaskInfo
   onClick: (task: KanbanTaskInfo) => void
+  onDelete?: (task: KanbanTaskInfo) => void
   disabled?: boolean
   isFirst?: boolean
   showBottomIndicator?: boolean
@@ -29,6 +39,7 @@ interface KanbanCardProps {
 export function KanbanCard({
   task,
   onClick,
+  onDelete,
   disabled,
   isFirst,
   showBottomIndicator,
@@ -39,9 +50,11 @@ export function KanbanCard({
   const isDraggingAny = !!source
 
   const isOwner = currentUserRole?.toLowerCase() === 'owner'
-  const isReporter = task.reporter?.id === currentUserId || task.creator?.id === currentUserId
+  const isCreator = !!currentUserId && task.creator?.id === currentUserId
+  const isReporter = task.reporter?.id === currentUserId || isCreator
   const isAssignee = task.assignee?.id === currentUserId
   const canChangeStatus = isOwner || isReporter || isAssignee
+  const canDelete = isCreator || isOwner
   const isDragDisabled = disabled || !canChangeStatus
 
   const { ref: setDraggableRef, isDragging } = useDraggable({
@@ -76,9 +89,7 @@ export function KanbanCard({
   const isAgentic = task.isAgentTask
   const isBlocked = task.status === KanbanTaskStatus.BLOCKED
   const isOverdue = task.dueDate
-    ? isPast(new Date(task.dueDate)) &&
-      task.status !== KanbanTaskStatus.DONE &&
-      task.status !== KanbanTaskStatus.CANCELLED
+    ? isPast(new Date(task.dueDate)) && task.status !== KanbanTaskStatus.DONE
     : false
 
   return (
@@ -120,10 +131,7 @@ export function KanbanCard({
           'group relative flex flex-col gap-2 p-3 rounded-lg border text-card-foreground transition-all duration-200 cursor-pointer select-none',
           isDragging && 'opacity-40 scale-95 shadow-lg ring-2 ring-primary',
           !isDragging && 'hover:shadow-md',
-          // Agentic task distinct border & subtle glow
-          isAgentic
-            ? 'border-purple-500/40 dark:border-purple-400/50 bg-gradient-to-br from-purple-500/[0.04] via-card to-background shadow-xs hover:border-purple-500 hover:shadow-[0_0_16px_rgba(168,85,247,0.18)] ring-1 ring-purple-500/20'
-            : 'border-border/80 bg-card hover:border-primary/50 shadow-2xs',
+          'border-border/80 bg-card hover:border-primary/50 shadow-2xs',
           // Blocked warning state
           isBlocked && 'border-red-500/60 bg-red-500/[0.03] ring-1 ring-red-500/20',
         )}
@@ -141,6 +149,14 @@ export function KanbanCard({
               {getPriorityLabel(task.priority)}
             </span>
 
+            {/* Task Type Badge (Agent Task only) */}
+            {isAgentic && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-orange-500/15 text-orange-600 dark:text-orange-400 border border-orange-500/30 shrink-0">
+                <Bot className="w-3 h-3" />
+                <span>{m.task_type_agent()}</span>
+              </span>
+            )}
+
             {/* Goal Tag */}
             {task.goal && (
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted text-muted-foreground border border-border/70 truncate max-w-[130px]">
@@ -150,13 +166,36 @@ export function KanbanCard({
             )}
           </div>
 
-          {/* Task Type Badge (Agent Task only) */}
-          {isAgentic && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30 shrink-0">
-              <Bot className="w-3 h-3" />
-              <span>{m.task_type_agent()}</span>
-            </span>
-          )}
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Three Dot Action Menu (for Task Creator & Team Owner) */}
+            {canDelete && (
+              <div
+                className="opacity-0 group-hover:opacity-100 [&:has([data-state=open])]:opacity-100 focus-within:opacity-100 transition-opacity flex items-center"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <DropdownMenu modal={false}>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
+                    >
+                      <MoreHorizontal className="w-3.5 h-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-32">
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                      onClick={() => onDelete?.(task)}
+                    >
+                      <Trash2 className="w-3.5 h-3.5 mr-2" />
+                      {m.delete()}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Task Title */}
@@ -192,8 +231,8 @@ export function KanbanCard({
             {task.assignee ? (
               <>
                 {isAgentic ? (
-                  <div className="w-5 h-5 rounded-full bg-purple-500/15 border border-purple-500/30 flex items-center justify-center shrink-0">
-                    <Bot className="w-3 h-3 text-purple-600 dark:text-purple-400" />
+                  <div className="w-5 h-5 rounded-full bg-orange-500/15 border border-orange-500/30 flex items-center justify-center shrink-0">
+                    <Bot className="w-3 h-3 text-orange-600 dark:text-orange-400" />
                   </div>
                 ) : (
                   <Avatar size="sm" className="w-5 h-5 border border-border">

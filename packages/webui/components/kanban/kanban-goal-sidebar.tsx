@@ -185,7 +185,7 @@ export function KanbanGoalSidebar({
           <div
             onClick={() => onSelectGoal(null)}
             className={cn(
-              'flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-colors group',
+              'flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-colors group h-8 min-h-[32px]',
               selectedGoalId === null
                 ? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-xs'
                 : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
@@ -219,7 +219,7 @@ export function KanbanGoalSidebar({
                   key={goal.id}
                   onClick={() => onSelectGoal(goal.id)}
                   className={cn(
-                    'flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-colors group relative',
+                    'flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-colors group relative h-8 min-h-[32px]',
                     isSelected
                       ? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-xs'
                       : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
@@ -239,14 +239,14 @@ export function KanbanGoalSidebar({
 
                   <div className="flex items-center gap-1 shrink-0 ml-1">
                     {(goal.taskCount ?? 0) > 0 && (
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-sidebar-border text-sidebar-foreground/60 group-hover:hidden">
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-sidebar-border text-sidebar-foreground/60">
                         {goal.taskCount}
                       </span>
                     )}
 
                     {isOwnerOrEditor && (
                       <div
-                        className="hidden group-hover:flex items-center"
+                        className="opacity-0 group-hover:opacity-100 [&:has([data-state=open])]:opacity-100 focus-within:opacity-100 transition-opacity flex items-center"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <DropdownMenu modal={false}>
