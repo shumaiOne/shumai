@@ -23,10 +23,12 @@ import {
   type KanbanTaskDetail,
   type KanbanGoalInfo,
   type AgentInfo,
+  type KanbanTaskAssetInfo,
   type UpdateKanbanTaskRequest,
 } from '@shumai/dtos'
 import { getPriorityBadgeColor, getPriorityLabel } from '../kanban-types'
 import { TaskParentSelector } from '../task-parent-selector'
+import { TaskRelatedAssets } from '../task-related-assets'
 import { TaskTargetFolderDialog } from './task-target-folder-dialog'
 import { Bot, Folder, Target, Loader2 } from 'lucide-react'
 import { cn } from '@/ui/lib/utils'
@@ -112,6 +114,45 @@ export function TaskInfoForm({ teamId, task, canEdit = true }: TaskInfoFormProps
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'task', task.id] })
       queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
+    },
+    onError: (err) => {
+      toast.error(err.message)
+    },
+  })
+
+  const { mutate: linkAssets } = useMutation({
+    mutationFn: async (newAssets: KanbanTaskAssetInfo[]) => {
+      const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].assets.$post({
+        param: { teamId, taskId: task.id },
+        json: { assetIds: newAssets.map((a) => a.id) },
+      })
+      if (!res.ok) throw new Error('Failed to link assets')
+      return await res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'task', task.id] })
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
+      toast.success(m.asset_linked())
+    },
+    onError: (err) => {
+      toast.error(err.message)
+    },
+  })
+
+  const { mutate: unlinkAsset } = useMutation({
+    mutationFn: async (assetId: string) => {
+      const res = await client.api.teams[':teamId'].kanban.tasks[':taskId'].assets[
+        ':assetId'
+      ].$delete({
+        param: { teamId, taskId: task.id, assetId },
+      })
+      if (!res.ok) throw new Error('Failed to unlink asset')
+      return await res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'task', task.id] })
+      queryClient.invalidateQueries({ queryKey: ['teams', teamId, 'kanban', 'tasks'] })
+      toast.success(m.asset_unlinked())
     },
     onError: (err) => {
       toast.error(err.message)
@@ -389,6 +430,18 @@ export function TaskInfoForm({ teamId, task, canEdit = true }: TaskInfoFormProps
               knownTasks={[...task.dependencies, ...task.dependents]}
               onChange={(parentIds) => updateTask({ parentIds })}
               canEdit={canEdit}
+            />
+          </div>
+
+          {/* Row 7: Related Assets */}
+          <div className="sm:col-span-2 pt-1">
+            <TaskRelatedAssets
+              teamId={teamId}
+              projectId={task.projectId}
+              assets={task.assets || []}
+              onAddAssets={(newAssets) => linkAssets(newAssets)}
+              onRemoveAsset={(assetId) => unlinkAsset(assetId)}
+              disabled={!canEdit}
             />
           </div>
         </div>

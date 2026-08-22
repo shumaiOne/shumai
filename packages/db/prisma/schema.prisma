@@ -565,6 +565,7 @@ model Asset {
   watermarkFiles       WatermarkFile[] @relation("AssetToWatermarkFile")
   agentMd              AssetAgentMd?   @relation("AssetToAgentMd")
   kanbanTargetTasks    KanbanTask[]    @relation("KanbanTaskTargetFolder")
+  kanbanTasks          KanbanTaskAsset[]
 
   @@map("assets")
   @@index([type])
@@ -1191,6 +1192,7 @@ model KanbanTask {
 
   dependencies   KanbanTaskLink[]   @relation("ChildLinks")
   dependents     KanbanTaskLink[]   @relation("ParentLinks")
+  assets         KanbanTaskAsset[]
 
   comments       KanbanTaskComment[]
   events         KanbanTaskEvent[]
@@ -1222,6 +1224,19 @@ model KanbanTaskLink {
   @@id([parentId, childId])
   @@index([childId])
   @@map("kanban_task_links")
+}
+
+model KanbanTaskAsset {
+  taskId    String     @map("task_id")
+  assetId   String     @map("asset_id")
+  task      KanbanTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  asset     Asset      @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  @@id([taskId, assetId])
+  @@index([assetId])
+  @@map("kanban_task_assets")
 }
 
 model KanbanTaskComment {

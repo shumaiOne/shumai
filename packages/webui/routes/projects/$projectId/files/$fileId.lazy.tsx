@@ -254,6 +254,7 @@ function FileViewPage() {
         projectName: projectInfo.name ?? '',
         ancestorFolders: fileData.ancestorFolders ?? [],
         currentAsset: {
+          id: activeFileId || fileId,
           name: fileData.name,
           type: 'file',
           version: versionsDataList

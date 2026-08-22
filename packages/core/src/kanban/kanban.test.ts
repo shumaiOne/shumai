@@ -592,4 +592,151 @@ describe('KanbanService', () => {
       expect(doneList.data.map((t) => t.id)).toEqual([task1.id, task2.id])
     })
   })
+
+  // --------------------------------------------------------------------------
+  // Asset Associations
+  // --------------------------------------------------------------------------
+  describe('Asset Associations', () => {
+    async function setupProjectAndAssets(teamId: string, userId: string) {
+      const project = await prisma.project.create({
+        data: {
+          name: 'Media Project',
+          teamId,
+        },
+      })
+
+      const folder = await prisma.asset.create({
+        data: {
+          name: 'Video Folder',
+          type: 'folder',
+          status: 'processed',
+          projectId: project.id,
+          creatorId: userId,
+        },
+      })
+
+      const file = await prisma.asset.create({
+        data: {
+          name: 'Video.mp4',
+          type: 'file',
+          mediaType: 'video/mp4',
+          status: 'processed',
+          parentId: folder.id,
+          projectId: project.id,
+          creatorId: userId,
+        },
+      })
+
+      return { project, folder, file }
+    }
+
+    it('creates a task with linked assets and retrieves them in getTask', async () => {
+      const { team, owner } = await setupTeamAndUsers()
+      const { file, folder } = await setupProjectAndAssets(team.id, owner.id)
+
+      const task = await kanbanService.createTask(
+        team.id,
+        {
+          title: 'Review Video',
+          assetIds: [file.id, folder.id],
+        },
+        owner.id,
+        'owner',
+      )
+
+      expect(task.assetCount).toBe(2)
+
+      const detail = await kanbanService.getTask(task.id)
+      expect(detail.assets).toHaveLength(2)
+      const assetNames = detail.assets.map((a) => a.name)
+      expect(assetNames).toContain('Video.mp4')
+      expect(assetNames).toContain('Video Folder')
+
+      // Check listTasks includes assetCount
+      const list = await kanbanService.listTasks(team.id, {})
+      const listed = list.data.find((t) => t.id === task.id)
+      expect(listed?.assetCount).toBe(2)
+    })
+
+    it('updates task assets when assetIds are passed in updateTask', async () => {
+      const { team, owner } = await setupTeamAndUsers()
+      const { file, folder } = await setupProjectAndAssets(team.id, owner.id)
+
+      const task = await kanbanService.createTask(
+        team.id,
+        {
+          title: 'Initial Task',
+          assetIds: [file.id],
+        },
+        owner.id,
+        'owner',
+      )
+
+      expect(task.assetCount).toBe(1)
+
+      // Replace file with folder
+      const updated = await kanbanService.updateTask(
+        task.id,
+        {
+          assetIds: [folder.id],
+        },
+        owner.id,
+        'owner',
+      )
+
+      expect(updated.assetCount).toBe(1)
+      const detail = await kanbanService.getTask(task.id)
+      expect(detail.assets).toHaveLength(1)
+      expect(detail.assets[0].id).toBe(folder.id)
+    })
+
+    it('supports linkAsset, linkAssets, unlinkAsset, and listTasksForAsset', async () => {
+      const { team, owner } = await setupTeamAndUsers()
+      const { file, folder } = await setupProjectAndAssets(team.id, owner.id)
+
+      const task1 = await kanbanService.createTask(team.id, { title: 'Task 1' }, owner.id, 'owner')
+      const task2 = await kanbanService.createTask(team.id, { title: 'Task 2' }, owner.id, 'owner')
+
+      // Link single asset
+      await kanbanService.linkAsset(team.id, task1.id, file.id)
+      // Link multiple assets
+      await kanbanService.linkAssets(team.id, task2.id, [file.id, folder.id])
+
+      // Check count and list for file
+      const fileTaskCount = await kanbanService.getAssetTaskCount(file.id)
+      expect(fileTaskCount).toBe(2)
+
+      const fileTasks = await kanbanService.listTasksForAsset(team.id, file.id)
+      expect(fileTasks).toHaveLength(2)
+      expect(fileTasks.map((t) => t.id)).toContain(task1.id)
+      expect(fileTasks.map((t) => t.id)).toContain(task2.id)
+
+      // Unlink asset from task1
+      await kanbanService.unlinkAsset(team.id, task1.id, file.id)
+      const afterUnlink = await kanbanService.listTasksForAsset(team.id, file.id)
+      expect(afterUnlink).toHaveLength(1)
+      expect(afterUnlink[0].id).toBe(task2.id)
+    })
+
+    it('cascade deletes links when asset or task is deleted', async () => {
+      const { team, owner } = await setupTeamAndUsers()
+      const { file } = await setupProjectAndAssets(team.id, owner.id)
+
+      const task = await kanbanService.createTask(
+        team.id,
+        {
+          title: 'Task to be deleted',
+          assetIds: [file.id],
+        },
+        owner.id,
+        'owner',
+      )
+
+      expect(await kanbanService.getAssetTaskCount(file.id)).toBe(1)
+
+      // Delete task
+      await kanbanService.deleteTask(task.id, owner.id, 'owner')
+      expect(await kanbanService.getAssetTaskCount(file.id)).toBe(0)
+    })
+  })
 })

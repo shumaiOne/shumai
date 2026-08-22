@@ -16,6 +16,7 @@ import type {
   ListKanbanTasksRequest,
   KanbanTaskInfo,
   KanbanTaskDetail,
+  KanbanTaskAssetInfo,
   KanbanStatusEventInfo,
   KanbanCommentInfo,
   KanbanAttachmentInfo,
@@ -189,6 +190,8 @@ export class KanbanService {
       }
     }
 
+    const assetIds = req.assetIds ? [...new Set(req.assetIds)] : []
+
     const initialStatus: KanbanTaskStatus = KanbanTaskStatus.TODO
 
     const task = await prisma.$transaction(async (tx) => {
@@ -234,6 +237,17 @@ export class KanbanService {
         })
       }
 
+      // Link assets
+      if (assetIds.length > 0) {
+        await tx.kanbanTaskAsset.createMany({
+          data: assetIds.map((assetId) => ({
+            taskId: created.id,
+            assetId,
+          })),
+          skipDuplicates: true,
+        })
+      }
+
       // Log creation event
       await tx.kanbanTaskEvent.create({
         data: {
@@ -243,6 +257,7 @@ export class KanbanService {
           toStatus: initialStatus,
           data: {
             parentCount: parentIds.length,
+            assetCount: assetIds.length,
           },
         },
       })
@@ -265,6 +280,7 @@ export class KanbanService {
       dependencyCount: parentIds.length,
       dependentCount: 0,
       commentCount: 0,
+      assetCount: assetIds.length,
     })
   }
 
@@ -282,6 +298,17 @@ export class KanbanService {
         dependents: {
           include: { child: true },
         },
+        assets: {
+          include: {
+            asset: {
+              include: {
+                creator: true,
+                storageKey: true,
+                project: true,
+              },
+            },
+          },
+        },
         comments: {
           orderBy: { createdAt: 'asc' },
           include: { author: true },
@@ -298,12 +325,14 @@ export class KanbanService {
     }
 
     const latestStatusEvent = await this.resolveLatestStatusEvent(taskId, task.status)
+    const resolvedAssets = await this.resolveTaskAssetInfos(task.assets)
 
     const baseInfo = await this.toTaskInfo(task, {
       latestStatusEvent,
       dependencyCount: task.dependencies.length,
       dependentCount: task.dependents.length,
       commentCount: task.comments.length,
+      assetCount: task.assets.length,
     })
 
     return {
@@ -322,6 +351,7 @@ export class KanbanService {
         status: d.child.status,
         priority: d.child.priority,
       })),
+      assets: resolvedAssets,
       comments: await Promise.all(
         task.comments.map(async (c) => ({
           id: c.id,
@@ -570,6 +600,25 @@ export class KanbanService {
         })
       }
 
+      if (req.assetIds !== undefined) {
+        const distinctAssetIds = [...new Set(req.assetIds)]
+        await tx.kanbanTaskAsset.deleteMany({
+          where: {
+            taskId,
+            assetId: { notIn: distinctAssetIds },
+          },
+        })
+        if (distinctAssetIds.length > 0) {
+          await tx.kanbanTaskAsset.createMany({
+            data: distinctAssetIds.map((assetId) => ({
+              taskId,
+              assetId,
+            })),
+            skipDuplicates: true,
+          })
+        }
+      }
+
       return task
     })
 
@@ -652,6 +701,7 @@ export class KanbanService {
                 comments: true,
                 dependencies: true,
                 dependents: true,
+                assets: true,
               },
             },
           },
@@ -668,6 +718,7 @@ export class KanbanService {
               commentCount: t._count.comments,
               dependencyCount: t._count.dependencies,
               dependentCount: t._count.dependents,
+              assetCount: t._count.assets,
             })
           }),
         )
@@ -944,6 +995,136 @@ export class KanbanService {
   }
 
   // --------------------------------------------------------------------------
+  // Asset Association Management
+  // --------------------------------------------------------------------------
+
+  async linkAsset(teamId: string, taskId: string, assetId: string): Promise<void> {
+    const task = await prisma.kanbanTask.findUnique({
+      where: { id: taskId },
+    })
+    if (!task || task.teamId !== teamId) {
+      throw new HTTPException(404, { message: 'Task not found' })
+    }
+
+    const asset = await prisma.asset.findUnique({
+      where: { id: assetId },
+    })
+    if (!asset) {
+      throw new HTTPException(404, { message: 'Asset not found' })
+    }
+
+    await prisma.kanbanTaskAsset.upsert({
+      where: {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        taskId_assetId: {
+          taskId,
+          assetId,
+        },
+      },
+      create: {
+        taskId,
+        assetId,
+      },
+      update: {},
+    })
+  }
+
+  async linkAssets(teamId: string, taskId: string, assetIds: string[]): Promise<void> {
+    const task = await prisma.kanbanTask.findUnique({
+      where: { id: taskId },
+    })
+    if (!task || task.teamId !== teamId) {
+      throw new HTTPException(404, { message: 'Task not found' })
+    }
+
+    const distinctAssetIds = [...new Set(assetIds)]
+    if (distinctAssetIds.length === 0) return
+
+    await prisma.kanbanTaskAsset.createMany({
+      data: distinctAssetIds.map((assetId) => ({
+        taskId,
+        assetId,
+      })),
+      skipDuplicates: true,
+    })
+  }
+
+  async unlinkAsset(teamId: string, taskId: string, assetId: string): Promise<void> {
+    const task = await prisma.kanbanTask.findUnique({
+      where: { id: taskId },
+    })
+    if (!task || task.teamId !== teamId) {
+      throw new HTTPException(404, { message: 'Task not found' })
+    }
+
+    await prisma.kanbanTaskAsset.deleteMany({
+      where: { taskId, assetId },
+    })
+  }
+
+  async listTaskAssets(taskId: string): Promise<KanbanTaskAssetInfo[]> {
+    const links = await prisma.kanbanTaskAsset.findMany({
+      where: { taskId },
+      include: {
+        asset: {
+          include: {
+            creator: true,
+            storageKey: true,
+            project: true,
+          },
+        },
+      },
+    })
+
+    return await this.resolveTaskAssetInfos(links)
+  }
+
+  async listTasksForAsset(teamId: string, assetId: string): Promise<KanbanTaskInfo[]> {
+    const links = await prisma.kanbanTaskAsset.findMany({
+      where: { assetId },
+      include: {
+        task: {
+          include: {
+            creator: true,
+            reporter: true,
+            assignee: true,
+            goal: true,
+            _count: {
+              select: {
+                comments: true,
+                dependencies: true,
+                dependents: true,
+                assets: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    const matchingLinks = links.filter((l) => l.task && l.task.teamId === teamId)
+
+    return await Promise.all(
+      matchingLinks.map(async (l) => {
+        const t = l.task
+        const latestStatusEvent = await this.resolveLatestStatusEvent(t.id, t.status)
+        return await this.toTaskInfo(t, {
+          latestStatusEvent,
+          commentCount: t._count.comments,
+          dependencyCount: t._count.dependencies,
+          dependentCount: t._count.dependents,
+          assetCount: t._count.assets,
+        })
+      }),
+    )
+  }
+
+  async getAssetTaskCount(assetId: string): Promise<number> {
+    return await prisma.kanbanTaskAsset.count({ where: { assetId } })
+  }
+
+  // --------------------------------------------------------------------------
   // Private Utilities
   // --------------------------------------------------------------------------
 
@@ -982,13 +1163,103 @@ export class KanbanService {
     commentCount: number
     dependencyCount: number
     dependentCount: number
+    assetCount: number
   }> {
-    const [commentCount, dependencyCount, dependentCount] = await Promise.all([
+    const [commentCount, dependencyCount, dependentCount, assetCount] = await Promise.all([
       prisma.kanbanTaskComment.count({ where: { taskId } }),
       prisma.kanbanTaskLink.count({ where: { childId: taskId } }),
       prisma.kanbanTaskLink.count({ where: { parentId: taskId } }),
+      prisma.kanbanTaskAsset.count({ where: { taskId } }),
     ])
-    return { commentCount, dependencyCount, dependentCount }
+    return { commentCount, dependencyCount, dependentCount, assetCount }
+  }
+
+  private async resolveTaskAssetInfos(
+    assetLinks: Array<{
+      asset: Prisma.AssetGetPayload<{
+        include: {
+          creator: true
+          storageKey: true
+          project: true
+        }
+      }>
+    }>,
+  ): Promise<KanbanTaskAssetInfo[]> {
+    if (!assetLinks || assetLinks.length === 0) return []
+
+    const bucket = process.env.S3_BUCKET || 'shumai'
+
+    return await Promise.all(
+      assetLinks.map(async ({ asset }) => {
+        const creatorImage = asset.creator ? await getAvatarUrl(asset.creator.image) : undefined
+        const media = (asset.media as unknown as Record<string, unknown>) || {}
+        const proxyType =
+          (media.proxyType as 'image' | 'video' | 'audio' | 'pdf' | null) ||
+          getProxyType(asset.mediaType, asset.name)
+
+        let thumbnailUrl: string | null = null
+        const imageTranscodes = media.imageTranscodes as Array<{ key: string }> | undefined
+        const videoPreview = media.videoPreview as { key?: string } | undefined
+
+        const thumbnailKey =
+          imageTranscodes?.[0]?.key ||
+          videoPreview?.key ||
+          (proxyType === 'image' ? asset.storageKey?.key : undefined)
+
+        if (thumbnailKey) {
+          try {
+            thumbnailUrl = await s3Service.presign(bucket, thumbnailKey, 'GET')
+          } catch {
+            thumbnailUrl = null
+          }
+        }
+
+        let path = '/'
+        try {
+          const rows = await prisma.$queryRaw<{ id: string; name: string; type: string }[]>`
+            WITH RECURSIVE ancestor AS (
+              SELECT id, parent_id, name, type::text FROM assets WHERE id = ${asset.id}
+              UNION ALL
+              SELECT a.id, a.parent_id, a.name, a.type::text FROM assets a
+              INNER JOIN ancestor d ON d.parent_id = a.id
+            )
+            SELECT id, name, type FROM ancestor;
+          `
+          const ancestorNames = rows
+            .filter((r) => r.id !== asset.id && r.type !== 'root' && r.type !== 'version_stack')
+            .map((r) => r.name)
+            .filter(Boolean)
+
+          if (asset.project?.name) {
+            path = `/${[asset.project.name, ...ancestorNames.reverse()].join('/')}`
+          } else if (ancestorNames.length > 0) {
+            path = `/${ancestorNames.reverse().join('/')}`
+          }
+        } catch {
+          path = asset.project?.name ? `/${asset.project.name}` : '/'
+        }
+
+        return {
+          id: asset.id,
+          name: asset.name,
+          type: asset.type,
+          proxyType,
+          thumbnailUrl,
+          path,
+          creator: asset.creator
+            ? {
+                id: asset.creator.id,
+                name: asset.creator.name,
+                image: creatorImage,
+              }
+            : null,
+          sizeByte: Number(asset.sizeByte || 0),
+          fileCount: asset.fileCount,
+          projectId: asset.projectId ?? null,
+          createdAt: asset.createdAt.toISOString(),
+        }
+      }),
+    )
   }
 
   private async toTaskInfo(
@@ -1005,6 +1276,7 @@ export class KanbanService {
       commentCount?: number
       dependencyCount?: number
       dependentCount?: number
+      assetCount?: number
     },
   ): Promise<KanbanTaskInfo> {
     const [creatorImage, reporterImage, assigneeImage] = await Promise.all([
@@ -1052,6 +1324,7 @@ export class KanbanService {
       commentCount: extra.commentCount ?? 0,
       dependencyCount: extra.dependencyCount ?? 0,
       dependentCount: extra.dependentCount ?? 0,
+      assetCount: extra.assetCount ?? 0,
       createdAt: task.createdAt.toISOString(),
       updatedAt: task.updatedAt.toISOString(),
     }

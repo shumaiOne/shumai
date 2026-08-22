@@ -253,6 +253,11 @@ export type KanbanTask = Prisma.KanbanTaskModel
  */
 export type KanbanTaskLink = Prisma.KanbanTaskLinkModel
 /**
+ * Model KanbanTaskAsset
+ * 
+ */
+export type KanbanTaskAsset = Prisma.KanbanTaskAssetModel
+/**
  * Model KanbanTaskComment
  * 
  */

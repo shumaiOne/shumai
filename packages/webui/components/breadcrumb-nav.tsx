@@ -1,5 +1,6 @@
 import { client } from '@/ui/api/client'
 import { Badge } from '@/ui/components/ui/badge'
+import { Button } from '@/ui/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +31,7 @@ import { cn } from '@/ui/lib/utils'
 import { m } from '@/ui/paraglide/messages.js'
 import type { AncestorFolder } from '@shumai/dtos'
 import { Link, useNavigate } from '@tanstack/react-router'
+import { useQuery } from '@tanstack/react-query'
 import {
   Bot,
   Check,
@@ -39,9 +41,11 @@ import {
   History,
   LayoutGrid,
   List,
+  SquareKanban,
 } from 'lucide-react'
 import { useState } from 'react'
 import { ManageVersionsDialog } from './manage-versions-dialog'
+import { AssetLinkedTasksDialog } from './kanban/asset-linked-tasks-dialog'
 
 interface BreadcrumbNavProps {
   teamId: string
@@ -49,6 +53,7 @@ interface BreadcrumbNavProps {
   projectName: string
   ancestorFolders: AncestorFolder[]
   currentAsset: {
+    id?: string
     name?: string
     type: 'file' | 'folder'
     version?: number
@@ -123,6 +128,33 @@ export function BreadcrumbNav({
   const navigate = useNavigate()
   const { canEdit } = usePermissions(projectId)
   const [isManageVersionsOpen, setIsManageVersionsOpen] = useState(false)
+  const [isLinkedTasksOpen, setIsLinkedTasksOpen] = useState(false)
+
+  const targetAssetId = fileId || currentAsset.id
+  const isRecentlyDeleted = currentAsset.name === 'Recently Deleted'
+  const isCollection = currentAsset.name === 'All Collections'
+  const showKanbanLink =
+    !isPublic &&
+    !isRootFolder &&
+    !isRecentlyDeleted &&
+    !isCollection &&
+    !compareMode &&
+    !!targetAssetId
+
+  const { data: linkedTasksData } = useQuery({
+    queryKey: ['teams', teamId, 'kanban', 'assets', targetAssetId, 'tasks'],
+    queryFn: async () => {
+      if (!teamId || !targetAssetId) return { data: [], total: 0 }
+      const res = await client.api.teams[':teamId'].kanban.assets[':assetId'].tasks.$get({
+        param: { teamId, assetId: targetAssetId },
+      })
+      if (!res.ok) return { data: [], total: 0 }
+      return (await res.json()) as { data: Array<{ id: string }>; total: number }
+    },
+    enabled: !!teamId && !!targetAssetId && showKanbanLink,
+  })
+
+  const linkedTaskCount = linkedTasksData?.total ?? linkedTasksData?.data?.length ?? 0
 
   const isChatbotDisabled = false
 
@@ -398,6 +430,33 @@ export function BreadcrumbNav({
             )}
           </div>
         ) : null}
+
+        {showKanbanLink && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs gap-1.5 text-muted-foreground hover:text-foreground hover:bg-muted ml-1"
+            onClick={() => setIsLinkedTasksOpen(true)}
+            title={m.linked_tasks()}
+          >
+            <SquareKanban className="w-4 h-4 text-primary" />
+            {linkedTaskCount > 0 && (
+              <span className="inline-flex items-center justify-center px-1.5 py-0.2 text-[10px] font-semibold rounded-full bg-primary/15 text-primary">
+                {linkedTaskCount}
+              </span>
+            )}
+          </Button>
+        )}
+
+        {showKanbanLink && isLinkedTasksOpen && targetAssetId && (
+          <AssetLinkedTasksDialog
+            teamId={teamId}
+            assetId={targetAssetId}
+            assetName={currentAsset.name}
+            isOpen={isLinkedTasksOpen}
+            onClose={() => setIsLinkedTasksOpen(false)}
+          />
+        )}
 
         {fileId && versions && versions.length > 0 && (
           <ManageVersionsDialog
