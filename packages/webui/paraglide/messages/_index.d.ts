@@ -1,3 +1,4 @@
+export * from "./home.js";
 export * from "./dashboard.js";
 export * from "./notifications.js";
 export * from "./uploads.js";

@@ -104,7 +104,7 @@ export const DualSidebar: React.FC<DualSidebarProps> = ({ children }) => {
         <div className="absolute bottom-0 w-full h-[70dvh] bg-linear-to-t from-sidebar-primary/10 to-transparent"></div>
         {/* Level 1: Icon Bar */}
         <nav className="w-16 bg-card border-r border-sidebar-border flex flex-col items-center pb-4 pt-0 space-y-2 flex-shrink-0">
-          <div className="flex-1 w-full flex flex-col items-center space-y-5 pt-1">
+          <div className="flex-1 w-full flex flex-col items-center gap-5 pt-1">
             <TooltipProvider>
               {sidebarItems.map((item, index) => {
                 const isItemActive = Boolean(item.props.active || activeItem === index)
@@ -117,7 +117,7 @@ export const DualSidebar: React.FC<DualSidebarProps> = ({ children }) => {
                         onClick={() => handleItemClick(index)}
                         aria-label={item.props.label}
                         aria-expanded={activeItem === index}
-                        className={`relative w-12 h-12 [&_svg:not([class*='size-'])]:size-6 transition-all duration-200 ${
+                        className={`relative w-12 h-12 [&_svg:not([class*='size-'])]:size-6 transition-colors duration-200 ${
                           isItemActive
                             ? 'text-sidebar-primary hover:bg-sidebar-accent hover:text-sidebar-primary'
                             : 'text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent'

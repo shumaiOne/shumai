@@ -146,19 +146,6 @@ export function UserMenu() {
           </DropdownMenuPortal>
         </DropdownMenuSub>
         <DropdownMenuSeparator />
-        {me?.role?.toLowerCase() === 'owner' && (
-          <DropdownMenuItem
-            onClick={() =>
-              navigate({
-                to: '/teams/$teamId/dashboard',
-                params: { teamId: teamId! },
-              })
-            }
-            disabled={!teamId}
-          >
-            {m.dashboard()}
-          </DropdownMenuItem>
-        )}
         <DropdownMenuItem
           onClick={() =>
             navigate({

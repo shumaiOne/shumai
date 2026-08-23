@@ -1,5 +1,6 @@
 /* eslint-disable */
 /** @typedef {import('../runtime.js').LocalizedString} LocalizedString */
+export * from './home.js'
 export * from './dashboard.js'
 export * from './notifications.js'
 export * from './uploads.js'

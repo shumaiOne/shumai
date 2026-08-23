@@ -1,5 +1,6 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
+  "home": "Home",
   "dashboard": "Dashboard",
   "notifications": "Notifications",
   "uploads": "Uploads",
