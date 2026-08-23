@@ -29,6 +29,7 @@ import { KanbanCreateTaskDialog } from './kanban-create-task-dialog'
 import { TaskRelatedAssets } from './task-related-assets'
 import { TaskCommentCard } from './edit-task-dialog/task-comment-card'
 import { TaskCommentInput } from './edit-task-dialog/task-comment-input'
+import { TaskEventTimeline } from './edit-task-dialog/task-event-timeline'
 import type { KanbanTaskAssetInfo } from '@shumai/dtos'
 import { client } from '@/ui/api/client'
 
@@ -855,6 +856,78 @@ describe('Kanban UI Unit & Component Tests', () => {
         </QueryClientProvider>,
       )
       expect(screen.queryByText(/Create Task|创建任务/i)).toBeNull()
+    })
+  })
+
+  describe('Kanban UI Alignment & DnD Improvements', () => {
+    it('TaskEventTimeline: renders timeline line and circles with aligned center positioning', () => {
+      const mockEvents = [
+        {
+          id: 'ev-1',
+          taskId: 't-1',
+          type: KanbanTaskEventType.CREATED,
+          actor: { id: 'u-1', name: 'Alice' },
+          fromStatus: null,
+          toStatus: KanbanTaskStatus.TODO,
+          data: null,
+          createdAt: '2026-08-20T00:00:00.000Z',
+        },
+      ]
+
+      const { container } = render(
+        <TaskEventTimeline teamId="team-1" taskId="t-1" initialEvents={mockEvents} />,
+        { wrapper: createWrapper() },
+      )
+
+      // Container has pl-5 and before:left-[4px] before:w-[2px]
+      const timelineContainer = container.querySelector('.pl-5')
+      expect(timelineContainer).toBeDefined()
+      expect(timelineContainer?.className).toContain('before:left-[4px]')
+      expect(timelineContainer?.className).toContain('before:w-[2px]')
+
+      // Circle node has -left-5 top-[3px] w-2.5 h-2.5
+      const circleNode = container.querySelector('.-left-5')
+      expect(circleNode).toBeDefined()
+      expect(circleNode?.className).toContain('top-[3px]')
+      expect(circleNode?.className).toContain('w-2.5')
+    })
+
+    it('KanbanCard: expands bottom drop zone when isLast is true', () => {
+      const mockTask: KanbanTaskInfo = {
+        id: 'task-last',
+        title: 'Last Task',
+        isAgentTask: false,
+        status: KanbanTaskStatus.TODO,
+        priority: KanbanTaskPriority.MEDIUM,
+        startDate: null,
+        dueDate: null,
+        startedAt: null,
+        completedAt: null,
+        teamId: 'team-1',
+        projectId: null,
+        creator: { id: 'u-1', name: 'Alice' },
+        reporter: null,
+        assignee: null,
+        goal: null,
+        targetFolderId: null,
+        latestStatusEvent: null,
+        commentCount: 0,
+        dependencyCount: 0,
+        dependentCount: 0,
+        assetCount: 0,
+        createdAt: '2026-08-20T00:00:00.000Z',
+        updatedAt: '2026-08-20T00:00:00.000Z',
+      }
+
+      const { container, rerender } = render(
+        <KanbanCard task={mockTask} onClick={vi.fn()} isLast={false} />,
+      )
+      // When isLast is false, uses standard h-1/2 without -bottom-6
+      expect(container.querySelector('.-bottom-6')).toBeNull()
+
+      // When isLast is true, expands drop area with -bottom-6
+      rerender(<KanbanCard task={mockTask} onClick={vi.fn()} isLast={true} />)
+      expect(container.querySelector('.-bottom-6')).toBeDefined()
     })
   })
 })

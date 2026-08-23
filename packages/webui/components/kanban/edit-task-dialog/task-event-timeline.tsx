@@ -75,10 +75,10 @@ export function TaskEventTimeline({ teamId, taskId, initialEvents }: TaskEventTi
               {m.no_activity_yet()}
             </div>
           ) : (
-            <div className="relative pl-4 space-y-3 before:absolute before:left-1.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-border/60">
+            <div className="relative pl-5 space-y-3 before:absolute before:left-[4px] before:top-2 before:bottom-2 before:w-[2px] before:bg-border/60">
               {events.map((event) => (
                 <div key={event.id} className="relative flex items-start gap-2 text-xs">
-                  <div className="absolute -left-4 top-1 w-2.5 h-2.5 rounded-full bg-background border-2 border-primary shrink-0" />
+                  <div className="absolute -left-5 top-[3px] w-2.5 h-2.5 rounded-full bg-background border-2 border-primary shrink-0" />
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1">

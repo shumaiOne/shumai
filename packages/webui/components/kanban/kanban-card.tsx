@@ -31,6 +31,7 @@ interface KanbanCardProps {
   onDelete?: (task: KanbanTaskInfo) => void
   disabled?: boolean
   isFirst?: boolean
+  isLast?: boolean
   showBottomIndicator?: boolean
   currentUserId?: string
   currentUserRole?: string
@@ -42,6 +43,7 @@ export function KanbanCard({
   onDelete,
   disabled,
   isFirst,
+  isLast,
   showBottomIndicator,
   currentUserId,
   currentUserRole,
@@ -109,7 +111,8 @@ export function KanbanCard({
       <div
         ref={setBottomDroppableRef}
         className={cn(
-          'absolute bottom-0 left-0 right-0 h-1/2 z-20',
+          'absolute bottom-0 left-0 right-0 z-20',
+          isLast ? '-bottom-6 h-[calc(50%+24px)]' : 'h-1/2',
           isDraggingAny && !isDragging ? 'pointer-events-auto' : 'pointer-events-none',
         )}
       />
