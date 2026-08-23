@@ -21,6 +21,7 @@ import {
 } from './kanban-types'
 import { KanbanCard } from './kanban-card'
 import { KanbanHeader } from './kanban-header'
+import { KanbanColumn } from './kanban-column'
 import { KanbanBoard } from './kanban-board'
 import { KanbanGoalSidebar } from './kanban-goal-sidebar'
 import { KanbanCreateGoalDialog } from './kanban-create-goal-dialog'
@@ -207,7 +208,7 @@ describe('Kanban UI Unit & Component Tests', () => {
       expect(card).toBeDefined()
     })
 
-    it('renders three-dot delete action for task creator or owner and triggers onDelete', () => {
+    it('renders three-dot delete action for task creator, reporter, or owner and triggers onDelete', () => {
       const onDelete = vi.fn()
       const { container, rerender } = render(
         <KanbanCard
@@ -219,11 +220,27 @@ describe('Kanban UI Unit & Component Tests', () => {
         />,
       )
 
-      // Three-dot trigger should be rendered
+      // Three-dot trigger should be rendered for creator
       const triggerBtn = container.querySelector('button')
       expect(triggerBtn).toBeDefined()
 
-      // When user is not creator and not owner, delete trigger is not rendered
+      // Also rendered for reporter (reviewer)
+      rerender(
+        <KanbanCard
+          task={{
+            ...mockManualTask,
+            creator: { id: 'other-1', name: 'Creator' },
+            reporter: { id: 'rep-user', name: 'Reporter' },
+          }}
+          onClick={vi.fn()}
+          onDelete={onDelete}
+          currentUserId="rep-user"
+          currentUserRole="reviewer"
+        />,
+      )
+      expect(container.querySelector('button')).toBeDefined()
+
+      // When user is not creator, not reporter, and not owner, delete trigger is not rendered
       rerender(
         <KanbanCard
           task={mockManualTask}
@@ -236,7 +253,7 @@ describe('Kanban UI Unit & Component Tests', () => {
       expect(container.querySelector('button')).toBeNull()
     })
 
-    it('enforces card drag permission: enabled for owner, reporter, or assignee; disabled for others', () => {
+    it('enforces card drag permission: enabled for owner, editor, reporter, or assignee; disabled for unassigned reviewers', () => {
       // 1. Enabled when user is owner
       render(
         <KanbanCard
@@ -255,25 +272,25 @@ describe('Kanban UI Unit & Component Tests', () => {
         expect.objectContaining({ disabled: false }),
       )
 
-      // 2. Enabled when user is reporter (or creator if reporter null)
+      // 2. Enabled when user is editor (even if not reporter or assignee)
       render(
         <KanbanCard
           task={{
             ...mockManualTask,
-            creator: { id: 'user-reporter', name: 'Rep' },
-            reporter: null,
-            assignee: null,
+            creator: { id: 'other-1', name: 'Other' },
+            reporter: { id: 'other-2', name: 'Reporter' },
+            assignee: { id: 'other-3', name: 'Assignee' },
           }}
           onClick={vi.fn()}
           currentUserRole="editor"
-          currentUserId="user-reporter"
+          currentUserId="stranger-user"
         />,
       )
       expect(mockUseDraggable).toHaveBeenLastCalledWith(
         expect.objectContaining({ disabled: false }),
       )
 
-      // 3. Enabled when user is assignee
+      // 3. Enabled when user is reviewer but is assignee
       render(
         <KanbanCard
           task={{
@@ -291,7 +308,7 @@ describe('Kanban UI Unit & Component Tests', () => {
         expect.objectContaining({ disabled: false }),
       )
 
-      // 4. Disabled when user is not owner, not reporter, and not assignee
+      // 4. Disabled when user is reviewer and not reporter, not creator, not assignee
       render(
         <KanbanCard
           task={{
@@ -301,7 +318,7 @@ describe('Kanban UI Unit & Component Tests', () => {
             assignee: { id: 'other-3', name: 'Assignee' },
           }}
           onClick={vi.fn()}
-          currentUserRole="editor"
+          currentUserRole="reviewer"
           currentUserId="stranger-user"
         />,
       )
@@ -766,6 +783,78 @@ describe('Kanban UI Unit & Component Tests', () => {
       await waitFor(() => {
         expect(screen.getByText(/Create Task|创建任务/i)).toBeDefined()
       })
+    })
+  })
+
+  describe('Task creation button visibility based on permissions', () => {
+    it('KanbanHeader: hides Create Task button when canCreateTask is false', () => {
+      const { rerender } = render(
+        <KanbanHeader
+          scope="team"
+          onScopeChange={vi.fn()}
+          selectedGoal={null}
+          onClearGoal={vi.fn()}
+          onCreateTask={vi.fn()}
+          canCreateTask={true}
+        />,
+      )
+      expect(screen.queryByText(/Create Task|创建任务/i)).not.toBeNull()
+
+      rerender(
+        <KanbanHeader
+          scope="team"
+          onScopeChange={vi.fn()}
+          selectedGoal={null}
+          onClearGoal={vi.fn()}
+          onCreateTask={vi.fn()}
+          canCreateTask={false}
+        />,
+      )
+      expect(screen.queryByText(/Create Task|创建任务/i)).toBeNull()
+    })
+
+    it('KanbanColumn: only renders + Create Task button in footer for owner and editor', () => {
+      const mockGet = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: [],
+          pageInfo: { total: 0, hasNextPage: false },
+        }),
+      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(client.api.teams[':teamId'].kanban.tasks.$get as any) = mockGet
+
+      const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+
+      const { rerender } = render(
+        <QueryClientProvider client={queryClient}>
+          <KanbanColumn
+            teamId="team-1"
+            status={KanbanTaskStatus.TODO}
+            selectedGoalId={null}
+            scope="team"
+            currentUserRole="editor"
+            onTaskClick={vi.fn()}
+            onCreateTaskInColumn={vi.fn()}
+          />
+        </QueryClientProvider>,
+      )
+      expect(screen.queryByText(/Create Task|创建任务/i)).not.toBeNull()
+
+      rerender(
+        <QueryClientProvider client={queryClient}>
+          <KanbanColumn
+            teamId="team-1"
+            status={KanbanTaskStatus.TODO}
+            selectedGoalId={null}
+            scope="team"
+            currentUserRole="reviewer"
+            onTaskClick={vi.fn()}
+            onCreateTaskInColumn={vi.fn()}
+          />
+        </QueryClientProvider>,
+      )
+      expect(screen.queryByText(/Create Task|创建任务/i)).toBeNull()
     })
   })
 })

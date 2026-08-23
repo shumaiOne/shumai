@@ -74,6 +74,19 @@ export function KanbanCreateTaskDialog({
   const [selectedAssets, setSelectedAssets] = useState<KanbanTaskAssetInfo[]>([])
   const [isFolderPickerOpen, setIsFolderPickerOpen] = useState(false)
 
+  // Query Current User to default reporter
+  const { data: me } = useQuery({
+    queryKey: ['teams', teamId, 'me'],
+    queryFn: async () => {
+      const res = await client.api.teams[':teamId'].me.$get({
+        param: { teamId },
+      })
+      if (!res.ok) return null
+      return await res.json()
+    },
+    enabled: !!teamId && isOpen,
+  })
+
   useEffect(() => {
     if (isOpen) {
       setTitle('')
@@ -82,7 +95,7 @@ export function KanbanCreateTaskDialog({
       setPriority(KanbanTaskPriority.MEDIUM)
       setGoalId(effectiveInitialGoalId)
       setAssigneeId('none')
-      setReporterId('none')
+      setReporterId(me?.id || 'none')
       setStartDate(undefined)
       setDueDate(undefined)
       setProjectId(null)
@@ -91,7 +104,7 @@ export function KanbanCreateTaskDialog({
       setParentIds([])
       setSelectedAssets([])
     }
-  }, [isOpen, effectiveInitialGoalId])
+  }, [isOpen, effectiveInitialGoalId, me?.id])
 
   // Queries for selectors
   const { data: members = [] } = useQuery({
@@ -157,8 +170,19 @@ export function KanbanCreateTaskDialog({
         },
       })
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ message: m.error() }))
-        throw new Error((err as { message?: string }).message || m.error())
+        const text = await res.text().catch(() => '')
+        let errorMsg: string = m.error()
+        if (text) {
+          try {
+            const json = JSON.parse(text)
+            if (json && typeof json.message === 'string') {
+              errorMsg = json.message
+            }
+          } catch {
+            errorMsg = text
+          }
+        }
+        throw new Error(errorMsg)
       }
       return await res.json()
     },

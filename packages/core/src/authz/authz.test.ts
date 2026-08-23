@@ -502,5 +502,98 @@ describe('AuthzService', () => {
         }),
       ).rejects.toThrow('User has only project scope')
     })
+
+    it('allows project-scoped and reviewer participants to edit team-level Kanban tasks', async () => {
+      const creator = await prisma.user.create({
+        data: { name: 'Owner User', email: 'owner-kanban@example.com', password: 'pass' },
+      })
+      const projectScopedUser = await prisma.user.create({
+        data: { name: 'Proj Member', email: 'proj-kanban@example.com', password: 'pass' },
+      })
+      const reviewerUser = await prisma.user.create({
+        data: { name: 'Reviewer User', email: 'rev-kanban@example.com', password: 'pass' },
+      })
+      const unassignedUser = await prisma.user.create({
+        data: { name: 'Unassigned User', email: 'unassigned-kanban@example.com', password: 'pass' },
+      })
+
+      const team = await prisma.team.create({ data: { name: 'Kanban Team' } })
+      const project = await prisma.project.create({ data: { name: 'Project K', teamId: team.id } })
+
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: creator.id, role: 'owner', scope: 'team' },
+      })
+      const tmProj = await prisma.teamMember.create({
+        data: { teamId: team.id, userId: projectScopedUser.id, role: 'reviewer', scope: 'project' },
+      })
+      await prisma.projectMember.create({
+        data: { projectId: project.id, teamMemberId: tmProj.id, role: 'editor' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: reviewerUser.id, role: 'reviewer', scope: 'team' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: unassignedUser.id, role: 'reviewer', scope: 'project' },
+      })
+
+      // Team-level task (no projectId)
+      const teamTask = await prisma.kanbanTask.create({
+        data: {
+          teamId: team.id,
+          title: 'Team Task for Project Member',
+          creatorId: creator.id,
+          reporterId: creator.id,
+          assigneeId: projectScopedUser.id,
+        },
+      })
+
+      // 1. Project-scoped assignee on team task CAN edit
+      await expect(
+        authzService.hasPermission({
+          type: ResourceType.KanbanTask,
+          id: teamTask.id,
+          user: projectScopedUser,
+          permission: Permission.Edit,
+        }),
+      ).resolves.toBeUndefined()
+
+      // 2. Reviewer who is reporter CAN edit
+      const reviewerReportedTask = await prisma.kanbanTask.create({
+        data: {
+          teamId: team.id,
+          title: 'Task Reported by Reviewer',
+          creatorId: creator.id,
+          reporterId: reviewerUser.id,
+        },
+      })
+      await expect(
+        authzService.hasPermission({
+          type: ResourceType.KanbanTask,
+          id: reviewerReportedTask.id,
+          user: reviewerUser,
+          permission: Permission.Edit,
+        }),
+      ).resolves.toBeUndefined()
+
+      // 3. Unassigned project-scoped user CANNOT edit team task
+      await expect(
+        authzService.hasPermission({
+          type: ResourceType.KanbanTask,
+          id: teamTask.id,
+          user: unassignedUser,
+          permission: Permission.Edit,
+        }),
+      ).rejects.toThrow('User has only project scope')
+
+      // 4. Unassigned reviewer CANNOT edit team task
+      await expect(
+        authzService.hasPermission({
+          type: ResourceType.KanbanTask,
+          id: teamTask.id,
+          user: reviewerUser,
+          permission: Permission.Edit,
+        }),
+      ).rejects.toThrow('Permission denied')
+    })
   })
 })

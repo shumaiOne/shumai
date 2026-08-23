@@ -308,25 +308,73 @@ describe('KanbanService', () => {
     })
 
     it('deletes tasks properly with permissions', async () => {
-      const { team, editor, reviewer } = await setupTeamAndUsers()
+      const { team, owner, editor, reviewer } = await setupTeamAndUsers()
+
+      const otherEditor = await prisma.user.create({
+        data: { name: 'Other Editor', email: 'other-editor-del@example.com' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: otherEditor.id, role: 'editor', scope: 'team' },
+      })
 
       const task = await kanbanService.createTask(
         team.id,
-        { title: 'Task to Delete', isAgentTask: false },
+        {
+          title: 'Task to Delete',
+          isAgentTask: false,
+          reporterId: reviewer.id,
+          assigneeId: otherEditor.id,
+        },
         editor.id,
         'editor',
       )
 
-      // Reviewer (not creator, not owner, not reporter) cannot delete
-      await expect(kanbanService.deleteTask(task.id, reviewer.id, 'reviewer')).rejects.toThrow()
+      // Other editor (who is assignee, not creator/reporter/owner) cannot delete
+      await expect(kanbanService.deleteTask(task.id, otherEditor.id, 'editor')).rejects.toThrow(
+        /Only team owners, task creators, or reporters can delete tasks/,
+      )
 
-      // Creator (editor) can delete
-      const deleted = await kanbanService.deleteTask(task.id, editor.id, 'editor')
-      expect(deleted.id).toBe(task.id)
+      // Reporter (reviewer) CAN delete
+      const deletedByReporter = await kanbanService.deleteTask(task.id, reviewer.id, 'reviewer')
+      expect(deletedByReporter.id).toBe(task.id)
 
       // Confirm deleted from db
       const fromDb = await prisma.kanbanTask.findUnique({ where: { id: task.id } })
       expect(fromDb).toBeNull()
+
+      // Creator (editor) can delete their own task
+      const task2 = await kanbanService.createTask(
+        team.id,
+        { title: 'Task 2 to Delete' },
+        editor.id,
+        'editor',
+      )
+      const deletedByCreator = await kanbanService.deleteTask(task2.id, editor.id, 'editor')
+      expect(deletedByCreator.id).toBe(task2.id)
+
+      // Owner can delete any task
+      const task3 = await kanbanService.createTask(
+        team.id,
+        { title: 'Task 3 to Delete' },
+        editor.id,
+        'editor',
+      )
+      const deletedByOwner = await kanbanService.deleteTask(task3.id, owner.id, 'owner')
+      expect(deletedByOwner.id).toBe(task3.id)
+    })
+
+    it('defaults reporterId to creatorId when not explicitly provided', async () => {
+      const { team, editor } = await setupTeamAndUsers()
+
+      const task = await kanbanService.createTask(
+        team.id,
+        { title: 'Task without explicit reporter' },
+        editor.id,
+        'editor',
+      )
+
+      expect(task.reporter).toBeDefined()
+      expect(task.reporter?.id).toBe(editor.id)
     })
   })
 
@@ -397,7 +445,7 @@ describe('KanbanService', () => {
       expect(todo.status).toBe(KanbanTaskStatus.TODO)
     })
 
-    it('enforces status change permissions (only owner, reporter, or assignee can change status)', async () => {
+    it('enforces status change permissions (owner, editor, reporter, or assignee can change status; unassigned reviewer rejected)', async () => {
       const { team, owner, editor, reviewer } = await setupTeamAndUsers()
 
       // Create another editor in team who is NOT reporter and NOT assignee
@@ -406,6 +454,14 @@ describe('KanbanService', () => {
       })
       await prisma.teamMember.create({
         data: { teamId: team.id, userId: otherEditor.id, role: 'editor', scope: 'team' },
+      })
+
+      // Create an unassigned reviewer
+      const unassignedReviewer = await prisma.user.create({
+        data: { name: 'Unassigned Reviewer', email: 'unassigned-reviewer@example.com' },
+      })
+      await prisma.teamMember.create({
+        data: { teamId: team.id, userId: unassignedReviewer.id, role: 'reviewer', scope: 'team' },
       })
 
       // Create a task: reporter is editor, assignee is reviewer
@@ -420,15 +476,14 @@ describe('KanbanService', () => {
         'editor',
       )
 
-      // Other editor tries to change status -> rejected with 403
-      await expect(
-        kanbanService.updateTask(
-          task.id,
-          { status: KanbanTaskStatus.IN_PROGRESS },
-          otherEditor.id,
-          'editor',
-        ),
-      ).rejects.toThrow(/Only team owners, task reporters, or assignees can change task status/)
+      // Other editor CAN change status (editors now have permission)
+      const editorUpdated = await kanbanService.updateTask(
+        task.id,
+        { status: KanbanTaskStatus.IN_PROGRESS },
+        otherEditor.id,
+        'editor',
+      )
+      expect(editorUpdated.status).toBe(KanbanTaskStatus.IN_PROGRESS)
 
       // Other editor CAN update non-status fields (e.g. description)
       const descUpdated = await kanbanService.updateTask(
@@ -439,32 +494,54 @@ describe('KanbanService', () => {
       )
       expect(descUpdated.description).toBe('Updated by other editor')
 
+      // Unassigned reviewer tries to change status -> rejected with 403
+      await expect(
+        kanbanService.updateTask(
+          task.id,
+          { status: KanbanTaskStatus.BLOCKED },
+          unassignedReviewer.id,
+          'reviewer',
+        ),
+      ).rejects.toThrow(
+        /Only team owners, editors, task reporters, or assignees can change task status/,
+      )
+
+      // Unassigned reviewer tries to update non-status field -> rejected with 403
+      await expect(
+        kanbanService.updateTask(
+          task.id,
+          { description: 'Hacked by reviewer' },
+          unassignedReviewer.id,
+          'reviewer',
+        ),
+      ).rejects.toThrow(/Permission denied/)
+
       // Reporter (editor) CAN change status -> succeeds
       const reporterUpdated = await kanbanService.updateTask(
         task.id,
-        { status: KanbanTaskStatus.IN_PROGRESS },
+        { status: KanbanTaskStatus.IN_REVIEW },
         editor.id,
         'editor',
       )
-      expect(reporterUpdated.status).toBe(KanbanTaskStatus.IN_PROGRESS)
+      expect(reporterUpdated.status).toBe(KanbanTaskStatus.IN_REVIEW)
 
       // Assignee (reviewer) CAN change status -> succeeds
       const assigneeUpdated = await kanbanService.updateTask(
         task.id,
-        { status: KanbanTaskStatus.IN_REVIEW },
+        { status: KanbanTaskStatus.DONE },
         reviewer.id,
         'reviewer',
       )
-      expect(assigneeUpdated.status).toBe(KanbanTaskStatus.IN_REVIEW)
+      expect(assigneeUpdated.status).toBe(KanbanTaskStatus.DONE)
 
       // Owner CAN change status -> succeeds
       const ownerUpdated = await kanbanService.updateTask(
         task.id,
-        { status: KanbanTaskStatus.DONE },
+        { status: KanbanTaskStatus.TODO },
         owner.id,
         'owner',
       )
-      expect(ownerUpdated.status).toBe(KanbanTaskStatus.DONE)
+      expect(ownerUpdated.status).toBe(KanbanTaskStatus.TODO)
     })
 
     it('handles status CAS (Compare-And-Swap) with fromStatus validation', async () => {
