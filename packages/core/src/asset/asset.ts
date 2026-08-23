@@ -2131,7 +2131,7 @@ export class AssetService {
     )
   }
 
-  private async toPreviewInfo(asset: Asset | AssetWithIncludes): Promise<PreviewInfo | null> {
+  async toPreviewInfo(asset: Asset | AssetWithIncludes): Promise<PreviewInfo | null> {
     if (!asset.media) return null
 
     const proxyType = (asset.media?.proxyType || null) as 'image' | 'video' | 'audio' | 'pdf' | null

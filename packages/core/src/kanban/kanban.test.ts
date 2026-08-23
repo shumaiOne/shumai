@@ -923,6 +923,9 @@ describe('KanbanService', () => {
           storageKeyId: storageKeyV2.id,
           media: {
             proxyType: 'video',
+            poster: {
+              key: 'posters/v2_poster.webp',
+            },
             videoPreview: {
               key: 'previews/v2_preview.mp4',
               width: 1920,
@@ -959,6 +962,104 @@ describe('KanbanService', () => {
       expect(taskAssets[0].name).toBe('Video_v2.mp4')
       expect(taskAssets[0].sizeByte).toBe(2000)
       expect(taskAssets[0].proxyType).toBe('video')
+    })
+
+    it('returns true thumbnail for video (poster), image (thumbnail), and pdf (poster)', async () => {
+      const { team, owner } = await setupTeamAndUsers()
+      const { project } = await setupProjectAndAssets(team.id, owner.id)
+
+      const videoStorage = await prisma.storageKey.create({
+        data: { key: 'files/video.mp4', status: 'active' },
+      })
+      const videoAsset = await prisma.asset.create({
+        data: {
+          name: 'Video.mp4',
+          type: 'file',
+          mediaType: 'video/mp4',
+          status: 'processed',
+          projectId: project.id,
+          creatorId: owner.id,
+          storageKeyId: videoStorage.id,
+          media: {
+            proxyType: 'video',
+            poster: { key: 'posters/video_poster.webp' },
+            videoPreview: { key: 'previews/video_preview.mp4' },
+          } as unknown as PrismaJson.MediaInfo,
+        },
+      })
+
+      const imageStorage = await prisma.storageKey.create({
+        data: { key: 'files/raw_image.tiff', status: 'active' },
+      })
+      const imageAsset = await prisma.asset.create({
+        data: {
+          name: 'Photo.tiff',
+          type: 'file',
+          mediaType: 'image/tiff',
+          status: 'processed',
+          projectId: project.id,
+          creatorId: owner.id,
+          storageKeyId: imageStorage.id,
+          media: {
+            proxyType: 'image',
+            thumbnail: { key: 'thumbnails/photo_300p.webp' },
+            imageTranscodes: [{ key: 'transcodes/photo_1080p.webp' }],
+          } as unknown as PrismaJson.MediaInfo,
+        },
+      })
+
+      const pdfStorage = await prisma.storageKey.create({
+        data: { key: 'files/doc.pdf', status: 'active' },
+      })
+      const pdfAsset = await prisma.asset.create({
+        data: {
+          name: 'Doc.pdf',
+          type: 'file',
+          mediaType: 'application/pdf',
+          status: 'processed',
+          projectId: project.id,
+          creatorId: owner.id,
+          storageKeyId: pdfStorage.id,
+          media: {
+            proxyType: 'pdf',
+            poster: { key: 'posters/doc_poster.webp' },
+          } as unknown as PrismaJson.MediaInfo,
+        },
+      })
+
+      const task = await kanbanService.createTask(
+        team.id,
+        {
+          title: 'Task with media assets',
+          assetIds: [videoAsset.id, imageAsset.id, pdfAsset.id],
+        },
+        owner.id,
+        'owner',
+      )
+
+      const detail = await kanbanService.getTask(task.id)
+      expect(detail.assets).toHaveLength(3)
+
+      const videoDetail = detail.assets.find((a) => a.id === videoAsset.id)
+      expect(videoDetail).toBeDefined()
+      expect(videoDetail?.proxyType).toBe('video')
+      // Must use poster, NOT videoPreview mp4
+      expect(videoDetail?.thumbnailUrl).toContain('posters/video_poster.webp')
+      expect(videoDetail?.thumbnailUrl).not.toContain('previews/video_preview.mp4')
+
+      const imageDetail = detail.assets.find((a) => a.id === imageAsset.id)
+      expect(imageDetail).toBeDefined()
+      expect(imageDetail?.proxyType).toBe('image')
+      // Must use 300p thumbnail, NOT full image transcode or original storage key
+      expect(imageDetail?.thumbnailUrl).toContain('thumbnails/photo_300p.webp')
+      expect(imageDetail?.thumbnailUrl).not.toContain('transcodes/photo_1080p.webp')
+      expect(imageDetail?.thumbnailUrl).not.toContain('files/raw_image.tiff')
+
+      const pdfDetail = detail.assets.find((a) => a.id === pdfAsset.id)
+      expect(pdfDetail).toBeDefined()
+      expect(pdfDetail?.proxyType).toBe('pdf')
+      // Must use poster for pdf
+      expect(pdfDetail?.thumbnailUrl).toContain('posters/doc_poster.webp')
     })
   })
 })

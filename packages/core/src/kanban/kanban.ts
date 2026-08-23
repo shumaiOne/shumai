@@ -7,6 +7,7 @@ import { paginateQuery } from '../pagination'
 import { getAvatarUrl } from '../user/avatar'
 import { s3Service } from '../s3/s3'
 import { getProxyType } from '../utils/mime'
+import { assetService } from '../asset/asset'
 import type {
   CreateKanbanGoalRequest,
   UpdateKanbanGoalRequest,
@@ -1219,8 +1220,6 @@ export class KanbanService {
   ): Promise<KanbanTaskAssetInfo[]> {
     if (!assetLinks || assetLinks.length === 0) return []
 
-    const bucket = process.env.S3_BUCKET || 'shumai'
-
     const stackIds = new Set<string>()
     for (const { asset } of assetLinks) {
       if (asset.type === AssetType.version_stack) {
@@ -1263,27 +1262,12 @@ export class KanbanService {
         const targetCreator = target.creator || asset.creator
         const creatorImage = targetCreator ? await getAvatarUrl(targetCreator.image) : undefined
 
-        const media = (target.media as unknown as Record<string, unknown>) || {}
+        const preview = await assetService.toPreviewInfo(target)
         const proxyType =
-          (media.proxyType as 'image' | 'video' | 'audio' | 'pdf' | null) ||
+          preview?.proxyType ||
+          (target.media as PrismaJson.MediaInfo | null)?.proxyType ||
           getProxyType(target.mediaType, target.name)
-
-        let thumbnailUrl: string | null = null
-        const imageTranscodes = media.imageTranscodes as Array<{ key: string }> | undefined
-        const videoPreview = media.videoPreview as { key?: string } | undefined
-
-        const thumbnailKey =
-          imageTranscodes?.[0]?.key ||
-          videoPreview?.key ||
-          (proxyType === 'image' ? target.storageKey?.key : undefined)
-
-        if (thumbnailKey) {
-          try {
-            thumbnailUrl = await s3Service.presign(bucket, thumbnailKey, 'GET')
-          } catch {
-            thumbnailUrl = null
-          }
-        }
+        const thumbnailUrl = preview?.thumbnailUrl ?? null
 
         let path = '/'
         try {
