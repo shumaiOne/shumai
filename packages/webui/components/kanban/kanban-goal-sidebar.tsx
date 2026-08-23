@@ -185,7 +185,7 @@ export function KanbanGoalSidebar({
           <div
             onClick={() => onSelectGoal(null)}
             className={cn(
-              'flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-colors group h-8 min-h-[32px]',
+              'flex items-center justify-between px-2.5 py-1 rounded-md text-xs font-medium cursor-pointer transition-colors group h-8 min-h-[32px]',
               selectedGoalId === null
                 ? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-xs'
                 : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
@@ -222,20 +222,20 @@ export function KanbanGoalSidebar({
                   key={goal.id}
                   onClick={() => onSelectGoal(goal.id)}
                   className={cn(
-                    'flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-colors group relative h-8 min-h-[32px]',
+                    'flex items-center justify-between px-2.5 py-1 rounded-md text-xs font-medium cursor-pointer transition-colors group relative min-h-[32px]',
                     isSelected
                       ? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-xs'
                       : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
                   )}
                 >
-                  <div className="flex items-center gap-2 truncate min-w-0 flex-1">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
                     <Target
                       className={cn(
                         'w-3.5 h-3.5 shrink-0',
                         isSelected ? 'text-sidebar-primary' : 'text-muted-foreground',
                       )}
                     />
-                    <span className="truncate" title={title}>
+                    <span className="line-clamp-2 break-words leading-tight" title={title}>
                       {title}
                     </span>
                   </div>
@@ -257,7 +257,7 @@ export function KanbanGoalSidebar({
                             <DropdownMenuTrigger asChild>
                               <Button
                                 variant="ghost"
-                                size="icon-sm"
+                                size="icon-xs"
                                 className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                               >
                                 <MoreHorizontal className="w-3.5 h-3.5" />
