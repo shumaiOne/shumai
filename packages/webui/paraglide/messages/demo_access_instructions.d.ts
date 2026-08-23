@@ -1,7 +1,7 @@
 /**
 * | output |
 * | --- |
-* | "Use \"foo@bar.com\" as the email and \"foo\" as the password to login." |
+* | "Use \"foo@bar.com\" as the email and \"foo\" as the password to login (this demo account is read-only)." |
 *
 * @param {Demo_Access_InstructionsInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options
