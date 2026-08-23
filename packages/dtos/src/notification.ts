@@ -28,6 +28,14 @@ export const assetPreviewSchema = z.object({
 
 export type AssetPreview = z.infer<typeof assetPreviewSchema>
 
+export const kanbanTaskPreviewSchema = z.object({
+  id: z.string().optional(),
+  title: z.string().optional(),
+  status: z.string().optional(),
+})
+
+export type KanbanTaskPreview = z.infer<typeof kanbanTaskPreviewSchema>
+
 export const notificationInfoSchema = z.object({
   id: z.string().optional(),
   creator: teamUserInfoSchema.optional(),
@@ -35,6 +43,7 @@ export const notificationInfoSchema = z.object({
   team: entityInfoSchema.optional(),
   project: entityInfoSchema.optional(),
   asset: assetPreviewSchema.optional(),
+  kanbanTask: kanbanTaskPreviewSchema.optional(),
   user: teamUserInfoSchema.optional(),
   createdAt: z.string().optional(),
   isRead: z.boolean().optional(),
@@ -67,6 +76,7 @@ export interface CreateNotificationRequest {
   creatorId?: string
   assetId?: string
   taskId?: string
+  kanbanTaskId?: string
   userId?: string
   commentMessage?: string // For parsing mentions
 }
@@ -84,6 +94,8 @@ export const notificationSettingsSchema = z.object({
   yourUploads: z.boolean().default(false),
   otherUploads: z.boolean().default(true),
   statusUpdates: z.boolean().default(true),
+  kanbanTasks: z.boolean().default(true),
+  kanbanComments: z.boolean().default(true),
 })
 
 export type NotificationSettings = z.infer<typeof notificationSettingsSchema>

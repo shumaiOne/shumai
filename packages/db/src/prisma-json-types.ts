@@ -431,5 +431,36 @@ declare global {
     // ----------------------------------------------------------------------
     export type QuotaResourceData = Record<string, unknown>
     export type QuotaUserIds = string[]
+
+    // ----------------------------------------------------------------------
+    // Kanban Types
+    // ----------------------------------------------------------------------
+    export type KanbanBlockReasonKind = 'NEEDS_INPUT' | 'CAPABILITY' | 'DEPENDENCY' | 'TRANSIENT'
+
+    export interface KanbanAssetSummary {
+      id: string
+      type?: string
+      name?: string
+      description?: string
+    }
+
+    export interface KanbanEventPayload {
+      summary?: string
+      blockReason?: string
+      blockKind?: KanbanBlockReasonKind
+      assets?: KanbanAssetSummary[]
+      reason?: string
+      [key: string]: unknown
+    }
+
+    export interface KanbanCommentAttachment {
+      id: string
+      name: string
+      key: string
+      sizeByte: number
+      contentType?: string | null
+      proxyType?: 'image' | 'video' | 'audio' | 'pdf' | null
+    }
+    export type KanbanCommentAttachmentList = KanbanCommentAttachment[]
   }
 }

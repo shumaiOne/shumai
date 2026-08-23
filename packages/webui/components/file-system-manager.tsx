@@ -164,8 +164,8 @@ export default function FileSystemManager({
       currentAsset: isRecentlyDeleted
         ? { name: 'Recently Deleted', type: 'folder' }
         : isCollection
-          ? { name: collection.name, type: 'folder' }
-          : { name: folderInfo?.name, type: 'folder' },
+          ? { id: collection.id, name: collection.name, type: 'folder' }
+          : { id: folderInfo?.id || assetId, name: folderInfo?.name, type: 'folder' },
       isRootFolder: !isRecentlyDeleted && !isCollection && assetId === rootFolderId,
       onFolderClick: (id: string) => {
         navigate({

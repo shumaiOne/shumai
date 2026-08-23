@@ -248,3 +248,20 @@ export function UploadCloudIcon({
     </svg>
   )
 }
+
+export const KanbanFillIcon: React.FC<React.SVGProps<SVGSVGElement>> = ({
+  className,
+  ...props
+}) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 -960 960 960"
+    fill="currentColor"
+    aria-hidden="true"
+    focusable="false"
+    className={className ? `rotate-180 ${className}` : 'rotate-180'}
+    {...props}
+  >
+    <path d="M172-84q-36.3 0-62.15-25.85T84-172v-616q0-36.3 25.85-62.15T172-876h616q36.3 0 62.15 25.85T876-788v616q0 36.3-25.85 62.15T788-84H172Zm88-176h88v-440h-88v440Zm176 0h88v-264h-88v264Zm176 0h88v-352h-88v352Z" />
+  </svg>
+)

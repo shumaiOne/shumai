@@ -816,6 +816,74 @@ export type EnumQuotaPeriodWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumQuotaPeriodFilter<$PrismaModel>
 }
 
+export type EnumKanbanTaskStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.KanbanTaskStatus | Prisma.EnumKanbanTaskStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.KanbanTaskStatus[] | Prisma.ListEnumKanbanTaskStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.KanbanTaskStatus[] | Prisma.ListEnumKanbanTaskStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumKanbanTaskStatusFilter<$PrismaModel> | $Enums.KanbanTaskStatus
+}
+
+export type EnumKanbanTaskPriorityFilter<$PrismaModel = never> = {
+  equals?: $Enums.KanbanTaskPriority | Prisma.EnumKanbanTaskPriorityFieldRefInput<$PrismaModel>
+  in?: $Enums.KanbanTaskPriority[] | Prisma.ListEnumKanbanTaskPriorityFieldRefInput<$PrismaModel>
+  notIn?: $Enums.KanbanTaskPriority[] | Prisma.ListEnumKanbanTaskPriorityFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumKanbanTaskPriorityFilter<$PrismaModel> | $Enums.KanbanTaskPriority
+}
+
+export type EnumKanbanTaskStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.KanbanTaskStatus | Prisma.EnumKanbanTaskStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.KanbanTaskStatus[] | Prisma.ListEnumKanbanTaskStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.KanbanTaskStatus[] | Prisma.ListEnumKanbanTaskStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumKanbanTaskStatusWithAggregatesFilter<$PrismaModel> | $Enums.KanbanTaskStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumKanbanTaskStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumKanbanTaskStatusFilter<$PrismaModel>
+}
+
+export type EnumKanbanTaskPriorityWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.KanbanTaskPriority | Prisma.EnumKanbanTaskPriorityFieldRefInput<$PrismaModel>
+  in?: $Enums.KanbanTaskPriority[] | Prisma.ListEnumKanbanTaskPriorityFieldRefInput<$PrismaModel>
+  notIn?: $Enums.KanbanTaskPriority[] | Prisma.ListEnumKanbanTaskPriorityFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumKanbanTaskPriorityWithAggregatesFilter<$PrismaModel> | $Enums.KanbanTaskPriority
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumKanbanTaskPriorityFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumKanbanTaskPriorityFilter<$PrismaModel>
+}
+
+export type EnumKanbanTaskEventTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.KanbanTaskEventType | Prisma.EnumKanbanTaskEventTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.KanbanTaskEventType[] | Prisma.ListEnumKanbanTaskEventTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.KanbanTaskEventType[] | Prisma.ListEnumKanbanTaskEventTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumKanbanTaskEventTypeFilter<$PrismaModel> | $Enums.KanbanTaskEventType
+}
+
+export type EnumKanbanTaskStatusNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.KanbanTaskStatus | Prisma.EnumKanbanTaskStatusFieldRefInput<$PrismaModel> | null
+  in?: $Enums.KanbanTaskStatus[] | Prisma.ListEnumKanbanTaskStatusFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.KanbanTaskStatus[] | Prisma.ListEnumKanbanTaskStatusFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumKanbanTaskStatusNullableFilter<$PrismaModel> | $Enums.KanbanTaskStatus | null
+}
+
+export type EnumKanbanTaskEventTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.KanbanTaskEventType | Prisma.EnumKanbanTaskEventTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.KanbanTaskEventType[] | Prisma.ListEnumKanbanTaskEventTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.KanbanTaskEventType[] | Prisma.ListEnumKanbanTaskEventTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumKanbanTaskEventTypeWithAggregatesFilter<$PrismaModel> | $Enums.KanbanTaskEventType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumKanbanTaskEventTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumKanbanTaskEventTypeFilter<$PrismaModel>
+}
+
+export type EnumKanbanTaskStatusNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.KanbanTaskStatus | Prisma.EnumKanbanTaskStatusFieldRefInput<$PrismaModel> | null
+  in?: $Enums.KanbanTaskStatus[] | Prisma.ListEnumKanbanTaskStatusFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.KanbanTaskStatus[] | Prisma.ListEnumKanbanTaskStatusFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumKanbanTaskStatusNullableWithAggregatesFilter<$PrismaModel> | $Enums.KanbanTaskStatus | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumKanbanTaskStatusNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumKanbanTaskStatusNullableFilter<$PrismaModel>
+}
+
 export type NestedStringFilter<$PrismaModel = never> = {
   equals?: string | Prisma.StringFieldRefInput<$PrismaModel>
   in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>
@@ -1551,6 +1619,74 @@ export type NestedEnumQuotaPeriodWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumQuotaPeriodFilter<$PrismaModel>
   _max?: Prisma.NestedEnumQuotaPeriodFilter<$PrismaModel>
+}
+
+export type NestedEnumKanbanTaskStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.KanbanTaskStatus | Prisma.EnumKanbanTaskStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.KanbanTaskStatus[] | Prisma.ListEnumKanbanTaskStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.KanbanTaskStatus[] | Prisma.ListEnumKanbanTaskStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumKanbanTaskStatusFilter<$PrismaModel> | $Enums.KanbanTaskStatus
+}
+
+export type NestedEnumKanbanTaskPriorityFilter<$PrismaModel = never> = {
+  equals?: $Enums.KanbanTaskPriority | Prisma.EnumKanbanTaskPriorityFieldRefInput<$PrismaModel>
+  in?: $Enums.KanbanTaskPriority[] | Prisma.ListEnumKanbanTaskPriorityFieldRefInput<$PrismaModel>
+  notIn?: $Enums.KanbanTaskPriority[] | Prisma.ListEnumKanbanTaskPriorityFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumKanbanTaskPriorityFilter<$PrismaModel> | $Enums.KanbanTaskPriority
+}
+
+export type NestedEnumKanbanTaskStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.KanbanTaskStatus | Prisma.EnumKanbanTaskStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.KanbanTaskStatus[] | Prisma.ListEnumKanbanTaskStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.KanbanTaskStatus[] | Prisma.ListEnumKanbanTaskStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumKanbanTaskStatusWithAggregatesFilter<$PrismaModel> | $Enums.KanbanTaskStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumKanbanTaskStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumKanbanTaskStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumKanbanTaskPriorityWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.KanbanTaskPriority | Prisma.EnumKanbanTaskPriorityFieldRefInput<$PrismaModel>
+  in?: $Enums.KanbanTaskPriority[] | Prisma.ListEnumKanbanTaskPriorityFieldRefInput<$PrismaModel>
+  notIn?: $Enums.KanbanTaskPriority[] | Prisma.ListEnumKanbanTaskPriorityFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumKanbanTaskPriorityWithAggregatesFilter<$PrismaModel> | $Enums.KanbanTaskPriority
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumKanbanTaskPriorityFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumKanbanTaskPriorityFilter<$PrismaModel>
+}
+
+export type NestedEnumKanbanTaskEventTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.KanbanTaskEventType | Prisma.EnumKanbanTaskEventTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.KanbanTaskEventType[] | Prisma.ListEnumKanbanTaskEventTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.KanbanTaskEventType[] | Prisma.ListEnumKanbanTaskEventTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumKanbanTaskEventTypeFilter<$PrismaModel> | $Enums.KanbanTaskEventType
+}
+
+export type NestedEnumKanbanTaskStatusNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.KanbanTaskStatus | Prisma.EnumKanbanTaskStatusFieldRefInput<$PrismaModel> | null
+  in?: $Enums.KanbanTaskStatus[] | Prisma.ListEnumKanbanTaskStatusFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.KanbanTaskStatus[] | Prisma.ListEnumKanbanTaskStatusFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumKanbanTaskStatusNullableFilter<$PrismaModel> | $Enums.KanbanTaskStatus | null
+}
+
+export type NestedEnumKanbanTaskEventTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.KanbanTaskEventType | Prisma.EnumKanbanTaskEventTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.KanbanTaskEventType[] | Prisma.ListEnumKanbanTaskEventTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.KanbanTaskEventType[] | Prisma.ListEnumKanbanTaskEventTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumKanbanTaskEventTypeWithAggregatesFilter<$PrismaModel> | $Enums.KanbanTaskEventType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumKanbanTaskEventTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumKanbanTaskEventTypeFilter<$PrismaModel>
+}
+
+export type NestedEnumKanbanTaskStatusNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.KanbanTaskStatus | Prisma.EnumKanbanTaskStatusFieldRefInput<$PrismaModel> | null
+  in?: $Enums.KanbanTaskStatus[] | Prisma.ListEnumKanbanTaskStatusFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.KanbanTaskStatus[] | Prisma.ListEnumKanbanTaskStatusFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumKanbanTaskStatusNullableWithAggregatesFilter<$PrismaModel> | $Enums.KanbanTaskStatus | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumKanbanTaskStatusNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumKanbanTaskStatusNullableFilter<$PrismaModel>
 }
 
 

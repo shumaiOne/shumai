@@ -1,7 +1,7 @@
 /**
 * | output |
 * | --- |
-* | "Saving" |
+* | "Saving..." |
 *
 * @param {SavingInputs} inputs
 * @param {{ locale?: "en" | "zh" }} options

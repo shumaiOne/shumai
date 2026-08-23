@@ -84,4 +84,36 @@ describe('AuditLogService', () => {
 
     expect(result).toBeNull()
   })
+
+  it('records kanban actions accurately', async () => {
+    const user = await prisma.user.create({
+      data: { name: 'Kanban User', email: 'kanban_user@example.com', password: 'password' },
+    })
+    const team = await prisma.team.create({
+      data: { name: 'Kanban Audit Team' },
+    })
+
+    await auditLogService.logAction({
+      action: AuditAction.kanban_task_create,
+      teamId: team.id,
+      userId: user.id,
+      itemId: 'task-123',
+    })
+
+    await auditLogService.logAction({
+      action: AuditAction.kanban_goal_create,
+      teamId: team.id,
+      userId: user.id,
+      itemId: 'goal-123',
+    })
+
+    const result = await auditLogService.listAuditLogs({
+      teamId: team.id,
+      actions: [AuditAction.kanban_task_create, AuditAction.kanban_goal_create],
+    })
+
+    expect(result.total).toBe(2)
+    expect(result.nodes.map((n) => n.action)).toContain(AuditAction.kanban_task_create)
+    expect(result.nodes.map((n) => n.action)).toContain(AuditAction.kanban_goal_create)
+  })
 })

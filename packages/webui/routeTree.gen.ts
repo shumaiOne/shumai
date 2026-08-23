@@ -17,6 +17,7 @@ import { Route as TeamsTeamIdIndexRouteImport } from './routes/teams/$teamId/ind
 import { Route as ShareShareIdIndexRouteImport } from './routes/share/$shareId/index'
 import { Route as ProjectsProjectIdIndexRouteImport } from './routes/projects/$projectId/index'
 import { Route as TeamsTeamIdSettingsRouteImport } from './routes/teams/$teamId/settings'
+import { Route as TeamsTeamIdKanbanRouteImport } from './routes/teams/$teamId/kanban'
 import { Route as TeamsTeamIdDashboardRouteImport } from './routes/teams/$teamId/dashboard'
 import { Route as ProjectsProjectIdRecentlyDeletedRouteImport } from './routes/projects/$projectId/recently-deleted'
 import { Route as ProjectsProjectIdAgentsmdRouteImport } from './routes/projects/$projectId/agentsmd'
@@ -70,6 +71,11 @@ const TeamsTeamIdSettingsRoute = TeamsTeamIdSettingsRouteImport.update({
   path: '/teams/$teamId/settings',
   getParentRoute: () => rootRouteImport,
 } as any).lazy(() => import('./routes/teams/$teamId/settings.lazy').then((d) => d.Route))
+const TeamsTeamIdKanbanRoute = TeamsTeamIdKanbanRouteImport.update({
+  id: '/teams/$teamId/kanban',
+  path: '/teams/$teamId/kanban',
+  getParentRoute: () => rootRouteImport,
+} as any).lazy(() => import('./routes/teams/$teamId/kanban.lazy').then((d) => d.Route))
 const TeamsTeamIdDashboardRoute = TeamsTeamIdDashboardRouteImport.update({
   id: '/teams/$teamId/dashboard',
   path: '/teams/$teamId/dashboard',
@@ -153,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/projects/$projectId/agentsmd': typeof ProjectsProjectIdAgentsmdRoute
   '/projects/$projectId/recently-deleted': typeof ProjectsProjectIdRecentlyDeletedRoute
   '/teams/$teamId/dashboard': typeof TeamsTeamIdDashboardRoute
+  '/teams/$teamId/kanban': typeof TeamsTeamIdKanbanRoute
   '/teams/$teamId/settings': typeof TeamsTeamIdSettingsRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
   '/share/$shareId/': typeof ShareShareIdIndexRoute
@@ -174,6 +181,7 @@ export interface FileRoutesByTo {
   '/projects/$projectId/agentsmd': typeof ProjectsProjectIdAgentsmdRoute
   '/projects/$projectId/recently-deleted': typeof ProjectsProjectIdRecentlyDeletedRoute
   '/teams/$teamId/dashboard': typeof TeamsTeamIdDashboardRoute
+  '/teams/$teamId/kanban': typeof TeamsTeamIdKanbanRoute
   '/teams/$teamId/settings': typeof TeamsTeamIdSettingsRoute
   '/projects/$projectId': typeof ProjectsProjectIdIndexRoute
   '/share/$shareId': typeof ShareShareIdIndexRoute
@@ -197,6 +205,7 @@ export interface FileRoutesById {
   '/projects/$projectId/agentsmd': typeof ProjectsProjectIdAgentsmdRoute
   '/projects/$projectId/recently-deleted': typeof ProjectsProjectIdRecentlyDeletedRoute
   '/teams/$teamId/dashboard': typeof TeamsTeamIdDashboardRoute
+  '/teams/$teamId/kanban': typeof TeamsTeamIdKanbanRoute
   '/teams/$teamId/settings': typeof TeamsTeamIdSettingsRoute
   '/projects/$projectId/': typeof ProjectsProjectIdIndexRoute
   '/share/$shareId/': typeof ShareShareIdIndexRoute
@@ -221,6 +230,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/agentsmd'
     | '/projects/$projectId/recently-deleted'
     | '/teams/$teamId/dashboard'
+    | '/teams/$teamId/kanban'
     | '/teams/$teamId/settings'
     | '/projects/$projectId/'
     | '/share/$shareId/'
@@ -242,6 +252,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/agentsmd'
     | '/projects/$projectId/recently-deleted'
     | '/teams/$teamId/dashboard'
+    | '/teams/$teamId/kanban'
     | '/teams/$teamId/settings'
     | '/projects/$projectId'
     | '/share/$shareId'
@@ -264,6 +275,7 @@ export interface FileRouteTypes {
     | '/projects/$projectId/agentsmd'
     | '/projects/$projectId/recently-deleted'
     | '/teams/$teamId/dashboard'
+    | '/teams/$teamId/kanban'
     | '/teams/$teamId/settings'
     | '/projects/$projectId/'
     | '/share/$shareId/'
@@ -287,6 +299,7 @@ export interface RootRouteChildren {
   ProjectsProjectIdAgentsmdRoute: typeof ProjectsProjectIdAgentsmdRoute
   ProjectsProjectIdRecentlyDeletedRoute: typeof ProjectsProjectIdRecentlyDeletedRoute
   TeamsTeamIdDashboardRoute: typeof TeamsTeamIdDashboardRoute
+  TeamsTeamIdKanbanRoute: typeof TeamsTeamIdKanbanRoute
   TeamsTeamIdSettingsRoute: typeof TeamsTeamIdSettingsRoute
   ProjectsProjectIdIndexRoute: typeof ProjectsProjectIdIndexRoute
   TeamsTeamIdIndexRoute: typeof TeamsTeamIdIndexRoute
@@ -355,6 +368,13 @@ declare module '@tanstack/react-router' {
       path: '/teams/$teamId/settings'
       fullPath: '/teams/$teamId/settings'
       preLoaderRoute: typeof TeamsTeamIdSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/teams/$teamId/kanban': {
+      id: '/teams/$teamId/kanban'
+      path: '/teams/$teamId/kanban'
+      fullPath: '/teams/$teamId/kanban'
+      preLoaderRoute: typeof TeamsTeamIdKanbanRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/teams/$teamId/dashboard': {
@@ -466,6 +486,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectsProjectIdAgentsmdRoute: ProjectsProjectIdAgentsmdRoute,
   ProjectsProjectIdRecentlyDeletedRoute: ProjectsProjectIdRecentlyDeletedRoute,
   TeamsTeamIdDashboardRoute: TeamsTeamIdDashboardRoute,
+  TeamsTeamIdKanbanRoute: TeamsTeamIdKanbanRoute,
   TeamsTeamIdSettingsRoute: TeamsTeamIdSettingsRoute,
   ProjectsProjectIdIndexRoute: ProjectsProjectIdIndexRoute,
   TeamsTeamIdIndexRoute: TeamsTeamIdIndexRoute,

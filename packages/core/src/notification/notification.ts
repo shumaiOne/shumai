@@ -15,6 +15,74 @@ import { userMetadataService } from '@shumai/core/src/user-metadata/user-metadat
 const mentionRegex = /<@([^>]+)>/g
 
 export class NotificationService {
+  async notifyKanbanTaskEvent(params: {
+    type: NotificationType
+    teamId: string
+    projectId?: string | null
+    creatorId: string
+    kanbanTaskId?: string
+    stakeholderIds?: (string | null | undefined)[]
+    targetUserId?: string
+    commentMessage?: string
+  }) {
+    const recipients = new Set<string>()
+    if (params.targetUserId) {
+      recipients.add(params.targetUserId)
+    }
+    if (params.stakeholderIds) {
+      for (const id of params.stakeholderIds) {
+        if (id) recipients.add(id)
+      }
+    }
+    recipients.delete(params.creatorId)
+
+    const promises: Promise<void>[] = []
+    for (const recipientId of recipients) {
+      promises.push(
+        this.createAsync({
+          type: params.type,
+          teamId: params.teamId,
+          projectId: params.projectId ?? undefined,
+          creatorId: params.creatorId,
+          kanbanTaskId: params.kanbanTaskId,
+          userId: recipientId,
+        }),
+      )
+    }
+
+    if (params.commentMessage) {
+      const matches = [...params.commentMessage.matchAll(mentionRegex)]
+      const mentionedIds = new Set<string>()
+
+      for (const match of matches) {
+        if (match.length > 1) {
+          const userId = match[1]
+          if (mentionedIds.has(userId)) {
+            continue
+          }
+          mentionedIds.add(userId)
+
+          if (params.creatorId === userId) {
+            continue
+          }
+
+          promises.push(
+            this.createAsync({
+              type: NotificationType.mention,
+              teamId: params.teamId,
+              projectId: params.projectId ?? undefined,
+              creatorId: params.creatorId,
+              kanbanTaskId: params.kanbanTaskId,
+              userId: userId,
+            }),
+          )
+        }
+      }
+    }
+
+    await Promise.all(promises)
+  }
+
   async create(req: CreateNotificationRequest) {
     // Note: Do not await this, we fire and forget similarly to Go
     this.createAsync(req).catch((err) => {
@@ -33,6 +101,16 @@ export class NotificationService {
       })
       if (asset?.projectId) {
         projectId = asset.projectId
+      }
+    }
+
+    // Resolve ProjectID from KanbanTaskId if missing
+    if (!projectId && req.kanbanTaskId) {
+      const task = await prisma.kanbanTask.findUnique({
+        where: { id: req.kanbanTaskId },
+      })
+      if (task?.projectId) {
+        projectId = task.projectId
       }
     }
 
@@ -57,6 +135,7 @@ export class NotificationService {
             creatorId: req.creatorId,
             assetId: req.assetId,
             taskId: req.taskId,
+            kanbanTaskId: req.kanbanTaskId,
             userId: targetUserId,
           },
         })
@@ -71,7 +150,8 @@ export class NotificationService {
     // 2. Handle Mentions for Comment/Reply types
     if (
       (req.type === NotificationType.comment_created ||
-        req.type === NotificationType.reply_created) &&
+        req.type === NotificationType.reply_created ||
+        req.type === NotificationType.kanban_task_comment_created) &&
       req.commentMessage
     ) {
       const matches = [...req.commentMessage.matchAll(mentionRegex)]
@@ -128,23 +208,25 @@ export class NotificationService {
           yourUploads: false,
           otherUploads: true,
           statusUpdates: true,
+          kanbanTasks: true,
+          kanbanComments: true,
         }
 
     const typeConditions: Prisma.NotificationWhereInput[] = []
 
     // 1. Comments
-    if (settings.comments) {
+    if (settings.comments ?? true) {
       typeConditions.push({ type: NotificationType.comment_created, userId: null })
     }
 
     // 2. Replies
-    if (settings.replies) {
+    if (settings.replies ?? true) {
       typeConditions.push({ type: NotificationType.reply_created, userId: userId })
       typeConditions.push({ type: NotificationType.reply_created, userId: null })
     }
 
     // 3. Mentions
-    if (settings.mentions) {
+    if (settings.mentions ?? true) {
       typeConditions.push({ type: NotificationType.mention, userId: userId })
     }
 
@@ -161,11 +243,35 @@ export class NotificationService {
     }
 
     // 5. Status Updates
-    if (settings.statusUpdates) {
+    if (settings.statusUpdates ?? true) {
       typeConditions.push({ type: NotificationType.metadata_field_updated_status })
     }
 
-    // 6. Always include team/project join notifications
+    // 6. Kanban Tasks
+    if (settings.kanbanTasks ?? true) {
+      typeConditions.push({
+        type: {
+          in: [
+            NotificationType.kanban_task_created,
+            NotificationType.kanban_task_assigned,
+            NotificationType.kanban_task_status_updated,
+            NotificationType.kanban_task_updated,
+            NotificationType.kanban_task_deleted,
+          ],
+        },
+        userId: userId,
+      })
+    }
+
+    // 7. Kanban Comments
+    if (settings.kanbanComments ?? true) {
+      typeConditions.push({
+        type: NotificationType.kanban_task_comment_created,
+        userId: userId,
+      })
+    }
+
+    // 8. Always include team/project join notifications
     typeConditions.push({ type: NotificationType.new_user_join_team })
     typeConditions.push({ type: NotificationType.new_user_join_project })
 
@@ -193,6 +299,7 @@ export class NotificationService {
         {
           OR: [
             { type: NotificationType.mention }, // Always allow mentions (targeted)
+            { userId: userId }, // Direct targeted notifications (e.g. assigned, stakeholder)
             { projectId: { in: projectFilter } }, // Only show notifications for projects user is member of
           ],
         },
@@ -270,6 +377,7 @@ export class NotificationService {
             project: true,
             asset: true,
             user: true,
+            kanbanTask: true,
           },
         })
 
@@ -329,7 +437,14 @@ export class NotificationService {
 
   private async toNotificationInfo(
     n: Prisma.NotificationGetPayload<{
-      include: { creator: true; team: true; project: true; asset: true; user: true }
+      include: {
+        creator: true
+        team: true
+        project: true
+        asset: true
+        user: true
+        kanbanTask: true
+      }
     }>,
     lastRead: Prisma.NotificationGetPayload<Record<string, never>> | null,
   ): Promise<NotificationInfo> {
@@ -365,6 +480,14 @@ export class NotificationService {
       info.user = {
         id: n.user.id,
         name: n.user.name,
+      }
+    }
+
+    if (n.kanbanTask) {
+      info.kanbanTask = {
+        id: n.kanbanTask.id,
+        title: n.kanbanTask.title,
+        status: n.kanbanTask.status,
       }
     }
 

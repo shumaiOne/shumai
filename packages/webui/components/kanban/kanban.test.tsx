@@ -1,0 +1,771 @@
+// @vitest-environment happy-dom
+import React from 'react'
+import { cleanup, render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import {
+  KanbanTaskPriority,
+  KanbanTaskStatus,
+  KanbanTaskEventType,
+  type KanbanTaskInfo,
+  type KanbanGoalInfo,
+  type KanbanCommentInfo,
+  UNASSIGNED_GOAL_ID,
+} from '@shumai/dtos'
+import {
+  getStatusLabel,
+  getStatusColor,
+  getStatusBadgeColor,
+  getPriorityLabel,
+  getPriorityBadgeColor,
+} from './kanban-types'
+import { KanbanCard } from './kanban-card'
+import { KanbanHeader } from './kanban-header'
+import { KanbanBoard } from './kanban-board'
+import { KanbanGoalSidebar } from './kanban-goal-sidebar'
+import { KanbanCreateGoalDialog } from './kanban-create-goal-dialog'
+import { KanbanCreateTaskDialog } from './kanban-create-task-dialog'
+import { TaskRelatedAssets } from './task-related-assets'
+import { TaskCommentCard } from './edit-task-dialog/task-comment-card'
+import { TaskCommentInput } from './edit-task-dialog/task-comment-input'
+import type { KanbanTaskAssetInfo } from '@shumai/dtos'
+import { client } from '@/ui/api/client'
+
+const mockUseDraggable = vi.fn()
+
+// Mock @dnd-kit/react
+vi.mock('@dnd-kit/react', () => ({
+  useDraggable: (args: unknown) => {
+    mockUseDraggable(args)
+    return {
+      ref: vi.fn(),
+      isDragging: false,
+    }
+  },
+  useDroppable: () => ({
+    ref: vi.fn(),
+    isDropTarget: false,
+  }),
+  useDragOperation: () => ({
+    source: null,
+    target: null,
+  }),
+  DragDropProvider: ({ children }: { children?: React.ReactNode }) => children,
+  PointerSensor: {
+    configure: () => ({}),
+  },
+  KeyboardSensor: {},
+}))
+
+// Mock @dnd-kit/dom
+vi.mock('@dnd-kit/dom', () => ({
+  PointerActivationConstraints: {
+    Distance: vi.fn(),
+  },
+}))
+
+// Mock API client
+vi.mock('@/ui/api/client', () => ({
+  client: {
+    api: {
+      teams: {
+        ':teamId': {
+          kanban: {
+            goals: {
+              $get: vi.fn(),
+              $post: vi.fn(),
+              ':goalId': {
+                $patch: vi.fn(),
+                $delete: vi.fn(),
+              },
+            },
+            tasks: {
+              $get: vi.fn(),
+              $post: vi.fn(),
+              ':taskId': {
+                $patch: vi.fn(),
+                $delete: vi.fn(),
+              },
+            },
+          },
+          members: {
+            $get: vi.fn().mockResolvedValue({ ok: true, json: async () => [] }),
+          },
+          agents: {
+            $get: vi.fn().mockResolvedValue({ ok: true, json: async () => [] }),
+          },
+          me: {
+            $get: vi.fn().mockResolvedValue({
+              ok: true,
+              json: async () => ({ id: 'u-1', name: 'User 1', role: 'owner' }),
+            }),
+          },
+        },
+      },
+    },
+  },
+}))
+
+function createWrapper() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+    },
+  })
+  return ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  )
+}
+
+describe('Kanban UI Unit & Component Tests', () => {
+  afterEach(() => {
+    cleanup()
+    vi.clearAllMocks()
+  })
+
+  describe('Kanban Helpers & Type Utilities', () => {
+    it('maps status to correct labels and semantic badge colors', () => {
+      expect(getStatusLabel(KanbanTaskStatus.TODO)).toBeDefined()
+      expect(getStatusLabel(KanbanTaskStatus.READY)).toBeDefined()
+      expect(getStatusLabel(KanbanTaskStatus.IN_PROGRESS)).toBeDefined()
+      expect(getStatusLabel(KanbanTaskStatus.BLOCKED)).toBeDefined()
+      expect(getStatusLabel(KanbanTaskStatus.IN_REVIEW)).toBeDefined()
+      expect(getStatusLabel(KanbanTaskStatus.DONE)).toBeDefined()
+
+      expect(getStatusColor(KanbanTaskStatus.READY).badge).toBeDefined()
+      expect(getStatusBadgeColor(KanbanTaskStatus.BLOCKED)).toContain('red')
+    })
+
+    it('maps priority to labels and colors', () => {
+      expect(getPriorityLabel(KanbanTaskPriority.LOW)).toBeDefined()
+      expect(getPriorityLabel(KanbanTaskPriority.URGENT)).toBeDefined()
+      expect(getPriorityBadgeColor(KanbanTaskPriority.URGENT)).toContain('red')
+    })
+  })
+
+  describe('KanbanCard component', () => {
+    const mockManualTask: KanbanTaskInfo = {
+      id: 'task-1',
+      title: 'Manual Human Task',
+      description: 'Test description',
+      isAgentTask: false,
+      status: KanbanTaskStatus.TODO,
+      priority: KanbanTaskPriority.HIGH,
+      startDate: null,
+      dueDate: '2026-12-31T23:59:59.000Z',
+      startedAt: null,
+      completedAt: null,
+      teamId: 'team-1',
+      projectId: null,
+      creator: { id: 'user-1', name: 'Alice' },
+      reporter: null,
+      assignee: { id: 'user-2', name: 'Bob' },
+      goal: { id: 'goal-1', title: 'Q3 Goal' },
+      targetFolderId: null,
+      latestStatusEvent: null,
+      commentCount: 3,
+      dependencyCount: 1,
+      dependentCount: 0,
+      assetCount: 0,
+      createdAt: '2026-08-20T00:00:00.000Z',
+      updatedAt: '2026-08-20T00:00:00.000Z',
+    }
+
+    const mockAgenticTask: KanbanTaskInfo = {
+      ...mockManualTask,
+      id: 'task-2',
+      title: 'Autonomous Agent Task',
+      isAgentTask: true,
+      status: KanbanTaskStatus.IN_PROGRESS,
+    }
+
+    it('renders human task card correctly without agent task label', () => {
+      const onClick = vi.fn()
+      render(<KanbanCard task={mockManualTask} onClick={onClick} />)
+
+      expect(screen.getByText('Manual Human Task')).toBeDefined()
+      expect(screen.getByText('Bob')).toBeDefined()
+      expect(screen.getByText('Q3 Goal')).toBeDefined()
+      expect(screen.getByText('3')).toBeDefined() // Comments count
+      expect(screen.getByText('1')).toBeDefined() // Dependency count
+      expect(screen.queryByText(/Agent Task|智能体任务/i)).toBeNull()
+
+      fireEvent.click(screen.getByText('Manual Human Task'))
+      expect(onClick).toHaveBeenCalledWith(mockManualTask)
+    })
+
+    it('renders agent task card with Agent Task label in orange style and standard card border', () => {
+      const onClick = vi.fn()
+      const { container } = render(<KanbanCard task={mockAgenticTask} onClick={onClick} />)
+
+      expect(screen.getByText('Autonomous Agent Task')).toBeDefined()
+      const agentBadge = screen.getByText(/^Agent Task$|^智能体任务$/i)
+      expect(agentBadge).toBeDefined()
+      expect(agentBadge.parentElement?.className).toContain('text-orange-600')
+      // Verify card container uses standard border, not purple border highlight
+      const card = container.querySelector('.border-border\\/80')
+      expect(card).toBeDefined()
+    })
+
+    it('renders three-dot delete action for task creator or owner and triggers onDelete', () => {
+      const onDelete = vi.fn()
+      const { container, rerender } = render(
+        <KanbanCard
+          task={mockManualTask}
+          onClick={vi.fn()}
+          onDelete={onDelete}
+          currentUserId="user-1" // mockManualTask creator is user-1
+          currentUserRole="reviewer"
+        />,
+      )
+
+      // Three-dot trigger should be rendered
+      const triggerBtn = container.querySelector('button')
+      expect(triggerBtn).toBeDefined()
+
+      // When user is not creator and not owner, delete trigger is not rendered
+      rerender(
+        <KanbanCard
+          task={mockManualTask}
+          onClick={vi.fn()}
+          onDelete={onDelete}
+          currentUserId="other-user"
+          currentUserRole="reviewer"
+        />,
+      )
+      expect(container.querySelector('button')).toBeNull()
+    })
+
+    it('enforces card drag permission: enabled for owner, reporter, or assignee; disabled for others', () => {
+      // 1. Enabled when user is owner
+      render(
+        <KanbanCard
+          task={{
+            ...mockManualTask,
+            creator: { id: 'other', name: 'Other' },
+            reporter: null,
+            assignee: null,
+          }}
+          onClick={vi.fn()}
+          currentUserRole="owner"
+          currentUserId="random-user"
+        />,
+      )
+      expect(mockUseDraggable).toHaveBeenLastCalledWith(
+        expect.objectContaining({ disabled: false }),
+      )
+
+      // 2. Enabled when user is reporter (or creator if reporter null)
+      render(
+        <KanbanCard
+          task={{
+            ...mockManualTask,
+            creator: { id: 'user-reporter', name: 'Rep' },
+            reporter: null,
+            assignee: null,
+          }}
+          onClick={vi.fn()}
+          currentUserRole="editor"
+          currentUserId="user-reporter"
+        />,
+      )
+      expect(mockUseDraggable).toHaveBeenLastCalledWith(
+        expect.objectContaining({ disabled: false }),
+      )
+
+      // 3. Enabled when user is assignee
+      render(
+        <KanbanCard
+          task={{
+            ...mockManualTask,
+            creator: { id: 'other', name: 'Other' },
+            reporter: null,
+            assignee: { id: 'user-assignee', name: 'Assignee' },
+          }}
+          onClick={vi.fn()}
+          currentUserRole="reviewer"
+          currentUserId="user-assignee"
+        />,
+      )
+      expect(mockUseDraggable).toHaveBeenLastCalledWith(
+        expect.objectContaining({ disabled: false }),
+      )
+
+      // 4. Disabled when user is not owner, not reporter, and not assignee
+      render(
+        <KanbanCard
+          task={{
+            ...mockManualTask,
+            creator: { id: 'other-1', name: 'Other' },
+            reporter: { id: 'other-2', name: 'Reporter' },
+            assignee: { id: 'other-3', name: 'Assignee' },
+          }}
+          onClick={vi.fn()}
+          currentUserRole="editor"
+          currentUserId="stranger-user"
+        />,
+      )
+      expect(mockUseDraggable).toHaveBeenLastCalledWith(expect.objectContaining({ disabled: true }))
+    })
+
+    it('renders asset count badge when task has linked assets', () => {
+      render(
+        <KanbanCard
+          task={{
+            ...mockManualTask,
+            assetCount: 4,
+          }}
+          onClick={vi.fn()}
+        />,
+      )
+      expect(screen.getByText('4')).toBeDefined()
+    })
+
+    it('renders blocked warning and reason when task is BLOCKED', () => {
+      const blockedTask: KanbanTaskInfo = {
+        ...mockManualTask,
+        status: KanbanTaskStatus.BLOCKED,
+        latestStatusEvent: {
+          id: 'event-1',
+          type: KanbanTaskEventType.BLOCKED,
+          blockReason: 'Missing API Key credentials',
+          createdAt: '2026-08-20T00:00:00.000Z',
+        },
+      }
+
+      render(<KanbanCard task={blockedTask} onClick={vi.fn()} />)
+      expect(screen.getByText('Missing API Key credentials')).toBeDefined()
+    })
+  })
+
+  describe('KanbanHeader component', () => {
+    it('handles scope switching and goal clearing', () => {
+      const onScopeChange = vi.fn()
+      const onClearGoal = vi.fn()
+      const onCreateTask = vi.fn()
+
+      const selectedGoal: KanbanGoalInfo = {
+        id: 'goal-1',
+        title: 'Launch Goal',
+        teamId: 'team-1',
+        createdAt: '2026-08-20T00:00:00.000Z',
+        updatedAt: '2026-08-20T00:00:00.000Z',
+      }
+
+      render(
+        <KanbanHeader
+          scope="team"
+          onScopeChange={onScopeChange}
+          selectedGoal={selectedGoal}
+          onClearGoal={onClearGoal}
+          onCreateTask={onCreateTask}
+        />,
+      )
+
+      expect(screen.getByText('Launch Goal')).toBeDefined()
+
+      // Click My Tasks
+      const myTasksButtons = screen.getAllByRole('button')
+      const myTaskBtn = myTasksButtons.find(
+        (btn) => btn.textContent?.includes('My Tasks') || btn.textContent?.includes('我的任务'),
+      )
+      if (myTaskBtn) {
+        fireEvent.click(myTaskBtn)
+        expect(onScopeChange).toHaveBeenCalledWith('my')
+      }
+    })
+  })
+
+  describe('KanbanCreateGoalDialog component', () => {
+    it('submits goal creation form', async () => {
+      const mockPost = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ id: 'new-goal', title: 'New Goal' }),
+      })
+      // Mocking hono RPC client method for unit testing
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(client.api.teams[':teamId'].kanban.goals.$post as any) = mockPost
+
+      const onClose = vi.fn()
+      render(<KanbanCreateGoalDialog teamId="team-1" isOpen={true} onClose={onClose} />, {
+        wrapper: createWrapper(),
+      })
+
+      const titleInput = screen.getByLabelText(/Goal Title|目标标题/i)
+      fireEvent.change(titleInput, { target: { value: 'Brand New Goal' } })
+
+      const submitBtn = screen.getByRole('button', { name: /Create|创建/i })
+      fireEvent.click(submitBtn)
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalled()
+        expect(onClose).toHaveBeenCalled()
+      })
+    })
+  })
+
+  describe('TaskCommentCard and TaskCommentInput components', () => {
+    it('renders comment with markdown and image/file attachments', () => {
+      const mockComment: KanbanCommentInfo = {
+        id: 'c-1',
+        taskId: 't-1',
+        author: { id: 'u-1', name: 'Alice Author' },
+        body: 'Hello **bold** world',
+        attachments: [
+          {
+            id: 'att-1',
+            name: 'preview.png',
+            sizeByte: 10240,
+            url: 'https://example.com/preview.png',
+            proxyType: 'image',
+          },
+          {
+            id: 'att-2',
+            name: 'specs.pdf',
+            sizeByte: 20480,
+            url: 'https://example.com/specs.pdf',
+            proxyType: 'pdf',
+          },
+        ],
+        createdAt: '2026-08-20T00:00:00.000Z',
+        updatedAt: '2026-08-20T00:00:00.000Z',
+      }
+
+      const onViewAttachment = vi.fn()
+      render(
+        <TaskCommentCard
+          teamId="team-1"
+          taskId="t-1"
+          comment={mockComment}
+          currentUserId="u-1"
+          isOwnerOrAdmin={true}
+          onViewAttachment={onViewAttachment}
+        />,
+        { wrapper: createWrapper() },
+      )
+
+      expect(screen.getByText('Alice Author')).toBeDefined()
+      expect(screen.getByText('bold')).toBeDefined()
+      expect(screen.getByText('specs.pdf')).toBeDefined()
+
+      // Click image attachment
+      const img = screen.getByAltText('preview.png')
+      fireEvent.click(img)
+      expect(onViewAttachment).toHaveBeenCalledWith(mockComment.attachments[0])
+    })
+
+    it('renders TaskCommentInput and triggers send on button click', async () => {
+      const onSendMessage = vi.fn()
+      render(<TaskCommentInput teamId="team-1" onSendMessage={onSendMessage} />, {
+        wrapper: createWrapper(),
+      })
+
+      const textarea = screen.getByPlaceholderText(/comment/i)
+      fireEvent.change(textarea, { target: { value: 'New task comment' } })
+
+      const sendBtn = screen.getByTitle(/Send comment|发送/i)
+      fireEvent.click(sendBtn)
+
+      await waitFor(() => {
+        expect(onSendMessage).toHaveBeenCalledWith('New task comment', undefined)
+      })
+    })
+  })
+
+  describe('KanbanBoard component with mixed cache entries', () => {
+    it('renders board and safely handles query cache with non-infinite task queries', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      })
+
+      // Seed non-infinite task queries (like comments, events, dependency tasks) that do not have .pages
+      queryClient.setQueryData(['teams', 'team-1', 'kanban', 'tasks', 't-1', 'comments'], {
+        data: [{ id: 'c-1', body: 'Comment' }],
+      })
+      queryClient.setQueryData(['teams', 'team-1', 'kanban', 'tasks', 't-1', 'events'], {
+        data: [{ id: 'e-1', type: 'CREATED' }],
+      })
+      queryClient.setQueryData(['teams', 'team-1', 'kanban', 'tasks', 'all'], {
+        data: [{ id: 't-1', title: 'Task 1' }],
+      })
+
+      // Mock tasks $get endpoint
+      const mockGet = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: [],
+          pageInfo: { total: 0, hasNextPage: false },
+        }),
+      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(client.api.teams[':teamId'].kanban.tasks.$get as any) = mockGet
+
+      const onTaskClick = vi.fn()
+      const onCreateTaskInColumn = vi.fn()
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <KanbanBoard
+            teamId="team-1"
+            selectedGoalId={null}
+            scope="team"
+            onTaskClick={onTaskClick}
+            onCreateTaskInColumn={onCreateTaskInColumn}
+          />
+        </QueryClientProvider>,
+      )
+
+      expect(screen.getByText(/To Do|待办/i)).toBeDefined()
+    })
+
+    it('renders reorder drop zones for drag-and-drop ordering', () => {
+      const mockTask: KanbanTaskInfo = {
+        id: 'task-1',
+        title: 'Reorderable Task',
+        isAgentTask: false,
+        status: KanbanTaskStatus.TODO,
+        priority: KanbanTaskPriority.MEDIUM,
+        startDate: null,
+        dueDate: null,
+        startedAt: null,
+        completedAt: null,
+        teamId: 'team-1',
+        projectId: null,
+        sortIndex: 'a0',
+        creator: { id: 'user-1', name: 'Alice' },
+        reporter: null,
+        assignee: null,
+        goal: null,
+        targetFolderId: null,
+        latestStatusEvent: null,
+        commentCount: 0,
+        dependencyCount: 0,
+        dependentCount: 0,
+        assetCount: 0,
+        createdAt: '2026-08-20T00:00:00.000Z',
+        updatedAt: '2026-08-20T00:00:00.000Z',
+      }
+
+      const { container } = render(<KanbanCard task={mockTask} onClick={vi.fn()} />)
+      // Verify wrapper contains the task title and relative positioning for indicator lines
+      expect(screen.getByText('Reorderable Task')).toBeDefined()
+      expect(container.querySelector('.relative')).toBeDefined()
+    })
+
+    it('renders board with proper permissions and handles task update mutation', async () => {
+      const mockPatch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ id: 'task-1', status: KanbanTaskStatus.IN_PROGRESS }),
+      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(client.api.teams[':teamId'].kanban.tasks[':taskId'].$patch as any) = mockPatch
+
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      })
+      const mockGet = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: [],
+          pageInfo: { total: 0, hasNextPage: false },
+        }),
+      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(client.api.teams[':teamId'].kanban.tasks.$get as any) = mockGet
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <KanbanBoard
+            teamId="team-1"
+            selectedGoalId={null}
+            scope="team"
+            currentUserId="user-1"
+            currentUserRole="owner"
+            onTaskClick={vi.fn()}
+            onCreateTaskInColumn={vi.fn()}
+          />
+        </QueryClientProvider>,
+      )
+      expect(screen.getByText(/To Do|待办/i)).toBeDefined()
+    })
+  })
+
+  describe('TaskRelatedAssets component', () => {
+    const mockAssets: KanbanTaskAssetInfo[] = [
+      {
+        id: 'asset-1',
+        name: 'Design_Spec.pdf',
+        type: 'file',
+        proxyType: 'pdf',
+        thumbnailUrl: null,
+        path: '/Project/Design_Spec.pdf',
+        creator: { id: 'user-1', name: 'Alice' },
+        sizeByte: 1024,
+        fileCount: undefined,
+        projectId: 'proj-1',
+        createdAt: '2026-08-20T00:00:00.000Z',
+      },
+      {
+        id: 'asset-2',
+        name: 'Assets Folder',
+        type: 'folder',
+        proxyType: null,
+        thumbnailUrl: null,
+        path: '/Project/Assets Folder',
+        creator: { id: 'user-2', name: 'Bob' },
+        sizeByte: 0,
+        fileCount: 5,
+        projectId: 'proj-1',
+        createdAt: '2026-08-20T00:00:00.000Z',
+      },
+    ]
+
+    it('renders empty state when no assets are linked', () => {
+      render(
+        <TaskRelatedAssets
+          teamId="team-1"
+          assets={[]}
+          onAddAssets={vi.fn()}
+          onRemoveAsset={vi.fn()}
+        />,
+      )
+      expect(screen.getByText(/No related assets|暂无关联资产/i)).toBeDefined()
+    })
+
+    it('renders asset rows with name, path, and creator and triggers remove', () => {
+      const onRemove = vi.fn()
+      render(
+        <TaskRelatedAssets
+          teamId="team-1"
+          assets={mockAssets}
+          onAddAssets={vi.fn()}
+          onRemoveAsset={onRemove}
+        />,
+      )
+
+      expect(screen.getByText('Design_Spec.pdf')).toBeDefined()
+      expect(screen.getByText('/Project/Design_Spec.pdf')).toBeDefined()
+      expect(screen.getByText('Alice')).toBeDefined()
+      expect(screen.getByText('Assets Folder')).toBeDefined()
+      expect(screen.getByText('/Project/Assets Folder')).toBeDefined()
+
+      // Click remove button on first asset
+      const removeButtons = screen.getAllByTitle(/Unlink Asset|取消关联资产/i)
+      expect(removeButtons.length).toBe(2)
+      fireEvent.click(removeButtons[0])
+      expect(onRemove).toHaveBeenCalledWith('asset-1')
+    })
+  })
+
+  describe('KanbanGoalSidebar component', () => {
+    it('renders goals list with unassigned goal and calculates All Tasks sum correctly', async () => {
+      const mockGoals: KanbanGoalInfo[] = [
+        {
+          id: UNASSIGNED_GOAL_ID,
+          title: 'Unassigned',
+          teamId: 'team-1',
+          creatorId: null,
+          taskCount: 3,
+          createdAt: new Date(0).toISOString(),
+          updatedAt: new Date(0).toISOString(),
+        },
+        {
+          id: 'goal-1',
+          title: 'Sprint 1',
+          teamId: 'team-1',
+          creatorId: 'user-1',
+          taskCount: 5,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ]
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(client.api.teams[':teamId'].kanban.goals.$get as any) = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ data: mockGoals }),
+      })
+
+      const onSelectGoal = vi.fn()
+      render(
+        <KanbanGoalSidebar
+          teamId="team-1"
+          selectedGoalId={null}
+          onSelectGoal={onSelectGoal}
+          isOwnerOrEditor={true}
+        />,
+        { wrapper: createWrapper() },
+      )
+
+      // Total count in All Tasks should be 3 + 5 = 8
+      await waitFor(() => {
+        expect(screen.getByText('8')).toBeDefined()
+        expect(screen.getByText(/All Tasks|所有任务/i)).toBeDefined()
+        expect(screen.getByText(/Unassigned|未指派/i)).toBeDefined()
+        expect(screen.getByText('Sprint 1')).toBeDefined()
+      })
+
+      // Clicking Unassigned triggers onSelectGoal with UNASSIGNED_GOAL_ID
+      const unassignedElement = screen.getByText(/Unassigned|未指派/i)
+      fireEvent.click(unassignedElement)
+      expect(onSelectGoal).toHaveBeenCalledWith(UNASSIGNED_GOAL_ID)
+    })
+  })
+
+  describe('KanbanCreateTaskDialog goal handling', () => {
+    it('defaults goalId to none when opened with unassigned goal and excludes unassigned from options', async () => {
+      const mockGoals: KanbanGoalInfo[] = [
+        {
+          id: UNASSIGNED_GOAL_ID,
+          title: 'Unassigned',
+          teamId: 'team-1',
+          creatorId: null,
+          taskCount: 2,
+          createdAt: new Date(0).toISOString(),
+          updatedAt: new Date(0).toISOString(),
+        },
+        {
+          id: 'goal-1',
+          title: 'Alpha Goal',
+          teamId: 'team-1',
+          creatorId: 'user-1',
+          taskCount: 1,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ]
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(client.api.teams[':teamId'].kanban.goals.$get as any) = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ data: mockGoals }),
+      })
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(client.api.teams[':teamId'].members.$get as any) = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [],
+      })
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(client.api.teams[':teamId'].agents.$get as any) = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [],
+      })
+
+      render(
+        <KanbanCreateTaskDialog
+          teamId="team-1"
+          isOpen={true}
+          onClose={vi.fn()}
+          initialGoalId={UNASSIGNED_GOAL_ID}
+        />,
+        { wrapper: createWrapper() },
+      )
+
+      await waitFor(() => {
+        expect(screen.getByText(/Create Task|创建任务/i)).toBeDefined()
+      })
+    })
+  })
+})

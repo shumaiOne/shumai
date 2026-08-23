@@ -7,6 +7,7 @@ export interface TopNavProjectState {
   projectName: string
   ancestorFolders: AncestorFolder[]
   currentAsset: {
+    id?: string
     name?: string
     type: 'file' | 'folder'
     version?: number

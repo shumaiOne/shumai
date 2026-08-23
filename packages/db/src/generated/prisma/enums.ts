@@ -75,7 +75,13 @@ export const NotificationType = {
   successful_file_uploaded: 'successful_file_uploaded',
   metadata_field_updated_status: 'metadata_field_updated_status',
   new_user_join_team: 'new_user_join_team',
-  new_user_join_project: 'new_user_join_project'
+  new_user_join_project: 'new_user_join_project',
+  kanban_task_created: 'kanban_task_created',
+  kanban_task_assigned: 'kanban_task_assigned',
+  kanban_task_status_updated: 'kanban_task_status_updated',
+  kanban_task_updated: 'kanban_task_updated',
+  kanban_task_deleted: 'kanban_task_deleted',
+  kanban_task_comment_created: 'kanban_task_comment_created'
 } as const
 
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType]
@@ -137,7 +143,8 @@ export const WorkflowTaskType = {
   chat: 'chat',
   ai_embedding: 'ai_embedding',
   query_embedding_for_search: 'query_embedding_for_search',
-  agent_tool_call: 'agent_tool_call'
+  agent_tool_call: 'agent_tool_call',
+  kanban_agent_run: 'kanban_agent_run'
 } as const
 
 export type WorkflowTaskType = (typeof WorkflowTaskType)[keyof typeof WorkflowTaskType]
@@ -201,6 +208,46 @@ export const QuotaResourceType = {
 } as const
 
 export type QuotaResourceType = (typeof QuotaResourceType)[keyof typeof QuotaResourceType]
+
+
+export const KanbanTaskStatus = {
+  TODO: 'TODO',
+  READY: 'READY',
+  IN_PROGRESS: 'IN_PROGRESS',
+  BLOCKED: 'BLOCKED',
+  IN_REVIEW: 'IN_REVIEW',
+  DONE: 'DONE'
+} as const
+
+export type KanbanTaskStatus = (typeof KanbanTaskStatus)[keyof typeof KanbanTaskStatus]
+
+
+export const KanbanTaskPriority = {
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
+  URGENT: 'URGENT'
+} as const
+
+export type KanbanTaskPriority = (typeof KanbanTaskPriority)[keyof typeof KanbanTaskPriority]
+
+
+export const KanbanTaskEventType = {
+  CREATED: 'CREATED',
+  STATUS_CHANGED: 'STATUS_CHANGED',
+  ASSIGNED: 'ASSIGNED',
+  UNASSIGNED: 'UNASSIGNED',
+  COMMENTED: 'COMMENTED',
+  CHANGES_REQUESTED: 'CHANGES_REQUESTED',
+  BLOCKED: 'BLOCKED',
+  UNBLOCKED: 'UNBLOCKED',
+  PRIORITY_CHANGED: 'PRIORITY_CHANGED',
+  GOAL_CHANGED: 'GOAL_CHANGED',
+  DEPENDENCY_ADDED: 'DEPENDENCY_ADDED',
+  DEPENDENCY_REMOVED: 'DEPENDENCY_REMOVED'
+} as const
+
+export type KanbanTaskEventType = (typeof KanbanTaskEventType)[keyof typeof KanbanTaskEventType]
 
 
 export const AgentType = {

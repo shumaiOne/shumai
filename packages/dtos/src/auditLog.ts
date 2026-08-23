@@ -53,6 +53,16 @@ export enum AuditAction {
   quota_policy_create = 'quota_policy_create',
   quota_policy_update = 'quota_policy_update',
   quota_policy_delete = 'quota_policy_delete',
+  kanban_goal_create = 'kanban_goal_create',
+  kanban_goal_update = 'kanban_goal_update',
+  kanban_goal_delete = 'kanban_goal_delete',
+  kanban_task_create = 'kanban_task_create',
+  kanban_task_update = 'kanban_task_update',
+  kanban_task_delete = 'kanban_task_delete',
+  kanban_comment_create = 'kanban_comment_create',
+  kanban_comment_delete = 'kanban_comment_delete',
+  kanban_dependency_add = 'kanban_dependency_add',
+  kanban_dependency_remove = 'kanban_dependency_remove',
 }
 
 export const auditLogSchema = z.object({

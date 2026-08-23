@@ -231,6 +231,7 @@ export type ProjectWhereInput = {
   shareLinks?: Prisma.ShareLinkListRelationFilter
   collections?: Prisma.CollectionListRelationFilter
   auditLogs?: Prisma.AuditLogListRelationFilter
+  kanbanTasks?: Prisma.KanbanTaskListRelationFilter
 }
 
 export type ProjectOrderByWithRelationInput = {
@@ -255,6 +256,7 @@ export type ProjectOrderByWithRelationInput = {
   shareLinks?: Prisma.ShareLinkOrderByRelationAggregateInput
   collections?: Prisma.CollectionOrderByRelationAggregateInput
   auditLogs?: Prisma.AuditLogOrderByRelationAggregateInput
+  kanbanTasks?: Prisma.KanbanTaskOrderByRelationAggregateInput
 }
 
 export type ProjectWhereUniqueInput = Prisma.AtLeast<{
@@ -282,6 +284,7 @@ export type ProjectWhereUniqueInput = Prisma.AtLeast<{
   shareLinks?: Prisma.ShareLinkListRelationFilter
   collections?: Prisma.CollectionListRelationFilter
   auditLogs?: Prisma.AuditLogListRelationFilter
+  kanbanTasks?: Prisma.KanbanTaskListRelationFilter
 }, "id" | "rootFolderId" | "shareRootId">
 
 export type ProjectOrderByWithAggregationInput = {
@@ -335,6 +338,7 @@ export type ProjectCreateInput = {
   shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutProjectInput
   collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutProjectInput
+  kanbanTasks?: Prisma.KanbanTaskCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateInput = {
@@ -356,6 +360,7 @@ export type ProjectUncheckedCreateInput = {
   shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutProjectInput
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutProjectInput
+  kanbanTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUpdateInput = {
@@ -377,6 +382,7 @@ export type ProjectUpdateInput = {
   shareLinks?: Prisma.ShareLinkUpdateManyWithoutProjectNestedInput
   collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutProjectNestedInput
+  kanbanTasks?: Prisma.KanbanTaskUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateInput = {
@@ -398,6 +404,7 @@ export type ProjectUncheckedUpdateInput = {
   shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutProjectNestedInput
+  kanbanTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateManyInput = {
@@ -721,6 +728,22 @@ export type ProjectUpdateOneWithoutAuditLogsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ProjectUpdateToOneWithWhereWithoutAuditLogsInput, Prisma.ProjectUpdateWithoutAuditLogsInput>, Prisma.ProjectUncheckedUpdateWithoutAuditLogsInput>
 }
 
+export type ProjectCreateNestedOneWithoutKanbanTasksInput = {
+  create?: Prisma.XOR<Prisma.ProjectCreateWithoutKanbanTasksInput, Prisma.ProjectUncheckedCreateWithoutKanbanTasksInput>
+  connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutKanbanTasksInput
+  connect?: Prisma.ProjectWhereUniqueInput
+}
+
+export type ProjectUpdateOneWithoutKanbanTasksNestedInput = {
+  create?: Prisma.XOR<Prisma.ProjectCreateWithoutKanbanTasksInput, Prisma.ProjectUncheckedCreateWithoutKanbanTasksInput>
+  connectOrCreate?: Prisma.ProjectCreateOrConnectWithoutKanbanTasksInput
+  upsert?: Prisma.ProjectUpsertWithoutKanbanTasksInput
+  disconnect?: Prisma.ProjectWhereInput | boolean
+  delete?: Prisma.ProjectWhereInput | boolean
+  connect?: Prisma.ProjectWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ProjectUpdateToOneWithWhereWithoutKanbanTasksInput, Prisma.ProjectUpdateWithoutKanbanTasksInput>, Prisma.ProjectUncheckedUpdateWithoutKanbanTasksInput>
+}
+
 export type ProjectCreateWithoutTeamInput = {
   id?: string
   name: string
@@ -739,6 +762,7 @@ export type ProjectCreateWithoutTeamInput = {
   shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutProjectInput
   collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutProjectInput
+  kanbanTasks?: Prisma.KanbanTaskCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutTeamInput = {
@@ -759,6 +783,7 @@ export type ProjectUncheckedCreateWithoutTeamInput = {
   shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutProjectInput
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutProjectInput
+  kanbanTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutTeamInput = {
@@ -821,6 +846,7 @@ export type ProjectCreateWithoutMembersInput = {
   shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutProjectInput
   collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutProjectInput
+  kanbanTasks?: Prisma.KanbanTaskCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutMembersInput = {
@@ -841,6 +867,7 @@ export type ProjectUncheckedCreateWithoutMembersInput = {
   shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutProjectInput
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutProjectInput
+  kanbanTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutMembersInput = {
@@ -877,6 +904,7 @@ export type ProjectUpdateWithoutMembersInput = {
   shareLinks?: Prisma.ShareLinkUpdateManyWithoutProjectNestedInput
   collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutProjectNestedInput
+  kanbanTasks?: Prisma.KanbanTaskUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutMembersInput = {
@@ -897,6 +925,7 @@ export type ProjectUncheckedUpdateWithoutMembersInput = {
   shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutProjectNestedInput
+  kanbanTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutShareLinksInput = {
@@ -917,6 +946,7 @@ export type ProjectCreateWithoutShareLinksInput = {
   notifications?: Prisma.NotificationCreateNestedManyWithoutProjectInput
   collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutProjectInput
+  kanbanTasks?: Prisma.KanbanTaskCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutShareLinksInput = {
@@ -937,6 +967,7 @@ export type ProjectUncheckedCreateWithoutShareLinksInput = {
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutProjectInput
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutProjectInput
+  kanbanTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutShareLinksInput = {
@@ -973,6 +1004,7 @@ export type ProjectUpdateWithoutShareLinksInput = {
   notifications?: Prisma.NotificationUpdateManyWithoutProjectNestedInput
   collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutProjectNestedInput
+  kanbanTasks?: Prisma.KanbanTaskUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutShareLinksInput = {
@@ -993,6 +1025,7 @@ export type ProjectUncheckedUpdateWithoutShareLinksInput = {
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutProjectNestedInput
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutProjectNestedInput
+  kanbanTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutAssetsInput = {
@@ -1013,6 +1046,7 @@ export type ProjectCreateWithoutAssetsInput = {
   shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutProjectInput
   collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutProjectInput
+  kanbanTasks?: Prisma.KanbanTaskCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutAssetsInput = {
@@ -1033,6 +1067,7 @@ export type ProjectUncheckedCreateWithoutAssetsInput = {
   shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutProjectInput
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutProjectInput
+  kanbanTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutAssetsInput = {
@@ -1058,6 +1093,7 @@ export type ProjectCreateWithoutRootFolderInput = {
   shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutProjectInput
   collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutProjectInput
+  kanbanTasks?: Prisma.KanbanTaskCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutRootFolderInput = {
@@ -1078,6 +1114,7 @@ export type ProjectUncheckedCreateWithoutRootFolderInput = {
   shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutProjectInput
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutProjectInput
+  kanbanTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutRootFolderInput = {
@@ -1103,6 +1140,7 @@ export type ProjectCreateWithoutShareRootInput = {
   shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutProjectInput
   collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutProjectInput
+  kanbanTasks?: Prisma.KanbanTaskCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutShareRootInput = {
@@ -1123,6 +1161,7 @@ export type ProjectUncheckedCreateWithoutShareRootInput = {
   shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutProjectInput
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutProjectInput
+  kanbanTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutShareRootInput = {
@@ -1159,6 +1198,7 @@ export type ProjectUpdateWithoutAssetsInput = {
   shareLinks?: Prisma.ShareLinkUpdateManyWithoutProjectNestedInput
   collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutProjectNestedInput
+  kanbanTasks?: Prisma.KanbanTaskUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutAssetsInput = {
@@ -1179,6 +1219,7 @@ export type ProjectUncheckedUpdateWithoutAssetsInput = {
   shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutProjectNestedInput
+  kanbanTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUpsertWithoutRootFolderInput = {
@@ -1210,6 +1251,7 @@ export type ProjectUpdateWithoutRootFolderInput = {
   shareLinks?: Prisma.ShareLinkUpdateManyWithoutProjectNestedInput
   collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutProjectNestedInput
+  kanbanTasks?: Prisma.KanbanTaskUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutRootFolderInput = {
@@ -1230,6 +1272,7 @@ export type ProjectUncheckedUpdateWithoutRootFolderInput = {
   shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutProjectNestedInput
+  kanbanTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUpsertWithoutShareRootInput = {
@@ -1261,6 +1304,7 @@ export type ProjectUpdateWithoutShareRootInput = {
   shareLinks?: Prisma.ShareLinkUpdateManyWithoutProjectNestedInput
   collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutProjectNestedInput
+  kanbanTasks?: Prisma.KanbanTaskUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutShareRootInput = {
@@ -1281,6 +1325,7 @@ export type ProjectUncheckedUpdateWithoutShareRootInput = {
   shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutProjectNestedInput
+  kanbanTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutInvitesInput = {
@@ -1301,6 +1346,7 @@ export type ProjectCreateWithoutInvitesInput = {
   shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutProjectInput
   collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutProjectInput
+  kanbanTasks?: Prisma.KanbanTaskCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutInvitesInput = {
@@ -1321,6 +1367,7 @@ export type ProjectUncheckedCreateWithoutInvitesInput = {
   shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutProjectInput
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutProjectInput
+  kanbanTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutInvitesInput = {
@@ -1357,6 +1404,7 @@ export type ProjectUpdateWithoutInvitesInput = {
   shareLinks?: Prisma.ShareLinkUpdateManyWithoutProjectNestedInput
   collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutProjectNestedInput
+  kanbanTasks?: Prisma.KanbanTaskUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutInvitesInput = {
@@ -1377,6 +1425,7 @@ export type ProjectUncheckedUpdateWithoutInvitesInput = {
   shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutProjectNestedInput
+  kanbanTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutMetadataFieldsInput = {
@@ -1397,6 +1446,7 @@ export type ProjectCreateWithoutMetadataFieldsInput = {
   shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutProjectInput
   collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutProjectInput
+  kanbanTasks?: Prisma.KanbanTaskCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutMetadataFieldsInput = {
@@ -1417,6 +1467,7 @@ export type ProjectUncheckedCreateWithoutMetadataFieldsInput = {
   shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutProjectInput
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutProjectInput
+  kanbanTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutMetadataFieldsInput = {
@@ -1453,6 +1504,7 @@ export type ProjectUpdateWithoutMetadataFieldsInput = {
   shareLinks?: Prisma.ShareLinkUpdateManyWithoutProjectNestedInput
   collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutProjectNestedInput
+  kanbanTasks?: Prisma.KanbanTaskUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutMetadataFieldsInput = {
@@ -1473,6 +1525,7 @@ export type ProjectUncheckedUpdateWithoutMetadataFieldsInput = {
   shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutProjectNestedInput
+  kanbanTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutNotificationsInput = {
@@ -1493,6 +1546,7 @@ export type ProjectCreateWithoutNotificationsInput = {
   shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutProjectInput
   collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutProjectInput
+  kanbanTasks?: Prisma.KanbanTaskCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutNotificationsInput = {
@@ -1513,6 +1567,7 @@ export type ProjectUncheckedCreateWithoutNotificationsInput = {
   shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutProjectInput
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutProjectInput
+  kanbanTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutNotificationsInput = {
@@ -1549,6 +1604,7 @@ export type ProjectUpdateWithoutNotificationsInput = {
   shareLinks?: Prisma.ShareLinkUpdateManyWithoutProjectNestedInput
   collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutProjectNestedInput
+  kanbanTasks?: Prisma.KanbanTaskUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutNotificationsInput = {
@@ -1569,6 +1625,7 @@ export type ProjectUncheckedUpdateWithoutNotificationsInput = {
   shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutProjectNestedInput
+  kanbanTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutCollectionsInput = {
@@ -1589,6 +1646,7 @@ export type ProjectCreateWithoutCollectionsInput = {
   notifications?: Prisma.NotificationCreateNestedManyWithoutProjectInput
   shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutProjectInput
+  kanbanTasks?: Prisma.KanbanTaskCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutCollectionsInput = {
@@ -1609,6 +1667,7 @@ export type ProjectUncheckedCreateWithoutCollectionsInput = {
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutProjectInput
   shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutProjectInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutProjectInput
+  kanbanTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutCollectionsInput = {
@@ -1645,6 +1704,7 @@ export type ProjectUpdateWithoutCollectionsInput = {
   notifications?: Prisma.NotificationUpdateManyWithoutProjectNestedInput
   shareLinks?: Prisma.ShareLinkUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutProjectNestedInput
+  kanbanTasks?: Prisma.KanbanTaskUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutCollectionsInput = {
@@ -1665,6 +1725,7 @@ export type ProjectUncheckedUpdateWithoutCollectionsInput = {
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutProjectNestedInput
   shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutProjectNestedInput
+  kanbanTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateWithoutAuditLogsInput = {
@@ -1685,6 +1746,7 @@ export type ProjectCreateWithoutAuditLogsInput = {
   notifications?: Prisma.NotificationCreateNestedManyWithoutProjectInput
   shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutProjectInput
   collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
+  kanbanTasks?: Prisma.KanbanTaskCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectUncheckedCreateWithoutAuditLogsInput = {
@@ -1705,6 +1767,7 @@ export type ProjectUncheckedCreateWithoutAuditLogsInput = {
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutProjectInput
   shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutProjectInput
   collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
+  kanbanTasks?: Prisma.KanbanTaskUncheckedCreateNestedManyWithoutProjectInput
 }
 
 export type ProjectCreateOrConnectWithoutAuditLogsInput = {
@@ -1741,6 +1804,7 @@ export type ProjectUpdateWithoutAuditLogsInput = {
   notifications?: Prisma.NotificationUpdateManyWithoutProjectNestedInput
   shareLinks?: Prisma.ShareLinkUpdateManyWithoutProjectNestedInput
   collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
+  kanbanTasks?: Prisma.KanbanTaskUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutAuditLogsInput = {
@@ -1761,6 +1825,107 @@ export type ProjectUncheckedUpdateWithoutAuditLogsInput = {
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutProjectNestedInput
   shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
+  kanbanTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutProjectNestedInput
+}
+
+export type ProjectCreateWithoutKanbanTasksInput = {
+  id?: string
+  name: string
+  coverImageKey?: string | null
+  metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
+  enableNotification?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  team: Prisma.TeamCreateNestedOneWithoutProjectsInput
+  rootFolder?: Prisma.AssetCreateNestedOneWithoutProjectRootFolderInput
+  shareRoot?: Prisma.AssetCreateNestedOneWithoutProjectShareRootInput
+  members?: Prisma.ProjectMemberCreateNestedManyWithoutProjectInput
+  assets?: Prisma.AssetCreateNestedManyWithoutProjectInput
+  metadataFields?: Prisma.MetadataFieldCreateNestedManyWithoutProjectInput
+  invites?: Prisma.InviteCreateNestedManyWithoutProjectInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutProjectInput
+  shareLinks?: Prisma.ShareLinkCreateNestedManyWithoutProjectInput
+  collections?: Prisma.CollectionCreateNestedManyWithoutProjectInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutProjectInput
+}
+
+export type ProjectUncheckedCreateWithoutKanbanTasksInput = {
+  id?: string
+  name: string
+  coverImageKey?: string | null
+  metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
+  enableNotification?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  teamId: string
+  rootFolderId?: string | null
+  shareRootId?: string | null
+  members?: Prisma.ProjectMemberUncheckedCreateNestedManyWithoutProjectInput
+  assets?: Prisma.AssetUncheckedCreateNestedManyWithoutProjectInput
+  metadataFields?: Prisma.MetadataFieldUncheckedCreateNestedManyWithoutProjectInput
+  invites?: Prisma.InviteUncheckedCreateNestedManyWithoutProjectInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutProjectInput
+  shareLinks?: Prisma.ShareLinkUncheckedCreateNestedManyWithoutProjectInput
+  collections?: Prisma.CollectionUncheckedCreateNestedManyWithoutProjectInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutProjectInput
+}
+
+export type ProjectCreateOrConnectWithoutKanbanTasksInput = {
+  where: Prisma.ProjectWhereUniqueInput
+  create: Prisma.XOR<Prisma.ProjectCreateWithoutKanbanTasksInput, Prisma.ProjectUncheckedCreateWithoutKanbanTasksInput>
+}
+
+export type ProjectUpsertWithoutKanbanTasksInput = {
+  update: Prisma.XOR<Prisma.ProjectUpdateWithoutKanbanTasksInput, Prisma.ProjectUncheckedUpdateWithoutKanbanTasksInput>
+  create: Prisma.XOR<Prisma.ProjectCreateWithoutKanbanTasksInput, Prisma.ProjectUncheckedCreateWithoutKanbanTasksInput>
+  where?: Prisma.ProjectWhereInput
+}
+
+export type ProjectUpdateToOneWithWhereWithoutKanbanTasksInput = {
+  where?: Prisma.ProjectWhereInput
+  data: Prisma.XOR<Prisma.ProjectUpdateWithoutKanbanTasksInput, Prisma.ProjectUncheckedUpdateWithoutKanbanTasksInput>
+}
+
+export type ProjectUpdateWithoutKanbanTasksInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
+  enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  team?: Prisma.TeamUpdateOneRequiredWithoutProjectsNestedInput
+  rootFolder?: Prisma.AssetUpdateOneWithoutProjectRootFolderNestedInput
+  shareRoot?: Prisma.AssetUpdateOneWithoutProjectShareRootNestedInput
+  members?: Prisma.ProjectMemberUpdateManyWithoutProjectNestedInput
+  assets?: Prisma.AssetUpdateManyWithoutProjectNestedInput
+  metadataFields?: Prisma.MetadataFieldUpdateManyWithoutProjectNestedInput
+  invites?: Prisma.InviteUpdateManyWithoutProjectNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutProjectNestedInput
+  shareLinks?: Prisma.ShareLinkUpdateManyWithoutProjectNestedInput
+  collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutProjectNestedInput
+}
+
+export type ProjectUncheckedUpdateWithoutKanbanTasksInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  coverImageKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  metadataOverrides?:PrismaJson.MetadataOverrides | Prisma.NullableJsonNullValueInput
+  enableNotification?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  teamId?: Prisma.StringFieldUpdateOperationsInput | string
+  rootFolderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  shareRootId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  members?: Prisma.ProjectMemberUncheckedUpdateManyWithoutProjectNestedInput
+  assets?: Prisma.AssetUncheckedUpdateManyWithoutProjectNestedInput
+  metadataFields?: Prisma.MetadataFieldUncheckedUpdateManyWithoutProjectNestedInput
+  invites?: Prisma.InviteUncheckedUpdateManyWithoutProjectNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutProjectNestedInput
+  shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+  collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectCreateManyTeamInput = {
@@ -1793,6 +1958,7 @@ export type ProjectUpdateWithoutTeamInput = {
   shareLinks?: Prisma.ShareLinkUpdateManyWithoutProjectNestedInput
   collections?: Prisma.CollectionUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutProjectNestedInput
+  kanbanTasks?: Prisma.KanbanTaskUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateWithoutTeamInput = {
@@ -1813,6 +1979,7 @@ export type ProjectUncheckedUpdateWithoutTeamInput = {
   shareLinks?: Prisma.ShareLinkUncheckedUpdateManyWithoutProjectNestedInput
   collections?: Prisma.CollectionUncheckedUpdateManyWithoutProjectNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutProjectNestedInput
+  kanbanTasks?: Prisma.KanbanTaskUncheckedUpdateManyWithoutProjectNestedInput
 }
 
 export type ProjectUncheckedUpdateManyWithoutTeamInput = {
@@ -1841,6 +2008,7 @@ export type ProjectCountOutputType = {
   shareLinks: number
   collections: number
   auditLogs: number
+  kanbanTasks: number
 }
 
 export type ProjectCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1852,6 +2020,7 @@ export type ProjectCountOutputTypeSelect<ExtArgs extends runtime.Types.Extension
   shareLinks?: boolean | ProjectCountOutputTypeCountShareLinksArgs
   collections?: boolean | ProjectCountOutputTypeCountCollectionsArgs
   auditLogs?: boolean | ProjectCountOutputTypeCountAuditLogsArgs
+  kanbanTasks?: boolean | ProjectCountOutputTypeCountKanbanTasksArgs
 }
 
 /**
@@ -1920,6 +2089,13 @@ export type ProjectCountOutputTypeCountAuditLogsArgs<ExtArgs extends runtime.Typ
   where?: Prisma.AuditLogWhereInput
 }
 
+/**
+ * ProjectCountOutputType without action
+ */
+export type ProjectCountOutputTypeCountKanbanTasksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.KanbanTaskWhereInput
+}
+
 
 export type ProjectSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1943,6 +2119,7 @@ export type ProjectSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   shareLinks?: boolean | Prisma.Project$shareLinksArgs<ExtArgs>
   collections?: boolean | Prisma.Project$collectionsArgs<ExtArgs>
   auditLogs?: boolean | Prisma.Project$auditLogsArgs<ExtArgs>
+  kanbanTasks?: boolean | Prisma.Project$kanbanTasksArgs<ExtArgs>
   _count?: boolean | Prisma.ProjectCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["project"]>
 
@@ -2004,6 +2181,7 @@ export type ProjectInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs
   shareLinks?: boolean | Prisma.Project$shareLinksArgs<ExtArgs>
   collections?: boolean | Prisma.Project$collectionsArgs<ExtArgs>
   auditLogs?: boolean | Prisma.Project$auditLogsArgs<ExtArgs>
+  kanbanTasks?: boolean | Prisma.Project$kanbanTasksArgs<ExtArgs>
   _count?: boolean | Prisma.ProjectCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ProjectIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2031,6 +2209,7 @@ export type $ProjectPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     shareLinks: Prisma.$ShareLinkPayload<ExtArgs>[]
     collections: Prisma.$CollectionPayload<ExtArgs>[]
     auditLogs: Prisma.$AuditLogPayload<ExtArgs>[]
+    kanbanTasks: Prisma.$KanbanTaskPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2451,6 +2630,7 @@ export interface Prisma__ProjectClient<T, Null = never, ExtArgs extends runtime.
   shareLinks<T extends Prisma.Project$shareLinksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$shareLinksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ShareLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   collections<T extends Prisma.Project$collectionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$collectionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CollectionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   auditLogs<T extends Prisma.Project$auditLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$auditLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AuditLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  kanbanTasks<T extends Prisma.Project$kanbanTasksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Project$kanbanTasksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KanbanTaskPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3118,6 +3298,30 @@ export type Project$auditLogsArgs<ExtArgs extends runtime.Types.Extensions.Inter
   take?: number
   skip?: number
   distinct?: Prisma.AuditLogScalarFieldEnum | Prisma.AuditLogScalarFieldEnum[]
+}
+
+/**
+ * Project.kanbanTasks
+ */
+export type Project$kanbanTasksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the KanbanTask
+   */
+  select?: Prisma.KanbanTaskSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the KanbanTask
+   */
+  omit?: Prisma.KanbanTaskOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.KanbanTaskInclude<ExtArgs> | null
+  where?: Prisma.KanbanTaskWhereInput
+  orderBy?: Prisma.KanbanTaskOrderByWithRelationInput | Prisma.KanbanTaskOrderByWithRelationInput[]
+  cursor?: Prisma.KanbanTaskWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.KanbanTaskScalarFieldEnum | Prisma.KanbanTaskScalarFieldEnum[]
 }
 
 /**
