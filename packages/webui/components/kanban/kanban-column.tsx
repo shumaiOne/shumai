@@ -38,30 +38,6 @@ export function KanbanColumn({
   const isOwnerOrEditor =
     currentUserRole?.toLowerCase() === 'owner' || currentUserRole?.toLowerCase() === 'editor'
 
-  const { ref: setDroppableRef, isDropTarget } = useDroppable({
-    id: status,
-    data: {
-      type: 'kanban_column',
-      status,
-    },
-  })
-
-  const { source, target } = useDragOperation()
-  const isDraggingTask = source?.data?.type === 'kanban_task'
-  const isOverThisColumn =
-    isDraggingTask &&
-    (isDropTarget ||
-      (target?.data?.type === 'kanban_column' && target.data.status === status) ||
-      (target?.data?.type === 'reorder' &&
-        (target.data.task as KanbanTaskInfo | undefined)?.status === status))
-
-  const isOverColumnEmptySpace =
-    isDraggingTask && target?.data?.type === 'kanban_column' && target.data.status === status
-
-  const { ref: loadMoreRef, inView } = useInView({
-    threshold: 0.1,
-  })
-
   const assigneeId = scope === 'my' ? currentUserId : undefined
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
@@ -86,6 +62,10 @@ export function KanbanColumn({
     enabled: !!teamId,
   })
 
+  const { ref: loadMoreRef, inView } = useInView({
+    threshold: 0.1,
+  })
+
   useEffect(() => {
     if (inView && hasNextPage && !isFetchingNextPage) {
       fetchNextPage()
@@ -96,7 +76,29 @@ export function KanbanColumn({
     return data?.pages?.flatMap((page) => (Array.isArray(page?.data) ? page.data : [])) || []
   }, [data])
 
+  const { source, target } = useDragOperation()
   const lastVisibleTask = allTasks.filter((t) => t.id !== source?.id).at(-1)
+
+  const { ref: setDroppableRef, isDropTarget } = useDroppable({
+    id: status,
+    data: {
+      type: 'kanban_column',
+      status,
+      lastTask: lastVisibleTask,
+    },
+  })
+
+  const isDraggingTask = source?.data?.type === 'kanban_task'
+  const isOverThisColumn =
+    isDraggingTask &&
+    (isDropTarget ||
+      (target?.data?.type === 'kanban_column' && target.data.status === status) ||
+      (target?.data?.type === 'reorder' &&
+        (target.data.task as KanbanTaskInfo | undefined)?.status === status))
+
+  const isOverColumnEmptySpace =
+    isDraggingTask && target?.data?.type === 'kanban_column' && target.data.status === status
+
   const totalCount = data?.pages?.[0]?.pageInfo?.total ?? allTasks.length
   const statusColor = getStatusColor(status)
 
@@ -132,10 +134,7 @@ export function KanbanColumn({
               <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
             </div>
           ) : allTasks.length === 0 ? (
-            <div className="relative flex flex-col items-center justify-center py-10 px-4 text-center">
-              {isOverColumnEmptySpace && (
-                <div className="absolute top-3 left-3 right-3 h-[3px] rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.6)] z-30 pointer-events-none" />
-              )}
+            <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
               <p className="text-xs text-muted-foreground/70">{m.no_tasks_in_column()}</p>
             </div>
           ) : (
@@ -146,6 +145,7 @@ export function KanbanColumn({
                 onClick={onTaskClick}
                 onDelete={onDeleteTask}
                 isFirst={index === 0}
+                isLast={index === allTasks.length - 1}
                 showBottomIndicator={isOverColumnEmptySpace && task.id === lastVisibleTask?.id}
                 currentUserId={currentUserId}
                 currentUserRole={currentUserRole}

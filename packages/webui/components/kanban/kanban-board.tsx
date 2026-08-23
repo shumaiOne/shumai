@@ -249,7 +249,7 @@ export function KanbanBoard({
 
     const targetData = target.data as
       | { type?: 'reorder'; task?: KanbanTaskInfo; position?: 'before' | 'after' }
-      | { type?: 'kanban_column'; status?: KanbanTaskStatus }
+      | { type?: 'kanban_column'; status?: KanbanTaskStatus; lastTask?: KanbanTaskInfo }
       | undefined
 
     if (!targetData) return
@@ -279,6 +279,26 @@ export function KanbanBoard({
 
     if (targetData.type === 'kanban_column' && targetData.status) {
       const toStatus = targetData.status
+      const lastTask = targetData.lastTask
+
+      if (lastTask) {
+        if (task.id === lastTask.id) {
+          if (task.status === toStatus) return
+          updateTask({ taskId: task.id, fromStatus: task.status, status: toStatus })
+          return
+        }
+
+        updateTask({
+          taskId: task.id,
+          fromStatus: task.status,
+          status: toStatus,
+          afterIndex: lastTask.sortIndex ?? undefined,
+          targetTaskId: lastTask.id,
+          position: 'after',
+        })
+        return
+      }
+
       if (task.status === toStatus) return
 
       updateTask({ taskId: task.id, fromStatus: task.status, status: toStatus })
