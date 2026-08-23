@@ -37,7 +37,7 @@
   "no_account_prompt": "Don't have an account? ",
   "sign_up": "Sign up",
   "demo_access": "Demo Access:",
-  "demo_access_instructions": "Use \"foo@bar.com\" as the email and \"foo\" as the password to login.",
+  "demo_access_instructions": "Use \"foo@bar.com\" as the email and \"foo\" as the password to login (this demo account is read-only).",
 
   "signup_subtitle": "Start building and organizing your space.",
   "signup_failed": "Signup failed",

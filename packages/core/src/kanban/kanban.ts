@@ -1,4 +1,4 @@
-import { prisma, type TeamMemberRole, type Prisma } from '@shumai/db'
+import { prisma, type TeamMemberRole, type Prisma, AssetType } from '@shumai/db'
 import { KanbanTaskStatus, KanbanTaskPriority, KanbanTaskEventType } from '@shumai/db/enums'
 import { HTTPException } from 'hono/http-exception'
 import { ulid } from 'ulid'
@@ -1221,13 +1221,52 @@ export class KanbanService {
 
     const bucket = process.env.S3_BUCKET || 'shumai'
 
+    const stackIds = new Set<string>()
+    for (const { asset } of assetLinks) {
+      if (asset.type === AssetType.version_stack) {
+        stackIds.add(asset.id)
+      }
+    }
+
+    const latestVersionsMap = new Map<
+      string,
+      Prisma.AssetGetPayload<{
+        include: {
+          creator: true
+          storageKey: true
+        }
+      }>
+    >()
+
+    if (stackIds.size > 0) {
+      const allVersions = await prisma.asset.findMany({
+        where: { parentId: { in: Array.from(stackIds) }, isDeleted: false },
+        include: {
+          creator: true,
+          storageKey: true,
+        },
+        orderBy: { sortIndex: 'asc' },
+      })
+      for (const v of allVersions) {
+        if (!latestVersionsMap.has(v.parentId!)) {
+          latestVersionsMap.set(v.parentId!, v)
+        }
+      }
+    }
+
     return await Promise.all(
       assetLinks.map(async ({ asset }) => {
-        const creatorImage = asset.creator ? await getAvatarUrl(asset.creator.image) : undefined
-        const media = (asset.media as unknown as Record<string, unknown>) || {}
+        const latestVersion =
+          asset.type === AssetType.version_stack ? latestVersionsMap.get(asset.id) : null
+        const target = latestVersion || asset
+
+        const targetCreator = target.creator || asset.creator
+        const creatorImage = targetCreator ? await getAvatarUrl(targetCreator.image) : undefined
+
+        const media = (target.media as unknown as Record<string, unknown>) || {}
         const proxyType =
           (media.proxyType as 'image' | 'video' | 'audio' | 'pdf' | null) ||
-          getProxyType(asset.mediaType, asset.name)
+          getProxyType(target.mediaType, target.name)
 
         let thumbnailUrl: string | null = null
         const imageTranscodes = media.imageTranscodes as Array<{ key: string }> | undefined
@@ -1236,7 +1275,7 @@ export class KanbanService {
         const thumbnailKey =
           imageTranscodes?.[0]?.key ||
           videoPreview?.key ||
-          (proxyType === 'image' ? asset.storageKey?.key : undefined)
+          (proxyType === 'image' ? target.storageKey?.key : undefined)
 
         if (thumbnailKey) {
           try {
@@ -1273,19 +1312,20 @@ export class KanbanService {
 
         return {
           id: asset.id,
-          name: asset.name,
+          name:
+            asset.type === AssetType.version_stack ? latestVersion?.name || asset.name : asset.name,
           type: asset.type,
           proxyType,
           thumbnailUrl,
           path,
-          creator: asset.creator
+          creator: targetCreator
             ? {
-                id: asset.creator.id,
-                name: asset.creator.name,
+                id: targetCreator.id,
+                name: targetCreator.name,
                 image: creatorImage,
               }
             : null,
-          sizeByte: Number(asset.sizeByte || 0),
+          sizeByte: Number(target.sizeByte || 0),
           fileCount: asset.fileCount,
           projectId: asset.projectId ?? null,
           createdAt: asset.createdAt.toISOString(),

@@ -874,5 +874,91 @@ describe('KanbanService', () => {
       await kanbanService.deleteTask(task.id, owner.id, 'owner')
       expect(await kanbanService.getAssetTaskCount(file.id)).toBe(0)
     })
+
+    it('returns latest version details for linked version stack assets', async () => {
+      const { team, owner } = await setupTeamAndUsers()
+      const { project, folder } = await setupProjectAndAssets(team.id, owner.id)
+
+      // Create a version stack
+      const versionStack = await prisma.asset.create({
+        data: {
+          name: '',
+          type: 'version_stack',
+          status: 'uploaded',
+          projectId: project.id,
+          parentId: folder.id,
+          creatorId: owner.id,
+          fileCount: 2,
+        },
+      })
+
+      // Create v1 and v2 files in the version stack
+      const storageKeyV2 = await prisma.storageKey.create({
+        data: { key: 'videos/v2.mp4', status: 'active' },
+      })
+      await prisma.asset.create({
+        data: {
+          name: 'Video_v1.mp4',
+          type: 'file',
+          mediaType: 'video/mp4',
+          status: 'processed',
+          parentId: versionStack.id,
+          projectId: project.id,
+          creatorId: owner.id,
+          sortIndex: 'b',
+          sizeByte: 1000,
+        },
+      })
+      await prisma.asset.create({
+        data: {
+          name: 'Video_v2.mp4',
+          type: 'file',
+          mediaType: 'video/mp4',
+          status: 'processed',
+          parentId: versionStack.id,
+          projectId: project.id,
+          creatorId: owner.id,
+          sortIndex: 'a', // 'a' < 'b', so v2 is the latest version
+          sizeByte: 2000,
+          storageKeyId: storageKeyV2.id,
+          media: {
+            proxyType: 'video',
+            videoPreview: {
+              key: 'previews/v2_preview.mp4',
+              width: 1920,
+              height: 1080,
+            },
+          } as unknown as PrismaJson.MediaInfo,
+        },
+      })
+
+      const task = await kanbanService.createTask(
+        team.id,
+        {
+          title: 'Task with version stack',
+          assetIds: [versionStack.id],
+        },
+        owner.id,
+        'owner',
+      )
+
+      // Verify getTask returns latest version info for the version stack
+      const detail = await kanbanService.getTask(task.id)
+      expect(detail.assets).toHaveLength(1)
+      const linkedAsset = detail.assets[0]
+      expect(linkedAsset.id).toBe(versionStack.id)
+      expect(linkedAsset.type).toBe('version_stack')
+      expect(linkedAsset.name).toBe('Video_v2.mp4')
+      expect(linkedAsset.sizeByte).toBe(2000)
+      expect(linkedAsset.proxyType).toBe('video')
+      expect(linkedAsset.thumbnailUrl).toBeDefined()
+
+      // Verify listTaskAssets also returns latest version info
+      const taskAssets = await kanbanService.listTaskAssets(task.id)
+      expect(taskAssets).toHaveLength(1)
+      expect(taskAssets[0].name).toBe('Video_v2.mp4')
+      expect(taskAssets[0].sizeByte).toBe(2000)
+      expect(taskAssets[0].proxyType).toBe('video')
+    })
   })
 })

@@ -37,7 +37,7 @@
   "no_account_prompt": "还没有账户？",
   "sign_up": "注册",
   "demo_access": "演示访问：",
-  "demo_access_instructions": "使用 \"foo@bar.com\" 作为邮箱，\"foo\" 作为密码登录。",
+  "demo_access_instructions": "使用 \"foo@bar.com\" 作为邮箱，\"foo\" 作为密码登录（该演示账户为只读）。",
 
   "signup_subtitle": "开始构建和整理您的空间。",
   "signup_failed": "注册失败",
