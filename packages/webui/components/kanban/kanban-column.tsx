@@ -35,6 +35,9 @@ export function KanbanColumn({
   onDeleteTask,
   onCreateTaskInColumn,
 }: KanbanColumnProps) {
+  const isOwnerOrEditor =
+    currentUserRole?.toLowerCase() === 'owner' || currentUserRole?.toLowerCase() === 'editor'
+
   const { ref: setDroppableRef, isDropTarget } = useDroppable({
     id: status,
     data: {
@@ -161,17 +164,19 @@ export function KanbanColumn({
       </ScrollArea>
 
       {/* Fixed Column Footer: + Create Task */}
-      <div className="p-2 border-t border-border/50 bg-card/90 shrink-0">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onCreateTaskInColumn(status)}
-          className="w-full justify-center h-8 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/80 border border-dashed border-border/80"
-        >
-          <Plus className="w-3.5 h-3.5 mr-1.5" />
-          <span>{m.create_task()}</span>
-        </Button>
-      </div>
+      {isOwnerOrEditor && (
+        <div className="p-2 border-t border-border/50 bg-card/90 shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onCreateTaskInColumn(status)}
+            className="w-full justify-center h-8 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/80 border border-dashed border-border/80"
+          >
+            <Plus className="w-3.5 h-3.5 mr-1.5" />
+            <span>{m.create_task()}</span>
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

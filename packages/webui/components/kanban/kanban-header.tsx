@@ -9,6 +9,7 @@ interface KanbanHeaderProps {
   selectedGoal: KanbanGoalInfo | null
   onClearGoal: () => void
   onCreateTask: () => void
+  canCreateTask?: boolean
 }
 
 export function KanbanHeader({
@@ -17,6 +18,7 @@ export function KanbanHeader({
   selectedGoal,
   onClearGoal,
   onCreateTask,
+  canCreateTask = true,
 }: KanbanHeaderProps) {
   return (
     <header className="h-14 border-b border-border bg-card/60 backdrop-blur-sm px-4 flex items-center justify-between gap-3 shrink-0 select-none">
@@ -73,13 +75,15 @@ export function KanbanHeader({
       </div>
 
       {/* Right side: Create button */}
-      <div className="flex items-center gap-2 shrink-0">
-        {/* Create Task Button */}
-        <Button size="sm" onClick={onCreateTask} className="h-8 px-3 text-xs gap-1.5 shadow-xs">
-          <Plus className="w-3.5 h-3.5" />
-          <span>{m.create_task()}</span>
-        </Button>
-      </div>
+      {canCreateTask && (
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Create Task Button */}
+          <Button size="sm" onClick={onCreateTask} className="h-8 px-3 text-xs gap-1.5 shadow-xs">
+            <Plus className="w-3.5 h-3.5" />
+            <span>{m.create_task()}</span>
+          </Button>
+        </div>
+      )}
     </header>
   )
 }

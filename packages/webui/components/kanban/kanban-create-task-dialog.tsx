@@ -170,8 +170,19 @@ export function KanbanCreateTaskDialog({
         },
       })
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ message: m.error() }))
-        throw new Error((err as { message?: string }).message || m.error())
+        const text = await res.text().catch(() => '')
+        let errorMsg: string = m.error()
+        if (text) {
+          try {
+            const json = JSON.parse(text)
+            if (json && typeof json.message === 'string') {
+              errorMsg = json.message
+            }
+          } catch {
+            errorMsg = text
+          }
+        }
+        throw new Error(errorMsg)
       }
       return await res.json()
     },

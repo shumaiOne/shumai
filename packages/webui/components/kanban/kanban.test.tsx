@@ -21,6 +21,7 @@ import {
 } from './kanban-types'
 import { KanbanCard } from './kanban-card'
 import { KanbanHeader } from './kanban-header'
+import { KanbanColumn } from './kanban-column'
 import { KanbanBoard } from './kanban-board'
 import { KanbanGoalSidebar } from './kanban-goal-sidebar'
 import { KanbanCreateGoalDialog } from './kanban-create-goal-dialog'
@@ -782,6 +783,78 @@ describe('Kanban UI Unit & Component Tests', () => {
       await waitFor(() => {
         expect(screen.getByText(/Create Task|创建任务/i)).toBeDefined()
       })
+    })
+  })
+
+  describe('Task creation button visibility based on permissions', () => {
+    it('KanbanHeader: hides Create Task button when canCreateTask is false', () => {
+      const { rerender } = render(
+        <KanbanHeader
+          scope="team"
+          onScopeChange={vi.fn()}
+          selectedGoal={null}
+          onClearGoal={vi.fn()}
+          onCreateTask={vi.fn()}
+          canCreateTask={true}
+        />,
+      )
+      expect(screen.queryByText(/Create Task|创建任务/i)).not.toBeNull()
+
+      rerender(
+        <KanbanHeader
+          scope="team"
+          onScopeChange={vi.fn()}
+          selectedGoal={null}
+          onClearGoal={vi.fn()}
+          onCreateTask={vi.fn()}
+          canCreateTask={false}
+        />,
+      )
+      expect(screen.queryByText(/Create Task|创建任务/i)).toBeNull()
+    })
+
+    it('KanbanColumn: only renders + Create Task button in footer for owner and editor', () => {
+      const mockGet = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: [],
+          pageInfo: { total: 0, hasNextPage: false },
+        }),
+      })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(client.api.teams[':teamId'].kanban.tasks.$get as any) = mockGet
+
+      const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+
+      const { rerender } = render(
+        <QueryClientProvider client={queryClient}>
+          <KanbanColumn
+            teamId="team-1"
+            status={KanbanTaskStatus.TODO}
+            selectedGoalId={null}
+            scope="team"
+            currentUserRole="editor"
+            onTaskClick={vi.fn()}
+            onCreateTaskInColumn={vi.fn()}
+          />
+        </QueryClientProvider>,
+      )
+      expect(screen.queryByText(/Create Task|创建任务/i)).not.toBeNull()
+
+      rerender(
+        <QueryClientProvider client={queryClient}>
+          <KanbanColumn
+            teamId="team-1"
+            status={KanbanTaskStatus.TODO}
+            selectedGoalId={null}
+            scope="team"
+            currentUserRole="reviewer"
+            onTaskClick={vi.fn()}
+            onCreateTaskInColumn={vi.fn()}
+          />
+        </QueryClientProvider>,
+      )
+      expect(screen.queryByText(/Create Task|创建任务/i)).toBeNull()
     })
   })
 })

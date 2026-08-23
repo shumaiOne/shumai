@@ -97,6 +97,7 @@ export function KanbanPage({ teamId, initialTaskId }: KanbanPageProps) {
           selectedGoal={selectedGoal}
           onClearGoal={() => setSelectedGoalId(null)}
           onCreateTask={() => handleOpenCreateTask(KanbanTaskStatus.TODO)}
+          canCreateTask={isOwnerOrEditor}
         />
 
         <KanbanBoard
