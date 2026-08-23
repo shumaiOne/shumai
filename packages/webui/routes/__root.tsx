@@ -83,6 +83,8 @@ function RootComponent() {
       </span>
     ) : null
 
+  const isKanbanActive = pathname.includes('/kanban')
+
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden">
       <Toaster />
@@ -116,6 +118,7 @@ function RootComponent() {
         <DualSidebarItem
           icon={<KanbanFillIcon />}
           label={m.kanban()}
+          active={isKanbanActive}
           onItemClick={() => {
             if (storedTeamId) {
               navigate({

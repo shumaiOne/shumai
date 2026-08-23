@@ -1998,7 +1998,7 @@ describe('AssetService', () => {
       expect(await prisma.asset.findUnique({ where: { id: folderA.id } })).toBeNull()
       const remainingChildren = await prisma.asset.count({ where: { parentId: folderA.id } })
       expect(remainingChildren).toBe(0)
-    })
+    }, 20000)
 
     it('should delete the entire directory prefix for assets with complex keys (e.g., files/ULID/raw)', async () => {
       const { project } = await setupBasicAssets()

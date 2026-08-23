@@ -90,7 +90,7 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Avatar className="rounded-lg w-10 h-10">
+        <Avatar className="rounded-lg w-10 h-10 cursor-pointer">
           {me?.image && (
             <AvatarImage
               src={me.image}

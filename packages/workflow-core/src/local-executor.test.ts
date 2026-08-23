@@ -252,20 +252,14 @@ describe('LocalExecutor Integration Tests', () => {
       )
 
       // Wait briefly for Prisma Client Extension's async submits to trigger
-      await new Promise((resolve) => setTimeout(resolve, 100))
-
-      // Exactly 5 tasks should be running concurrently
-      expect(mocks.agentChat).toHaveBeenCalledTimes(5)
+      await vi.waitFor(() => expect(mocks.agentChat).toHaveBeenCalledTimes(5))
 
       // Resolve 2 tasks to let the remaining 2 start
       activeResolvers[0](undefined)
       activeResolvers[1](undefined)
 
-      // Wait briefly for the pool to dequeue
-      await new Promise((resolve) => setTimeout(resolve, 50))
-
       // Now all 7 tasks should have started
-      expect(mocks.agentChat).toHaveBeenCalledTimes(7)
+      await vi.waitFor(() => expect(mocks.agentChat).toHaveBeenCalledTimes(7))
 
       // Clean up remaining tasks
       activeResolvers.slice(2).forEach((resolve) => resolve(undefined))
