@@ -229,6 +229,8 @@ export class KanbanService {
       })
       const sortIndex = generateKeyBetween(lastTask?.sortIndex || null, null)
 
+      const effectiveReporterId = req.reporterId || creatorId
+
       const created = await tx.kanbanTask.create({
         data: {
           teamId,
@@ -241,7 +243,7 @@ export class KanbanService {
           dueDate: req.dueDate ? new Date(req.dueDate) : null,
           goalId: req.goalId,
           projectId: req.projectId,
-          reporterId: req.reporterId,
+          reporterId: effectiveReporterId,
           assigneeId: req.assigneeId,
           targetFolderId: req.targetFolderId,
           creatorId,
@@ -449,11 +451,12 @@ export class KanbanService {
       const isReporter = current.reporterId === actorId || current.creatorId === actorId
       const isAssignee = current.assigneeId === actorId
 
-      // Status change permission check: only owner, reporter, or assignee can change task status
+      // Status change permission check: owner, editor, reporter, or assignee can change task status
       if (req.status !== undefined && req.status !== current.status) {
-        if (!isOwner && !isReporter && !isAssignee) {
+        if (!isOwner && !isEditor && !isReporter && !isAssignee) {
           throw new HTTPException(403, {
-            message: 'Only team owners, task reporters, or assignees can change task status',
+            message:
+              'Only team owners, editors, task reporters, or assignees can change task status',
           })
         }
       }

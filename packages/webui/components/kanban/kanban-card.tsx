@@ -50,11 +50,12 @@ export function KanbanCard({
   const isDraggingAny = !!source
 
   const isOwner = currentUserRole?.toLowerCase() === 'owner'
+  const isEditor = currentUserRole?.toLowerCase() === 'editor'
   const isCreator = !!currentUserId && task.creator?.id === currentUserId
   const isReporter = task.reporter?.id === currentUserId || isCreator
   const isAssignee = task.assignee?.id === currentUserId
-  const canChangeStatus = isOwner || isReporter || isAssignee
-  const canDelete = isCreator || isOwner
+  const canChangeStatus = isOwner || isEditor || isReporter || isAssignee
+  const canDelete = isCreator || isOwner || isReporter
   const isDragDisabled = disabled || !canChangeStatus
 
   const { ref: setDraggableRef, isDragging } = useDraggable({

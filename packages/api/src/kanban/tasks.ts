@@ -123,7 +123,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       })
 
       const existing = await kanbanService.getTask(taskId)
-      const role = await resolveEffectiveRole(teamId, undefined, user.id)
+      const role = await resolveEffectiveRole(teamId, existing.projectId ?? undefined, user.id)
       const task = await kanbanService.updateTask(taskId, req, user.id, role)
 
       const hasMeaningfulChanges =
@@ -210,8 +210,8 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: taskId,
     })
 
-    const role = await resolveEffectiveRole(teamId, undefined, user.id)
     const existing = await kanbanService.getTask(taskId)
+    const role = await resolveEffectiveRole(teamId, existing.projectId ?? undefined, user.id)
 
     notificationService.notifyKanbanTaskEvent({
       type: 'kanban_task_deleted',

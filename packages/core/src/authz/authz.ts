@@ -95,7 +95,18 @@ export class AuthzService {
     // (project override -> team role for team-scoped members -> restricted).
     const role = await resolveEffectiveRole(teamId, projectId, req.user.id)
     if (role) {
-      return this.checkRole(role, req.permission)
+      try {
+        return this.checkRole(role, req.permission)
+      } catch (err) {
+        // If role check failed (e.g. reviewer requesting Permission.Edit on a KanbanTask where they are assignee/reporter/creator), allow it.
+        if (req.type === ResourceType.KanbanTask && req.permission === Permission.Edit) {
+          const isParticipant = await this.isKanbanTaskParticipant(req.id, req.user.id)
+          if (isParticipant) {
+            return
+          }
+        }
+        throw err
+      }
     }
 
     // No effective role: either not a team member, or a project-scoped member
@@ -110,12 +121,34 @@ export class AuthzService {
     })
     if (!member) throw new HTTPException(403, { message: 'User is not a member of the team' })
 
+    // If this is a KanbanTask and user is a team member, check if they are the assignee, reporter, or creator
+    if (req.type === ResourceType.KanbanTask) {
+      if (req.permission === Permission.Read) {
+        return
+      }
+      if (req.permission === Permission.Edit) {
+        const isParticipant = await this.isKanbanTaskParticipant(req.id, req.user.id)
+        if (isParticipant) {
+          return
+        }
+      }
+    }
+
     // Project-scoped member on a team-level resource (no project context):
     // allow Read (e.g. listing), deny Edit/Admin.
     if (!projectId && req.permission === Permission.Read) {
       return
     }
     throw new HTTPException(403, { message: 'User has only project scope' })
+  }
+
+  private async isKanbanTaskParticipant(taskId: string, userId: string): Promise<boolean> {
+    const task = await prisma.kanbanTask.findUnique({
+      where: { id: taskId },
+      select: { creatorId: true, reporterId: true, assigneeId: true },
+    })
+    if (!task) return false
+    return task.creatorId === userId || task.reporterId === userId || task.assigneeId === userId
   }
 
   private async resolveContext(

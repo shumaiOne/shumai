@@ -239,9 +239,10 @@ export function KanbanBoard({
 
     // Check status change permission
     const isOwner = currentUserRole?.toLowerCase() === 'owner'
+    const isEditor = currentUserRole?.toLowerCase() === 'editor'
     const isReporter = task.reporter?.id === currentUserId || task.creator?.id === currentUserId
     const isAssignee = task.assignee?.id === currentUserId
-    if (!isOwner && !isReporter && !isAssignee) {
+    if (!isOwner && !isEditor && !isReporter && !isAssignee) {
       toast.error(m.cannot_change_task_status_permission())
       return
     }

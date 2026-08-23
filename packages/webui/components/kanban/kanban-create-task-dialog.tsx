@@ -74,6 +74,19 @@ export function KanbanCreateTaskDialog({
   const [selectedAssets, setSelectedAssets] = useState<KanbanTaskAssetInfo[]>([])
   const [isFolderPickerOpen, setIsFolderPickerOpen] = useState(false)
 
+  // Query Current User to default reporter
+  const { data: me } = useQuery({
+    queryKey: ['teams', teamId, 'me'],
+    queryFn: async () => {
+      const res = await client.api.teams[':teamId'].me.$get({
+        param: { teamId },
+      })
+      if (!res.ok) return null
+      return await res.json()
+    },
+    enabled: !!teamId && isOpen,
+  })
+
   useEffect(() => {
     if (isOpen) {
       setTitle('')
@@ -82,7 +95,7 @@ export function KanbanCreateTaskDialog({
       setPriority(KanbanTaskPriority.MEDIUM)
       setGoalId(effectiveInitialGoalId)
       setAssigneeId('none')
-      setReporterId('none')
+      setReporterId(me?.id || 'none')
       setStartDate(undefined)
       setDueDate(undefined)
       setProjectId(null)
@@ -91,7 +104,7 @@ export function KanbanCreateTaskDialog({
       setParentIds([])
       setSelectedAssets([])
     }
-  }, [isOpen, effectiveInitialGoalId])
+  }, [isOpen, effectiveInitialGoalId, me?.id])
 
   // Queries for selectors
   const { data: members = [] } = useQuery({
