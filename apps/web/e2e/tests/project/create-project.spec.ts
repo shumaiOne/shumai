@@ -40,8 +40,8 @@ test('owner should create a project with a cover image', async ({ owner, prisma 
   await expect(page).toHaveURL(/\/projects\/[^/]+/)
   await expect(page.locator(`text=${projectName}`).first()).toBeVisible()
 
-  // Back on the dashboard the new project card is visible with its cover
-  await page.click('button[aria-label="Dashboard"]')
+  // Back on the home page the new project card is visible with its cover
+  await page.click('button[aria-label="Home"]')
   await expect(page).toHaveURL(/\/teams\/[^/]+/)
   await expect(page.locator(`img[alt="${projectName}"]`)).toBeVisible()
 
