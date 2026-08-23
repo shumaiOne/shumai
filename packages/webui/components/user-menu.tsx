@@ -90,7 +90,7 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Avatar className="rounded-lg w-10 h-10">
+        <Avatar className="rounded-lg w-10 h-10 cursor-pointer">
           {me?.image && (
             <AvatarImage
               src={me.image}
@@ -146,19 +146,6 @@ export function UserMenu() {
           </DropdownMenuPortal>
         </DropdownMenuSub>
         <DropdownMenuSeparator />
-        {me?.role?.toLowerCase() === 'owner' && (
-          <DropdownMenuItem
-            onClick={() =>
-              navigate({
-                to: '/teams/$teamId/dashboard',
-                params: { teamId: teamId! },
-              })
-            }
-            disabled={!teamId}
-          >
-            {m.dashboard()}
-          </DropdownMenuItem>
-        )}
         <DropdownMenuItem
           onClick={() =>
             navigate({

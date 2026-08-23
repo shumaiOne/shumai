@@ -1,5 +1,6 @@
 {
   "$schema": "https://inlang.com/schema/inlang-message-format",
+  "home": "主页",
   "dashboard": "仪表板",
   "notifications": "通知",
   "uploads": "上传管理",

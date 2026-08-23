@@ -3,6 +3,7 @@ import { DualSidebar, DualSidebarItem } from '@/ui/components/dual-sidebar'
 import { NotificationList } from '@/ui/components/notification-list'
 import { TopNav } from '@/ui/components/top-nav'
 import {
+  DashboardFillIcon,
   HomeIcon,
   KanbanFillIcon,
   NotificationFillIcon,
@@ -83,13 +84,16 @@ function RootComponent() {
       </span>
     ) : null
 
+  const isKanbanActive = pathname.includes('/kanban')
+  const isDashboardActive = pathname.includes('/dashboard')
+
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden">
       <Toaster />
       <DualSidebar>
         <DualSidebarItem
           icon={<HomeIcon />}
-          label={m.dashboard()}
+          label={m.home()}
           onItemClick={() => {
             if (storedTeamId) {
               navigate({
@@ -116,6 +120,7 @@ function RootComponent() {
         <DualSidebarItem
           icon={<KanbanFillIcon />}
           label={m.kanban()}
+          active={isKanbanActive}
           onItemClick={() => {
             if (storedTeamId) {
               navigate({
@@ -125,6 +130,21 @@ function RootComponent() {
             }
           }}
         />
+        {me?.role?.toLowerCase() === 'owner' && (
+          <DualSidebarItem
+            icon={<DashboardFillIcon />}
+            label={m.dashboard()}
+            active={isDashboardActive}
+            onItemClick={() => {
+              if (storedTeamId) {
+                navigate({
+                  to: '/teams/$teamId/dashboard',
+                  params: { teamId: storedTeamId },
+                })
+              }
+            }}
+          />
+        )}
       </DualSidebar>
       <div className="flex flex-col flex-1 md:pl-16 overflow-hidden relative">
         <TopNav />

@@ -10,6 +10,7 @@ interface DualSidebarItemProps {
   badge?: React.ReactNode
   children?: React.ReactNode
   onItemClick?: () => void
+  active?: boolean
 }
 
 // A declarative component that holds props for a sidebar item. It doesn't render anything itself.
@@ -103,32 +104,35 @@ export const DualSidebar: React.FC<DualSidebarProps> = ({ children }) => {
         <div className="absolute bottom-0 w-full h-[70dvh] bg-linear-to-t from-sidebar-primary/10 to-transparent"></div>
         {/* Level 1: Icon Bar */}
         <nav className="w-16 bg-card border-r border-sidebar-border flex flex-col items-center pb-4 pt-0 space-y-2 flex-shrink-0">
-          <div className="flex-1 w-full flex flex-col items-center space-y-5 pt-1">
+          <div className="flex-1 w-full flex flex-col items-center gap-5 pt-1">
             <TooltipProvider>
-              {sidebarItems.map((item, index) => (
-                <Tooltip key={item.props.label}>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon-lg"
-                      onClick={() => handleItemClick(index)}
-                      aria-label={item.props.label}
-                      aria-expanded={activeItem === index}
-                      className={`relative w-12 h-12 [&_svg:not([class*='size-'])]:size-6 transition-all duration-200 ${
-                        activeItem === index
-                          ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-lg hover:bg-sidebar-primary hover:text-sidebar-primary-foreground'
-                          : 'text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent'
-                      }`}
-                    >
-                      {item.props.icon}
-                      {item.props.badge}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">
-                    <p>{item.props.label}</p>
-                  </TooltipContent>
-                </Tooltip>
-              ))}
+              {sidebarItems.map((item, index) => {
+                const isItemActive = Boolean(item.props.active || activeItem === index)
+                return (
+                  <Tooltip key={item.props.label}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon-lg"
+                        onClick={() => handleItemClick(index)}
+                        aria-label={item.props.label}
+                        aria-expanded={activeItem === index}
+                        className={`relative w-12 h-12 [&_svg:not([class*='size-'])]:size-6 transition-colors duration-200 ${
+                          isItemActive
+                            ? 'text-sidebar-primary hover:bg-sidebar-accent hover:text-sidebar-primary'
+                            : 'text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent'
+                        }`}
+                      >
+                        {item.props.icon}
+                        {item.props.badge}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p>{item.props.label}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )
+              })}
             </TooltipProvider>
           </div>
           <div className="mt-auto w-full flex flex-col items-center pb-2">

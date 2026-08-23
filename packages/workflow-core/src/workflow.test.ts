@@ -161,7 +161,7 @@ describe('WorkflowService', () => {
       },
     })
 
-    const submitSpy = vi.spyOn(workflowService, 'submit')
+    const submitSpy = vi.spyOn(workflowService, 'submit').mockImplementation(async () => 'mock-id')
 
     const task = await prisma.workflowTask.create({
       data: {
