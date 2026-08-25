@@ -80,6 +80,11 @@ USER root
 COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
+# Expose "bun index.js" as "shumai" CLI command (and alias "shuami")
+RUN printf '#!/bin/sh\nexec bun /app/index.js "$@"\n' > /usr/local/bin/shumai \
+    && chmod +x /usr/local/bin/shumai \
+    && ln -s /usr/local/bin/shumai /usr/local/bin/shuami
+
 ENTRYPOINT ["docker-entrypoint.sh"]
 
 # Default command: run migrations and start API server

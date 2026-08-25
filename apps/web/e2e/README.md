@@ -56,6 +56,8 @@ apps/web/e2e/
 |---|---|
 | Sign up as the first user and become the team owner | `tests/auth/signup.spec.ts` |
 | Log in with existing credentials | `tests/auth/login.spec.ts` |
+| Show error when accessing reset-password page without token | `tests/auth/reset-password.spec.ts` |
+| Reset password with valid token and allow logging in with new password | `tests/auth/reset-password.spec.ts` |
 
 ### team
 | Test | File |
