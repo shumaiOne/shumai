@@ -114,6 +114,10 @@ export function FileBrowserContextMenu({
     onRestore(itemsToRestore)
   }
 
+  if (isRecents) {
+    return null
+  }
+
   if (isShareView) {
     if (!item) return null
     return (

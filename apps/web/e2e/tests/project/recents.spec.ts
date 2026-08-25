@@ -14,5 +14,16 @@ test('owner views a file and it appears in recents', async ({ file }) => {
   await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/recents`))
 
   // The viewed file should be visible in recents
-  await expect(fileCard(page, fileName)).toBeVisible()
+  const card = fileCard(page, fileName)
+  await expect(card).toBeVisible()
+
+  // Toolbar buttons should be disabled
+  await expect(page.getByRole('button', { name: 'Field' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Search' })).toBeDisabled()
+  await expect(page.getByText('AGENTS.md')).not.toBeVisible()
+
+  // Right-clicking the file should NOT show the context menu
+  await card.click({ button: 'right' })
+  await expect(page.getByRole('menuitem', { name: 'Delete' })).not.toBeVisible()
+  await expect(page.getByRole('menuitem', { name: 'Download' })).not.toBeVisible()
 })

@@ -30,6 +30,7 @@ type FileBrowserToolbarProps = {
   sort?: SearchSort
   onSortChange: (sort?: SearchSort) => void
   isRecentlyDeleted?: boolean
+  isRecents?: boolean
   collection?: CollectionInfo
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onUpdateCollection?: (updates: { name?: string; filter?: any }) => void
@@ -46,6 +47,7 @@ export function FileBrowserToolbar({
   sort,
   onSortChange,
   isRecentlyDeleted,
+  isRecents,
   collection,
   onUpdateCollection,
   rootFolderId,
@@ -240,9 +242,12 @@ export function FileBrowserToolbar({
   return (
     <div className="flex items-center justify-between p-2 border-b sticky top-0 bg-background z-10">
       <div className="flex items-center gap-2 h-full">
-        <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+        <Popover
+          open={isRecents ? false : popoverOpen}
+          onOpenChange={isRecents ? undefined : setPopoverOpen}
+        >
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" disabled={isRecents}>
               {m.field()}
             </Button>
           </PopoverTrigger>
@@ -260,7 +265,7 @@ export function FileBrowserToolbar({
           fields={fields}
           sort={sort}
           onSortChange={onSortChange}
-          disabled={isRecentlyDeleted}
+          disabled={isRecentlyDeleted || isRecents}
         />
 
         <Separator orientation="vertical" />
@@ -343,7 +348,7 @@ export function FileBrowserToolbar({
           <>
             <Button
               onClick={() => setSearchDialogOpen(true)}
-              disabled={isRecentlyDeleted}
+              disabled={isRecentlyDeleted || isRecents}
               variant={activeFiltersCount > 0 ? 'secondary' : 'ghost'}
               size="sm"
             >
@@ -355,7 +360,7 @@ export function FileBrowserToolbar({
               )}
             </Button>
 
-            {!isRecentlyDeleted && (
+            {!isRecentlyDeleted && !isRecents && (
               <>
                 <Separator orientation="vertical" />
                 <Button
@@ -387,7 +392,7 @@ export function FileBrowserToolbar({
       </div>
 
       <div className="flex items-center gap-2">
-        {!isRecentlyDeleted && (
+        {!isRecentlyDeleted && !isRecents && (
           <div
             className="flex items-center -space-x-2 cursor-pointer hover:opacity-90"
             data-testid="project-members-trigger"

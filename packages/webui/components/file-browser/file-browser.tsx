@@ -990,10 +990,17 @@ export function FileBrowser({
   const renderContent = () => {
     return (
       <ContextMenu modal={false}>
-        <ContextMenuTrigger asChild disabled={isShareView || isPublic || !!collection}>
+        <ContextMenuTrigger asChild disabled={isShareView || isPublic || !!collection || isRecents}>
           <div
             className="flex-1 bg-background relative flex flex-col min-h-0 overflow-hidden"
-            onContextMenu={(e) => onContextMenu(e)}
+            onContextMenu={(e) => {
+              if (isRecents) {
+                e.preventDefault()
+                e.stopPropagation()
+                return
+              }
+              onContextMenu(e)
+            }}
             onDragEnter={handleGlobalDragEnter}
             onDragLeave={handleGlobalDragLeave}
             onDragOver={handleGlobalDragOver}
@@ -1010,6 +1017,7 @@ export function FileBrowser({
                 sort={sort}
                 onSortChange={onSortChange}
                 isRecentlyDeleted={isRecentlyDeleted}
+                isRecents={isRecents}
                 collection={collection}
                 onUpdateCollection={onUpdateCollection}
                 rootFolderId={rootFolderId}
