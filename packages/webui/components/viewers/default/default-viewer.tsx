@@ -4,7 +4,7 @@ import React, { useImperativeHandle } from 'react'
 import { FileViewerProps, MediaController } from '../types'
 
 export const DefaultViewer = React.forwardRef<MediaController, FileViewerProps>(
-  ({ file, shareId, children, allowDownload = true }, ref) => {
+  ({ file, shareId, allowDownload = true }, ref) => {
     // Implement no-op media controller
     useImperativeHandle(ref, () => ({
       play: () => {},
@@ -39,11 +39,8 @@ export const DefaultViewer = React.forwardRef<MediaController, FileViewerProps>(
 
     return (
       <div className="flex flex-col flex-1 h-full overflow-hidden bg-gray-100 dark:bg-gray-950 relative">
-        <div className="flex-1 flex flex-col-reverse md:flex-row min-h-0 relative">
-          {children}
-          <div className="flex-1 flex items-center justify-center">
-            <p className="text-muted-foreground">Preview unavailable</p>
-          </div>
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-muted-foreground">Preview unavailable</p>
         </div>
         <div className="relative px-4 py-3 bg-card border-t border-gray-200 dark:border-gray-700 z-10 flex items-center justify-end gap-2 transition-colors duration-200">
           {allowDownload && (
