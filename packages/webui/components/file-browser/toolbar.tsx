@@ -30,6 +30,7 @@ type FileBrowserToolbarProps = {
   sort?: SearchSort
   onSortChange: (sort?: SearchSort) => void
   isRecentlyDeleted?: boolean
+  isRecents?: boolean
   collection?: CollectionInfo
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onUpdateCollection?: (updates: { name?: string; filter?: any }) => void
@@ -46,6 +47,7 @@ export function FileBrowserToolbar({
   sort,
   onSortChange,
   isRecentlyDeleted,
+  isRecents,
   collection,
   onUpdateCollection,
   rootFolderId,
@@ -237,6 +239,14 @@ export function FileBrowserToolbar({
       .toUpperCase()
   }
 
+  if (isRecents) {
+    return (
+      <div className="flex items-center px-4 py-2.5 border-b sticky top-0 bg-background z-10 text-sm text-muted-foreground">
+        <span>{m.recents_toolbar_hint()}</span>
+      </div>
+    )
+  }
+
   return (
     <div className="flex items-center justify-between p-2 border-b sticky top-0 bg-background z-10">
       <div className="flex items-center gap-2 h-full">
@@ -260,7 +270,7 @@ export function FileBrowserToolbar({
           fields={fields}
           sort={sort}
           onSortChange={onSortChange}
-          disabled={isRecentlyDeleted}
+          disabled={isRecentlyDeleted || isRecents}
         />
 
         <Separator orientation="vertical" />
@@ -343,7 +353,7 @@ export function FileBrowserToolbar({
           <>
             <Button
               onClick={() => setSearchDialogOpen(true)}
-              disabled={isRecentlyDeleted}
+              disabled={isRecentlyDeleted || isRecents}
               variant={activeFiltersCount > 0 ? 'secondary' : 'ghost'}
               size="sm"
             >
@@ -355,7 +365,7 @@ export function FileBrowserToolbar({
               )}
             </Button>
 
-            {!isRecentlyDeleted && (
+            {!isRecentlyDeleted && !isRecents && (
               <>
                 <Separator orientation="vertical" />
                 <Button
@@ -387,7 +397,7 @@ export function FileBrowserToolbar({
       </div>
 
       <div className="flex items-center gap-2">
-        {!isRecentlyDeleted && (
+        {!isRecentlyDeleted && !isRecents && (
           <div
             className="flex items-center -space-x-2 cursor-pointer hover:opacity-90"
             data-testid="project-members-trigger"

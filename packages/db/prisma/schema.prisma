@@ -236,8 +236,9 @@ model User {
   kanbanTasksReported  KanbanTask[]     @relation("KanbanTaskReporter")
   kanbanTasksAssigned  KanbanTask[]     @relation("KanbanTaskAssignee")
   kanbanGoalsCreated   KanbanGoal[]     @relation("UserToKanbanGoal")
-  kanbanTaskComments   KanbanTaskComment[]
-  kanbanTaskEvents     KanbanTaskEvent[]
+  kanbanTaskComments        KanbanTaskComment[]
+  kanbanTaskEvents          KanbanTaskEvent[]
+  recentFiles               RecentFileItem[]
 
   @@map("users")
 }
@@ -414,6 +415,7 @@ model Project {
   collections            Collection[]       @relation("ProjectToCollection")
   auditLogs              AuditLog[]         @relation("ProjectToAuditLog")
   kanbanTasks            KanbanTask[]       @relation("ProjectToKanbanTask")
+  recentFiles            RecentFileItem[]
 
   @@map("projects")
   @@index([createdAt])
@@ -564,6 +566,7 @@ model Asset {
   agentMd              AssetAgentMd?   @relation("AssetToAgentMd")
   kanbanTargetTasks    KanbanTask[]    @relation("KanbanTaskTargetFolder")
   kanbanTasks          KanbanTaskAsset[]
+  recentFiles          RecentFileItem[]
 
   @@map("assets")
   @@index([type])
@@ -1271,6 +1274,23 @@ model KanbanTaskEvent {
   @@index([taskId, createdAt])
   @@index([actorId, createdAt])
   @@map("kanban_task_events")
+}
+
+model RecentFileItem {
+  id        String   @id @default(ulid())
+  userId    String   @map("user_id")
+  projectId String   @map("project_id")
+  assetId   String   @map("asset_id")
+  viewedAt  DateTime @default(now()) @map("viewed_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  asset   Asset   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId, assetId], name: "userIdProjectIdAssetId")
+  @@index([userId, projectId, viewedAt(sort: Desc)])
+  @@index([assetId])
+  @@map("recent_file_items")
 }
 
 

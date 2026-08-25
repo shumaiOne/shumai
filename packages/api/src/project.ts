@@ -11,6 +11,8 @@ import {
   recentlyDeletedRequestSchema,
   updateProjectMemberRoleRequestSchema,
   addProjectMemberRequestSchema,
+  listRecentsRequestSchema,
+  recordRecentViewRequestSchema,
 } from '@shumai/dtos'
 import { listMembersQuerySchema, paginationParamsSchema, AuditAction } from '@shumai/dtos'
 import type { Prisma } from '@shumai/db'
@@ -116,6 +118,40 @@ const route = new Hono<{ Variables: { user: User } }>()
         first: req.first,
       })
       return c.json(resp)
+    },
+  )
+  .get('/projects/:projectId/recents', zValidator('query', listRecentsRequestSchema), async (c) => {
+    const projectId = c.req.param('projectId')
+    const user = c.get('user')
+    const req = c.req.valid('query')
+
+    await authzService.hasPermission({
+      user,
+      permission: Permission.Read,
+      type: ResourceType.Project,
+      id: projectId,
+    })
+
+    const resp = await assetService.listRecents(user.id, projectId, req)
+    return c.json(resp)
+  })
+  .post(
+    '/projects/:projectId/recents/view',
+    zValidator('json', recordRecentViewRequestSchema),
+    async (c) => {
+      const projectId = c.req.param('projectId')
+      const user = c.get('user')
+      const req = c.req.valid('json')
+
+      await authzService.hasPermission({
+        user,
+        permission: Permission.Read,
+        type: ResourceType.Project,
+        id: projectId,
+      })
+
+      await assetService.recordRecentView(user.id, projectId, req.assetId)
+      return c.json({ success: true })
     },
   )
   .post('/projects/:projectId/empty-trash', async (c) => {

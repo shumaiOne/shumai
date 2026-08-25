@@ -50,6 +50,7 @@ import {
   Download,
   Edit,
   Folder,
+  FolderClock,
   LayoutGrid,
   Loader2,
   MoreHorizontal,
@@ -74,6 +75,7 @@ interface FolderTreeProps {
   hideCollections?: boolean
   hideShares?: boolean
   hideRecentlyDeleted?: boolean
+  hideRecents?: boolean
   ancestorFolders?: AncestorFolder[]
 }
 
@@ -88,6 +90,7 @@ export function FolderTree({
   hideCollections,
   hideShares,
   hideRecentlyDeleted,
+  hideRecents,
   ancestorFolders,
 }: FolderTreeProps) {
   const navigate = useNavigate()
@@ -95,6 +98,10 @@ export function FolderTree({
   const { canEdit } = usePermissions(projectId)
   const isRecentlyDeleted = useMatch({
     from: '/projects/$projectId/recently-deleted',
+    shouldThrow: false,
+  })
+  const isRecents = useMatch({
+    from: '/projects/$projectId/recents',
     shouldThrow: false,
   })
 
@@ -478,6 +485,26 @@ export function FolderTree({
           )}
         >
           <div className="space-y-0.5 pr-3">
+            {!hideRecents && (
+              <div
+                className={cn(
+                  'group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                  isRecents && 'bg-sidebar-accent text-sidebar-accent-foreground font-medium',
+                )}
+                onClick={() =>
+                  navigate({
+                    to: '/projects/$projectId/recents',
+                    params: { projectId },
+                  })
+                }
+              >
+                <div className="flex h-4 w-4 items-center justify-center">
+                  <FolderClock className="h-4 w-4 text-sidebar-primary" />
+                </div>
+                <span className="flex-1 truncate text-sidebar-foreground">{m.recents()}</span>
+              </div>
+            )}
+
             <FolderTreeItem
               key={rootFolderId}
               teamId={teamId}

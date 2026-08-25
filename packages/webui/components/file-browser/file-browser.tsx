@@ -18,7 +18,7 @@ import type {
 } from '@shumai/dtos'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { AlertTriangle, Download, Loader2 } from 'lucide-react'
+import { AlertTriangle, Download, FolderClock, Loader2 } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { ulid } from 'ulid'
@@ -78,6 +78,7 @@ interface FileBrowserProps {
   hasNextFilesPage: boolean
   isFetchingNextFilesPage: boolean
   isRecentlyDeleted?: boolean
+  isRecents?: boolean
   filterConditions?: SearchCondition[]
   onFilterChange?: (conditions: SearchCondition[]) => void
   sort?: SearchSort
@@ -127,6 +128,7 @@ export function FileBrowser({
   hasNextFilesPage,
   isFetchingNextFilesPage,
   isRecentlyDeleted,
+  isRecents,
   filterConditions,
   onFilterChange,
   sort,
@@ -172,7 +174,8 @@ export function FileBrowser({
   }, [])
 
   const handleGlobalDragEnter = (e: React.DragEvent) => {
-    if (!canEdit || isRecentlyDeleted || isShareView || isPublic || !!collection) return
+    if (!canEdit || isRecentlyDeleted || isRecents || isShareView || isPublic || !!collection)
+      return
     e.preventDefault()
     if (e.dataTransfer.types.includes('Files')) {
       dragCounter.current++
@@ -181,7 +184,8 @@ export function FileBrowser({
   }
 
   const handleGlobalDragLeave = (e: React.DragEvent) => {
-    if (!canEdit || isRecentlyDeleted || isShareView || isPublic || !!collection) return
+    if (!canEdit || isRecentlyDeleted || isRecents || isShareView || isPublic || !!collection)
+      return
     e.preventDefault()
     if (e.dataTransfer.types.includes('Files')) {
       dragCounter.current--
@@ -194,12 +198,14 @@ export function FileBrowser({
   }
 
   const handleGlobalDragOver = (e: React.DragEvent) => {
-    if (!canEdit || isRecentlyDeleted || isShareView || isPublic || !!collection) return
+    if (!canEdit || isRecentlyDeleted || isRecents || isShareView || isPublic || !!collection)
+      return
     e.preventDefault()
   }
 
   const handleGlobalDrop = async (e: React.DragEvent) => {
-    if (!canEdit || isRecentlyDeleted || isShareView || isPublic || !!collection) return
+    if (!canEdit || isRecentlyDeleted || isRecents || isShareView || isPublic || !!collection)
+      return
     e.preventDefault()
     e.stopPropagation()
 
@@ -681,6 +687,7 @@ export function FileBrowser({
         handleAction(action as 'rename' | 'delete' | 'download' | 'restore', item)
       },
       isRecentlyDeleted,
+      isRecents,
       selectedCount: selectedIds.size,
       isShareView,
       allowDownload,
@@ -984,10 +991,17 @@ export function FileBrowser({
   const renderContent = () => {
     return (
       <ContextMenu modal={false}>
-        <ContextMenuTrigger asChild disabled={isShareView || isPublic || !!collection}>
+        <ContextMenuTrigger asChild disabled={isShareView || isPublic || !!collection || isRecents}>
           <div
             className="flex-1 bg-background relative flex flex-col min-h-0 overflow-hidden"
-            onContextMenu={(e) => onContextMenu(e)}
+            onContextMenu={(e) => {
+              if (isRecents) {
+                e.preventDefault()
+                e.stopPropagation()
+                return
+              }
+              onContextMenu(e)
+            }}
             onDragEnter={handleGlobalDragEnter}
             onDragLeave={handleGlobalDragLeave}
             onDragOver={handleGlobalDragOver}
@@ -1004,6 +1018,7 @@ export function FileBrowser({
                 sort={sort}
                 onSortChange={onSortChange}
                 isRecentlyDeleted={isRecentlyDeleted}
+                isRecents={isRecents}
                 collection={collection}
                 onUpdateCollection={onUpdateCollection}
                 rootFolderId={rootFolderId}
@@ -1113,7 +1128,17 @@ export function FileBrowser({
                 !isFetchingNextFoldersPage &&
                 !isFetchingNextFilesPage && (
                   <div className="empty-area flex h-full items-center justify-center text-sm text-muted-foreground">
-                    This folder is empty
+                    {isRecents ? (
+                      <div className="flex flex-col items-center gap-2 p-8 text-center animate-in fade-in duration-300">
+                        <FolderClock className="h-10 w-10 text-muted-foreground/50 mb-1" />
+                        <p className="font-medium text-foreground">{m.no_recent_files()}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {m.no_recent_files_description()}
+                        </p>
+                      </div>
+                    ) : (
+                      <span>This folder is empty</span>
+                    )}
                   </div>
                 )}
             </div>
@@ -1189,6 +1214,7 @@ export function FileBrowser({
           }}
           onRestore={handleRestore}
           isRecentlyDeleted={isRecentlyDeleted}
+          isRecents={isRecents}
           shareLinks={shareLinksData?.data ?? []}
           onCreateShareLink={handleCreateShareLink}
           onAddToShareLink={handleAddToShareLink}

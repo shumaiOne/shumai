@@ -89,6 +89,7 @@ export default function FileSystemManager({
   }, [fields, projectId, setFields])
 
   const isRecentlyDeleted = assetId === 'recently-deleted'
+  const isRecents = assetId === 'recents'
   const [selectedItem, setSelectedItem] = useState<AssetInfo | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null)
@@ -140,18 +141,19 @@ export default function FileSystemManager({
 
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const { data: folderInfo } = isRecentlyDeleted
-    ? { data: undefined }
-    : useQuery({
-        queryKey: ['folders', assetId],
-        queryFn: async () => {
-          const res = await client.api.folders[':folderId'].$get({
-            param: { folderId: assetId },
-          })
-          if (!res.ok) throw new Error('failed to fetch folder')
-          return (await res.json()) as unknown as AssetInfo
-        },
-      })
+  const { data: folderInfo } =
+    isRecentlyDeleted || isRecents
+      ? { data: undefined }
+      : useQuery({
+          queryKey: ['folders', assetId],
+          queryFn: async () => {
+            const res = await client.api.folders[':folderId'].$get({
+              param: { folderId: assetId },
+            })
+            if (!res.ok) throw new Error('failed to fetch folder')
+            return (await res.json()) as unknown as AssetInfo
+          },
+        })
 
   const { setProjectState, clearProjectState } = useTopNavStore()
 
@@ -162,11 +164,13 @@ export default function FileSystemManager({
       projectName,
       ancestorFolders: folderInfo?.ancestorFolders ?? [],
       currentAsset: isRecentlyDeleted
-        ? { name: 'Recently Deleted', type: 'folder' }
-        : isCollection
-          ? { id: collection.id, name: collection.name, type: 'folder' }
-          : { id: folderInfo?.id || assetId, name: folderInfo?.name, type: 'folder' },
-      isRootFolder: !isRecentlyDeleted && !isCollection && assetId === rootFolderId,
+        ? { name: m.recently_deleted(), type: 'folder' }
+        : isRecents
+          ? { name: m.recents(), type: 'folder' }
+          : isCollection
+            ? { id: collection.id, name: collection.name, type: 'folder' }
+            : { id: folderInfo?.id || assetId, name: folderInfo?.name, type: 'folder' },
+      isRootFolder: !isRecentlyDeleted && !isRecents && !isCollection && assetId === rootFolderId,
       onFolderClick: (id: string) => {
         navigate({
           to: '/projects/$projectId/folders/$folderId',
@@ -182,6 +186,7 @@ export default function FileSystemManager({
     projectName,
     folderInfo,
     isRecentlyDeleted,
+    isRecents,
     assetId,
     rootFolderId,
     setProjectState,
@@ -197,9 +202,11 @@ export default function FileSystemManager({
   } = useInfiniteQuery<AssetInfoPaginatedList>({
     queryKey: isRecentlyDeleted
       ? ['projects', projectId, 'recently-deleted', 'folder']
-      : ['search', teamId, assetId, 'folder', filterConditions, sort, isCollection],
+      : isRecents
+        ? ['projects', projectId, 'recents', 'folder']
+        : ['search', teamId, assetId, 'folder', filterConditions, sort, isCollection],
     queryFn: async ({ pageParam }) => {
-      if (isRecentlyDeleted || isCollection) {
+      if (isRecentlyDeleted || isCollection || isRecents) {
         if (isRecentlyDeleted) {
           const res = await client.api.projects[':projectId']['recently-deleted'].$get({
             param: { projectId: projectId },
@@ -230,7 +237,7 @@ export default function FileSystemManager({
       if (!res.ok) throw new Error('failed to search folders')
       return (await res.json()) as unknown as AssetInfoPaginatedList
     },
-    enabled: !isFiltering, // Disable folders when filtering
+    enabled: !isFiltering && !isRecents, // Disable folders when filtering or in recents
     initialPageParam: '',
     getNextPageParam: (lastPage) => {
       return lastPage.pageInfo?.cursor || undefined
@@ -245,7 +252,9 @@ export default function FileSystemManager({
   } = useInfiniteQuery<AssetInfoPaginatedList>({
     queryKey: isRecentlyDeleted
       ? ['projects', projectId, 'recently-deleted', 'file']
-      : ['search', teamId, assetId, 'file', filterConditions, sort, isCollection],
+      : isRecents
+        ? ['projects', projectId, 'recents', 'file']
+        : ['search', teamId, assetId, 'file', filterConditions, sort, isCollection],
     queryFn: async ({ pageParam }) => {
       if (isRecentlyDeleted) {
         const res = await client.api.projects[':projectId']['recently-deleted'].$get({
@@ -256,6 +265,18 @@ export default function FileSystemManager({
           },
         })
         if (!res.ok) throw new Error('failed to fetch recently deleted files')
+        return (await res.json()) as unknown as AssetInfoPaginatedList
+      }
+
+      if (isRecents) {
+        const res = await client.api.projects[':projectId'].recents.$get({
+          param: { projectId: projectId },
+          query: {
+            after: pageParam as string,
+            first: '20',
+          },
+        })
+        if (!res.ok) throw new Error('failed to fetch recent files')
         return (await res.json()) as unknown as AssetInfoPaginatedList
       }
 
@@ -412,7 +433,7 @@ export default function FileSystemManager({
         })
       }
       sensors={
-        isRecentlyDeleted || !canEdit
+        isRecentlyDeleted || isRecents || !canEdit
           ? []
           : [
               PointerSensor.configure({
@@ -486,6 +507,7 @@ export default function FileSystemManager({
             hasNextFilesPage={hasNextPageFiles || false}
             isFetchingNextFilesPage={isFetchingNextFilesPage}
             isRecentlyDeleted={isRecentlyDeleted}
+            isRecents={isRecents}
             filterConditions={filterConditions}
             onFilterChange={setFilterConditions}
             sort={sort}

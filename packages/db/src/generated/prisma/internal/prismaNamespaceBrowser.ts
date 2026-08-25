@@ -100,7 +100,8 @@ export const ModelName = {
   KanbanTaskLink: 'KanbanTaskLink',
   KanbanTaskAsset: 'KanbanTaskAsset',
   KanbanTaskComment: 'KanbanTaskComment',
-  KanbanTaskEvent: 'KanbanTaskEvent'
+  KanbanTaskEvent: 'KanbanTaskEvent',
+  RecentFileItem: 'RecentFileItem'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -843,6 +844,17 @@ export const KanbanTaskEventScalarFieldEnum = {
 } as const
 
 export type KanbanTaskEventScalarFieldEnum = (typeof KanbanTaskEventScalarFieldEnum)[keyof typeof KanbanTaskEventScalarFieldEnum]
+
+
+export const RecentFileItemScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  projectId: 'projectId',
+  assetId: 'assetId',
+  viewedAt: 'viewedAt'
+} as const
+
+export type RecentFileItemScalarFieldEnum = (typeof RecentFileItemScalarFieldEnum)[keyof typeof RecentFileItemScalarFieldEnum]
 
 
 export const SortOrder = {

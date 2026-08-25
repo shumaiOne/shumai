@@ -35,6 +35,7 @@ vi.mock('@shumai/core/src/project/project', () => ({
   },
 }))
 vi.mock('@shumai/core/src/asset/asset')
+
 vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
   auditLogService: {
     logAction: vi.fn().mockResolvedValue({}),
@@ -409,5 +410,47 @@ describe('project api', () => {
       updatedAt: '2026-06-21T00:00:00.000Z',
     })
     expect(projectService.getUserProjects).toHaveBeenCalledWith('user1', 10)
+  })
+
+  it('GET /projects/:projectId/recents', async () => {
+    vi.mocked(assetService.listRecents).mockResolvedValue({
+      data: [{ id: 'file1', name: 'video.mp4', type: 'file' }] as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      pageInfo: { total: 1 },
+    })
+
+    const res = await app.request('/projects/p1/recents?first=20')
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.data).toHaveLength(1)
+    expect(json.data[0].id).toBe('file1')
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Read,
+      type: ResourceType.Project,
+      id: 'p1',
+    })
+    expect(assetService.listRecents).toHaveBeenCalledWith('user1', 'p1', { first: 20 })
+  })
+
+  it('POST /projects/:projectId/recents/view', async () => {
+    vi.mocked(assetService.recordRecentView).mockResolvedValue(undefined)
+
+    const res = await app.request('/projects/p1/recents/view', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assetId: 'file1' }),
+    })
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.success).toBe(true)
+    expect(authzService.hasPermission).toHaveBeenCalledWith({
+      user: expect.anything(),
+      permission: Permission.Read,
+      type: ResourceType.Project,
+      id: 'p1',
+    })
+    expect(assetService.recordRecentView).toHaveBeenCalledWith('user1', 'p1', 'file1')
   })
 })

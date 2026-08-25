@@ -16,6 +16,7 @@ import {
   UpdateAssetNameRequest,
   UpdateAssetOrderRequest,
   AssetUserInfo,
+  ListRecentsRequest,
 } from '@shumai/dtos'
 import { type Asset, AssetStatus, AssetType, Prisma, type StorageKey } from '@shumai/db'
 import { HTTPException } from 'hono/http-exception'
@@ -29,25 +30,27 @@ import { getAvatarUrl } from '@shumai/core/src/user/avatar'
 import { getAgentRequiredLevel, getRoleLevel } from '@shumai/core/src/agent/permissions'
 import { resolveEffectiveRole } from '@shumai/core/src/authz/authz'
 
-type AssetWithIncludes = Prisma.AssetGetPayload<{
-  include: {
-    creator: true
-    metadataValues: true
-    storageKey: true
-    target: {
-      include: {
-        creator: true
-        metadataValues: true
-        storageKey: true
-        children: {
-          include: { creator: true; metadataValues: true; storageKey: true }
-        }
-      }
-    }
-    children: {
-      include: { creator: true; metadataValues: true; storageKey: true }
-    }
-  }
+export const assetInclude = {
+  creator: true,
+  metadataValues: true,
+  storageKey: true,
+  target: {
+    include: {
+      creator: true,
+      metadataValues: true,
+      storageKey: true,
+      children: {
+        include: { creator: true, metadataValues: true, storageKey: true },
+      },
+    },
+  },
+  children: {
+    include: { creator: true, metadataValues: true, storageKey: true },
+  },
+} as const
+
+export type AssetWithIncludes = Prisma.AssetGetPayload<{
+  include: typeof assetInclude
 }>
 
 type CommentWithIncludes = Prisma.AssetCommentGetPayload<{
@@ -1623,7 +1626,7 @@ export class AssetService {
     return { data: infos, pageInfo }
   }
 
-  private async toAssetInfos(assets: AssetWithIncludes[]): Promise<AssetInfo[]> {
+  async toAssetInfos(assets: AssetWithIncludes[]): Promise<AssetInfo[]> {
     const stackIds = new Set<string>()
 
     for (const a of assets) {
@@ -2359,6 +2362,141 @@ export class AssetService {
     }
 
     return results
+  }
+
+  /**
+   * Record a file view by user in project.
+   * If the asset is a child file in a version stack, resolves to the version stack.
+   * Enforces a maximum cap of 100 recent file items per (userId, projectId).
+   */
+  async recordRecentView(userId: string, projectId: string, assetId: string): Promise<void> {
+    const asset = await this.prismaClient.asset.findFirst({
+      where: { id: assetId, projectId },
+      select: {
+        id: true,
+        type: true,
+        parentId: true,
+        isDeleted: true,
+        target: { select: { type: true, projectId: true, isDeleted: true } },
+      },
+    })
+
+    if (!asset || asset.isDeleted) return
+
+    const isFileAsset =
+      asset.type === AssetType.file ||
+      asset.type === AssetType.version_stack ||
+      (asset.type === AssetType.symlink &&
+        asset.target !== null &&
+        (asset.target.type === AssetType.file || asset.target.type === AssetType.version_stack) &&
+        asset.target.projectId === projectId &&
+        !asset.target.isDeleted)
+    if (!isFileAsset) return
+
+    let targetAssetId = asset.id
+
+    // If it's a file inside a version stack, record the version stack instead
+    if (asset.type === AssetType.file && asset.parentId) {
+      const parent = await this.prismaClient.asset.findFirst({
+        where: { id: asset.parentId, projectId, type: AssetType.version_stack, isDeleted: false },
+        select: { id: true },
+      })
+      if (parent) {
+        targetAssetId = parent.id
+      }
+    }
+
+    const now = new Date()
+
+    // Upsert into recent_file_items
+    await this.prismaClient.recentFileItem.upsert({
+      where: {
+        userIdProjectIdAssetId: {
+          userId,
+          projectId,
+          assetId: targetAssetId,
+        },
+      },
+      update: {
+        viewedAt: now,
+      },
+      create: {
+        userId,
+        projectId,
+        assetId: targetAssetId,
+        viewedAt: now,
+      },
+    })
+
+    // Prune if more than 100 items for this (userId, projectId)
+    const count = await this.prismaClient.recentFileItem.count({
+      where: { userId, projectId },
+    })
+
+    if (count > 100) {
+      const itemsToKeep = await this.prismaClient.recentFileItem.findMany({
+        where: { userId, projectId },
+        orderBy: [{ viewedAt: 'desc' }, { id: 'desc' }],
+        take: 100,
+        select: { id: true },
+      })
+      const keepIds = itemsToKeep.map((item) => item.id)
+
+      await this.prismaClient.recentFileItem.deleteMany({
+        where: {
+          userId,
+          projectId,
+          id: { notIn: keepIds },
+        },
+      })
+    }
+  }
+
+  /**
+   * List recent files for user in project, paginated up to 100 total items.
+   */
+  async listRecents(
+    userId: string,
+    projectId: string,
+    req: ListRecentsRequest,
+  ): Promise<PaginatedData<AssetInfo[]>> {
+    const where = {
+      userId,
+      projectId,
+      asset: {
+        isDeleted: false,
+        projectId,
+      },
+    }
+
+    return paginateQuery(
+      async (skip, take) => {
+        if (skip >= 100) return []
+        const effectiveTake = Math.min(take, 100 - skip)
+        if (effectiveTake <= 0) return []
+
+        const recents = await this.prismaClient.recentFileItem.findMany({
+          where,
+          orderBy: [{ viewedAt: 'desc' }, { id: 'desc' }],
+          skip,
+          take: effectiveTake,
+          include: {
+            asset: {
+              include: assetInclude,
+            },
+          },
+        })
+
+        const assets = recents.map((r) => r.asset).filter((a): a is AssetWithIncludes => !!a)
+
+        return await this.toAssetInfos(assets)
+      },
+      async () => {
+        const total = await this.prismaClient.recentFileItem.count({ where })
+        return Math.min(total, 100)
+      },
+      req,
+    )
   }
 }
 

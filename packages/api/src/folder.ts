@@ -120,12 +120,8 @@ const route = new Hono<{ Variables: { user: User } }>()
     })
 
     const resp = await assetService.listChildren({
+      ...req,
       assetId: folderId,
-      assetType: req.assetType,
-      projectId: req.projectId,
-      showDeleted: req.showDeleted,
-      sort: req.sort,
-      order: req.order,
     })
     return c.json(resp)
   })
