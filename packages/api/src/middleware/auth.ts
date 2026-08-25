@@ -36,7 +36,8 @@ export const authMiddleware = createMiddleware<{
     if (process.env.SHUMAI_DEMO_MODE === '1') {
       const method = c.req.method.toUpperCase()
       const path = c.req.path
-      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && !path.endsWith('/search')) {
+      const isAllowedDemoWrite = path.endsWith('/search') || path.endsWith('/recents/view')
+      if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && !isAllowedDemoWrite) {
         const hasWritable = await teamService.hasWritableRoleInAnyTeam(user.id)
 
         if (!hasWritable) {
