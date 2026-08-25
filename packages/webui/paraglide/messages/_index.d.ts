@@ -139,6 +139,7 @@ export * from "./updated_ago.js";
 export * from "./all_files.js";
 export * from "./recently_deleted.js";
 export * from "./recents.js";
+export * from "./recents_toolbar_hint.js";
 export * from "./no_recent_files.js";
 export * from "./no_recent_files_description.js";
 export * from "./collections.js";

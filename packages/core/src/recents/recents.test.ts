@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { prisma, AssetType } from '@shumai/db'
+import { prisma, AssetType, AssetStatus } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
 import { recentsService } from './recents'
 import { projectService } from '../project/project'
@@ -201,7 +201,7 @@ describe('RecentsService', () => {
     const assetsData = Array.from({ length: 105 }, (_, i) => ({
       name: `file_${i}.mp4`,
       type: AssetType.file,
-      status: 'processed',
+      status: AssetStatus.processed,
       projectId: project.id,
       parentId: project.rootFolder!,
     }))

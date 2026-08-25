@@ -239,15 +239,20 @@ export function FileBrowserToolbar({
       .toUpperCase()
   }
 
+  if (isRecents) {
+    return (
+      <div className="flex items-center px-4 py-2.5 border-b sticky top-0 bg-background z-10 text-sm text-muted-foreground">
+        <span>{m.recents_toolbar_hint()}</span>
+      </div>
+    )
+  }
+
   return (
     <div className="flex items-center justify-between p-2 border-b sticky top-0 bg-background z-10">
       <div className="flex items-center gap-2 h-full">
-        <Popover
-          open={isRecents ? false : popoverOpen}
-          onOpenChange={isRecents ? undefined : setPopoverOpen}
-        >
+        <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="sm" disabled={isRecents}>
+            <Button variant="ghost" size="sm">
               {m.field()}
             </Button>
           </PopoverTrigger>

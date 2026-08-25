@@ -17,9 +17,12 @@ test('owner views a file and it appears in recents', async ({ file }) => {
   const card = fileCard(page, fileName)
   await expect(card).toBeVisible()
 
-  // Toolbar buttons should be disabled
-  await expect(page.getByRole('button', { name: 'Field' })).toBeDisabled()
-  await expect(page.getByRole('button', { name: 'Search' })).toBeDisabled()
+  // Toolbar should show hint text instead of action buttons
+  await expect(
+    page.getByText('This page displays the 100 most recent files you viewed in this project.'),
+  ).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Field' })).not.toBeVisible()
+  await expect(page.getByRole('button', { name: 'Search' })).not.toBeVisible()
   await expect(page.getByText('AGENTS.md')).not.toBeVisible()
 
   // Right-clicking the file should NOT show the context menu
