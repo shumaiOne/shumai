@@ -35,6 +35,7 @@ export function useFramePlayer(
 
   // Track playing state of the HTML video element
   useEffect(() => {
+    setCurrentFrame(0)
     const video = videoRef.current
     if (!video) return
 

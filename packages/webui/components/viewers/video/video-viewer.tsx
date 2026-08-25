@@ -128,7 +128,20 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
 
     useEffect(() => {
+      const res = getInitialResolution()
+      setState((prev) => ({
+        ...prev,
+        isPlaying: false,
+        progress: 0,
+        currentTime: 0,
+        duration: data.media?.metadata?.duration || 0,
+        currentResolution: res?.resolution ?? '',
+        currentSrc: res?.url ?? '',
+      }))
       setHasManuallyZoomed(false)
+      setIsPlayerReady(false)
+      setBuffered(0)
+      lastProcessedStartTimeRef.current = null
     }, [data.id])
 
     const vidW = data.media?.metadata?.originalWidth || 1920
@@ -252,6 +265,17 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
     useEffect(() => {
       if (!videoContainerRef.current) return
 
+      const initialRes = getInitialResolution()
+      const targetSrc = initialRes?.url ?? ''
+      if (!targetSrc) return
+
+      // Clean up previous player if exists
+      if (playerRef.current && !playerRef.current.isDisposed()) {
+        playerRef.current.dispose()
+        playerRef.current = null
+        videoRef.current = null
+      }
+
       // 1. Create the video element manually
       // This avoids conflicts with React Strict Mode where the DOM might not match React's virtual DOM expectations after Video.js modifies it.
       const videoElement = document.createElement('video-js')
@@ -272,7 +296,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
         playsinline: true,
         sources: [
           {
-            src: state.currentSrc,
+            src: targetSrc,
             type: 'video/mp4',
           },
         ],
@@ -352,7 +376,7 @@ const VideoViewer = React.forwardRef<MediaController, FileViewerProps>(
           videoRef.current = null
         }
       }
-    }, [data])
+    }, [data.id])
 
     // Handle changes to startTime (e.g., clicking different chunks in search results)
     useEffect(() => {
