@@ -188,6 +188,46 @@ describe('folder api', () => {
       type: ResourceType.Asset,
       id: 'test-id',
     })
+    expect(assetService.listChildren).toHaveBeenCalledWith({
+      assetId: 'test-id',
+      assetType: 'folder',
+    })
+  })
+
+  it('GET /folders/:folderId/children forwards pagination parameters', async () => {
+    vi.mocked(assetService.listChildren).mockResolvedValue({
+      data: [
+        {
+          id: 'child-id-2',
+          name: 'child-folder-2',
+          sizeByte: 0,
+          fileCount: 0,
+          type: 'folder',
+          status: 'active',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ],
+      pageInfo: { total: 30, cursor: 'cursorNextToken' },
+    })
+
+    const app = new Hono().use('*', authMiddleware).route('/', folderRoute)
+    const res = await app.request(
+      '/folders/test-id/children?assetType=folder&first=20&after=cursorToken123&prefix=sub',
+    )
+
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.data).toHaveLength(1)
+    expect(json.pageInfo.cursor).toBe('cursorNextToken')
+
+    expect(assetService.listChildren).toHaveBeenCalledWith({
+      assetId: 'test-id',
+      assetType: 'folder',
+      first: 20,
+      after: 'cursorToken123',
+      prefix: 'sub',
+    })
   })
 
   it('DELETE /folders', async () => {
