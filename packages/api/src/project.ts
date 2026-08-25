@@ -3,7 +3,6 @@ import { zValidator } from '@hono/zod-validator'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { projectService } from '@shumai/core/src/project/project'
 import { assetService } from '@shumai/core/src/asset/asset'
-import { recentsService } from '@shumai/core/src/recents/recents'
 import { reparentAssetsRequestSchema, copyAssetsRequestSchema } from '@shumai/dtos'
 import {
   createProjectRequestSchema,
@@ -133,7 +132,7 @@ const route = new Hono<{ Variables: { user: User } }>()
       id: projectId,
     })
 
-    const resp = await recentsService.listRecents(user.id, projectId, req)
+    const resp = await assetService.listRecents(user.id, projectId, req)
     return c.json(resp)
   })
   .post(
@@ -151,7 +150,7 @@ const route = new Hono<{ Variables: { user: User } }>()
         id: projectId,
       })
 
-      await recentsService.recordView(user.id, projectId, req.assetId)
+      await assetService.recordRecentView(user.id, projectId, req.assetId)
       return c.json({ success: true })
     },
   )

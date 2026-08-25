@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { prisma, AssetType, AssetStatus } from '@shumai/db'
 import { setupTestDbHooks } from '@shumai/db/test'
-import { recentsService } from './recents'
+import { assetService } from './asset'
 import { projectService } from '../project/project'
 
-describe('RecentsService', () => {
+describe('AssetService - Recently Viewed', () => {
   setupTestDbHooks()
 
   async function setupProject() {
@@ -39,14 +39,16 @@ describe('RecentsService', () => {
         scope: 'team',
       },
     })
+
     const project = await projectService.createProject(user1, {
-      teamId: team.id,
       name: 'Test Project',
+      teamId: team.id,
     })
+
     return { user1, user2, team, project }
   }
 
-  it('records and lists recent file views', async () => {
+  it('records recent file view and returns it in descending order', async () => {
     const { user1, project } = await setupProject()
 
     const file1 = await prisma.asset.create({
@@ -58,10 +60,9 @@ describe('RecentsService', () => {
         parentId: project.rootFolder!,
       },
     })
-
     const file2 = await prisma.asset.create({
       data: {
-        name: 'file2.png',
+        name: 'file2.mp4',
         type: AssetType.file,
         status: 'processed',
         projectId: project.id,
@@ -69,19 +70,17 @@ describe('RecentsService', () => {
       },
     })
 
-    // Record view for file1, then file2
-    await recentsService.recordView(user1.id, project.id, file1.id)
-    await recentsService.recordView(user1.id, project.id, file2.id)
+    await assetService.recordRecentView(user1.id, project.id, file1.id)
+    await assetService.recordRecentView(user1.id, project.id, file2.id)
 
-    const list = await recentsService.listRecents(user1.id, project.id, {})
+    const list = await assetService.listRecents(user1.id, project.id, {})
     expect(list.data.length).toBe(2)
-    // file2 viewed more recently, so it should be first
     expect(list.data[0].id).toBe(file2.id)
     expect(list.data[1].id).toBe(file1.id)
     expect(list.pageInfo.total).toBe(2)
   })
 
-  it('updates timestamp on repeated view', async () => {
+  it('updates viewedAt when viewing the same file again', async () => {
     const { user1, project } = await setupProject()
 
     const file1 = await prisma.asset.create({
@@ -93,10 +92,9 @@ describe('RecentsService', () => {
         parentId: project.rootFolder!,
       },
     })
-
     const file2 = await prisma.asset.create({
       data: {
-        name: 'file2.png',
+        name: 'file2.mp4',
         type: AssetType.file,
         status: 'processed',
         projectId: project.id,
@@ -104,19 +102,18 @@ describe('RecentsService', () => {
       },
     })
 
-    await recentsService.recordView(user1.id, project.id, file1.id)
-    await recentsService.recordView(user1.id, project.id, file2.id)
-    // Re-view file1
-    await recentsService.recordView(user1.id, project.id, file1.id)
+    await assetService.recordRecentView(user1.id, project.id, file1.id)
+    await assetService.recordRecentView(user1.id, project.id, file2.id)
+    // View file1 again
+    await assetService.recordRecentView(user1.id, project.id, file1.id)
 
-    const list = await recentsService.listRecents(user1.id, project.id, {})
+    const list = await assetService.listRecents(user1.id, project.id, {})
     expect(list.data.length).toBe(2)
-    // file1 was re-viewed, so it should now be first
     expect(list.data[0].id).toBe(file1.id)
     expect(list.data[1].id).toBe(file2.id)
   })
 
-  it('normalizes file in version stack to the stack asset', async () => {
+  it('records version stack when viewing a child version file', async () => {
     const { user1, project } = await setupProject()
 
     const stack = await prisma.asset.create({
@@ -139,12 +136,12 @@ describe('RecentsService', () => {
       },
     })
 
-    // Record view with child version asset
-    await recentsService.recordView(user1.id, project.id, version1.id)
+    await assetService.recordRecentView(user1.id, project.id, version1.id)
 
-    const list = await recentsService.listRecents(user1.id, project.id, {})
+    const list = await assetService.listRecents(user1.id, project.id, {})
     expect(list.data.length).toBe(1)
     expect(list.data[0].id).toBe(stack.id)
+    expect(list.data[0].type).toBe(AssetType.version_stack)
   })
 
   it('isolates recents per user', async () => {
@@ -160,16 +157,16 @@ describe('RecentsService', () => {
       },
     })
 
-    await recentsService.recordView(user1.id, project.id, file1.id)
+    await assetService.recordRecentView(user1.id, project.id, file1.id)
 
-    const user1List = await recentsService.listRecents(user1.id, project.id, {})
-    const user2List = await recentsService.listRecents(user2.id, project.id, {})
+    const user1List = await assetService.listRecents(user1.id, project.id, {})
+    const user2List = await assetService.listRecents(user2.id, project.id, {})
 
     expect(user1List.data.length).toBe(1)
     expect(user2List.data.length).toBe(0)
   })
 
-  it('filters out soft-deleted assets', async () => {
+  it('does not return soft-deleted files in recents', async () => {
     const { user1, project } = await setupProject()
 
     const file1 = await prisma.asset.create({
@@ -182,7 +179,7 @@ describe('RecentsService', () => {
       },
     })
 
-    await recentsService.recordView(user1.id, project.id, file1.id)
+    await assetService.recordRecentView(user1.id, project.id, file1.id)
 
     // Soft delete file1
     await prisma.asset.update({
@@ -190,7 +187,7 @@ describe('RecentsService', () => {
       data: { isDeleted: true, status: 'trashed' },
     })
 
-    const list = await recentsService.listRecents(user1.id, project.id, {})
+    const list = await assetService.listRecents(user1.id, project.id, {})
     expect(list.data.length).toBe(0)
   })
 
@@ -224,14 +221,14 @@ describe('RecentsService', () => {
 
     // Now record view for the 101st asset to trigger pruning
     const newAsset = allAssets[100]
-    await recentsService.recordView(user1.id, project.id, newAsset.id)
+    await assetService.recordRecentView(user1.id, project.id, newAsset.id)
 
     const count = await prisma.recentFileItem.count({
       where: { userId: user1.id, projectId: project.id },
     })
     expect(count).toBe(100)
 
-    const list = await recentsService.listRecents(user1.id, project.id, { first: 100 })
+    const list = await assetService.listRecents(user1.id, project.id, { first: 100 })
     expect(list.data.length).toBe(100)
     // The most recently viewed file should be newAsset
     expect(list.data[0].id).toBe(newAsset.id)

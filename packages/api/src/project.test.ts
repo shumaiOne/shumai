@@ -4,7 +4,6 @@ import projectRoute from './project'
 import { authzService, Permission, ResourceType } from '@shumai/core/src/authz/authz'
 import { projectService } from '@shumai/core/src/project/project'
 import { assetService } from '@shumai/core/src/asset/asset'
-import { recentsService } from '@shumai/core/src/recents/recents'
 import { auditLogService } from '@shumai/core/src/auditLog/auditLog'
 import type { ProjectInfo } from '@shumai/dtos'
 
@@ -36,12 +35,6 @@ vi.mock('@shumai/core/src/project/project', () => ({
   },
 }))
 vi.mock('@shumai/core/src/asset/asset')
-vi.mock('@shumai/core/src/recents/recents', () => ({
-  recentsService: {
-    recordView: vi.fn(),
-    listRecents: vi.fn(),
-  },
-}))
 
 vi.mock('@shumai/core/src/auditLog/auditLog', () => ({
   auditLogService: {
@@ -420,7 +413,7 @@ describe('project api', () => {
   })
 
   it('GET /projects/:projectId/recents', async () => {
-    vi.mocked(recentsService.listRecents).mockResolvedValue({
+    vi.mocked(assetService.listRecents).mockResolvedValue({
       data: [{ id: 'file1', name: 'video.mp4', type: 'file' }] as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       pageInfo: { total: 1 },
     })
@@ -437,11 +430,11 @@ describe('project api', () => {
       type: ResourceType.Project,
       id: 'p1',
     })
-    expect(recentsService.listRecents).toHaveBeenCalledWith('user1', 'p1', { first: 20 })
+    expect(assetService.listRecents).toHaveBeenCalledWith('user1', 'p1', { first: 20 })
   })
 
   it('POST /projects/:projectId/recents/view', async () => {
-    vi.mocked(recentsService.recordView).mockResolvedValue(undefined)
+    vi.mocked(assetService.recordRecentView).mockResolvedValue(undefined)
 
     const res = await app.request('/projects/p1/recents/view', {
       method: 'POST',
@@ -458,6 +451,6 @@ describe('project api', () => {
       type: ResourceType.Project,
       id: 'p1',
     })
-    expect(recentsService.recordView).toHaveBeenCalledWith('user1', 'p1', 'file1')
+    expect(assetService.recordRecentView).toHaveBeenCalledWith('user1', 'p1', 'file1')
   })
 })
