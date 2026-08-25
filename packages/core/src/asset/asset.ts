@@ -2370,22 +2370,38 @@ export class AssetService {
    * Enforces a maximum cap of 100 recent file items per (userId, projectId).
    */
   async recordRecentView(userId: string, projectId: string, assetId: string): Promise<void> {
-    const asset = await this.prismaClient.asset.findUnique({
-      where: { id: assetId },
-      select: { id: true, type: true, parentId: true, projectId: true, isDeleted: true },
+    const asset = await this.prismaClient.asset.findFirst({
+      where: { id: assetId, projectId },
+      select: {
+        id: true,
+        type: true,
+        parentId: true,
+        isDeleted: true,
+        target: { select: { type: true, projectId: true, isDeleted: true } },
+      },
     })
 
     if (!asset || asset.isDeleted) return
+
+    const isFileAsset =
+      asset.type === AssetType.file ||
+      asset.type === AssetType.version_stack ||
+      (asset.type === AssetType.symlink &&
+        asset.target !== null &&
+        (asset.target.type === AssetType.file || asset.target.type === AssetType.version_stack) &&
+        asset.target.projectId === projectId &&
+        !asset.target.isDeleted)
+    if (!isFileAsset) return
 
     let targetAssetId = asset.id
 
     // If it's a file inside a version stack, record the version stack instead
     if (asset.type === AssetType.file && asset.parentId) {
-      const parent = await this.prismaClient.asset.findUnique({
-        where: { id: asset.parentId },
-        select: { id: true, type: true },
+      const parent = await this.prismaClient.asset.findFirst({
+        where: { id: asset.parentId, projectId, type: AssetType.version_stack, isDeleted: false },
+        select: { id: true },
       })
-      if (parent && parent.type === AssetType.version_stack) {
+      if (parent) {
         targetAssetId = parent.id
       }
     }
@@ -2420,7 +2436,7 @@ export class AssetService {
     if (count > 100) {
       const itemsToKeep = await this.prismaClient.recentFileItem.findMany({
         where: { userId, projectId },
-        orderBy: { viewedAt: 'desc' },
+        orderBy: [{ viewedAt: 'desc' }, { id: 'desc' }],
         take: 100,
         select: { id: true },
       })
@@ -2449,6 +2465,7 @@ export class AssetService {
       projectId,
       asset: {
         isDeleted: false,
+        projectId,
       },
     }
 
@@ -2460,7 +2477,7 @@ export class AssetService {
 
         const recents = await this.prismaClient.recentFileItem.findMany({
           where,
-          orderBy: { viewedAt: 'desc' },
+          orderBy: [{ viewedAt: 'desc' }, { id: 'desc' }],
           skip,
           take: effectiveTake,
           include: {

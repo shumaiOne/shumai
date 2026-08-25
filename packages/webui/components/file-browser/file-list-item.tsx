@@ -37,6 +37,7 @@ interface FileListItemProps {
   fields: MetadataFieldInfo[]
   columnSizing?: Record<string, number>
   canEdit?: boolean
+  isRecents?: boolean
 }
 
 export function FileListItem({
@@ -60,6 +61,7 @@ export function FileListItem({
   fields,
   columnSizing,
   canEdit = true,
+  isRecents,
 }: FileListItemProps) {
   const [name, setName] = useState(item.name)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -274,22 +276,24 @@ export function FileListItem({
           <span className="text-sm text-muted-foreground truncate">
             {formatDate(displayItem.updatedAt)}
           </span>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              const rect = (e.target as HTMLElement).getBoundingClientRect()
-              const contextEvent = new MouseEvent(e.nativeEvent.type, {
-                bubbles: true,
-                cancelable: true,
-                clientX: rect.left,
-                clientY: rect.bottom,
-              }) as unknown as React.MouseEvent<Element, MouseEvent>
-              onContextMenu(contextEvent, displayItem)
-            }}
-            className="opacity-0 shrink-0 transition-opacity group-hover:opacity-100 ml-2"
-          >
-            <MoreVertical className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-          </button>
+          {!isRecents && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                const rect = (e.target as HTMLElement).getBoundingClientRect()
+                const contextEvent = new MouseEvent(e.nativeEvent.type, {
+                  bubbles: true,
+                  cancelable: true,
+                  clientX: rect.left,
+                  clientY: rect.bottom,
+                }) as unknown as React.MouseEvent<Element, MouseEvent>
+                onContextMenu(contextEvent, displayItem)
+              }}
+              className="opacity-0 shrink-0 transition-opacity group-hover:opacity-100 ml-2"
+            >
+              <MoreVertical className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+            </button>
+          )}
         </div>
       </div>
       {displayItem.type === 'file' &&
@@ -306,8 +310,8 @@ export function FileListItem({
               fieldId={field.id}
               config={field.config}
               value={itemFieldValueMap[field.id!]?.value}
-              onSave={canEdit ? (val) => onSaveField(field.id!, val) : undefined}
-              readOnly={field.readOnly || !canEdit}
+              onSave={canEdit && !isRecents ? (val) => onSaveField(field.id!, val) : undefined}
+              readOnly={field.readOnly || !canEdit || !!isRecents}
             />
           </div>
         ))}

@@ -433,7 +433,7 @@ export default function FileSystemManager({
         })
       }
       sensors={
-        isRecentlyDeleted || !canEdit
+        isRecentlyDeleted || isRecents || !canEdit
           ? []
           : [
               PointerSensor.configure({

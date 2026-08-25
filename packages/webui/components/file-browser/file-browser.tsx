@@ -687,6 +687,7 @@ export function FileBrowser({
         handleAction(action as 'rename' | 'delete' | 'download' | 'restore', item)
       },
       isRecentlyDeleted,
+      isRecents,
       selectedCount: selectedIds.size,
       isShareView,
       allowDownload,

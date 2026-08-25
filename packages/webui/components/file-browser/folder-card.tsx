@@ -37,6 +37,7 @@ interface FolderCardProps {
     item: AssetInfo,
   ) => void
   isRecentlyDeleted?: boolean
+  isRecents?: boolean
   selectedCount?: number
   canEdit?: boolean
   isShareView?: boolean
@@ -120,6 +121,7 @@ export function FolderCard({
   disabled,
   onAction,
   isRecentlyDeleted,
+  isRecents,
   selectedCount,
   canEdit = true,
   isShareView,
@@ -352,95 +354,97 @@ export function FolderCard({
                 ? m.n_items_singular({ count: item.fileCount || 0 })
                 : m.n_items_plural({ count: item.fileCount || 0 })}
             </span>
-            <DropdownMenu modal={false}>
-              <DropdownMenuTrigger asChild>
-                <button
-                  onClick={(e) => e.stopPropagation()}
-                  className="p-1.5 -mr-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                >
-                  <MoreHorizontal size={18} />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {isShareView ? (
-                  <>
-                    {allowDownload && (
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onAction?.('download', item)
-                        }}
-                      >
-                        <Download className="mr-2 h-4 w-4" />
-                        <span>{m.download()}</span>
-                      </DropdownMenuItem>
-                    )}
-                    {canEdit && (
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onAction?.('remove-from-share', item)
-                        }}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        <span>{m.remove_from_share()}</span>
-                      </DropdownMenuItem>
-                    )}
-                  </>
-                ) : isRecentlyDeleted ? (
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onAction?.('restore', item)
-                    }}
+            {!isRecents && (
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    onClick={(e) => e.stopPropagation()}
+                    className="p-1.5 -mr-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   >
-                    <History className="mr-2 h-4 w-4" />
-                    <span>{m.restore()}</span>
-                  </DropdownMenuItem>
-                ) : (
-                  <>
-                    {canEdit && (!isChecked || (selectedCount || 0) <= 1) && (
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onAction?.('rename', item)
-                        }}
-                      >
-                        <Edit className="mr-2 h-4 w-4" />
-                        <span>{m.rename()}</span>
-                      </DropdownMenuItem>
-                    )}
-                    {allowDownload && (
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onAction?.('download', item)
-                        }}
-                      >
-                        <Download className="mr-2 h-4 w-4" />
-                        <span>{m.download()}</span>
-                      </DropdownMenuItem>
-                    )}
-                    {canEdit && (
-                      <>
-                        <DropdownMenuSeparator />
+                    <MoreHorizontal size={18} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {isShareView ? (
+                    <>
+                      {allowDownload && (
                         <DropdownMenuItem
                           onClick={(e) => {
                             e.stopPropagation()
-                            onAction?.('delete', item)
+                            onAction?.('download', item)
+                          }}
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          <span>{m.download()}</span>
+                        </DropdownMenuItem>
+                      )}
+                      {canEdit && (
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onAction?.('remove-from-share', item)
                           }}
                           className="text-destructive"
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
-                          <span>{m.delete()}</span>
+                          <span>{m.remove_from_share()}</span>
                         </DropdownMenuItem>
-                      </>
-                    )}
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                      )}
+                    </>
+                  ) : isRecentlyDeleted ? (
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onAction?.('restore', item)
+                      }}
+                    >
+                      <History className="mr-2 h-4 w-4" />
+                      <span>{m.restore()}</span>
+                    </DropdownMenuItem>
+                  ) : (
+                    <>
+                      {canEdit && (!isChecked || (selectedCount || 0) <= 1) && (
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onAction?.('rename', item)
+                          }}
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          <span>{m.rename()}</span>
+                        </DropdownMenuItem>
+                      )}
+                      {allowDownload && (
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onAction?.('download', item)
+                          }}
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          <span>{m.download()}</span>
+                        </DropdownMenuItem>
+                      )}
+                      {canEdit && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onAction?.('delete', item)
+                            }}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            <span>{m.delete()}</span>
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
       </div>

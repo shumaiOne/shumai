@@ -29,4 +29,7 @@ test('owner views a file and it appears in recents', async ({ file }) => {
   await card.click({ button: 'right' })
   await expect(page.getByRole('menuitem', { name: 'Delete' })).not.toBeVisible()
   await expect(page.getByRole('menuitem', { name: 'Download' })).not.toBeVisible()
+
+  // The per-item overflow menu must also be unavailable on the read-only Recents page.
+  await expect(card.getByRole('button')).toHaveCount(0)
 })

@@ -166,6 +166,46 @@ describe('AssetService - Recently Viewed', () => {
     expect(user2List.data.length).toBe(0)
   })
 
+  it('does not record assets from another project', async () => {
+    const { user1, team, project } = await setupProject()
+    const otherProject = await projectService.createProject(user1, {
+      name: 'Other Project',
+      teamId: team.id,
+    })
+    const foreignFile = await prisma.asset.create({
+      data: {
+        name: 'foreign-file.mp4',
+        type: AssetType.file,
+        status: AssetStatus.processed,
+        projectId: otherProject.id,
+        parentId: otherProject.rootFolder!,
+      },
+    })
+
+    await assetService.recordRecentView(user1.id, project.id, foreignFile.id)
+
+    const list = await assetService.listRecents(user1.id, project.id, {})
+    expect(list.data).toHaveLength(0)
+  })
+
+  it('does not record non-file assets', async () => {
+    const { user1, project } = await setupProject()
+    const folder = await prisma.asset.create({
+      data: {
+        name: 'folder',
+        type: AssetType.folder,
+        status: AssetStatus.processed,
+        projectId: project.id,
+        parentId: project.rootFolder!,
+      },
+    })
+
+    await assetService.recordRecentView(user1.id, project.id, folder.id)
+
+    const list = await assetService.listRecents(user1.id, project.id, {})
+    expect(list.data).toHaveLength(0)
+  })
+
   it('does not return soft-deleted files in recents', async () => {
     const { user1, project } = await setupProject()
 
