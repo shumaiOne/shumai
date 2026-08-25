@@ -22,13 +22,14 @@ test.describe('audio player e2e', () => {
     await vp.clickPlayToggle()
     await expect.poll(() => vp.isPaused(), { timeout: 5_000 }).toBe(false)
 
-    // Wait for 300ms. If the playhead froze (which happened under the bug where
+    // Wait for playhead to advance. If the playhead froze (which happened under the bug where
     // it waited 1000ms for rVFC grace period), readoutFrame would still be 0.
     // With the fix, the playhead should advance immediately.
-    await page.waitForTimeout(300)
+    await expect
+      .poll(async () => (await vp.snapshot()).readoutFrame, { timeout: 5_000 })
+      .toBeGreaterThan(0)
     const afterPlay = await vp.snapshot()
 
-    expect(afterPlay.readoutFrame).toBeGreaterThan(0)
     expect(afterPlay.currentTime).toBeGreaterThan(0)
   })
 })

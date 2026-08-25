@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { betterAuth } from 'better-auth'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { prisma } from '@shumai/db'
@@ -11,15 +12,7 @@ interface GeneratedResetLink {
   token: string
 }
 
-let lastGeneratedResetLink: GeneratedResetLink | null = null
-
-function setLastGeneratedResetLink(link: GeneratedResetLink | null) {
-  lastGeneratedResetLink = link
-}
-
-function getLastGeneratedResetLink(): GeneratedResetLink | null {
-  return lastGeneratedResetLink
-}
+const resetLinkStorage = new AsyncLocalStorage<GeneratedResetLink>()
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
@@ -31,7 +24,11 @@ export const auth = betterAuth({
     revokeSessionsOnPasswordReset: true,
     resetPasswordTokenExpiresIn: 3600,
     sendResetPassword: async ({ url, token }) => {
-      setLastGeneratedResetLink({ url, token })
+      const store = resetLinkStorage.getStore()
+      if (store) {
+        store.url = url
+        store.token = token
+      }
     },
   },
   secret: process.env.BETTER_AUTH_SECRET,
@@ -155,28 +152,39 @@ export class AuthService {
       throw new Error(`User with email "${email}" not found`)
     }
 
-    setLastGeneratedResetLink(null)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const res = await (auth.api.requestPasswordReset as any)({
-      headers: new Headers(),
-      body: {
-        email,
-        redirectTo: '/reset-password',
-      },
+    const context: GeneratedResetLink = { url: '', token: '' }
+    await resetLinkStorage.run(context, async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const res = await (auth.api.requestPasswordReset as any)({
+        headers: new Headers(),
+        body: {
+          email,
+          redirectTo: '/reset-password',
+        },
+      })
+
+      if (res?.error) {
+        throw new Error(res.error.message || 'Failed to generate reset link')
+      }
     })
 
-    if (res?.error) {
-      throw new Error(res.error.message || 'Failed to generate reset link')
-    }
+    if (context.token) {
+      // Invalidate any other pending reset tokens for this user
+      await this.prismaClient.verification.deleteMany({
+        where: {
+          value: user.id,
+          identifier: {
+            startsWith: 'reset-password:',
+            not: `reset-password:${context.token}`,
+          },
+        },
+      })
 
-    const resetLink = getLastGeneratedResetLink()
-    if (resetLink?.token) {
       const rawBaseUrl =
         process.env.BETTER_AUTH_URL ||
-        process.env.SHUMAI_BASE_URL ||
         `http://localhost:${process.env.SHUMAI_SERVER_PORT || '3000'}`
       const baseUrl = rawBaseUrl.replace(/\/$/, '')
-      return `${baseUrl}/reset-password?token=${resetLink.token}`
+      return `${baseUrl}/reset-password?token=${context.token}`
     }
 
     throw new Error('Failed to generate reset link')

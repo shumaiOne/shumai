@@ -113,8 +113,7 @@ describe('AuthService Password Reset', () => {
 
   it('should generate a valid reset link and invalidate previous pending tokens', async () => {
     const email = `reset-user-${Date.now()}@example.com`
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (auth.api.signUpEmail as any)({
+    const signUpRes = await auth.api.signUpEmail({
       headers: new Headers(),
       body: {
         email,
@@ -122,6 +121,7 @@ describe('AuthService Password Reset', () => {
         name: 'Reset User',
       },
     })
+    const userId = signUpRes.user.id
 
     const firstLink = await authService.generatePasswordResetLink(email)
     expect(firstLink).toContain('/reset-password?token=')
@@ -129,27 +129,43 @@ describe('AuthService Password Reset', () => {
     const firstToken = new URL(firstLink).searchParams.get('token')!
     expect(firstToken).toBeTruthy()
 
-    // Check that verification record exists
+    // Check that verification record exists with identifier: reset-password:<token> and value: userId
     const firstVerification = await prisma.verification.findFirst({
-      where: { value: firstToken },
+      where: { identifier: `reset-password:${firstToken}` },
     })
-    expect(firstVerification).toBeDefined()
+    expect(firstVerification).not.toBeNull()
+    expect(firstVerification?.value).toBe(userId)
 
-    // Generating a second link should produce a new token
+    // Generating a second link should produce a new token and invalidate the first token
     const secondLink = await authService.generatePasswordResetLink(email)
     const secondToken = new URL(secondLink).searchParams.get('token')!
     expect(secondToken).not.toBe(firstToken)
 
     const newVerification = await prisma.verification.findFirst({
-      where: { value: secondToken },
+      where: { identifier: `reset-password:${secondToken}` },
     })
-    expect(newVerification).toBeDefined()
+    expect(newVerification).not.toBeNull()
+    expect(newVerification?.value).toBe(userId)
+
+    // The first token's verification record must have been deleted
+    const oldVerification = await prisma.verification.findFirst({
+      where: { identifier: `reset-password:${firstToken}` },
+    })
+    expect(oldVerification).toBeNull()
+
+    // First token must fail to reset password
+    await expect(
+      authService.resetPassword(firstToken, 'newPasswordFromFirstToken'),
+    ).rejects.toThrow()
+
+    // Second token must succeed
+    const resetRes = await authService.resetPassword(secondToken, 'newPasswordFromSecondToken')
+    expect(resetRes.success).toBe(true)
   })
 
   it('should reset password with valid token and revoke active sessions', async () => {
     const email = `reset-valid-${Date.now()}@example.com`
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const signUpRes = await (auth.api.signUpEmail as any)({
+    const signUpRes = await auth.api.signUpEmail({
       headers: new Headers(),
       body: {
         email,
@@ -190,7 +206,7 @@ describe('AuthService Password Reset', () => {
 
     // Verify token was deleted
     const usedToken = await prisma.verification.findFirst({
-      where: { value: token },
+      where: { identifier: `reset-password:${token}` },
     })
     expect(usedToken).toBeNull()
 
@@ -224,12 +240,12 @@ describe('AuthService Password Reset', () => {
       },
     })
 
-    // Create expired token
+    // Create expired token fixture with identifier: reset-password:<token> and value: userId
     const token = 'expired-token-123'
     await prisma.verification.create({
       data: {
-        identifier: `reset-password:${user.id}`,
-        value: token,
+        identifier: `reset-password:${token}`,
+        value: user.id,
         expiresAt: new Date(Date.now() - 1000), // Expired 1 second ago
       },
     })
@@ -240,5 +256,51 @@ describe('AuthService Password Reset', () => {
     await expect(
       authService.resetPassword('non-existent-token', 'newPassword123'),
     ).rejects.toThrow()
+  })
+
+  it('should handle concurrent link generation for different users without crosstalk', async () => {
+    const emailA = `concurrent-a-${Date.now()}@example.com`
+    const emailB = `concurrent-b-${Date.now()}@example.com`
+
+    const [resA, resB] = await Promise.all([
+      auth.api.signUpEmail({
+        headers: new Headers(),
+        body: { email: emailA, password: 'passwordA123', name: 'User A' },
+      }),
+      auth.api.signUpEmail({
+        headers: new Headers(),
+        body: { email: emailB, password: 'passwordB123', name: 'User B' },
+      }),
+    ])
+
+    const [linkA, linkB] = await Promise.all([
+      authService.generatePasswordResetLink(emailA),
+      authService.generatePasswordResetLink(emailB),
+    ])
+
+    const tokenA = new URL(linkA).searchParams.get('token')!
+    const tokenB = new URL(linkB).searchParams.get('token')!
+    expect(tokenA).toBeTruthy()
+    expect(tokenB).toBeTruthy()
+    expect(tokenA).not.toBe(tokenB)
+
+    const verificationA = await prisma.verification.findFirst({
+      where: { identifier: `reset-password:${tokenA}` },
+    })
+    const verificationB = await prisma.verification.findFirst({
+      where: { identifier: `reset-password:${tokenB}` },
+    })
+
+    expect(verificationA?.value).toBe(resA.user.id)
+    expect(verificationB?.value).toBe(resB.user.id)
+
+    // Reset both passwords concurrently
+    const [resetResA, resetResB] = await Promise.all([
+      authService.resetPassword(tokenA, 'newPasswordA123'),
+      authService.resetPassword(tokenB, 'newPasswordB123'),
+    ])
+
+    expect(resetResA.success).toBe(true)
+    expect(resetResB.success).toBe(true)
   })
 })
