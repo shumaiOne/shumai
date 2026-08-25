@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ShareShareIdRouteImport } from './routes/share/$shareId'
@@ -36,6 +37,11 @@ const SignupRoute = SignupRouteImport.update({
   path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any).lazy(() => import('./routes/reset-password.lazy').then((d) => d.Route))
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -154,6 +160,7 @@ const ProjectsProjectIdFoldersFolderIdAgentsmdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/share/$shareId': typeof ShareShareIdRouteWithChildren
   '/projects/$projectId/agentsmd': typeof ProjectsProjectIdAgentsmdRoute
@@ -177,6 +184,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/projects/$projectId/agentsmd': typeof ProjectsProjectIdAgentsmdRoute
   '/projects/$projectId/recently-deleted': typeof ProjectsProjectIdRecentlyDeletedRoute
@@ -200,6 +208,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/share/$shareId': typeof ShareShareIdRouteWithChildren
   '/projects/$projectId/agentsmd': typeof ProjectsProjectIdAgentsmdRoute
@@ -225,6 +234,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/reset-password'
     | '/signup'
     | '/share/$shareId'
     | '/projects/$projectId/agentsmd'
@@ -248,6 +258,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/reset-password'
     | '/signup'
     | '/projects/$projectId/agentsmd'
     | '/projects/$projectId/recently-deleted'
@@ -270,6 +281,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/login'
+    | '/reset-password'
     | '/signup'
     | '/share/$shareId'
     | '/projects/$projectId/agentsmd'
@@ -294,6 +306,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   ShareShareIdRoute: typeof ShareShareIdRouteWithChildren
   ProjectsProjectIdAgentsmdRoute: typeof ProjectsProjectIdAgentsmdRoute
@@ -319,6 +332,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -481,6 +501,7 @@ const ShareShareIdRouteWithChildren = ShareShareIdRoute._addFileChildren(ShareSh
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   ShareShareIdRoute: ShareShareIdRouteWithChildren,
   ProjectsProjectIdAgentsmdRoute: ProjectsProjectIdAgentsmdRoute,

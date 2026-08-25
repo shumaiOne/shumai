@@ -13,10 +13,35 @@ import { initTranscodeWorkflows } from '@shumai/transcode'
 import { workflowService } from '@shumai/workflow-core'
 
 import { handleDaemonCommands } from '@shumai/core/src/utils/daemon'
+import { authService } from '@shumai/core/src/auth/auth'
 
 if (process.argv.includes('--check')) {
   console.log('✅ Web app evaluated successfully!')
   process.exit(0)
+}
+
+const cliArgs = process.argv.slice(2)
+const resetCmdIndex = cliArgs.findIndex(
+  (arg) => arg === 'reset-password' || arg === 'reset-passowrd',
+)
+
+if (resetCmdIndex !== -1) {
+  const email = cliArgs[resetCmdIndex + 1]
+  if (!email || email.startsWith('-')) {
+    console.error('Error: Please provide a valid email address.')
+    console.error('Usage: shumai reset-password <email>')
+    process.exit(1)
+  }
+
+  try {
+    const link = await authService.generatePasswordResetLink(email)
+    console.log(link)
+    process.exit(0)
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    console.error(`Error: ${message}`)
+    process.exit(1)
+  }
 }
 
 async function run() {

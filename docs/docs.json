@@ -52,7 +52,11 @@
       },
       {
         "group": "Team Settings",
-        "pages": ["using-shumai/transcode-settings", "using-shumai/quotas-settings"]
+        "pages": [
+          "using-shumai/transcode-settings",
+          "using-shumai/quotas-settings",
+          "using-shumai/password-reset"
+        ]
       },
       {
         "group": "Configuration",
